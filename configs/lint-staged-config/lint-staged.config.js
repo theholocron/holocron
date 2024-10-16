@@ -5,8 +5,7 @@
 export default {
 	"*.css": "stylelint --fix",
 	"*.{js,jsx}": ["prettier --write", "eslint"],
-	"*.md": ["prettier --write", "alex"],
-	"!CHANGELOG.md": [],
+	"*.md": ["prettier --write"], // disabling alex --why because of https://github.com/get-alex/alex/issues/348
 	"*.mdx": ["prettier --write", "alex --mdx --why"],
 	"*.{png,jpeg,jpg,gif,svg}": "imagemin-lint-staged",
 	"*.scss": "stylelint --syntax=scss --fix",
