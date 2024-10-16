@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/commitlint-config",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A CommitLint configuration for writing well-formatted and consistent Git commits.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/commitlint-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
