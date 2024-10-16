@@ -5,7 +5,7 @@
 export default {
 	"*.css": "stylelint --fix",
 	"*.{js,jsx}": ["prettier --write", "eslint"],
-	"*.md": ["prettier --write", "alex --why"],
+	"*.md": ["prettier --write", "alex"],
 	"*.mdx": ["prettier --write", "alex --mdx --why"],
 	"*.{png,jpeg,jpg,gif,svg}": "imagemin-lint-staged",
 	"*.scss": "stylelint --syntax=scss --fix",
