@@ -17,9 +17,9 @@ In your project `.husky/pre-commit` add the following:
 npx lint-staged --config @theholocron/lint-staged-config
 ```
 
-## How We Manage Git Hooks
+## How We Manage Our Staged Code
 
-This library uses [husky](https://github.com/typicode/husky) for managing Git hooks and extends that with `lint-staged`.  This means we can run automated tasks on any file that is placed on the Git stage.  Currently that means we run the following commands on various types of code:
+This library uses [`husky`](https://github.com/typicode/husky) for managing tools and extending that with `lint-staged`. This means we can run automated tasks on any file that is placed on the Git stage. Currently that means we run the following commands on various types of code:
 
 ### [TJ]S(X)
 
