@@ -1,0 +1,29 @@
+{
+  "name": "@theholocron/lint-staged-config",
+  "version": "2.0.0",
+  "description": "A Lint Staged configuration for linting code that has been staged in Git within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "lint-staged.config.js",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "husky": "^9.1.6",
+    "imagemin-lint-staged": "^0.5.1",
+    "lint-staged": "^15.2.10",
+    "sort-package-json": "^2.10.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

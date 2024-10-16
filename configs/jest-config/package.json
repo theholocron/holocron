@@ -1,0 +1,20 @@
+{
+  "name": "@theholocron/jest-config",
+  "version": "2.0.0",
+  "description": "A Jest preset for testing code within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/jest-preset#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": "https://github.com/theholocron/configs.git",
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "jest-preset.js",
+  "dependencies": {
+    "jest": "29.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

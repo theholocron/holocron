@@ -1,0 +1,27 @@
+{
+  "name": "@theholocron/eslint-config",
+  "version": "2.0.0",
+  "description": "A ESLint configuration for writing well-formed Javascript within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/commitlint-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "eslint.config.js",
+  "dependencies": {
+    "@eslint/js": "^9.12.0",
+    "eslint": "^9.12.0",
+    "eslint-plugin-react": "^7.37.1",
+    "globals": "^15.11.0",
+    "typescript-eslint": "^8.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}
