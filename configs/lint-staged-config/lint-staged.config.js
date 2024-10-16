@@ -3,13 +3,12 @@
  * @type {import("lint-staged").Config}
  */
 export default {
-	"*.{ts,tsx,js,jsx}": [
-		"prettier --write",
-		"eslint",
-		"tsc --noEmit --showConfig",
-	],
 	"*.css": "stylelint --fix",
-	"*.scss": "stylelint --syntax=scss --fix",
+	"*.{js,jsx}": ["prettier --write", "eslint"],
+	"*.md": ["prettier --write", "alex --why"],
+	"*.mdx": ["prettier --write", "alex --mdx --why"],
 	"*.{png,jpeg,jpg,gif,svg}": "imagemin-lint-staged",
+	"*.scss": "stylelint --syntax=scss --fix",
+	"*.{ts,tsx}": ["prettier --write", "eslint", "tsc --noEmit --showConfig"],
 	"package.json": "sort-package-json",
 };
