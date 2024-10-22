@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/storybook-config",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "A Storybook configuration for writing tested components within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/storybook-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
@@ -11,7 +11,7 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "index.js",
+  "main": "index.ts",
   "files": [
     "main.ts",
     "preview.ts",
