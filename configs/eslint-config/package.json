@@ -11,11 +11,19 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "eslint.config.js",
+  "main": "index.js",
+  "files": [
+    "cypress.eslint.config.js",
+    "eslint.config.js",
+    "storybook.eslint.config.js"
+  ],
   "dependencies": {
+    "@eslint/compat": "^1.2.1",
     "@eslint/js": "^9.12.0",
+    "esling-plugin-cypress": "^4.0.0",
     "eslint": "^9.12.0",
     "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-storybook": "^0.10.1",
     "globals": "^15.11.0",
     "typescript-eslint": "^8.9.0"
   },

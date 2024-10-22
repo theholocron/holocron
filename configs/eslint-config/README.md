@@ -10,12 +10,13 @@ npm install --save-dev @theholocron/eslint-config
 
 ## Usage
 
-In your project `package.json` add the following:
+In your project `eslint.config.js` add the following:
 
-```json
-{
-  "eslintConfig": {
-    "extends": "@theholocron"
-  },
-}
+```javascript
+import theHolocron, {
+	theHolocronCypress,
+	theHolocronStorybook,
+} from "@theholocron/eslint-config";
+
+export default [...theHolocron, ...theHolocronStorybook, ...theHolocronCypress];
 ```
