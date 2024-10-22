@@ -1,0 +1,51 @@
+{
+  "name": "@theholocron/storybook-config",
+  "version": "3.0.0",
+  "description": "A Storybook configuration for testing Javascript within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/commitlint-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "main.ts",
+    "preview.ts",
+    "test-runner.ts"
+  ],
+  "dependencies": {
+    "@chromatic-com/storybook": "^1.9.0",
+    "@storybook/addon-a11y": "^8.3.5",
+    "@storybook/addon-coverage": "^1.0.4",
+    "@storybook/addon-essentials": "^8.3.5",
+    "@storybook/addon-interactions": "^8.3.5",
+    "@storybook/addon-links": "^8.3.5",
+    "@storybook/blocks": "^8.3.5",
+    "@storybook/react": "^8.3.5",
+    "@storybook/react-vite": "^8.3.5",
+    "@storybook/test": "^8.3.5",
+    "@storybook/test-runner": "^0.19.1",
+    "@whitespace/storybook-addon-html": "^6.1.1",
+    "axe-playwright": "^2.0.3",
+    "chromatic": "^11.12.5",
+    "msw-storybook-addon": "^2.0.3",
+    "playwright": "^1.48.1",
+    "storybook": "^8.3.5"
+  },
+  "peerDependencies": {
+    "@testing-library/jest-dom": "^6.6.2",
+    "@testing-library/react": "^16.0.1",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}
