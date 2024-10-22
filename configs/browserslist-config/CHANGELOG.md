@@ -1,5 +1,11 @@
 # @theholocron/browserslist-config
 
+## 3.2.1
+
+### Patch Changes
+
+-   [`3d54f12`](https://github.com/theholocron/configs/commit/3d54f12618e8a6cc6ccc4559eb48ef402bb04d77) Thanks [@iamnewton](https://github.com/iamnewton)! - Fix the storybook config; its missing the index file from the export
+
 ## 3.2.0
 
 ### Minor Changes
