@@ -32,6 +32,7 @@
     "@whitespace/storybook-addon-html": "^6.1.1",
     "axe-playwright": "^2.0.3",
     "chromatic": "^11.12.5",
+    "msw": "^2.4.13",
     "msw-storybook-addon": "^2.0.3",
     "playwright": "^1.48.1",
     "storybook": "^8.3.5"

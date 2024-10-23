@@ -2,7 +2,7 @@
  * @see https://jestjs.io/docs/configuration
  * @type {import("jest").Config}
  */
-export default {
+const config = {
 	collectCoverage: true,
 	collectCoverageFrom: [
 		"<rootDir>/src/**/*.{js,jsx,ts,tsx}",
@@ -22,3 +22,5 @@ export default {
 	},
 	modulePathIgnorePatterns: ["<rootDir>/dist/"],
 };
+
+export default config;

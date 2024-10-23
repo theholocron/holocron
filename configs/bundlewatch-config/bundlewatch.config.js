@@ -1,4 +1,4 @@
-export default {
+const config = {
 	files: [
 		{
 			path: "./dist/**/*.css",
@@ -10,3 +10,5 @@ export default {
 		},
 	],
 };
+
+export default config;
