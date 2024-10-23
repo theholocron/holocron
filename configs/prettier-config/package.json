@@ -11,7 +11,7 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "prettier.config.json",
+  "main": "prettier.config.js",
   "dependencies": {
     "prettier": "^3.3.3"
   },
