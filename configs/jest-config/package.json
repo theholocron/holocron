@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/jest-config",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "description": "A Jest preset for testing code within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/jest-preset#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
