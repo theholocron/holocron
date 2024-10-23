@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/lint-staged-config",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "description": "A Lint Staged configuration for linting code that has been staged in Git within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",

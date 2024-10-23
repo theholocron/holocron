@@ -1,5 +1,11 @@
 # @theholocron/lint-staged-config
 
+## 3.4.2
+
+### Patch Changes
+
+-   [`d82832c`](https://github.com/theholocron/configs/commit/d82832c27aa3aa775365628bce98f82a5fe129b6) Thanks [@iamnewton](https://github.com/iamnewton)! - fix issue with deprecated prettier config values
+
 ## 3.4.1
 
 ### Patch Changes
