@@ -10,11 +10,8 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
-  "main": "index.js",
-  "files": [
-    "prettier.config.json",
-    "index.js"
-  ],
+  "type": "module",
+  "main": "prettier.config.json",
   "dependencies": {
     "prettier": "^3.3.3"
   },

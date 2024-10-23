@@ -18,11 +18,7 @@ const config = {
 	useTabs: true,
 	overrides: [
 		{
-			files: [
-				"*.json",
-				"*.yml",
-				"*.yaml",
-			],
+			files: ["*.json", "*.yml", "*.yaml"],
 			options: {
 				tabWidth: 2,
 				useTabs: false,
