@@ -1,5 +1,11 @@
 # @theholocron/commitlint-config
 
+## 3.4.3
+
+### Patch Changes
+
+-   [`11f27c4`](https://github.com/theholocron/configs/commit/11f27c4c3db883ebb8141b7c4075e74887defc90) Thanks [@iamnewton](https://github.com/iamnewton)! - Add dependency to storybook config
+
 ## 3.4.2
 
 ### Patch Changes

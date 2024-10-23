@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/bundlewatch-config",
-  "version": "3.4.2",
+  "version": "3.4.3",
   "description": "A Bundlewatch configuration for monitoring the file size of libraries in the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/bundlewatch-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
