@@ -1,5 +1,11 @@
 # @theholocron/lint-staged-config
 
+## 3.4.4
+
+### Patch Changes
+
+-   [`2e3ce74`](https://github.com/theholocron/configs/commit/2e3ce74b54f83e344bcf79cb9e71fca0ed6e058e) Thanks [@iamnewton](https://github.com/iamnewton)! - Add in tsc as dependency
+
 ## 3.4.3
 
 ### Patch Changes
