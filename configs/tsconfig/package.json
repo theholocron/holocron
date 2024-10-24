@@ -14,6 +14,7 @@
     "node18/tsconfig.json"
   ],
   "dependencies": {
+    "tsc": "^2.0.4",
     "typescript": "^5.6.3"
   },
   "publishConfig": {
