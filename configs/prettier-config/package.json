@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/prettier-config",
-  "version": "3.4.5",
+  "version": "3.4.6",
   "description": "A Prettier configuration for formatting libraries in the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/prettier-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
