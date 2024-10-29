@@ -14,10 +14,10 @@ In your project `package.json` add the following:
 
 ```json
 {
-  "scripts": {
-    "audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/index.js",
-    "audit": "run-p audit:*"
-  }
+	"scripts": {
+		"audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/index.js",
+		"audit": "run-p audit:*"
+	}
 }
 ```
 

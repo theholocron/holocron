@@ -1,6 +1,6 @@
 # CommitLint Config
 
-A [CommitLint configuration](https://commitlint.js.org/reference/configuration.html#shareable-configuration) for writing well-formatted and consistent Git commits. 
+A [CommitLint configuration](https://commitlint.js.org/reference/configuration.html#shareable-configuration) for writing well-formatted and consistent Git commits.
 
 ## Installation
 
@@ -14,9 +14,9 @@ In your project `package.json` add the following:
 
 ```json
 {
-  "commitlint": {
-    "extends": "@theholocron"
-  }
+	"commitlint": {
+		"extends": "@theholocron"
+	}
 }
 ```
 
@@ -30,25 +30,9 @@ Consult [docs/rules](https://conventional-changelog.github.io/commitlint/#/refer
 
 #### type-enum
 
-- **condition**: `type` is found in value
-- **rule**: `always`
-- **value**
-
-  ```js
-  [
-    'build',
-    'ci',
-    'chore',
-    'docs',
-    'feat',
-    'fix',
-    'perf',
-    'refactor',
-    'revert',
-    'style',
-    'test'
-  ]
-  ```
+-   **condition**: `type` is found in value
+-   **rule**: `always`
+-   **value**: "build" | "ci" | "chore" | "docs" | "feat" | "fix" | "perf" | "refactor" | "revert" | "style" | "test"
 
 ```sh
 echo "foo: some message" # fails
@@ -57,13 +41,9 @@ echo "fix: some message" # passes
 
 #### type-case
 
-- **description**: `type` is in case `value`
-- **rule**: `always`
-- **value**
-
-  ```js
-    'lowerCase'
-  ```
+-   **description**: `type` is in case `value`
+-   **rule**: `always`
+-   **value**: "lowercase"
 
 ```sh
 echo "FIX: some message" # fails
@@ -72,8 +52,8 @@ echo "fix: some message" # passes
 
 #### type-empty
 
-- **condition**: `type` is empty
-- **rule**: `never`
+-   **condition**: `type` is empty
+-   **rule**: `never`
 
 ```sh
 echo ": some message" # fails
@@ -82,12 +62,9 @@ echo "fix: some message" # passes
 
 #### scope-case
 
-- **condition**: `scope` is in case `value`
-- **rule**: `always`
-
-```js
-  'lowerCase'
-```
+-   **condition**: `scope` is in case `value`
+-   **rule**: `always`
+-   **value**: "lowercase"
 
 ```sh
 echo "fix(SCOPE): some message" # fails
@@ -96,8 +73,8 @@ echo "fix(scope): some message" # passes
 
 #### subject-case
 
-- **condition**: `subject` is in one of the cases `['sentence-case', 'start-case', 'pascal-case', 'upper-case']`
-- **rule**: `never`
+-   **condition**: `subject` is in one of the cases "sentence-case", "start-case", "pascal-case", "upper-case"`
+-   **rule**: `never`
 
 ```sh
 echo "fix(SCOPE): Some message" # fails
@@ -110,8 +87,8 @@ echo "fix(scope): some Message" # passes
 
 #### subject-empty
 
-- **condition**: `subject` is empty
-- **rule**: `never`
+-   **condition**: `subject` is empty
+-   **rule**: `never`
 
 ```sh
 echo "fix:" # fails
@@ -120,13 +97,9 @@ echo "fix: some message" # passes
 
 #### subject-full-stop
 
-- **condition**: `subject` ends with `value`
-- **rule**: `never`
-- **value**
-
-```js
-  '.'
-```
+-   **condition**: `subject` ends with `value`
+-   **rule**: `never`
+-   **value**: "."
 
 ```sh
 echo "fix: some message." # fails
@@ -135,13 +108,9 @@ echo "fix: some message" # passes
 
 #### header-max-length
 
-- **condition**: `header` has `value` or less characters
-- **rule**: `always`
-- **value**
-
-```js
-  72
-```
+-   **condition**: `header` has `value` or less characters
+-   **rule**: `always`
+-   **value**: 72
 
 ```sh
 echo "fix: some message that is way too long and breaks the line max-length by several characters" # fails
