@@ -1,0 +1,6 @@
+{
+  "display": "Monorepo Template",
+  "extends": "@tsconfig/node-lts/tsconfig.json",
+  "include": ["**/*.ts"],
+  "exclude": ["./node_modules"]
+}
