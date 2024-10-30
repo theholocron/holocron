@@ -4,7 +4,10 @@
   "description": "A Typescript configuration for checking types within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
-  "repository": "https://github.com/theholocron/configs.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "files": [
