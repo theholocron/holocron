@@ -1,0 +1,60 @@
+{
+  "name": "@theholocron/utils-array",
+  "version": "0.0.0",
+  "description": "Convert or manipulate arrays.",
+  "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-array#readme",
+  "bugs": "https://github.com/theholocron/utils/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/utils.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "main": "dist/utils-array.cjs.js",
+  "module": "dist/utils-array.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/utils-array.es.js",
+      "require": "./dist/utils-array.cjs.js"
+    }
+  },
+  "files": [
+    "dist/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "",
+    "preview": "vite preview",
+    "start": "",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "^3.5.1",
+    "@theholocron/jest-config": "^3.5.1",
+    "@theholocron/prettier-config": "^3.5.1",
+    "@theholocron/tsconfig": "^3.5.1",
+    "@tsconfig/node-lts": "^20.1.3",
+    "vite": "^5.4.9"
+  },
+  "packageManager": "npm@9.5.0",
+  "bundlewatch": {
+    "files": [
+      {
+        "path": "./dist/**/*.js",
+        "maxSize": "100 kB"
+      }
+    ]
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/utils/releases",
+  "wiki": "https://github.com/theholocron/utils/wiki"
+}
