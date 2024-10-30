@@ -1,0 +1,21 @@
+# Add "documentation" label to any changes within "docs" folder or any subfolders or .md files within the entire repository
+documentation:
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - docs/**
+      - "**/*.md"
+
+# Add "bug" label to any PR where the head branch name starts with `fix` with file changes to src directory
+bug:
+- all:
+  - changed-files:
+    - any-glob-to-any-file: src/**
+  - head-branch: "^fix-"
+
+# Add "enhancement" label to any PR where the head branch name starts with `feat` with file changes to src directory
+enhancement:
+- all:
+  - changed-files:
+    - any-glob-to-any-file: src/**
+  - head-branch: "^feat-"

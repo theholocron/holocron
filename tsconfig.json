@@ -1,0 +1,15 @@
+{
+  "display": "CLI Template",
+  "extends": "@tsconfig/node-lts/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "paths": {
+      "@/media": ["./media/*"],
+      "@/package": ["./package.json"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["./node_modules"]
+}

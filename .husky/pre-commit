@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Run GitLeaks to detect secrets
+gitleaks git --no-banner
+
+# Exit with non-zero if secrets are detected by GitLeaks
+if [ $? -ne 0 ]; then
+	echo "Secrets detected by GitLeaks, aborting commit!"
+	exit 1
+fi
+
+# Run lint-staged with a custom config
+npx lint-staged --config @theholocron/lint-staged-config

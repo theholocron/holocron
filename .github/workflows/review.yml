@@ -1,0 +1,72 @@
+name: Review
+
+on: # yamllint disable-line rule:truthy
+  - push
+  - pull_request
+
+jobs:
+  reviewdog:
+    name: Review PRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+
+      - uses: actions/setup-node@v4
+        name: Setup Node.js @v20
+        with:
+          cache: npm
+          node-version: 20.x
+
+      - run: npm ci
+        name: Install dependencies
+
+      - uses: reviewdog/action-setup@v1
+        name: Install & setup ReviewDog
+        with:
+          reviewdog_version: latest # Optional. [latest,nightly,v.X.Y.Z]
+
+      - uses: reviewdog/action-gitleaks@v1
+        name: Detect secrets using Gitleaks
+        with:
+          reporter: github-pr-check
+
+      - uses: reviewdog/action-alex@v1
+        name: Check language using Alex
+        with:
+          reporter: github-pr-check # [github-pr-check,github-check,github-pr-review]
+          # GitHub Status Check won't become failure with warning.
+          # level: warning # [info,warning, error]
+
+      - uses: EPMatt/reviewdog-action-tsc@v1
+        name: Check types using TypeScript
+        with:
+          reporter: github-pr-check
+
+      # - uses: reviewdog/action-stylelint@v1
+      #   name: Check CSS using StyleLint
+      #   with:
+      #     reporter: github-pr-check
+      #     stylelint_input: '**/*.css'
+
+      # need to setup textlint in the repo for this
+      # - uses: tsuyoshicho/action-textlint@v3
+      #   name: Check text using TextLint
+      #   with:
+      #     reporter: github-pr-check
+
+      - uses: reviewdog/action-actionlint@v1
+        name: Check GitHub Actions using ActionLint
+        with:
+          reporter: github-pr-check
+
+      - uses: dotenv-linter/action-dotenv-linter@v2
+        name: Check environment variables using dotenv
+        with:
+          reporter: github-code-suggestions
+
+      - uses: reviewdog/action-yamllint@v1
+        name: Check YAML using YamlLint
+        with:
+          reporter: github-pr-check
+          yamllint_flags: "-c ${{ github.workspace }}/yamllint.config.yml ${{ github.workspace }}"

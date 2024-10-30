@@ -1,0 +1,96 @@
+name: Lint
+
+on: # yamllint disable-line rule:truthy
+  - push
+  - pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  super-lint:
+    name: "Lint entire codebase"
+    permissions:
+      contents: write # write linting fixes
+      statuses: write # write Super-linter status checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        name: Setup Node.js @v20
+        with:
+          cache: npm
+          node-version: 20.x
+
+      - run: npm ci
+        name: Install dependencies
+
+      - uses: super-linter/super-linter/slim@v7.1.0
+        name: Run Super Linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANNOTATE_ONLY: true  # Allow annotations in the PR
+          DISABLE_COMMENTS: false  # Enable comments in the PR
+          IGNORE_GITIGNORED_FILES: true
+          LINTER_RULES_PATH: /
+          # CSS_FILE_NAME: "stylelint.config.js"
+          EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
+          # FIX_CSS_PRETTIER: true
+          FIX_ENV: true
+          FIX_GRAPHQL_PRETTIER: true
+          FIX_HTML_PRETTIER: true
+          FIX_JAVASCRIPT_PRETTIER: true
+          # FIX_JSON_PRETTIER: true => turning this off til i figure out why its not respecting config
+          FIX_JSX_PRETTIER: true
+          # FIX_MARKDOWN_PRETTIER: true
+          FIX_TSX: true
+          FIX_TYPESCRIPT_PRETTIER: true
+          # FIX_YAML_PRETTIER: true => turning this off til i figure out why its not respecting config
+          # GITHUB_ACTIONS_CONFIG_FILE: "actionlint.yml" => basically unneeded
+          # GITLEAKS_CONFIG: ".gitleaks.toml" # Path to your Gitleaks config if you have one
+          JAVASCRIPT_ES_CONFIG_FILE: "eslint.config.js"
+          # MARKDOWN_CONFIG_FILE: ".markdown-lint.yml"
+          # NATURAL_LANGUAGE_CONFIG_FILE: "textlint.config.js"
+          PRETTIER_CONFIG: "prettier.config.js"
+          TYPESCRIPT_ES_CONFIG_FILE: "eslint.config.js"
+          TYPESCRIPT_STANDARD_TSCONFIG_FILE: "tsconfig.json"
+          # VALIDATE_CSS_PRETTIER: true
+          VALIDATE_DOCKERFILE: true
+          VALIDATE_EDITORCONFIG: true
+          VALIDATE_ENV: true
+          VALIDATE_GIT_COMMITLINT: true
+          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_GITLEAKS: true
+          VALIDATE_GRAPHQL_PRETTIER: true
+          VALIDATE_HTML_PRETTIER: true
+          VALIDATE_JAVASCRIPT_PRETTIER: true
+          VALIDATE_JSON_PRETTIER: true
+          VALIDATE_JSX_PRETTIER: true
+          # VALIDATE_MARKDOWN_PRETTIER: true => disabling because its annoying and doesn't respect anything
+          # VALIDATE_NATURAL_LANGUAGE: true
+          VALIDATE_TSX: true
+          VALIDATE_TYPESCRIPT_PRETTIER: true
+          VALIDATE_YAML: true # turning on for now while prettier is broken
+          # VALIDATE_YAML_PRETTIER: true => turning it off because its writing 4 spaces instead of 2
+          YAML_CONFIG_FILE: "yamllint.config.yml"
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        name: Commit and push linting fixes
+        # Run only on:
+        # - Pull requests
+        # - Not on the default branch
+        if: >
+          github.event_name == 'pull_request' &&
+          github.ref_name != github.event.repository.default_branch
+        with:
+          branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
+          commit_message: "chore: fix linting issues"
+          commit_options: "--no-verify --signoff"
+          commit_user_name: super-linter
+          commit_user_email: super-linter@super-linter.dev

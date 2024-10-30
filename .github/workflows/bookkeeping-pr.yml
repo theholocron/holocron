@@ -1,0 +1,32 @@
+name: PR Bookkeeping
+
+# @TODO: add in more things like:
+# - [ ] auto-assigning,
+# - [ ] project assignments,
+# - [ ] milestone assignments
+# - [ ] cleans up language
+# - [ ] checks that template is filled out
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types:
+      - opened
+      - edited
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label-pr:
+    name: Add Labels to PRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: github/issue-labeler@v3.4
+        with:
+          include-title: 1
+          include-body: 0
+          sync-labels: 1
+          configuration-path: .github/labeler.yml
+          enable-versioned-regex: 0
+          repo-token: ${{ github.token }}
