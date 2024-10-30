@@ -1,11 +1,11 @@
-# CLI Template
+# Holocron
 
-A NodeJS command-line interface template used within the Galaxy.
+The command-line client designed to support [The Holocron](http://docs.theholocron.dev).
 
 ## Installation
 
 ```bash
-npm install --global @theholocron/cli-template
+npm install --global @theholocron/holocron
 ```
 
 ## Usage
@@ -14,4 +14,4 @@ npm install --global @theholocron/cli-template
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/projects/cli-template/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/holocron/) for more information.

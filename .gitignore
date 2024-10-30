@@ -86,3 +86,4 @@ node_modules
 coverage
 reports
 dist
+super-linter-output

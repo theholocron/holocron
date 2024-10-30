@@ -1,4 +1,3 @@
-// @ts-ignore
 import Conf, { type Schema } from "conf";
 import pkg from "@/package";
 
@@ -11,7 +10,7 @@ interface ConfigSchema {
 
 const schema: Schema<ConfigSchema> = {
 	name: {
-		default: "cli-template",
+		default: "holocron",
 		type: "string",
 	},
 	preferences: {

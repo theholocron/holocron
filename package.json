@@ -1,35 +1,25 @@
 {
-  "name": "@theholocron/cli-template",
-  "description": "<description>",
-  "homepage": "https://github.com/theholocron/cli-template#readme",
-  "author": "Newton Koumantzelis",
-  "main": "src/cli.ts",
-  "bin": {
-    "cli-template": "./src/cli.ts"
-  },
-  "man": "./man/cli-template.1",
-  "type": "module",
+  "name": "@theholocron/holocron",
   "version": "1.0.0",
+  "description": "The command-line client designed to support The Holocron.",
+  "homepage": "https://github.com/theholocron/holocron#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/cli-template.git"
+    "url": "git+https://github.com/theholocron/holocron.git"
   },
-  "bugs": "https://github.com/theholocron/cli-template/issues",
-  "releases": "https://github.com/theholocron/cli-template/releases",
-  "wiki": "https://github.com/theholocron/cli-template/wiki",
   "license": "GPL-3.0",
-  "packageManager": "npm@9.5.0",
-  "publishConfig": {
-    "access": "public"
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "src/cli.ts",
+  "bin": {
+    "holocron": "./src/cli.ts"
   },
+  "man": "./man/holocron.1",
   "scripts": {
-    "postbuild": "marked-man README.md > man/cli-template.1",
     "lint": "docker run -e LOG_LEVEL=DEBUG -e RUN_LOCAL=true -v .:/tmp/lint --rm ghcr.io/super-linter/super-linter:latest",
+    "postbuild": "marked-man README.md > man/holocron.1",
     "start": "tsx ./src/cli.ts"
-  },
-  "engines": {
-    "node": ">=23",
-    "npm": ">=10"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.0.1",
@@ -64,6 +54,17 @@
     "@types/yargs": "^17.0.33",
     "alexjs": "^1.0.0",
     "marked-man": "^2.1.0",
-    "tsx": "^4.19.2"
-  }
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "packageManager": "npm@9.5.0",
+  "engines": {
+    "node": ">=23",
+    "npm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/holocron/releases",
+  "wiki": "https://github.com/theholocron/holocron/wiki"
 }

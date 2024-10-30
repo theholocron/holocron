@@ -1,6 +1,5 @@
 #!/usr/bin/env npx tsx
 
-import * as path from "node:path";
 import updateNotifier from "update-notifier";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
@@ -19,19 +18,20 @@ export interface CLIOptions {
 	// spinner: Ora;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 yargs(hideBin(process.argv))
 	.usage("Usage: $0 <command> [options]")
 	.commandDir(__cmddir("./commands"), {
 		extensions: ["ts"],
 	})
 	.demandCommand()
-	.env("CLI_TEMPLATE")
+	.env("HOLOCRON")
 	.completion()
 	.recommendCommands()
 	.options({
 		d: {
 			alias: ["debug"],
-			default: utils.config.get("preferences.debug") || utils.str.toBoolean(env?.CLI_TEMPLATE_DEBUG) || false,
+			default: utils.config.get("preferences.debug") || utils.str.toBoolean(env?.HOLOCRON_DEBUG) || false,
 			describe: "Turn on debugging mode",
 			type: "boolean",
 			global: true,
@@ -39,14 +39,14 @@ yargs(hideBin(process.argv))
 		},
 		s: {
 			alias: ["sound"],
-			default: utils.config.get("preferences.sound") || utils.str.toBoolean(env?.CLI_TEMPLATE_SOUND) || false,
+			default: utils.config.get("preferences.sound") || utils.str.toBoolean(env?.HOLOCRON_SOUND) || false,
 			describe: "Turn on sound effects",
 			type: "boolean",
 			global: true,
 			hidden: true,
 		},
 		verbose: {
-			default: utils.str.toBoolean(env?.CLI_TEMPLATE_VERBOSE) || false,
+			default: utils.str.toBoolean(env?.HOLOCRON_VERBOSE) || false,
 			describe: "Turn on logging",
 			type: "boolean",
 			global: true,

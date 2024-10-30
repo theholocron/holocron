@@ -24,15 +24,15 @@ export const preferences = {
 			type: "string",
 		},
 		uniqueItems: true,
-		default: [".DS_Store", "cli-template", "coverage", "dist", "node_modules"],
+		default: [".DS_Store", "holocron", "coverage", "dist", "node_modules"],
 	},
 	logs: {
 		type: "string",
 		default:
 			process.env.LOG_DIR ||
 			(OS === "win32"
-				? path.join(process.env.LOCALAPPDATA || path.join(HOME, "AppData", "Local"), "CLITemplate", "logs")
-				: path.join(HOME, ".cli-template", "logs")),
+				? path.join(process.env.LOCALAPPDATA || path.join(HOME, "AppData", "Local"), "Holocron", "logs")
+				: path.join(HOME, ".holocron", "logs")),
 	},
 	notifications: {
 		type: "boolean",
