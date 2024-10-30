@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/stylelint-config",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "A StyleLint configuration for writing well-formed CSS within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
