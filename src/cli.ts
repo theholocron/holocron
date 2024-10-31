@@ -1,5 +1,6 @@
 #!/usr/bin/env npx tsx
 
+import * as str from "@theholocron/utils-string";
 import updateNotifier from "update-notifier";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
@@ -31,7 +32,7 @@ yargs(hideBin(process.argv))
 	.options({
 		d: {
 			alias: ["debug"],
-			default: utils.config.get("preferences.debug") || utils.str.toBoolean(env?.HOLOCRON_DEBUG) || false,
+			default: utils.config.get("preferences.debug") || str.toBoolean(env?.HOLOCRON_DEBUG) || false,
 			describe: "Turn on debugging mode",
 			type: "boolean",
 			global: true,
@@ -39,14 +40,14 @@ yargs(hideBin(process.argv))
 		},
 		s: {
 			alias: ["sound"],
-			default: utils.config.get("preferences.sound") || utils.str.toBoolean(env?.HOLOCRON_SOUND) || false,
+			default: utils.config.get("preferences.sound") || str.toBoolean(env?.HOLOCRON_SOUND) || false,
 			describe: "Turn on sound effects",
 			type: "boolean",
 			global: true,
 			hidden: true,
 		},
 		verbose: {
-			default: utils.str.toBoolean(env?.HOLOCRON_VERBOSE) || false,
+			default: str.toBoolean(env?.HOLOCRON_VERBOSE) || false,
 			describe: "Turn on logging",
 			type: "boolean",
 			global: true,
