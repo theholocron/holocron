@@ -5,7 +5,7 @@ The command-line client designed to support [The Holocron](http://docs.theholocr
 ## Installation
 
 ```bash
-npm install --global @theholocron/holocron
+npm install --global @theholocron/cli
 ```
 
 ## Usage

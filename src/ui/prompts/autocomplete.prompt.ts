@@ -1,15 +1,10 @@
 import autocomplete from "inquirer-autocomplete-standalone";
-import { type CLIOptions } from "@/cli";
 import { type Choice } from "./types";
 
-export async function autocompletePrompt(
-	source: Choice<string>[],
-	message?: string,
-	options?: CLIOptions
-): Promise<string> {
+export async function autocompletePrompt(source: Choice<string>[], msg?: string): Promise<string> {
 	return await autocomplete({
 		emptyText: "No results found. Please enter a term",
-		message: message || "Search a term",
+		message: msg || "Search a term",
 		source: async (input?: string) =>
 			source.filter(({ name }) => {
 				const proj = name?.toLowerCase() ?? "";
