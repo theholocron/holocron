@@ -16,7 +16,7 @@ async function main() {
 	const [, , version] = process.argv;
 	const [major, minor] = version.split(".");
 
-    try {
+	try {
 		const [err, data, duration] = await findReplace(filePaths, baseString, `${major}.${minor}`);
 
 		if (err) {
@@ -24,13 +24,13 @@ async function main() {
 			process.exit(1);
 		}
 
-        console.log("Files replaced:\n");
-        console.table(data);
+		console.log("Files replaced:\n");
+		console.table(data);
 		console.log(`It took ${duration} milliseconds`);
-    }
+	}
 	catch (error) {
-        console.error("Error:", error);
-    }
+		console.error("Error:", error);
+	}
 }
 
 main();
