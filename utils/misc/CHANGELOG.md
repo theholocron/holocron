@@ -1,5 +1,11 @@
 # @theholocron/utils-misc
 
+## 0.2.0
+
+### Minor Changes
+
+- [`e2fbf29`](https://github.com/theholocron/utils/commit/e2fbf298da07e90eb16930de94e269a37b80f995) Thanks [@iamnewton](https://github.com/iamnewton)! - release
+
 ## 0.1.1
 
 ### Patch Changes
