@@ -8,16 +8,4 @@ Convert or manipulate arrays.
 npm install --save-dev @theholocron/utils-array
 ```
 
-## Usage
-
-```typescript
-import * as arr from "@theholocron/utils-array";
-
-const data = [
-	null,
-	undefined,
-	"foo",
-];
-
-const filtered = data.filter(arr.isValid); // ["foo"]
-```
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utilities/) for more information.

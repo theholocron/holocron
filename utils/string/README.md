@@ -34,3 +34,5 @@ str.toArray([test]); // ["hello world"]);
 str.toBoolean("true"); // true;
 str.toBoolean(""); // false;
 ```
+
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utilities/) for more information.

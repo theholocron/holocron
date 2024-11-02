@@ -8,12 +8,4 @@ Grab details from a URL.
 npm install --save-dev @theholocron/utils-uri
 ```
 
-## Usage
-
-```typescript
-import * as uri from "@theholocron/utils-uri";
-
-const test = "https://example.com?id=hello%20world";
-
-uri.getParam(url, "id"); // "hello world");
-```
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utilities/) for more information.
