@@ -1,9 +1,6 @@
-import {
-	hasKonamiCodeBeenEntered,
-	KONAMI_CODE,
-} from "./has-konami-been-entered";
+import { konami, KONAMI_CODE } from "./konami";
 
-describe("hasKonamiCodeBeenEntered function", () => {
+describe("konami.is function", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 	});
@@ -17,7 +14,7 @@ describe("hasKonamiCodeBeenEntered function", () => {
 				value: code,
 				writable: true,
 			});
-			result = hasKonamiCodeBeenEntered(mockEvent);
+			result = konami.is(mockEvent);
 		});
 
 		expect(result).toBe(true);
@@ -30,7 +27,7 @@ describe("hasKonamiCodeBeenEntered function", () => {
 			value: "Escape",
 			writable: true,
 		});
-		hasKonamiCodeBeenEntered(mockEvent);
+		konami.is(mockEvent);
 
 		let result = false;
 		KONAMI_CODE.forEach((code) => {
@@ -38,7 +35,7 @@ describe("hasKonamiCodeBeenEntered function", () => {
 				value: code,
 				writable: true,
 			});
-			result = hasKonamiCodeBeenEntered(mockEvent);
+			result = konami.is(mockEvent);
 		});
 
 		expect(result).toBe(true);

@@ -1,1 +1,2 @@
-export * from "./has-konami-been-entered";
+export { konami } from "./konami";
+export type { TKonamiCode } from "./konami";
