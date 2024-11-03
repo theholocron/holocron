@@ -1,2 +1,8 @@
-export { konami } from "./konami";
-export type { TKonamiCode } from "./konami";
+import { CODE, is } from "./konami";
+
+export type { TKonamiCode };
+
+export const konami = {
+	CODE,
+	is,
+};

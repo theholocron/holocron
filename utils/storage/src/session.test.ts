@@ -1,41 +1,50 @@
-import { createStorage } from "./create-storage";
+import { storage } from "./index";
 
-describe("Storage", () => {
-	beforeEach(() => {
-		sessionStorage.clear();
+describe("Session Storage", () => {
+	beforeAll(() => {
+		global.sessionStorage = {
+			getItem: vi.fn(),
+			setItem: vi.fn(),
+			removeItem: vi.fn(),
+			clear: vi.fn(),
+		};
 	});
 
-	describe("createStorage", () => {
+	afterAll(() => {
+		delete global.sessionStorage;
+	});
+
+	describe("storage.session.create", () => {
 		test("default namespace", () => {
-			const vault = createStorage();
+			const vault = storage.session.create();
 
 			vault.registerApp("myApp");
-			const storage = vault.getAll();
+			const data = vault.getAll();
 
-			expect(Object.keys(storage)[0]).toBe("@theholocron");
+			expect(Object.keys(data)[0]).toBe("@theholocron");
 		});
 
 		test("custom namespace", () => {
-			const vault = createStorage("mockNamespace");
+			const vault = storage.session.create("mockNamespace");
 
 			vault.registerApp("myApp");
-			const storage = vault.getAll();
+			const data = vault.getAll();
 
-			expect(Object.keys(storage)[0]).toBe("@mockNamespace");
+			expect(Object.keys(data)[0]).toBe("@mockNamespace");
 		});
 	});
 
 	describe("sendTo", () => {
-		test("throws an error if no app is registered when sending data", () => {
-			const vault = createStorage("mockapp");
+		test("throws an error if nothing is registered when sending data", () => {
+			const vault = storage.session.create("mockapp");
 
 			expect(() => {
 				vault.sendTo("name", "myApp");
-			}).toThrow("No app is currently registered!");
+			}).toThrow("Nothing is currently registered!");
 		});
 
 		test("send data to the vault", () => {
-			const vault = createStorage("mockapp");
+			const vault = storage.session.create("mockapp");
 
 			const appName = "myApp";
 			vault.registerApp(appName);
@@ -55,16 +64,16 @@ describe("Storage", () => {
 	});
 
 	describe("getAll", () => {
-		test("throws an error if no app is registered when getting all data", () => {
-			const vault = createStorage("mockapp");
+		test("throws an error if nothing is registered when getting all data", () => {
+			const vault = storage.session.create("mockapp");
 
 			expect(() => {
 				vault.getAll();
-			}).toThrow("No app is currently registered!");
+			}).toThrow("Nothing is currently registered!");
 		});
 
 		test("get all data", () => {
-			const vault = createStorage("mockapp");
+			const vault = storage.session.create("mockapp");
 
 			const appName = "myApp";
 			vault.registerApp(appName);
@@ -88,14 +97,14 @@ describe("Storage", () => {
 	});
 
 	describe("getFrom", () => {
-		const vault = createStorage("mockapp");
+		const vault = storage.session.create("mockapp");
 
-		test("throw an error if no app is registered when getting data", () => {
-			const vault = createStorage("mockapp");
+		test("throw an error if nothing is registered when getting data", () => {
+			const vault = storage.session.create("mockapp");
 
 			expect(() => {
 				vault.getFrom("name");
-			}).toThrow("No app is currently registered!");
+			}).toThrow("Nothing is currently registered!");
 		});
 
 		const appName = "myApp";
@@ -125,16 +134,16 @@ describe("Storage", () => {
 	});
 
 	describe("removeFrom", () => {
-		test("throws an error if no app is registered when removing data", () => {
-			const vault = createStorage("mockapp");
+		test("throws an error if is nothing registered when removing data", () => {
+			const vault = storage.session.create("mockapp");
 
 			expect(() => {
 				vault.removeFrom("name");
-			}).toThrow("No app is currently registered!");
+			}).toThrow("Nothing is currently registered!");
 		});
 
 		test("removes data from app storage", () => {
-			const vault = createStorage("mockapp");
+			const vault = storage.session.create("mockapp");
 			const appName = "myApp";
 			vault.registerApp(appName);
 
@@ -152,7 +161,7 @@ describe("Storage", () => {
 
 	describe("clear", () => {
 		test("clears the storage", () => {
-			const vault = createStorage("mockapp");
+			const vault = storage.session.create("mockapp");
 			const appName = "myApp";
 			vault.registerApp(appName);
 

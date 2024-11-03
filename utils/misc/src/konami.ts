@@ -6,7 +6,7 @@ export type TKonamiCode =
 	| "KeyA"
 	| "KeyB";
 
-const CODE: TKonamiCode[] = [
+export const CODE: TKonamiCode[] = [
 	"ArrowUp",
 	"ArrowUp",
 	"ArrowDown",
@@ -21,12 +21,12 @@ const CODE: TKonamiCode[] = [
 
 let index = 0;
 
-function is(event: KeyboardEvent): boolean {
-	if (event.code === KONAMI_CODE[index]) {
+export function is(event: KeyboardEvent): boolean {
+	if (event.code === CODE[index]) {
 		index++;
 
 		// Entire Konami code sequence entered
-		if (index === KONAMI_CODE.length) {
+		if (index === CODE.length) {
 			// Reset index for potential future checks
 			index = 0;
 			return true;
@@ -40,8 +40,3 @@ function is(event: KeyboardEvent): boolean {
 
 	return false;
 }
-
-export const konami = {
-	CODE,
-	is,
-};

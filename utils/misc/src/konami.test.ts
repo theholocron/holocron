@@ -1,15 +1,23 @@
-import { konami, KONAMI_CODE } from "./konami";
+import { vi } from "vitest";
+import { konami } from "./index";
 
-describe("konami.is function", () => {
+class MockKeyboardEvent {
+	constructor(public type: string, public options: { code?: string }) {}
+}
+
+// Replace KeyboardEvent with MockKeyboardEvent
+global.KeyboardEvent = MockKeyboardEvent as unknown as typeof KeyboardEvent;
+
+describe("Konami", () => {
 	beforeEach(() => {
-		jest.clearAllMocks();
+		vi.clearAllMocks();
 	});
 
 	test("detect the full Konami code sequence", () => {
 		const mockEvent = new KeyboardEvent("keydown", { code: "" });
 
 		let result = false;
-		KONAMI_CODE.forEach((code) => {
+		konami.CODE.forEach((code) => {
 			Object.defineProperty(mockEvent, "code", {
 				value: code,
 				writable: true,
@@ -30,7 +38,7 @@ describe("konami.is function", () => {
 		konami.is(mockEvent);
 
 		let result = false;
-		KONAMI_CODE.forEach((code) => {
+		konami.CODE.forEach((code) => {
 			Object.defineProperty(mockEvent, "code", {
 				value: code,
 				writable: true,

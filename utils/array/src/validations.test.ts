@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import * as arr from "./index";
 
-describe("Array validations", () => {
+describe("Array", () => {
 	test("return false for null", () => {
 		expect(arr.isValid(null)).toBe(false);
 	});

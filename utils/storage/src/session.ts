@@ -22,7 +22,7 @@ const ERROR_MSG = "Nothing is currently registered!";
 export const isSessionStorageAvailable: boolean = () =>
 	typeof window !== "undefined" && window.sessionStorage;
 
-export function createStorage(namespace = "theholocron"): TSessionStorage {
+function createStorage(namespace = "theholocron"): TSessionStorage {
 	const prefixedNamespace = `@${namespace}`;
 	let lastRegisteredApp: string | undefined;
 	const storage: AppStorageData = {};
@@ -166,3 +166,8 @@ export function createStorage(namespace = "theholocron"): TSessionStorage {
 		},
 	};
 }
+
+export const session = {
+	create: createStorage,
+	isAvailable: isSessionStorageAvailable,
+};

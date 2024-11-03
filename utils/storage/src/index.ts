@@ -1,8 +1,7 @@
-import { createStorage } from "./session";
+import { session } from "./session";
 
 export type { TSessionStorage } from "./session";
-export { isSessionStorageAvailable } from "./session";
 
 export const storage = {
-	session: createStorage,
+	session,
 };
