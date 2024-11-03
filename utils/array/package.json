@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/utils-array",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Convert or manipulate arrays.",
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-array#readme",
   "bugs": "https://github.com/theholocron/utils/issues",
