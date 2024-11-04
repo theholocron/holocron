@@ -1,0 +1,12 @@
+{
+  "display": "Location Utilities",
+  "extends": "@tsconfig/node-lts/tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "declarationMap": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["./node_modules"]
+}
