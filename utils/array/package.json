@@ -10,26 +10,26 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
-  "main": "dist/utils-array.cjs.js",
-  "module": "dist/utils-array.es.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/utils-array.es.js",
       "require": "./dist/utils-array.cjs.js"
     }
   },
+  "main": "dist/utils-array.cjs.js",
+  "module": "dist/utils-array.es.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/*"
   ],
-  "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "vite build",
+    "dev": "vite",
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "test": "vitest"
+    "test": "vitest run --coverage"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "^3.5.1",
@@ -40,6 +40,13 @@
     "vite": "^5.4.9"
   },
   "packageManager": "npm@9.5.0",
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bundlewatch": {
     "files": [
       {
@@ -47,13 +54,6 @@
         "maxSize": "100 kB"
       }
     ]
-  },
-  "engines": {
-    "node": ">=20",
-    "npm": ">=10"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "releases": "https://github.com/theholocron/utils/releases",
   "wiki": "https://github.com/theholocron/utils/wiki"
