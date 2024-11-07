@@ -29,9 +29,10 @@
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "test": "vitest run --coverage"
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@codecov/vite-plugin": "^1.2.1",
     "@theholocron/eslint-config": "^3.5.1",
     "@theholocron/jest-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",

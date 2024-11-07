@@ -1,17 +1,27 @@
 import * as path from "node:path";
+import { codecovVitePlugin } from "@codecov/vite-plugin";
 import { defineConfig } from "vite";
+
+const NAME = "utils-array";
 
 /*
  * @see https://vitejs.dev/config/
  */
 export default defineConfig({
-	plugins: [],
+	plugins: [
+		codecovVitePlugin({
+			enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+			bundleName: NAME,
+			gitService: "github",
+			uploadToken: process.env.CODECOV_TOKEN,
+		}),
+	],
 	build: {
 		lib: {
 			entry: path.resolve(__dirname, "src/index.ts"), // Entry point of your library
-			name: "utils-array",
+			name: NAME,
 			formats: ["es", "cjs"], // Specify formats (ESM and CommonJS)
-			fileName: (format) => `utils-array.${format}.js`,
+			fileName: (format) => `${NAME}.${format}.js`,
 		},
 		rollupOptions: {
 			external: [], // Externalize any specific Node dependencies
