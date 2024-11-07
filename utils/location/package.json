@@ -28,8 +28,7 @@
     "dev": "vite",
     "lint": "",
     "preview": "vite preview",
-    "start": "",
-    "test": "vitest"
+    "start": ""
   },
   "devDependencies": {
     "@theholocron/eslint-config": "^3.5.1",

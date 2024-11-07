@@ -29,7 +29,7 @@
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "test": "vitest"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "change-case": "^5.4.4",
