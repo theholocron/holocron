@@ -80,6 +80,14 @@ jobs:
           # VALIDATE_YAML_PRETTIER: true => turning it off because its writing 4 spaces instead of 2
           YAML_CONFIG_FILE: "yamllint.config.yml"
 
+      - uses: crazy-max/ghaction-import-gpg@v6
+        name: Import GPG Key
+        with:
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          GPG_PRIVATE_KEY: ${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.SUPER_LINTER_GPG_PASSPHRASE }}
+
       - uses: stefanzweifel/git-auto-commit-action@v5
         name: Commit and push linting fixes
         # Run only on:
