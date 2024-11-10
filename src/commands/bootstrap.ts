@@ -89,6 +89,7 @@ export async function handler(options: CLIOptions): Promise<void> {
 		str.toKebabCase(name)
 	);
 	await findReplace([readme, pkgJson], "<description>", str.toSentenceCase(description));
+	await findReplace([`${projectPath}/.changeset/config.json`], type, name);
 
 	if (type === "cli-template") {
 		await findReplace(
