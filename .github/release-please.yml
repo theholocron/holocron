@@ -1,0 +1,2 @@
+handleGHRelease: true
+manifestConfig: release-please.config.json
