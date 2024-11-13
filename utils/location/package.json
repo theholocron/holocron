@@ -29,7 +29,7 @@
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "types": "tsc"
+    "types": "npx tsc"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "^3.5.1",

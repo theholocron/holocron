@@ -30,7 +30,7 @@
     "preview": "vite preview",
     "start": "",
     "test": "vitest run",
-    "types": "tsc"
+    "types": "npx tsc"
   },
   "dependencies": {
     "change-case": "^5.4.4",

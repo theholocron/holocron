@@ -30,7 +30,7 @@
     "preview": "vite preview",
     "start": "",
     "test": "vitest run",
-    "types": "tsc"
+    "types": "npx tsc"
   },
   "devDependencies": {
     "@codecov/vite-plugin": "^1.2.1",
