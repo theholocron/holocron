@@ -1,5 +1,11 @@
 # @theholocron/utils-storage
 
+## 0.3.3
+
+### Patch Changes
+
+- [`1e8bfdf`](https://github.com/theholocron/utils/commit/1e8bfdfc61cb4e8358620932ee1c9b220a89f75f) Thanks [@iamnewton](https://github.com/iamnewton)! - fix: handle ssr implementation
+
 ## 0.3.2
 
 ### Patch Changes

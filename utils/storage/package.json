@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/utils-storage",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Storage utilities.",
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-storage#readme",
   "bugs": "https://github.com/theholocron/utils/issues",
