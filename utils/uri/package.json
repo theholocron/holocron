@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/utils-uri",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Grab details from a URL.",
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-uri#readme",
   "bugs": "https://github.com/theholocron/utils/issues",
