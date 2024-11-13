@@ -14,7 +14,8 @@
   "exports": {
     ".": {
       "import": "./dist/utils-string.es.js",
-      "require": "./dist/utils-string.cjs.js"
+      "require": "./dist/utils-string.cjs.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "main": "dist/utils-string.cjs.js",

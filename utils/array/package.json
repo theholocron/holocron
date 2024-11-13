@@ -14,7 +14,8 @@
   "exports": {
     ".": {
       "import": "./dist/utils-array.es.js",
-      "require": "./dist/utils-array.cjs.js"
+      "require": "./dist/utils-array.cjs.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "main": "dist/utils-array.cjs.js",

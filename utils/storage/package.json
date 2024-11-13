@@ -14,7 +14,8 @@
   "exports": {
     ".": {
       "import": "./dist/utils-storage.es.js",
-      "require": "./dist/utils-storage.cjs.js"
+      "require": "./dist/utils-storage.cjs.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "main": "dist/utils-storage.cjs.js",

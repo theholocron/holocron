@@ -14,7 +14,8 @@
   "exports": {
     ".": {
       "import": "./dist/utils-misc.es.js",
-      "require": "./dist/utils-misc.cjs.js"
+      "require": "./dist/utils-misc.cjs.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "main": "dist/utils-misc.cjs.js",
