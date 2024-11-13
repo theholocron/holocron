@@ -19,7 +19,7 @@ export type TSessionStorage = {
 
 const ERROR_MSG = "Nothing is currently registered!";
 
-export const isSessionStorageAvailable: boolean =
+const isSessionStorageAvailable: boolean =
 	typeof window !== "undefined" && "sessionStorage" in window;
 
 function createStorage(namespace = "theholocron"): TSessionStorage {
@@ -67,13 +67,18 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			// Assign the value to the last key in the chain
 			currentLevel[keys[keys.length - 1]] = value;
 
-			try {
-				sessionStorage.setItem(
-					prefixedNamespace,
-					JSON.stringify(storage)
-				);
-			} catch (error) {
-				console.error("Failed to store data in sessionStorage", error);
+			if (isSessionStorageAvailable) {
+				try {
+					sessionStorage.setItem(
+						prefixedNamespace,
+						JSON.stringify(storage)
+					);
+				} catch (error) {
+					console.error(
+						"Failed to store data in sessionStorage",
+						error
+					);
+				}
 			}
 		},
 		getAll() {
@@ -88,14 +93,20 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			}
 			const appStorage = getAppStorage(lastRegisteredApp);
 
-			try {
-				const storedData = sessionStorage.getItem(prefixedNamespace);
-				if (storedData) {
-					const parsedData = JSON.parse(storedData);
-					Object.assign(storage, parsedData); // Merge stored data into current storage
+			if (isSessionStorageAvailable) {
+				try {
+					const storedData =
+						sessionStorage.getItem(prefixedNamespace);
+					if (storedData) {
+						const parsedData = JSON.parse(storedData);
+						Object.assign(storage, parsedData); // Merge stored data into current storage
+					}
+				} catch (error) {
+					console.error(
+						"Failed to read data in sessionStorage",
+						error
+					);
 				}
-			} catch (error) {
-				console.error("Failed to read data in sessionStorage", error);
 			}
 
 			// Split key by dot notation for nested access
@@ -142,26 +153,30 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			if (lastKey in currentLevel) {
 				delete currentLevel[lastKey]; // Delete the final key in the path
 
-				try {
-					sessionStorage.setItem(
-						prefixedNamespace,
-						JSON.stringify(storage)
-					);
-				} catch (error) {
-					console.error(
-						"Failed to remove data from sessionStorage",
-						error
-					);
+				if (isSessionStorageAvailable) {
+					try {
+						sessionStorage.setItem(
+							prefixedNamespace,
+							JSON.stringify(storage)
+						);
+					} catch (error) {
+						console.error(
+							"Failed to remove data from sessionStorage",
+							error
+						);
+					}
 				}
 			}
 		},
 		clear() {
 			delete storage[prefixedNamespace];
 
-			try {
-				sessionStorage.removeItem(prefixedNamespace);
-			} catch (error) {
-				console.error("Failed to clear sessionStorage", error);
+			if (isSessionStorageAvailable) {
+				try {
+					sessionStorage.removeItem(prefixedNamespace);
+				} catch (error) {
+					console.error("Failed to clear sessionStorage", error);
+				}
 			}
 		},
 	};
@@ -169,5 +184,4 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 
 export const session = {
 	create: createStorage,
-	isAvailable: isSessionStorageAvailable,
 };
