@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import * as str from "./index";
+import * as str from "./index.ts";
 
 describe("String casting", () => {
 	test("wrap a string into an array", () => {

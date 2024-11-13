@@ -2,11 +2,15 @@
   "display": "Storage Utilities",
   "extends": "@tsconfig/node-lts/tsconfig.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
     "declarationMap": true
   },
-  "include": ["**/*.ts"],
-  "exclude": ["./node_modules"]
+  "include": ["./src/**/*.ts"],
+  "exclude": [
+    "./node_modules",
+    "**/*.test.ts"
+  ]
 }

@@ -39,6 +39,7 @@ export default defineConfig({
 	},
 	test: {
 		globals: true,
+		setupFiles: ["vitest-localstorage-mock"],
 		environment: "node", // Use Node environment for testing
 	},
 });

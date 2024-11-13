@@ -29,7 +29,8 @@
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "test": "vitest run"
+    "test": "vitest run",
+    "types": "tsc"
   },
   "devDependencies": {
     "@codecov/vite-plugin": "^1.2.1",

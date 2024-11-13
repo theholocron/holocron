@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import * as arr from "./index";
+import * as arr from "./index.ts";
 
 describe("Array", () => {
 	test("return false for null", () => {

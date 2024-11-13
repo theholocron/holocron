@@ -1,2 +1,2 @@
-export * from "./casing";
-export * from "./casting";
+export * from "./casing.ts";
+export * from "./casting.ts";

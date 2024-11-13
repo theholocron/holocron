@@ -29,7 +29,8 @@
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "test": "vitest run"
+    "test": "vitest run",
+    "types": "tsc"
   },
   "dependencies": {
     "change-case": "^5.4.4",

@@ -12,15 +12,15 @@ export type TSessionStorage = {
 	registerApp: (appName: string) => void;
 	sendTo: (key: string, value: unknown) => void;
 	getAll: () => object;
-	getFrom: (key?: string | null) => string;
+	getFrom: (key: string) => NamespacedStorageData | null;
 	removeFrom: (key: string) => void;
 	clear: () => void;
 };
 
 const ERROR_MSG = "Nothing is currently registered!";
 
-export const isSessionStorageAvailable: boolean = () =>
-	typeof window !== "undefined" && window.sessionStorage;
+export const isSessionStorageAvailable: boolean =
+	typeof window !== "undefined" && "sessionStorage" in window;
 
 function createStorage(namespace = "theholocron"): TSessionStorage {
 	const prefixedNamespace = `@${namespace}`;
@@ -61,7 +61,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 					currentLevel[subKey] = {};
 				}
 
-				currentLevel = currentLevel[subKey]; // Move deeper into the object
+				currentLevel = currentLevel[subKey] as NamespacedStorageData; // Move deeper into the object
 			}
 
 			// Assign the value to the last key in the chain
@@ -82,7 +82,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			}
 			return storage;
 		},
-		getFrom(key: string | null = null) {
+		getFrom(key: string) {
 			if (!lastRegisteredApp) {
 				throw new Error(ERROR_MSG);
 			}
@@ -98,25 +98,23 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 				console.error("Failed to read data in sessionStorage", error);
 			}
 
-			if (key !== null) {
-				// Split key by dot notation for nested access
-				const keys = key.split(".");
-				let currentLevel = appStorage;
+			// Split key by dot notation for nested access
+			const keys = key.split(".");
+			let currentLevel = appStorage;
 
-				for (let i = 0; i < keys.length; i++) {
-					const subKey = keys[i];
+			for (let i = 0; i < keys.length; i++) {
+				const subKey = keys[i];
 
-					if (subKey in currentLevel) {
-						currentLevel = currentLevel[subKey]; // Go deeper into the nested object
-					} else {
-						return null; // Return null if any part of the key is missing
-					}
+				if (subKey in currentLevel) {
+					currentLevel = currentLevel[
+						subKey
+					] as NamespacedStorageData; // Go deeper into the nested object
+				} else {
+					return null; // Return null if any part of the key is missing
 				}
-
-				return currentLevel; // Return the nested value if found
 			}
 
-			return appStorage; // Return full storage if no key is provided
+			return currentLevel; // Return the nested value if found
 		},
 		removeFrom(key: string) {
 			if (!lastRegisteredApp) {
@@ -132,7 +130,9 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			for (let i = 0; i < keys.length - 1; i++) {
 				const subKey = keys[i];
 				if (subKey in currentLevel) {
-					currentLevel = currentLevel[subKey]; // Go deeper into the nested object
+					currentLevel = currentLevel[
+						subKey
+					] as NamespacedStorageData; // Go deeper into the nested object
 				} else {
 					return; // Key doesn't exist, so nothing to remove
 				}

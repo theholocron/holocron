@@ -1,19 +1,6 @@
-import { storage } from "./index";
+import { storage } from "./index.ts";
 
 describe("Session Storage", () => {
-	beforeAll(() => {
-		global.sessionStorage = {
-			getItem: vi.fn(),
-			setItem: vi.fn(),
-			removeItem: vi.fn(),
-			clear: vi.fn(),
-		};
-	});
-
-	afterAll(() => {
-		delete global.sessionStorage;
-	});
-
 	describe("storage.session.create", () => {
 		test("default namespace", () => {
 			const vault = storage.session.create();
@@ -122,14 +109,6 @@ describe("Session Storage", () => {
 
 			expect(retrievedName).toBe(appName);
 			expect(retrievedAmount).toBe(amount);
-		});
-
-		test("get all data when no key is passed", () => {
-			const retrievedStorage = vault.getFrom();
-			expect(retrievedStorage).toEqual({
-				appName,
-				amount,
-			});
 		});
 	});
 

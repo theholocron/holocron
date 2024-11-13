@@ -29,11 +29,8 @@
     "lint": "",
     "preview": "vite preview",
     "start": "",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "change-case": "^5.4.4",
-    "title-case": "^4.3.1"
+    "test": "vitest run",
+    "types": "tsc"
   },
   "devDependencies": {
     "@codecov/vite-plugin": "^1.2.1",
@@ -42,7 +39,8 @@
     "@theholocron/prettier-config": "^3.5.1",
     "@theholocron/tsconfig": "^3.5.1",
     "@tsconfig/node-lts": "^22.0.0",
-    "vite": "^5.4.9"
+    "vite": "^5.4.9",
+    "vitest-localstorage-mock": "^0.1.2"
   },
   "packageManager": "npm@9.5.0",
   "engines": {
