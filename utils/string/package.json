@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/utils-string",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Convert a string to any case or case to a different data type.",
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-string#readme",
   "bugs": "https://github.com/theholocron/utils/issues",

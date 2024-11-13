@@ -1,5 +1,11 @@
 # @theholocron/utils-uri
 
+## 0.1.2
+
+### Patch Changes
+
+- [`b645daa`](https://github.com/theholocron/utils/commit/b645daafbd7b04ce8209d7dccd7a6beef447acf1) Thanks [@iamnewton](https://github.com/iamnewton)! - Export types
+
 ## 0.1.1
 
 ### Patch Changes
