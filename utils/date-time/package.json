@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/utils-date-time",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Handle dates and time.",
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-date-time#readme",
   "bugs": "https://github.com/theholocron/utils/issues",
