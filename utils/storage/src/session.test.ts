@@ -41,12 +41,15 @@ describe("Session Storage", () => {
 
 			vault.sendTo(name, appName);
 			vault.sendTo("amount", amount);
+			vault.sendTo("foo.bar", "baz");
 
 			const retrievedName = vault.getFrom(name);
 			const retrievedAmount = vault.getFrom("amount");
+			const retrievedNested = vault.getFrom("foo.bar");
 
 			expect(retrievedName).toBe(appName);
 			expect(retrievedAmount).toBe(amount);
+			expect(retrievedNested).toBe("baz");
 		});
 	});
 
@@ -102,13 +105,16 @@ describe("Session Storage", () => {
 
 		vault.sendTo(name, appName);
 		vault.sendTo("amount", amount);
+		vault.sendTo("foo.bar", "baz");
 
 		test("get data by key", () => {
 			const retrievedName = vault.getFrom(name);
 			const retrievedAmount = vault.getFrom("amount");
+			const retrievedNested = vault.getFrom("foo.bar");
 
 			expect(retrievedName).toBe(appName);
 			expect(retrievedAmount).toBe(amount);
+			expect(retrievedNested).toBe("baz");
 		});
 	});
 
