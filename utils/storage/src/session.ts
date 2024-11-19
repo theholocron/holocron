@@ -73,7 +73,8 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 						prefixedNamespace,
 						JSON.stringify(storage)
 					);
-				} catch (error) {
+				}
+				catch (error) {
 					console.error(
 						"Failed to store data in sessionStorage",
 						error
@@ -101,7 +102,8 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 						const parsedData = JSON.parse(storedData);
 						Object.assign(storage, parsedData); // Merge stored data into current storage
 					}
-				} catch (error) {
+				}
+				catch (error) {
 					console.error(
 						"Failed to read data in sessionStorage",
 						error
@@ -120,7 +122,8 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 					currentLevel = currentLevel[
 						subKey
 					] as NamespacedStorageData; // Go deeper into the nested object
-				} else {
+				}
+				else {
 					return null; // Return null if any part of the key is missing
 				}
 			}
@@ -144,7 +147,8 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 					currentLevel = currentLevel[
 						subKey
 					] as NamespacedStorageData; // Go deeper into the nested object
-				} else {
+				}
+				else {
 					return; // Key doesn't exist, so nothing to remove
 				}
 			}
@@ -159,7 +163,8 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 							prefixedNamespace,
 							JSON.stringify(storage)
 						);
-					} catch (error) {
+					}
+					catch (error) {
 						console.error(
 							"Failed to remove data from sessionStorage",
 							error
@@ -174,7 +179,8 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			if (isSessionStorageAvailable) {
 				try {
 					sessionStorage.removeItem(prefixedNamespace);
-				} catch (error) {
+				}
+				catch (error) {
 					console.error("Failed to clear sessionStorage", error);
 				}
 			}
