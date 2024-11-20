@@ -1,5 +1,11 @@
 # @theholocron/utils-string
 
+## 0.2.1
+
+### Patch Changes
+
+- [`46b1182`](https://github.com/theholocron/utils/commit/46b1182a0d2ad3a2f56757c86dd0fc30ddabc7bd) Thanks [@iamnewton](https://github.com/iamnewton)! - Fix number as prefix
+
 ## 0.2.0
 
 ### Minor Changes
