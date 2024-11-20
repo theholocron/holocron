@@ -1,5 +1,11 @@
 # @theholocron/utils-string
 
+## 0.2.0
+
+### Minor Changes
+
+- [`a72d1bc`](https://github.com/theholocron/utils/commit/a72d1bc88bf2c44dcef1533f3c7165bb4eb5aa34) Thanks [@iamnewton](https://github.com/iamnewton)! - Add in new numbering inflection to strings
+
 ## 0.1.2
 
 ### Patch Changes
