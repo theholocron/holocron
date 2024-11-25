@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^7.0.1",
-    "@theholocron/utils-string": "^0.1.0",
+    "@theholocron/utils-string": "^0.2.1",
     "chalk": "^5.3.0",
     "conf": "^13.0.1",
     "default-browser": "^5.2.1",
