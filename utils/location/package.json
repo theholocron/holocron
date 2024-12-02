@@ -37,7 +37,7 @@
     "@theholocron/eslint-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
     "@tsconfig/node-lts": "^22.0.0",
-    "@vitest/coverage-v8": "^2.1.5",
+    "@vitest/coverage-v8": "^2.1.6",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vitest": "^2.1.3"
