@@ -30,7 +30,7 @@
     "dotenv": "^16.4.5",
     "inquirer-autocomplete-standalone": "^0.8.1",
     "open": "^10.1.0",
-    "open-editor": "^4.1.1",
+    "open-editor": "^5.1.0",
     "ora": "^8.1.1",
     "play-sound": "^1.1.6",
     "update-notifier": "^7.3.1",
