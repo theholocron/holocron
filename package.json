@@ -60,7 +60,7 @@
   },
   "packageManager": "npm@9.5.0",
   "engines": {
-    "node": ">=23",
+    "node": ">=22",
     "npm": ">=10"
   },
   "publishConfig": {
