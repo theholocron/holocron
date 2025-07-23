@@ -21,7 +21,7 @@
     "@eslint/compat": "^1.2.1",
     "@eslint/js": "^9.13.0",
     "eslint": "^9.13.0",
-    "eslint-plugin-cypress": "^4.0.0",
+    "eslint-plugin-cypress": "^5.1.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-storybook": "^0.10.1",
     "globals": "^15.11.0",
