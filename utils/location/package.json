@@ -33,7 +33,7 @@
     "types": "npx tsc"
   },
   "devDependencies": {
-    "@codecov/vite-plugin": "^1.4.0",
+    "@codecov/vite-plugin": "^1.9.1",
     "@theholocron/eslint-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
     "@tsconfig/node-lts": "^22.0.1",
