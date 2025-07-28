@@ -41,7 +41,7 @@
     "@codecov/vite-plugin": "^1.9.1",
     "@theholocron/eslint-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
-    "@tsconfig/node-lts": "^22.0.1",
+    "@tsconfig/node-lts": "^22.0.2",
     "@vitest/coverage-v8": "^2.1.8",
     "typescript": "^5.6.3",
     "vite": "^7.0.6",
