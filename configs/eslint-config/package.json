@@ -17,15 +17,23 @@
     "eslint.config.js",
     "storybook.eslint.config.js"
   ],
-  "dependencies": {
-    "@eslint/compat": "^1.2.1",
-    "@eslint/js": "^9.13.0",
-    "eslint": "^9.13.0",
-    "eslint-plugin-cypress": "^5.1.0",
-    "eslint-plugin-react": "^7.37.2",
-    "eslint-plugin-storybook": "^0.10.1",
-    "globals": "^15.11.0",
-    "typescript-eslint": "^8.11.0"
+  "peerDependencies": {
+    "@eslint/compat": "^1",
+    "@eslint/js": "^9",
+    "eslint": "^9",
+    "eslint-plugin-cypress": "^5",
+    "eslint-plugin-react": "^7",
+    "eslint-plugin-storybook": "^9",
+    "globals": "^16",
+    "typescript-eslint": "^8"
+  },
+  "peerDependenciesMeta": {
+    "eslint-plugin-cypress": {
+      "optional": true
+    },
+    "eslint-plugin-storybook": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"

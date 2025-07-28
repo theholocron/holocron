@@ -12,7 +12,7 @@
   "author": "Newton Koumantzelis",
   "type": "module",
   "main": "bundlewatch.config.js",
-  "dependencies": {
+  "peerDependencies": {
     "bundlewatch": "^0.4.0"
   },
   "publishConfig": {

@@ -12,8 +12,8 @@
   "author": "Newton Koumantzelis",
   "type": "module",
   "main": "prettier.config.js",
-  "dependencies": {
-    "prettier": "^3.3.3"
+  "peerDependencies": {
+    "prettier": "^3"
   },
   "publishConfig": {
     "access": "public"
