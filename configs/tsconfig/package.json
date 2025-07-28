@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/tsconfig",
-  "version": "3.5.1",
+  "version": "4.0.0",
   "description": "A Typescript configuration for checking types within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",

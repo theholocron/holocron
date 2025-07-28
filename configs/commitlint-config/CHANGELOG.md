@@ -1,5 +1,11 @@
 # @theholocron/commitlint-config
 
+## 4.0.0
+
+### Major Changes
+
+- [`14a6658`](https://github.com/theholocron/configs/commit/14a6658dfccae1206f629783be6f7aed59b28ebf) Thanks [@iamnewton](https://github.com/iamnewton)! - update all dependencies to be latest
+
 ## 3.5.1
 
 ### Patch Changes
