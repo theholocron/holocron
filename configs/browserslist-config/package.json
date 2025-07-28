@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/browserslist-config",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "A Browserslist configuration for all browsers and devices supported in the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/browserslist-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",

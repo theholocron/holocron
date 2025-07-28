@@ -1,5 +1,11 @@
 # @theholocron/eslint-config
 
+## 4.1.0
+
+### Minor Changes
+
+- [`7da1ef1`](https://github.com/theholocron/configs/commit/7da1ef1b5f91fd2b6bdbafee4014d85e51627ef5) Thanks [@iamnewton](https://github.com/iamnewton)! - fix eslint import/export
+
 ## 4.0.0
 
 ### Major Changes
