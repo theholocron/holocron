@@ -1,5 +1,4 @@
 import * as path from "node:path";
-import { codecovVitePlugin } from "@codecov/vite-plugin";
 import { defineConfig } from "vite";
 
 const NAME = "utils-misc";
@@ -8,14 +7,6 @@ const NAME = "utils-misc";
  * @see https://vitejs.dev/config/
  */
 export default defineConfig({
-	plugins: [
-		codecovVitePlugin({
-			enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-			bundleName: NAME,
-			gitService: "github",
-			uploadToken: process.env.CODECOV_TOKEN,
-		}),
-	],
 	build: {
 		lib: {
 			entry: path.resolve(__dirname, "src/index.ts"), // Entry point of your library
