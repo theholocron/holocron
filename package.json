@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@theholocron/commitlint-config": "^3.5.1",
-    "@theholocron/eslint-config": "^3.5.1",
+    "@theholocron/eslint-config": "^4.1.0",
     "@theholocron/jest-config": "^3.5.1",
     "@theholocron/lint-staged-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
