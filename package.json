@@ -43,7 +43,7 @@
     "@theholocron/jest-config": "^3.5.1",
     "@theholocron/lint-staged-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
-    "@theholocron/storybook-config": "^3.5.1",
+    "@theholocron/storybook-config": "^4.0.0",
     "@theholocron/stylelint-config": "^3.5.1",
     "@theholocron/tsconfig": "^3.4.4",
     "@tsconfig/node-lts": "^22.0.2",
