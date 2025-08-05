@@ -44,7 +44,7 @@
     "@theholocron/lint-staged-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
     "@theholocron/storybook-config": "^3.5.1",
-    "@theholocron/stylelint-config": "^3.5.1",
+    "@theholocron/stylelint-config": "^4.0.0",
     "@theholocron/tsconfig": "^3.4.4",
     "@tsconfig/node-lts": "^22.0.2",
     "@types/conf": "^3.0.3",
