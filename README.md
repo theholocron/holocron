@@ -10,7 +10,9 @@ npm install --global @theholocron/cli
 
 ## Usage
 
-<!-- fill out the usage with examples -->
+```bash
+$ holocron --help
+```
 
 ## Documentation
 
