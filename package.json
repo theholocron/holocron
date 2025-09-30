@@ -42,7 +42,7 @@
     "@theholocron/eslint-config": "^3.5.1",
     "@theholocron/jest-config": "^3.5.1",
     "@theholocron/lint-staged-config": "^3.5.1",
-    "@theholocron/prettier-config": "^3.5.1",
+    "@theholocron/prettier-config": "^4.1.0",
     "@theholocron/storybook-config": "^3.5.1",
     "@theholocron/stylelint-config": "^3.5.1",
     "@theholocron/tsconfig": "^3.4.4",
