@@ -6,9 +6,6 @@
  * capabilities it implements. The factory for each capability
  * receives plugin-level options from `holocron.config.json` and
  * returns the bound implementation.
- *
- * Implementations are stubbed for the scaffold pass. Ports of
- * Rando's `gh-rest.ts` and `github-issues.ts` land next.
  */
 
 import type {
@@ -21,10 +18,17 @@ import type {
 } from '@theholocron/cli'
 
 import { resolveToken, type ResolveTokenInput } from './auth.js'
+import { GitHubEnvironments } from './capabilities/environments.js'
+import { GitHubSecrets } from './capabilities/secrets.js'
+import { GitHubSource } from './capabilities/source.js'
+import { GitHubRestClient } from './rest.js'
 
 export interface GitHubPluginOptions extends ResolveTokenInput {
-  /** "owner/name" — e.g., "theholocron/holocron". Defaults to the working repo. */
-  repo?: string
+  /** "owner/name" — e.g., "theholocron/holocron". Required. */
+  repo: string
+  /** Absolute path to the working repo root. Used by `source`'s
+   * workflow-file methods. Defaults to `process.cwd()`. */
+  repoRoot?: string
   /** Lifecycle slot → label name. Used by the `issues` capability. */
   labels?: { inProgress: string; inReview: string }
   /** Override base URL for tests. Defaults to https://api.github.com. */
@@ -35,47 +39,51 @@ export interface GitHubPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
   options: GitHubPluginOptions
-  token: string
-  baseUrl: string
-  fetch: typeof fetch
+  rest: GitHubRestClient
+  repo: string
+  repoRoot: string
 }
 
-export function createContext(options: GitHubPluginOptions = {}): PluginContext {
+export function createContext(options: GitHubPluginOptions): PluginContext {
   const token = resolveToken(options)
+  const rest = new GitHubRestClient({
+    token,
+    baseUrl: options.baseUrl,
+    fetch: options.fetch,
+  })
   return {
     options,
-    token,
-    baseUrl: options.baseUrl ?? 'https://api.github.com',
-    fetch: options.fetch ?? fetch,
+    rest,
+    repo: options.repo,
+    repoRoot: options.repoRoot ?? process.cwd(),
   }
 }
 
-// Capability factories — return the bound implementations. Stubs for
-// now; ports land in subsequent commits.
+// ── Capability factories ──────────────────────────────────────────────
 
-export function source(_ctx: PluginContext): Source {
-  throw new Error('not implemented (scaffold) — port from rando packages/cli/src/adapters/gh-rest.ts')
+export function source(ctx: PluginContext): Source {
+  return new GitHubSource(ctx.rest, { repo: ctx.repo, repoRoot: ctx.repoRoot })
+}
+
+export function secrets(ctx: PluginContext): Secrets {
+  return new GitHubSecrets(ctx.rest, { repo: ctx.repo })
+}
+
+export function environments(ctx: PluginContext): Environments {
+  return new GitHubEnvironments(ctx.rest, { repo: ctx.repo })
 }
 
 export function ci(_ctx: PluginContext): Ci {
-  throw new Error('not implemented (scaffold)')
-}
-
-export function secrets(_ctx: PluginContext): Secrets {
-  throw new Error('not implemented (scaffold) — needs libsodium sealed-box encryption')
-}
-
-export function environments(_ctx: PluginContext): Environments {
-  throw new Error('not implemented (scaffold)')
+  throw new Error('ci capability not yet implemented — see phase 2b')
 }
 
 export function issues(_ctx: PluginContext): Issues {
-  throw new Error('not implemented (scaffold) — port from rando packages/cli/src/adapters/github-issues.ts')
+  throw new Error('issues capability not yet implemented — see phase 2b (port from rando github-issues.ts)')
 }
 
-// Optional: a barrel that the core CLI's plugin loader can call to
-// instantiate everything at once.
-export function createPlugin(options: GitHubPluginOptions = {}) {
+// ── Plugin barrel for the core loader ─────────────────────────────────
+
+export function createPlugin(options: GitHubPluginOptions) {
   const ctx = createContext(options)
   return {
     name: '@theholocron/holocron-plugin-github',
@@ -89,5 +97,12 @@ export function createPlugin(options: GitHubPluginOptions = {}) {
   }
 }
 
+// ── Public re-exports ─────────────────────────────────────────────────
+
 export type { Auth }
 export * from './auth.js'
+export { GitHubRestClient } from './rest.js'
+export { encryptSecret } from './sodium.js'
+export { GitHubSource } from './capabilities/source.js'
+export { GitHubSecrets } from './capabilities/secrets.js'
+export { GitHubEnvironments } from './capabilities/environments.js'
