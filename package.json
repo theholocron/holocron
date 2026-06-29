@@ -1,71 +1,41 @@
 {
-  "name": "@theholocron/cli",
-  "version": "1.0.0",
-  "description": "The command-line client designed to support The Holocron.",
+  "name": "@theholocron/holocron-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for the Holocron CLI and its plugins.",
   "homepage": "https://github.com/theholocron/holocron#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "src/cli.ts",
-  "bin": {
-    "holocron": "./src/cli.ts"
-  },
-  "man": "./man/holocron.1",
   "scripts": {
-    "lint": "docker run -e LOG_LEVEL=DEBUG -e RUN_LOCAL=true -v .:/tmp/lint --rm ghcr.io/super-linter/super-linter:latest",
-    "postbuild": "marked-man README.md > man/holocron.1",
-    "start": "tsx ./src/cli.ts"
-  },
-  "dependencies": {
-    "@inquirer/prompts": "^7.0.1",
-    "@theholocron/utils-string": "^0.1.0",
-    "chalk": "^5.3.0",
-    "conf": "^13.0.1",
-    "default-browser": "^5.2.1",
-    "dotenv": "^16.4.5",
-    "inquirer-autocomplete-standalone": "^0.8.1",
-    "open": "^10.1.0",
-    "open-editor": "^4.1.1",
-    "ora": "^8.1.1",
-    "play-sound": "^1.1.6",
-    "update-notifier": "^7.3.1",
-    "winston": "^3.15.0",
-    "yargs": "^17.7.2"
+    "build": "pnpm -r --filter './packages/*' build",
+    "lint": "pnpm -r --filter './packages/*' lint",
+    "typecheck": "pnpm -r --filter './packages/*' typecheck",
+    "test": "pnpm -r --filter './packages/*' test",
+    "test:coverage": "pnpm -r --filter './packages/*' test:coverage",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@theholocron/commitlint-config": "^3.5.1",
     "@theholocron/eslint-config": "^3.5.1",
-    "@theholocron/jest-config": "^3.5.1",
     "@theholocron/lint-staged-config": "^3.5.1",
     "@theholocron/prettier-config": "^3.5.1",
-    "@theholocron/storybook-config": "^3.5.1",
-    "@theholocron/stylelint-config": "^3.5.1",
     "@theholocron/tsconfig": "^3.4.4",
     "@tsconfig/node-lts": "^22.0.2",
-    "@types/conf": "^3.0.3",
-    "@types/inquirer": "^9.0.7",
-    "@types/play-sound": "^1.1.2",
-    "@types/update-notifier": "^6.0.8",
-    "@types/winston": "^2.4.4",
-    "@types/yargs": "^17.0.33",
     "alexjs": "^1.0.0",
     "marked-man": "^2.1.0",
+    "prettier": "^3.3.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   },
-  "packageManager": "npm@9.5.0",
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22",
-    "npm": ">=10"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "releases": "https://github.com/theholocron/holocron/releases",
-  "wiki": "https://github.com/theholocron/holocron/wiki"
+    "pnpm": ">=10"
+  }
 }

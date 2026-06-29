@@ -1,0 +1,40 @@
+{
+  "name": "@theholocron/cli",
+  "version": "2.0.0-alpha.0",
+  "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "holocron": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./capabilities": "./src/capabilities/index.ts"
+  },
+  "scripts": {
+    "start": "tsx ./src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@theholocron/cli-utils": "workspace:*",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "catalog:",
+    "@tsconfig/node-lts": "catalog:",
+    "@types/yargs": "^17.0.33",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
