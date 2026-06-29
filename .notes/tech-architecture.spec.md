@@ -14,14 +14,14 @@ single `holocron.config.json` per project wires capabilities → plugins.
 
 ```
 packages/
-  cli/              — @theholocron/cli         (binary + runtime + capability interfaces)
-  cli-utils/        — @theholocron/cli-utils   (prompts, openers, shell, log — carryover from v1)
-  holocron-plugin-github/
-  holocron-plugin-vercel/
-  holocron-plugin-neon/
-  holocron-plugin-clerk/
-  holocron-plugin-1password/
-  holocron-plugin-postman/
+  cli/                          — @theholocron/cli                    (binary + runtime + capability interfaces)
+  cli-utils/                    — @theholocron/cli-utils              (prompts, openers, shell, log — v1 carryover)
+  holocron-plugin-github/       — @theholocron/holocron-plugin-github (first real plugin)
+  holocron-plugin-vercel/       — (not yet)
+  holocron-plugin-neon/         — (not yet)
+  holocron-plugin-clerk/        — (not yet)
+  holocron-plugin-1password/    — (not yet)
+  holocron-plugin-postman/      — (not yet)
   …
 ```
 
@@ -37,44 +37,70 @@ as long as the package name starts with `holocron-plugin-`.
   the kind of security drift that prompted this extraction in the
   first place.
 - **A single vendor often provides multiple capabilities.** GitHub
-  alone covers source control, CI, issues, platform secrets, packages
-  registry, and code scanning. Modelling adapters as
-  one-per-vendor would either duplicate code (one per capability) or
-  lose flexibility (can't use GH Actions but Linear issues). The
-  capability/provider split solves both.
-- **The capability split also makes adapters small.** A `hosting`
-  contract has maybe four methods; an entire `cli-vercel`
-  one-stop-shop would have dozens. Smaller surface = easier to
-  re-implement = easier to mock = easier to test.
+  alone covers source control, CI, issues, environments, secrets at
+  several scopes, packages registry, and code scanning. Modeling
+  adapters as one-per-vendor would either duplicate code (one per
+  capability) or lose flexibility. The capability/provider split
+  solves both: a plugin package implements N capabilities, and the
+  config wires capability → provider.
+- **Some capabilities are inherently multi-provider.** You might post
+  alerts to Slack AND Discord, or send analytics to Google AND
+  PostHog. The model needs to support both `single` and `many`
+  cardinalities natively.
 - **Config is the source of truth.** No hardcoded vendor lists in
   code; no hardcoded app paths; no implicit assumptions. The config
   declares what the project is, and the runtime + plugins do the rest.
 
-## Capability vocabulary (v1)
+## Capability vocabulary — 14 capabilities
 
-The eleven capabilities holocron v2 supports out of the box:
-
-| Capability        | What it does                                | Typical providers       |
-| ----------------- | ------------------------------------------- | ----------------------- |
-| `sourceControl`   | Repo, branches, PRs                         | GitHub, GitLab, Bitbucket |
-| `ci`              | Workflow files, runs                        | GitHub Actions, GitLab CI, CircleCI |
-| `issues`          | Tracker                                     | GitHub Issues, Linear, Jira |
-| `platformSecrets` | CI/host-level secrets (GH Actions secrets)  | GitHub, GitLab          |
-| `hosting`         | Deploy targets                              | Vercel, Netlify, Fly, Cloudflare |
-| `dataStore`       | Database                                    | Neon, Supabase, Railway, Render |
-| `auth`            | Identity                                    | Clerk, Auth0, Supabase Auth, Keycloak |
-| `envSecrets`      | App-level secret manager                    | 1Password, Bitwarden, Vault, Doppler |
-| `apiTooling`      | API collection / spec mirror                | Postman, Insomnia, Stoplight |
-| `notifications`   | Alerts and ops messaging                    | Slack, Discord          |
-| `analytics`       | Observability and error tracking            | Sentry, Datadog, PostHog |
+| Capability        | Cardinality | What it owns                                                  | Typical providers                          |
+| ----------------- | ----------- | ------------------------------------------------------------- | ------------------------------------------ |
+| `source`          | one         | Repos, branches, PRs, rulesets, repo settings, workflow files | GitHub, GitLab, Bitbucket                  |
+| `ci`              | one         | Workflow runs and history                                     | GitHub Actions, GitLab CI, CircleCI        |
+| `secrets`         | one         | CI/platform secrets store (repo / env / org scoped)           | GitHub Actions, GitLab CI                  |
+| `environments`    | one         | Named deployment environments (reviewers, wait timers)        | GitHub, AWS                                |
+| `issues`          | one         | Issue tracker                                                 | GitHub Issues, Linear, Jira                |
+| `deployment`      | one         | Deploy targets (preview + prod, runtime env vars)             | Vercel, Netlify, Fly, Cloudflare           |
+| `storage`         | one         | DB / object / file store                                      | Neon, Supabase, Railway, Render, S3        |
+| `auth`            | one         | Identity provider                                             | Clerk, Auth0, Supabase Auth, Keycloak      |
+| **`vault`**       | one         | **Source of truth for secrets (REQUIRED)**                    | 1Password, Bitwarden, HashiCorp Vault, Doppler |
+| `dns`             | one         | DNS record management                                         | Cloudflare, Route 53, Namecheap            |
+| `tooling`         | **many**    | Dev tooling                                                   | Postman, Storybook, Chromatic              |
+| `notifications`   | **many**    | Alerts and ops messaging                                      | Slack, Discord, PagerDuty                  |
+| `analytics`       | **many**    | Product analytics                                             | Google Analytics, PostHog, Plausible       |
+| `observability`   | **many**    | Error / perf monitoring                                       | Sentry, Datadog, NewRelic, OpenTelemetry   |
 
 Each capability is a TypeScript interface in
-`packages/cli/src/capabilities/index.ts`. Plugins implement one or
-many; nothing forces them to implement all.
+`packages/cli/src/capabilities/index.ts`. Cardinality lives next to
+the interfaces in a typed `CARDINALITY` map, so runtime + commands can
+branch statically on whether a capability returns one provider or many.
+
+## The vault — source of truth for secrets
+
+`vault` is the only **required** capability. Every project has secrets
+somewhere; holocron's job is to keep them out of the repo and out of
+the config. The vault is the canonical store, and all other secret
+destinations are populated from it:
+
+```
+1Password (vault, source of truth)
+   ├─→ GitHub Actions secrets   (synced by `secrets` capability)
+   ├─→ Vercel env vars          (synced by `deployment` capability)
+   └─→ Local .env               (synced by `holocron secrets sync`)
+```
+
+The `secrets` capability (e.g., GitHub Actions secrets) is conceptually
+a **sync destination**, not a source. The `deployment` capability owns
+runtime env vars for the same reason: those are populated from the
+vault at deploy time, not authored independently.
+
+This split is the architectural answer to "why isn't 1Password just
+another `secrets` provider?" — it plays a different role in the data
+flow.
 
 ## Config shape
 
-`holocron.config.json` (committed; one per project):
+`holocron.config.json` (committed; one per project), ESLint-style:
 
 ```jsonc
 {
@@ -84,25 +110,30 @@ many; nothing forces them to implement all.
   },
 
   "providers": {
-    "sourceControl": "github",
-    "ci": "github",
-    "issues": "github",
-    "platformSecrets": "github",
+    // Single-cardinality, short form: "provider"
+    "source":       "github",
+    "ci":           "github",
+    "secrets":      "github",
+    "environments": "github",
+    "issues":       "github",
+    "auth":         "clerk",
+    "dns":          "cloudflare",
 
-    "hosting": ["vercel", { "team": "rando", "projectIds": { "web": "prj_…" } }],
-    "dataStore": ["neon", { "kind": "postgres-postgis", "branchStrategy": "per-pr" }],
-    "auth": ["clerk", { "syncTable": "users", "webhookSecretEnv": "CLERK_WEBHOOK_SECRET" }],
-    "envSecrets": ["1password", { "vault": "rando", "account": "uuid…" }],
-    "apiTooling": ["postman", { "workspaceId": "…", "collectionId": "…" }],
+    // Single-cardinality, tuple form: [provider, options]
+    "deployment": ["vercel", { "team": "rando", "projectIds": { "web": "prj_…" } }],
+    "storage":    ["neon",   { "kind": "postgres-postgis", "branchStrategy": "per-pr" }],
+    "vault":      ["1password", { "vault": "rando", "account": "uuid…" }],
 
-    "notifications": "slack",
-    "analytics": "sentry"
+    // Many-cardinality, short form: [provider1, provider2, …]
+    "tooling":       ["postman", "storybook", "chromatic"],
+    "notifications": ["slack",   "discord"],
+    "analytics":     ["google"],
+    "observability": ["sentry"]
   },
 
   "apps": [
     { "name": "web", "path": "apps/web", "kind": "next" },
-    { "name": "api", "path": "apps/api", "kind": "next-api" },
-    { "name": "native", "path": "apps/native", "kind": "expo" }
+    { "name": "api", "path": "apps/api", "kind": "next-api" }
   ],
 
   "doctor": {
@@ -111,43 +142,57 @@ many; nothing forces them to implement all.
 }
 ```
 
-Short form (`"github"`) resolves to `@theholocron/holocron-plugin-github`.
-Tuple form (`["vercel", { … }]`) supplies plugin-specific options.
-Fully-qualified package names (`["my-org/custom-plugin", {…}]`) are
-honored verbatim so third-party plugins work out of the box.
+Discriminator rule (in `packages/cli/src/config.ts`): an array entry
+is a single `[provider, options]` tuple when its length is 2 AND
+element [1] is a non-array, non-null object. Anything else with an
+array is a multi-provider list. Fully-qualified plugin names
+(`@my-org/some-plugin` or `holocron-plugin-x`) are honored verbatim
+so third-party plugins work out of the box.
 
-Presets (`"extends": "@theholocron/preset-X"`) are **deliberately
-out-of-scope for v2.0**. They'll arrive in v2.1 once a second project
-proves the abstraction is worth distilling.
+Presets (`"extends": "@theholocron/preset-X"`) are deliberately
+**out of scope for v2.0** — we'll add them in v2.1 once a second
+project proves the abstraction is worth distilling.
+
+## Auth
+
+Plugins resolve a vendor token in this order:
+
+1. `--token <PAT>` flag passed through from the CLI command
+2. `HOLOCRON_GH_TOKEN` (or vendor-equivalent) env var
+3. `GITHUB_TOKEN` (or vendor-equivalent) env var
+
+**No `gh auth token` fallback.** Local `gh` is usually scoped narrower
+than admin commands need (rulesets, repo settings, security toggles),
+so silent fallback produces mysterious 403s. Explicit token only.
+
+Tokens never appear in `holocron.config.json`. The config can declare
+which env var to read (e.g., `auth: { tokenEnv: "MY_PAT" }`), but the
+value lives in env (or, ideally, in the `vault`).
 
 ## Package layout
 
-The monorepo uses **pnpm workspaces** with a shared catalog for
-common dev-deps.
-
 ```
 package.json                — monorepo root, scripts that fan to packages
-pnpm-workspace.yaml         — workspace + catalog declarations
+pnpm-workspace.yaml         — workspace + catalog (eslint, vitest, tsconfig, etc.)
 tsconfig.json               — root, references each package
+eslint.config.js            — workspace-level flat config
 .notes/                     — design docs (this file lives here)
 packages/
-  cli/
-    package.json            — @theholocron/cli (binary)
-    tsconfig.json
-    src/
-      cli.ts                — yargs entry, binary `holocron`
-      capabilities/index.ts — capability interfaces (the contracts)
-      config.ts             — config schema + plugin-name resolution
-      index.ts              — library entry (exported types)
-  cli-utils/
-    package.json            — @theholocron/cli-utils
-    src/                    — v1 helpers, moved with git history preserved
-      ui/                   — prompts, openers
-      tasks/                — find, replace
-      utils/                — $, config, env, log, node
+  cli/                      — @theholocron/cli (binary + runtime + interfaces)
+  cli-utils/                — @theholocron/cli-utils (v1 carryover)
+  holocron-plugin-github/   — @theholocron/holocron-plugin-github
 ```
 
-Plugins ship as separate packages under `packages/holocron-plugin-*`.
+Tests use **vitest** (workspace catalog) with per-package
+`vitest.config.ts`; lint uses **typescript-eslint** + `@eslint/js`
+recommended + a small handful of overrides.
+
+> **Note on `@theholocron/eslint-config`:** v4.1.0 has an upstream
+> bug — it calls `includeIgnoreFile()` on a `.gitignore` that isn't
+> shipped in the npm tarball, so consuming it programmatically fails.
+> The v1 repo only ran lint via super-linter in Docker, so this never
+> surfaced. v2 uses a minimal local config until the org config is
+> fixed.
 
 ## License
 
@@ -156,109 +201,82 @@ that imports `@theholocron/cli` as a library could be forced to GPL
 their project. Since the whole point of v2 is that other projects
 should be able to install it (and `cli-utils` is genuinely a library
 of helpers, not just a CLI binary), GPL is incompatible with the
-audience we want. MIT matches the npm ecosystem norm for tooling and
-removes the legal friction.
+audience we want. MIT matches the npm ecosystem norm for tooling.
 
 The license switch happens at the same time as the v2 restructure;
 the v1.x line stays GPL-3.0 on `main` for historical accuracy.
 
 ## What's Rando-specific and stays in Rando
 
-Decisions from the design conversation that need to be acted on
-during the Rando → Holocron migration:
-
 - **App names are config-driven.** No `apps/web`, `apps/api`, etc.
-  hardcoded anywhere in the extracted code. Today's Rando CLI
-  sprinkles these across `setup-vercel.ts`, deploy commands, doctor
-  checks; all must read from `holocron.config.json` → `apps[]`.
+  hardcoded anywhere in the extracted code. All read from
+  `holocron.config.json` → `apps[]`.
 - **Postgres / PostGIS specifics become the Neon plugin.** Migration
-  flow, seed/reset commands, `load-env.ts`, PostGIS migration quirks
-  — all behind `holocron-plugin-neon` exposing `dataStore` with a
-  `kind: "postgres-postgis"` option. Other dataStore plugins
-  (Supabase, Railway) provide their own implementations.
+  flow, seed/reset, `load-env.ts`, PostGIS quirks all live behind
+  `@theholocron/holocron-plugin-neon` exposing `storage` with a
+  `kind: "postgres-postgis"` option.
 - **Clerk webhook sync flow moves to the Clerk plugin.** `rando clerk
-  webhook setup` becomes part of `holocron-plugin-clerk`'s `auth`
-  capability. The Rando-side `users` table sync logic stays in
-  Rando — it's app-data, not infra.
+  webhook setup` becomes part of `@theholocron/holocron-plugin-clerk`'s
+  `auth` capability. The Rando-side `users` table sync stays in
+  Rando — that's app data, not infra.
 - **Doctor framework stays in core; specific checks become plugin
-  contributions.** The `check.run() → ok|warn|fail` framework + the
-  CLI shell are generic. Each plugin can register checks it owns.
-  Rando-specific checks (Brewfile, 1P account UUID validation) ship
-  inside Rando's project, registered via a local
-  `holocron.config.json` → `doctor.checks[]` entry.
+  contributions.** Each plugin can register checks it owns.
+  Rando-specific checks (Brewfile, 1P account UUID validation) stay
+  in Rando's project, registered via `doctor.checks[]`.
 
 ## Migration from Rando
 
-**Big-bang.** Build holocron v2 to feature parity with Rando's
-current `packages/cli`, then point Rando at it in a single PR that
-deletes `packages/cli` and adds `@theholocron/cli` as a dep + a
+**Big-bang.** Build holocron v2 to feature parity with Rando's current
+`packages/cli`, then point Rando at it in a single PR that deletes
+`packages/cli` and adds `@theholocron/cli` as a dep + a
 `holocron.config.json`.
 
 Phases:
 
-1. **Scaffold (this commit).** Monorepo structure, capability
-   interfaces, MIT relicense, spec. No functionality yet.
-2. **Carryover.** Walk Rando's `packages/cli/src/adapters/*` and port
-   each into the matching plugin package. Source of truth is the
-   adapter interface that already exists.
-3. **Orchestrator commands.** `holocron setup` / `doctor` / `clean`
-   land in core, calling into plugins via capabilities. Mirror
-   Rando's `rando setup` / `doctor` semantics.
-4. **Workflow generators.** The `.github/workflows/*.yml` templates
-   shipped by Rando's `vc setup` move into
-   `holocron-plugin-github`'s `ci` capability.
-5. **Rando flips over.** One PR in `rando-id/rando.id` removes
-   `packages/cli`, adds `@theholocron/cli` + a
-   `holocron.config.json`, updates all docs.
+1. **Scaffold + capabilities (done).** Monorepo, capability
+   interfaces, config parser, plugin scaffold, test/lint infra.
+2. **`holocron-plugin-github` impl.** Port `gh-rest.ts` + `github-issues.ts`
+   from Rando. Implement `source` + `ci` + `secrets` + `environments`
+   + `issues` capabilities. Tests come over with the implementations.
+3. **`holocron-plugin-vercel` impl.** Port `vercel.ts`.
+4. **`holocron-plugin-neon`, `holocron-plugin-clerk`, `holocron-plugin-1password`,
+   `holocron-plugin-postman` impls.** Port adapters in order.
+5. **Orchestrator commands.** `holocron setup`, `holocron doctor`,
+   `holocron secrets sync`. Mirror Rando's semantics.
+6. **Rando flips over.** One PR in `rando-id/rando.id`.
 
 The first real validation that the design works comes when a second
-project (different vendors — likely Supabase instead of Neon, per the
-"next idea" answer) successfully spins up via `holocron setup`. Until
-that happens, the capability interfaces are educated guesses.
+project (different vendors — likely Supabase instead of Neon, per
+the "next idea" answer) successfully spins up via `holocron setup`.
 
 ## Options considered
 
 - **Single-package CLI (status quo from v1).** Rejected: doesn't
-  scale to multiple providers cleanly; adding `cli-vercel` /
-  `cli-neon` / etc. would balloon the surface area of one package.
-- **One package per vendor (`@theholocron/cli-github`).** Considered.
-  Rejected because vendors provide multiple capabilities and the
-  capability/provider naming would still bleed into the package
-  surface. The capability-first model is cleaner.
-- **One package per capability (`@theholocron/cli-source-control`
-  with built-in GitHub/GitLab impls).** Considered. Rejected because
-  it forces a vendor switch to mean installing a different package
-  every time, and bundles unrelated vendors into one dependency tree.
-- **Slim core + everything external from day one.** Considered.
-  Rejected for v2.0 because we'd be designing the plugin API in the
-  dark; better to ship the built-in set together, learn what the
-  plugin contract really needs, then formalize.
+  scale to multiple providers cleanly.
+- **One package per vendor (`@theholocron/cli-github`).** Rejected:
+  vendors provide multiple capabilities, and the
+  capability-first model is cleaner.
+- **One package per capability (with built-in vendor impls).**
+  Rejected: forces a vendor switch to mean installing a different
+  package and bundles unrelated vendors.
+- **Slim core + everything external from day one.** Rejected for
+  v2.0 — we'd be designing the plugin API in the dark. Ship the
+  built-in set together first, learn what the plugin contract really
+  needs, then formalize.
 
 ## Open questions
 
-- **Plugin resolution order.** Today's adapter pattern in Rando uses
-  factory injection (`Adapters` object). The plugin loader needs to
-  resolve packages at runtime — node import? require.resolve? An
-  explicit `plugins[]` array in config? Inclined toward an explicit
-  array so dynamic resolution failures fail loud.
-- **Cross-capability dependencies.** `apiTooling` needs to know
-  `sourceControl`'s repo coords; `hosting` needs to know `dataStore`'s
-  connection string. The core needs a "capability registry" that
-  plugins can query. Design TBD.
-- **State persistence.** Where do remembered choices live (e.g.
-  "you already linked Vercel project prj_X to apps/web")? Options:
-  (a) commit to `holocron.config.json`, (b) gitignored
-  `.holocron/state.json`, (c) query providers every time. Leaning
-  toward (a) for repo-shareable state, (c) for "is this still true"
-  checks.
-- **Doctor check registration.** Plugins should be able to ship
-  checks, but the operator needs to opt in (not all checks make sense
-  for all projects). Inclined to mirror ESLint's `rules` model:
-  `doctor.checks: { "secrets/op-account-uuid": "warn" }`.
-- **Versioning model.** Independent (each package versions on its
-  own) vs lockstep (one major across the monorepo)? Inclined toward
-  independent — semver discipline is on the plugin authors.
-- **Binary distribution.** Today the v1 binary is `tsx ./src/cli.ts`
-  in dev mode and `marked-man` for the manpage. v2 needs a real build
-  step (probably `tsdown` or `unbuild`). Out of scope until first
-  release.
+- **Plugin loader implementation.** Dynamic import via package name?
+  Explicit `plugins[]` array in config? Inclined toward implicit
+  resolution from the `providers` block (the package list is derived).
+- **Cross-capability dependencies.** `tooling` needs to know the repo
+  coords; `deployment` needs the storage connection string at deploy
+  time. The core needs a capability registry that plugins can query.
+- **State persistence.** Where do remembered choices live (e.g.,
+  "Vercel project prj_X already linked to apps/web")?
+- **Doctor check registration.** Mirror ESLint's `rules` model:
+  `doctor.checks: { "github/secrets-up-to-date": "warn" }`.
+- **Versioning model.** Independent per-plugin vs lockstep across the
+  monorepo? Inclined toward independent.
+- **Binary distribution.** v1 used `tsx` + `marked-man`. v2 needs a
+  real build step (probably `tsdown` or `unbuild`).

@@ -1,42 +1,40 @@
 {
-  "name": "@theholocron/cli",
-  "version": "2.0.0-alpha.0",
-  "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
-  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
+  "name": "@theholocron/holocron-plugin-github",
+  "version": "0.0.0",
+  "description": "Holocron plugin for GitHub. Implements source, ci, secrets, environments, and issues capabilities against the GitHub REST API.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-github#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "packages/cli"
+    "directory": "packages/holocron-plugin-github"
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
   "main": "./src/index.ts",
-  "bin": {
-    "holocron": "./src/cli.ts"
-  },
   "exports": {
-    ".": "./src/index.ts",
-    "./capabilities": "./src/capabilities/index.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "tsx ./src/cli.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
+  },
   "dependencies": {
-    "@theholocron/cli-utils": "workspace:*",
-    "yargs": "^18.0.0"
+    "libsodium-wrappers": "^0.7.15"
   },
   "devDependencies": {
+    "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@tsconfig/node-lts": "catalog:",
-    "@types/yargs": "^17.0.35",
+    "@types/libsodium-wrappers": "^0.7.14",
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "globals": "catalog:",

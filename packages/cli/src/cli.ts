@@ -17,7 +17,6 @@ await yargs(hideBin(process.argv))
     () => {
       // The version lives in package.json; loaders for that arrive
       // with the build pipeline. Placeholder for the alpha.
-      // eslint-disable-next-line no-console
       console.log('holocron 2.0.0-alpha.0')
     },
   )

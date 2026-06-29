@@ -2,13 +2,17 @@ packages:
   - 'packages/*'
 
 # Shared dep versions used across packages. Add named catalogs as
-# plugin packages grow (e.g. `vitest:` for testing, `eslint:` for lint).
+# plugin packages grow.
 catalog:
   '@theholocron/eslint-config': ^4.1.0
   '@theholocron/prettier-config': ^4.1.0
   '@theholocron/tsconfig': ^4.1.0
   '@tsconfig/node-lts': ^24.0.0
+  eslint: ^9.36.0
+  globals: ^16.5.0
   tsx: ^4.22.4
+  vitest: ^3.2.6
+  '@vitest/coverage-v8': ^3.2.6
   # TypeScript pinned to latest 5.x. @theholocron/tsconfig@4 declares
   # `typescript@^5` as peer; bumping to 6 produces a peer warning until
   # the org-level tsconfig publishes a 6-compatible release.

@@ -9,32 +9,14 @@ spinning up and operating software projects.
 [`.notes/tech-architecture.spec.md`](../../.notes/tech-architecture.spec.md).
 Most commands aren't wired yet.
 
-## Concept
+## What's in here
 
-Each project declares a `holocron.config.json` that maps **capabilities**
-(`sourceControl`, `ci`, `hosting`, `dataStore`, etc.) to **provider plugins**:
+- `src/capabilities/` — the 14 capability interfaces that providers
+  implement
+- `src/config.ts` — `holocron.config.json` parser + plugin resolution
+- `src/cli.ts` — yargs entry, dispatches subcommands (WIP)
 
-```jsonc
-{
-  "project": { "name": "my-app" },
-  "providers": {
-    "sourceControl": "github",
-    "ci": "github",
-    "issues": "github",
-    "platformSecrets": "github",
-    "hosting": ["vercel", { "team": "my-team" }],
-    "dataStore": ["neon", { "kind": "postgres" }],
-    "auth": "clerk",
-    "envSecrets": "1password",
-    "apiTooling": "postman"
-  }
-}
-```
-
-Plugin packages follow `@theholocron/holocron-plugin-<provider>` and
-each exports the capability implementations it provides.
-
-## Install
+## Install (when published)
 
 ```bash
 pnpm add -D @theholocron/cli
