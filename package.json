@@ -21,17 +21,20 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@theholocron/commitlint-config": "^3.5.1",
-    "@theholocron/eslint-config": "^3.5.1",
-    "@theholocron/lint-staged-config": "^3.5.1",
-    "@theholocron/prettier-config": "^3.5.1",
-    "@theholocron/tsconfig": "^3.4.4",
-    "@tsconfig/node-lts": "^22.0.2",
+    "@theholocron/commitlint-config": "^4.1.0",
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/lint-staged-config": "^4.1.0",
+    "@theholocron/prettier-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@tsconfig/node-lts": "catalog:",
     "alexjs": "^1.0.0",
-    "marked-man": "^2.1.0",
-    "prettier": "^3.3.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "marked-man": "^2.1.1",
+    "prettier": "^3.9.3",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {

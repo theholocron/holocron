@@ -1,6 +1,6 @@
 ---
-status: draft # draft → proposed (issue filed) → approved (milestone attached)
-issue: TBD
+status: proposed # draft → proposed (issue filed) → approved (milestone attached)
+issue: 74
 ---
 
 # Holocron v2 architecture

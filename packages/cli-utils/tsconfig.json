@@ -1,15 +1,13 @@
 {
-  "display": "Holocron CLI",
+  "display": "Holocron CLI Utils",
   "extends": "@tsconfig/node-lts/tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist",
     "paths": {
-      "@/media": ["./media/*"],
-      "@/package": ["./package.json"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["**/*.ts"],
-  "exclude": ["./node_modules"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
