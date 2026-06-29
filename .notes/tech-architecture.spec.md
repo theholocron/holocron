@@ -149,9 +149,10 @@ array is a multi-provider list. Fully-qualified plugin names
 (`@my-org/some-plugin` or `holocron-plugin-x`) are honored verbatim
 so third-party plugins work out of the box.
 
-Presets (`"extends": "@theholocron/preset-X"`) are deliberately
-**out of scope for v2.0** — we'll add them in v2.1 once a second
-project proves the abstraction is worth distilling.
+Presets are deliberately **out of scope for v2.0** — we'll add them in
+v2.1 once a second project proves the abstraction is worth distilling.
+The intended design is ESLint-shareable-configs-style with two levels
+of sharing (see Roadmap §Shareable configs).
 
 ## Auth
 
@@ -263,6 +264,60 @@ the "next idea" answer) successfully spins up via `holocron setup`.
   v2.0 — we'd be designing the plugin API in the dark. Ship the
   built-in set together first, learn what the plugin contract really
   needs, then formalize.
+
+## Roadmap
+
+### Shareable configs (post-v2.0)
+
+ESLint-shareable-configs-style sharing at two levels. **Not in v2.0;
+captured so we don't accidentally box ourselves out with the v2.0
+schema.**
+
+**Level 1 — per-capability config packages.** A single capability
+entry can resolve to a config package that bundles a provider + its
+options:
+
+```jsonc
+// project's holocron.config.json
+{
+  "providers": {
+    "vault": ["@rando-id/holocron-vault"]
+  }
+}
+```
+
+The `@rando-id/holocron-vault` package exports something like
+`{ provider: "1password", options: { vault: "rando", … } }`, and
+holocron resolves that into the same shape as if the project had
+written `["1password", { "vault": "rando", … }]` inline. Lets a team
+share a vault setup across their repos without re-typing the vault
+name in each one.
+
+**Level 2 — whole-config presets.** The config file itself can be
+JS/TS instead of JSON, importing a shared base:
+
+```ts
+// holocron.config.ts
+import { holocronConfig } from "@rando-id/holocron-config"
+
+export default holocronConfig
+```
+
+Mirrors ESLint flat config — let an org publish their full set of
+provider choices as a base, then individual projects extend / override.
+
+### What the v2.0 schema MUST keep open
+
+- Provider entries must be free to resolve through a config package
+  (level 1) — the discriminator in `config.ts` currently assumes the
+  first array element is a vendor name string; this is compatible
+  with a config-package name (`@rando-id/holocron-vault` is also a
+  valid package name), so level 1 layers cleanly on top later without
+  a breaking change.
+- The config file format must be allowed to evolve from JSON to
+  JS/TS — the loader should look up `holocron.config.{json,js,ts}`
+  in that order from day one, even if v2.0 only documents the JSON
+  form.
 
 ## Open questions
 
