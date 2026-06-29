@@ -245,39 +245,65 @@ export interface Issue {
 }
 
 export interface IssueSearchFilter {
+  /** Restrict to issues assigned to a specific id, or 'currentUser'. */
   assignee?: string | 'currentUser'
-  statusCategory?: StatusCategory
-  labels?: string[]
-  text?: string
+  /** Exclude issues in the `done` category. */
+  openOnly?: boolean
+  /** Max number of issues to return. Adapters apply a sensible default. */
   limit?: number
 }
 
 export interface LifecycleResult {
-  key: string
-  from: string
-  to: string
+  /** False when no API write happened (already at target state). */
+  transitioned: boolean
+  /** Status name the issue is in after this call. */
+  status: string
+  /** Adapter-specific note (e.g., "label set" / "closed (completed)"). */
+  via?: string
 }
 
 export interface TrackerDoctorReport {
-  ok: boolean
-  message: string
-  details?: Record<string, unknown>
+  /** "Authenticated as ..." subject for the spinner. */
+  authedAs: string
+  /** Free-form "Project: RANDO" / "Repo: rando-id/rando" identifier. */
+  projectLabel: string
+  /** Status values the adapter exposes. */
+  statuses: Array<{ name: string; category: StatusCategory }>
+  /**
+   * Per-lifecycle-slot readiness check. `resolved` indicates whether
+   * the configured value actually maps to something the tracker
+   * recognizes; the `note` is the rendered explanation.
+   */
+  lifecycle: Array<{
+    slot: LifecycleSlot
+    value: string | null
+    resolved: boolean
+    note: string
+  }>
 }
 
 export interface Issues extends ProviderIdentity {
   readonly key: 'issues'
 
+  /** Currently-authenticated user. */
+  getMyself(): Promise<TrackerUser>
+
   search(filter: IssueSearchFilter): Promise<Issue[]>
   get(key: string): Promise<Issue>
-  create(input: { summary: string; body?: string; labels?: string[] }): Promise<Issue>
 
-  /**
-   * Transition an issue to a lifecycle slot. Adapters map their own
-   * status model to the slot (e.g., GitHub: open + label vs closed).
-   */
+  create(input: {
+    summary: string
+    body?: string
+    labels?: string[]
+    /** Numeric id or exact title (case-insensitive). */
+    milestone?: string
+  }): Promise<{ key: string }>
+
+  /** Idempotent — `transitioned: false` if the issue is already at the target. */
   transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult>
 
-  listUsers(): Promise<TrackerUser[]>
+  comment(key: string, body: string): Promise<void>
+
   doctor(): Promise<TrackerDoctorReport>
 }
 

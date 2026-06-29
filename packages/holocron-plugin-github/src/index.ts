@@ -18,7 +18,9 @@ import type {
 } from '@theholocron/cli'
 
 import { resolveToken, type ResolveTokenInput } from './auth.js'
+import { GitHubCi } from './capabilities/ci.js'
 import { GitHubEnvironments } from './capabilities/environments.js'
+import { GitHubIssues } from './capabilities/issues.js'
 import { GitHubSecrets } from './capabilities/secrets.js'
 import { GitHubSource } from './capabilities/source.js'
 import { GitHubRestClient } from './rest.js'
@@ -73,12 +75,17 @@ export function environments(ctx: PluginContext): Environments {
   return new GitHubEnvironments(ctx.rest, { repo: ctx.repo })
 }
 
-export function ci(_ctx: PluginContext): Ci {
-  throw new Error('ci capability not yet implemented — see phase 2b')
+export function ci(ctx: PluginContext): Ci {
+  return new GitHubCi(ctx.rest, { repo: ctx.repo })
 }
 
-export function issues(_ctx: PluginContext): Issues {
-  throw new Error('issues capability not yet implemented — see phase 2b (port from rando github-issues.ts)')
+export function issues(ctx: PluginContext): Issues {
+  if (!ctx.options.labels) {
+    throw new Error(
+      'issues capability requires `labels` in plugin options: { inProgress, inReview }',
+    )
+  }
+  return new GitHubIssues(ctx.rest, { repo: ctx.repo, labels: ctx.options.labels })
 }
 
 // ── Plugin barrel for the core loader ─────────────────────────────────
@@ -106,3 +113,5 @@ export { encryptSecret } from './sodium.js'
 export { GitHubSource } from './capabilities/source.js'
 export { GitHubSecrets } from './capabilities/secrets.js'
 export { GitHubEnvironments } from './capabilities/environments.js'
+export { GitHubCi } from './capabilities/ci.js'
+export { GitHubIssues } from './capabilities/issues.js'
