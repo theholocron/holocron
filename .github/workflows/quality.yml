@@ -1,0 +1,90 @@
+name: Quality
+
+# Focused quality checks for PRs + push to main.
+#
+# Replaces what super-linter + reviewdog used to cover in the v1 setup,
+# without the Docker container weight. Each check is a standalone
+# SHA-pinned third-party action so CodeQL's unpinned-action rule stays
+# happy and dependabot can rev them individually.
+#
+# Three checks, all PR-context:
+#   - commitlint  → enforces Conventional Commits (semantic-release depends on these)
+#   - gitleaks    → secret scanning on the PR diff
+#   - actionlint  → workflow YAML correctness (composite + reusable workflow checking)
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main # release.yml already handles main
+
+permissions:
+  contents: read
+  pull-requests: read # commitlint reads the PR's commit list
+
+jobs:
+  commitlint:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup pnpm
+        # SHA-pinned per CodeQL's unpinned-action rule.
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        # commitlint pulls @theholocron/commitlint-config from devDeps.
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint commits
+        uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
+        with:
+          configFile: commitlint.config.js
+          # On a PR: lint commits in the PR. On a push: lint the new commits.
+          # Defaults handle both modes.
+
+  gitleaks:
+    name: Secret scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run gitleaks
+        # Scans for committed secrets across the diff. Free for public
+        # repos (this one); paid license required for private (skip step
+        # if/when the repo flips private).
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  actionlint:
+    name: Workflow YAML
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Run actionlint
+        # Catches YAML errors + action-ref typos + shell-script issues
+        # in .github/workflows/*.yml. Bundles shellcheck for the run
+        # blocks. Annotates findings inline on the PR.
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
