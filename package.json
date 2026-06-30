@@ -21,7 +21,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.39.4",
     "@theholocron/commitlint-config": "^4.1.0",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/lint-staged-config": "^4.1.0",

@@ -42,14 +42,14 @@ importers:
   .:
     devDependencies:
       '@eslint/js':
-        specifier: ^10.0.1
-        version: 10.0.1(eslint@9.39.4(jiti@2.6.1))
+        specifier: ^9.39.4
+        version: 9.39.4
       '@theholocron/commitlint-config':
         specifier: ^4.1.0
         version: 4.1.0(@commitlint/cli@19.8.1(@types/node@26.0.1)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)
       '@theholocron/eslint-config':
         specifier: 'catalog:'
-        version: 4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@10.0.1(eslint@9.39.4(jiti@2.6.1)))(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))
+        version: 4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@9.39.4)(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/lint-staged-config':
         specifier: ^4.1.0
         version: 4.1.0(alex@11.0.1)(husky@9.1.7)(imagemin-lint-staged@0.5.1)(lint-staged@16.4.0)
@@ -101,7 +101,7 @@ importers:
     devDependencies:
       '@theholocron/eslint-config':
         specifier: 'catalog:'
-        version: 4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@10.0.1(eslint@9.39.4(jiti@2.6.1)))(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))
+        version: 4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@9.39.4)(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
         version: 4.1.0(tsc@2.0.4)(typescript@5.9.3)
@@ -196,7 +196,7 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: 'catalog:'
-        version: 4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@10.0.1(eslint@9.39.4(jiti@2.6.1)))(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))
+        version: 4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@9.39.4)(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
         version: 4.1.0(tsc@2.0.4)(typescript@5.9.3)
@@ -206,6 +206,33 @@ importers:
       '@types/libsodium-wrappers':
         specifier: ^0.7.14
         version: 0.7.14
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.6(vitest@3.2.6(@types/debug@4.1.13)(@types/node@26.0.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0))
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.4(jiti@2.6.1)
+      globals:
+        specifier: 'catalog:'
+        version: 16.5.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@26.0.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0)
+
+  packages/holocron-plugin-vercel:
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@theholocron/tsconfig':
+        specifier: 'catalog:'
+        version: 4.1.0(tsc@2.0.4)(typescript@5.9.3)
+      '@tsconfig/node-lts':
+        specifier: 'catalog:'
+        version: 24.0.0
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 3.2.6(vitest@3.2.6(@types/debug@4.1.13)(@types/node@26.0.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0))
@@ -519,15 +546,6 @@ packages:
   '@eslint/eslintrc@3.3.5':
     resolution: {integrity: sha512-4IlJx0X0qftVsN5E+/vGujTRIFtwuLbNsVUe7TO6zYPDR1O6nFwvwhIKEKSrl6dZchmYBITazxKoUYOjdtjlRg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@eslint/js@10.0.1':
-    resolution: {integrity: sha512-zeR9k5pd4gxjZ0abRoIaxdc7I3nDktoXZk2qOv9gCNWx3mVwEn32VRhyLaRsDiJjTs0xq/T8mfPtyuXu7GWBcA==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-    peerDependencies:
-      eslint: ^10.0.0
-    peerDependenciesMeta:
-      eslint:
-        optional: true
 
   '@eslint/js@9.39.4':
     resolution: {integrity: sha512-nE7DEIchvtiFTwBw4Lfbu59PG+kCofhjsKaCWzxTpt4lfRjRMqG6uMBzKXuEcyXhOHoUp9riAm7/aWYGhXZ9cw==}
@@ -5188,10 +5206,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@eslint/js@10.0.1(eslint@9.39.4(jiti@2.6.1))':
-    optionalDependencies:
-      eslint: 9.39.4(jiti@2.6.1)
-
   '@eslint/js@9.39.4': {}
 
   '@eslint/object-schema@2.1.7': {}
@@ -5519,10 +5533,10 @@ snapshots:
       '@commitlint/cli': 19.8.1(@types/node@26.0.1)(typescript@5.9.3)
       '@commitlint/config-conventional': 19.8.1
 
-  '@theholocron/eslint-config@4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@10.0.1(eslint@9.39.4(jiti@2.6.1)))(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))':
+  '@theholocron/eslint-config@4.1.0(@eslint/compat@1.4.1(eslint@9.39.4(jiti@2.6.1)))(@eslint/js@9.39.4)(eslint-plugin-react@7.37.5(eslint@9.39.4(jiti@2.6.1)))(eslint@9.39.4(jiti@2.6.1))(globals@16.5.0)(typescript-eslint@8.62.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))':
     dependencies:
       '@eslint/compat': 1.4.1(eslint@9.39.4(jiti@2.6.1))
-      '@eslint/js': 10.0.1(eslint@9.39.4(jiti@2.6.1))
+      '@eslint/js': 9.39.4
       eslint: 9.39.4(jiti@2.6.1)
       eslint-plugin-react: 7.37.5(eslint@9.39.4(jiti@2.6.1))
       globals: 16.5.0

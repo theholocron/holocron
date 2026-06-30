@@ -311,34 +311,80 @@ export interface Issues extends ProviderIdentity {
 // deployment — preview/prod deploy targets
 // ───────────────────────────────────────────────────────────────────────
 
+/** Env-var scope on the deploy platform. */
 export type DeploymentTarget = 'development' | 'preview' | 'production'
+
+/**
+ * Named deployment trigger target — `undefined` means a branch
+ * preview (no named environment).
+ */
+export type DeploymentTrigger = 'production' | 'staging'
 
 export interface DeploymentProject {
   id: string
   name: string
   framework?: string
+  /** True when the project is linked to a Git provider. */
+  gitLinked?: boolean
+  rootDirectory?: string | null
+}
+
+export interface DeploymentProjectSettings {
+  previewDeploymentsDisabled?: boolean
+  /** Vercel-specific: whether the GitHub integration creates deployments
+   * for every push (false → only on-demand triggers). */
+  gitProviderCreateDeployments?: boolean
 }
 
 export interface DeploymentRecord {
   id: string
   url: string
-  target: DeploymentTarget
+  /** Branch this deployment was made from (null if not git-sourced). */
+  branch: string | null
+  /** Named environment if one was targeted; undefined for branch previews. */
+  target?: DeploymentTrigger
   status: 'queued' | 'building' | 'ready' | 'error' | 'cancelled'
-  createdAt: string
 }
 
 export interface Deployment extends ProviderIdentity {
   readonly key: 'deployment'
 
   listProjects(): Promise<DeploymentProject[]>
-  ensureProject(input: { name: string; framework?: string }): Promise<DeploymentProject>
+  /** Create if missing, otherwise return existing. Idempotent. */
+  ensureProject(input: {
+    name: string
+    framework?: string
+    /** "owner/repo" — passed when linking to a Git provider. */
+    repo?: string
+    rootDirectory?: string
+  }): Promise<DeploymentProject>
+
+  updateProjectSettings(
+    projectId: string,
+    settings: DeploymentProjectSettings,
+  ): Promise<DeploymentProject>
 
   // Env vars on the deploy platform (Vercel-style: per-target).
   listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]>
-  setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void>
+  setEnvVar(
+    projectId: string,
+    target: DeploymentTarget,
+    name: string,
+    value: string,
+  ): Promise<void>
 
-  listDeployments(projectId: string): Promise<DeploymentRecord[]>
-  promote(deploymentId: string, target: 'production'): Promise<DeploymentRecord>
+  /**
+   * Kick off a deployment of the given branch. Omit `target` for a
+   * branch preview; pass `'production'` / `'staging'` to deploy into
+   * a named environment.
+   */
+  triggerDeployment(input: {
+    projectId: string
+    branch: string
+    target?: DeploymentTrigger
+  }): Promise<DeploymentRecord>
+
+  getDeployment(deploymentId: string): Promise<DeploymentRecord>
 }
 
 // ───────────────────────────────────────────────────────────────────────
