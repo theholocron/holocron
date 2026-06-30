@@ -394,21 +394,43 @@ export interface Deployment extends ProviderIdentity {
 export interface StorageBranch {
   id: string
   name: string
-  parent?: string
+  /** Parent branch id; null for the root/main branch. */
+  parentId: string | null
   createdAt: string
+}
+
+export interface ConnectionStringOptions {
+  /** Use the pooled (PgBouncer) URL when available. Defaults to false. */
+  pooled?: boolean
 }
 
 export interface Storage extends ProviderIdentity {
   readonly key: 'storage'
 
-  /** Get a connection string scoped to a deploy target. */
-  getConnectionString(target: DeploymentTarget): Promise<string>
+  /**
+   * Connection string for the given scope. Scope is provider-specific:
+   *
+   *   - branch-based providers (Neon, PlanetScale): scope = branch
+   *     name or id
+   *   - flat providers (single Postgres instance): scope is ignored
+   *
+   * Callers (or the orchestrator) decide how a deploy target maps to
+   * a scope; the storage plugin doesn't own that mapping.
+   */
+  getConnectionString(scope: string, options?: ConnectionStringOptions): Promise<string>
 
-  // Branch-per-PR providers (Neon, PlanetScale) implement these; the
-  // rest can throw NotImplementedError.
+  // Branch operations (optional — flat providers can omit).
   listBranches?(): Promise<StorageBranch[]>
-  createBranch?(name: string, parent?: string): Promise<StorageBranch>
-  destroyBranch?(name: string): Promise<void>
+  createBranch?(input: { name: string; from?: string }): Promise<StorageBranch>
+  destroyBranch?(branch: string): Promise<void>
+  /** Restore one branch to match another (e.g., reset preview → main). */
+  resetBranch?(input: { branch: string; from: string }): Promise<void>
+
+  /**
+   * Provider-specific feature toggle. For Postgres providers this is
+   * `CREATE EXTENSION IF NOT EXISTS ...` per branch.
+   */
+  enableExtension?(input: { branch: string; extension: string }): Promise<void>
 }
 
 // ───────────────────────────────────────────────────────────────────────
