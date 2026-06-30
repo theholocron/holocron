@@ -1,0 +1,42 @@
+import { describe, expect, it } from 'vitest'
+
+import { AuthError, verifyOpInstalled } from '../auth.js'
+
+import { stubSpawn } from './helpers.js'
+
+describe('verifyOpInstalled', () => {
+  it('returns silently when `op --version` succeeds', () => {
+    const { spawn, calls } = stubSpawn([{ status: 0, stdout: '2.30.0' }])
+    expect(() => verifyOpInstalled({ spawn })).not.toThrow()
+    expect(calls[0]?.binary).toBe('op')
+    expect(calls[0]?.args).toEqual(['--version'])
+  })
+
+  it('honors the binary override', () => {
+    const { spawn, calls } = stubSpawn([{ status: 0, stdout: '2.30.0' }])
+    verifyOpInstalled({ spawn, binary: '/usr/local/bin/op' })
+    expect(calls[0]?.binary).toBe('/usr/local/bin/op')
+  })
+
+  it('throws AuthError with an install hint when spawn returns ENOENT', () => {
+    const { spawn } = stubSpawn([{ error: new Error('spawn ENOENT') }])
+    try {
+      verifyOpInstalled({ spawn })
+      throw new Error('expected throw')
+    } catch (err) {
+      expect(err).toBeInstanceOf(AuthError)
+      expect((err as AuthError).message).toMatch(/brew install 1password-cli/)
+    }
+  })
+
+  it('throws AuthError when `op --version` exits non-zero', () => {
+    const { spawn } = stubSpawn([{ status: 1, stderr: 'something is busted' }])
+    try {
+      verifyOpInstalled({ spawn })
+      throw new Error('expected throw')
+    } catch (err) {
+      expect(err).toBeInstanceOf(AuthError)
+      expect((err as AuthError).message).toMatch(/something is busted/)
+    }
+  })
+})

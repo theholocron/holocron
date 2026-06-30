@@ -104,6 +104,21 @@ implementations are incoming.
   `varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line
   @typescript-eslint/no-unused-vars` triggers the unused-directive lint
   warning. Just use `_name` and stop.
+- **Don't `expect(...).toThrow()` twice on the same stubbed call.** The
+  stub queue (`stubFetch` / `stubSpawn`) advances on every invocation.
+  Calling the same async-with-fetch method twice exhausts the queued
+  responses and the second call returns the default empty response —
+  the assertion silently passes when it shouldn't, or fails for the
+  wrong reason. **Correct pattern:**
+  ```ts
+  try {
+    await something()
+    throw new Error('expected throw')
+  } catch (err) {
+    expect(err).toBeInstanceOf(SomeError)
+    expect((err as SomeError).message).toMatch(/regex/)
+  }
+  ```
 
 ## Step 4 — install + verify
 

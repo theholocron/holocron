@@ -511,9 +511,18 @@ export interface Vault extends ProviderIdentity {
 
   /**
    * Optional environment notion within the vault (e.g., 1P
-   * Environments). Adapters without environments return [].
+   * Environments — named KEY=VALUE bundles). Adapters without
+   * environments return [].
    */
   environments?(): Promise<string[]>
+
+  /**
+   * Optional bulk read of an environment's KEY=VALUE pairs. Powers
+   * the `holocron secrets sync` flow where the orchestrator pulls a
+   * whole environment from the vault then fans the values out to
+   * destinations (CI secrets, deployment env vars, local .env).
+   */
+  readEnvironment?(environmentId: string): Promise<Record<string, string>>
 }
 
 // ───────────────────────────────────────────────────────────────────────
