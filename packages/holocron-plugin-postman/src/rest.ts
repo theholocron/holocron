@@ -1,0 +1,69 @@
+/**
+ * Thin REST wrapper around api.getpostman.com.
+ *
+ * Same pattern as the github / vercel / neon / clerk REST clients —
+ * the Postman API uses `x-api-key` (not bearer) for auth, but
+ * otherwise the shape's identical: JSON only, transport-failure
+ * wrapping with `status: 0`.
+ */
+
+import { ProviderApiError } from '@theholocron/cli'
+
+export interface RestClientOptions {
+  token: string
+  fetch?: typeof fetch
+  baseUrl?: string
+}
+
+export interface RequestOptions {
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+  body?: unknown
+  query?: Record<string, string>
+}
+
+export class PostmanRestClient {
+  private readonly token: string
+  private readonly fetchImpl: typeof fetch
+  readonly baseUrl: string
+
+  constructor(opts: RestClientOptions) {
+    this.token = opts.token
+    this.fetchImpl = opts.fetch ?? globalThis.fetch
+    this.baseUrl = (opts.baseUrl ?? 'https://api.getpostman.com').replace(/\/+$/, '')
+  }
+
+  async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+    const url = new URL(`${this.baseUrl}${path.startsWith('/') ? path : '/' + path}`)
+    for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v)
+    const fullUrl = url.toString()
+
+    const headers: Record<string, string> = {
+      'x-api-key': this.token,
+      accept: 'application/json',
+    }
+    const init: RequestInit = {
+      method: opts.method ?? 'GET',
+      headers,
+    }
+    if (opts.body !== undefined) {
+      headers['content-type'] = 'application/json'
+      init.body = JSON.stringify(opts.body)
+    }
+
+    let res: Response
+    try {
+      res = await this.fetchImpl(fullUrl, init)
+    } catch (err) {
+      const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+      throw new ProviderApiError(`Postman ${init.method} ${path} failed: ${detail}`, 0, undefined)
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new ProviderApiError(`Postman ${init.method} ${path} → ${res.status}`, res.status, body)
+    }
+    if (res.status === 204) return undefined as T
+    const text = await res.text()
+    if (!text) return undefined as T
+    return JSON.parse(text) as T
+  }
+}
