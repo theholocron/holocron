@@ -15,6 +15,8 @@ import {
 import { PostmanRestClient } from './rest.js'
 
 export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingOptions {
+  /** Working repo root. Used to resolve relative paths in specFile/envFiles. Defaults to process.cwd(). */
+  repoRoot?: string
   /** Override base URL for tests. */
   baseUrl?: string
   /** Override `fetch` for tests. */
@@ -46,6 +48,7 @@ export function tooling(ctx: PluginContext): Tooling {
   if (ctx.options.specName !== undefined) opts.specName = ctx.options.specName
   if (ctx.options.collectionName !== undefined) opts.collectionName = ctx.options.collectionName
   if (ctx.options.envFiles !== undefined) opts.envFiles = ctx.options.envFiles
+  if (ctx.options.repoRoot !== undefined) opts.repoRoot = ctx.options.repoRoot
   return new PostmanTooling(ctx.rest, opts)
 }
 
@@ -62,5 +65,6 @@ export function createPlugin(options: PostmanPluginOptions) {
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from './auth.js'
+export { PostmanPlanLimitError, detectPlanLimit } from './errors.js'
 export { PostmanRestClient } from './rest.js'
 export { PostmanTooling } from './capabilities/tooling.js'

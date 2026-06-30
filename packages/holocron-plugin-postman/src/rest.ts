@@ -9,6 +9,8 @@
 
 import { ProviderApiError } from '@theholocron/cli'
 
+import { PostmanPlanLimitError, detectPlanLimit } from './errors.js'
+
 export interface RestClientOptions {
   token: string
   fetch?: typeof fetch
@@ -59,6 +61,11 @@ export class PostmanRestClient {
     }
     if (!res.ok) {
       const body = await res.text().catch(() => '')
+      // Plan-limit responses come back as 4xx with `{ error: { name:
+      // "limitReachedError", message: ... } }`. Discriminate so
+      // commands can render "upgrade required" instead of a raw dump.
+      const limit = detectPlanLimit(body)
+      if (limit) throw new PostmanPlanLimitError(limit, body)
       throw new ProviderApiError(`Postman ${init.method} ${path} → ${res.status}`, res.status, body)
     }
     if (res.status === 204) return undefined as T

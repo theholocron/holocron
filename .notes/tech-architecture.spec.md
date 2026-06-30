@@ -305,9 +305,9 @@ Phases:
    typed capability registry. `holocron doctor` calls each loaded
    capability's smoke check. `holocron config show` dumps the
    resolved config.
-4. **Remaining plugins.** Port `vercel.ts` (done), `neon.ts` (done),
-   `clerk.ts` (done), `1password.ts` (done), `postman.ts` from
-   Rando, one plugin per package under `packages/holocron-plugin-*`.
+4. **Remaining plugins (done).** Ported `vercel.ts`, `neon.ts`,
+   `clerk.ts`, `1password.ts`, `postman.ts` from Rando, one plugin
+   per package under `packages/holocron-plugin-*`.
 5. **Orchestrator commands.** `holocron setup`, `holocron secrets
    sync`. Mirror Rando's semantics. Builds on the loader from
    phase 3.
