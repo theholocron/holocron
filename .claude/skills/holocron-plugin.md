@@ -99,10 +99,20 @@ implementations are incoming.
   resolve via `catalog:` from `pnpm-workspace.yaml`.
 - **Peer-deps**: `@theholocron/cli` is BOTH a peer dep AND a devDep at
   `workspace:*` (the devDep lets tests resolve the types).
+- **Underscore-prefix unused params, no eslint-disable comments.** The
+  workspace ESLint config already has `argsIgnorePattern: '^_'` +
+  `varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line
+  @typescript-eslint/no-unused-vars` triggers the unused-directive lint
+  warning. Just use `_name` and stop.
 
 ## Step 4 — install + verify
 
+ALL commands must run from the holocron repo root (`/path/to/theholocron/holocron`).
+If the active shell is in another directory (e.g., a sibling project), `cd`
+first — pnpm filters silently match nothing when run outside the workspace.
+
 ```bash
+cd /path/to/theholocron/holocron
 pnpm install                                                 # picks up the new workspace package
 pnpm --filter @theholocron/holocron-plugin-<slug> typecheck   # green
 pnpm --filter @theholocron/holocron-plugin-<slug> lint        # green

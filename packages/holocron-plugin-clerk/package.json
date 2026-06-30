@@ -1,0 +1,42 @@
+{
+  "name": "@theholocron/holocron-plugin-clerk",
+  "version": "0.0.0",
+  "description": "Holocron plugin for Clerk. Implements the auth capability against Clerk's Backend REST API.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-clerk#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/holocron-plugin-clerk"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/tsconfig": "catalog:",
+    "@tsconfig/node-lts": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
