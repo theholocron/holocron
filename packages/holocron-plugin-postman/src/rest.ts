@@ -31,7 +31,12 @@ export class PostmanRestClient {
   constructor(opts: RestClientOptions) {
     this.token = opts.token
     this.fetchImpl = opts.fetch ?? globalThis.fetch
-    this.baseUrl = (opts.baseUrl ?? 'https://api.getpostman.com').replace(/\/+$/, '')
+    // Manual trailing-slash trim instead of `.replace(/\/+$/, '')` —
+    // CodeQL flags the regex as polynomial ReDoS when applied to
+    // library input. The loop is O(n) without backtracking risk.
+    let url = opts.baseUrl ?? 'https://api.getpostman.com'
+    while (url.endsWith('/')) url = url.slice(0, -1)
+    this.baseUrl = url
   }
 
   async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {

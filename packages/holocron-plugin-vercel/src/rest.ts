@@ -37,7 +37,12 @@ export class VercelRestClient {
     this.token = opts.token
     if (opts.teamId !== undefined) this.teamId = opts.teamId
     this.fetchImpl = opts.fetch ?? globalThis.fetch
-    this.baseUrl = (opts.baseUrl ?? 'https://api.vercel.com').replace(/\/+$/, '')
+    // Manual trailing-slash trim instead of `.replace(/\/+$/, '')` —
+    // CodeQL flags the regex as polynomial ReDoS when applied to
+    // library input. The loop is O(n) without backtracking risk.
+    let url = opts.baseUrl ?? 'https://api.vercel.com'
+    while (url.endsWith('/')) url = url.slice(0, -1)
+    this.baseUrl = url
   }
 
   async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
