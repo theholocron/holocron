@@ -105,22 +105,55 @@ holocron.config.json              — this repo's own holocron config (self-host
 
 This repo carries its own `holocron.config.json` so holocron commands
 work inside it. npm publishing is wired via **Trusted Publishing**
-(GitHub Actions OIDC), not a stored `NPM_TOKEN` — npm's recommended
-path for CI publishers and the one that's resistant to leaked tokens.
+([GA July 2025](https://github.blog/changelog/2025-07-31-npm-trusted-publishing-with-oidc-is-generally-available/))
+— GitHub Actions OIDC, no stored `NPM_TOKEN`, no token rotation.
 
-### One-time setup on npmjs.com
+### The chicken-and-egg + the one-time bootstrap
 
-For each of the 7 publishable packages, in the npm web UI:
+npm requires a package to already exist before you can configure
+Trusted Publishing for it. So the actual flow is:
+
+1. **One-time manual publish** of `v2.0.0-alpha.0` for every package
+2. **Configure Trusted Publisher** for each package (or org-wide if npm exposes that)
+3. **Push v2 → main** — CI takes over for `v2.0.0-alpha.1` and beyond, via OIDC
+
+After step 3, no operator action is ever needed for releases again.
+
+### Step 1 — one-time manual publish
+
+```bash
+# From the holocron repo root, on a clean checkout.
+# Interactive npm sign-in via the browser (no token stored locally beyond
+# npm's own session cookie):
+npm login --auth-type=web
+
+# Build everything fresh:
+pnpm install --frozen-lockfile
+pnpm build
+
+# Publish v2.0.0-alpha.0 of every public package in one shot:
+pnpm -r --filter='./packages/*' --filter='!@theholocron/cli-utils' \
+  publish --access public --no-git-checks --tag alpha
+
+# Sanity-check on npm:
+open https://www.npmjs.com/package/@theholocron/cli
+```
+
+This creates the packages on npm under the `alpha` dist-tag. The
+session token from `npm login` is local-only — never enters CI.
+
+### Step 2 — configure Trusted Publisher for each package
+
+In the npm web UI, for each `@theholocron/*` package:
 
 1. Sign in at https://www.npmjs.com
-2. Settings → Trusted Publishers → Add a Trusted Publisher
-   (or per-package: package → Settings → Trusted Publishers)
+2. Navigate to the package → Settings → Trusted Publishers
 3. Configure:
    - **Publisher**: GitHub Actions
    - **Organization**: `theholocron`
    - **Repository**: `holocron`
    - **Workflow filename**: `release.yml`
-   - **Environment** (optional): leave blank, or set if you want a deploy-gate environment
+   - **Environment** (optional): leave blank
 
 Repeat for each:
 `@theholocron/cli`,
@@ -132,20 +165,23 @@ Repeat for each:
 `@theholocron/holocron-plugin-postman`.
 
 (If npm's UI exposes org-level Trusted Publishers, you can configure
-once at the `@theholocron` org level instead and it applies to every
-package published under the scope.)
+once at the `@theholocron` org and it applies to every package
+published under the scope.)
 
-### What happens at publish time
+### Step 3 — flip the switch
 
-`release.yml` requests an OIDC token from GitHub (already permitted
-via the workflow's `id-token: write` perm). `pnpm publish --provenance`
-exchanges it with npm, which validates against the configured Trusted
-Publisher and accepts the publish. No secret stored anywhere; no
-token to rotate.
+```bash
+# From v2:
+gh pr create --base main --head v2 --title "v2 release line" --body "Phase 1-5 complete; auto-publish kicks in."
+# Merge the PR. release.yml fires on push to main.
+```
 
-Published artifacts get a **provenance attestation** — npm shows a
-verified ✓ next to each version, with a link back to the exact CI run
-that produced it. Supply-chain audit trail for free.
+The release workflow requests an OIDC token from GitHub (permitted by
+`id-token: write` in the workflow), `pnpm publish` exchanges it with
+npm, npm validates against the registered Trusted Publisher, and the
+publish proceeds. Provenance attestations are attached automatically —
+no `--provenance` flag needed. Each version on npm shows a verified
+✓ linking back to the CI run that produced it.
 
 ## Ad-hoc secret setting (still useful)
 
