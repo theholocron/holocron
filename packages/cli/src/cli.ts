@@ -4,6 +4,7 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { runDoctor } from './commands/doctor.js'
+import { runSecretsSync } from './commands/secrets-sync.js'
 import { runSetup } from './commands/setup.js'
 import { loadConfig } from './load-config.js'
 
@@ -80,6 +81,43 @@ await yargs(hideBin(process.argv))
           ...(argv.repo ? { repo: argv.repo } : {}),
           ...(argv.token ? { cliToken: argv.token } : {}),
         },
+      })
+      if (report.summary.fail > 0) {
+        process.exitCode = 1
+      }
+    },
+  )
+  .command(
+    'secrets sync <environmentId>',
+    'Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars',
+    (y) =>
+      y
+        .positional('environmentId', {
+          type: 'string',
+          demandOption: true,
+          describe: 'Vault environment id to read (1P Environment id, etc.)',
+        })
+        .option('project-id', {
+          type: 'string',
+          describe: 'Deployment project id (e.g., Vercel prj_*). Required when deployment is loaded.',
+        })
+        .option('target', {
+          type: 'array',
+          default: ['production', 'preview'] as Array<'development' | 'preview' | 'production'>,
+          describe: 'Deployment targets to sync to. Defaults to production + preview.',
+        }),
+    async (argv) => {
+      const loaded = await loadConfig(argv.cwd)
+      const report = await runSecretsSync({
+        loaded,
+        context: {
+          repoRoot: argv.cwd,
+          dryRun: argv.dryRun,
+          ...(argv.token ? { cliToken: argv.token } : {}),
+        },
+        environmentId: argv.environmentId as string,
+        ...(argv.projectId ? { projectId: argv.projectId } : {}),
+        targets: argv.target as Array<'development' | 'preview' | 'production'>,
       })
       if (report.summary.fail > 0) {
         process.exitCode = 1
