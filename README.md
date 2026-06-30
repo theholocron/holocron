@@ -101,29 +101,66 @@ holocron.config.json              — this repo's own holocron config (self-host
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
 ```
 
-## Self-hosting — bootstrap the npm publish
+## Self-hosting — npm publishing via Trusted Publishing
 
 This repo carries its own `holocron.config.json` so holocron commands
-work inside it. To set the `NPM_TOKEN` GitHub Actions secret that the
-release workflow needs:
+work inside it. npm publishing is wired via **Trusted Publishing**
+(GitHub Actions OIDC), not a stored `NPM_TOKEN` — npm's recommended
+path for CI publishers and the one that's resistant to leaked tokens.
+
+### One-time setup on npmjs.com
+
+For each of the 7 publishable packages, in the npm web UI:
+
+1. Sign in at https://www.npmjs.com
+2. Settings → Trusted Publishers → Add a Trusted Publisher
+   (or per-package: package → Settings → Trusted Publishers)
+3. Configure:
+   - **Publisher**: GitHub Actions
+   - **Organization**: `theholocron`
+   - **Repository**: `holocron`
+   - **Workflow filename**: `release.yml`
+   - **Environment** (optional): leave blank, or set if you want a deploy-gate environment
+
+Repeat for each:
+`@theholocron/cli`,
+`@theholocron/holocron-plugin-github`,
+`@theholocron/holocron-plugin-vercel`,
+`@theholocron/holocron-plugin-neon`,
+`@theholocron/holocron-plugin-clerk`,
+`@theholocron/holocron-plugin-1password`,
+`@theholocron/holocron-plugin-postman`.
+
+(If npm's UI exposes org-level Trusted Publishers, you can configure
+once at the `@theholocron` org level instead and it applies to every
+package published under the scope.)
+
+### What happens at publish time
+
+`release.yml` requests an OIDC token from GitHub (already permitted
+via the workflow's `id-token: write` perm). `pnpm publish --provenance`
+exchanges it with npm, which validates against the configured Trusted
+Publisher and accepts the publish. No secret stored anywhere; no
+token to rotate.
+
+Published artifacts get a **provenance attestation** — npm shows a
+verified ✓ next to each version, with a link back to the exact CI run
+that produced it. Supply-chain audit trail for free.
+
+## Ad-hoc secret setting (still useful)
+
+For one-off secrets that ARE token-based (not npm publishing), the
+`secret set` command still helps:
 
 ```bash
-# 1. Get an npm automation token at https://www.npmjs.com → Avatar → Access Tokens
-# 2. Get a GitHub PAT with `Administration: write` + `Secrets: write` on this repo
-# 3. From the holocron repo root:
-
-NPM_TOKEN=npm_xxx HOLOCRON_GH_TOKEN=ghp_xxx \
-  pnpm exec tsx packages/cli/src/cli.ts secret set NPM_TOKEN
+# Example: set a Vercel deploy hook secret on the holocron repo (hypothetical)
+DEPLOY_HOOK=https://api.vercel.com/.../v1 HOLOCRON_GH_TOKEN=ghp_xxx \
+  pnpm exec tsx packages/cli/src/cli.ts secret set DEPLOY_HOOK
 ```
 
-That single command:
-1. Loads `holocron.config.json` from cwd
-2. Resolves the GH PAT from `HOLOCRON_GH_TOKEN`
-3. Reads `NPM_TOKEN` from the env var of the same name (the implicit-by-name source)
-4. Encrypts the value with libsodium sealed-box
-5. PUTs it to the repo's Actions secrets via the GitHub REST API
-
-No GH Settings UI dance. Same pattern that the rest of the tooling will use across your projects.
+Replaces clicking through GH Settings → Secrets → Actions → New for
+any CI secret that isn't covered by OIDC. Same pattern across your
+projects, not just this one.
 
 ## License
 

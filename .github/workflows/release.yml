@@ -12,6 +12,10 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      # id-token: write is required for npm Trusted Publishing — the
+      # workflow requests an OIDC token from GitHub, npm validates it
+      # against the trusted publisher registered for each @theholocron/*
+      # package. No NPM_TOKEN secret needed.
       id-token: write
     steps:
       - name: Checkout
@@ -47,5 +51,4 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm exec semantic-release
