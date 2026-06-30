@@ -133,8 +133,12 @@ pnpm build
 
 # Run the holocron one-shot bootstrap publish. Verifies npm auth, runs
 # `pnpm publish -r` with the right filters, prints direct links to each
-# package's Trusted Publisher config page:
-pnpm exec tsx packages/cli/src/cli.ts npm publish-initial
+# package's Trusted Publisher config page.
+#
+# If your npm account requires 2FA for writes (recommended), grab a
+# one-time password from your authenticator and pass it via --otp. The
+# same code is reused across all 7 publishes — they happen in seconds.
+pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp 123456
 ```
 
 The bootstrap command does the publish + reminds you exactly which URLs
@@ -142,6 +146,8 @@ to visit for step 2. The session token from `npm login` is local-only;
 never enters CI.
 
 Add `--dry-run` to print what would happen without actually publishing.
+If you forget `--otp` and your account needs it, the command detects
+the `EOTP` error in the output and prints the corrected command.
 
 ### Step 2 — configure Trusted Publisher for each package
 

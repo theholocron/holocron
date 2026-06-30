@@ -109,6 +109,60 @@ describe('runNpmPublishInitial', () => {
     expect(report.message).toContain('EPUBLISHCONFLICT')
   })
 
+  it('forwards --otp to pnpm publish when provided', async () => {
+    const { exec, calls } = makeExec({
+      npm: { exitCode: 0, stdout: 'iamnewton', stderr: '' },
+      pnpm: { exitCode: 0, stdout: '', stderr: '' },
+    })
+    await runNpmPublishInitial({
+      cwd: '/tmp/test',
+      otp: '123456',
+      env: baseEnv,
+      print: () => {},
+      exec,
+    })
+    expect(calls[1]?.args).toContain('--otp')
+    expect(calls[1]?.args).toContain('123456')
+  })
+
+  it('surfaces the --otp hint when publish output includes EOTP', async () => {
+    const lines: string[] = []
+    const { exec } = makeExec({
+      npm: { exitCode: 0, stdout: 'iamnewton', stderr: '' },
+      pnpm: {
+        exitCode: 1,
+        stdout: 'npm error code EOTP\nnpm error This operation requires a one-time password',
+        stderr: '',
+      },
+    })
+    const report = await runNpmPublishInitial({
+      cwd: '/tmp/test',
+      env: baseEnv,
+      print: (l) => lines.push(l),
+      exec,
+    })
+    expect(report.status).toBe('fail')
+    const joined = lines.join('\n')
+    expect(joined).toContain('--otp <code>')
+    expect(joined).toContain('--otp <6-digit-code>')
+  })
+
+  it('does not print the --otp hint on non-EOTP failures', async () => {
+    const lines: string[] = []
+    const { exec } = makeExec({
+      npm: { exitCode: 0, stdout: 'iamnewton', stderr: '' },
+      pnpm: { exitCode: 1, stdout: '', stderr: 'some other error' },
+    })
+    await runNpmPublishInitial({
+      cwd: '/tmp/test',
+      env: baseEnv,
+      print: (l) => lines.push(l),
+      exec,
+    })
+    const joined = lines.join('\n')
+    expect(joined).not.toContain('--otp <6-digit-code>')
+  })
+
   it('dry-run prints "would run" + skips the publish call', async () => {
     const lines: string[] = []
     const { exec, calls } = makeExec({

@@ -41,6 +41,13 @@ export interface RunNpmPublishInitialInput {
   tag?: string
   /** Skip the actual publish; print what would happen. */
   dryRun?: boolean
+  /**
+   * One-time password (TOTP) from your authenticator app. Required if
+   * your npm account has "Require 2FA for read and write" enabled.
+   * Reused across all 7 sequential publishes — they fire within a few
+   * seconds, comfortably inside the TOTP window.
+   */
+  otp?: string
   print?: PublishInitialPrint
   /**
    * Injectable command runner. Defaults to `spawnSync` with
@@ -80,12 +87,29 @@ export async function runNpmPublishInitial(
   const cwd = input.cwd ?? process.cwd()
   const tag = input.tag ?? 'alpha'
   const dryRun = input.dryRun ?? false
+  const otp = input.otp
   const env = input.env ?? process.env
   const exec = input.exec ?? defaultExec
+
+  // Build the publish args once — shared between dry-run preview and
+  // the real call so what we print is exactly what we'd run.
+  const publishArgs = [
+    '-r',
+    '--filter=./packages/*',
+    '--filter=!@theholocron/cli-utils',
+    'publish',
+    '--access',
+    'public',
+    '--no-git-checks',
+    '--tag',
+    tag,
+    ...(otp ? ['--otp', otp] : []),
+  ]
 
   print(`Holocron npm publish-initial${dryRun ? ' (dry-run)' : ''}`)
   print(`  cwd: ${cwd}`)
   print(`  tag: ${tag}`)
+  if (otp) print(`  otp: <${otp.length} chars>`)
   print('')
 
   // ── 1. Verify npm auth ──────────────────────────────────────────────
@@ -104,7 +128,7 @@ export async function runNpmPublishInitial(
   if (dryRun) {
     print('')
     print('  … (dry-run) skipping actual publish')
-    print(`    would run: pnpm -r --filter='./packages/*' --filter='!@theholocron/cli-utils' publish --access public --no-git-checks --tag ${tag}`)
+    print(`    would run: pnpm ${publishArgs.join(' ')}`)
     printNextSteps(print, env)
     return {
       status: 'dry-run',
@@ -117,22 +141,18 @@ export async function runNpmPublishInitial(
   print('  → publishing all public @theholocron/* packages…')
   const publish = await exec(
     'pnpm',
-    [
-      '-r',
-      "--filter=./packages/*",
-      "--filter=!@theholocron/cli-utils",
-      'publish',
-      '--access',
-      'public',
-      '--no-git-checks',
-      '--tag',
-      tag,
-    ],
+    publishArgs,
     { cwd },
   )
   if (publish.exitCode !== 0) {
     const message = `publish failed (exit ${publish.exitCode}): ${publish.stderr.trim() || publish.stdout.trim() || 'no output'}`
     print(`  ✗ ${message}`)
+    // Detect EOTP and surface the --otp hint right at the failure.
+    if (publish.stdout.includes('EOTP') || publish.stderr.includes('EOTP')) {
+      print('')
+      print('  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:')
+      print(`    pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp <6-digit-code>`)
+    }
     return { status: 'fail', message, packageNames: PUBLISHABLE_PACKAGES }
   }
   print('    ✓ publish complete')

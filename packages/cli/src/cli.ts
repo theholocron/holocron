@@ -219,16 +219,22 @@ await yargs(hideBin(process.argv))
     'npm publish-initial',
     'One-shot bootstrap publish for trusted-publishing-eligible packages',
     (y) =>
-      y.option('tag', {
-        type: 'string',
-        default: 'alpha',
-        describe: 'npm distribution tag (defaults to alpha)',
-      }),
+      y
+        .option('tag', {
+          type: 'string',
+          default: 'alpha',
+          describe: 'npm distribution tag (defaults to alpha)',
+        })
+        .option('otp', {
+          type: 'string',
+          describe: 'One-time password from your authenticator (required if npm needs 2FA for writes)',
+        }),
     async (argv) => {
       const report = await runNpmPublishInitial({
         cwd: argv.cwd,
         tag: argv.tag,
         dryRun: argv.dryRun,
+        ...(argv.otp ? { otp: argv.otp as string } : {}),
       })
       if (report.status === 'fail') {
         process.exitCode = 1
