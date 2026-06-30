@@ -1,7 +1,8 @@
 {
   "name": "@theholocron/cli-utils",
   "version": "0.0.0",
-  "description": "Shared CLI primitives (prompts, openers, shell, logging) for the Holocron monorepo. Battle-tested helpers carried over from the v1 single-package CLI.",
+  "private": true,
+  "description": "Shared CLI primitives (prompts, openers, shell, logging) for the Holocron monorepo. Battle-tested helpers carried over from the v1 single-package CLI. PRIVATE — not published; bits get cherry-picked into @theholocron/cli over time.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli-utils#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
