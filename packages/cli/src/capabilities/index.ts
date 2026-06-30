@@ -443,11 +443,49 @@ export interface AuthDescription {
   envKeys: string[]
 }
 
+export interface AuthIdentity {
+  provider: string
+  /** Provider-specific health signal (user count, role, account name, etc.). */
+  details?: Record<string, unknown>
+}
+
+export interface AuthUser {
+  id: string
+  email: string
+}
+
+export interface CreateAuthUserInput {
+  email: string
+  password: string
+  firstName?: string
+  lastName?: string
+}
+
+export interface WebhookDashboardInfo {
+  url: string
+}
+
 export interface Auth extends ProviderIdentity {
   readonly key: 'auth'
+
+  /** Env-var keys the runtime app needs. */
   describe(): Promise<AuthDescription>
 
-  /** Optional: wire a webhook from the auth provider into the repo. */
+  /** Reachability probe — proves the configured key works. */
+  whoami(): Promise<AuthIdentity>
+
+  // Optional capabilities — providers implement what they support.
+
+  /** Idempotent webhook backend provisioning (Clerk: Svix app). */
+  ensureWebhookApp?(): Promise<{ alreadyExists: boolean }>
+
+  /** Deep-link to the provider's webhook config dashboard. */
+  getWebhookDashboardUrl?(): Promise<WebhookDashboardInfo>
+
+  /** Seed a user (test fixtures, admin bootstrap). */
+  createUser?(input: CreateAuthUserInput): Promise<AuthUser>
+
+  /** Wire the auth provider's webhook into the project's repo. */
   syncWebhook?(input: { repo: string; secretRef: string }): Promise<void>
 }
 

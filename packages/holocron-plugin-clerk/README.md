@@ -30,16 +30,19 @@ No plugin-level options today. Per-instance scoping (Development vs.
 Production) is driven by which secret key the env var holds — `sk_test_*`
 for Development, `sk_live_*` for Production.
 
+## What's implemented
+
+| Method                    | What it does                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `describe`                | Declares `CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` as runtime envs        |
+| `whoami`                  | `GET /users/count` reachability probe (returns user count)                    |
+| `ensureWebhookApp`        | `POST /webhooks/svix` — idempotent; already-exists → `{alreadyExists:true}`  |
+| `getWebhookDashboardUrl`  | `POST /webhooks/svix_url` — deep-link to Svix dashboard                       |
+| `createUser`              | `POST /users` — seeds users (test fixtures, admin bootstrap)                  |
+
 ## Status
 
-**v0.0.0 — scaffold only.** Capability methods are stubbed
-(`throw new Error('not implemented')`); real implementations land in the
-next commit, ported from rando-id/rando.id's `adapters/clerk-cli.ts` and
-`domain/clerk.ts`. Expected surface (subject to expanding the core `Auth`
-capability interface to fit):
-
-- `whoami` — `GET /users/count` reachability probe (returns user count)
-- `ensureSvixApp` — `POST /webhooks/svix` (idempotent — already-exists → noop)
-- `getSvixDashboardUrl` — `POST /webhooks/svix_url` (deep-link for endpoint config)
-- `createUser` — `POST /users` (seed test users)
-- `describe` — required by the holocron `Auth` interface
+**v0.0.0 — first port.** Capability matches Rando's
+`adapters/clerk-cli.ts` surface plus a holocron-native `describe()`,
+all via direct REST against `api.clerk.com/v1`. No `clerk` CLI binary
+required on the operator's machine.
