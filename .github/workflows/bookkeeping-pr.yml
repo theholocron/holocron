@@ -1,5 +1,8 @@
 name: PR Bookkeeping
 
+# Applies labels to PRs based on changed files + head branch name —
+# powered by .github/labeler.yml.
+#
 # @TODO: add in more things like:
 # - [ ] auto-assigning,
 # - [ ] project assignments,
@@ -7,11 +10,12 @@ name: PR Bookkeeping
 # - [ ] cleans up language
 # - [ ] checks that template is filled out
 
-on: # yamllint disable-line rule:truthy
+on:
   pull_request:
     types:
       - opened
       - edited
+      - synchronize # re-label when more commits land on the PR
 
 permissions:
   contents: read
@@ -19,14 +23,15 @@ permissions:
 
 jobs:
   label-pr:
-    name: Add Labels to PRs
+    name: Add labels to PRs
     runs-on: ubuntu-latest
     steps:
-      - uses: github/issue-labeler@v3.4
+      # The previous workflow used `github/issue-labeler` — wrong action
+      # (it's an ISSUE labeler, expects regex strings in the config) +
+      # ran on deprecated Node 20. `.github/labeler.yml` is in the
+      # `actions/labeler` format (file globs + head-branch patterns),
+      # so this is what it always should have been.
+      - uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
         with:
-          include-title: 1
-          include-body: 0
-          sync-labels: 1
+          sync-labels: true
           configuration-path: .github/labeler.yml
-          enable-versioned-regex: 0
-          repo-token: ${{ github.token }}
