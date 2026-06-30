@@ -193,7 +193,7 @@ recommended + a small handful of overrides.
 > shipped in the npm tarball, so consuming it programmatically fails.
 > The v1 repo only ran lint via super-linter in Docker, so this never
 > surfaced. v2 uses a minimal local config until the org config is
-> fixed.
+> fixed (tracked at [theholocron/configs#197](https://github.com/theholocron/configs/issues/197)).
 
 ## License
 
@@ -236,14 +236,21 @@ Phases:
 
 1. **Scaffold + capabilities (done).** Monorepo, capability
    interfaces, config parser, plugin scaffold, test/lint infra.
-2. **`holocron-plugin-github` impl.** Port `gh-rest.ts` + `github-issues.ts`
-   from Rando. Implement `source` + `ci` + `secrets` + `environments`
-   + `issues` capabilities. Tests come over with the implementations.
-3. **`holocron-plugin-vercel` impl.** Port `vercel.ts`.
-4. **`holocron-plugin-neon`, `holocron-plugin-clerk`, `holocron-plugin-1password`,
-   `holocron-plugin-postman` impls.** Port adapters in order.
-5. **Orchestrator commands.** `holocron setup`, `holocron doctor`,
-   `holocron secrets sync`. Mirror Rando's semantics.
+2. **`holocron-plugin-github` impl (done).** All five capabilities
+   (`source`, `ci`, `secrets`, `environments`, `issues`) ported with
+   libsodium sealed-box encryption, lifecycle slot mapping, doctor
+   report.
+3. **Plugin loader + first orchestrator command (done).**
+   `PluginLoader` resolves config → dynamic-imports plugins → builds
+   typed capability registry. `holocron doctor` calls each loaded
+   capability's smoke check. `holocron config show` dumps the
+   resolved config.
+4. **Remaining plugins.** Port `vercel.ts`, `neon.ts`, `clerk.ts`,
+   `1password.ts`, `postman.ts` from Rando, one plugin per package
+   under `packages/holocron-plugin-*`.
+5. **Orchestrator commands.** `holocron setup`, `holocron secrets
+   sync`. Mirror Rando's semantics. Builds on the loader from
+   phase 3.
 6. **Rando flips over.** One PR in `rando-id/rando.id`.
 
 The first real validation that the design works comes when a second
