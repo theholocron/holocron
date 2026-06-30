@@ -125,6 +125,41 @@ describe('PluginLoader — single cardinality', () => {
     expect(captured.repoRoot).toBe('/tmp/test-repo')
     expect(captured.repo).toBe('theholocron/holocron')
   })
+
+  it('propagates dryRun + cliToken from RuntimeContext to every plugin', async () => {
+    const capturedAtVault: Record<string, unknown> = {}
+    const capturedAtSource: Record<string, unknown> = {}
+    const config = resolveConfig({
+      project: { name: 'demo' },
+      providers: { vault: '1password', source: 'github' },
+    })
+    const importer = vi.fn(async (pkg: string) => {
+      if (pkg === '@theholocron/holocron-plugin-1password') {
+        return {
+          createPlugin: (opts: Record<string, unknown>) => {
+            Object.assign(capturedAtVault, opts)
+            return { name: '1p', capabilities: { vault: () => ({}) } }
+          },
+        }
+      }
+      return {
+        createPlugin: (opts: Record<string, unknown>) => {
+          Object.assign(capturedAtSource, opts)
+          return { name: 'gh', capabilities: { source: () => ({}) } }
+        },
+      }
+    })
+    const loader = new PluginLoader(
+      config,
+      { repoRoot: '/tmp', dryRun: true, cliToken: 'cli-pat-xxx' },
+      importer as unknown as PluginImporter,
+    )
+    await loader.load()
+    expect(capturedAtVault.dryRun).toBe(true)
+    expect(capturedAtVault.cliToken).toBe('cli-pat-xxx')
+    expect(capturedAtSource.dryRun).toBe(true)
+    expect(capturedAtSource.cliToken).toBe('cli-pat-xxx')
+  })
 })
 
 describe('PluginLoader — many cardinality', () => {

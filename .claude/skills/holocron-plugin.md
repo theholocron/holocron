@@ -84,6 +84,16 @@ implementations are incoming.
 
 ### Patterns that are non-negotiable
 
+- **Standards (see `.notes/tech-architecture.spec.md` §Standards).** Every
+  plugin honors the three holocron-wide conventions:
+  1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
+     Commands branch on it; capabilities don't accept per-method dryRun args.
+  2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
+     The plugin's `auth.ts` treats it as the first precedence in token resolution.
+  3. For plugins that fire webhook-shaped events (auth, anything fires events on
+     CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
+     alongside `createPlugin`. The normalized event shape lives in
+     `@theholocron/cli`; the plugin's job is just to translate.
 - **Auth**: token resolution order is always `--token` → `HOLOCRON_<X>` →
   `<vendor-native>`. Throw `AuthError` with a message naming both env vars.
 - **REST**: wrap transport failures (`TypeError: fetch failed`) into

@@ -489,6 +489,63 @@ export interface Auth extends ProviderIdentity {
   syncWebhook?(input: { repo: string; secretRef: string }): Promise<void>
 }
 
+// ── Normalized webhook events (cross-provider sync) ──────────────────
+//
+// Plugins implementing `auth` may also expose a `parseWebhook` utility
+// (NOT a capability method — exported alongside the plugin's
+// createPlugin) that translates the vendor's webhook payload into one
+// of these normalized event shapes. Your app's webhook handler then
+// reads the normalized event and is vendor-agnostic:
+//
+//   import { parseWebhook } from '@theholocron/holocron-plugin-clerk'
+//   import type { AuthEvent } from '@theholocron/cli'
+//
+//   app.post('/webhooks/clerk', async (req) => {
+//     const event: AuthEvent = await parseWebhook({
+//       body: req.body,
+//       headers: req.headers,
+//       signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
+//     })
+//     await db.users.upsert(event.user)
+//   })
+//
+// Swap clerk for another auth plugin → change one import line; the
+// handler logic stays the same.
+
+export type AuthEventType =
+  | 'user.created'
+  | 'user.updated'
+  | 'user.deleted'
+
+export interface NormalizedAuthUser {
+  id: string
+  email: string
+  firstName?: string | null
+  lastName?: string | null
+  /** Provider-native fields preserved verbatim for consumers that need them. */
+  raw?: Record<string, unknown>
+}
+
+export interface AuthEvent {
+  type: AuthEventType
+  user: NormalizedAuthUser
+  /** ISO timestamp of when the event occurred. */
+  occurredAt: string
+}
+
+export interface ParseWebhookInput {
+  /** Raw request body (string or Buffer). */
+  body: string | Buffer
+  /** Incoming HTTP headers — needed for signature verification. */
+  headers: Record<string, string | string[] | undefined>
+  /** The signing secret the auth provider issued for this webhook endpoint. */
+  signingSecret: string
+}
+
+export class WebhookVerificationError extends Error {
+  override name = 'WebhookVerificationError'
+}
+
 // ───────────────────────────────────────────────────────────────────────
 // vault — REQUIRED source-of-truth for secrets
 // ───────────────────────────────────────────────────────────────────────

@@ -53,3 +53,4 @@ export function createPlugin(options: ClerkPluginOptions = {}) {
 export * from './auth.js'
 export { ClerkRestClient } from './rest.js'
 export { ClerkAuth } from './capabilities/auth.js'
+export { parseWebhook } from './parse-webhook.js'

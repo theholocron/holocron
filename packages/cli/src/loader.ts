@@ -38,6 +38,21 @@ export interface RuntimeContext {
   repo?: string
   /** Absolute path to the working repo root. */
   repoRoot: string
+  /**
+   * When true, commands print what they WOULD mutate instead of
+   * actually calling capability mutators. Set by the global
+   * `--dry-run` flag. Capabilities themselves are unaware — the check
+   * lives at the command layer.
+   */
+  dryRun?: boolean
+  /**
+   * Token passed via `--token <value>`. Plugins pick this up as
+   * `cliToken` in their auth resolution, taking precedence over env
+   * vars. For multi-plugin commands the same token is passed to every
+   * plugin (acceptable when one is in play; tracked at #79 for
+   * proper disambiguation later).
+   */
+  cliToken?: string
 }
 
 /**

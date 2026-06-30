@@ -154,21 +154,81 @@ v2.1 once a second project proves the abstraction is worth distilling.
 The intended design is ESLint-shareable-configs-style with two levels
 of sharing (see Roadmap §Shareable configs).
 
-## Auth
+## Standards
 
-Plugins resolve a vendor token in this order:
+These are the cross-cutting conventions every command + plugin in v2
+honors. Codified in the
+[`/holocron-plugin` skill](../.claude/skills/holocron-plugin.md) so
+scaffolds inherit them automatically.
 
-1. `--token <PAT>` flag passed through from the CLI command
-2. `HOLOCRON_GH_TOKEN` (or vendor-equivalent) env var
-3. `GITHUB_TOKEN` (or vendor-equivalent) env var
+### `--dry-run` (global flag)
 
-**No `gh auth token` fallback.** Local `gh` is usually scoped narrower
-than admin commands need (rulesets, repo settings, security toggles),
-so silent fallback produces mysterious 403s. Explicit token only.
+Every mutating command accepts `--dry-run`. Instead of calling
+capability mutators, the command prints what would happen
+(structured diff: "would set GH Actions secret X", "would PATCH
+ruleset id=…"). The decision lives at the **command layer** —
+commands branch on `ctx.dryRun` before calling. Capabilities stay
+clean (no per-method `dryRun` knob) and are unaware.
+
+Wired via `RuntimeContext.dryRun` in
+`packages/cli/src/loader.ts`. Read-only commands (`doctor`,
+`config show`) ignore the flag.
+
+### `--token` (global flag)
+
+Every command accepts `--token <value>`. The CLI passes it to every
+loaded plugin as `cliToken`, taking precedence over env vars in each
+plugin's auth resolution (`--token` → `HOLOCRON_<X>` → vendor-native).
+
+**v2.0 limitation:** for multi-plugin commands the same token goes to
+every plugin. Fine when one is in play; ambiguous when many
+(`holocron setup` exercises github + vercel + neon). Per-plugin
+disambiguation is tracked at #79; until then, multi-plugin flows
+should use per-vendor env vars (`HOLOCRON_GH_TOKEN`,
+`HOLOCRON_VERCEL_TOKEN`, etc.).
 
 Tokens never appear in `holocron.config.json`. The config can declare
 which env var to read (e.g., `auth: { tokenEnv: "MY_PAT" }`), but the
 value lives in env (or, ideally, in the `vault`).
+
+**No vendor-CLI fallback.** Local `gh` / `vercel` / `op` auth is
+usually scoped narrower than admin commands need, so silent fallback
+produces mysterious 403s. Explicit token only.
+
+### Normalized events (cross-provider sync)
+
+For flows that bridge two vendors (the canonical example: Clerk
+webhook → Neon `users` table), holocron defines **normalized event
+shapes** in core (`AuthEvent`, `NormalizedAuthUser`, …). Auth plugins
+export a `parseWebhook(input): AuthEvent` utility that translates
+the vendor's webhook payload into the normalized shape.
+
+```ts
+// User app code — vendor-agnostic
+import { parseWebhook } from '@theholocron/holocron-plugin-clerk'
+import type { AuthEvent } from '@theholocron/cli'
+
+app.post('/webhooks/clerk', async (req) => {
+  const event: AuthEvent = await parseWebhook({
+    body: req.body,
+    headers: req.headers,
+    signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
+  })
+  await db.users.upsert(event.user)  // works regardless of auth provider
+})
+```
+
+Swap clerk for another auth plugin → change one import line; the
+handler body stays the same.
+
+`parseWebhook` is **NOT a capability method**. It's a utility export
+alongside `createPlugin`. The contract: take a vendor's webhook
+delivery, return a normalized event (or throw
+`WebhookVerificationError` on bad signature / malformed payload).
+
+Real signature verification (Svix HMAC) is tracked at #80 — v2.0
+ships the contract + JSON parsing; production-grade HMAC verification
+lands in a follow-up.
 
 ## Package layout
 
