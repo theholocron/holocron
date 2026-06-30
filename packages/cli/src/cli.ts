@@ -5,6 +5,7 @@ import { hideBin } from 'yargs/helpers'
 
 import { runDeploy } from './commands/deploy.js'
 import { runDoctor } from './commands/doctor.js'
+import { runNpmPublishInitial } from './commands/npm-publish-initial.js'
 import { runSecretSet } from './commands/secret-set.js'
 import { runSecretsSync } from './commands/secrets-sync.js'
 import { runSetup } from './commands/setup.js'
@@ -208,6 +209,26 @@ await yargs(hideBin(process.argv))
         projectId: argv.projectId as string,
         branch: argv.branch as string,
         ...(argv.target ? { target: argv.target as 'production' | 'staging' } : {}),
+      })
+      if (report.status === 'fail') {
+        process.exitCode = 1
+      }
+    },
+  )
+  .command(
+    'npm publish-initial',
+    'One-shot bootstrap publish for trusted-publishing-eligible packages',
+    (y) =>
+      y.option('tag', {
+        type: 'string',
+        default: 'alpha',
+        describe: 'npm distribution tag (defaults to alpha)',
+      }),
+    async (argv) => {
+      const report = await runNpmPublishInitial({
+        cwd: argv.cwd,
+        tag: argv.tag,
+        dryRun: argv.dryRun,
       })
       if (report.status === 'fail') {
         process.exitCode = 1

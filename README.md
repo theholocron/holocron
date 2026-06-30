@@ -131,16 +131,17 @@ npm login --auth-type=web
 pnpm install --frozen-lockfile
 pnpm build
 
-# Publish v2.0.0-alpha.0 of every public package in one shot:
-pnpm -r --filter='./packages/*' --filter='!@theholocron/cli-utils' \
-  publish --access public --no-git-checks --tag alpha
-
-# Sanity-check on npm:
-open https://www.npmjs.com/package/@theholocron/cli
+# Run the holocron one-shot bootstrap publish. Verifies npm auth, runs
+# `pnpm publish -r` with the right filters, prints direct links to each
+# package's Trusted Publisher config page:
+pnpm exec tsx packages/cli/src/cli.ts npm publish-initial
 ```
 
-This creates the packages on npm under the `alpha` dist-tag. The
-session token from `npm login` is local-only — never enters CI.
+The bootstrap command does the publish + reminds you exactly which URLs
+to visit for step 2. The session token from `npm login` is local-only;
+never enters CI.
+
+Add `--dry-run` to print what would happen without actually publishing.
 
 ### Step 2 — configure Trusted Publisher for each package
 
