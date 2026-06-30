@@ -308,9 +308,10 @@ Phases:
 4. **Remaining plugins (done).** Ported `vercel.ts`, `neon.ts`,
    `clerk.ts`, `1password.ts`, `postman.ts` from Rando, one plugin
    per package under `packages/holocron-plugin-*`.
-5. **Orchestrator commands.** `holocron setup`, `holocron secrets
-   sync`. Mirror Rando's semantics. Builds on the loader from
-   phase 3.
+5. **Orchestrator commands (done).** `holocron setup`,
+   `holocron secrets sync`, `holocron deploy`. Mirror Rando's
+   semantics. Built on the loader from phase 3 + the standards
+   (`--dry-run`, `--token`) from the standards-setup pass.
 6. **Rando flips over.** One PR in `rando-id/rando.id`.
 
 The first real validation that the design works comes when a second

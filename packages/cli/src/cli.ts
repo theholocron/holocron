@@ -3,6 +3,7 @@
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
+import { runDeploy } from './commands/deploy.js'
 import { runDoctor } from './commands/doctor.js'
 import { runSecretsSync } from './commands/secrets-sync.js'
 import { runSetup } from './commands/setup.js'
@@ -120,6 +121,44 @@ await yargs(hideBin(process.argv))
         targets: argv.target as Array<'development' | 'preview' | 'production'>,
       })
       if (report.summary.fail > 0) {
+        process.exitCode = 1
+      }
+    },
+  )
+  .command(
+    'deploy <branch>',
+    'Trigger a deployment via the configured `deployment` capability',
+    (y) =>
+      y
+        .positional('branch', {
+          type: 'string',
+          demandOption: true,
+          describe: 'Git branch to deploy',
+        })
+        .option('project-id', {
+          type: 'string',
+          demandOption: true,
+          describe: 'Deployment project id (e.g., Vercel prj_*)',
+        })
+        .option('target', {
+          type: 'string',
+          choices: ['production', 'staging'] as const,
+          describe: 'Named environment to deploy into. Omit for a branch preview.',
+        }),
+    async (argv) => {
+      const loaded = await loadConfig(argv.cwd)
+      const report = await runDeploy({
+        loaded,
+        context: {
+          repoRoot: argv.cwd,
+          dryRun: argv.dryRun,
+          ...(argv.token ? { cliToken: argv.token } : {}),
+        },
+        projectId: argv.projectId as string,
+        branch: argv.branch as string,
+        ...(argv.target ? { target: argv.target as 'production' | 'staging' } : {}),
+      })
+      if (report.status === 'fail') {
         process.exitCode = 1
       }
     },
