@@ -1,20 +1,28 @@
-name: CI
+name: Typecheck
+
+# tsc --noEmit across every workspace. Fast and self-contained — no
+# coverage, no artifacts; just "do the types compile?"
 
 on:
   push:
     branches-ignore:
-      - main # release.yml handles main with the same checks + publish
+      - main # release.yml runs the same typecheck before publishing
   pull_request:
     branches:
       - main
+
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Build + typecheck + lint + test
+  typecheck:
+    name: tsc --noEmit (every workspace)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -22,7 +30,6 @@ jobs:
           persist-credentials: false
 
       - name: Setup pnpm
-        # SHA-pinned per CodeQL's "unpinned 3rd-party action" rule.
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Setup Node
@@ -34,14 +41,5 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
       - name: Typecheck
         run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Test
-        run: pnpm test
