@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      # id-token: write is required for npm Trusted Publishing — the
+      # workflow requests an OIDC token from GitHub, npm validates it
+      # against the trusted publisher registered for each @theholocron/*
+      # package. No NPM_TOKEN secret needed.
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history for semantic-release
+          persist-credentials: false
+
+      - name: Setup pnpm
+        # SHA-pinned per CodeQL's "unpinned 3rd-party action" rule; tag
+        # comment lets humans (+ dependabot) see what version this is.
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify (lint + typecheck + test)
+        # Guard publishing on the same checks CI normally enforces, so a
+        # broken main never publishes to npm.
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec semantic-release

@@ -1,0 +1,72 @@
+{
+  "name": "@theholocron/cli",
+  "version": "2.0.0-alpha.0",
+  "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "holocron": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./capabilities": "./src/capabilities/index.ts"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "start": "tsx ./src/cli.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@theholocron/cli-utils": "workspace:*",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@tsconfig/node-lts": "catalog:",
+    "@types/yargs": "^17.0.35",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "bin": {
+      "holocron": "./dist/cli.mjs"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      },
+      "./capabilities": {
+        "types": "./dist/capabilities/index.d.mts",
+        "import": "./dist/capabilities/index.mjs",
+        "default": "./dist/capabilities/index.mjs"
+      }
+    }
+  }
+}
