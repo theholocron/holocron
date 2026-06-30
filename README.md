@@ -88,11 +88,42 @@ vault (1Password)
 
 ```
 packages/
-  cli/                          — @theholocron/cli            (binary + capability runtime)
-  cli-utils/                    — @theholocron/cli-utils      (prompts, openers, shell helpers)
-  holocron-plugin-github/       — @theholocron/holocron-plugin-github (first plugin)
-.notes/                         — design specs (draft → proposed → approved)
+  cli/                            — @theholocron/cli                       (binary + capability runtime)
+  cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
+  holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
+  holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
+  holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
+  holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
+  holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
+  holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
+holocron.config.json              — this repo's own holocron config (self-hosted)
+.notes/                           — design specs (draft → proposed → approved)
+.claude/skills/holocron-plugin.md — scaffolding skill for new plugins
 ```
+
+## Self-hosting — bootstrap the npm publish
+
+This repo carries its own `holocron.config.json` so holocron commands
+work inside it. To set the `NPM_TOKEN` GitHub Actions secret that the
+release workflow needs:
+
+```bash
+# 1. Get an npm automation token at https://www.npmjs.com → Avatar → Access Tokens
+# 2. Get a GitHub PAT with `Administration: write` + `Secrets: write` on this repo
+# 3. From the holocron repo root:
+
+NPM_TOKEN=npm_xxx HOLOCRON_GH_TOKEN=ghp_xxx \
+  pnpm exec tsx packages/cli/src/cli.ts secret set NPM_TOKEN
+```
+
+That single command:
+1. Loads `holocron.config.json` from cwd
+2. Resolves the GH PAT from `HOLOCRON_GH_TOKEN`
+3. Reads `NPM_TOKEN` from the env var of the same name (the implicit-by-name source)
+4. Encrypts the value with libsodium sealed-box
+5. PUTs it to the repo's Actions secrets via the GitHub REST API
+
+No GH Settings UI dance. Same pattern that the rest of the tooling will use across your projects.
 
 ## License
 
