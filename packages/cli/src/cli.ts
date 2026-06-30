@@ -5,6 +5,7 @@ import { hideBin } from 'yargs/helpers'
 
 import { runDeploy } from './commands/deploy.js'
 import { runDoctor } from './commands/doctor.js'
+import { runSecretSet } from './commands/secret-set.js'
 import { runSecretsSync } from './commands/secrets-sync.js'
 import { runSetup } from './commands/setup.js'
 import { loadConfig } from './load-config.js'
@@ -84,6 +85,56 @@ await yargs(hideBin(process.argv))
         },
       })
       if (report.summary.fail > 0) {
+        process.exitCode = 1
+      }
+    },
+  )
+  .command(
+    'secret set <name> [value]',
+    'Set a single secret via the configured `secrets` capability',
+    (y) =>
+      y
+        .positional('name', {
+          type: 'string',
+          demandOption: true,
+          describe: 'Secret name (e.g., NPM_TOKEN)',
+        })
+        .positional('value', {
+          type: 'string',
+          describe:
+            'Secret value (positional). If omitted, sources from --from-stdin, --from-env, or env var matching <name>.',
+        })
+        .option('from-stdin', {
+          type: 'boolean',
+          default: false,
+          describe: 'Read the secret value from stdin',
+        })
+        .option('from-env', {
+          type: 'string',
+          describe: 'Read the secret value from the named env var (otherwise: env var matching <name>)',
+        })
+        .option('scope', {
+          type: 'string',
+          default: 'repo',
+          describe: 'Scope: "repo" (default), "env=<name>", or "org=<name>"',
+        }),
+    async (argv) => {
+      const scopeArg = argv.scope as string
+      const scope = parseScope(scopeArg)
+      const report = await runSecretSet({
+        loaded: await loadConfig(argv.cwd),
+        context: {
+          repoRoot: argv.cwd,
+          dryRun: argv.dryRun,
+          ...(argv.token ? { cliToken: argv.token } : {}),
+        },
+        name: argv.name as string,
+        ...(argv.value ? { value: argv.value as string } : {}),
+        ...(argv.fromStdin ? { fromStdin: true } : {}),
+        ...(argv.fromEnv ? { fromEnv: argv.fromEnv as string } : {}),
+        scope,
+      })
+      if (report.status === 'fail') {
         process.exitCode = 1
       }
     },
@@ -176,3 +227,13 @@ await yargs(hideBin(process.argv))
   .strict()
   .help()
   .parse()
+
+/**
+ * Parse `--scope` strings: `repo` | `env=NAME` | `org=NAME`.
+ */
+function parseScope(s: string): { kind: 'repo' } | { kind: 'environment'; name: string } | { kind: 'organization'; name: string } {
+  if (s === 'repo') return { kind: 'repo' }
+  if (s.startsWith('env=')) return { kind: 'environment', name: s.slice('env='.length) }
+  if (s.startsWith('org=')) return { kind: 'organization', name: s.slice('org='.length) }
+  throw new Error(`invalid --scope "${s}" — expected "repo", "env=<name>", or "org=<name>"`)
+}
