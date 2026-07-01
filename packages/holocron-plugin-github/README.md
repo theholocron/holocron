@@ -11,6 +11,12 @@ against the GitHub REST API:
 | `environments` | Named deployment environments (reviewers, wait timers)           |
 | `issues`       | GitHub Issues as a tracker (with lifecycle slots)                |
 
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-github@alpha
+```
+
 ## Auth
 
 The plugin requires a GitHub token resolved in this order:
@@ -42,7 +48,7 @@ toggles, etc.) — silent fallback would surface as mysterious 403s.
 
 ## Status
 
-**v0.0.0 — scaffolded.** Implementations are being ported from
-[`rando-id/rando.id`](https://github.com/rando-id/rando.id)'s
-`packages/cli/src/adapters/` per the migration plan in
-`.notes/tech-architecture.spec.md`.
+**`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
+[Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
+All five capabilities are implemented; APIs may still shift before
+stable v2.0.0.

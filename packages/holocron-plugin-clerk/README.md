@@ -3,6 +3,12 @@
 Clerk plugin for [Holocron](../cli). Implements the `auth` capability
 against [Clerk's Backend REST API](https://clerk.com/docs/reference/backend-api).
 
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-clerk@alpha
+```
+
 ## Auth
 
 Token resolution order:
@@ -42,7 +48,10 @@ for Development, `sk_live_*` for Production.
 
 ## Status
 
-**v0.0.0 — first port.** Capability matches Rando's
-`adapters/clerk-cli.ts` surface plus a holocron-native `describe()`,
-all via direct REST against `api.clerk.com/v1`. No `clerk` CLI binary
-required on the operator's machine.
+**`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
+[Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
+APIs may still shift before stable v2.0.0.
+
+Real Svix HMAC verification in `parseWebhook` is deferred to
+[#80](https://github.com/theholocron/holocron/issues/80) — current
+implementation validates shape only.

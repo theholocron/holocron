@@ -3,6 +3,12 @@
 Neon plugin for [Holocron](../cli). Implements the `storage`
 capability against [Neon's REST API](https://api-docs.neon.tech/reference/getting-started-with-neon-api).
 
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-neon@alpha
+```
+
 ## Auth
 
 Token resolution order:
@@ -45,4 +51,6 @@ later).
 
 ## Status
 
-**v0.0.0 — first port.**
+**`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
+[Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
+APIs may still shift before stable v2.0.0.
