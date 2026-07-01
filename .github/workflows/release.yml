@@ -3,7 +3,8 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - main # stable releases (v2.0.0, v2.0.1, …)
+      - alpha # prereleases (v2.1.0-alpha.N, etc.) — see CLAUDE.md
 
 jobs:
   release:
