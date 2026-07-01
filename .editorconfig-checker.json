@@ -4,9 +4,12 @@
   "Format": "",
   "Debug": false,
   "IgnoreDefaults": false,
-  "SpacesAftertabs": false,
+  "SpacesAfterTabs": false,
   "NoColor": false,
-  "Exclude": ["^LICENSE$", "^public/.*"],
+  "Exclude": [
+    "^LICENSE$",
+    "^public/.*"
+  ],
   "AllowedContentTypes": [],
   "PassedFiles": [],
   "Disable": {
