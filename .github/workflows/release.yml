@@ -34,8 +34,15 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
           cache: pnpm
+          # NOTE: intentionally NO `registry-url` here. When set, setup-node
+          # writes `.npmrc` with `_authToken=XXXXX-XXXXX-XXXXX-XXXXX` (a
+          # literal placeholder, not GitHub's `***` redaction). pnpm publish
+          # then uses that placeholder token instead of doing the OIDC
+          # exchange, and npm returns 404. Without registry-url, no `.npmrc`
+          # is written and pnpm 10.15+ handles Trusted Publishing via its
+          # own OIDC token request (id-token: write permission below).
+          # See https://github.com/actions/setup-node/blob/main/src/authutil.ts
 
       - name: Install
         run: pnpm install --frozen-lockfile
