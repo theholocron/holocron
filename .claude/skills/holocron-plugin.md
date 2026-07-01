@@ -38,15 +38,15 @@ conversation turn) fills in the real implementations.
 Use `AskUserQuestion` to collect the following BEFORE writing any files. Group
 into one or two question batches; don't ask one at a time.
 
-| Input                | Required | Example                                                                     |
-| -------------------- | -------- | --------------------------------------------------------------------------- |
-| Plugin slug          | yes      | `clerk`, `doppler`, `cloudflare`                                            |
-| Vendor display name  | yes      | `Clerk`, `Doppler`, `Cloudflare`                                            |
-| Capability key       | yes      | `auth`, `vault`, `dns`, `tooling`, `notifications` (one of the 14 in CARDINALITY) |
-| Holocron token env   | yes      | `HOLOCRON_CLERK_TOKEN`                                                      |
-| Vendor-native env    | yes      | `CLERK_SECRET_KEY`                                                          |
-| Base URL             | yes      | `https://api.clerk.com/v1`                                                  |
-| Rando source path    | no       | `packages/cli/src/adapters/clerk.ts` if porting                              |
+| Input               | Required | Example                                                                           |
+| ------------------- | -------- | --------------------------------------------------------------------------------- |
+| Plugin slug         | yes      | `clerk`, `doppler`, `cloudflare`                                                  |
+| Vendor display name | yes      | `Clerk`, `Doppler`, `Cloudflare`                                                  |
+| Capability key      | yes      | `auth`, `vault`, `dns`, `tooling`, `notifications` (one of the 14 in CARDINALITY) |
+| Holocron token env  | yes      | `HOLOCRON_CLERK_TOKEN`                                                            |
+| Vendor-native env   | yes      | `CLERK_SECRET_KEY`                                                                |
+| Base URL            | yes      | `https://api.clerk.com/v1`                                                        |
+| Rando source path   | no       | `packages/cli/src/adapters/clerk.ts` if porting                                   |
 
 If the capability is `many`-cardinality (per `CARDINALITY` in
 `packages/cli/src/capabilities/index.ts`), warn the operator and confirm —
@@ -86,14 +86,14 @@ implementations are incoming.
 
 - **Standards (see `.notes/tech-architecture.spec.md` §Standards).** Every
   plugin honors the three holocron-wide conventions:
-  1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
-     Commands branch on it; capabilities don't accept per-method dryRun args.
-  2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
-     The plugin's `auth.ts` treats it as the first precedence in token resolution.
-  3. For plugins that fire webhook-shaped events (auth, anything fires events on
-     CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
-     alongside `createPlugin`. The normalized event shape lives in
-     `@theholocron/cli`; the plugin's job is just to translate.
+    1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
+       Commands branch on it; capabilities don't accept per-method dryRun args.
+    2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
+       The plugin's `auth.ts` treats it as the first precedence in token resolution.
+    3. For plugins that fire webhook-shaped events (auth, anything fires events on
+       CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
+       alongside `createPlugin`. The normalized event shape lives in
+       `@theholocron/cli`; the plugin's job is just to translate.
 - **Auth**: token resolution order is always `--token` → `HOLOCRON_<X>` →
   `<vendor-native>`. Throw `AuthError` with a message naming both env vars.
 - **REST**: wrap transport failures (`TypeError: fetch failed`) into
@@ -112,7 +112,7 @@ implementations are incoming.
 - **Underscore-prefix unused params, no eslint-disable comments.** The
   workspace ESLint config already has `argsIgnorePattern: '^_'` +
   `varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line
-  @typescript-eslint/no-unused-vars` triggers the unused-directive lint
+@typescript-eslint/no-unused-vars` triggers the unused-directive lint
   warning. Just use `_name` and stop.
 - **Don't `expect(...).toThrow()` twice on the same stubbed call.** The
   stub queue (`stubFetch` / `stubSpawn`) advances on every invocation.
@@ -120,15 +120,15 @@ implementations are incoming.
   responses and the second call returns the default empty response —
   the assertion silently passes when it shouldn't, or fails for the
   wrong reason. **Correct pattern:**
-  ```ts
-  try {
-    await something()
-    throw new Error('expected throw')
-  } catch (err) {
-    expect(err).toBeInstanceOf(SomeError)
-    expect((err as SomeError).message).toMatch(/regex/)
-  }
-  ```
+    ```ts
+    try {
+    	await something();
+    	throw new Error("expected throw");
+    } catch (err) {
+    	expect(err).toBeInstanceOf(SomeError);
+    	expect((err as SomeError).message).toMatch(/regex/);
+    }
+    ```
 
 ## Step 4 — install + verify
 

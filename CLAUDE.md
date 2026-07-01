@@ -14,11 +14,11 @@ Code into every conversation in this repo.
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
   `createPlugin()`.
 - **Standards (codified in `.claude/skills/holocron-plugin.md`):**
-    - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
+  - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
       commands branch at the orchestrator layer, not in capabilities.
-    - `--token` global flag flows through `RuntimeContext.cliToken`;
+  - `--token` global flag flows through `RuntimeContext.cliToken`;
       plugins' `auth.ts` reads it as first-precedence over env vars.
-    - Cross-provider event sync uses normalized `AuthEvent` types in
+  - Cross-provider event sync uses normalized `AuthEvent` types in
       core + plugin-exported `parseWebhook(input): AuthEvent` utility
       (NOT a capability method). Swap auth providers without rewriting
       handlers.

@@ -19,27 +19,27 @@ Token resolution order:
 2. `HOLOCRON_POSTMAN_API_KEY` env var
 3. `POSTMAN_API_KEY` env var (Postman's own standard)
 
-Generate the key at https://web.postman.co/settings/me/api-keys.
+Generate the key at <https://web.postman.co/settings/me/api-keys>.
 
 ## Config
 
 ```jsonc
 {
-	"providers": {
-		"tooling": [
-			[
-				"postman",
-				{
-					"workspaceId": "00000000-0000-0000-0000-000000000000",
-					"specFile": "apps/api/openapi.json",
-					"specName": "Rando API",
-					"collectionName": "Rando API",
-					"envFiles": ["apps/api/postman-env-staging.json"],
-				},
-			],
-			"storybook",
-		],
-	},
+ "providers": {
+  "tooling": [
+   [
+    "postman",
+    {
+     "workspaceId": "00000000-0000-0000-0000-000000000000",
+     "specFile": "apps/api/openapi.json",
+     "specName": "Rando API",
+     "collectionName": "Rando API",
+     "envFiles": ["apps/api/postman-env-staging.json"],
+    },
+   ],
+   "storybook",
+  ],
+ },
 }
 ```
 

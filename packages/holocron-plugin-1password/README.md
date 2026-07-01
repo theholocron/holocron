@@ -2,7 +2,7 @@
 
 1Password plugin for [Holocron](../cli). Implements the **required**
 `vault` capability via shell-out to the `op` CLI
-(https://developer.1password.com/docs/cli).
+(<https://developer.1password.com/docs/cli>).
 
 ## Why shell-out, not REST
 
@@ -34,15 +34,15 @@ found.
 
 ```jsonc
 {
-	"providers": {
-		"vault": [
-			"1password",
-			{
-				"vault": "rando", // 1P vault name
-				"account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
-			},
-		],
-	},
+ "providers": {
+  "vault": [
+   "1password",
+   {
+    "vault": "rando", // 1P vault name
+    "account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
+   },
+  ],
+ },
 }
 ```
 

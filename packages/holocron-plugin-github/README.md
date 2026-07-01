@@ -30,13 +30,13 @@ toggles, etc.) — silent fallback would surface as mysterious 403s.
 ```jsonc
 // holocron.config.json
 {
-	"providers": {
-		"source": "github",
-		"ci": "github",
-		"secrets": "github",
-		"environments": "github",
-		"issues": ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }],
-	},
+ "providers": {
+  "source": "github",
+  "ci": "github",
+  "secrets": "github",
+  "environments": "github",
+  "issues": ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }],
+ },
 }
 ```
 
