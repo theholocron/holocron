@@ -69,7 +69,8 @@ export interface ResolvedTuple {
 }
 
 export type ResolvedProviderEntry =
-	{ cardinality: "single"; tuple: ResolvedTuple } | { cardinality: "many"; tuples: ResolvedTuple[] };
+	| { cardinality: "single"; tuple: ResolvedTuple }
+	| { cardinality: "many"; tuples: ResolvedTuple[] };
 
 export type ResolvedProvidersConfig = Partial<Record<CapabilityKey, ResolvedProviderEntry>>;
 

@@ -12,7 +12,7 @@ Most commands aren't wired yet.
 ## What's in here
 
 - `src/capabilities/` — the 14 capability interfaces that providers
-  implement
+	implement
 - `src/config.ts` — `holocron.config.json` parser + plugin resolution
 - `src/cli.ts` — yargs entry, dispatches subcommands (WIP)
 

@@ -3,6 +3,8 @@ status: proposed # draft → proposed (issue filed) → approved (milestone atta
 issue: 74
 ---
 
+<!-- editorconfig-checker-disable-file -->
+
 # Holocron v2 architecture
 
 ## Decision

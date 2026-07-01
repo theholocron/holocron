@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # CLAUDE.md
 
 Conventions for working on Holocron. Loaded automatically by Claude

@@ -12,7 +12,7 @@ solo / small-team workflow, that's overkill. The `op` CLI is what every
 developer already has installed and uses for hand-debugging anyway, so:
 
 - **Local dev:** developer's signed-in `op` CLI (biometric unlock via
-  the desktop app)
+	the desktop app)
 - **CI:** `OP_SERVICE_ACCOUNT_TOKEN` env var; `op` auto-detects it
 - **Either way:** same binary, same commands, same code path
 
@@ -48,9 +48,9 @@ found.
 
 - `vault` (required) — the 1Password vault name items live in.
 - `account` (optional) — 1P account UUID. Passes `--account <UUID>` on
-  every `op` call so the integration targets a specific account even
-  when the developer has multiple signed in (e.g., work + personal).
-  Find via `op account list`.
+	every `op` call so the integration targets a specific account even
+	when the developer has multiple signed in (e.g., work + personal).
+	Find via `op account list`.
 
 ## What's implemented
 

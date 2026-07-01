@@ -85,50 +85,50 @@ implementations are incoming.
 ### Patterns that are non-negotiable
 
 - **Standards (see `.notes/tech-architecture.spec.md` §Standards).** Every
-  plugin honors the three holocron-wide conventions:
-    1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
-       Commands branch on it; capabilities don't accept per-method dryRun args.
-    2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
-       The plugin's `auth.ts` treats it as the first precedence in token resolution.
-    3. For plugins that fire webhook-shaped events (auth, anything fires events on
-       CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
-       alongside `createPlugin`. The normalized event shape lives in
-       `@theholocron/cli`; the plugin's job is just to translate.
+	plugin honors the three holocron-wide conventions:
+		1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
+			Commands branch on it; capabilities don't accept per-method dryRun args.
+		2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
+			The plugin's `auth.ts` treats it as the first precedence in token resolution.
+		3. For plugins that fire webhook-shaped events (auth, anything fires events on
+			CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
+			alongside `createPlugin`. The normalized event shape lives in
+			`@theholocron/cli`; the plugin's job is just to translate.
 - **Auth**: token resolution order is always `--token` → `HOLOCRON_<X>` →
-  `<vendor-native>`. Throw `AuthError` with a message naming both env vars.
+	`<vendor-native>`. Throw `AuthError` with a message naming both env vars.
 - **REST**: wrap transport failures (`TypeError: fetch failed`) into
-  `ProviderApiError` with `status: 0`. Include the path in the message so
-  callers see which call broke.
+	`ProviderApiError` with `status: 0`. Include the path in the message so
+	callers see which call broke.
 - **204 handling**: return `undefined` from `request<T>` on 204 OR when
-  `expectNoContent: true` is set.
+	`expectNoContent: true` is set.
 - **Tests use `stubFetch`**: copy the helper verbatim from
-  `packages/holocron-plugin-neon/src/__tests__/helpers.ts`. The Response
-  constructor rejects bodies on 204 — the helper handles that.
+	`packages/holocron-plugin-neon/src/__tests__/helpers.ts`. The Response
+	constructor rejects bodies on 204 — the helper handles that.
 - **Workspace + catalog deps**: `@theholocron/tsconfig`, `@tsconfig/node-lts`,
-  `eslint`, `globals`, `typescript`, `vitest`, `@vitest/coverage-v8` all
-  resolve via `catalog:` from `pnpm-workspace.yaml`.
+	`eslint`, `globals`, `typescript`, `vitest`, `@vitest/coverage-v8` all
+	resolve via `catalog:` from `pnpm-workspace.yaml`.
 - **Peer-deps**: `@theholocron/cli` is BOTH a peer dep AND a devDep at
-  `workspace:*` (the devDep lets tests resolve the types).
+	`workspace:*` (the devDep lets tests resolve the types).
 - **Underscore-prefix unused params, no eslint-disable comments.** The
-  workspace ESLint config already has `argsIgnorePattern: '^_'` +
-  `varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line
+	workspace ESLint config already has `argsIgnorePattern: '^_'` +
+	`varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line
 @typescript-eslint/no-unused-vars` triggers the unused-directive lint
-  warning. Just use `_name` and stop.
+	warning. Just use `_name` and stop.
 - **Don't `expect(...).toThrow()` twice on the same stubbed call.** The
-  stub queue (`stubFetch` / `stubSpawn`) advances on every invocation.
-  Calling the same async-with-fetch method twice exhausts the queued
-  responses and the second call returns the default empty response —
-  the assertion silently passes when it shouldn't, or fails for the
-  wrong reason. **Correct pattern:**
-    ```ts
-    try {
-    	await something();
-    	throw new Error("expected throw");
-    } catch (err) {
-    	expect(err).toBeInstanceOf(SomeError);
-    	expect((err as SomeError).message).toMatch(/regex/);
-    }
-    ```
+	stub queue (`stubFetch` / `stubSpawn`) advances on every invocation.
+	Calling the same async-with-fetch method twice exhausts the queued
+	responses and the second call returns the default empty response —
+	the assertion silently passes when it shouldn't, or fails for the
+	wrong reason. **Correct pattern:**
+		```ts
+		try {
+			await something();
+			throw new Error("expected throw");
+		} catch (err) {
+			expect(err).toBeInstanceOf(SomeError);
+			expect((err as SomeError).message).toMatch(/regex/);
+		}
+		```
 
 ## Step 4 — install + verify
 
@@ -156,10 +156,10 @@ Show the operator a short summary:
 ✓ typecheck + lint + test green
 
 Next:
-  1. Implement <Capability> methods in src/capabilities/<capability>.ts
-  2. Replace `it.todo(...)` with real tests in src/__tests__/<capability>.test.ts
-  3. Update README "What's implemented" section as you go
-  4. Commit + push when capability is functionally complete
+	1. Implement <Capability> methods in src/capabilities/<capability>.ts
+	2. Replace `it.todo(...)` with real tests in src/__tests__/<capability>.test.ts
+	3. Update README "What's implemented" section as you go
+	4. Commit + push when capability is functionally complete
 ```
 
 Don't commit. The skill stops at "scaffold + verify"; the human commits when
@@ -184,23 +184,23 @@ When porting an existing Rando adapter, also:
 
 - Find the Rando source: `find /Users/archives/Code/rando/rando/packages/cli/src -name "*<slug>*"`
 - Compare Rando's interface against the holocron capability interface BEFORE
-  writing code. Adjust the holocron interface in core if the Rando shape
-  reveals a mismatch — that's what happened with `Deployment`
-  (drop `promote`/`listDeployments`, add `triggerDeployment`/`getDeployment`)
-  and `Storage` (replace target-based `getConnectionString` with
-  scope-based + pooled option).
+	writing code. Adjust the holocron interface in core if the Rando shape
+	reveals a mismatch — that's what happened with `Deployment`
+	(drop `promote`/`listDeployments`, add `triggerDeployment`/`getDeployment`)
+	and `Storage` (replace target-based `getConnectionString` with
+	scope-based + pooled option).
 - Port the implementation method-by-method. Keep Rando's comments where they
-  document non-obvious gotchas (e.g., Neon's `endpoints[{type: 'read_write'}]`
-  inline create, GitHub's reviewer numeric-id-only).
+	document non-obvious gotchas (e.g., Neon's `endpoints[{type: 'read_write'}]`
+	inline create, GitHub's reviewer numeric-id-only).
 - Port the tests too — they're the proof the port preserves semantics.
 
 ## When NOT to use this skill
 
 - The capability needs a transport other than REST (e.g., a CLI shell-out).
-  The auth + REST primitives don't apply; structure differs. Use the manual
-  approach + propose a transport-adapter interface (see issue #76).
+	The auth + REST primitives don't apply; structure differs. Use the manual
+	approach + propose a transport-adapter interface (see issue #76).
 - The plugin is a "config package" rather than a real implementation (see
-  the level-1 shareable-configs design in issue #75). The structure for those
-  is different.
+	the level-1 shareable-configs design in issue #75). The structure for those
+	is different.
 - The work is a one-off tweak to an existing plugin, not a new one. Edit the
-  existing package directly.
+	existing package directly.
