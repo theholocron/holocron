@@ -3,6 +3,12 @@
 Vercel plugin for [Holocron](../cli). Implements the `deployment`
 capability against the [Vercel REST API](https://vercel.com/docs/rest-api).
 
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-vercel@alpha
+```
+
 ## Auth
 
 Token resolution order:
@@ -31,7 +37,11 @@ always cover what holocron needs at the API level. Explicit token only.
 
 ## Status
 
-**v0.0.0 — first port.** Capability covers:
+**`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
+[Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
+APIs may still shift before stable v2.0.0.
+
+Capability covers:
 
 - `listProjects()` / `ensureProject()` — idempotent project create
 - `updateProjectSettings()` — toggle preview deploys, git-creates-deploys
@@ -39,7 +49,7 @@ always cover what holocron needs at the API level. Explicit token only.
 - `triggerDeployment()` — branch deploys with optional named target
 - `getDeployment()` — fetch a deployment by id
 
-Out of scope for v1 (file a follow-up if needed):
+Out of scope for alpha.0 (file a follow-up if needed):
 
 - Domain management (`addDomain` / `removeDomain`)
 - Deletion (`deleteProject`)

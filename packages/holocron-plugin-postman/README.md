@@ -3,6 +3,12 @@
 Postman plugin for [Holocron](../cli). Implements the **multi-cardinality**
 `tooling` capability against [Postman's REST API](https://learning.postman.com/docs/developer/postman-api/).
 
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-postman@alpha
+```
+
 ## Why REST, not the CLI
 
 Postman ships a CLI (`postman`, the newer + more capable successor to
@@ -71,7 +77,10 @@ Generate the key at <https://web.postman.co/settings/me/api-keys>.
 
 ## Status
 
-**v0.0.0 — first port.** Surface matches Rando's `adapters/postman.ts`.
+**`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
+[Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
+APIs may still shift before stable v2.0.0.
+
 `PostmanPlanLimitError` is thrown when Postman responds with
 `limitReachedError` (e.g., Free-tier "0 APIs" cap) — callers can
 discriminate to render "upgrade required" instead of a raw API dump.

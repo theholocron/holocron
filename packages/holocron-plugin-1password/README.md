@@ -4,6 +4,14 @@
 `vault` capability via shell-out to the `op` CLI
 (<https://developer.1password.com/docs/cli>).
 
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-1password@alpha
+```
+
+Requires the `op` binary on PATH (see [Prerequisite](#prerequisite) below).
+
 ## Why shell-out, not REST
 
 1Password's "REST API" is the **Connect server** — a Docker container
@@ -65,8 +73,11 @@ found.
 
 ## Status
 
-**v0.0.0 — first port.** Ports `rando-id/rando.id`
-`adapters/op-cli.ts`. The stdio shape (`['inherit', 'pipe', 'pipe']`)
-is critical: it gives `op` a TTY signal so it can fire the desktop
+**`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
+[Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
+APIs may still shift before stable v2.0.0.
+
+Implementation note: the stdio shape (`['inherit', 'pipe', 'pipe']`)
+is critical — it gives `op` a TTY signal so it can fire the desktop
 biometric unlock dialog when running locally. CI runs see no TTY and
 fall back to whatever auth mode the env var configures.
