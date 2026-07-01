@@ -1,3 +1,5 @@
+## [2.0.0-alpha.1](https://github.com/theholocron/holocron/compare/v2.0.0-alpha.0...v2.0.0-alpha.1) (2026-07-01)
+
 # Changelog
 
 ## 1.0.0 (2024-10-31)
