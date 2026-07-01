@@ -96,10 +96,18 @@ Code into every conversation in this repo.
 
 ## Releases (automated)
 
-- **semantic-release on push to main.** Walks Conventional Commits
-  since the last tag, computes the next version, bumps all 7 public
-  packages in lockstep via `scripts/bump-versions.mjs`, publishes
-  via OIDC, creates a GitHub Release, commits `CHANGELOG.md`.
+- **Two release branches.** `main` is the **stable-release branch**
+  (publishes to npm's `latest` dist-tag); `alpha` is the
+  **prerelease branch** (publishes to the `alpha` dist-tag). All v2
+  alpha work happens on `alpha`; merge `alpha → main` only when
+  cutting a stable release. A `feat`/`fix`/`refactor`/`perf` landing
+  directly on main will publish stable, so keep those PRs targeted at
+  `alpha`. Docs, chore, ci, test are safe on either.
+- **semantic-release on push to main or alpha.** Walks Conventional
+  Commits since the last tag on the branch's channel, computes the
+  next version, bumps all 7 public packages in lockstep via
+  `scripts/bump-versions.mjs`, publishes via OIDC, creates a GitHub
+  Release, commits `CHANGELOG.md`.
 - **npm Trusted Publishing.** OIDC token exchange at publish time —
   no `NPM_TOKEN` secret anywhere. Each package has a Trusted
   Publisher registered on npmjs.com (Publisher: GitHub Actions,
