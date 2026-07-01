@@ -13,8 +13,7 @@ async function main() {
 	try {
 		const filepath = await prompt.search(project, undefined, undefined, {});
 		console.log(filepath);
-	}
-	catch (error) {
+	} catch (error) {
 		console.error("Error:", error);
 	}
 }

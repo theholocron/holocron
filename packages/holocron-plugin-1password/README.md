@@ -34,12 +34,15 @@ found.
 
 ```jsonc
 {
-  "providers": {
-    "vault": ["1password", {
-      "vault": "rando",                                    // 1P vault name
-      "account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"              // optional: 1P account UUID
-    }]
-  }
+	"providers": {
+		"vault": [
+			"1password",
+			{
+				"vault": "rando", // 1P vault name
+				"account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
+			},
+		],
+	},
 }
 ```
 
@@ -51,14 +54,14 @@ found.
 
 ## What's implemented
 
-| Method                 | What it does                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `read(reference)`      | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.      |
-| `write(reference, v)`  | Probe + `op item edit` if exists, else `op item create --category=API Credential`. |
-| `list()`               | `op item list --vault=<vault> --format=json` — names of items in the vault.    |
-| `environments()`       | `op environment list --format=json` — names of 1P Environments.                |
-| `readEnvironment(id)`  | `op environment read <id>` — parses KEY=VALUE lines into a record.             |
-| `whoami()` (via doctor)| `op whoami --format=json` — tolerates the JSON-shape drift across CLI versions and auth modes. |
+| Method                  | What it does                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| `read(reference)`       | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.                      |
+| `write(reference, v)`   | Probe + `op item edit` if exists, else `op item create --category=API Credential`.             |
+| `list()`                | `op item list --vault=<vault> --format=json` — names of items in the vault.                    |
+| `environments()`        | `op environment list --format=json` — names of 1P Environments.                                |
+| `readEnvironment(id)`   | `op environment read <id>` — parses KEY=VALUE lines into a record.                             |
+| `whoami()` (via doctor) | `op whoami --format=json` — tolerates the JSON-shape drift across CLI versions and auth modes. |
 
 ## Status
 

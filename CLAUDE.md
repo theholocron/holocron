@@ -14,14 +14,14 @@ Code into every conversation in this repo.
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
   `createPlugin()`.
 - **Standards (codified in `.claude/skills/holocron-plugin.md`):**
-  - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
-    commands branch at the orchestrator layer, not in capabilities.
-  - `--token` global flag flows through `RuntimeContext.cliToken`;
-    plugins' `auth.ts` reads it as first-precedence over env vars.
-  - Cross-provider event sync uses normalized `AuthEvent` types in
-    core + plugin-exported `parseWebhook(input): AuthEvent` utility
-    (NOT a capability method). Swap auth providers without rewriting
-    handlers.
+    - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
+      commands branch at the orchestrator layer, not in capabilities.
+    - `--token` global flag flows through `RuntimeContext.cliToken`;
+      plugins' `auth.ts` reads it as first-precedence over env vars.
+    - Cross-provider event sync uses normalized `AuthEvent` types in
+      core + plugin-exported `parseWebhook(input): AuthEvent` utility
+      (NOT a capability method). Swap auth providers without rewriting
+      handlers.
 
 ## Code patterns
 
@@ -103,7 +103,7 @@ Code into every conversation in this repo.
   Publisher registered on npmjs.com (Publisher: GitHub Actions,
   Repo: theholocron/holocron, Workflow: release.yml).
 - **First publish for a new package** uses `holocron npm
-  publish-initial` (chicken-and-egg: trusted publishing needs the
+publish-initial` (chicken-and-egg: trusted publishing needs the
   package to exist first). Workflow: `npm login --auth-type=web`
   → `pnpm install && pnpm build` → `pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp <code>`.
 

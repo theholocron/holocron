@@ -24,104 +24,100 @@
  * no per-call instance switch.
  */
 
-import { ProviderApiError } from '@theholocron/cli'
+import { ProviderApiError } from "@theholocron/cli";
 import type {
-  Auth,
-  AuthDescription,
-  AuthIdentity,
-  AuthUser,
-  CreateAuthUserInput,
-  WebhookDashboardInfo,
-} from '@theholocron/cli'
+	Auth,
+	AuthDescription,
+	AuthIdentity,
+	AuthUser,
+	CreateAuthUserInput,
+	WebhookDashboardInfo,
+} from "@theholocron/cli";
 
-import type { ClerkRestClient } from '../rest.js'
+import type { ClerkRestClient } from "../rest.js";
 
-export type ClerkAuthOptions = Record<string, never>
+export type ClerkAuthOptions = Record<string, never>;
 
 interface ClerkCreateUserResponse {
-  id: string
-  email_addresses: Array<{ email_address: string }>
+	id: string;
+	email_addresses: Array<{ email_address: string }>;
 }
 
 interface ClerkSvixUrlResponse {
-  /** Older endpoint shape. */
-  url?: string
-  /** Newer endpoint shape. */
-  svix_url?: string
+	/** Older endpoint shape. */
+	url?: string;
+	/** Newer endpoint shape. */
+	svix_url?: string;
 }
 
 export class ClerkAuth implements Auth {
-  readonly key = 'auth' as const
-  readonly providerName = 'clerk'
+	readonly key = "auth" as const;
+	readonly providerName = "clerk";
 
-  constructor(
-    private readonly rest: ClerkRestClient,
-    _opts: ClerkAuthOptions = {},
-  ) {}
+	constructor(
+		private readonly rest: ClerkRestClient,
+		_opts: ClerkAuthOptions = {}
+	) {}
 
-  // ── describe ────────────────────────────────────────────────────────
+	// ── describe ────────────────────────────────────────────────────────
 
-  async describe(): Promise<AuthDescription> {
-    return {
-      provider: 'clerk',
-      envKeys: ['CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY'],
-    }
-  }
+	async describe(): Promise<AuthDescription> {
+		return {
+			provider: "clerk",
+			envKeys: ["CLERK_PUBLISHABLE_KEY", "CLERK_SECRET_KEY"],
+		};
+	}
 
-  // ── whoami ──────────────────────────────────────────────────────────
+	// ── whoami ──────────────────────────────────────────────────────────
 
-  async whoami(): Promise<AuthIdentity> {
-    const body = await this.rest.request<{ total_count: number }>('/users/count')
-    return {
-      provider: 'clerk',
-      details: { userCount: body.total_count },
-    }
-  }
+	async whoami(): Promise<AuthIdentity> {
+		const body = await this.rest.request<{ total_count: number }>("/users/count");
+		return {
+			provider: "clerk",
+			details: { userCount: body.total_count },
+		};
+	}
 
-  // ── webhook (Svix) ──────────────────────────────────────────────────
+	// ── webhook (Svix) ──────────────────────────────────────────────────
 
-  async ensureWebhookApp(): Promise<{ alreadyExists: boolean }> {
-    try {
-      await this.rest.request<void>('/webhooks/svix', { method: 'POST' })
-      return { alreadyExists: false }
-    } catch (err) {
-      if (err instanceof ProviderApiError && isAlreadyExistsError(err)) {
-        return { alreadyExists: true }
-      }
-      throw err
-    }
-  }
+	async ensureWebhookApp(): Promise<{ alreadyExists: boolean }> {
+		try {
+			await this.rest.request<void>("/webhooks/svix", { method: "POST" });
+			return { alreadyExists: false };
+		} catch (err) {
+			if (err instanceof ProviderApiError && isAlreadyExistsError(err)) {
+				return { alreadyExists: true };
+			}
+			throw err;
+		}
+	}
 
-  async getWebhookDashboardUrl(): Promise<WebhookDashboardInfo> {
-    const body = await this.rest.request<ClerkSvixUrlResponse>('/webhooks/svix_url', {
-      method: 'POST',
-    })
-    const url = body.url ?? body.svix_url
-    if (!url) {
-      throw new ProviderApiError(
-        'Clerk POST /webhooks/svix_url returned 200 but no `url` field',
-        500,
-        undefined,
-      )
-    }
-    return { url }
-  }
+	async getWebhookDashboardUrl(): Promise<WebhookDashboardInfo> {
+		const body = await this.rest.request<ClerkSvixUrlResponse>("/webhooks/svix_url", {
+			method: "POST",
+		});
+		const url = body.url ?? body.svix_url;
+		if (!url) {
+			throw new ProviderApiError("Clerk POST /webhooks/svix_url returned 200 but no `url` field", 500, undefined);
+		}
+		return { url };
+	}
 
-  // ── users ───────────────────────────────────────────────────────────
+	// ── users ───────────────────────────────────────────────────────────
 
-  async createUser(input: CreateAuthUserInput): Promise<AuthUser> {
-    const body = await this.rest.request<ClerkCreateUserResponse>('/users', {
-      method: 'POST',
-      body: {
-        email_address: [input.email],
-        password: input.password,
-        ...(input.firstName ? { first_name: input.firstName } : {}),
-        ...(input.lastName ? { last_name: input.lastName } : {}),
-      },
-    })
-    const email = body.email_addresses[0]?.email_address ?? input.email
-    return { id: body.id, email }
-  }
+	async createUser(input: CreateAuthUserInput): Promise<AuthUser> {
+		const body = await this.rest.request<ClerkCreateUserResponse>("/users", {
+			method: "POST",
+			body: {
+				email_address: [input.email],
+				password: input.password,
+				...(input.firstName ? { first_name: input.firstName } : {}),
+				...(input.lastName ? { last_name: input.lastName } : {}),
+			},
+		});
+		const email = body.email_addresses[0]?.email_address ?? input.email;
+		return { id: body.id, email };
+	}
 }
 
 /**
@@ -130,9 +126,9 @@ export class ClerkAuth implements Auth {
  * Treat that as a successful no-op so `ensureWebhookApp` is idempotent.
  */
 function isAlreadyExistsError(err: ProviderApiError): boolean {
-  if (typeof err.details === 'string') {
-    const lower = err.details.toLowerCase()
-    return lower.includes('already') || lower.includes('exists')
-  }
-  return false
+	if (typeof err.details === "string") {
+		const lower = err.details.toLowerCase();
+		return lower.includes("already") || lower.includes("exists");
+	}
+	return false;
 }

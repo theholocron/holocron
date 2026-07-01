@@ -17,9 +17,10 @@ const isDebugMode = config.get(debugMode);
 // set an item
 config.write(debugMode, true);
 ```
+
 ## API
 
-The API is a wrapper, so look at the [docs](https://github.com/sindresorhus/conf) for a detailed list of functions.  The following is the ones that are most commonly used.
+The API is a wrapper, so look at the [docs](https://github.com/sindresorhus/conf) for a detailed list of functions. The following is the ones that are most commonly used.
 
 ### `.get(key, defaultValue?)`
 
@@ -38,4 +39,3 @@ Set multiple items at once.
 ### `.edit()`
 
 Open the configuration file in your preferred `$EDITOR`;
-

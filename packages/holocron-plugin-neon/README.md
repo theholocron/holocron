@@ -15,9 +15,9 @@ Token resolution order:
 
 ```jsonc
 {
-  "providers": {
-    "storage": ["neon", { "projectId": "ancient-resonance-…" }]
-  }
+	"providers": {
+		"storage": ["neon", { "projectId": "ancient-resonance-…" }],
+	},
 }
 ```
 
@@ -26,14 +26,14 @@ Token resolution order:
 
 ## What's implemented
 
-| Method                  | What it does                                              |
-| ----------------------- | --------------------------------------------------------- |
-| `getConnectionString`   | Fetches the connection URI for a branch. `pooled: true` returns the PgBouncer URL. |
-| `listBranches`          | All branches on the bound project.                        |
-| `createBranch`          | Provisions a branch + a read_write compute endpoint inline (so the next connection-string call doesn't 404). |
-| `destroyBranch`         | DELETEs a branch.                                         |
-| `resetBranch`           | Restores one branch to match another (Neon "restore branch" endpoint). |
-| `enableExtension`       | Runs `CREATE EXTENSION IF NOT EXISTS "..."` against the branch's default database via Neon's run_sql endpoint. Used for PostGIS, pgvector, etc. |
+| Method                | What it does                                                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getConnectionString` | Fetches the connection URI for a branch. `pooled: true` returns the PgBouncer URL.                                                              |
+| `listBranches`        | All branches on the bound project.                                                                                                              |
+| `createBranch`        | Provisions a branch + a read_write compute endpoint inline (so the next connection-string call doesn't 404).                                    |
+| `destroyBranch`       | DELETEs a branch.                                                                                                                               |
+| `resetBranch`         | Restores one branch to match another (Neon "restore branch" endpoint).                                                                          |
+| `enableExtension`     | Runs `CREATE EXTENSION IF NOT EXISTS "..."` against the branch's default database via Neon's run_sql endpoint. Used for PostGIS, pgvector, etc. |
 
 Vercel-managed Neon orgs reject project-create at the Neon API level
 ("organization is managed by Vercel"). For those setups, provision
