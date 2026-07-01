@@ -1,10 +1,33 @@
 name: Release
 
+# PAUSED (push trigger disabled). Trigger manually via workflow_dispatch
+# until Trusted Publishing (OIDC) is verified end-to-end.
+#
+# Every previous push-triggered run has failed at pnpm publish AFTER
+# @semantic-release/git had already auto-committed a CHANGELOG bump +
+# tagged the next version, leaving main / alpha polluted with runaway
+# state and forcing multiple rewinds.
+#
+# Re-enable the push trigger via a follow-up PR once a dry-run dispatch
+# confirms:
+#   1. semantic-release recognizes v2.0.0-alpha.0 as the last alpha
+#      release (via refs/notes/semantic-release-v2.0.0-alpha.0)
+#   2. pnpm publish successfully exchanges an OIDC id-token with npm
+#      instead of falling back to `npm adduser` prompt (ENEEDAUTH)
 on:
-  push:
-    branches:
-      - main # stable releases (v2.0.0, v2.0.1, …)
-      - alpha # prereleases (v2.1.0-alpha.N, etc.) — see CLAUDE.md
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: |
+          Run semantic-release --dry-run. True = analyze + preview only, no
+          git writes, no publish. Set to false ONLY once dry-run reports
+          clean.
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   release:
@@ -34,8 +57,15 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
           cache: pnpm
+          # NOTE: intentionally NO `registry-url` here. When set, setup-node
+          # writes `.npmrc` with `_authToken=XXXXX-XXXXX-XXXXX-XXXXX` (a
+          # literal placeholder, not GitHub's `***` redaction). pnpm publish
+          # then uses that placeholder token instead of doing the OIDC
+          # exchange, and npm returns 404. Without registry-url, no `.npmrc`
+          # is written and pnpm 10.15+ handles Trusted Publishing via its
+          # own OIDC token request (id-token: write permission above).
+          # See https://github.com/actions/setup-node/blob/main/src/authutil.ts
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -54,4 +84,9 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm exec semantic-release
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            pnpm exec semantic-release --dry-run
+          else
+            pnpm exec semantic-release
+          fi
