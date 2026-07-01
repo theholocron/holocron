@@ -1,21 +1,78 @@
-# Add "documentation" label to any changes within "docs" folder or any subfolders or .md files within the entire repository
-documentation:
-- any:
-  - changed-files:
-    - any-glob-to-any-file:
-      - docs/**
-      - "**/*.md"
+# Config for srvaroa/labeler — applies to BOTH PRs and issues.
+#
+# Each `labels:` entry has a single matcher whose conditions are AND'd.
+# To express OR, list the same label multiple times. PR-only signals
+# (files/branch) are ignored when the event is an issue.
+#
+# Order matches Rando's labeler so the holocron repo stays familiar.
 
-# Add "bug" label to any PR where the head branch name starts with `fix` with file changes to src directory
-bug:
-- all:
-  - changed-files:
-    - any-glob-to-any-file: src/**
-  - head-branch: "^fix-"
+version: 1
+labels:
+  # --- documentation --------------------------------------------------
+  # PR: changes under docs/ or any markdown file
+  - label: documentation
+    matcher:
+      files:
+        - docs/**
+        - "**/*.md"
+  # PR: conventional `docs:` / `docs(scope):` title
+  - label: documentation
+    matcher:
+      title: "^docs(\\(.+\\))?:"
+  # Issue: title mentions docs / readme / typo
+  - label: documentation
+    matcher:
+      title: "(?i)\\b(docs?|readme|typo)\\b"
 
-# Add "enhancement" label to any PR where the head branch name starts with `feat` with file changes to src directory
-enhancement:
-- all:
-  - changed-files:
-    - any-glob-to-any-file: src/**
-  - head-branch: "^feat-"
+  # --- bug ------------------------------------------------------------
+  # PR: fix- branch touching src
+  - label: bug
+    matcher:
+      files:
+        - src/**
+        - packages/**/src/**
+      branch: "^fix-"
+  # PR: conventional `fix:` title
+  - label: bug
+    matcher:
+      title: "^fix(\\(.+\\))?:"
+  # Issue: natural-language bug report
+  - label: bug
+    matcher:
+      title: "(?i)\\b(bug|broken|crash|error|fails?|regression)\\b"
+
+  # --- enhancement ----------------------------------------------------
+  # PR: feat- branch touching src
+  - label: enhancement
+    matcher:
+      files:
+        - src/**
+        - packages/**/src/**
+      branch: "^feat-"
+  # PR: conventional `feat:` title
+  - label: enhancement
+    matcher:
+      title: "^feat(\\(.+\\))?:"
+  # Issue: feature request language
+  - label: enhancement
+    matcher:
+      title: "(?i)\\b(feature|enhancement|add support|would be nice)\\b"
+
+  # --- ci-related (PR-only signal makes sense; keep title fallback) ---
+  - label: ci-related
+    matcher:
+      files:
+        - .github/**
+  - label: ci-related
+    matcher:
+      title: "^ci(\\(.+\\))?:"
+
+  # --- dependencies (dependabot + manual deps PRs) --------------------
+  - label: dependencies
+    matcher:
+      title: "^chore\\(deps"
+
+  # --- question (issues mostly) ---------------------------------------
+  - label: question
+    matcher:
+      title: "(?i)(\\?$|^how (do|can) i|^why does)"
