@@ -1,2 +1,2 @@
-export * from './capabilities/index.js'
-export * from './config.js'
+export * from "./capabilities/index.js";
+export * from "./config.js";

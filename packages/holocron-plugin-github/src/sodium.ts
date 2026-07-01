@@ -17,39 +17,35 @@
  * the self-contained CJS bundle instead. Same API, working module.
  */
 
-import { createRequire } from 'node:module'
+import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url)
+const require = createRequire(import.meta.url);
 
 interface SodiumLib {
-  ready: Promise<void>
-  from_base64(input: string, variant: number): Uint8Array
-  to_base64(input: Uint8Array, variant: number): string
-  from_string(input: string): Uint8Array
-  to_string(input: Uint8Array): string
-  crypto_box_seal(message: Uint8Array, publicKey: Uint8Array): Uint8Array
-  crypto_box_seal_open(
-    ciphertext: Uint8Array,
-    publicKey: Uint8Array,
-    privateKey: Uint8Array,
-  ): Uint8Array
-  crypto_box_keypair(): { publicKey: Uint8Array; privateKey: Uint8Array; keyType: string }
-  base64_variants: { ORIGINAL: number; ORIGINAL_NO_PADDING: number; URLSAFE: number }
+	ready: Promise<void>;
+	from_base64(input: string, variant: number): Uint8Array;
+	to_base64(input: Uint8Array, variant: number): string;
+	from_string(input: string): Uint8Array;
+	to_string(input: Uint8Array): string;
+	crypto_box_seal(message: Uint8Array, publicKey: Uint8Array): Uint8Array;
+	crypto_box_seal_open(ciphertext: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array;
+	crypto_box_keypair(): { publicKey: Uint8Array; privateKey: Uint8Array; keyType: string };
+	base64_variants: { ORIGINAL: number; ORIGINAL_NO_PADDING: number; URLSAFE: number };
 }
 
-const sodium = require('libsodium-wrappers') as SodiumLib
+const sodium = require("libsodium-wrappers") as SodiumLib;
 
 /**
  * Encrypt `value` for the given GitHub-provided base64 public key.
  * Returns the base64 ciphertext to send as `encrypted_value`.
  */
 export async function encryptSecret(publicKeyBase64: string, value: string): Promise<string> {
-  await sodium.ready
-  const publicKey = sodium.from_base64(publicKeyBase64, sodium.base64_variants.ORIGINAL)
-  const plaintext = sodium.from_string(value)
-  const ciphertext = sodium.crypto_box_seal(plaintext, publicKey)
-  return sodium.to_base64(ciphertext, sodium.base64_variants.ORIGINAL)
+	await sodium.ready;
+	const publicKey = sodium.from_base64(publicKeyBase64, sodium.base64_variants.ORIGINAL);
+	const plaintext = sodium.from_string(value);
+	const ciphertext = sodium.crypto_box_seal(plaintext, publicKey);
+	return sodium.to_base64(ciphertext, sodium.base64_variants.ORIGINAL);
 }
 
 /** Re-exported for tests so they can use the SAME loaded sodium instance. */
-export { sodium }
+export { sodium };
