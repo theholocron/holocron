@@ -3,6 +3,8 @@ status: proposed # draft → proposed (issue filed) → approved (milestone atta
 issue: 74
 ---
 
+<!-- editorconfig-checker-disable-file -->
+
 # Holocron v2 architecture
 
 ## Decision
@@ -53,22 +55,22 @@ as long as the package name starts with `holocron-plugin-`.
 
 ## Capability vocabulary — 14 capabilities
 
-| Capability        | Cardinality | What it owns                                                  | Typical providers                          |
-| ----------------- | ----------- | ------------------------------------------------------------- | ------------------------------------------ |
-| `source`          | one         | Repos, branches, PRs, rulesets, repo settings, workflow files | GitHub, GitLab, Bitbucket                  |
-| `ci`              | one         | Workflow runs and history                                     | GitHub Actions, GitLab CI, CircleCI        |
-| `secrets`         | one         | CI/platform secrets store (repo / env / org scoped)           | GitHub Actions, GitLab CI                  |
-| `environments`    | one         | Named deployment environments (reviewers, wait timers)        | GitHub, AWS                                |
-| `issues`          | one         | Issue tracker                                                 | GitHub Issues, Linear, Jira                |
-| `deployment`      | one         | Deploy targets (preview + prod, runtime env vars)             | Vercel, Netlify, Fly, Cloudflare           |
-| `storage`         | one         | DB / object / file store                                      | Neon, Supabase, Railway, Render, S3        |
-| `auth`            | one         | Identity provider                                             | Clerk, Auth0, Supabase Auth, Keycloak      |
-| **`vault`**       | one         | **Source of truth for secrets (REQUIRED)**                    | 1Password, Bitwarden, HashiCorp Vault, Doppler |
-| `dns`             | one         | DNS record management                                         | Cloudflare, Route 53, Namecheap            |
-| `tooling`         | **many**    | Dev tooling                                                   | Postman, Storybook, Chromatic              |
-| `notifications`   | **many**    | Alerts and ops messaging                                      | Slack, Discord, PagerDuty                  |
-| `analytics`       | **many**    | Product analytics                                             | Google Analytics, PostHog, Plausible       |
-| `observability`   | **many**    | Error / perf monitoring                                       | Sentry, Datadog, NewRelic, OpenTelemetry   |
+| Capability      | Cardinality | What it owns                                                  | Typical providers                              |
+| --------------- | ----------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| `source`        | one         | Repos, branches, PRs, rulesets, repo settings, workflow files | GitHub, GitLab, Bitbucket                      |
+| `ci`            | one         | Workflow runs and history                                     | GitHub Actions, GitLab CI, CircleCI            |
+| `secrets`       | one         | CI/platform secrets store (repo / env / org scoped)           | GitHub Actions, GitLab CI                      |
+| `environments`  | one         | Named deployment environments (reviewers, wait timers)        | GitHub, AWS                                    |
+| `issues`        | one         | Issue tracker                                                 | GitHub Issues, Linear, Jira                    |
+| `deployment`    | one         | Deploy targets (preview + prod, runtime env vars)             | Vercel, Netlify, Fly, Cloudflare               |
+| `storage`       | one         | DB / object / file store                                      | Neon, Supabase, Railway, Render, S3            |
+| `auth`          | one         | Identity provider                                             | Clerk, Auth0, Supabase Auth, Keycloak          |
+| **`vault`**     | one         | **Source of truth for secrets (REQUIRED)**                    | 1Password, Bitwarden, HashiCorp Vault, Doppler |
+| `dns`           | one         | DNS record management                                         | Cloudflare, Route 53, Namecheap                |
+| `tooling`       | **many**    | Dev tooling                                                   | Postman, Storybook, Chromatic                  |
+| `notifications` | **many**    | Alerts and ops messaging                                      | Slack, Discord, PagerDuty                      |
+| `analytics`     | **many**    | Product analytics                                             | Google Analytics, PostHog, Plausible           |
+| `observability` | **many**    | Error / perf monitoring                                       | Sentry, Datadog, NewRelic, OpenTelemetry       |
 
 Each capability is a TypeScript interface in
 `packages/cli/src/capabilities/index.ts`. Cardinality lives next to
@@ -104,41 +106,41 @@ flow.
 
 ```jsonc
 {
-  "project": {
-    "name": "rando-id",
-    "description": "Location-based contacts app"
-  },
+	"project": {
+		"name": "rando-id",
+		"description": "Location-based contacts app",
+	},
 
-  "providers": {
-    // Single-cardinality, short form: "provider"
-    "source":       "github",
-    "ci":           "github",
-    "secrets":      "github",
-    "environments": "github",
-    "issues":       "github",
-    "auth":         "clerk",
-    "dns":          "cloudflare",
+	"providers": {
+		// Single-cardinality, short form: "provider"
+		"source": "github",
+		"ci": "github",
+		"secrets": "github",
+		"environments": "github",
+		"issues": "github",
+		"auth": "clerk",
+		"dns": "cloudflare",
 
-    // Single-cardinality, tuple form: [provider, options]
-    "deployment": ["vercel", { "team": "rando", "projectIds": { "web": "prj_…" } }],
-    "storage":    ["neon",   { "kind": "postgres-postgis", "branchStrategy": "per-pr" }],
-    "vault":      ["1password", { "vault": "rando", "account": "uuid…" }],
+		// Single-cardinality, tuple form: [provider, options]
+		"deployment": ["vercel", { "team": "rando", "projectIds": { "web": "prj_…" } }],
+		"storage": ["neon", { "kind": "postgres-postgis", "branchStrategy": "per-pr" }],
+		"vault": ["1password", { "vault": "rando", "account": "uuid…" }],
 
-    // Many-cardinality, short form: [provider1, provider2, …]
-    "tooling":       ["postman", "storybook", "chromatic"],
-    "notifications": ["slack",   "discord"],
-    "analytics":     ["google"],
-    "observability": ["sentry"]
-  },
+		// Many-cardinality, short form: [provider1, provider2, …]
+		"tooling": ["postman", "storybook", "chromatic"],
+		"notifications": ["slack", "discord"],
+		"analytics": ["google"],
+		"observability": ["sentry"],
+	},
 
-  "apps": [
-    { "name": "web", "path": "apps/web", "kind": "next" },
-    { "name": "api", "path": "apps/api", "kind": "next-api" }
-  ],
+	"apps": [
+		{ "name": "web", "path": "apps/web", "kind": "next" },
+		{ "name": "api", "path": "apps/api", "kind": "next-api" },
+	],
 
-  "doctor": {
-    "checks": ["brewfile", "secrets", "env"]
-  }
+	"doctor": {
+		"checks": ["brewfile", "secrets", "env"],
+	},
 }
 ```
 
@@ -205,17 +207,17 @@ the vendor's webhook payload into the normalized shape.
 
 ```ts
 // User app code — vendor-agnostic
-import { parseWebhook } from '@theholocron/holocron-plugin-clerk'
-import type { AuthEvent } from '@theholocron/cli'
+import { parseWebhook } from "@theholocron/holocron-plugin-clerk";
+import type { AuthEvent } from "@theholocron/cli";
 
-app.post('/webhooks/clerk', async (req) => {
-  const event: AuthEvent = await parseWebhook({
-    body: req.body,
-    headers: req.headers,
-    signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
-  })
-  await db.users.upsert(event.user)  // works regardless of auth provider
-})
+app.post("/webhooks/clerk", async (req) => {
+	const event: AuthEvent = await parseWebhook({
+		body: req.body,
+		headers: req.headers,
+		signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
+	});
+	await db.users.upsert(event.user); // works regardless of auth provider
+});
 ```
 
 Swap clerk for another auth plugin → change one import line; the
@@ -277,7 +279,7 @@ the v1.x line stays GPL-3.0 on `main` for historical accuracy.
   `@theholocron/holocron-plugin-neon` exposing `storage` with a
   `kind: "postgres-postgis"` option.
 - **Clerk webhook sync flow moves to the Clerk plugin.** `rando clerk
-  webhook setup` becomes part of `@theholocron/holocron-plugin-clerk`'s
+webhook setup` becomes part of `@theholocron/holocron-plugin-clerk`'s
   `auth` capability. The Rando-side `users` table sync stays in
   Rando — that's app data, not infra.
 - **Doctor framework stays in core; specific checks become plugin
@@ -348,9 +350,9 @@ options:
 ```jsonc
 // project's holocron.config.json
 {
-  "providers": {
-    "vault": ["@rando-id/holocron-vault"]
-  }
+	"providers": {
+		"vault": ["@rando-id/holocron-vault"],
+	},
 }
 ```
 
@@ -366,9 +368,9 @@ JS/TS instead of JSON, importing a shared base:
 
 ```ts
 // holocron.config.ts
-import { holocronConfig } from "@rando-id/holocron-config"
+import { holocronConfig } from "@rando-id/holocron-config";
 
-export default holocronConfig
+export default holocronConfig;
 ```
 
 Mirrors ESLint flat config — let an org publish their full set of

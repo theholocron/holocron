@@ -8,16 +8,16 @@
  * required" instead of dumping the raw API body.
  */
 export class PostmanPlanLimitError extends Error {
-  override name = 'PostmanPlanLimitError'
+	override name = "PostmanPlanLimitError";
 
-  constructor(
-    /** Human-readable plan-limit message from Postman. */
-    readonly limitMessage: string,
-    /** Original response body (JSON or text). */
-    readonly body: string,
-  ) {
-    super(limitMessage)
-  }
+	constructor(
+		/** Human-readable plan-limit message from Postman. */
+		readonly limitMessage: string,
+		/** Original response body (JSON or text). */
+		readonly body: string
+	) {
+		super(limitMessage);
+	}
 }
 
 /**
@@ -26,13 +26,13 @@ export class PostmanPlanLimitError extends Error {
  * `ProviderApiError`).
  */
 export function detectPlanLimit(body: string): string | null {
-  try {
-    const parsed = JSON.parse(body) as { error?: { name?: string; message?: string } }
-    if (parsed.error?.name === 'limitReachedError' && parsed.error.message) {
-      return parsed.error.message
-    }
-  } catch {
-    // Not JSON — fall through.
-  }
-  return null
+	try {
+		const parsed = JSON.parse(body) as { error?: { name?: string; message?: string } };
+		if (parsed.error?.name === "limitReachedError" && parsed.error.message) {
+			return parsed.error.message;
+		}
+	} catch {
+		// Not JSON — fall through.
+	}
+	return null;
 }

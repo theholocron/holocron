@@ -3,13 +3,13 @@
 GitHub plugin for [Holocron](../cli). Implements five capabilities
 against the GitHub REST API:
 
-| Capability     | What this plugin does                                     |
-| -------------- | --------------------------------------------------------- |
+| Capability     | What this plugin does                                            |
+| -------------- | ---------------------------------------------------------------- |
 | `source`       | Repos, rulesets, repo settings, security toggles, workflow files |
-| `ci`           | Workflow run history + status                              |
-| `secrets`      | GH Actions secrets (repo + environment + organization)     |
-| `environments` | Named deployment environments (reviewers, wait timers)     |
-| `issues`       | GitHub Issues as a tracker (with lifecycle slots)          |
+| `ci`           | Workflow run history + status                                    |
+| `secrets`      | GH Actions secrets (repo + environment + organization)           |
+| `environments` | Named deployment environments (reviewers, wait timers)           |
+| `issues`       | GitHub Issues as a tracker (with lifecycle slots)                |
 
 ## Auth
 
@@ -30,13 +30,13 @@ toggles, etc.) — silent fallback would surface as mysterious 403s.
 ```jsonc
 // holocron.config.json
 {
-  "providers": {
-    "source":       "github",
-    "ci":           "github",
-    "secrets":      "github",
-    "environments": "github",
-    "issues":       ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }]
-  }
+	"providers": {
+		"source": "github",
+		"ci": "github",
+		"secrets": "github",
+		"environments": "github",
+		"issues": ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }],
+	},
 }
 ```
 

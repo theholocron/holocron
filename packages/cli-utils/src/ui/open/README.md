@@ -7,7 +7,7 @@ Open an application after a confirmation.
 ```javascript
 import { open } from "@/ui";
 
-async function main () {
+async function main() {
 	const [, , name, location] = process.argv;
 
 	try {
@@ -19,9 +19,8 @@ async function main () {
 		}
 
 		console.log(`${name} ${isOpened ? "was" : "was not"} opened.`);
-	}
-	catch (error) {
-		console.error('An error occurred:', error);
+	} catch (error) {
+		console.error("An error occurred:", error);
 		process.exit(1);
 	}
 }

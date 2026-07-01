@@ -4,6 +4,9 @@
  */
 const config = {
 	extends: ["@theholocron"],
+	rules: {
+		"footer-max-line-length": [0],
+	},
 };
 
 export default config;

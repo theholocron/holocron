@@ -19,31 +19,31 @@ makes that work **declarative, swappable, and re-runnable**.
 ```jsonc
 // holocron.config.json
 {
-  "project": { "name": "my-app" },
+	"project": { "name": "my-app" },
 
-  "providers": {
-    // Code + CI
-    "source":        "github",
-    "ci":            "github",
-    "secrets":       "github",
-    "environments":  "github",
-    "issues":        "github",
+	"providers": {
+		// Code + CI
+		"source": "github",
+		"ci": "github",
+		"secrets": "github",
+		"environments": "github",
+		"issues": "github",
 
-    // Hosting + data
-    "deployment":    ["vercel", { "team": "my-team" }],
-    "storage":       ["neon",   { "kind": "postgres" }],
-    "auth":          "clerk",
-    "dns":           "cloudflare",
+		// Hosting + data
+		"deployment": ["vercel", { "team": "my-team" }],
+		"storage": ["neon", { "kind": "postgres" }],
+		"auth": "clerk",
+		"dns": "cloudflare",
 
-    // Source of truth for secrets (required)
-    "vault":         ["1password", { "vault": "my-app" }],
+		// Source of truth for secrets (required)
+		"vault": ["1password", { "vault": "my-app" }],
 
-    // Multi-provider
-    "tooling":       ["postman", "storybook"],
-    "notifications": ["slack",   "discord"],
-    "analytics":     ["google"],
-    "observability": ["sentry"]
-  }
+		// Multi-provider
+		"tooling": ["postman", "storybook"],
+		"notifications": ["slack", "discord"],
+		"analytics": ["google"],
+		"observability": ["sentry"],
+	},
 }
 ```
 
@@ -59,16 +59,16 @@ holocron deploy          # ship to your `deployment` provider
 ## How it works
 
 - **Capabilities** are the contracts (14 of them — see the
-  [architecture spec](./.notes/tech-architecture.spec.md)).
+	[architecture spec](./.notes/tech-architecture.spec.md)).
 - **Plugins** are npm packages named `holocron-plugin-<provider>`
-  (or `@theholocron/holocron-plugin-<provider>` for the built-in
-  set). Each plugin exports the capabilities it implements — a
-  single provider can cover several (GitHub does source + CI +
-  issues + secrets + environments).
+	(or `@theholocron/holocron-plugin-<provider>` for the built-in
+	set). Each plugin exports the capabilities it implements — a
+	single provider can cover several (GitHub does source + CI +
+	issues + secrets + environments).
 - **Config** is ESLint-style: short form `"vercel"` for defaults,
-  tuple form `["vercel", { team: "my-team" }]` for options,
-  multi-list `["slack", "discord"]` for capabilities that allow
-  several providers active at once.
+	tuple form `["vercel", { team: "my-team" }]` for options,
+	multi-list `["slack", "discord"]` for capabilities that allow
+	several providers active at once.
 
 ## The vault is special
 
@@ -79,23 +79,23 @@ env vars, local `.env`) syncs FROM the vault:
 
 ```
 vault (1Password)
-  ├─→ secrets       (GitHub Actions)
-  ├─→ deployment    (Vercel env vars)
-  └─→ local .env    (for dev)
+	├─→ secrets       (GitHub Actions)
+	├─→ deployment    (Vercel env vars)
+	└─→ local .env    (for dev)
 ```
 
 ## Repo layout (v2)
 
 ```
 packages/
-  cli/                            — @theholocron/cli                       (binary + capability runtime)
-  cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
-  holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
-  holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
-  holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
-  holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
-  holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
-  holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
+	cli/                            — @theholocron/cli                       (binary + capability runtime)
+	cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
+	holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
+	holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
+	holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
+	holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
+	holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
+	holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
 holocron.config.json              — this repo's own holocron config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
@@ -153,14 +153,14 @@ the `EOTP` error in the output and prints the corrected command.
 
 In the npm web UI, for each `@theholocron/*` package:
 
-1. Sign in at https://www.npmjs.com
+1. Sign in at <https://www.npmjs.com>
 2. Navigate to the package → Settings → Trusted Publishers
 3. Configure:
-   - **Publisher**: GitHub Actions
-   - **Organization**: `theholocron`
-   - **Repository**: `holocron`
-   - **Workflow filename**: `release.yml`
-   - **Environment** (optional): leave blank
+		- **Publisher**: GitHub Actions
+		- **Organization**: `theholocron`
+		- **Repository**: `holocron`
+		- **Workflow filename**: `release.yml`
+		- **Environment** (optional): leave blank
 
 Repeat for each:
 `@theholocron/cli`,
@@ -198,7 +198,7 @@ For one-off secrets that ARE token-based (not npm publishing), the
 ```bash
 # Example: set a Vercel deploy hook secret on the holocron repo (hypothetical)
 DEPLOY_HOOK=https://api.vercel.com/.../v1 HOLOCRON_GH_TOKEN=ghp_xxx \
-  pnpm exec tsx packages/cli/src/cli.ts secret set DEPLOY_HOOK
+	pnpm exec tsx packages/cli/src/cli.ts secret set DEPLOY_HOOK
 ```
 
 Replaces clicking through GH Settings → Secrets → Actions → New for

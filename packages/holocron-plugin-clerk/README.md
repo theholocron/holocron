@@ -12,7 +12,7 @@ Token resolution order:
 3. `CLERK_SECRET_KEY` env var (Clerk's own default; what their docs reference)
 
 > **Why not the `clerk` CLI?** Rando's adapter shells out to `npx clerk@latest
-> api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
+api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
 > Direct REST drops a system-binary dependency and matches the uniform auth/REST
 > pattern across the other holocron plugins.
 
@@ -20,9 +20,9 @@ Token resolution order:
 
 ```jsonc
 {
-  "providers": {
-    "auth": "clerk"
-  }
+	"providers": {
+		"auth": "clerk",
+	},
 }
 ```
 
@@ -32,13 +32,13 @@ for Development, `sk_live_*` for Production.
 
 ## What's implemented
 
-| Method                    | What it does                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `describe`                | Declares `CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` as runtime envs        |
-| `whoami`                  | `GET /users/count` reachability probe (returns user count)                    |
-| `ensureWebhookApp`        | `POST /webhooks/svix` — idempotent; already-exists → `{alreadyExists:true}`  |
-| `getWebhookDashboardUrl`  | `POST /webhooks/svix_url` — deep-link to Svix dashboard                       |
-| `createUser`              | `POST /users` — seeds users (test fixtures, admin bootstrap)                  |
+| Method                   | What it does                                                                |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `describe`               | Declares `CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` as runtime envs       |
+| `whoami`                 | `GET /users/count` reachability probe (returns user count)                  |
+| `ensureWebhookApp`       | `POST /webhooks/svix` — idempotent; already-exists → `{alreadyExists:true}` |
+| `getWebhookDashboardUrl` | `POST /webhooks/svix_url` — deep-link to Svix dashboard                     |
+| `createUser`             | `POST /users` — seeds users (test fixtures, admin bootstrap)                |
 
 ## Status
 

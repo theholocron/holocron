@@ -17,69 +17,68 @@
  *    suppress biometric unlock and return "not signed in" instead.
  */
 
-import { spawnSync } from 'node:child_process'
+import { spawnSync } from "node:child_process";
 
-import { ProviderApiError } from '@theholocron/cli'
+import { ProviderApiError } from "@theholocron/cli";
 
 export interface OpResult {
-  ok: boolean
-  stdout: string
-  stderr: string
+	ok: boolean;
+	stdout: string;
+	stderr: string;
 }
 
 export interface OpShellOptions {
-  /** Override the spawn function in tests. */
-  spawn?: typeof spawnSync
-  /** Path to the op binary. Defaults to "op". */
-  binary?: string
-  /** 1Password account UUID. When set, passed as `--account` on every call. */
-  account?: string
+	/** Override the spawn function in tests. */
+	spawn?: typeof spawnSync;
+	/** Path to the op binary. Defaults to "op". */
+	binary?: string;
+	/** 1Password account UUID. When set, passed as `--account` on every call. */
+	account?: string;
 }
 
 export interface RunOptions {
-  /** Skip `--account` injection for commands that operate above the account level (e.g., `account list`). */
-  skipAccount?: boolean
+	/** Skip `--account` injection for commands that operate above the account level (e.g., `account list`). */
+	skipAccount?: boolean;
 }
 
 export class OpShell {
-  private readonly spawnImpl: typeof spawnSync
-  readonly binary: string
-  readonly account?: string
+	private readonly spawnImpl: typeof spawnSync;
+	readonly binary: string;
+	readonly account?: string;
 
-  constructor(opts: OpShellOptions = {}) {
-    this.spawnImpl = opts.spawn ?? spawnSync
-    this.binary = opts.binary ?? 'op'
-    if (opts.account !== undefined) this.account = opts.account
-  }
+	constructor(opts: OpShellOptions = {}) {
+		this.spawnImpl = opts.spawn ?? spawnSync;
+		this.binary = opts.binary ?? "op";
+		if (opts.account !== undefined) this.account = opts.account;
+	}
 
-  /** Run `op <args>`, returning a uniform result. */
-  run(args: string[], opts: RunOptions = {}): OpResult {
-    const fullArgs =
-      this.account && !opts.skipAccount ? ['--account', this.account, ...args] : args
-    const out = this.spawnImpl(this.binary, fullArgs, {
-      encoding: 'utf-8',
-      stdio: ['inherit', 'pipe', 'pipe'],
-    })
-    if (out.error) {
-      return { ok: false, stdout: '', stderr: out.error.message }
-    }
-    return {
-      ok: out.status === 0,
-      stdout: (out.stdout ?? '').trim(),
-      stderr: (out.stderr ?? '').trim(),
-    }
-  }
+	/** Run `op <args>`, returning a uniform result. */
+	run(args: string[], opts: RunOptions = {}): OpResult {
+		const fullArgs = this.account && !opts.skipAccount ? ["--account", this.account, ...args] : args;
+		const out = this.spawnImpl(this.binary, fullArgs, {
+			encoding: "utf-8",
+			stdio: ["inherit", "pipe", "pipe"],
+		});
+		if (out.error) {
+			return { ok: false, stdout: "", stderr: out.error.message };
+		}
+		return {
+			ok: out.status === 0,
+			stdout: (out.stdout ?? "").trim(),
+			stderr: (out.stderr ?? "").trim(),
+		};
+	}
 
-  /** Run + throw if non-zero. Mirrors REST clients' `request<T>` ergonomic. */
-  runOrThrow(args: string[], context: string, opts: RunOptions = {}): string {
-    const result = this.run(args, opts)
-    if (!result.ok) {
-      throw new ProviderApiError(
-        `1Password ${context} failed: ${result.stderr || 'no stderr'}`,
-        0,
-        result.stderr,
-      )
-    }
-    return result.stdout
-  }
+	/** Run + throw if non-zero. Mirrors REST clients' `request<T>` ergonomic. */
+	runOrThrow(args: string[], context: string, opts: RunOptions = {}): string {
+		const result = this.run(args, opts);
+		if (!result.ok) {
+			throw new ProviderApiError(
+				`1Password ${context} failed: ${result.stderr || "no stderr"}`,
+				0,
+				result.stderr
+			);
+		}
+		return result.stdout;
+	}
 }

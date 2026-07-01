@@ -11,23 +11,21 @@
  */
 
 export class AuthError extends Error {
-  override name = 'AuthError'
+	override name = "AuthError";
 }
 
 export interface ResolveTokenInput {
-  /** From `--token` CLI flag. */
-  cliToken?: string
-  /** Env vars; passed in for testability. Defaults to `process.env`. */
-  env?: NodeJS.ProcessEnv
+	/** From `--token` CLI flag. */
+	cliToken?: string;
+	/** Env vars; passed in for testability. Defaults to `process.env`. */
+	env?: NodeJS.ProcessEnv;
 }
 
 export function resolveToken(input: ResolveTokenInput = {}): string {
-  const env = input.env ?? process.env
-  const token = input.cliToken || env.HOLOCRON_GH_TOKEN || env.GITHUB_TOKEN
-  if (!token) {
-    throw new AuthError(
-      'no GitHub token found. Pass --token <PAT>, or set HOLOCRON_GH_TOKEN / GITHUB_TOKEN.',
-    )
-  }
-  return token
+	const env = input.env ?? process.env;
+	const token = input.cliToken || env.HOLOCRON_GH_TOKEN || env.GITHUB_TOKEN;
+	if (!token) {
+		throw new AuthError("no GitHub token found. Pass --token <PAT>, or set HOLOCRON_GH_TOKEN / GITHUB_TOKEN.");
+	}
+	return token;
 }

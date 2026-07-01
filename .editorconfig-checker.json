@@ -1,10 +1,10 @@
 {
-  "Version": "v3.0.3",
+  "Version": "v3.7.0",
   "Verbose": false,
   "Format": "",
   "Debug": false,
   "IgnoreDefaults": false,
-  "SpacesAftertabs": false,
+  "SpacesAfterTabs": false,
   "NoColor": false,
   "Exclude": ["^LICENSE$", "^public/.*"],
   "AllowedContentTypes": [],

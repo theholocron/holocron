@@ -23,7 +23,7 @@ const [writeErr, writeData] = env.write({ mockKey: "mockValue" });
 
 #### Use `process.env` for accessing environment variables
 
-The point of `dotenv` is to allow you to put environment variables within a file in order to have them show up on `process.env`.  So if you need access to any environment variable, rather than running it on the command-line, you can add it to the `.env` and it will be present.
+The point of `dotenv` is to allow you to put environment variables within a file in order to have them show up on `process.env`. So if you need access to any environment variable, rather than running it on the command-line, you can add it to the `.env` and it will be present.
 
 #### Use `env.read()` for interfacing with the configuration file
 
@@ -31,7 +31,7 @@ Whenever you want the application to read the configuration file or values on it
 
 #### Use `env.write()` for writing to or updating the configuration file
 
-Whenever you want the application to change the configuration file or values on it, then use `env.write()`.  This will set permanent changes to the configuration file.
+Whenever you want the application to change the configuration file or values on it, then use `env.write()`. This will set permanent changes to the configuration file.
 
 ## API
 

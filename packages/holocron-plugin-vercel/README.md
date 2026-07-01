@@ -20,14 +20,14 @@ always cover what holocron needs at the API level. Explicit token only.
 ```jsonc
 // holocron.config.json
 {
-  "providers": {
-    "deployment": ["vercel", { "teamId": "team_xxx" }]
-  }
+	"providers": {
+		"deployment": ["vercel", { "teamId": "team_xxx" }],
+	},
 }
 ```
 
 - `teamId` (optional) — Vercel team id. When set, all requests are
-  scoped to that team. Leave unset for personal-account projects.
+	scoped to that team. Leave unset for personal-account projects.
 
 ## Status
 

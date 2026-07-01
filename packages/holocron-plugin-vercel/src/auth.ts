@@ -11,23 +11,21 @@
  */
 
 export class AuthError extends Error {
-  override name = 'AuthError'
+	override name = "AuthError";
 }
 
 export interface ResolveTokenInput {
-  /** From `--token` CLI flag. */
-  cliToken?: string
-  /** Env vars; passed in for testability. Defaults to `process.env`. */
-  env?: NodeJS.ProcessEnv
+	/** From `--token` CLI flag. */
+	cliToken?: string;
+	/** Env vars; passed in for testability. Defaults to `process.env`. */
+	env?: NodeJS.ProcessEnv;
 }
 
 export function resolveToken(input: ResolveTokenInput = {}): string {
-  const env = input.env ?? process.env
-  const token = input.cliToken || env.HOLOCRON_VERCEL_TOKEN || env.VERCEL_TOKEN
-  if (!token) {
-    throw new AuthError(
-      'no Vercel token found. Pass --token <PAT>, or set HOLOCRON_VERCEL_TOKEN / VERCEL_TOKEN.',
-    )
-  }
-  return token
+	const env = input.env ?? process.env;
+	const token = input.cliToken || env.HOLOCRON_VERCEL_TOKEN || env.VERCEL_TOKEN;
+	if (!token) {
+		throw new AuthError("no Vercel token found. Pass --token <PAT>, or set HOLOCRON_VERCEL_TOKEN / VERCEL_TOKEN.");
+	}
+	return token;
 }

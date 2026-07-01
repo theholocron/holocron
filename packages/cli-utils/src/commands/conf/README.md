@@ -15,7 +15,7 @@ Commands:
 	tsx ./src/cli.ts conf view [key] [options]
 
 Examples:
-	tsx ./src/cli.ts conf add 
+	tsx ./src/cli.ts conf add
 	tsx ./src/cli.ts conf edit
 	tsx ./src/cli.ts conf view
 	tsx ./src/cli.ts conf view domains
@@ -41,5 +41,5 @@ Opens the configuration file in the default editor for editing.
 
 Retrieves and prints the configuration settings based on provided keys or all configurations if no keys are specified.
 
-* `options:CLIOptions` - The options containing configuration details and the keys to be retrieved.
-* @returns {Record<string, any> | Record<string, any>[]} - The requested configuration settings.
+- `options:CLIOptions` - The options containing configuration details and the keys to be retrieved.
+- @returns {Record<string, any> | Record<string, any>[]} - The requested configuration settings.
