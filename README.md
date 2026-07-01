@@ -19,31 +19,31 @@ makes that work **declarative, swappable, and re-runnable**.
 ```jsonc
 // holocron.config.json
 {
- "project": { "name": "my-app" },
+	"project": { "name": "my-app" },
 
- "providers": {
-  // Code + CI
-  "source": "github",
-  "ci": "github",
-  "secrets": "github",
-  "environments": "github",
-  "issues": "github",
+	"providers": {
+		// Code + CI
+		"source": "github",
+		"ci": "github",
+		"secrets": "github",
+		"environments": "github",
+		"issues": "github",
 
-  // Hosting + data
-  "deployment": ["vercel", { "team": "my-team" }],
-  "storage": ["neon", { "kind": "postgres" }],
-  "auth": "clerk",
-  "dns": "cloudflare",
+		// Hosting + data
+		"deployment": ["vercel", { "team": "my-team" }],
+		"storage": ["neon", { "kind": "postgres" }],
+		"auth": "clerk",
+		"dns": "cloudflare",
 
-  // Source of truth for secrets (required)
-  "vault": ["1password", { "vault": "my-app" }],
+		// Source of truth for secrets (required)
+		"vault": ["1password", { "vault": "my-app" }],
 
-  // Multi-provider
-  "tooling": ["postman", "storybook"],
-  "notifications": ["slack", "discord"],
-  "analytics": ["google"],
-  "observability": ["sentry"],
- },
+		// Multi-provider
+		"tooling": ["postman", "storybook"],
+		"notifications": ["slack", "discord"],
+		"analytics": ["google"],
+		"observability": ["sentry"],
+	},
 }
 ```
 
