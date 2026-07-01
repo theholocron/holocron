@@ -67,6 +67,15 @@ jobs:
           # own OIDC token request (id-token: write permission above).
           # See https://github.com/actions/setup-node/blob/main/src/authutil.ts
 
+      - name: Ensure npm supports OIDC Trusted Publishing
+        # Node 22 LTS ships with npm 10.x, which does NOT do the OIDC
+        # token exchange with npm's Trusted Publisher endpoint. pnpm's
+        # publish command delegates the actual PUT to npm under the
+        # hood, so `pnpm publish` inherits npm's OIDC support (or lack
+        # thereof). npm 11.5.1+ has native OIDC. Upgrade globally so
+        # `pnpm publish` picks it up.
+        run: npm install -g npm@latest
+
       - name: Install
         run: pnpm install --frozen-lockfile
 
