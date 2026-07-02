@@ -3,14 +3,25 @@ name: Release
 # main  = stable releases (v2.0.0, v2.0.1, …) → npm `latest` dist-tag
 # alpha = prereleases (v2.0.0-alpha.N)       → npm `alpha` dist-tag
 #
-# workflow_dispatch is kept alongside push so alpha/stable releases can
-# also be triggered by hand for recovery / re-runs. The `dry_run` input
-# defaults to true — safe for iterating on release-config changes
-# without accidentally publishing.
+# Push trigger is ALPHA-ONLY until stable v2.0.0 is intentionally cut.
+# The v2 monorepo was squash-merged onto main as a `feat:` commit
+# (d9211ad) before the alpha branch existed, so semantic-release on
+# main will compute `v1.0.0 → v1.1.0` (feat = minor bump) on the very
+# next release-triggering push — accidentally publishing v2 alpha code
+# to npm's `latest` dist-tag as if it were stable v1.1.0. Which is
+# exactly what happened during PR #93's merge; recovery required
+# resetting the `latest` dist-tag + unpublishing v1.1.0. See the
+# `main-channel-prerelease-gotcha` memory for context.
+#
+# When stable v2.0.0 IS ready: dispatch manually first to verify the
+# computed version, then re-add `main` to the push branches list.
+#
+# workflow_dispatch is kept alongside push so alpha releases can be
+# triggered by hand for recovery / re-runs. The `dry_run` input defaults
+# to true — safe for iterating on release-config changes.
 on:
   push:
     branches:
-      - main
       - alpha
   workflow_dispatch:
     inputs:
