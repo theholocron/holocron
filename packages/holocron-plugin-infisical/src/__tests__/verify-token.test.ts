@@ -45,6 +45,15 @@ describe("verifyToken", () => {
 		}
 	});
 
+	it("returns ok:true with 'scope-limited' subject on 403 (workspace-scoped machine identities)", async () => {
+		const stub = stubFetch([{ status: 403, body: { message: "Forbidden" } }]);
+		const result = await verifyToken("workspace-scoped", { fetch: stub.fetch });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.subject).toMatch(/scope-limited/);
+		}
+	});
+
 	it("returns ok:false on 401", async () => {
 		const stub = stubFetch([{ status: 401, body: { message: "Unauthorized" } }]);
 		const result = await verifyToken("bad", { fetch: stub.fetch });
