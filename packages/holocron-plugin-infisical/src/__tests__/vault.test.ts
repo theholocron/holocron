@@ -92,8 +92,17 @@ describe("InfisicalVault.write", () => {
 		await vault.write("infisical://ws-1/dev/API_KEY", "new-val");
 		expect(stub.calls).toHaveLength(2);
 		expect(stub.calls[0]?.method).toBe("POST");
+		expect(stub.calls[0]?.body).toMatchObject({ type: "shared", secretValue: "new-val" });
 		expect(stub.calls[1]?.method).toBe("PATCH");
-		expect(stub.calls[1]?.body).toMatchObject({ secretValue: "new-val" });
+		// PATCH body is the CREATE body minus `type` — creation-only
+		// classifier that shouldn't leak into the update path.
+		expect(stub.calls[1]?.body).toEqual({
+			workspaceId: "ws-1",
+			environment: "dev",
+			secretPath: "/",
+			secretValue: "new-val",
+		});
+		expect(stub.calls[1]?.body).not.toHaveProperty("type");
 	});
 
 	it("rethrows a non-conflict error from POST unchanged", async () => {

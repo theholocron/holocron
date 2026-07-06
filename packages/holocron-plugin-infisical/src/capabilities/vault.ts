@@ -96,25 +96,30 @@ export class InfisicalVault implements Vault {
 
 	async write(reference: string, value: string): Promise<void> {
 		const parsed = parseReference(reference);
-		const body = {
+		const scope = {
 			workspaceId: parsed.workspace,
 			environment: parsed.environment,
 			secretPath: "/",
 			secretValue: value,
-			type: "shared" as const,
 		};
 		try {
+			// Create: needs `type` (Infisical distinguishes `shared` vs
+			// `personal` secrets at creation time).
 			await this.rest.request<unknown>(`/v3/secrets/raw/${encodeURIComponent(parsed.name)}`, {
 				method: "POST",
-				body,
+				body: { ...scope, type: "shared" as const },
 			});
 			return;
 		} catch (err) {
 			if (!isConflict(err)) throw err;
-			// Already exists — fall through to update.
+			// Already exists — PATCH with the minimum body needed for
+			// update. `type` is a creation classifier; omitting it keeps
+			// the existing secret's type intact and avoids leaking
+			// creation-specific fields into the update path (Infisical
+			// may start rejecting unknown fields on PATCH in the future).
 			await this.rest.request<unknown>(`/v3/secrets/raw/${encodeURIComponent(parsed.name)}`, {
 				method: "PATCH",
-				body,
+				body: scope,
 			});
 		}
 	}
