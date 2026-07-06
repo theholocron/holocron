@@ -145,16 +145,20 @@ should read the same field for consistency.
 
 ## Roadmap
 
-- **Phase 1** (small): `project.repo` field + context wiring. Update
-  this repo's `holocron.config.json` to declare `repo`, remove the
-  `--repo` requirement from routine `holocron` invocations.
+- **Phase 1** (shipped): `project.repo` field added to
+  `HolocronConfig`. `PluginLoader` merges it into every plugin's
+  options as `context.repo` before the CLI `--repo` flag (which
+  overrides), before per-plugin tuple options (which override
+  both). This repo's `holocron.config.json` now declares
+  `repo: "theholocron/holocron"` — `pnpm holocron setup` /
+  `doctor` no longer need `--repo` on the command line.
 - **Phase 2** (medium): Lazy-load pattern documented in the plugin
   skill + audited across existing plugins. Update the skill's
   "Patterns that are non-negotiable" section.
 - **Phase 3** (larger): Repo policy + branch protection wired into
   `runSetup`, config schema extended.
 
-Phases 1 + 2 are quick wins that can ship independently of Phase 3.
+Phase 2 and 3 are independent quick wins that can ship separately.
 
 ## Open questions
 

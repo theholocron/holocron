@@ -161,6 +161,103 @@ describe("PluginLoader — single cardinality", () => {
 	});
 });
 
+describe("PluginLoader — project.repo defaults", () => {
+	it("injects config.project.repo into plugin options when context.repo is absent", async () => {
+		const captured: Record<string, unknown> = {};
+		const config = resolveConfig({
+			project: { name: "demo", repo: "acme/foo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return { createPlugin: () => ({ name: "1p", capabilities: { vault: () => ({}) } }) };
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					Object.assign(captured, opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		const loader = new PluginLoader(config, { repoRoot: "/tmp" }, importer as unknown as PluginImporter);
+		await loader.load();
+		expect(captured.repo).toBe("acme/foo");
+	});
+
+	it("context.repo (CLI --repo flag) overrides config.project.repo", async () => {
+		const captured: Record<string, unknown> = {};
+		const config = resolveConfig({
+			project: { name: "demo", repo: "acme/from-config" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return { createPlugin: () => ({ name: "1p", capabilities: { vault: () => ({}) } }) };
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					Object.assign(captured, opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		const loader = new PluginLoader(
+			config,
+			{ repoRoot: "/tmp", repo: "override/from-flag" },
+			importer as unknown as PluginImporter
+		);
+		await loader.load();
+		expect(captured.repo).toBe("override/from-flag");
+	});
+
+	it("per-plugin tuple options override both context and project defaults", async () => {
+		const captured: Record<string, unknown> = {};
+		const config = resolveConfig({
+			project: { name: "demo", repo: "acme/from-config" },
+			providers: {
+				vault: "1password",
+				source: ["github", { repo: "override/from-tuple" }],
+			},
+		});
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return { createPlugin: () => ({ name: "1p", capabilities: { vault: () => ({}) } }) };
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					Object.assign(captured, opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		const loader = new PluginLoader(
+			config,
+			{ repoRoot: "/tmp", repo: "override/from-flag" },
+			importer as unknown as PluginImporter
+		);
+		await loader.load();
+		// Precedence: tuple > context > project defaults.
+		expect(captured.repo).toBe("override/from-tuple");
+	});
+
+	it("omits repo entirely when neither config nor context sets it (non-github configs)", async () => {
+		const captured: Record<string, unknown> = {};
+		const config = resolveConfig({
+			project: { name: "demo" }, // no repo
+			providers: { vault: "1password" },
+		});
+		const importer = vi.fn(async () => ({
+			createPlugin: (opts: Record<string, unknown>) => {
+				Object.assign(captured, opts);
+				return { name: "1p", capabilities: { vault: () => ({}) } };
+			},
+		}));
+		const loader = new PluginLoader(config, { repoRoot: "/tmp" }, importer as unknown as PluginImporter);
+		await loader.load();
+		expect(captured.repo).toBeUndefined();
+	});
+});
+
 describe("PluginLoader — many cardinality", () => {
 	it("loads N plugins for a multi-cardinality capability", async () => {
 		const slackImpl = { key: "notifications", providerName: "slack" };
