@@ -32,7 +32,6 @@ vi.mock("@napi-rs/keyring", () => {
 
 const { runAuthCheck, runAuthList, runAuthSet, runAuthUnset, resolveAuthSetToken } =
 	await import("../commands/auth.js");
-);
 
 function reset() {
 	store.clear();
