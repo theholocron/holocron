@@ -27,6 +27,8 @@
     "@semantic-release/git": "^10.0.1",
     "@theholocron/commitlint-config": "^4.1.0",
     "@theholocron/eslint-config": "catalog:",
+    "@theholocron/holocron-plugin-1password": "workspace:*",
+    "@theholocron/holocron-plugin-doppler": "workspace:*",
     "@theholocron/lint-staged-config": "^4.1.0",
     "@theholocron/prettier-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
