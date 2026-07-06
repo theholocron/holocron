@@ -1,21 +1,18 @@
 /**
  * `verifyToken` — plugin-level export used by `holocron auth set` +
- * `holocron auth check`. Hits Infisical's `/v1/users/me` endpoint,
- * which returns the authenticated user identity for a valid token
- * and 401 for an invalid one.
+ * `holocron auth check`. Hits `GET /v1/workspace`, which returns the
+ * list of workspaces the token has access to. This endpoint works
+ * for both **Personal Tokens** (user context) AND **Universal Auth
+ * machine-identity tokens** — any valid token can list its
+ * accessible workspaces. Invalid tokens return 401.
+ *
+ * Chosen over `/v1/users/me` (which is user-token-only) so the
+ * verification path is unified across token types.
  *
  * Kept as a standalone function (not a capability method) so the auth
  * command can call it without initializing the full plugin — plugin
  * construction requires an already-resolved token, which is exactly
  * what we don't have yet at bootstrap time.
- *
- * For **machine identity** tokens (the Universal Auth flow Infisical
- * recommends for API use), `/v1/users/me` may return 403 rather than
- * 200 since machine identities aren't user records. The subject will
- * still fall through to the token type + error message; the token
- * itself is functionally valid for capability calls. If you want a
- * cleaner machine-identity whoami, swap the endpoint for
- * `/v1/auth/token/renew` (Universal Auth) or `/v1/identity/{id}`.
  */
 
 import { InfisicalRestClient } from "./rest.js";
@@ -32,15 +29,8 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface MeResponse {
-	user?: {
-		email?: string;
-		firstName?: string;
-		lastName?: string;
-		username?: string;
-	};
-	/** Present on machine-identity tokens rather than user tokens. */
-	identity?: { name?: string; id?: string };
+interface WorkspaceListResponse {
+	workspaces?: Array<{ _id?: string; id?: string; name?: string; slug?: string }>;
 }
 
 export interface VerifyTokenOptions {
@@ -54,10 +44,11 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
 	const rest = new InfisicalRestClient(restOpts);
 	try {
-		const res = await rest.request<MeResponse>("/v1/users/me");
-		const subject =
-			res?.user?.email ?? res?.user?.username ?? res?.identity?.name ?? res?.identity?.id ?? "unknown";
-		return { ok: true, subject: `user @ ${subject}` };
+		const res = await rest.request<WorkspaceListResponse>("/v1/workspace");
+		const count = res?.workspaces?.length ?? 0;
+		const first = res?.workspaces?.[0];
+		const label = first?.name ?? first?.slug ?? "no accessible workspaces";
+		return { ok: true, subject: `${count} workspace${count === 1 ? "" : "s"} · first: ${label}` };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		return { ok: false, message };

@@ -49,12 +49,15 @@ by `.notes/tech-auth-bootstrap.spec.md`):
 ## Setup
 
 ```bash
-# 1. Generate a Universal Auth token in the Infisical dashboard:
-#    Access Control → Machine Identities → Create → Universal Auth
-#    Copy the token (starts with `st.`).
+# 1. Generate an Infisical token. Either token type works — see
+#    https://infisical.com/docs for the current click path since
+#    Infisical's dashboard reshuffles occasionally:
+#      - Personal API Token — dashboard user profile → API tokens
+#      - Universal Auth (machine identity, recommended for CI)
+#        — organization access control → identities → create
 # 2. Hand it off to holocron's keyring (one-shot):
 holocron auth set infisical <TOKEN>
-# 3. Verify:
+# 3. Verify (calls GET /v1/workspace and reports accessible workspaces):
 holocron auth check infisical
 ```
 
@@ -104,10 +107,10 @@ doesn't make sense.
 Plugin-level exports (not capability methods, per the auth-bootstrap
 convention):
 
-| Export        | Purpose                                                                                   |
-| ------------- | ----------------------------------------------------------------------------------------- |
-| `verifyToken` | `GET /v1/users/me` — returns `{ok: true, subject: "user @ …"}` or `{ok: false, message}`. |
-| `AUTH_HINT`   | Directs operators at the Universal Auth flow in the Infisical dashboard.                  |
+| Export        | Purpose                                                                                                                                                                           |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verifyToken` | `GET /v1/workspace` — returns `{ok: true, subject: "<n> workspaces · first: …"}` or `{ok: false, message}`. Works for both Personal Tokens and Universal Auth machine identities. |
+| `AUTH_HINT`   | Points at Infisical's docs for token generation (rather than a specific click path — dashboard UI shifts).                                                                        |
 
 ## Self-hosted Infisical
 

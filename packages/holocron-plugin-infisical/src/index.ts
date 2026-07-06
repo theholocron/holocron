@@ -55,13 +55,13 @@ export function createPlugin(options: InfisicalPluginOptions) {
 /**
  * One-line hint printed by `holocron auth set infisical` when no
  * token is supplied or the supplied token is rejected. Points
- * operators at Infisical's Universal Auth flow (machine identities
- * are the recommended token type for API use).
+ * operators at Infisical's docs rather than a specific click path
+ * — Infisical's dashboard UI varies enough between versions that
+ * naming exact menu items in the hint gets stale fast.
  */
 export const AUTH_HINT =
-	"generate a Universal Auth token in the Infisical dashboard " +
-	"(Access Control → Machine Identities), then run: " +
-	"holocron auth set infisical <TOKEN>";
+	"generate an Infisical token (Personal API Token or Universal Auth machine identity — " +
+	"see https://infisical.com/docs), then run: holocron auth set infisical <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 
