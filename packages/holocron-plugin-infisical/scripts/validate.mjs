@@ -30,9 +30,7 @@
  * Standardized by the plugin-create scaffold.
  */
 
-import { getToken } from "@theholocron/cli";
-
-import { createPlugin, verifyToken } from "../src/index.ts";
+import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 const [workspace, environment, secretName] = process.argv.slice(2);
 
@@ -43,11 +41,21 @@ if (!workspace || !environment) {
 	process.exit(2);
 }
 
-const token = getToken("infisical");
-if (!token) {
-	console.error("no Infisical token in keyring. Run: pnpm holocron auth set infisical <TOKEN>");
-	console.error("  see: packages/holocron-plugin-infisical/README.md#setup");
-	process.exit(2);
+// Use the plugin's own auth resolution so the validate script honors
+// the same 4-step precedence as the plugin's runtime:
+//   --token → HOLOCRON_INFISICAL_TOKEN → INFISICAL_TOKEN → keyring
+// (--token isn't available here since this is a bare Node script;
+// the other three all work.)
+let token;
+try {
+	token = resolveToken();
+} catch (err) {
+	if (err instanceof AuthError) {
+		console.error(err.message);
+		console.error("  see: packages/holocron-plugin-infisical/README.md#setup");
+		process.exit(2);
+	}
+	throw err;
 }
 
 console.log("Validating @theholocron/holocron-plugin-infisical (READ-ONLY)");

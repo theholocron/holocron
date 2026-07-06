@@ -41,10 +41,8 @@ export function render(inputs: TemplateInputs): string {
  * surface. Model on \`packages/holocron-plugin-infisical/scripts/validate.mjs\`.
  */
 
-import { getToken } from "@theholocron/cli";
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- filled in by operator
-import { createPlugin, verifyToken } from "../src/index.ts";
+import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 const args = process.argv.slice(2);
 
@@ -53,11 +51,21 @@ if (args.length === 0) {
 	process.exit(2);
 }
 
-const token = getToken("${inputs.slug}");
-if (!token) {
-	console.error("no ${inputs.vendorName} token in keyring. Run: pnpm holocron auth set ${inputs.slug} <TOKEN>");
-	console.error("  see: packages/holocron-plugin-${inputs.slug}/README.md#setup");
-	process.exit(2);
+// Use the plugin's own auth resolution so the validate script honors
+// the same 4-step precedence as the plugin's runtime:
+//   --token → ${inputs.tokenEnv} → ${inputs.vendorEnv} → keyring
+// (--token isn't available here since this is a bare Node script;
+// the other three all work.)
+let token;
+try {
+	token = resolveToken();
+} catch (err) {
+	if (err instanceof AuthError) {
+		console.error(err.message);
+		console.error("  see: packages/holocron-plugin-${inputs.slug}/README.md#setup");
+		process.exit(2);
+	}
+	throw err;
 }
 
 console.log("Validating @theholocron/holocron-plugin-${inputs.slug} (READ-ONLY)");
