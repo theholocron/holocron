@@ -205,4 +205,27 @@ describe("DopplerVault.ensureEnvironment", () => {
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
 		expect(await vault.ensureEnvironment("demo", "dev")).toEqual({ alreadyExists: true });
 	});
+
+	it("returns alreadyExists:true on Doppler's actual 400 'already exists' response", async () => {
+		const { client } = makeClient([
+			{
+				status: 400,
+				body: `{"messages":["Environment with identifier dev already exists"],"success":false}`,
+			},
+		]);
+		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
+		expect(await vault.ensureEnvironment("demo", "dev")).toEqual({ alreadyExists: true });
+	});
+
+	it("rethrows a 400 that is NOT an already-exists error", async () => {
+		const { client } = makeClient([{ status: 400, body: `{"messages":["Invalid slug"],"success":false}` }]);
+		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
+		try {
+			await vault.ensureEnvironment("demo", "dev");
+			throw new Error("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(ProviderApiError);
+			expect((err as ProviderApiError).status).toBe(400);
+		}
+	});
 });

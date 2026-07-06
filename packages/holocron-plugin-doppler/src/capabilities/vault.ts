@@ -188,13 +188,25 @@ function parseReference(reference: string): ParsedReference {
 }
 
 /**
- * Doppler returns 409 (or 422 with a "already exists" message body)
- * on duplicate create. The REST client wraps both as ProviderApiError.
- * We treat either as "already exists" for idempotent ensure* calls.
+ * Doppler returns duplicate-create errors inconsistently across
+ * endpoints:
+ *
+ *   - POST /projects → 409 (or 422 with "already exists" body)
+ *   - POST /environments → 400 with body
+ *       `{"messages":["Environment with identifier dev already exists"],"success":false}`
+ *
+ * The REST client wraps all of these as ProviderApiError. We accept 409
+ * outright + treat 400/422 as "already exists" when the response body
+ * says so — matches Doppler's actual behavior.
  */
 function isConflict(err: unknown): boolean {
 	if (!(err instanceof ProviderApiError)) return false;
 	if (err.status === 409) return true;
-	if (err.status === 422 && typeof err.details === "string" && /already exists/i.test(err.details)) return true;
+	if ((err.status === 400 || err.status === 422) && hasAlreadyExistsBody(err.details)) return true;
 	return false;
+}
+
+function hasAlreadyExistsBody(details: unknown): boolean {
+	if (typeof details !== "string") return false;
+	return /already exists/i.test(details);
 }
