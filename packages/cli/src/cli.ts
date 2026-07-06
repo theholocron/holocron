@@ -3,6 +3,7 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
@@ -249,6 +250,54 @@ await yargs(hideBin(process.argv))
 			const loaded = await loadConfig(argv.cwd);
 			console.log(JSON.stringify(loaded.resolved, null, 2));
 		}
+	)
+	.command(
+		"auth <subcommand>",
+		"Manage bootstrap credentials in the OS keyring",
+		(y) =>
+			y
+				.command(
+					"set <provider> [token]",
+					"Verify + store a bootstrap token for a provider",
+					(yy) =>
+						yy
+							.positional("provider", { type: "string", demandOption: true })
+							.positional("token", { type: "string" }),
+					async (argv) => {
+						const result = await runAuthSet({
+							provider: argv.provider as string,
+							...(argv.token ? { positional: argv.token as string } : {}),
+						});
+						if (result.status === "fail") process.exitCode = 1;
+					}
+				)
+				.command(
+					"unset <provider>",
+					"Remove a stored bootstrap token",
+					(yy) => yy.positional("provider", { type: "string", demandOption: true }),
+					(argv) => {
+						runAuthUnset({ provider: argv.provider as string });
+					}
+				)
+				.command(
+					"check <provider>",
+					"Re-verify a stored bootstrap token",
+					(yy) => yy.positional("provider", { type: "string", demandOption: true }),
+					async (argv) => {
+						const result = await runAuthCheck({ provider: argv.provider as string });
+						if (result.status === "fail") process.exitCode = 1;
+					}
+				)
+				.command(
+					"list",
+					"List every provider with a stored bootstrap token",
+					() => {},
+					async () => {
+						await runAuthList();
+					}
+				)
+				.demandCommand(1, "Run `holocron auth --help` to see available auth subcommands."),
+		() => {}
 	)
 	.demandCommand(1, "Run `holocron --help` to see available commands.")
 	.strict()

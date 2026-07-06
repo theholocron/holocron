@@ -1,20 +1,20 @@
 ---
-status: draft # draft → proposed (issue filed) → approved (milestone attached) → archived
+status: proposed # draft → proposed (issue filed) → approved (milestone attached) → archived
 issue: 77
-blocked-by: [76, 78]
+blocked-by: []
 ---
 
 <!-- editorconfig-checker-disable-file -->
 
 # `holocron plugin create <slug> <vendor>`
 
-> **Blocked.** Design deferred until #76 (per-plugin `transport`
-> option) and #78 (CLI-transport sibling skill) land. Reason: the
-> template shape depends on how transport variants are declared in
-> `holocron.config.json` and what the CLI-transport plugin structure
-> looks like. Designing REST-only templates first would likely bake
-> in the wrong abstractions and force a rewrite once the other two
-> land. Revisit this spec after both are merged.
+> **Phased.** Phase 1 (REST-only) is unblocked and can ship
+> standalone — REST is the only transport that exists today and the
+> skill already covers this shape. Phase 2 (`--transport cli`
+> variant) is gated on #76 (per-plugin `transport` option in
+> `holocron.config.json`) and #78 (CLI-transport sibling skill);
+> adding the flag later is additive and won't reshape Phase 1's
+> template surface. Phase 3 (`--from-rando`) is a nice-to-have.
 
 ## Decision
 
