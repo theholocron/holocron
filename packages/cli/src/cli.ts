@@ -277,10 +277,11 @@ await yargs(hideBin(process.argv))
 					type: "string",
 					describe: "REST base URL",
 				})
-				.option("no-verify", {
+				.option("verify", {
 					type: "boolean",
-					default: false,
-					describe: "Skip the post-scaffold pnpm install + typecheck + lint + test",
+					default: true,
+					describe:
+						"Run post-scaffold pnpm install + typecheck + lint + test (default true; --no-verify skips)",
 				}),
 		(argv) => {
 			try {
@@ -298,7 +299,9 @@ await yargs(hideBin(process.argv))
 					baseUrl: argv.baseUrl as string,
 					...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv as string } : {}),
 					dryRun: argv.dryRun,
-					noVerify: argv.noVerify as boolean,
+					// Yargs: `--no-verify` flips `argv.verify` to false. We pass
+					// the inverse to preserve the internal `noVerify` naming.
+					noVerify: !argv.verify,
 					cwd: argv.cwd,
 				});
 				if (report.status === "fail") process.exitCode = 1;

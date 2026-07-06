@@ -51,7 +51,8 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 	const rest = new ${clientClass}(restOpts);
 	try {
 		const me = await rest.request<MeResponse>("/me");
-		const subject = me.email ?? me.name ?? me.id ?? "unknown";
+		// Optional chaining because \`me\` is \`undefined\` on 204 / empty body.
+		const subject = me?.email ?? me?.name ?? me?.id ?? "unknown";
 		return { ok: true, subject: \`user @ \${subject}\` };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);

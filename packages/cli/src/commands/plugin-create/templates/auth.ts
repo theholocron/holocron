@@ -31,7 +31,10 @@ export interface ResolveTokenInput {
 export function resolveToken(input: ResolveTokenInput = {}): string {
 	const env = input.env ?? process.env;
 	const keyring = input.keyring ?? getKeyringToken;
-	const token = input.cliToken || env.${inputs.tokenEnv} || env.${inputs.vendorEnv} || keyring("${inputs.slug}");
+	// Bracket access so numeric-prefixed slugs (e.g., env.HOLOCRON_1PASSWORD_TOKEN
+	// which is invalid JS) still produce syntactically valid code.
+	const token =
+		input.cliToken || env["${inputs.tokenEnv}"] || env["${inputs.vendorEnv}"] || keyring("${inputs.slug}");
 	if (!token) {
 		throw new AuthError(
 			"no ${inputs.vendorName} token found. Pass --token <TOKEN>, set ${inputs.tokenEnv} / ${inputs.vendorEnv}, " +
