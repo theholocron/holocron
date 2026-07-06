@@ -54,14 +54,20 @@ export function createPlugin(options: InfisicalPluginOptions) {
 
 /**
  * One-line hint printed by `holocron auth set infisical` when no
- * token is supplied or the supplied token is rejected. Points
- * operators at Infisical's docs rather than a specific click path
- * — Infisical's dashboard UI varies enough between versions that
- * naming exact menu items in the hint gets stale fast.
+ * token is supplied or the supplied token is rejected.
+ *
+ * IMPORTANT — the token must be usable as a `Authorization: Bearer`
+ * directly. Two token types work: **Personal API Token** (inherits
+ * user perms) or a **Token Auth** token on a machine identity (a
+ * single long-lived string). Universal Auth's Client Secret is NOT
+ * a bearer — it needs a `/v1/auth/universal-auth/login` exchange
+ * step this plugin doesn't yet do (Phase 2 follow-up).
  */
 export const AUTH_HINT =
-	"generate an Infisical token (Personal API Token or Universal Auth machine identity — " +
-	"see https://infisical.com/docs), then run: holocron auth set infisical <TOKEN>";
+	"generate a Token Auth token on your machine identity (organization → " +
+	"access control → identities → your identity → add auth method → Token Auth → " +
+	"create token) OR a Personal API Token, then: holocron auth set infisical <TOKEN>. " +
+	"NOT Universal Auth's Client Secret — that needs a login exchange this plugin doesn't do yet.";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

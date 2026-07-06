@@ -48,18 +48,35 @@ by `.notes/tech-auth-bootstrap.spec.md`):
 
 ## Setup
 
+**Important**: this plugin sends the stored value as
+`Authorization: Bearer <token>` directly. That means you need a token
+that IS a bearer, not a credential-pair that needs an exchange.
+
+Two token types work out of the box:
+
+- **Personal API Token** — inherits your user permissions, simplest
+  path.
+- **Token Auth** on a machine identity — long-lived, single-string
+  token. In Infisical: **organization access control → identities →
+  your identity → add auth method → Token Auth → create token**.
+
+**Universal Auth's Client Secret does NOT work directly** —
+Universal Auth is a two-step flow (client id + client secret → login
+endpoint → short-lived access token). Support for that exchange is
+tracked as a follow-up; for now, use one of the two above.
+
 ```bash
-# 1. Generate an Infisical token. Either token type works — see
-#    https://infisical.com/docs for the current click path since
-#    Infisical's dashboard reshuffles occasionally:
-#      - Personal API Token — dashboard user profile → API tokens
-#      - Universal Auth (machine identity, recommended for CI)
-#        — organization access control → identities → create
+# 1. Generate the token per the note above.
 # 2. Hand it off to holocron's keyring (one-shot):
 holocron auth set infisical <TOKEN>
 # 3. Verify (calls GET /v1/workspace and reports accessible workspaces):
 holocron auth check infisical
 ```
+
+**If you have a machine identity that's Universal-Auth-only**: add a
+Token Auth authentication method to the SAME identity — you don't
+have to create a new identity. Machine identities can have multiple
+auth methods attached.
 
 **CI**: the keyring is not available in headless containers. Expose
 the token as a GitHub Actions secret and set `HOLOCRON_INFISICAL_TOKEN`

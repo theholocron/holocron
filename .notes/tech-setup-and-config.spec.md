@@ -39,7 +39,7 @@ migration) exposed gaps in setup ergonomics:
    from loading.** `holocron-plugin-github`'s `issues` factory used
    to throw at construction if `labels` was missing. Even for
    commands that never touch the issues capability (e.g., `holocron
-   setup`), the load-time error aborted the whole run.
+setup`), the load-time error aborted the whole run.
 
 Plus the ORIGINAL #82 scope — `holocron setup` doesn't yet touch
 repo-level policy or branch protection, both of which belong in the
@@ -120,6 +120,28 @@ Open question: does the policy shape live in the top-level config
 (`providers.source: ["github", { policy: {...} }]`)? Leaning
 top-level since it's provider-agnostic (GitLab et al. will need the
 same concept).
+
+### Environment slug convention (discovered during Infisical validation)
+
+`runSetup` currently hardcodes `["dev", "stg", "prd"]` when calling
+`vault.ensureEnvironment`. That matches Doppler's short-slug
+convention, but Infisical ships `dev` / `staging` / `prod` as its
+default environment slugs — running setup against Infisical would
+create additional `stg` and `prd` envs alongside the existing
+`staging` and `prod` (idempotent, not destructive, but noisy).
+
+Fix options:
+
+- **`project.environments`** top-level config field with the operator's
+  chosen env slugs (`["dev", "staging", "prod"]` or whatever)
+- **Per-vault-provider env name mapping** in plugin options (more
+  scoped but pushes the concern into every vault plugin)
+
+Leaning **`project.environments`** — same rationale as `project.repo`:
+it's a project-wide concept, not a vault-specific one. The other
+capabilities that iterate over environments (`environments.upsertEnvironment`
+in the github plugin, currently hardcoded to `["staging", "production"]`)
+should read the same field for consistency.
 
 ## Roadmap
 
