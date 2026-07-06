@@ -35,7 +35,7 @@ const BASE_INPUT = {
 };
 
 describe("runPluginCreate — orchestrator", () => {
-	it("emits exactly 17 files (5 config + 1 readme + 5 source + 6 tests)", () => {
+	it("emits exactly 18 files (5 config + 1 readme + 5 source + 6 tests + 1 script)", () => {
 		const fs = makeFakeFs();
 		const report = runPluginCreate({
 			...BASE_INPUT,
