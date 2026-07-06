@@ -259,7 +259,11 @@ await yargs(hideBin(process.argv))
 		(y) =>
 			y
 				.positional("slug", { type: "string", demandOption: true, describe: "Package slug (kebab-case)" })
-				.positional("vendor", { type: "string", demandOption: true, describe: "Vendor display name (PascalCase)" })
+				.positional("vendor", {
+					type: "string",
+					demandOption: true,
+					describe: "Vendor display name (PascalCase)",
+				})
 				.option("capability", {
 					type: "string",
 					describe:

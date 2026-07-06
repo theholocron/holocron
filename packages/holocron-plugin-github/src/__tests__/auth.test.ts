@@ -45,8 +45,6 @@ describe("resolveToken", () => {
 	});
 
 	it("ignores empty-string cliToken (treats as absent)", () => {
-		expect(
-			resolveToken({ cliToken: "", env: { GITHUB_TOKEN: "gha-pat" }, keyring: noKeyring })
-		).toBe("gha-pat");
+		expect(resolveToken({ cliToken: "", env: { GITHUB_TOKEN: "gha-pat" }, keyring: noKeyring })).toBe("gha-pat");
 	});
 });
