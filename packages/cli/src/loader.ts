@@ -136,12 +136,30 @@ export class PluginLoader {
 		if (typeof module.createPlugin !== "function") {
 			throw new LoaderError(`\`${tuple.packageName}\` does not export \`createPlugin(options)\``);
 		}
-		const plugin = module.createPlugin({ ...this.context, ...tuple.options });
+		// Precedence (later wins): project-level defaults from config →
+		// runtime context (CLI flags: --repo, --token) → tuple options
+		// (per-plugin overrides in holocron.config.json).
+		const plugin = module.createPlugin({
+			...this.projectDefaults(),
+			...this.context,
+			...tuple.options,
+		});
 		const factory = plugin.capabilities[key];
 		if (typeof factory !== "function") {
 			throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
 		}
 		return factory();
+	}
+
+	/**
+	 * Project-level defaults that get merged into every plugin's options
+	 * unless overridden by the CLI context or per-plugin tuple options.
+	 * See `.notes/tech-setup-and-config.spec.md` §Design.
+	 */
+	private projectDefaults(): Partial<RuntimeContext> {
+		const defaults: Partial<RuntimeContext> = {};
+		if (this.config.project.repo) defaults.repo = this.config.project.repo;
+		return defaults;
 	}
 }
 

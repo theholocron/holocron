@@ -51,7 +51,17 @@ export interface DoctorConfig {
 }
 
 export interface HolocronConfig {
-	project: { name: string; description?: string };
+	project: {
+		name: string;
+		description?: string;
+		/**
+		 * Repo coord — `"owner/name"`. When set, `PluginLoader` injects
+		 * it into every plugin's `RuntimeContext.repo` so plugins that
+		 * need a repo (github, etc.) don't require `--repo` on every
+		 * invocation. `--repo` on the command line still overrides.
+		 */
+		repo?: string;
+	};
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;

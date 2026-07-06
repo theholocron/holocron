@@ -1,7 +1,8 @@
 {
   "project": {
     "name": "holocron",
-    "description": "The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it."
+    "description": "The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.",
+    "repo": "theholocron/holocron"
   },
   "providers": {
     "vault": ["doppler", { "project": "holocron", "config": "dev" }],
