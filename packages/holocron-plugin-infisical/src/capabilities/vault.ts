@@ -48,12 +48,23 @@ interface WorkspaceEnvironmentsResponse {
 	workspace?: { environments?: Array<{ name?: string; slug?: string; id?: string }> };
 }
 
+interface WorkspaceListResponse {
+	workspaces?: Array<{ _id?: string; id?: string; name?: string; slug?: string }>;
+}
+
 export class InfisicalVault implements Vault {
 	readonly key = "vault" as const;
 	readonly providerName = "infisical";
 
 	private readonly workspace: string;
 	private readonly environment: string;
+	/**
+	 * Cache of resolved workspace name/slug → id. `ensureEnvironment`
+	 * is called once per environment during `holocron setup` (dev / stg
+	 * / prd), so a single \`GET /v1/workspace\` lookup covers all three
+	 * calls in the same run.
+	 */
+	private readonly workspaceIdCache = new Map<string, string>();
 
 	constructor(
 		private readonly rest: InfisicalRestClient,
@@ -161,8 +172,9 @@ export class InfisicalVault implements Vault {
 	}
 
 	async ensureEnvironment(project: string, name: string): Promise<EnsureResult> {
+		const workspaceId = await this.resolveWorkspaceId(project);
 		try {
-			await this.rest.request<unknown>(`/v1/workspace/${encodeURIComponent(project)}/environments`, {
+			await this.rest.request<unknown>(`/v1/workspace/${encodeURIComponent(workspaceId)}/environments`, {
 				method: "POST",
 				body: { environmentName: name, environmentSlug: name },
 			});
@@ -171,6 +183,51 @@ export class InfisicalVault implements Vault {
 			if (isConflict(err)) return { alreadyExists: true };
 			throw err;
 		}
+	}
+
+	/**
+	 * Resolve a workspace name / slug to its Infisical workspace id.
+	 *
+	 * `runSetup` calls `ensureEnvironment(config.project.name, envName)`
+	 * — for Doppler that's directly the API's input, but Infisical's
+	 * environments endpoint takes the workspace **id** (UUID/nanoid),
+	 * not the name. This helper does the translation via
+	 * `GET /v1/workspace` (which the token needs org-level list scope
+	 * to call).
+	 *
+	 * Graceful degrade: for workspace-scoped tokens that 403 on the
+	 * org-level list, we fall back to treating the input as an id
+	 * directly. If the operator's `holocron.config.json` names a real
+	 * id, the subsequent POST works. If they named a slug, the POST
+	 * 404s and the operator gets a clear "workspace not found" error
+	 * from the API — better than swallowing the 403 silently.
+	 *
+	 * Results are cached per-instance so the 3 back-to-back
+	 * `ensureEnvironment` calls in `runSetup` share one lookup.
+	 */
+	private async resolveWorkspaceId(nameOrId: string): Promise<string> {
+		const cached = this.workspaceIdCache.get(nameOrId);
+		if (cached) return cached;
+
+		try {
+			const res = await this.rest.request<WorkspaceListResponse>("/v1/workspace");
+			const match = (res?.workspaces ?? []).find((w) => w.name === nameOrId || w.slug === nameOrId);
+			const resolvedId = match?._id ?? match?.id;
+			if (resolvedId) {
+				this.workspaceIdCache.set(nameOrId, resolvedId);
+				return resolvedId;
+			}
+			// Listed workspaces successfully but no match by name/slug —
+			// assume the input IS the id (or belongs to a workspace the
+			// token can't see; either way, pass through and let the
+			// subsequent POST speak for itself).
+		} catch (err) {
+			// 403 = workspace-scoped token can't list at org level. Not
+			// fatal — fall through to id-passthrough. Other errors are
+			// real problems.
+			if (!(err instanceof ProviderApiError) || err.status !== 403) throw err;
+		}
+		return nameOrId;
 	}
 }
 

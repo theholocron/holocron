@@ -238,19 +238,89 @@ describe("InfisicalVault.ensureProject", () => {
 });
 
 describe("InfisicalVault.ensureEnvironment", () => {
-	it("POSTs to /v1/workspace/{id}/environments and returns not-existing on success", async () => {
-		const { client, stub } = makeClient([{ status: 200, body: {} }]);
-		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		const result = await vault.ensureEnvironment("ws-1", "dev");
+	it("looks up workspace name → id via /v1/workspace, then POSTs to /v1/workspace/{id}/environments", async () => {
+		const { client, stub } = makeClient([
+			{
+				status: 200,
+				body: {
+					workspaces: [
+						{ _id: "ws-actual-id", name: "holocron", slug: "holocron" },
+						{ _id: "other", name: "rando" },
+					],
+				},
+			},
+			{ status: 200, body: {} },
+		]);
+		const vault = new InfisicalVault(client, { workspace: "ws-actual-id", environment: "dev" });
+		const result = await vault.ensureEnvironment("holocron", "dev");
 		expect(result).toEqual({ alreadyExists: false });
-		expect(stub.calls[0]?.method).toBe("POST");
-		expect(stub.calls[0]?.url).toMatch(/\/v1\/workspace\/ws-1\/environments/);
-		expect(stub.calls[0]?.body).toEqual({ environmentName: "dev", environmentSlug: "dev" });
+		expect(stub.calls[0]?.url).toMatch(/\/v1\/workspace$/);
+		expect(stub.calls[1]?.method).toBe("POST");
+		expect(stub.calls[1]?.url).toMatch(/\/v1\/workspace\/ws-actual-id\/environments/);
+		expect(stub.calls[1]?.body).toEqual({ environmentName: "dev", environmentSlug: "dev" });
 	});
 
-	it("returns alreadyExists:true on 'duplicate' body", async () => {
-		const { client } = makeClient([{ status: 400, body: `{"message":"Duplicate environment slug"}` }]);
+	it("caches the workspace lookup across sequential calls (holocron setup fires 3 in a row)", async () => {
+		const { client, stub } = makeClient([
+			{
+				status: 200,
+				body: { workspaces: [{ _id: "ws-actual-id", name: "holocron", slug: "holocron" }] },
+			},
+			{ status: 200, body: {} },
+			{ status: 200, body: {} },
+			{ status: 200, body: {} },
+		]);
+		const vault = new InfisicalVault(client, { workspace: "ws-actual-id", environment: "dev" });
+		await vault.ensureEnvironment("holocron", "dev");
+		await vault.ensureEnvironment("holocron", "stg");
+		await vault.ensureEnvironment("holocron", "prd");
+		// One list call + 3 create calls (not 3 list calls + 3 create).
+		expect(stub.calls).toHaveLength(4);
+		expect(stub.calls[0]?.url).toMatch(/\/v1\/workspace$/);
+		expect(stub.calls[1]?.url).toMatch(/environments$/);
+		expect(stub.calls[2]?.url).toMatch(/environments$/);
+		expect(stub.calls[3]?.url).toMatch(/environments$/);
+	});
+
+	it("falls back to treating input as id when the list endpoint 403s (scope-limited token)", async () => {
+		const { client, stub } = makeClient([
+			{ status: 403, body: { message: "Forbidden" } },
+			{ status: 200, body: {} },
+		]);
+		const vault = new InfisicalVault(client, { workspace: "ws-id", environment: "dev" });
+		const result = await vault.ensureEnvironment("ws-id", "dev");
+		expect(result).toEqual({ alreadyExists: false });
+		expect(stub.calls[1]?.url).toMatch(/\/v1\/workspace\/ws-id\/environments/);
+	});
+
+	it("falls back to treating input as id when list returns 200 but no match", async () => {
+		const { client, stub } = makeClient([
+			{ status: 200, body: { workspaces: [{ _id: "other", name: "different-project" }] } },
+			{ status: 200, body: {} },
+		]);
+		const vault = new InfisicalVault(client, { workspace: "unknown-id", environment: "dev" });
+		await vault.ensureEnvironment("unknown-id", "dev");
+		expect(stub.calls[1]?.url).toMatch(/\/v1\/workspace\/unknown-id\/environments/);
+	});
+
+	it("rethrows non-403 errors from the list endpoint (real problems shouldn't be swallowed)", async () => {
+		const { client } = makeClient([{ status: 500, body: "server error" }]);
 		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		expect(await vault.ensureEnvironment("ws-1", "dev")).toEqual({ alreadyExists: true });
+		try {
+			await vault.ensureEnvironment("ws-1", "dev");
+			throw new Error("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(ProviderApiError);
+			expect((err as ProviderApiError).status).toBe(500);
+		}
+	});
+
+	it("returns alreadyExists:true on 'duplicate' body from the environments POST", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: { workspaces: [{ _id: "ws-id", name: "ws-id" }] } },
+			{ status: 400, body: `{"message":"Duplicate environment slug"}` },
+		]);
+		const vault = new InfisicalVault(client, { workspace: "ws-id", environment: "dev" });
+		expect(await vault.ensureEnvironment("ws-id", "dev")).toEqual({ alreadyExists: true });
 	});
 });
