@@ -53,7 +53,6 @@ Then follow the "Next" steps printed by the command:
 
 ## Command source
 
-`packages/cli/src/commands/plugin-create/` — 18 templates + orchestrator
-
-- unit tests. Editing a template ripples to every future plugin
-  scaffolded by this command.
+`packages/cli/src/commands/plugin-create/` — 18 templates,
+orchestrator, and unit tests. Editing a template ripples to every
+future plugin scaffolded by this command.
