@@ -32,6 +32,7 @@
     "@theholocron/holocron-plugin-clerk": "workspace:*",
     "@theholocron/holocron-plugin-doppler": "workspace:*",
     "@theholocron/holocron-plugin-github": "workspace:*",
+    "@theholocron/holocron-plugin-infisical": "workspace:*",
     "@theholocron/holocron-plugin-neon": "workspace:*",
     "@theholocron/holocron-plugin-postman": "workspace:*",
     "@theholocron/holocron-plugin-vercel": "workspace:*",

@@ -169,11 +169,13 @@ the new CLI so #77 gets a real-world acceptance test.
   `https://api.doppler.com/v3`. Ship as its own PR.
 - **Phase 2**: Ship #77 Phase 1 (`holocron plugin create` REST-only).
   See `.notes/tool-plugin-create.spec.md`.
-- **Phase 3**: Build `@theholocron/holocron-plugin-infisical` via
-  `holocron plugin create infisical Infisical`. Same plugin shape,
-  Infisical's REST API. This doubles as the acceptance test for
-  #77 Phase 1 — if the CLI can't produce a green plugin, the CLI
-  isn't done.
+- **Phase 3** (shipped): Built `@theholocron/holocron-plugin-infisical`
+  via `holocron plugin create infisical Infisical --capability vault
+  --vendor-env INFISICAL_TOKEN --base-url https://app.infisical.com/api`.
+  Same plugin shape, Infisical's REST API. Doubled as the first
+  real production use of #77's CLI — 17 files scaffolded, gate
+  green from the get-go, only the vault capability methods needed
+  filling in. Filed as #97.
 - **Phase 4**: Migrate this repo's own `holocron.config.json`
   vault from `1password` to `doppler` (or `infisical` — operator
   choice). Dump secrets from 1Password, push to chosen vault, flip

@@ -17,7 +17,7 @@ pnpm holocron plugin create <slug> <vendor> \
     --base-url <https://api.vendor.example>
 ```
 
-The command produces 17 files under `packages/holocron-plugin-<slug>/`
+The command produces 18 files under `packages/holocron-plugin-<slug>/`
 matching the same template this skill used to hand-craft:
 
 - 5 config files (`package.json`, `tsconfig.json`, `vitest.config.ts`,
@@ -29,6 +29,9 @@ matching the same template this skill used to hand-craft:
 - 6 test files (`helpers.ts`, `auth.test.ts`, `rest.test.ts`,
   `verify-token.test.ts`, `<key>.test.ts` with `it.todo`,
   `index.test.ts`)
+- 1 validation script (`scripts/validate.mjs`) — read-only smoke
+  test against a live vendor account; invoked via
+  `pnpm --filter @theholocron/holocron-plugin-<slug> validate`
 
 Then follow the "Next" steps printed by the command:
 
@@ -50,6 +53,6 @@ Then follow the "Next" steps printed by the command:
 
 ## Command source
 
-`packages/cli/src/commands/plugin-create/` — 17 templates + orchestrator
-+ unit tests. Editing a template ripples to every future plugin
-scaffolded by this command.
+`packages/cli/src/commands/plugin-create/` — 18 templates,
+orchestrator, and unit tests. Editing a template ripples to every
+future plugin scaffolded by this command.

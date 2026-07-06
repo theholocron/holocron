@@ -1,16 +1,13 @@
-import type { TemplateInputs } from "../template-inputs.js";
-
-export function render(inputs: TemplateInputs): string {
-	return `{
-  "name": "@theholocron/holocron-plugin-${inputs.slug}",
+{
+  "name": "@theholocron/holocron-plugin-infisical",
   "version": "2.0.0-alpha.1",
-  "description": "Holocron plugin for ${inputs.vendorName}. Implements the ${inputs.capability} capability against ${inputs.vendorName}'s REST API, plus exports verifyToken + AUTH_HINT for \`holocron auth\`.",
-  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-${inputs.slug}#readme",
+  "description": "Holocron plugin for Infisical. Implements the vault capability against Infisical's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-infisical#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "packages/holocron-plugin-${inputs.slug}"
+    "directory": "packages/holocron-plugin-infisical"
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
@@ -38,10 +35,10 @@ export function render(inputs: TemplateInputs): string {
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "globals": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",
@@ -59,6 +56,4 @@ export function render(inputs: TemplateInputs): string {
     "dist",
     "README.md"
   ]
-}
-`;
 }
