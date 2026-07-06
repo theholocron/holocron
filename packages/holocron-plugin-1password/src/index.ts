@@ -58,8 +58,20 @@ export function createPlugin(options: OpPluginOptions) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set 1password` — 1P doesn't
+ * store a token in the holocron keyring; the `op` CLI manages its own
+ * auth. Directs the operator to the two paths that actually work.
+ */
+export const AUTH_HINT =
+	"1Password uses the `op` CLI for auth — no bearer token to store. " +
+	"On laptop: `op signin` (or the desktop app's biometric flow). " +
+	"In CI: set `OP_SERVICE_ACCOUNT_TOKEN` in the workflow env.";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
 export { OpShell } from "./shell.js";
 export { OpVault } from "./capabilities/vault.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

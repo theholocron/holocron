@@ -3,6 +3,8 @@ name: holocron-plugin
 description: Scaffold a new @theholocron/holocron-plugin-<slug> package matching the proven template (auth + REST + capability impl + tests). Use when adding a plugin for a new vendor or extracting an existing Rando adapter.
 ---
 
+<!-- editorconfig-checker-disable-file -->
+
 # Scaffold a new holocron plugin
 
 Use this skill when the user asks for a new holocron plugin (Clerk, Doppler,
@@ -19,15 +21,17 @@ This skill produces ~14 files under `packages/holocron-plugin-<slug>/`:
 - `vitest.config.ts` — v8 coverage, node env
 - `eslint.config.js` — re-exports the root config
 - `README.md` — auth instructions, config example, status
-- `src/auth.ts` — token resolver (`--token` → `HOLOCRON_<VENDOR>_<KIND>` → vendor-native env)
+- `src/auth.ts` — 4-step token resolver (`--token` → `HOLOCRON_<VENDOR>_<KIND>` → vendor-native env → **keyring**)
 - `src/rest.ts` — bearer + transport-failure wrapping (`status: 0` on DNS/TCP/TLS)
-- `src/index.ts` — `createPlugin(options)` wiring the capability factories
+- `src/verify-token.ts` — plugin-level `verifyToken(token)` export used by `holocron auth`
+- `src/index.ts` — `createPlugin(options)` + `verifyToken` + `AUTH_HINT` exports
 - `src/capabilities/<capability>.ts` — class implementing the capability interface, methods stubbed
 - `src/__tests__/helpers.ts` — `stubFetch` (port of the rando helper)
-- `src/__tests__/auth.test.ts` — token resolution
+- `src/__tests__/auth.test.ts` — token resolution (all 4 precedence steps)
 - `src/__tests__/rest.test.ts` — REST client behavior
+- `src/__tests__/verify-token.test.ts` — verifyToken success + failure paths
 - `src/__tests__/<capability>.test.ts` — capability behavior (one passing smoke test per stub method)
-- `src/__tests__/index.test.ts` — `createPlugin()` wires everything
+- `src/__tests__/index.test.ts` — `createPlugin()` wires everything + `AUTH_HINT` sanity check
 
 What it does NOT generate: actual API method bodies. Those are vendor-specific
 and easy to get wrong — scaffold and stubs only; the human (or the next
@@ -84,51 +88,34 @@ implementations are incoming.
 
 ### Patterns that are non-negotiable
 
-- **Standards (see `.notes/tech-architecture.spec.md` §Standards).** Every
-	plugin honors the three holocron-wide conventions:
-		1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
-			Commands branch on it; capabilities don't accept per-method dryRun args.
-		2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
-			The plugin's `auth.ts` treats it as the first precedence in token resolution.
-		3. For plugins that fire webhook-shaped events (auth, anything fires events on
-			CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
-			alongside `createPlugin`. The normalized event shape lives in
-			`@theholocron/cli`; the plugin's job is just to translate.
-- **Auth**: token resolution order is always `--token` → `HOLOCRON_<X>` →
-	`<vendor-native>`. Throw `AuthError` with a message naming both env vars.
-- **REST**: wrap transport failures (`TypeError: fetch failed`) into
-	`ProviderApiError` with `status: 0`. Include the path in the message so
-	callers see which call broke.
-- **204 handling**: return `undefined` from `request<T>` on 204 OR when
-	`expectNoContent: true` is set.
-- **Tests use `stubFetch`**: copy the helper verbatim from
-	`packages/holocron-plugin-neon/src/__tests__/helpers.ts`. The Response
-	constructor rejects bodies on 204 — the helper handles that.
-- **Workspace + catalog deps**: `@theholocron/tsconfig`, `@tsconfig/node-lts`,
-	`eslint`, `globals`, `typescript`, `vitest`, `@vitest/coverage-v8` all
-	resolve via `catalog:` from `pnpm-workspace.yaml`.
-- **Peer-deps**: `@theholocron/cli` is BOTH a peer dep AND a devDep at
-	`workspace:*` (the devDep lets tests resolve the types).
-- **Underscore-prefix unused params, no eslint-disable comments.** The
-	workspace ESLint config already has `argsIgnorePattern: '^_'` +
-	`varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line
-@typescript-eslint/no-unused-vars` triggers the unused-directive lint
-	warning. Just use `_name` and stop.
-- **Don't `expect(...).toThrow()` twice on the same stubbed call.** The
-	stub queue (`stubFetch` / `stubSpawn`) advances on every invocation.
-	Calling the same async-with-fetch method twice exhausts the queued
-	responses and the second call returns the default empty response —
-	the assertion silently passes when it shouldn't, or fails for the
-	wrong reason. **Correct pattern:**
-		```ts
-		try {
-			await something();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(SomeError);
-			expect((err as SomeError).message).toMatch(/regex/);
-		}
-		```
+- **Standards.** Every plugin honors the 4 holocron-wide conventions listed under "Holocron standards" below (see also `.notes/tech-architecture.spec.md` §Standards).
+- **Auth**: token resolution order is always **4 steps**: `--token` → `HOLOCRON_<X>_TOKEN` → `<vendor-native>_TOKEN` → **keyring lookup** (`getToken(providerSlug)` from `@theholocron/cli`) → `AuthError` naming all four options. See `packages/holocron-plugin-doppler/src/auth.ts` for the canonical shape.
+- **REST**: wrap transport failures (`TypeError: fetch failed`) into `ProviderApiError` with `status: 0`. Include the path in the message so callers see which call broke.
+- **204 handling**: return `undefined` from `request<T>` on 204 OR when `expectNoContent: true` is set.
+- **Tests use `stubFetch`**: copy the helper verbatim from `packages/holocron-plugin-neon/src/__tests__/helpers.ts`. The Response constructor rejects bodies on 204 — the helper handles that.
+- **Workspace + catalog deps**: `@theholocron/tsconfig`, `@tsconfig/node-lts`, `eslint`, `globals`, `typescript`, `vitest`, `@vitest/coverage-v8` all resolve via `catalog:` from `pnpm-workspace.yaml`.
+- **Peer-deps**: `@theholocron/cli` is BOTH a peer dep AND a devDep at `workspace:*` (the devDep lets tests resolve the types).
+- **Underscore-prefix unused params, no eslint-disable comments.** The workspace ESLint config already has `argsIgnorePattern: '^_'` + `varsIgnorePattern: '^_'`. Adding `// eslint-disable-next-line @typescript-eslint/no-unused-vars` triggers the unused-directive lint warning. Just use `_name` and stop.
+- **Don't `expect(...).toThrow()` twice on the same stubbed call.** The stub queue (`stubFetch` / `stubSpawn`) advances on every invocation. Calling the same async-with-fetch method twice exhausts the queued responses and the second call returns the default empty response — the assertion silently passes when it shouldn't, or fails for the wrong reason. Instead, wrap in `try/catch` and assert properties on the caught error — see "Correct expect-throws pattern" below.
+
+### Holocron standards
+
+1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`. Commands branch on it; capabilities don't accept per-method dryRun args.
+2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`. The plugin's `auth.ts` treats it as the first precedence in token resolution.
+3. For plugins that fire webhook-shaped events (auth, anything fires events on CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility alongside `createPlugin`. The normalized event shape lives in `@theholocron/cli`; the plugin's job is just to translate.
+4. Every plugin exports a top-level `verifyToken(token)` + `AUTH_HINT` string (see `.notes/tech-auth-bootstrap.spec.md`). `holocron auth set/check` calls them to verify credentials before storing / after retrieving from the OS keyring.
+
+### Correct expect-throws pattern
+
+```ts
+try {
+	await something();
+	throw new Error("expected throw");
+} catch (err) {
+	expect(err).toBeInstanceOf(SomeError);
+	expect((err as SomeError).message).toMatch(/regex/);
+}
+```
 
 ## Step 4 — install + verify
 
@@ -184,23 +171,23 @@ When porting an existing Rando adapter, also:
 
 - Find the Rando source: `find /Users/archives/Code/rando/rando/packages/cli/src -name "*<slug>*"`
 - Compare Rando's interface against the holocron capability interface BEFORE
-	writing code. Adjust the holocron interface in core if the Rando shape
-	reveals a mismatch — that's what happened with `Deployment`
-	(drop `promote`/`listDeployments`, add `triggerDeployment`/`getDeployment`)
-	and `Storage` (replace target-based `getConnectionString` with
-	scope-based + pooled option).
+  writing code. Adjust the holocron interface in core if the Rando shape
+  reveals a mismatch — that's what happened with `Deployment`
+  (drop `promote`/`listDeployments`, add `triggerDeployment`/`getDeployment`)
+  and `Storage` (replace target-based `getConnectionString` with
+  scope-based + pooled option).
 - Port the implementation method-by-method. Keep Rando's comments where they
-	document non-obvious gotchas (e.g., Neon's `endpoints[{type: 'read_write'}]`
-	inline create, GitHub's reviewer numeric-id-only).
+  document non-obvious gotchas (e.g., Neon's `endpoints[{type: 'read_write'}]`
+  inline create, GitHub's reviewer numeric-id-only).
 - Port the tests too — they're the proof the port preserves semantics.
 
 ## When NOT to use this skill
 
 - The capability needs a transport other than REST (e.g., a CLI shell-out).
-	The auth + REST primitives don't apply; structure differs. Use the manual
-	approach + propose a transport-adapter interface (see issue #76).
+  The auth + REST primitives don't apply; structure differs. Use the manual
+  approach + propose a transport-adapter interface (see issue #76).
 - The plugin is a "config package" rather than a real implementation (see
-	the level-1 shareable-configs design in issue #75). The structure for those
-	is different.
+  the level-1 shareable-configs design in issue #75). The structure for those
+  is different.
 - The work is a one-off tweak to an existing plugin, not a new one. Edit the
-	existing package directly.
+  existing package directly.
