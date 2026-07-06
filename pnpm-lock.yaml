@@ -65,9 +65,24 @@ importers:
       '@theholocron/holocron-plugin-1password':
         specifier: workspace:*
         version: link:packages/holocron-plugin-1password
+      '@theholocron/holocron-plugin-clerk':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-clerk
       '@theholocron/holocron-plugin-doppler':
         specifier: workspace:*
         version: link:packages/holocron-plugin-doppler
+      '@theholocron/holocron-plugin-github':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-github
+      '@theholocron/holocron-plugin-neon':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-neon
+      '@theholocron/holocron-plugin-postman':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-postman
+      '@theholocron/holocron-plugin-vercel':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-vercel
       '@theholocron/lint-staged-config':
         specifier: ^4.1.0
         version: 4.1.0(alex@11.0.1)(husky@9.1.7)(imagemin-lint-staged@0.5.1)(lint-staged@16.4.0)

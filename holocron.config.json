@@ -4,11 +4,10 @@
     "description": "The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it."
   },
   "providers": {
-    "vault": ["1password", { "vault": "theholocron" }],
+    "vault": ["doppler", { "project": "holocron", "config": "dev" }],
     "source": "github",
     "ci": "github",
     "secrets": "github",
-    "environments": "github",
-    "issues": "github"
+    "environments": "github"
   }
 }
