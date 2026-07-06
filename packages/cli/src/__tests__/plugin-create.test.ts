@@ -107,6 +107,39 @@ describe("runPluginCreate — orchestrator", () => {
 		).toThrow(/not a known capability/);
 	});
 
+	it("rejects a slug that isn't kebab-case", () => {
+		expect(() =>
+			runPluginCreate({
+				...BASE_INPUT,
+				slug: "MyPlugin", // PascalCase — invalid
+				writeFile: () => {},
+				print: () => {},
+			})
+		).toThrow(/invalid slug/);
+	});
+
+	it("rejects a slug that starts with a digit", () => {
+		expect(() =>
+			runPluginCreate({
+				...BASE_INPUT,
+				slug: "1password", // catches the env.HOLOCRON_1PASSWORD_TOKEN identifier trap
+				writeFile: () => {},
+				print: () => {},
+			})
+		).toThrow(/invalid slug/);
+	});
+
+	it("rejects a vendor name that isn't PascalCase", () => {
+		expect(() =>
+			runPluginCreate({
+				...BASE_INPUT,
+				vendorName: "myVendor", // starts lowercase
+				writeFile: () => {},
+				print: () => {},
+			})
+		).toThrow(/invalid vendor name/);
+	});
+
 	it("warns on many-cardinality capabilities without erroring", () => {
 		const messages: string[] = [];
 		const report = runPluginCreate({
@@ -154,6 +187,24 @@ describe("Rendered content sanity", () => {
 		expect(content).toMatch(/ACME_KEY/);
 		expect(content).toMatch(/getKeyringToken/);
 		expect(content).toMatch(/keyring\("acme"\)/);
+	});
+
+	it("normalizes trailing slashes in baseUrl so the rest-test's assertion matches", () => {
+		const fs = makeFakeFs();
+		runPluginCreate({
+			...BASE_INPUT,
+			slug: "acme",
+			vendorName: "Acme",
+			baseUrl: "https://api.acme.example/v1///", // trailing slashes
+			writeFile: fs.writeFile,
+			print: () => {},
+		});
+		const restTest = fs.get(fs.paths().find((p) => p.endsWith("src/__tests__/rest.test.ts"))!)!;
+		// The trimming test expects `client.baseUrl` to equal the normalized
+		// URL. If baseUrl had leaked in with a trailing slash, the assertion
+		// would embed it and fail against the client's own trim.
+		expect(restTest).toContain('expect(client.baseUrl).toBe("https://api.acme.example/v1")');
+		expect(restTest).not.toMatch(/toBe\("https:\/\/api\.acme\.example\/v1\/+/);
 	});
 
 	it("index.ts exports AUTH_HINT and verifyToken", () => {

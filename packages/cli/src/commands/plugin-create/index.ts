@@ -126,6 +126,8 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 	const write = input.writeFile ?? defaultWrite;
 
 	preflight(cwd);
+	validateSlug(input.slug);
+	validateVendorName(input.vendorName);
 
 	const packageDir = path.join(cwd, "packages", `holocron-plugin-${input.slug}`);
 	if (existsSync(packageDir)) {
@@ -147,7 +149,9 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 		capabilityClass: derived.capabilityClass,
 		tokenEnv: input.tokenEnv ?? derived.tokenEnv,
 		vendorEnv: input.vendorEnv,
-		baseUrl: input.baseUrl,
+		// Normalize: strip trailing slashes so the embedded value in the
+		// generated rest-test.ts matches what the client trims at runtime.
+		baseUrl: trimTrailingSlashes(input.baseUrl),
 		transport: derived.transport,
 	};
 
@@ -185,6 +189,45 @@ function preflight(cwd: string): void {
 	if (!existsSync(path.join(cwd, "packages"))) {
 		throw new PluginCreateError(`\`packages/\` directory not found in \`${cwd}\`.`);
 	}
+}
+
+/**
+ * npm-package-name conventions: kebab-case, starts with lowercase
+ * letter. Rejecting numeric-prefixed slugs also sidesteps the
+ * `env.HOLOCRON_1FOO_TOKEN` invalid-identifier trap in the auth
+ * template.
+ */
+const SLUG_RE = /^[a-z][a-z0-9-]*$/;
+
+function validateSlug(slug: string): void {
+	if (!SLUG_RE.test(slug)) {
+		throw new PluginCreateError(
+			`invalid slug "${slug}" — must be kebab-case: lowercase letter followed by lowercase letters, digits, or hyphens. ` +
+				`Examples: "clerk", "cloud-flare", "doppler".`
+		);
+	}
+}
+
+/** PascalCase — starts with uppercase, alphanumeric only. */
+const VENDOR_NAME_RE = /^[A-Z][a-zA-Z0-9]*$/;
+
+function validateVendorName(name: string): void {
+	if (!VENDOR_NAME_RE.test(name)) {
+		throw new PluginCreateError(
+			`invalid vendor name "${name}" — must be PascalCase: starts with uppercase, alphanumeric only. ` +
+				`Examples: "Clerk", "CloudFlare", "Doppler".`
+		);
+	}
+}
+
+/**
+ * Trim trailing slashes with a plain loop (no regex — matches the
+ * rest.ts template's own trimming to stay ReDoS-safe under CodeQL).
+ */
+function trimTrailingSlashes(url: string): string {
+	let out = url;
+	while (out.endsWith("/")) out = out.slice(0, -1);
+	return out;
 }
 
 function validateCapability(capability: CapabilityKey, print: (line: string) => void): void {
