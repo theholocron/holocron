@@ -19,15 +19,17 @@ This skill produces ~14 files under `packages/holocron-plugin-<slug>/`:
 - `vitest.config.ts` — v8 coverage, node env
 - `eslint.config.js` — re-exports the root config
 - `README.md` — auth instructions, config example, status
-- `src/auth.ts` — token resolver (`--token` → `HOLOCRON_<VENDOR>_<KIND>` → vendor-native env)
+- `src/auth.ts` — 4-step token resolver (`--token` → `HOLOCRON_<VENDOR>_<KIND>` → vendor-native env → **keyring**)
 - `src/rest.ts` — bearer + transport-failure wrapping (`status: 0` on DNS/TCP/TLS)
-- `src/index.ts` — `createPlugin(options)` wiring the capability factories
+- `src/verify-token.ts` — plugin-level `verifyToken(token)` export used by `holocron auth`
+- `src/index.ts` — `createPlugin(options)` + `verifyToken` + `AUTH_HINT` exports
 - `src/capabilities/<capability>.ts` — class implementing the capability interface, methods stubbed
 - `src/__tests__/helpers.ts` — `stubFetch` (port of the rando helper)
-- `src/__tests__/auth.test.ts` — token resolution
+- `src/__tests__/auth.test.ts` — token resolution (all 4 precedence steps)
 - `src/__tests__/rest.test.ts` — REST client behavior
+- `src/__tests__/verify-token.test.ts` — verifyToken success + failure paths
 - `src/__tests__/<capability>.test.ts` — capability behavior (one passing smoke test per stub method)
-- `src/__tests__/index.test.ts` — `createPlugin()` wires everything
+- `src/__tests__/index.test.ts` — `createPlugin()` wires everything + `AUTH_HINT` sanity check
 
 What it does NOT generate: actual API method bodies. Those are vendor-specific
 and easy to get wrong — scaffold and stubs only; the human (or the next
@@ -85,7 +87,7 @@ implementations are incoming.
 ### Patterns that are non-negotiable
 
 - **Standards (see `.notes/tech-architecture.spec.md` §Standards).** Every
-	plugin honors the three holocron-wide conventions:
+	plugin honors the holocron-wide conventions:
 		1. `--dry-run` is a global CLI flag flowing through `RuntimeContext.dryRun`.
 			Commands branch on it; capabilities don't accept per-method dryRun args.
 		2. `--token` is a global CLI flag flowing through `RuntimeContext.cliToken`.
@@ -94,8 +96,16 @@ implementations are incoming.
 			CRUD ops), export a `parseWebhook(input): NormalizedEvent` utility
 			alongside `createPlugin`. The normalized event shape lives in
 			`@theholocron/cli`; the plugin's job is just to translate.
-- **Auth**: token resolution order is always `--token` → `HOLOCRON_<X>` →
-	`<vendor-native>`. Throw `AuthError` with a message naming both env vars.
+		4. Every plugin exports a top-level `verifyToken(token)` +
+			`AUTH_HINT` string (see `.notes/tech-auth-bootstrap.spec.md`).
+			`holocron auth set/check` calls them to verify credentials before
+			storing / after retrieving from the OS keyring.
+- **Auth**: token resolution order is always **4 steps**:
+	`--token` → `HOLOCRON_<X>_TOKEN` → `<vendor-native>_TOKEN` →
+	**keyring lookup** (`getToken(providerSlug)` from `@theholocron/cli`)
+	→ `AuthError` naming all four options. See
+	`packages/holocron-plugin-doppler/src/auth.ts` for the canonical
+	shape.
 - **REST**: wrap transport failures (`TypeError: fetch failed`) into
 	`ProviderApiError` with `status: 0`. Include the path in the message so
 	callers see which call broke.
