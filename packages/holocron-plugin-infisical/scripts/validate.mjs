@@ -8,7 +8,8 @@
  *
  * READ-ONLY BY DESIGN. Never calls write(), ensureProject, or
  * ensureEnvironment. If any method here shows an ERROR, the plugin
- * needs adjusting.
+ * needs adjusting — the `hintFor` helper below points at the most
+ * likely cause per error shape.
  *
  * Auth: reads the Infisical token from holocron's keyring — you
  * must have run `pnpm holocron auth set infisical <TOKEN>` first.
@@ -24,9 +25,9 @@
  *   pnpm --filter @theholocron/holocron-plugin-infisical validate \
  *     abc-123 dev TEST_KEY
  *
- * Convention: every holocron plugin ships a \`scripts/validate.mjs\`
+ * Convention: every holocron plugin ships a `scripts/validate.mjs`
  * that smoke-tests its capability methods against a live account.
- * Standardized by the plugin-create scaffold since v2.0.0-alpha.<n>.
+ * Standardized by the plugin-create scaffold.
  */
 
 import { getToken } from "@theholocron/cli";
@@ -37,8 +38,7 @@ const [workspace, environment, secretName] = process.argv.slice(2);
 
 if (!workspace || !environment) {
 	console.error(
-		"usage: pnpm exec tsx packages/holocron-plugin-infisical/scripts/validate-plugin-infisical.mjs " +
-			"<workspaceId> <env> [secretName]"
+		"usage: pnpm --filter @theholocron/holocron-plugin-infisical validate <workspaceId> <env> [secretName]"
 	);
 	process.exit(2);
 }
@@ -46,6 +46,7 @@ if (!workspace || !environment) {
 const token = getToken("infisical");
 if (!token) {
 	console.error("no Infisical token in keyring. Run: pnpm holocron auth set infisical <TOKEN>");
+	console.error("  see: packages/holocron-plugin-infisical/README.md#setup");
 	process.exit(2);
 }
 
@@ -59,23 +60,25 @@ console.log("");
 console.log("[1/4] verifyToken");
 const verifyResult = await verifyToken(token);
 console.log(`      ${verifyResult.ok ? "✓" : "✗"} ${JSON.stringify(verifyResult)}`);
+if (!verifyResult.ok) {
+	const hint = hintFor(verifyResult.message);
+	if (hint) console.log(`         hint: ${hint}`);
+}
 console.log("");
 
 // ── 2. environments() ──────────────────────────────────────────────
 console.log("[2/4] vault.environments()");
 const plugin = createPlugin({ cliToken: token, workspace, environment });
 const vault = plugin.capabilities.vault();
-try {
+await runStep(async () => {
 	const envs = await vault.environments();
 	console.log(`      ✓ ${envs.length} environment${envs.length === 1 ? "" : "s"}: ${envs.join(", ") || "(none)"}`);
-} catch (err) {
-	console.log(`      ✗ ERROR: ${err instanceof Error ? err.message : String(err)}`);
-}
+});
 console.log("");
 
 // ── 3. list() ──────────────────────────────────────────────────────
 console.log(`[3/4] vault.list()  (workspace: ${workspace}, environment: ${environment}, path: /)`);
-try {
+await runStep(async () => {
 	const keys = await vault.list();
 	console.log(`      ✓ ${keys.length} secret${keys.length === 1 ? "" : "s"} at root path`);
 	if (keys.length > 0 && keys.length <= 25) {
@@ -84,9 +87,7 @@ try {
 		console.log(`         (${keys.length} total — showing first 25)`);
 		keys.slice(0, 25).forEach((k) => console.log(`         · ${k}`));
 	}
-} catch (err) {
-	console.log(`      ✗ ERROR: ${err instanceof Error ? err.message : String(err)}`);
-}
+});
 console.log("");
 
 // ── 4. read() ──────────────────────────────────────────────────────
@@ -96,15 +97,53 @@ if (!secretName) {
 } else {
 	const reference = `infisical://${workspace}/${environment}/${secretName}`;
 	console.log(`      · reference: ${reference}`);
-	try {
+	await runStep(async () => {
 		const value = await vault.read(reference);
 		// Report length only — never print the actual secret value.
 		console.log(`      ✓ read succeeded — value is ${value.length} chars long`);
-	} catch (err) {
-		console.log(`      ✗ ERROR: ${err instanceof Error ? err.message : String(err)}`);
-	}
+	});
 }
 console.log("");
 console.log(
 	"Done. No writes, no bootstrap operations. Nothing in your Infisical account was created, modified, or deleted."
 );
+
+// ── helpers ────────────────────────────────────────────────────────
+
+/**
+ * Wrap a capability call, print ERROR + hint on failure. Keeps the
+ * per-step block small at each call site.
+ */
+async function runStep(body) {
+	try {
+		await body();
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		console.log(`      ✗ ERROR: ${message}`);
+		const hint = hintFor(message);
+		if (hint) console.log(`         hint: ${hint}`);
+	}
+}
+
+/**
+ * Point the operator at the most likely fix based on the error shape.
+ * Add cases here as new failure modes surface.
+ */
+function hintFor(message) {
+	if (/→ 401/.test(message)) {
+		return "token invalid — regenerate a Personal Token or Token Auth token (see README §Setup)";
+	}
+	if (/→ 403/.test(message)) {
+		return "token authenticates but lacks scope — grant your machine identity access to the workspace/project in the Infisical dashboard, OR use a Personal API Token";
+	}
+	if (/→ 404/.test(message)) {
+		return "endpoint or resource not found — verify the workspace id from your dashboard URL, and confirm the environment slug + secret name exist";
+	}
+	if (/fetch failed|status: 0|network/i.test(message)) {
+		return "network error — check the base URL (defaults to https://app.infisical.com/api) and connectivity";
+	}
+	if (/→ 5\d\d/.test(message)) {
+		return "server error — Infisical-side. Retry, and if persistent check https://status.infisical.com";
+	}
+	return null;
+}
