@@ -370,3 +370,59 @@ describe("GitHubIssues.doctor", () => {
 		expect(report.lifecycle[2]).toMatchObject({ slot: "done", resolved: true });
 	});
 });
+
+// ──────────────────────────────────────────────────────────────────────
+// Lazy label-degradation (labels omitted from options)
+// ──────────────────────────────────────────────────────────────────────
+
+function makeIssuesNoLabels(responses: Parameters<typeof stubFetch>[0]) {
+	const { fetch, calls } = stubFetch(responses);
+	const rest = new GitHubRestClient({ token: "pat", fetch });
+	const issues = new GitHubIssues(rest, { repo: REPO });
+	return { issues, calls };
+}
+
+describe("GitHubIssues without labels config", () => {
+	it("constructs cleanly (no throw at plugin-load time)", () => {
+		const { issues } = makeIssuesNoLabels([]);
+		expect(issues).toBeInstanceOf(GitHubIssues);
+	});
+
+	it("transition to inProgress throws with a clear message", async () => {
+		const { issues } = makeIssuesNoLabels([{ status: 200, body: rawIssue() }]);
+		try {
+			await issues.transition("#42", "inProgress");
+			throw new Error("should have thrown");
+		} catch (err) {
+			expect((err as Error).message).toMatch(/labels/);
+			expect((err as Error).message).toMatch(/inProgress/);
+		}
+	});
+
+	it("transition to done still works (needs no labels)", async () => {
+		const { issues } = makeIssuesNoLabels([
+			{ status: 200, body: rawIssue({ state: "open" }) },
+			{ status: 200, body: {} }, // PATCH to close
+		]);
+		const result = await issues.transition("#42", "done");
+		expect(result.transitioned).toBe(true);
+		expect(result.status).toBe("closed");
+	});
+
+	it("doctor reports the two label-backed slots as unresolved with an explanatory note", async () => {
+		const { issues } = makeIssuesNoLabels([
+			{ status: 200, body: { login: "cnewton", name: "Newton" } },
+			{ status: 200, body: { full_name: REPO } },
+			{ status: 200, body: [] },
+		]);
+		const report = await issues.doctor();
+		expect(report.lifecycle[0]).toMatchObject({
+			slot: "inProgress",
+			value: null,
+			resolved: false,
+		});
+		expect(report.lifecycle[0]?.note).toMatch(/no `labels`/);
+		expect(report.lifecycle[1]).toMatchObject({ slot: "inReview", value: null, resolved: false });
+		expect(report.lifecycle[2]).toMatchObject({ slot: "done", resolved: true });
+	});
+});

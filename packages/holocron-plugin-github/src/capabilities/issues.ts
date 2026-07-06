@@ -30,8 +30,15 @@ import type { GitHubRestClient } from "../rest.js";
 
 export interface IssuesOptions {
 	repo: string;
-	/** Lifecycle slot → status label name. */
-	labels: { inProgress: string; inReview: string };
+	/**
+	 * Lifecycle slot → status label name. Optional at construction; if
+	 * omitted, capability methods that need labels (`transition`,
+	 * `doctor`) degrade gracefully — `transition` throws a clear error,
+	 * `doctor` reports the two label-backed slots as unresolved. This
+	 * lets the plugin load in configs where the operator hasn't picked
+	 * labels yet without failing the whole runtime.
+	 */
+	labels?: { inProgress: string; inReview: string };
 }
 
 interface RawUser {
@@ -70,7 +77,7 @@ export class GitHubIssues implements Issues {
 	private readonly owner: string;
 	private readonly repoName: string;
 	private readonly base: string;
-	private readonly labels: { inProgress: string; inReview: string };
+	private readonly labels: { inProgress: string; inReview: string } | undefined;
 
 	constructor(
 		private readonly rest: GitHubRestClient,
@@ -154,6 +161,12 @@ export class GitHubIssues implements Issues {
 		}
 
 		// inProgress / inReview: ensure open + set the right label.
+		if (!this.labels) {
+			throw new Error(
+				`transition to \`${slot}\` requires \`labels\` in plugin options: ` +
+					`{ inProgress: '<label>', inReview: '<label>' }`
+			);
+		}
 		const targetLabel = slot === "inProgress" ? this.labels.inProgress : this.labels.inReview;
 		const alreadyOpen = issue.state === "open";
 		const alreadyLabeled = currentStatusLabels.includes(targetLabel);
@@ -208,35 +221,60 @@ export class GitHubIssues implements Issues {
 
 		const statuses: TrackerDoctorReport["statuses"] = [
 			{ name: "open (no status label)", category: "open" },
-			{ name: `open + ${this.labels.inProgress}`, category: "in-progress" },
-			{ name: `open + ${this.labels.inReview}`, category: "in-review" },
+			...(this.labels
+				? [
+						{ name: `open + ${this.labels.inProgress}`, category: "in-progress" as const },
+						{ name: `open + ${this.labels.inReview}`, category: "in-review" as const },
+					]
+				: []),
 			{ name: "closed", category: "done" },
 		];
 
-		const lifecycle: TrackerDoctorReport["lifecycle"] = [
-			{
-				slot: "inProgress",
-				value: this.labels.inProgress,
-				resolved: labelNames.has(this.labels.inProgress),
-				note: labelNames.has(this.labels.inProgress)
-					? `label exists in ${repo.full_name}`
-					: "(label not defined yet — auto-created on first apply)",
-			},
-			{
-				slot: "inReview",
-				value: this.labels.inReview,
-				resolved: labelNames.has(this.labels.inReview),
-				note: labelNames.has(this.labels.inReview)
-					? `label exists in ${repo.full_name}`
-					: "(label not defined yet — auto-created on first apply)",
-			},
-			{
-				slot: "done",
-				value: "closed (state_reason=completed)",
-				resolved: true,
-				note: "(intrinsic — GitHub close-with-reason)",
-			},
-		];
+		const lifecycle: TrackerDoctorReport["lifecycle"] = this.labels
+			? [
+					{
+						slot: "inProgress",
+						value: this.labels.inProgress,
+						resolved: labelNames.has(this.labels.inProgress),
+						note: labelNames.has(this.labels.inProgress)
+							? `label exists in ${repo.full_name}`
+							: "(label not defined yet — auto-created on first apply)",
+					},
+					{
+						slot: "inReview",
+						value: this.labels.inReview,
+						resolved: labelNames.has(this.labels.inReview),
+						note: labelNames.has(this.labels.inReview)
+							? `label exists in ${repo.full_name}`
+							: "(label not defined yet — auto-created on first apply)",
+					},
+					{
+						slot: "done",
+						value: "closed (state_reason=completed)",
+						resolved: true,
+						note: "(intrinsic — GitHub close-with-reason)",
+					},
+				]
+			: [
+					{
+						slot: "inProgress",
+						value: null,
+						resolved: false,
+						note: "no `labels` configured in plugin options — transitions to `inProgress` will error",
+					},
+					{
+						slot: "inReview",
+						value: null,
+						resolved: false,
+						note: "no `labels` configured in plugin options — transitions to `inReview` will error",
+					},
+					{
+						slot: "done",
+						value: "closed (state_reason=completed)",
+						resolved: true,
+						note: "(intrinsic — GitHub close-with-reason)",
+					},
+				];
 
 		return {
 			authedAs: `${me.displayName} (${me.emailAddress ?? me.id})`,
@@ -276,10 +314,10 @@ export class GitHubIssues implements Issues {
 		let statusName = raw.state === "closed" ? "closed" : "open";
 		if (raw.state === "closed") {
 			category = "done";
-		} else if (statusLabels.includes(this.labels.inProgress)) {
+		} else if (this.labels && statusLabels.includes(this.labels.inProgress)) {
 			category = "in-progress";
 			statusName = `open + ${this.labels.inProgress}`;
-		} else if (statusLabels.includes(this.labels.inReview)) {
+		} else if (this.labels && statusLabels.includes(this.labels.inReview)) {
 			category = "in-review";
 			statusName = `open + ${this.labels.inReview}`;
 		}

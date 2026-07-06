@@ -13,7 +13,7 @@ import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocr
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
 import { GitHubEnvironments } from "./capabilities/environments.js";
-import { GitHubIssues } from "./capabilities/issues.js";
+import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
 import { GitHubRestClient } from "./rest.js";
@@ -73,10 +73,14 @@ export function ci(ctx: PluginContext): Ci {
 }
 
 export function issues(ctx: PluginContext): Issues {
-	if (!ctx.options.labels) {
-		throw new Error("issues capability requires `labels` in plugin options: { inProgress, inReview }");
-	}
-	return new GitHubIssues(ctx.rest, { repo: ctx.repo, labels: ctx.options.labels });
+	// Labels are optional at construction — GitHubIssues degrades
+	// gracefully when they're missing (see IssuesOptions.labels docstring).
+	// This lets configs load even before labels are picked; only methods
+	// that need labels (transition/inProgress/inReview) throw at call
+	// time.
+	const opts: IssuesOptions = { repo: ctx.repo };
+	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
+	return new GitHubIssues(ctx.rest, opts);
 }
 
 // ── Plugin barrel for the core loader ─────────────────────────────────
@@ -95,6 +99,17 @@ export function createPlugin(options: GitHubPluginOptions) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set github` when no token
+ * is supplied or the supplied token is rejected. Generate a PAT at
+ * https://github.com/settings/tokens with `repo` + `admin:repo_hook`
+ * scopes (add `admin:org` for org-level operations).
+ */
+export const AUTH_HINT =
+	"generate a Personal Access Token at https://github.com/settings/tokens " +
+	"(scopes: repo, admin:repo_hook — plus admin:org for org-level ops), " +
+	"then run: holocron auth set github <PAT>";
+
 // ── Public re-exports ─────────────────────────────────────────────────
 
 export type { Auth };
@@ -106,3 +121,5 @@ export { GitHubSecrets } from "./capabilities/secrets.js";
 export { GitHubEnvironments } from "./capabilities/environments.js";
 export { GitHubCi } from "./capabilities/ci.js";
 export { GitHubIssues } from "./capabilities/issues.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
