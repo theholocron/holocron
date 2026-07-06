@@ -127,11 +127,38 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 	}
 
-	// ── vault: read-only probe (no automation) ──────────────────────────
+	// ── vault: bootstrap project + configs, then read-only probe ───────
 	if (loader.has("vault")) {
 		const vault = loader.get("vault") as Vault;
 		print("  → vault");
-		// Always runs even in dry-run — it's read-only.
+
+		// ensureProject — providers that have a top-level container.
+		if (vault.ensureProject) {
+			steps.push(
+				await runStep("vault", `ensureProject ${config.project.name}`, dryRun, async () => {
+					const result = await vault.ensureProject!(config.project.name);
+					return `project ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		// ensureEnvironment — providers with a project/config split
+		// (Doppler configs, Infisical environments, etc.). Canonical
+		// names; per-project overrides live in the plugin's options.
+		if (vault.ensureEnvironment) {
+			for (const envName of ["dev", "stg", "prd"]) {
+				steps.push(
+					await runStep("vault", `ensureEnvironment ${envName}`, dryRun, async () => {
+						const result = await vault.ensureEnvironment!(config.project.name, envName);
+						return `${envName} ${result.alreadyExists ? "exists" : "created"}`;
+					})
+				);
+				print(formatStep(steps[steps.length - 1]!));
+			}
+		}
+
+		// Read-only reachability probe. Runs even under --dry-run.
 		try {
 			const keys = await vault.list();
 			steps.push({

@@ -318,6 +318,69 @@ describe("runSetup", () => {
 		expect(synced).toEqual(["postman", "storybook"]);
 	});
 
+	it("calls vault ensureProject + ensureEnvironment when the provider implements them", async () => {
+		const projectCreated: string[] = [];
+		const envsCreated: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			project: { name: "my-app" },
+			providers: { vault: "doppler" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-doppler": makePlugin("doppler", {
+				vault: {
+					list: async () => [],
+					ensureProject: async (name: string) => {
+						projectCreated.push(name);
+						return { alreadyExists: false };
+					},
+					ensureEnvironment: async (project: string, name: string) => {
+						envsCreated.push([project, name]);
+						return { alreadyExists: false };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(projectCreated).toEqual(["my-app"]);
+		expect(envsCreated).toEqual([
+			["my-app", "dev"],
+			["my-app", "stg"],
+			["my-app", "prd"],
+		]);
+		const vaultSteps = report.steps.filter((s) => s.capability === "vault");
+		expect(vaultSteps.find((s) => s.step.startsWith("ensureProject"))?.message).toContain("created");
+		expect(vaultSteps.filter((s) => s.step.startsWith("ensureEnvironment"))).toHaveLength(3);
+	});
+
+	it("skips vault ensureProject + ensureEnvironment when the provider omits them (1P-shaped vaults)", async () => {
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => ["ONE"] },
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.steps.some((s) => s.step.startsWith("ensureProject"))).toBe(false);
+		expect(report.steps.some((s) => s.step.startsWith("ensureEnvironment"))).toBe(false);
+	});
+
 	it("output includes a header + summary line", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({

@@ -532,6 +532,11 @@ export class WebhookVerificationError extends Error {
 // vault — REQUIRED source-of-truth for secrets
 // ───────────────────────────────────────────────────────────────────────
 
+export interface EnsureResult {
+	/** True when the resource already existed (idempotent no-op). */
+	alreadyExists: boolean;
+}
+
 export interface Vault extends ProviderIdentity {
 	readonly key: "vault";
 
@@ -562,6 +567,21 @@ export interface Vault extends ProviderIdentity {
 	 * destinations (CI secrets, deployment env vars, local .env).
 	 */
 	readEnvironment?(environmentId: string): Promise<Record<string, string>>;
+
+	/**
+	 * Optional — create the top-level project container in the vault
+	 * if it does not exist. Idempotent: `alreadyExists: true` when the
+	 * project was already there. Providers whose data model has no
+	 * project notion (or that gate this behind a paid tier) omit this.
+	 */
+	ensureProject?(name: string): Promise<EnsureResult>;
+
+	/**
+	 * Optional — create a named environment/config inside a project
+	 * (e.g., Doppler config `dev` / `stg` / `prd`). Idempotent.
+	 * Providers whose data model has a single flat namespace omit this.
+	 */
+	ensureEnvironment?(project: string, name: string): Promise<EnsureResult>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
