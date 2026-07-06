@@ -149,10 +149,12 @@ Regardless of which we pick:
 3. Update `holocron.config.json` — flip `vault` from `1password` to
    the new plugin.
 4. Verify with `holocron doctor` + a full `secrets sync` dry-run.
-5. Delete the 1Password plugin package + trusted publisher entry.
+5. Retire 1P as *this repo's* default — but keep the plugin package
+   published + maintained for any downstream project that prefers
+   1Password's biometric-first UX (see #96).
 
 The migration is intentionally reversible — the old plugin package
-stays git-available, and secrets are dumped before the cutover.
+stays available on npm, and secrets are dumped before the cutover.
 
 ## Roadmap
 
@@ -176,25 +178,24 @@ the new CLI so #77 gets a real-world acceptance test.
   vault from `1password` to `doppler` (or `infisical` — operator
   choice). Dump secrets from 1Password, push to chosen vault, flip
   config, verify with `holocron doctor` + a `secrets sync` dry-run.
-- **Phase 5** (later, no rush): Deprecate
-  `@theholocron/holocron-plugin-1password`. Remove the trusted
-  publisher entry once no downstream depends on it.
+- **Phase 5** (later, no rush): Retire 1P as *this repo's* default
+  — narrow, doc-focused polish tracked in #96. The plugin package
+  itself STAYS published + maintained; anyone who prefers 1P's
+  biometric UX in their own project can still `pnpm add
+  @theholocron/holocron-plugin-1password` and go.
 
 ## Downstream consequences
 
-Deprecating the 1Password plugin removes the **only**
-CLI-transport plugin in the repo. That means:
+Because the 1P plugin STAYS alive (issue #96 clarified scope), the
+implications for #76 / #78 are the OPPOSITE of what an earlier draft
+of this spec suggested:
 
-- **#78** (CLI-transport sibling skill) — no longer motivated. Can
-  be closed unless a future non-vault CLI-transport vendor shows
-  up.
-- **#76** (per-plugin `transport` option) — loses its primary use
-  case. Still has abstract value (future-proofing) but priority
-  drops. Both are already flagged as "don't build speculatively"
-  in `CLAUDE.md`.
+- **#76** (per-plugin `transport` option) — 1P remains the reference
+  CLI-transport plugin, so #76 keeps its concrete grounding.
+- **#78** (CLI-transport sibling skill) — same reason; 1P is the
+  working example a CLI-transport skill would point at.
 
-Both consequences are net-positive: fewer speculative abstractions
-in the v2 architecture backlog.
+Nothing to close speculatively.
 
 ## Open questions
 

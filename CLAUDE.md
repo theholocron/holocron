@@ -145,14 +145,15 @@ design docs.
 
 - **#75** Shareable configs (per-capability + whole-config presets,
   ESLint-`extends`-style)
-- **#76** Per-plugin `transport: 'rest' | 'cli'` option — priority
-  dropped after 1P deprecation (only CLI-transport user); see
-  `.notes/tech-vault-choice.spec.md` §Downstream consequences.
+- **#76** Per-plugin `transport: 'rest' | 'cli'` option. Still
+  grounded: 1P plugin remains the reference CLI-transport case
+  (see #96 — plugin stays published even though this repo doesn't
+  use it as default).
 - **#77** `holocron plugin create` CLI command (promote the
   scaffolding skill to a first-class CLI feature) — spec at
   `.notes/tool-plugin-create.spec.md` (Phase 1 unblocked).
-- **#78** CLI-transport sibling skill — same "priority dropped"
-  as #76.
+- **#78** CLI-transport sibling skill — still motivated (same
+  reason as #76).
 - **#79** Multi-plugin `--token` disambiguation
 - **#80** Real Svix HMAC verification in `parseWebhook`
 - **#81** `defineConfig({})` API + JS/TS config file format
