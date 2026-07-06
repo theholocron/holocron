@@ -6,7 +6,7 @@
   "IgnoreDefaults": false,
   "SpacesAfterTabs": false,
   "NoColor": false,
-  "Exclude": ["^LICENSE$", "^public/.*"],
+  "Exclude": ["^LICENSE$", "^public/.*", "^packages/cli/src/commands/plugin-create/templates/.*"],
   "AllowedContentTypes": [],
   "PassedFiles": [],
   "Disable": {

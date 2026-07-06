@@ -3,10 +3,12 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+import type { CapabilityKey } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
+import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
@@ -249,6 +251,72 @@ await yargs(hideBin(process.argv))
 		async (argv) => {
 			const loaded = await loadConfig(argv.cwd);
 			console.log(JSON.stringify(loaded.resolved, null, 2));
+		}
+	)
+	.command(
+		"plugin create <slug> <vendor>",
+		"Scaffold a new @theholocron/holocron-plugin-<slug> package",
+		(y) =>
+			y
+				.positional("slug", { type: "string", demandOption: true, describe: "Package slug (kebab-case)" })
+				.positional("vendor", {
+					type: "string",
+					demandOption: true,
+					describe: "Vendor display name (PascalCase)",
+				})
+				.option("capability", {
+					type: "string",
+					describe:
+						"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|observability",
+				})
+				.option("token-env", {
+					type: "string",
+					describe: "Holocron env var name (defaults to HOLOCRON_<VENDOR>_TOKEN)",
+				})
+				.option("vendor-env", {
+					type: "string",
+					describe: "Vendor-native env var name",
+				})
+				.option("base-url", {
+					type: "string",
+					describe: "REST base URL",
+				})
+				.option("verify", {
+					type: "boolean",
+					default: true,
+					describe:
+						"Run post-scaffold pnpm install + typecheck + lint + test (default true; --no-verify skips)",
+				}),
+		(argv) => {
+			try {
+				if (!argv.capability || !argv.vendorEnv || !argv.baseUrl) {
+					throw new PluginCreateError(
+						"Phase A: --capability, --vendor-env, and --base-url are required. " +
+							"Interactive prompts land in Phase B."
+					);
+				}
+				const report = runPluginCreate({
+					slug: argv.slug as string,
+					vendorName: argv.vendor as string,
+					capability: argv.capability as CapabilityKey,
+					vendorEnv: argv.vendorEnv as string,
+					baseUrl: argv.baseUrl as string,
+					...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv as string } : {}),
+					dryRun: argv.dryRun,
+					// Yargs: `--no-verify` flips `argv.verify` to false. We pass
+					// the inverse to preserve the internal `noVerify` naming.
+					noVerify: !argv.verify,
+					cwd: argv.cwd,
+				});
+				if (report.status === "fail") process.exitCode = 1;
+			} catch (err) {
+				if (err instanceof PluginCreateError) {
+					console.error(`plugin create: ${err.message}`);
+					process.exitCode = 1;
+					return;
+				}
+				throw err;
+			}
 		}
 	)
 	.command(

@@ -1,0 +1,62 @@
+import type { TemplateInputs } from "../template-inputs.js";
+
+export function render(inputs: TemplateInputs): string {
+	return `{
+  "name": "@theholocron/holocron-plugin-${inputs.slug}",
+  "version": "2.0.0-alpha.1",
+  "description": "Holocron plugin for ${inputs.vendorName}. Implements the ${inputs.capability} capability against ${inputs.vendorName}'s REST API, plus exports verifyToken + AUTH_HINT for \`holocron auth\`.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-${inputs.slug}#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/holocron-plugin-${inputs.slug}"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/tsconfig": "catalog:",
+    "@tsconfig/node-lts": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "tsdown": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
+`;
+}

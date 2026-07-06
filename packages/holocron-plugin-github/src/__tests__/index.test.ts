@@ -19,9 +19,7 @@ const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" 
 
 describe("createPlugin", () => {
 	it("throws AuthError when no token is found", () => {
-		expect(() =>
-			createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null })
-		).toThrow(AuthError);
+		expect(() => createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null })).toThrow(AuthError);
 	});
 
 	it("wires every capability with the right concrete implementation", () => {
