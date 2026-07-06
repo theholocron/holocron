@@ -7,7 +7,7 @@ function makeSpawn(result: {
 	stdout?: string;
 	stderr?: string;
 	error?: Error;
-}): (typeof import("node:child_process").spawnSync) {
+}): typeof import("node:child_process").spawnSync {
 	return vi.fn(() => ({
 		status: result.status ?? 0,
 		stdout: result.stdout ?? "",

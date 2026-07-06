@@ -59,9 +59,9 @@ precedence still work; step 4 quietly falls through.
 ```
 
 - `project` (required) — Doppler project name. `read` / `list` /
-	bootstrap operations default to this project.
+  bootstrap operations default to this project.
 - `config` (required) — Doppler config name (usually `dev`, `stg`, or
-	`prd`). `list()` reads secrets from this config.
+  `prd`). `list()` reads secrets from this config.
 
 Individual `read` / `write` calls take a fully-qualified reference:
 
@@ -75,23 +75,23 @@ reference doesn't make sense.
 
 ## What's implemented
 
-| Method              | Behavior                                                                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `read`              | `GET /v3/configs/config/secret?project&config&name`. Returns `value.computed` when present, else `value.raw`.                |
-| `write`             | `POST /v3/configs/config/secrets` with `{ project, config, secrets: {name: value} }`. Doppler's native upsert — no probe.    |
-| `list`              | `GET /v3/configs/config/secrets` on the default project + config.                                                            |
-| `environments`      | `GET /v3/environments?project`. Returns environment slugs (`dev`/`stg`/`prd`).                                               |
-| `readEnvironment`   | `GET /v3/configs/config/secrets/download?format=json` — bulk KEY=VALUE dump for `holocron secrets sync`.                     |
-| `ensureProject`     | `POST /v3/projects`, treats 409/422 "already exists" as idempotent no-op.                                                    |
-| `ensureEnvironment` | `POST /v3/environments`, same idempotency semantics.                                                                         |
+| Method              | Behavior                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `read`              | `GET /v3/configs/config/secret?project&config&name`. Returns `value.computed` when present, else `value.raw`.             |
+| `write`             | `POST /v3/configs/config/secrets` with `{ project, config, secrets: {name: value} }`. Doppler's native upsert — no probe. |
+| `list`              | `GET /v3/configs/config/secrets` on the default project + config.                                                         |
+| `environments`      | `GET /v3/environments?project`. Returns environment slugs (`dev`/`stg`/`prd`).                                            |
+| `readEnvironment`   | `GET /v3/configs/config/secrets/download?format=json` — bulk KEY=VALUE dump for `holocron secrets sync`.                  |
+| `ensureProject`     | `POST /v3/projects`, treats 409/422 "already exists" as idempotent no-op.                                                 |
+| `ensureEnvironment` | `POST /v3/environments`, same idempotency semantics.                                                                      |
 
 Plugin-level exports (not capability methods, per the auth-bootstrap
 convention):
 
-| Export        | Purpose                                                                                       |
-| ------------- | --------------------------------------------------------------------------------------------- |
-| `verifyToken` | `GET /v3/me` — returns `{ok: true, subject: "personal @ acme"}` or `{ok: false, message}`.    |
-| `AUTH_HINT`   | One-line hint printed by `holocron auth set` when no token is supplied or the token is bad.   |
+| Export        | Purpose                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `verifyToken` | `GET /v3/me` — returns `{ok: true, subject: "personal @ acme"}` or `{ok: false, message}`.  |
+| `AUTH_HINT`   | One-line hint printed by `holocron auth set` when no token is supplied or the token is bad. |
 
 ## Status
 
