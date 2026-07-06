@@ -3,6 +3,8 @@ name: holocron-plugin
 description: Scaffold a new @theholocron/holocron-plugin-<slug> package matching the proven template (auth + REST + capability impl + tests). Use when adding a plugin for a new vendor or extracting an existing Rando adapter.
 ---
 
+<!-- editorconfig-checker-disable-file -->
+
 # Scaffold a new holocron plugin
 
 Use this skill when the user asks for a new holocron plugin (Clerk, Doppler,

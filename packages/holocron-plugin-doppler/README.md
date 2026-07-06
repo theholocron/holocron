@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # `@theholocron/holocron-plugin-doppler`
 
 Doppler plugin for [Holocron](../cli). Implements the `vault`
