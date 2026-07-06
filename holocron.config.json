@@ -8,6 +8,7 @@
     "source": "github",
     "ci": "github",
     "secrets": "github",
-    "environments": "github"
+    "environments": "github",
+    "issues": ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }]
   }
 }

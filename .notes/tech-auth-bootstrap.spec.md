@@ -202,7 +202,11 @@ For this repo's own vault today:
   single service scope. If someone runs multiple holocron projects
   on the same machine and wants different Doppler tokens per
   project, they use `--token` or env vars per-project. Not adding
-  project-scoped keyring keys until someone asks.
+  project-scoped keyring keys until someone asks. When we do:
+  additive `scope?` param on `setToken` / `getToken` / `deleteToken`
+  keeps existing callers on the default scope; new callers opt in
+  via `HOLOCRON_PROFILE` env, a `--scope` flag, or a `profile` field
+  in `holocron.config.json`. Non-breaking.
 - **Encrypted local file fallback** for platforms without keyring.
   `@napi-rs/keyring` supports macOS Keychain, Linux Secret Service,
   Windows Credential Manager. Bare Linux servers without

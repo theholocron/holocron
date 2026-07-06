@@ -139,15 +139,33 @@ scripts/bump-versions.mjs         — lockstep version bump invoked by semantic-
 ## What's deliberately out of scope (for now)
 
 These are real future work captured as tracking issues — DO NOT
-build them speculatively; pick up the issue when ready.
+build them speculatively; pick up the issue when ready. Cross-check
+against `.notes/*.spec.md` before starting; several already have
+design docs.
 
 - **#75** Shareable configs (per-capability + whole-config presets,
   ESLint-`extends`-style)
-- **#76** Per-plugin `transport: 'rest' | 'cli'` option
+- **#76** Per-plugin `transport: 'rest' | 'cli'` option — priority
+  dropped after 1P deprecation (only CLI-transport user); see
+  `.notes/tech-vault-choice.spec.md` §Downstream consequences.
 - **#77** `holocron plugin create` CLI command (promote the
-  scaffolding skill to a first-class CLI feature)
-- **#78** CLI-transport sibling skill
+  scaffolding skill to a first-class CLI feature) — spec at
+  `.notes/tool-plugin-create.spec.md` (Phase 1 unblocked).
+- **#78** CLI-transport sibling skill — same "priority dropped"
+  as #76.
 - **#79** Multi-plugin `--token` disambiguation
 - **#80** Real Svix HMAC verification in `parseWebhook`
 - **#81** `defineConfig({})` API + JS/TS config file format
-- **#82** Extend `holocron setup` with repo policy + branch protection
+- **#82** Extend `holocron setup` with repo policy + branch
+  protection — spec at `.notes/tech-setup-and-config.spec.md`
+  (also covers `project.repo` config field + capability-factory
+  lazy-load pattern discovered during v2 alpha migration).
+
+Additional session-derived design docs (not on GitHub yet — file
+issues when the work is scheduled):
+
+- `.notes/tech-auth-bootstrap.spec.md` — keyring-backed bootstrap
+  credentials + `holocron auth` subcommand. Foundation shipped in
+  PR #94; ongoing pattern for future plugins.
+- `.notes/tech-vault-choice.spec.md` — Doppler + Infisical adoption,
+  1P deprecation roadmap.
