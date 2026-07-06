@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { PluginCreateError, runPluginCreate } from "../commands/plugin-create/index.js";
@@ -16,8 +19,11 @@ function makeFakeFs() {
 	};
 }
 
-// Point the CWD at the real workspace root so the preflight passes.
-const WORKSPACE_ROOT = "/Users/archives/Code/theholocron/holocron";
+// Derive the workspace root from this file's location — portable
+// across local dev, CI, and any other check-out path.
+//   packages/cli/src/__tests__/plugin-create.test.ts → up 4 → root
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const WORKSPACE_ROOT = path.resolve(HERE, "../../../..");
 
 const BASE_INPUT = {
 	slug: "nonexistent-fake-slug",

@@ -129,9 +129,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 
 	const packageDir = path.join(cwd, "packages", `holocron-plugin-${input.slug}`);
 	if (existsSync(packageDir)) {
-		throw new PluginCreateError(
-			`\`${packageDir}\` already exists — edit in place or pick a different slug.`
-		);
+		throw new PluginCreateError(`\`${packageDir}\` already exists — edit in place or pick a different slug.`);
 	}
 
 	validateCapability(input.capability, print);
@@ -213,10 +211,14 @@ function printNextSteps(print: (line: string) => void, inputs: TemplateInputs): 
 	print(`  Scaffolded @theholocron/holocron-plugin-${inputs.slug} (17 files).`);
 	print("");
 	print("  Next:");
-	print(`    1. pnpm install                                                        # picks up the workspace package`);
+	print(
+		`    1. pnpm install                                                        # picks up the workspace package`
+	);
 	print(`    2. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} typecheck   # green`);
 	print(`    3. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} lint        # green`);
-	print(`    4. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} test        # green (stubs pass, real tests are it.todo)`);
+	print(
+		`    4. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} test        # green (stubs pass, real tests are it.todo)`
+	);
 	print(`    5. Implement ${inputs.capabilityClass} methods in src/capabilities/${inputs.capability}.ts`);
 	print(`    6. Replace it.todo(...) with real tests in src/__tests__/${inputs.capability}.test.ts`);
 	print("    7. Commit + push when capability is functionally complete.");
