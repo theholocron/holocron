@@ -10,10 +10,18 @@
  * follow-up tracked separately.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-postman validate
+ *   pnpm --filter @theholocron/holocron-plugin-postman validate <workspaceId>
  */
 
 import { AuthError, createPlugin, resolveToken } from "../src/index.ts";
+
+const [workspaceId] = process.argv.slice(2);
+
+if (!workspaceId) {
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-postman validate <workspaceId>");
+	console.error("  find workspaceId at https://postman.co → your workspace → Settings → General → Info");
+	process.exit(2);
+}
 
 let token;
 try {
@@ -28,9 +36,10 @@ try {
 }
 
 console.log("Validating @theholocron/holocron-plugin-postman (READ-ONLY)");
+console.log(`  workspaceId: ${workspaceId}`);
 console.log("");
 
-const plugin = createPlugin({ cliToken: token });
+const plugin = createPlugin({ cliToken: token, workspaceId });
 const toolings = plugin.capabilities.tooling;
 // `tooling` is many-cardinality — resolves to an array. Postman may be
 // the only one loaded here since we constructed the plugin directly.
