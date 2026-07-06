@@ -25,7 +25,8 @@ export function render(inputs: TemplateInputs): string {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*"
@@ -39,7 +40,8 @@ export function render(inputs: TemplateInputs): string {
     "globals": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "tsdown": "catalog:"
+    "tsdown": "catalog:",
+    "tsx": "catalog:"
   },
   "publishConfig": {
     "access": "public",

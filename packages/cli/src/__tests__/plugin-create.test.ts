@@ -43,8 +43,8 @@ describe("runPluginCreate — orchestrator", () => {
 			print: () => {},
 		});
 		expect(report.status).toBe("ok");
-		expect(report.filesWritten).toHaveLength(17);
-		expect(fs.size()).toBe(17);
+		expect(report.filesWritten).toHaveLength(18);
+		expect(fs.size()).toBe(18);
 	});
 
 	it("resolves {{capability}} in paths to the chosen capability key", () => {
@@ -70,7 +70,7 @@ describe("runPluginCreate — orchestrator", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(fs.size()).toBe(0);
-		expect(report.filesWritten).toHaveLength(17);
+		expect(report.filesWritten).toHaveLength(18);
 	});
 
 	it("preflight fails when CWD is not a workspace root", () => {

@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*"
@@ -34,9 +35,10 @@
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "tsdown": "catalog:"
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",

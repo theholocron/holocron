@@ -39,6 +39,7 @@ import { render as renderRest } from "./templates/rest.js";
 import { render as renderRestTest } from "./templates/rest-test.js";
 import { render as renderTsconfigJson } from "./templates/tsconfig-json.js";
 import { render as renderTsdownConfig } from "./templates/tsdown-config.js";
+import { render as renderValidateScript } from "./templates/validate-script.js";
 import { render as renderVerifyToken } from "./templates/verify-token.js";
 import { render as renderVerifyTokenTest } from "./templates/verify-token-test.js";
 import { render as renderVitestConfig } from "./templates/vitest-config.js";
@@ -111,6 +112,8 @@ const TEMPLATES: TemplateEntry[] = [
 	{ path: "src/__tests__/verify-token.test.ts", render: renderVerifyTokenTest },
 	{ path: "src/__tests__/{{capability}}.test.ts", render: renderCapabilityTest },
 	{ path: "src/__tests__/index.test.ts", render: renderIndexTest },
+	// Live-account validation script (1) — read-only smoke test.
+	{ path: "scripts/validate.mjs", render: renderValidateScript },
 ];
 
 /** Replace `{{capability}}` in a template path with the actual capability key. */
@@ -251,7 +254,7 @@ function defaultWrite(filepath: string, content: string): void {
 
 function printNextSteps(print: (line: string) => void, inputs: TemplateInputs): void {
 	print("");
-	print(`  Scaffolded @theholocron/holocron-plugin-${inputs.slug} (17 files).`);
+	print(`  Scaffolded @theholocron/holocron-plugin-${inputs.slug} (18 files).`);
 	print("");
 	print("  Next:");
 	print(
