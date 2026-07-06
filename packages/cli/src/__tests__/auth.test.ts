@@ -30,8 +30,8 @@ vi.mock("@napi-rs/keyring", () => {
 	return { Entry, findCredentials };
 });
 
-const { runAuthCheck, runAuthList, runAuthSet, runAuthUnset, resolveAuthSetToken } = await import(
-	"../commands/auth.js"
+const { runAuthCheck, runAuthList, runAuthSet, runAuthUnset, resolveAuthSetToken } =
+	await import("../commands/auth.js");
 );
 
 function reset() {
