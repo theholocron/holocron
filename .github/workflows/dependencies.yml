@@ -9,5 +9,5 @@ permissions:
 
 jobs:
   dependencies:
-    uses: theholocron/.github/.github/workflows/ci-dependencies.yml@main
+    uses: theholocron/.github/.github/workflows/dependencies.yml@main
     secrets: inherit

@@ -607,8 +607,8 @@ describe("runSetup", () => {
 		});
 
 		expect(Object.keys(written)).toEqual(["lint.yml", "test.yml", "typecheck.yml"]);
-		expect(written["lint.yml"]).toContain("ci-lint.yml@main");
-		expect(written["test.yml"]).toContain("ci-test.yml@main");
+		expect(written["lint.yml"]).toContain("lint.yml@main");
+		expect(written["test.yml"]).toContain("test.yml@main");
 		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
 		expect(workflowSteps).toHaveLength(3);
 		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);

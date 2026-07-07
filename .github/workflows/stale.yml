@@ -11,5 +11,5 @@ permissions:
 
 jobs:
   stale:
-    uses: theholocron/.github/.github/workflows/ci-stale.yml@main
+    uses: theholocron/.github/.github/workflows/stale.yml@main
     secrets: inherit

@@ -12,5 +12,5 @@ permissions:
 
 jobs:
   bookkeeping:
-    uses: theholocron/.github/.github/workflows/ci-bookkeeping-pr.yml@main
+    uses: theholocron/.github/.github/workflows/bookkeeping-pr.yml@main
     secrets: inherit

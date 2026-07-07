@@ -10,7 +10,7 @@ const WORKFLOW_REPO = "theholocron/.github";
 const WORKFLOW_REF = "main";
 
 function ref(name: string): string {
-	return `${WORKFLOW_REPO}/.github/workflows/ci-${name}.yml@${WORKFLOW_REF}`;
+	return `${WORKFLOW_REPO}/.github/workflows/${name}.yml@${WORKFLOW_REF}`;
 }
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {

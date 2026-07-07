@@ -13,5 +13,5 @@ permissions:
 
 jobs:
   test:
-    uses: theholocron/.github/.github/workflows/ci-test.yml@main
+    uses: theholocron/.github/.github/workflows/test.yml@main
     secrets: inherit

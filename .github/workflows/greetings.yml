@@ -10,5 +10,5 @@ permissions:
 
 jobs:
   greetings:
-    uses: theholocron/.github/.github/workflows/ci-greetings.yml@main
+    uses: theholocron/.github/.github/workflows/greetings.yml@main
     secrets: inherit

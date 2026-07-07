@@ -17,5 +17,5 @@ permissions:
 
 jobs:
   codeql:
-    uses: theholocron/.github/.github/workflows/ci-codeql.yml@main
+    uses: theholocron/.github/.github/workflows/codeql.yml@main
     secrets: inherit

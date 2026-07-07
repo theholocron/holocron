@@ -10,5 +10,5 @@ permissions:
 
 jobs:
   review:
-    uses: theholocron/.github/.github/workflows/ci-review.yml@main
+    uses: theholocron/.github/.github/workflows/review.yml@main
     secrets: inherit
