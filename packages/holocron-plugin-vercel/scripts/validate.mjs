@@ -2,18 +2,14 @@
 /**
  * Read-only smoke test for @theholocron/holocron-plugin-vercel.
  *
- * READ-ONLY. Tests deployment.listProjects — proves auth + endpoint.
- *
- * NOTE: this plugin hasn't been auth-modernized yet (no keyring
- * lookup, no verifyToken export). Uses the plugin's own resolveToken
- * which reads `--token` → HOLOCRON_VERCEL_TOKEN → VERCEL_TOKEN.
- * A follow-up will add keyring + verifyToken support.
+ * READ-ONLY. Tests verifyToken + deployment.listProjects — proves
+ * auth, endpoint, and response parsing.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-vercel validate [projectId]
  */
 
-import { AuthError, createPlugin, resolveToken } from "../src/index.ts";
+import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 const [projectId] = process.argv.slice(2);
 
@@ -33,10 +29,19 @@ console.log("Validating @theholocron/holocron-plugin-vercel (READ-ONLY)");
 if (projectId) console.log(`  projectId: ${projectId}`);
 console.log("");
 
+console.log("[1/3] verifyToken");
+const verifyResult = await verifyToken(token);
+console.log(`      ${verifyResult.ok ? "✓" : "✗"} ${JSON.stringify(verifyResult)}`);
+if (!verifyResult.ok) {
+	const hint = hintFor(verifyResult.message);
+	if (hint) console.log(`         hint: ${hint}`);
+}
+console.log("");
+
 const plugin = createPlugin({ cliToken: token });
 const deployment = plugin.capabilities.deployment();
 
-console.log("[1/2] deployment.listProjects()");
+console.log("[2/3] deployment.listProjects()");
 await runStep(async () => {
 	const projects = await deployment.listProjects();
 	console.log(`      ✓ ${projects.length} project${projects.length === 1 ? "" : "s"}`);
@@ -49,7 +54,7 @@ await runStep(async () => {
 });
 console.log("");
 
-console.log("[2/2] deployment.listEnvVars(projectId, 'production')");
+console.log("[3/3] deployment.listEnvVars(projectId, 'production')");
 if (!projectId) {
 	console.log("      · skipped (no projectId provided)");
 } else {

@@ -26,7 +26,7 @@ describe("resolveToken", () => {
 
 	it("throws AuthError when nothing is set", () => {
 		try {
-			resolveToken({ env: {} });
+			resolveToken({ env: {}, keyring: () => null });
 			throw new Error("expected throw");
 		} catch (err) {
 			expect(err).toBeInstanceOf(AuthError);

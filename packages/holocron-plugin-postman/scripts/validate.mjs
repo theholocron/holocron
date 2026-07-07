@@ -2,18 +2,14 @@
 /**
  * Read-only smoke test for @theholocron/holocron-plugin-postman.
  *
- * READ-ONLY. Tests tooling.doctor which returns whether Postman is
- * reachable and the auth is valid.
- *
- * NOTE: no keyring / verifyToken yet — uses `--token` →
- * HOLOCRON_POSTMAN_API_KEY → POSTMAN_API_KEY only. Auth-modernization
- * follow-up tracked separately.
+ * READ-ONLY. Tests verifyToken + tooling.doctor — proves auth,
+ * endpoint, and vendor reachability.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-postman validate <workspaceId>
  */
 
-import { AuthError, createPlugin, resolveToken } from "../src/index.ts";
+import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 const [workspaceId] = process.argv.slice(2);
 
@@ -39,6 +35,15 @@ console.log("Validating @theholocron/holocron-plugin-postman (READ-ONLY)");
 console.log(`  workspaceId: ${workspaceId}`);
 console.log("");
 
+console.log("[1/2] verifyToken");
+const verifyResult = await verifyToken(token);
+console.log(`      ${verifyResult.ok ? "✓" : "✗"} ${JSON.stringify(verifyResult)}`);
+if (!verifyResult.ok) {
+	const hint = hintFor(verifyResult.message);
+	if (hint) console.log(`         hint: ${hint}`);
+}
+console.log("");
+
 const plugin = createPlugin({ cliToken: token, workspaceId });
 const toolings = plugin.capabilities.tooling;
 // `tooling` is many-cardinality — resolves to an array. Postman may be
@@ -50,7 +55,7 @@ const tools =
 			? toolings.map((t) => (typeof t === "function" ? t() : t))
 			: [];
 
-console.log(`[1/1] tooling.doctor()  (${tools.length} tooling provider${tools.length === 1 ? "" : "s"})`);
+console.log(`[2/2] tooling.doctor()  (${tools.length} tooling provider${tools.length === 1 ? "" : "s"})`);
 for (const tool of tools) {
 	await runStep(async () => {
 		const report = await tool.doctor();
