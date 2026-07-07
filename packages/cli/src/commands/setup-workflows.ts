@@ -213,6 +213,7 @@ name: Audit
 
 on: # yamllint disable-line rule:truthy
   push:
+  pull_request:
 
 permissions:
   contents: read
