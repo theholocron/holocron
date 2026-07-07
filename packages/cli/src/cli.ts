@@ -1,5 +1,7 @@
 #!/usr/bin/env -S tsx
 
+import { readFileSync } from "node:fs";
+
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -13,6 +15,10 @@ import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
 import { loadConfig } from "./load-config.js";
+
+const { version: CLI_VERSION } = JSON.parse(
+	readFileSync(new URL("../package.json", import.meta.url), "utf-8")
+) as { version: string };
 
 await yargs(hideBin(process.argv))
 	.scriptName("holocron")
@@ -42,7 +48,7 @@ await yargs(hideBin(process.argv))
 		"Print the CLI version",
 		() => {},
 		() => {
-			console.log("holocron 2.0.0-alpha.0");
+			console.log(`holocron ${CLI_VERSION}`);
 		}
 	)
 	.command(
