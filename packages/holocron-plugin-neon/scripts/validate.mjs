@@ -2,17 +2,14 @@
 /**
  * Read-only smoke test for @theholocron/holocron-plugin-neon.
  *
- * READ-ONLY. Tests storage.listBranches — proves auth + endpoint.
- *
- * NOTE: no keyring / verifyToken yet — this plugin still uses
- * `--token` → HOLOCRON_NEON_API_KEY → NEON_API_KEY only.
- * Auth-modernization follow-up tracked separately.
+ * READ-ONLY. Tests verifyToken + storage.listBranches — proves auth,
+ * endpoint, and response parsing.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-neon validate <projectId>
  */
 
-import { AuthError, createPlugin, resolveToken } from "../src/index.ts";
+import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 const [projectId] = process.argv.slice(2);
 
@@ -38,10 +35,19 @@ console.log("Validating @theholocron/holocron-plugin-neon (READ-ONLY)");
 console.log(`  projectId: ${projectId}`);
 console.log("");
 
+console.log("[1/2] verifyToken");
+const verifyResult = await verifyToken(token);
+console.log(`      ${verifyResult.ok ? "✓" : "✗"} ${JSON.stringify(verifyResult)}`);
+if (!verifyResult.ok) {
+	const hint = hintFor(verifyResult.message);
+	if (hint) console.log(`         hint: ${hint}`);
+}
+console.log("");
+
 const plugin = createPlugin({ cliToken: token, projectId });
 const storage = plugin.capabilities.storage();
 
-console.log("[1/1] storage.listBranches()");
+console.log("[2/2] storage.listBranches()");
 await runStep(async () => {
 	const branches = await storage.listBranches();
 	console.log(`      ✓ ${branches.length} branch${branches.length === 1 ? "" : "es"}`);

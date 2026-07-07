@@ -57,8 +57,20 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set vercel` when no token
+ * is supplied or the supplied token is rejected. Points operators at
+ * https://vercel.com/account/tokens where PATs are minted with
+ * "Full Account" scope for team-level ops.
+ */
+export const AUTH_HINT =
+	"generate a Vercel Personal Access Token at https://vercel.com/account/tokens " +
+	"(scope: Full Account for team ops), then run: holocron auth set vercel <PAT>";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
 export { VercelRestClient } from "./rest.js";
 export { VercelDeployment } from "./capabilities/deployment.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

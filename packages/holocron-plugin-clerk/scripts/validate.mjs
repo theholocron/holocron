@@ -2,18 +2,14 @@
 /**
  * Read-only smoke test for @theholocron/holocron-plugin-clerk.
  *
- * READ-ONLY. Tests auth.describe + auth.whoami — the two guaranteed
- * capability methods.
- *
- * NOTE: no keyring / verifyToken yet — uses `--token` →
- * HOLOCRON_CLERK_TOKEN → CLERK_SECRET_KEY only. Auth-modernization
- * follow-up tracked separately.
+ * READ-ONLY. Tests verifyToken + auth.describe + auth.whoami — proves
+ * auth, endpoint, and the two guaranteed capability methods.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-clerk validate
  */
 
-import { AuthError, createPlugin, resolveToken } from "../src/index.ts";
+import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 let token;
 try {
@@ -30,10 +26,19 @@ try {
 console.log("Validating @theholocron/holocron-plugin-clerk (READ-ONLY)");
 console.log("");
 
+console.log("[1/3] verifyToken");
+const verifyResult = await verifyToken(token);
+console.log(`      ${verifyResult.ok ? "✓" : "✗"} ${JSON.stringify(verifyResult)}`);
+if (!verifyResult.ok) {
+	const hint = hintFor(verifyResult.message);
+	if (hint) console.log(`         hint: ${hint}`);
+}
+console.log("");
+
 const plugin = createPlugin({ cliToken: token });
 const auth = plugin.capabilities.auth();
 
-console.log("[1/2] auth.describe()");
+console.log("[2/3] auth.describe()");
 await runStep(async () => {
 	const desc = await auth.describe();
 	console.log(`      ✓ provider: ${desc.provider}`);
@@ -41,7 +46,7 @@ await runStep(async () => {
 });
 console.log("");
 
-console.log("[2/2] auth.whoami()");
+console.log("[3/3] auth.whoami()");
 await runStep(async () => {
 	const identity = await auth.whoami();
 	console.log(`      ✓ provider: ${identity.provider}`);

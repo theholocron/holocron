@@ -53,8 +53,20 @@ export function createPlugin(options: NeonPluginOptions) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set neon` when no token
+ * is supplied or the supplied token is rejected. Points operators
+ * at https://console.neon.tech/app/settings/api-keys where API keys
+ * are minted.
+ */
+export const AUTH_HINT =
+	"generate a Neon API key at https://console.neon.tech/app/settings/api-keys, " +
+	"then run: holocron auth set neon <KEY>";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
 export { NeonRestClient } from "./rest.js";
 export { NeonStorage } from "./capabilities/storage.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

@@ -59,9 +59,19 @@ export function createPlugin(options: PostmanPluginOptions) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set postman` when no
+ * token is supplied or the supplied token is rejected.
+ */
+export const AUTH_HINT =
+	"generate a Postman API key at https://postman.co/settings/me/api-keys, " +
+	"then run: holocron auth set postman <KEY>";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
 export { PostmanPlanLimitError, detectPlanLimit } from "./errors.js";
 export { PostmanRestClient } from "./rest.js";
 export { PostmanTooling } from "./capabilities/tooling.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
