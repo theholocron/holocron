@@ -18,11 +18,14 @@ blocked-by: []
 > `--base-url` are missing; interactive prompts + post-scaffold
 > `pnpm install + typecheck + lint + test` are next.
 >
-> Phase 2 (`--transport cli` variant) is gated on #76 (per-plugin
-> `transport` option in `holocron.config.json`) and #78
-> (CLI-transport sibling skill); adding the flag later is additive
-> and won't reshape Phase 1's template surface. Phase 3
-> (`--from-rando`) is a nice-to-have.
+> **Phase 2 (`--transport cli` variant) is CANCELLED** as of
+> 2026-07-06 — its two prerequisites (#76 per-plugin `transport`
+> option, #78 CLI-transport sibling skill) both closed as won't-fix.
+> 1P remains the sole CLI-transport plugin and no additional
+> CLI-transport plugins are planned. If that ever changes,
+> hand-modify from 1P as the reference and file a fresh focused
+> issue rather than reviving Phase 2 here. Phase 3 (`--from-rando`)
+> remains a nice-to-have.
 
 ## Decision
 
@@ -64,8 +67,8 @@ holocron plugin create <slug> <vendor>
                                  # (interactive prompt if omitted)
     [--base-url <URL>]           # REST base URL
                                  # (interactive prompt if omitted)
-    [--transport <rest|cli>]     # default: rest
-                                 # cli transport blocked pending #78
+    # --transport was planned but CANCELLED (see §Roadmap Phase 2).
+    # REST-only scaffolding covers every plugin now on the roster.
     [--dry-run]                  # print the file list, write nothing
     [--no-verify]                # skip post-scaffold pnpm install/typecheck/lint/test
 ```
@@ -150,8 +153,10 @@ Inline TS over file-based `.tmpl` templates because:
   doesn't overwhelm the codebase
 
 Each template exports `(inputs: TemplateInputs) => string` and takes
-the same input record — a tagged discriminated union for
-REST/CLI-transport variants (CLI-transport variant deferred to #78).
+the same input record. The original design anticipated a tagged
+discriminated union for REST/CLI-transport variants; with Phase 2
+cancelled, `TemplateInputs.transport` is effectively a constant `"rest"`
+and can be removed in a future cleanup pass.
 
 ### `TemplateInputs`
 
@@ -165,7 +170,7 @@ interface TemplateInputs {
     tokenEnv: string;                   // 'HOLOCRON_CLERK_TOKEN'
     vendorEnv: string;                  // 'CLERK_SECRET_KEY'
     baseUrl: string;                    // 'https://api.clerk.com/v1'
-    transport: "rest";                  // 'cli' variant pending #78
+    transport: "rest";                  // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
 }
 ```
 
@@ -245,9 +250,12 @@ throwaway plugin, `.claude/skills/holocron-plugin.md` becomes a
   typecheck lint test`) gated by `--no-verify`. Full integration
   test (behind an env flag — spawns pnpm install and typechecks
   the generated package end-to-end).
-- **Phase 2** (needs #76+#78): Add `--transport cli` variant.
-  Requires the `transport` option in `holocron.config.json` (#76)
-  and the CLI-transport skill/design (#78).
+- **Phase 2** (**CANCELLED** 2026-07-06): originally to add a
+  `--transport cli` variant. Both prerequisites (#76 per-plugin
+  transport option, #78 CLI-transport sibling skill) were closed as
+  won't-fix. 1P stays as the sole CLI-transport plugin; if another
+  ever surfaces, hand-modify from 1P as the reference and open a
+  fresh focused issue rather than reopening this phase.
 - **Phase 3** (later): Add `--from-rando <path>` flag that reads an
   existing Rando adapter and pre-fills the template — turns the
   Rando-porting checklist at the bottom of the (now-stub) skill
