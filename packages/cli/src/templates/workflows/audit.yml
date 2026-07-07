@@ -1,0 +1,32 @@
+name: Audit
+
+on:
+  workflow_call:
+    inputs:
+      build-script:
+        description: Script to build before analyzing bundle size
+        type: string
+        required: false
+        default: pnpm build
+    secrets:
+      BUNDLEWATCH_GITHUB_TOKEN:
+        required: true
+
+jobs:
+  bundle-size:
+    name: Audit the bundle size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: jackyef/bundlewatch-gh-action@0.3.0
+        name: Analyze using BundleWatch
+        with:
+          build-script: ${{ inputs.build-script }}
+          bundlewatch-github-token: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}

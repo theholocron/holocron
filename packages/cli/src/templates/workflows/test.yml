@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+jobs:
+  unit:
+    name: Run tests and collect coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: pnpm test -- --coverage
+        name: Run tests with coverage
+
+      - uses: codecov/codecov-action@v4
+        name: Upload results to Codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

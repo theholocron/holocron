@@ -1,0 +1,46 @@
+name: Release
+
+# Semantic-release with OIDC Trusted Publishing — no NPM_TOKEN required.
+# The calling repo must have a .releaserc.json that configures branches,
+# plugins, and any publish options. npm@11+ is installed to support OIDC.
+
+on:
+  workflow_call:
+    inputs:
+      run-build:
+        description: Run `pnpm build` before releasing
+        type: boolean
+        required: false
+        default: true
+
+jobs:
+  release:
+    name: Semantic release
+    permissions:
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: npm install -g npm@11
+        name: Upgrade npm for OIDC support
+
+      - run: pnpm build
+        name: Build
+        if: ${{ inputs.run-build == true }}
+
+      - run: npx semantic-release
+        name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

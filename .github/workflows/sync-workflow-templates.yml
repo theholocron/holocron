@@ -1,0 +1,70 @@
+name: Sync to .github
+
+on:
+  push:
+    branches:
+      - alpha
+      - main
+    paths:
+      - packages/cli/src/commands/setup-workflows.ts
+      - packages/cli/src/templates/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Sync to theholocron/.github
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout holocron
+
+      - uses: actions/checkout@v4
+        name: Checkout .github
+        with:
+          repository: theholocron/.github
+          path: dotgithub
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        name: Setup pnpm
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        name: Setup Node.js
+        with:
+          cache: pnpm
+          node-version: 22.x
+
+      - run: pnpm install --frozen-lockfile
+        name: Install dependencies
+
+      - run: pnpm exec tsx scripts/sync-github.mts dotgithub
+        name: Sync all templates
+
+      - name: Open PR if anything changed
+        run: |
+          cd dotgithub
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes — already in sync."
+            exit 0
+          fi
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-8)
+          BRANCH="chore/sync-from-holocron-${SHORT_SHA}"
+          git checkout -b "$BRANCH"
+          git add .github/actions/ .github/workflows/ workflow-templates/
+          git commit --signoff -m "chore: sync from theholocron/holocron@${SHORT_SHA}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --repo theholocron/.github \
+            --head "$BRANCH" \
+            --base main \
+            --title "chore: sync CI templates from holocron" \
+            --body "Auto-generated from [theholocron/holocron@${SHORT_SHA}](https://github.com/theholocron/holocron/commit/${{ github.sha }})."
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}

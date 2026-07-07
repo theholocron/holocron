@@ -1,0 +1,24 @@
+name: Setup
+description: Prepare the environment and install project dependencies.
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "22.x"
+
+  pnpm-version:
+    description: pnpm version
+    required: false
+    default: "10"
+
+runs:
+  using: composite
+
+  steps:
+    - uses: ./.github/actions/setup-node
+      with:
+        node-version: ${{ inputs.node-version }}
+        pnpm-version: ${{ inputs.pnpm-version }}
+
+    - uses: ./.github/actions/install

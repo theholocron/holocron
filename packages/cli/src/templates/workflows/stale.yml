@@ -1,0 +1,44 @@
+name: Stale
+
+on:
+  workflow_call:
+    inputs:
+      days-before-stale:
+        description: Days of inactivity before an issue is marked stale
+        type: number
+        required: false
+        default: 30
+      days-before-close:
+        description: Days of inactivity after stale label before closing
+        type: number
+        required: false
+        default: 5
+
+jobs:
+  stale:
+    name: Mark stale issues and pull requests
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        name: Run Stale
+        with:
+          close-issue-message: >
+            This issue was closed because it has been stalled for
+            ${{ inputs.days-before-close }} days with no activity.
+          days-before-close: ${{ inputs.days-before-close }}
+          days-before-stale: ${{ inputs.days-before-stale }}
+          exempt-all-pr-milestones: true
+          stale-issue-label: wontfix
+          stale-issue-message: >
+            This issue is stale because it has been open ${{ inputs.days-before-stale }}
+            days with no activity. Remove the stale label or comment, or this will be
+            closed in ${{ inputs.days-before-close }} days.
+          stale-pr-label: wontfix
+          stale-pr-message: >
+            This PR is stale because it has been open ${{ inputs.days-before-stale }}
+            days with no activity. Remove the stale label or comment, or this will be
+            closed in ${{ inputs.days-before-close }} days.
