@@ -576,6 +576,139 @@ describe("runSetup", () => {
 		expect(settingsCalled).toBe(false);
 	});
 
+	it("writes thin wrapper files for each workflow listed in project.workflows", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint", "test", "typecheck"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(Object.keys(written)).toEqual(["lint.yml", "test.yml", "typecheck.yml"]);
+		expect(written["lint.yml"]).toContain("ci-lint.yml@main");
+		expect(written["test.yml"]).toContain("ci-test.yml@main");
+		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
+		expect(workflowSteps).toHaveLength(3);
+		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);
+	});
+
+	it("skips workflow writing when project.workflows is absent", async () => {
+		let writeCallCount = 0;
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {
+						writeCallCount++;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(writeCallCount).toBe(0);
+	});
+
+	it("reports skip for an unknown workflow name", async () => {
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint", "not-a-real-workflow"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const unknownStep = report.steps.find((s) => s.step === "write workflow not-a-real-workflow");
+		expect(unknownStep?.status).toBe("skip");
+		expect(unknownStep?.message).toContain("unknown workflow");
+	});
+
+	it("dry-run skips workflow writes", async () => {
+		let writeCallCount = 0;
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint", "test"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {
+						writeCallCount++;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(writeCallCount).toBe(0);
+		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
+		expect(workflowSteps.every((s) => s.status === "dry-run")).toBe(true);
+	});
+
 	it("output includes a header + summary line", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({

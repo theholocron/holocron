@@ -21,6 +21,7 @@
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { WORKFLOW_TEMPLATES, KNOWN_WORKFLOWS } from "./setup-workflows.js";
 
 // ── repo policy presets ───────────────────────────────────────────────
 
@@ -150,6 +151,31 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					}
 					await source.createRuleset(buildRulesetPayload(requiredChecks));
 					return "created";
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+	}
+
+	// ── source: workflow thin wrappers ──────────────────────────────────
+	const workflows = config.project.workflows;
+	if (loader.has("source") && workflows && workflows.length > 0) {
+		const source = loader.get("source") as Source;
+		print("  → workflows");
+		for (const name of workflows) {
+			if (!KNOWN_WORKFLOWS.has(name)) {
+				steps.push({
+					capability: "source",
+					step: `write workflow ${name}`,
+					status: "skip",
+					message: `unknown workflow "${name}" — no template available`,
+				});
+				print(formatStep(steps[steps.length - 1]!));
+				continue;
+			}
+			steps.push(
+				await runStep("source", `write workflow ${name}`, dryRun, async () => {
+					await source.writeWorkflowFile(`${name}.yml`, WORKFLOW_TEMPLATES[name]!);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));

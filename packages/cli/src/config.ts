@@ -84,6 +84,18 @@ export interface HolocronConfig {
 		 * Requires `source` capability to be configured.
 		 */
 		repoPolicy?: RepoPolicyConfig;
+		/**
+		 * CI workflow names to install as thin wrappers during `holocron setup`.
+		 * Each name maps to a reusable workflow in `theholocron/.github`.
+		 *
+		 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
+		 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping-pr" | "audit"
+		 *
+		 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
+		 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
+		 * Files are overwritten on each run — they are generated artifacts.
+		 */
+		workflows?: string[];
 	};
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
