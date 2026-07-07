@@ -11,7 +11,18 @@
         "vitest + coverage",
         "tsdown (every workspace)"
       ]
-    }
+    },
+    "workflows": [
+      "lint",
+      "test",
+      "typecheck",
+      "codeql",
+      "review",
+      "stale",
+      "greetings",
+      "dependencies",
+      "bookkeeping-pr"
+    ]
   },
   "providers": {
     "vault": [
