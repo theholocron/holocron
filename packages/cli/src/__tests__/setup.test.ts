@@ -381,6 +381,201 @@ describe("runSetup", () => {
 		expect(report.steps.some((s) => s.step.startsWith("ensureEnvironment"))).toBe(false);
 	});
 
+	it("applies balanced repo settings + creates a ruleset when repoPolicy.preset is 'balanced'", async () => {
+		let settingsApplied: Record<string, unknown> | null = null;
+		let rulesetCreated: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			project: { name: "demo", repoPolicy: { preset: "balanced" } },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async (s: Record<string, unknown>) => {
+						settingsApplied = s;
+					},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetCreated = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(settingsApplied).not.toBeNull();
+		expect(settingsApplied).toMatchObject({ allow_squash_merge: true, allow_auto_merge: true, has_wiki: false });
+		expect(rulesetCreated).not.toBeNull();
+		expect(rulesetCreated).toMatchObject({ name: "holocron-default-branch", enforcement: "active" });
+		// balanced has no required_status_checks rule
+		const rules = (rulesetCreated as unknown as { rules: Array<{ type: string }> }).rules;
+		expect(rules.some((r) => r.type === "required_status_checks")).toBe(false);
+		const policySteps = report.steps.filter((s) => s.capability === "source" && s.step === "updateRepoSettings");
+		expect(policySteps[0]?.status).toBe("ok");
+	});
+
+	it("includes required_status_checks rule when preset is 'strict'", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repoPolicy: { preset: "strict", requiredChecks: ["lint", "typecheck", "test"] },
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(rulesetPayload).not.toBeNull();
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule).toBeDefined();
+		expect(checksRule?.parameters).toMatchObject({
+			required_status_checks: [{ context: "lint" }, { context: "typecheck" }, { context: "test" }],
+		});
+	});
+
+	it("updates an existing ruleset instead of creating a new one", async () => {
+		const created: unknown[] = [];
+		const updated: unknown[] = [];
+		const loaded = loadedFrom({
+			project: { name: "demo", repoPolicy: { preset: "balanced" } },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [{ id: 42, name: "holocron-default-branch", enforcement: "active" }],
+					createRuleset: async (p: unknown) => {
+						created.push(p);
+						return { id: 99, name: "holocron-default-branch", enforcement: "active" };
+					},
+					updateRuleset: async (_id: number, p: unknown) => {
+						updated.push(p);
+						return { id: 42, name: "holocron-default-branch", enforcement: "active" };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(created).toHaveLength(0);
+		expect(updated).toHaveLength(1);
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("ok");
+		expect(rulesetStep?.message).toBe("updated");
+	});
+
+	it("skips repo policy steps when preset is 'none'", async () => {
+		let settingsCalled = false;
+		const loaded = loadedFrom({
+			project: { name: "demo", repoPolicy: { preset: "none" } },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {
+						settingsCalled = true;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(settingsCalled).toBe(false);
+		expect(report.steps.some((s) => s.step === "updateRepoSettings")).toBe(false);
+		expect(report.steps.some((s) => s.step.includes("ruleset"))).toBe(false);
+	});
+
+	it("skips repo policy steps when no repoPolicy in config", async () => {
+		let settingsCalled = false;
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {
+						settingsCalled = true;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(settingsCalled).toBe(false);
+	});
+
 	it("output includes a header + summary line", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({

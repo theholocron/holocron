@@ -18,9 +18,60 @@
  * one central place.
  */
 
-import type { Auth, Deployment, Environments, Source, Tooling, Vault } from "../capabilities/index.js";
+import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
+
+// ── repo policy presets ───────────────────────────────────────────────
+
+const RULESET_NAME = "holocron-default-branch";
+
+const BALANCED_REPO_SETTINGS: RepoSettings = {
+	allow_squash_merge: true,
+	allow_merge_commit: false,
+	allow_rebase_merge: false,
+	allow_auto_merge: true,
+	allow_update_branch: true,
+	delete_branch_on_merge: true,
+	has_issues: true,
+	has_discussions: true,
+	has_projects: true,
+	has_wiki: false,
+	web_commit_signoff_required: true,
+};
+
+function buildRulesetPayload(requiredChecks: string[] = []): Record<string, unknown> {
+	const rules: Record<string, unknown>[] = [
+		{ type: "deletion" },
+		{ type: "non_fast_forward" },
+		{
+			type: "pull_request",
+			parameters: {
+				required_approving_review_count: 0,
+				dismiss_stale_reviews_on_push: false,
+				require_code_owner_review: false,
+				require_last_push_approval: false,
+				required_review_thread_resolution: false,
+			},
+		},
+	];
+	if (requiredChecks.length > 0) {
+		rules.push({
+			type: "required_status_checks",
+			parameters: {
+				required_status_checks: requiredChecks.map((context) => ({ context })),
+				strict_required_status_checks_policy: false,
+			},
+		});
+	}
+	return {
+		name: RULESET_NAME,
+		target: "branch",
+		enforcement: "active",
+		conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
+		rules,
+	};
+}
 
 export type SetupPrintLine = (line: string) => void;
 
@@ -59,7 +110,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	print(`  config: ${input.loaded.filepath}`);
 	print("");
 
-	// ── source: security toggles ────────────────────────────────────────
+	// ── source: security toggles + repo policy ──────────────────────────
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
 		print("  → source");
@@ -72,6 +123,33 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			steps.push(
 				await runStep("source", method, dryRun, async () => {
 					await source[method]();
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		const policy = config.project.repoPolicy;
+		if (policy && policy.preset !== "none") {
+			const preset = policy.preset ?? "balanced";
+
+			steps.push(
+				await runStep("source", "updateRepoSettings", dryRun, async () => {
+					await source.updateRepoSettings(BALANCED_REPO_SETTINGS);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+
+			const requiredChecks = preset === "strict" ? (policy.requiredChecks ?? []) : [];
+			steps.push(
+				await runStep("source", `upsert ruleset ${RULESET_NAME}`, dryRun, async () => {
+					const existing = await source.listRulesets();
+					const found = existing.find((r) => r.name === RULESET_NAME);
+					if (found) {
+						await source.updateRuleset(found.id, buildRulesetPayload(requiredChecks));
+						return "updated";
+					}
+					await source.createRuleset(buildRulesetPayload(requiredChecks));
+					return "created";
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));

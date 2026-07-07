@@ -91,10 +91,15 @@ export interface RepoSettings {
 	allow_merge_commit?: boolean;
 	allow_rebase_merge?: boolean;
 	allow_auto_merge?: boolean;
+	/** Always suggest updating PR branches when the base branch has new commits. */
+	allow_update_branch?: boolean;
 	delete_branch_on_merge?: boolean;
 	default_branch?: string;
 	has_issues?: boolean;
 	has_discussions?: boolean;
+	has_projects?: boolean;
+	has_wiki?: boolean;
+	web_commit_signoff_required?: boolean;
 }
 
 export interface RepoRef {

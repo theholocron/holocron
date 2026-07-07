@@ -40,6 +40,23 @@ export type RawProviderEntry = SingleEntry | MultiEntry;
 
 export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>>;
 
+export interface RepoPolicyConfig {
+	/**
+	 * "balanced" — squash-only merges, delete-branch-on-merge, issues/discussions/projects
+	 * enabled, auto-merge enabled, web sign-off required, always suggest updating, no wiki;
+	 * plus a ruleset that blocks force-push + deletion and requires a pull request (0 reviews).
+	 *
+	 * "strict" — everything in "balanced" plus required status checks from `requiredChecks`.
+	 *
+	 * "none" — skips repo settings + ruleset entirely.
+	 *
+	 * @default "balanced"
+	 */
+	preset?: "balanced" | "strict" | "none";
+	/** CI check context names required on the default branch (used by "strict"). */
+	requiredChecks?: string[];
+}
+
 export interface AppConfig {
 	name: string;
 	path: string;
@@ -61,6 +78,12 @@ export interface HolocronConfig {
 		 * invocation. `--repo` on the command line still overrides.
 		 */
 		repo?: string;
+		/**
+		 * Repo-level policy applied by `holocron setup`. Defines merge
+		 * strategy, branch protection rulesets, and security defaults.
+		 * Requires `source` capability to be configured.
+		 */
+		repoPolicy?: RepoPolicyConfig;
 	};
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];

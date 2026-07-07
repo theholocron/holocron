@@ -155,8 +155,16 @@ should read the same field for consistency.
 - **Phase 2** (medium): Lazy-load pattern documented in the plugin
   skill + audited across existing plugins. Update the skill's
   "Patterns that are non-negotiable" section.
-- **Phase 3** (larger): Repo policy + branch protection wired into
-  `runSetup`, config schema extended.
+- **Phase 3** (shipped): `project.repoPolicy` field added to
+  `HolocronConfig`. `runSetup` now calls `source.updateRepoSettings()`
+  (squash-only, auto-merge, issues/discussions/projects on, wiki off,
+  web sign-off, always-suggest-updating) and idempotently creates/
+  updates a GitHub ruleset named `"holocron-default-branch"` (blocks
+  force-push + deletion, requires a pull request, optional required
+  status checks for `preset: "strict"`). Presets: `"balanced"` (default),
+  `"strict"` (+ `requiredChecks`), `"none"` (skip). This repo's
+  `holocron.config.json` now uses `preset: "strict"` with the four
+  CI job names as required checks.
 
 Phase 2 and 3 are independent quick wins that can ship separately.
 
