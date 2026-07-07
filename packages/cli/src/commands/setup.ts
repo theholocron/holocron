@@ -38,7 +38,9 @@ const BALANCED_REPO_SETTINGS: RepoSettings = {
 	has_discussions: true,
 	has_projects: true,
 	has_wiki: false,
-	web_commit_signoff_required: true,
+	// web_commit_signoff_required is intentionally omitted: GitHub rejects this
+	// field when the organization already enforces it at org level (422). Org-level
+	// enforcement already covers every repo — no per-repo override is needed.
 };
 
 function buildRulesetPayload(requiredChecks: string[] = []): Record<string, unknown> {

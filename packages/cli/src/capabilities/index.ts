@@ -99,7 +99,6 @@ export interface RepoSettings {
 	has_discussions?: boolean;
 	has_projects?: boolean;
 	has_wiki?: boolean;
-	web_commit_signoff_required?: boolean;
 }
 
 export interface RepoRef {
