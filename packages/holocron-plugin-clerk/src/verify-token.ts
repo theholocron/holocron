@@ -40,7 +40,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
 	const rest = new ClerkRestClient(restOpts);
 	try {
-		const instance = await rest.request<InstanceResponse>("/v1/instance");
+		const instance = await rest.request<InstanceResponse>("/instance");
 		const env = instance?.environment_type ?? "unknown";
 		const id = instance?.id ?? "unknown";
 		return { ok: true, subject: `${env} instance ${id}` };
