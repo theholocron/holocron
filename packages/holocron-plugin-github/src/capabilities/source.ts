@@ -122,7 +122,10 @@ export class GitHubSource implements Source {
 			`${this.repoPath}/code-scanning/default-setup`,
 			{
 				method: "PATCH",
-				body: { state: "configured", query_suite: "extended", threat_model: "all" },
+				// remote_and_local covers both remote exploits AND local paths
+				// (path traversal, injection via local input, etc.) — this is what
+				// GitHub surfaces as "code quality" alongside the security queries.
+				body: { state: "configured", query_suite: "extended", threat_model: "remote_and_local" },
 			}
 		);
 		return `run ${result.run_id}`;
