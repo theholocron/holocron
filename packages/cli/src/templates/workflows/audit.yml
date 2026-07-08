@@ -23,7 +23,7 @@ jobs:
       group: audit-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         name: Checkout repository
         with:
           fetch-depth: 0
@@ -31,7 +31,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - uses: jackyef/bundlewatch-gh-action@0.3.0
+      - uses: jackyef/bundlewatch-gh-action@01f51133d3580a6daa046ca83eb233d79735e1c1 # 0.3.0
         name: Analyze using BundleWatch
         with:
           build-script: ${{ inputs.build-script }}
