@@ -10,7 +10,7 @@
  */
 
 import { readdir, readFile, rm, writeFile, mkdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 import type { RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
 
@@ -98,15 +98,32 @@ export class GitHubSource implements Source {
 	}
 
 	async enableSecretScanning(): Promise<void> {
-		// PATCHing `security_and_analysis` is the only way to flip both
-		// secret scanning AND its push-protection sibling. Enabling push
-		// protection without secret scanning is a no-op, so we set both.
 		await this.rest.request<void>(this.repoPath, {
 			method: "PATCH",
 			body: {
 				security_and_analysis: {
 					secret_scanning: { status: "enabled" },
 					secret_scanning_push_protection: { status: "enabled" },
+					// Validity checks confirm found secrets are still active (reduces
+					// false positives). Non-provider patterns catches secrets outside
+					// known provider formats. Both require org-level GHAS — accepted
+					// as a no-op until that is enabled.
+					secret_scanning_validity_checks: { status: "enabled" },
+					secret_scanning_non_provider_patterns: { status: "enabled" },
+				},
+			},
+		});
+	}
+
+	async enableDependencyGraph(): Promise<void> {
+		await this.rest.request<void>(this.repoPath, {
+			method: "PATCH",
+			body: {
+				security_and_analysis: {
+					// Auto-on for public repos; explicit for private repos.
+					dependency_graph: { status: "enabled" },
+					// Automatically submits dependency snapshots via GitHub Actions.
+					dependency_graph_autosubmit_action: { status: "enabled" },
 				},
 			},
 		});
@@ -152,6 +169,12 @@ export class GitHubSource implements Source {
 			if (isENOENT(err)) return;
 			throw err;
 		}
+	}
+
+	async writeRepoFile(path: string, contents: string): Promise<void> {
+		const full = join(this.repoRoot, path);
+		await ensureDir(dirname(full));
+		await writeFile(full, contents, "utf8");
 	}
 }
 

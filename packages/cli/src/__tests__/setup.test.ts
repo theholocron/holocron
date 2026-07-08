@@ -34,21 +34,14 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 }
 
 describe("runSetup", () => {
-	it("runs the four source security toggles + reports ok for each", async () => {
+	it("runs all five source security toggles + reports ok for each", async () => {
 		const calls: string[] = [];
 		const source = {
-			enableVulnerabilityAlerts: async () => {
-				calls.push("vuln-alerts");
-			},
-			enableAutomatedSecurityFixes: async () => {
-				calls.push("auto-sec-fixes");
-			},
-			enableSecretScanning: async () => {
-				calls.push("secret-scan");
-			},
-			enablePrivateVulnerabilityReporting: async () => {
-				calls.push("private-vuln");
-			},
+			enableVulnerabilityAlerts: async () => { calls.push("vuln-alerts"); },
+			enableAutomatedSecurityFixes: async () => { calls.push("auto-sec-fixes"); },
+			enableSecretScanning: async () => { calls.push("secret-scan"); },
+			enablePrivateVulnerabilityReporting: async () => { calls.push("private-vuln"); },
+			enableDependencyGraph: async () => { calls.push("dep-graph"); },
 		};
 		const loaded = loadedFrom({
 			project: { name: "demo" },
@@ -68,10 +61,12 @@ describe("runSetup", () => {
 			print: () => {},
 		});
 
-		expect(calls).toEqual(["vuln-alerts", "auto-sec-fixes", "secret-scan", "private-vuln"]);
-		const sourceSteps = report.steps.filter((s) => s.capability === "source");
-		expect(sourceSteps).toHaveLength(4);
-		expect(sourceSteps.every((s) => s.status === "ok")).toBe(true);
+		expect(calls).toEqual(["vuln-alerts", "auto-sec-fixes", "secret-scan", "private-vuln", "dep-graph"]);
+		const securitySteps = report.steps.filter(
+			(s) => s.capability === "source" && !s.step.startsWith("write")
+		);
+		expect(securitySteps).toHaveLength(5);
+		expect(securitySteps.every((s) => s.status === "ok")).toBe(true);
 	});
 
 	it("soft-skips failed steps (continues subsequent capabilities)", async () => {
@@ -94,15 +89,11 @@ describe("runSetup", () => {
 					enableVulnerabilityAlerts: async () => {
 						throw new Error("403 forbidden");
 					},
-					enableAutomatedSecurityFixes: async () => {
-						calls.push("auto-sec-fixes");
-					},
-					enableSecretScanning: async () => {
-						calls.push("secret-scan");
-					},
-					enablePrivateVulnerabilityReporting: async () => {
-						calls.push("private-vuln");
-					},
+					enableAutomatedSecurityFixes: async () => { calls.push("auto-sec-fixes"); },
+					enableSecretScanning: async () => { calls.push("secret-scan"); },
+					enablePrivateVulnerabilityReporting: async () => { calls.push("private-vuln"); },
+					enableDependencyGraph: async () => { calls.push("dep-graph"); },
+					writeRepoFile: async () => {},
 				},
 			}),
 		});

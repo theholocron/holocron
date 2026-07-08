@@ -128,6 +128,14 @@ export interface Source extends ProviderIdentity {
 	enableAutomatedSecurityFixes(): Promise<void>;
 	enableSecretScanning(): Promise<void>;
 	enablePrivateVulnerabilityReporting(): Promise<void>;
+	/**
+	 * Enables the dependency graph and automatic dependency snapshot
+	 * submission. Also enables secret-scanning validity checks and
+	 * non-provider pattern detection — these require GitHub Advanced
+	 * Security at the org level; the call is accepted but may be a no-op
+	 * until that is configured.
+	 */
+	enableDependencyGraph(): Promise<void>;
 
 	// Workflow files — local YAML files in `.github/workflows/` (or
 	// equivalent). These are conceptually repo content; providers may
@@ -137,6 +145,13 @@ export interface Source extends ProviderIdentity {
 	readWorkflowFile(name: string): Promise<string | null>;
 	writeWorkflowFile(name: string, contents: string): Promise<void>;
 	removeWorkflowFile(name: string): Promise<void>;
+
+	/**
+	 * Write an arbitrary file relative to the repo root. Used for
+	 * provisioning config files that live outside `.github/workflows/`
+	 * (e.g. `.github/dependabot.yml`).
+	 */
+	writeRepoFile(path: string, contents: string): Promise<void>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
