@@ -1,12 +1,11 @@
 name: Review
 
-# ReviewDog is the annotation layer — runs linters and posts inline diff
-# annotations on PRs, and Checks-tab annotations on direct pushes.
-# Reporter switches based on event: github-pr-check on PRs (inline diff),
-# github-check on push (Checks tab only).
-# super-linter (lint.yml) is the CI gate; this workflow is annotation-only.
-# Gitleaks and YAML are intentionally duplicated: super-linter gates merges,
-# ReviewDog surfaces exact line annotations.
+# ReviewDog is the annotation layer — posts inline PR diff annotations.
+# Runs on pull_request only: inline annotations require PR context,
+# and branch protection ensures all changes go through PRs anyway.
+# super-linter (lint.yml) is the CI gate covering push + PR events.
+# Gitleaks and YAML are intentionally duplicated: super-linter gates
+# merges; ReviewDog surfaces exact line annotations in the PR diff.
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -45,12 +44,12 @@ jobs:
       - name: Gitleaks (secrets)
         uses: reviewdog/action-gitleaks@2b7b5685e3e3eecddab5d30cfa04f18123031421 # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
 
       - name: YamlLint
         uses: reviewdog/action-yamllint@b5f7217d8c815ae374d1d55840d5e569d82f01f0 # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
           yamllint_flags: >-
             ${{ hashFiles('yamllint.config.yml') != ''
                 && format('-c {0}/yamllint.config.yml {0}', github.workspace)
@@ -60,7 +59,7 @@ jobs:
         if: ${{ hashFiles('.github/workflows/*.yml', '.github/workflows/*.yaml') != '' }}
         uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
 
       #
       # TypeScript / JavaScript
@@ -84,14 +83,14 @@ jobs:
           }}
         uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
           eslint_flags: .
 
       - name: TypeScript
         if: ${{ hashFiles('**/tsconfig.json') != '' }}
         uses: EPMatt/reviewdog-action-tsc@63d923a3c5b4497671940b8874f58a404e2351b5 # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
 
       #
       # Shell
@@ -101,7 +100,7 @@ jobs:
         if: ${{ hashFiles('**/*.sh') != '' }}
         uses: reviewdog/action-shellcheck@4c07458293ac342d477251099501a718ae5ef86e # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
           fail_level: none
 
       #
@@ -119,7 +118,7 @@ jobs:
           }}
         uses: reviewdog/action-hadolint@1b2cfa6ba72072ad35158d7ff3aa49bbdc03506d # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check
           fail_level: none
 
       #
@@ -130,7 +129,7 @@ jobs:
         if: ${{ hashFiles('**/.env*') != '' }}
         uses: dotenv-linter/action-dotenv-linter@21287e2624aaf2dc8da5dd8ccfe8e49c63501116 # v2
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-code-suggestions' || 'github-check' }}
+          reporter: github-code-suggestions
 
       #
       # Documentation
@@ -140,4 +139,4 @@ jobs:
         if: ${{ hashFiles('**/*.md') != '' }}
         uses: reviewdog/action-alex@347481655add010a2ae302df34b57c9bcfa0d6e4 # v1
         with:
-          reporter: ${{ github.event.pull_request != null && 'github-pr-check' || 'github-check' }}
+          reporter: github-pr-check

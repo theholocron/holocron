@@ -27,6 +27,7 @@ name: Lint
 
 on: # yamllint disable-line rule:truthy
   push:
+    branches: [main, alpha]
   pull_request:
 
 concurrency:
@@ -39,6 +40,7 @@ permissions:
 
 jobs:
   lint:
+    name: Lint
     uses: ${ref("lint")}
     secrets: inherit
     with:
@@ -50,6 +52,7 @@ name: Test
 
 on: # yamllint disable-line rule:truthy
   push:
+    branches: [main, alpha]
   pull_request:
 
 concurrency:
@@ -61,6 +64,7 @@ permissions:
 
 jobs:
   test:
+    name: Test
     uses: ${ref("test")}
     secrets: inherit
 `,
@@ -70,6 +74,7 @@ name: Typecheck
 
 on: # yamllint disable-line rule:truthy
   push:
+    branches: [main, alpha]
   pull_request:
 
 concurrency:
@@ -81,6 +86,7 @@ permissions:
 
 jobs:
   typecheck:
+    name: Typecheck
     uses: ${ref("typecheck")}
     secrets: inherit
 `,
@@ -113,8 +119,11 @@ jobs:
 name: Review
 
 on: # yamllint disable-line rule:truthy
-  push:
   pull_request:
+
+concurrency:
+  group: review-\${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -123,6 +132,7 @@ permissions:
 
 jobs:
   review:
+    name: Review
     uses: ${ref("review")}
     secrets: inherit
 `,
@@ -222,6 +232,7 @@ name: Audit
 
 on: # yamllint disable-line rule:truthy
   push:
+    branches: [main, alpha]
   pull_request:
 
 permissions:
