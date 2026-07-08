@@ -137,6 +137,13 @@ export interface Source extends ProviderIdentity {
 	 */
 	enableDependencyGraph(): Promise<void>;
 
+	/**
+	 * Enables CodeQL default setup with the extended query suite and
+	 * `threat_model: all` (scans both remote and local exploit paths).
+	 * Triggers a new analysis run; returns the run id.
+	 */
+	enableCodeScanning(): Promise<string>;
+
 	// Workflow files — local YAML files in `.github/workflows/` (or
 	// equivalent). These are conceptually repo content; providers may
 	// throw `NotImplementedError` if the underlying VCS has no notion

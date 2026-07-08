@@ -117,6 +117,17 @@ export class GitHubSource implements Source {
 		});
 	}
 
+	async enableCodeScanning(): Promise<string> {
+		const result = await this.rest.request<{ run_id: number; run_url: string }>(
+			`${this.repoPath}/code-scanning/default-setup`,
+			{
+				method: "PATCH",
+				body: { state: "configured", query_suite: "extended", threat_model: "all" },
+			}
+		);
+		return `run ${result.run_id}`;
+	}
+
 	async enableDependencyGraph(): Promise<void> {
 		await this.rest.request<void>(this.repoPath, {
 			method: "PATCH",

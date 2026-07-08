@@ -12,11 +12,21 @@ function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfi
 	};
 }
 
+const SOURCE_DEFAULTS = {
+	listWorkflowFiles: async () => [] as string[],
+};
+
 function makePlugin(name: string, caps: Record<string, unknown>) {
+	// Merge SOURCE_DEFAULTS under any provided "source" capability so that
+	// test stubs only need to specify the methods they care about.
+	const merged = { ...caps };
+	if (merged.source && typeof merged.source === "object") {
+		merged.source = { ...SOURCE_DEFAULTS, ...(merged.source as Record<string, unknown>) };
+	}
 	return {
 		createPlugin: (_opts: Record<string, unknown>) => ({
 			name,
-			capabilities: Object.fromEntries(Object.entries(caps).map(([k, impl]) => [k, () => impl])),
+			capabilities: Object.fromEntries(Object.entries(merged).map(([k, impl]) => [k, () => impl])),
 		}),
 	};
 }
@@ -34,7 +44,7 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 }
 
 describe("runSetup", () => {
-	it("runs all five source security toggles + reports ok for each", async () => {
+	it("runs all six source security steps + reports ok for each", async () => {
 		const calls: string[] = [];
 		const source = {
 			enableVulnerabilityAlerts: async () => { calls.push("vuln-alerts"); },
@@ -42,6 +52,7 @@ describe("runSetup", () => {
 			enableSecretScanning: async () => { calls.push("secret-scan"); },
 			enablePrivateVulnerabilityReporting: async () => { calls.push("private-vuln"); },
 			enableDependencyGraph: async () => { calls.push("dep-graph"); },
+			enableCodeScanning: async () => { calls.push("code-scan"); return "run 1"; },
 		};
 		const loaded = loadedFrom({
 			project: { name: "demo" },
@@ -61,11 +72,11 @@ describe("runSetup", () => {
 			print: () => {},
 		});
 
-		expect(calls).toEqual(["vuln-alerts", "auto-sec-fixes", "secret-scan", "private-vuln", "dep-graph"]);
+		expect(calls).toEqual(["vuln-alerts", "auto-sec-fixes", "secret-scan", "private-vuln", "dep-graph", "code-scan"]);
 		const securitySteps = report.steps.filter(
-			(s) => s.capability === "source" && !s.step.startsWith("write")
+			(s) => s.capability === "source" && !s.step.startsWith("write") && !s.step.startsWith("upsert") && !s.step.startsWith("updateRepo")
 		);
-		expect(securitySteps).toHaveLength(5);
+		expect(securitySteps).toHaveLength(6);
 		expect(securitySteps.every((s) => s.status === "ok")).toBe(true);
 	});
 
@@ -93,6 +104,7 @@ describe("runSetup", () => {
 					enableSecretScanning: async () => { calls.push("secret-scan"); },
 					enablePrivateVulnerabilityReporting: async () => { calls.push("private-vuln"); },
 					enableDependencyGraph: async () => { calls.push("dep-graph"); },
+					enableCodeScanning: async () => { calls.push("code-scan"); return "run 1"; },
 					writeRepoFile: async () => {},
 				},
 			}),

@@ -161,6 +161,25 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
+		// Skip default setup when a custom codeql.yml workflow is present —
+		// GitHub enforces mutual exclusivity between the two approaches.
+		const existingWorkflows = await source.listWorkflowFiles();
+		if (existingWorkflows.includes("codeql.yml")) {
+			steps.push({
+				capability: "source",
+				step: "enableCodeScanning",
+				status: "skip",
+				message: "custom codeql.yml workflow manages code scanning",
+			});
+		} else {
+			steps.push(
+				await runStep("source", "enableCodeScanning", dryRun, async () => {
+					return await source.enableCodeScanning();
+				})
+			);
+		}
+		print(formatStep(steps[steps.length - 1]!));
+
 		const policy = config.project.repoPolicy;
 		if (policy && policy.preset !== "none") {
 			const preset = policy.preset ?? "balanced";

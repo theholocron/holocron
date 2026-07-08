@@ -88,6 +88,8 @@ describe("GitHubSource — REST methods", () => {
 			security_and_analysis: {
 				secret_scanning: { status: "enabled" },
 				secret_scanning_push_protection: { status: "enabled" },
+				secret_scanning_validity_checks: { status: "enabled" },
+				secret_scanning_non_provider_patterns: { status: "enabled" },
 			},
 		});
 	});
