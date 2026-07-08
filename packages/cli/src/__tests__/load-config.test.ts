@@ -42,12 +42,14 @@ describe("loadConfig", () => {
 		await expect(loadConfig(cwd)).rejects.toThrow(/not valid JSON/);
 	});
 
-	it("errors when the JSON is valid but the schema fails (vault missing)", async () => {
+	it("loads valid config without vault (vault is no longer required)", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),
 			JSON.stringify({ project: { name: "demo" }, providers: { source: "github" } })
 		);
-		await expect(loadConfig(cwd)).rejects.toThrow(/vault/);
+		const result = await loadConfig(cwd);
+		expect(result.resolved.project.name).toBe("demo");
+		expect(result.resolved.providers.vault).toBeUndefined();
 	});
 
 	it("rejects holocron.config.js with a v2.0 not-supported message", async () => {

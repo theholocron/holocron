@@ -46,8 +46,12 @@ export const CARDINALITY = {
 	observability: "many",
 } as const satisfies Record<CapabilityKey, Cardinality>;
 
-/** Vault is required; everything else is optional in the config. */
-export const REQUIRED_CAPABILITIES: readonly CapabilityKey[] = ["vault"] as const;
+/**
+ * No capabilities are strictly required — repos without secrets (e.g. org
+ * community health repos) legitimately omit vault. Plugins validate their
+ * own requirements at call time.
+ */
+export const REQUIRED_CAPABILITIES: readonly CapabilityKey[] = [] as const;
 
 // ───────────────────────────────────────────────────────────────────────
 // Common shapes

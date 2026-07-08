@@ -98,8 +98,8 @@ describe("resolveConfig", () => {
 		expect(() => resolveConfig({ project: { name: "x" } })).toThrow(ConfigError);
 	});
 
-	it("requires the vault capability", () => {
-		expect(() => resolveConfig({ project: { name: "demo" }, providers: { source: "github" } })).toThrow(/vault/);
+	it("accepts config without vault (vault is no longer required)", () => {
+		expect(() => resolveConfig({ project: { name: "demo" }, providers: { source: "github" } })).not.toThrow();
 	});
 
 	it("returns a normalized config with defaults filled in", () => {
