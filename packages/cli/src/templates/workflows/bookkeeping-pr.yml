@@ -2,7 +2,7 @@ name: PR Bookkeeping
 
 on: # yamllint disable-line rule:truthy
   pull_request:
-    types: [opened, edited, synchronize]
+    types: [opened, edited]
   workflow_call:
     inputs:
       configuration-path:
@@ -25,7 +25,9 @@ jobs:
     steps:
       - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
         with:
-          configuration-path: ${{ inputs.configuration-path }}
+          # Fall back to default path when triggered directly (not via workflow_call)
+          # because inputs.* defaults only apply on workflow_call events.
+          configuration-path: ${{ inputs.configuration-path || '.github/labeler.yml' }}
           include-title: 1
           include-body: 0
           sync-labels: 1
