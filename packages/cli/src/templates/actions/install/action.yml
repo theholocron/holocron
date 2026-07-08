@@ -1,5 +1,5 @@
 name: Install dependencies
-description: Install project dependencies using the detected package manager.
+description: Install project dependencies with pnpm frozen lockfile.
 
 runs:
   using: composite
@@ -7,25 +7,4 @@ runs:
   steps:
     - name: Install dependencies
       shell: bash
-      run: |
-        set -euo pipefail
-
-        if [[ -f pnpm-lock.yaml ]]; then
-          echo "Installing with pnpm..."
-          pnpm install --frozen-lockfile
-
-        elif [[ -f package-lock.json ]]; then
-          echo "Installing with npm..."
-          npm ci
-
-        elif [[ -f yarn.lock ]]; then
-          echo "Installing with Yarn..."
-          yarn install --immutable
-
-        elif [[ -f bun.lockb || -f bun.lock ]]; then
-          echo "Installing with Bun..."
-          bun install --frozen-lockfile
-
-        else
-          echo "No supported package manager detected. Skipping dependency installation."
-        fi
+      run: pnpm install --frozen-lockfile

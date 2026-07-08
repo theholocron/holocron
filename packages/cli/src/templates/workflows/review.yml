@@ -27,23 +27,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect Node project
-        id: node
-        shell: bash
-        run: |
-          if [[ -f package.json ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node
-        if: steps.node.outputs.enabled == 'true'
-        uses: theholocron/.github/.github/actions/setup-node@main
-
-      - name: Install dependencies
-        if: steps.node.outputs.enabled == 'true'
-        uses: theholocron/.github/.github/actions/install@main
+      - name: Setup
+        if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
+        uses: theholocron/.github/.github/actions/setup@main
 
       - name: Install ReviewDog
         uses: reviewdog/action-setup@v1
