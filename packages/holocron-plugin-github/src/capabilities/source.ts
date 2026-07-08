@@ -30,6 +30,7 @@ export class GitHubSource implements Source {
 	private readonly owner: string;
 	private readonly name: string;
 	private readonly repoPath: string;
+	private readonly repoRoot: string;
 	private readonly workflowDir: string;
 
 	constructor(
@@ -40,6 +41,7 @@ export class GitHubSource implements Source {
 		this.owner = owner;
 		this.name = name;
 		this.repoPath = `/repos/${owner}/${name}`;
+		this.repoRoot = opts.repoRoot;
 		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
 	}
 
