@@ -1,5 +1,8 @@
 name: Setup Node
-description: Install Node.js and pnpm with dependency caching.
+description: >
+  Install Node.js with the correct package manager cache. Detects the
+  package manager from the lockfile — mirrors the same logic in install/.
+  Only installs pnpm when pnpm-lock.yaml is present.
 
 inputs:
   node-version:
@@ -8,7 +11,7 @@ inputs:
     default: "22.x"
 
   pnpm-version:
-    description: pnpm version
+    description: pnpm version (only used when pnpm-lock.yaml is present)
     required: false
     default: "10"
 
@@ -16,11 +19,32 @@ runs:
   using: composite
 
   steps:
-    - uses: pnpm/action-setup@v4
+    - name: Detect package manager
+      id: pm
+      shell: bash
+      run: |
+        if [[ -f pnpm-lock.yaml ]]; then
+          echo "name=pnpm"  >> "$GITHUB_OUTPUT"
+          echo "cache=pnpm" >> "$GITHUB_OUTPUT"
+        elif [[ -f yarn.lock ]]; then
+          echo "name=yarn"  >> "$GITHUB_OUTPUT"
+          echo "cache=yarn" >> "$GITHUB_OUTPUT"
+        elif [[ -f bun.lockb || -f bun.lock ]]; then
+          echo "name=bun"   >> "$GITHUB_OUTPUT"
+          echo "cache="     >> "$GITHUB_OUTPUT"
+        else
+          echo "name=npm"   >> "$GITHUB_OUTPUT"
+          echo "cache=npm"  >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Setup pnpm
+      if: steps.pm.outputs.name == 'pnpm'
+      uses: pnpm/action-setup@v4
       with:
         version: ${{ inputs.pnpm-version }}
 
-    - uses: actions/setup-node@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: pnpm
+        cache: ${{ steps.pm.outputs.cache }}
