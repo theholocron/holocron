@@ -22,12 +22,17 @@ jobs:
       issues: write
       pull-requests: write
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Do not cancel in-progress releases — a partial release is worse than a slow one.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         name: Checkout repository
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
@@ -42,5 +47,5 @@ jobs:
       - run: npx semantic-release
         name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           NPM_CONFIG_PROVENANCE: true

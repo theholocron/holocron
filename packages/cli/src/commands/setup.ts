@@ -21,7 +21,7 @@
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
-import { WORKFLOW_TEMPLATES, KNOWN_WORKFLOWS } from "./setup-workflows.js";
+import { WORKFLOW_TEMPLATES, WORKFLOW_HEADER, KNOWN_WORKFLOWS } from "./setup-workflows.js";
 
 // ── repo policy presets ───────────────────────────────────────────────
 
@@ -177,7 +177,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			}
 			steps.push(
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
-					await source.writeWorkflowFile(`${name}.yml`, WORKFLOW_TEMPLATES[name]!);
+					await source.writeWorkflowFile(`${name}.yml`, WORKFLOW_HEADER + WORKFLOW_TEMPLATES[name]!);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));

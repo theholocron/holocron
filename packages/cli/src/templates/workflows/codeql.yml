@@ -17,6 +17,11 @@ jobs:
       contents: read
       security-events: write
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Do not cancel in-progress security scans.
+    concurrency:
+      group: codeql-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         name: Checkout repository

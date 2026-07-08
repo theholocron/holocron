@@ -15,7 +15,13 @@ on:
 jobs:
   bundle-size:
     name: Audit the bundle size
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: audit-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
         name: Checkout repository

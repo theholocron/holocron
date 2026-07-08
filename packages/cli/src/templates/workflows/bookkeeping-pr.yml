@@ -16,6 +16,10 @@ jobs:
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: bookkeeping-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     steps:
       - uses: github/issue-labeler@v3.4
         with:

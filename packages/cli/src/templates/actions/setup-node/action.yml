@@ -23,6 +23,7 @@ runs:
       id: pm
       shell: bash
       run: |
+        set -euo pipefail
         if [[ -f pnpm-lock.yaml ]]; then
           echo "name=pnpm"  >> "$GITHUB_OUTPUT"
           echo "cache=pnpm" >> "$GITHUB_OUTPUT"
