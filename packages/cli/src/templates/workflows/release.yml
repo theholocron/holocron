@@ -8,10 +8,15 @@ on:
   workflow_call:
     inputs:
       run-build:
-        description: Run `pnpm build` before releasing
+        description: Run a build step before releasing
         type: boolean
         required: false
         default: true
+      build-command:
+        description: Build command to run when run-build is true
+        type: string
+        required: false
+        default: pnpm build
 
 jobs:
   release:
@@ -40,7 +45,7 @@ jobs:
       - run: npm install -g npm@11
         name: Upgrade npm for OIDC support
 
-      - run: pnpm build
+      - run: ${{ inputs.build-command }}
         name: Build
         if: ${{ inputs.run-build == true }}
 

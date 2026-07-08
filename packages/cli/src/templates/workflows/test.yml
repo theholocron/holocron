@@ -2,6 +2,12 @@ name: Test
 
 on:
   workflow_call:
+    inputs:
+      test-command:
+        description: Command to run tests with coverage
+        type: string
+        required: false
+        default: pnpm test -- --coverage
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -22,7 +28,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - run: pnpm test -- --coverage
+      - run: ${{ inputs.test-command }}
         name: Run tests with coverage
 
       - uses: codecov/codecov-action@v4

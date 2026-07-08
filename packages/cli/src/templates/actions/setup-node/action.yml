@@ -27,6 +27,9 @@ runs:
         if [[ -f pnpm-lock.yaml ]]; then
           echo "name=pnpm"  >> "$GITHUB_OUTPUT"
           echo "cache=pnpm" >> "$GITHUB_OUTPUT"
+        elif [[ -f package-lock.json ]]; then
+          echo "name=npm"   >> "$GITHUB_OUTPUT"
+          echo "cache=npm"  >> "$GITHUB_OUTPUT"
         elif [[ -f yarn.lock ]]; then
           echo "name=yarn"  >> "$GITHUB_OUTPUT"
           echo "cache=yarn" >> "$GITHUB_OUTPUT"

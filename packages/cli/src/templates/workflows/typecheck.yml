@@ -2,6 +2,12 @@ name: Typecheck
 
 on:
   workflow_call:
+    inputs:
+      typecheck-command:
+        description: Command to run type checking
+        type: string
+        required: false
+        default: pnpm typecheck
 
 jobs:
   typecheck:
@@ -17,5 +23,5 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - run: pnpm typecheck
+      - run: ${{ inputs.typecheck-command }}
         name: Type check

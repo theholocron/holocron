@@ -77,7 +77,14 @@ jobs:
 
       - uses: crazy-max/ghaction-import-gpg@v6
         name: Import GPG Key
-        if: ${{ inputs.enable-auto-commit == true && github.event.pull_request != null }}
+        # Conditions mirror auto-commit exactly — no point importing GPG if the
+        # commit step will be skipped (fork PR, default branch, or secret unset).
+        if: >
+          inputs.enable-auto-commit == true &&
+          github.event.pull_request != null &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.ref_name != github.event.repository.default_branch &&
+          secrets.SUPER_LINTER_GPG_PRIVATE_KEY != ''
         with:
           git_user_signingkey: true
           git_commit_gpgsign: true
