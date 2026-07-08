@@ -4,7 +4,7 @@ name: Release
 # The calling repo must have a .releaserc.json that configures branches,
 # plugins, and any publish options. npm@11+ is installed to support OIDC.
 
-on:
+on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
       run-build:

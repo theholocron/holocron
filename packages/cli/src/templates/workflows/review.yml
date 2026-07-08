@@ -6,7 +6,7 @@ name: Review
 # Gitleaks and YAML are intentionally duplicated here: super-linter catches
 # them as CI failures, ReviewDog surfaces them as inline diff annotations.
 
-on:
+on: # yamllint disable-line rule:truthy
   workflow_call:
 
 concurrency:

@@ -88,7 +88,7 @@ jobs:
 	codeql: `\
 name: CodeQL
 
-on:
+on: # yamllint disable-line rule:truthy
   push:
     branches:
       - main
@@ -129,7 +129,7 @@ jobs:
 	release: `\
 name: Release
 
-on:
+on: # yamllint disable-line rule:truthy
   push:
     branches:
       - main
@@ -149,7 +149,7 @@ jobs:
 	stale: `\
 name: Stale
 
-on:
+on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "30 1 * * *"
 
@@ -200,7 +200,7 @@ jobs:
 	"bookkeeping-pr": `\
 name: PR Bookkeeping
 
-on:
+on: # yamllint disable-line rule:truthy
   pull_request:
     types:
       - opened

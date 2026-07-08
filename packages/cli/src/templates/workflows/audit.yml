@@ -1,6 +1,6 @@
 name: Audit
 
-on:
+on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
       build-script:
