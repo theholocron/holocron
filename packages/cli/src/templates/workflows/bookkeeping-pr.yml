@@ -1,11 +1,6 @@
 name: PR Bookkeeping
 
 on: # yamllint disable-line rule:truthy
-  # Direct trigger: labels PRs opened against THIS repo (theholocron/.github).
-  # This repo houses reusable workflows — it will never adopt a thin caller
-  # that calls bookkeeping-pr.yml@main, so no duplicate-run risk exists.
-  pull_request:
-    types: [opened, edited]
   workflow_call:
     inputs:
       configuration-path:
