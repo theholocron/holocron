@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig, includeIgnoreFile } from "eslint/config";
-import holocron from "@theholocron/eslint-config";
+import { holocron } from "@theholocron/eslint-config";
 
 export default defineConfig([
 	includeIgnoreFile(fileURLToPath(new URL(".gitignore", import.meta.url))),
