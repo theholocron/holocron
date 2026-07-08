@@ -19,6 +19,7 @@
  */
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
+import { ProviderApiError } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { WORKFLOW_TEMPLATES, WORKFLOW_HEADER, KNOWN_WORKFLOWS } from "./setup-workflows.js";
@@ -72,6 +73,24 @@ const BALANCED_REPO_SETTINGS: RepoSettings = {
 	// enforcement already covers every repo — no per-repo override is needed.
 };
 
+function buildClassicProtectionPayload(requiredChecks: string[] = []): Record<string, unknown> {
+	return {
+		required_status_checks:
+			requiredChecks.length > 0
+				? { strict: false, contexts: requiredChecks }
+				: null,
+		enforce_admins: false,
+		required_pull_request_reviews: {
+			required_approving_review_count: 0,
+			dismiss_stale_reviews: false,
+			require_code_owner_reviews: false,
+		},
+		restrictions: null,
+		allow_force_pushes: false,
+		allow_deletions: false,
+	};
+}
+
 function buildRulesetPayload(requiredChecks: string[] = []): Record<string, unknown> {
 	const rules: Record<string, unknown>[] = [
 		{ type: "deletion" },
@@ -103,6 +122,53 @@ function buildRulesetPayload(requiredChecks: string[] = []): Record<string, unkn
 		conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
 		rules,
 	};
+}
+
+// ── branch protection helper ─────────────────────────────────────────────────
+// Tries the modern Rulesets API first, falls back to classic branch protection
+// if rulesets return 403 (requires GitHub Team+ on private repos), and gracefully
+// skips if both APIs are unavailable (GitHub Free on private repos).
+
+async function upsertBranchProtection(
+	source: Source,
+	dryRun: boolean,
+	requiredChecks: string[]
+): Promise<SetupStepResult> {
+	const step = `upsert ruleset ${RULESET_NAME}`;
+	if (dryRun) return { capability: "source", step, status: "dry-run" };
+
+	// Attempt 1: modern rulesets
+	try {
+		const existing = await source.listRulesets();
+		const found = existing.find((r) => r.name === RULESET_NAME);
+		if (found) {
+			await source.updateRuleset(found.id, buildRulesetPayload(requiredChecks));
+			return { capability: "source", step, status: "ok", message: "updated" };
+		}
+		await source.createRuleset(buildRulesetPayload(requiredChecks));
+		return { capability: "source", step, status: "ok", message: "created" };
+	} catch (err) {
+		if (!(err instanceof ProviderApiError) || err.status !== 403) {
+			return { capability: "source", step, status: "fail", message: err instanceof Error ? err.message : String(err) };
+		}
+	}
+
+	// Attempt 2: classic branch protection (free-plan fallback)
+	try {
+		const repo = await source.getRepo();
+		await source.protectBranch(repo.defaultBranch, buildClassicProtectionPayload(requiredChecks));
+		return { capability: "source", step, status: "ok", message: `classic protection on ${repo.defaultBranch}` };
+	} catch (err) {
+		if (err instanceof ProviderApiError && err.status === 403) {
+			return {
+				capability: "source",
+				step,
+				status: "skip",
+				message: "branch protection unavailable on private repos without GitHub Pro/Team",
+			};
+		}
+		return { capability: "source", step, status: "fail", message: err instanceof Error ? err.message : String(err) };
+	}
 }
 
 export type SetupPrintLine = (line: string) => void;
@@ -180,18 +246,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 
 			const requiredChecks = preset === "strict" ? (policy.requiredChecks ?? []) : [];
-			steps.push(
-				await runStep("source", `upsert ruleset ${RULESET_NAME}`, dryRun, async () => {
-					const existing = await source.listRulesets();
-					const found = existing.find((r) => r.name === RULESET_NAME);
-					if (found) {
-						await source.updateRuleset(found.id, buildRulesetPayload(requiredChecks));
-						return "updated";
-					}
-					await source.createRuleset(buildRulesetPayload(requiredChecks));
-					return "created";
-				})
-			);
+			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
 			print(formatStep(steps[steps.length - 1]!));
 		}
 	}

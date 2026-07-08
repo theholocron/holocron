@@ -127,6 +127,12 @@ export interface Source extends ProviderIdentity {
 	// Repo settings
 	updateRepoSettings(settings: RepoSettings): Promise<void>;
 
+	/**
+	 * Classic branch protection — fallback for private repos on free plans
+	 * where the Rulesets API (requires Team+) returns 403.
+	 */
+	protectBranch(branch: string, payload: Record<string, unknown>): Promise<void>;
+
 	// Security toggles (idempotent; flip-or-noop)
 	enableVulnerabilityAlerts(): Promise<void>;
 	enableAutomatedSecurityFixes(): Promise<void>;

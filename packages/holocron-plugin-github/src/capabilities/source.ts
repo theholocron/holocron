@@ -83,6 +83,13 @@ export class GitHubSource implements Source {
 		await this.rest.request<void>(this.repoPath, { method: "PATCH", body: settings });
 	}
 
+	async protectBranch(branch: string, payload: Record<string, unknown>): Promise<void> {
+		await this.rest.request<void>(
+			`${this.repoPath}/branches/${encodeURIComponent(branch)}/protection`,
+			{ method: "PUT", body: payload }
+		);
+	}
+
 	// ── security toggles (idempotent flip-or-noop) ──────────────────────
 
 	async enableVulnerabilityAlerts(): Promise<void> {
