@@ -113,6 +113,7 @@ jobs:
 name: Review
 
 on: # yamllint disable-line rule:truthy
+  push:
   pull_request:
 
 permissions:
