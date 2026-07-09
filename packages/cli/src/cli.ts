@@ -290,6 +290,15 @@ await yargs(hideBin(process.argv))
 					default: "theholocron/.github",
 					describe: "Target org/repo (default: theholocron/.github)",
 				})
+				.option("branch", {
+					type: "string",
+					describe: "Push to this branch instead of the default branch (enables PR-based workflow for protected repos)",
+				})
+				.option("pr", {
+					type: "boolean",
+					default: false,
+					describe: "Open a PR after pushing to --branch (no-op without --branch)",
+				})
 				.option("message", {
 					type: "string",
 					describe: "Commit message (default: chore: sync from theholocron/holocron)",
@@ -305,6 +314,8 @@ await yargs(hideBin(process.argv))
 				token,
 				repo: argv.repo,
 				dryRun: argv.dryRun,
+				...(argv.branch ? { branch: argv.branch } : {}),
+				...(argv.pr ? { createPr: true } : {}),
 				...(argv.message ? { message: argv.message } : {}),
 			});
 			if (report.status === "fail") {

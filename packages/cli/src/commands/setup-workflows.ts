@@ -249,6 +249,33 @@ jobs:
     uses: ${ref("audit")}
     secrets: inherit
 `,
+
+	"sync-github": `\
+name: Sync GitHub Templates
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+    paths:
+      - packages/cli/src/templates/index.ts
+      - packages/cli/src/commands/setup-workflows.ts
+
+concurrency:
+  group: sync-github-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Sync
+    uses: ${ref("sync-github")}
+    with:
+      secondary-repos: theholocron/.github-private
+    secrets:
+      SYNC_TOKEN: \${{ secrets.SYNC_TOKEN }}
+`,
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));

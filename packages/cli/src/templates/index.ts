@@ -696,6 +696,79 @@ jobs:
           token: \${{ secrets.CODECOV_TOKEN }}
 `,
 
+	"sync-github": `\
+name: Sync GitHub Templates
+
+# Builds the holocron CLI from source and pushes updated workflow templates
+# and composite actions to downstream .github repos. Runs whenever the
+# template source files change on main or alpha.
+#
+# Secrets required:
+#   SYNC_TOKEN — fine-grained PAT or GitHub App token with Contents write
+#                access to the primary and secondary repos.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      primary-repo:
+        description: >
+          Primary .github repo — receives composite actions, reusable workflows,
+          and thin-caller templates. Requires a PR (branch protection assumed).
+        type: string
+        required: false
+        default: theholocron/.github
+      secondary-repos:
+        description: >
+          Space-separated list of secondary repos (reusable workflows + thin
+          callers only, no composite actions). Pushed directly to main.
+        type: string
+        required: false
+        default: ""
+      sync-branch:
+        description: Branch name used for the primary-repo PR
+        type: string
+        required: false
+        default: chore/sync-templates
+    secrets:
+      SYNC_TOKEN:
+        required: true
+
+jobs:
+  sync:
+    name: Sync templates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: pnpm build
+        name: Build CLI
+
+      - name: Sync primary repo (PR)
+        run: >
+          node packages/cli/dist/cli.mjs sync-github
+          --repo \${{ inputs.primary-repo }}
+          --branch \${{ inputs.sync-branch }}
+          --pr
+        env:
+          GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
+
+      - name: Sync secondary repos (direct push)
+        if: \${{ inputs.secondary-repos != '' }}
+        run: |
+          for repo in \${{ inputs.secondary-repos }}; do
+            node packages/cli/dist/cli.mjs sync-github --repo "$repo"
+          done
+        env:
+          GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
+`,
+
 	typecheck: `\
 name: Typecheck
 
