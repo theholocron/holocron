@@ -1,0 +1,15 @@
+import n from "eslint-plugin-n";
+
+export function node() {
+	return [
+		...n.configs["flat/recommended"],
+		{
+			name: "@theholocron/node",
+			rules: {
+				"n/no-process-exit": "off",
+				"n/no-missing-import": "off", // TS handles this better
+				"n/no-unsupported-features/es-syntax": "off",
+			},
+		},
+	];
+}

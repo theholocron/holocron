@@ -1,3 +1,2 @@
-export { default as cypress } from "./cypress.eslint.config.js"
-export { default as holocron } from "./eslint.config.js";
-export { default as storybook } from "./storybook.eslint.config.js";
+export { base } from "./configs/base.js";
+export { typescript } from "./configs/typescript.js";

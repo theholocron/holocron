@@ -10,25 +10,103 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "eslint",
+    "eslintconfig",
+    "eslint-config",
+    "typescript",
+    "react",
+    "nextjs",
+    "vitest",
+    "storybook"
+  ],
   "type": "module",
-  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./base": {
+      "import": "./configs/base.js",
+      "default": "./configs/base.js"
+    },
+    "./typescript": {
+      "import": "./configs/typescript.js",
+      "default": "./configs/typescript.js"
+    },
+    "./react": {
+      "import": "./configs/react.js",
+      "default": "./configs/react.js"
+    },
+    "./next": {
+      "import": "./configs/next.js",
+      "default": "./configs/next.js"
+    },
+    "./node": {
+      "import": "./configs/node.js",
+      "default": "./configs/node.js"
+    },
+    "./vitest": {
+      "import": "./configs/vitest.js",
+      "default": "./configs/vitest.js"
+    },
+    "./storybook": {
+      "import": "./configs/storybook.js",
+      "default": "./configs/storybook.js"
+    },
+    "./cypress": {
+      "import": "./configs/cypress.js",
+      "default": "./configs/cypress.js"
+    },
+    "./bundles/library": {
+      "import": "./bundles/library.js",
+      "default": "./bundles/library.js"
+    },
+    "./bundles/next-app": {
+      "import": "./bundles/next-app.js",
+      "default": "./bundles/next-app.js"
+    },
+    "./bundles/node-app": {
+      "import": "./bundles/node-app.js",
+      "default": "./bundles/node-app.js"
+    },
+    "./bundles/react-app": {
+      "import": "./bundles/react-app.js",
+      "default": "./bundles/react-app.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
-    "cypress.eslint.config.js",
-    "eslint.config.js",
-    "storybook.eslint.config.js"
+    "index.js",
+    "configs/",
+    "bundles/"
   ],
   "peerDependencies": {
-    "@eslint/compat": "^1",
-    "@eslint/js": "^9",
-    "eslint": "^9",
-    "eslint-plugin-cypress": "^5",
+    "@eslint/js": "^10",
+    "@next/eslint-plugin-next": "^16",
+    "@vitest/eslint-plugin": "^1",
+    "eslint": "^10",
+    "eslint-plugin-cypress": "^6",
+    "eslint-plugin-n": "^18",
     "eslint-plugin-react": "^7",
-    "eslint-plugin-storybook": "^9",
+    "eslint-plugin-storybook": "^10",
     "globals": "^16",
     "typescript-eslint": "^8"
   },
   "peerDependenciesMeta": {
+    "@next/eslint-plugin-next": {
+      "optional": true
+    },
+    "@vitest/eslint-plugin": {
+      "optional": true
+    },
     "eslint-plugin-cypress": {
+      "optional": true
+    },
+    "eslint-plugin-n": {
+      "optional": true
+    },
+    "eslint-plugin-react": {
       "optional": true
     },
     "eslint-plugin-storybook": {
