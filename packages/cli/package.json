@@ -35,10 +35,10 @@
   },
   "dependencies": {
     "@napi-rs/keyring": "^1.3.0",
-    "@theholocron/cli-utils": "workspace:*",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
+    "@theholocron/cli-utils": "workspace:*",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@tsconfig/node-lts": "catalog:",
