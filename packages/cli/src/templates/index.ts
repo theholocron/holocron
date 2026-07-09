@@ -500,6 +500,26 @@ jobs:
         with:
           reviewdog_version: latest
 
+      # Detect which tools are relevant for this repo, excluding node_modules.
+      # hashFiles('**/*') recurses into node_modules/.pnpm and produces false
+      # positives for repos that don't own those file types.
+      - name: Detect project features
+        id: detect
+        shell: bash
+        run: |
+          has() { find . -not -path '*/node_modules/*' -name "\$1" 2>/dev/null | head -1 | grep -q .; }
+          has_ext() { find . -not -path '*/node_modules/*' -name "\$1" 2>/dev/null | head -1 | grep -q .; }
+          has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \\
+            has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \\
+            has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \\
+            has '.eslintrc.yml' && echo "eslint=true" >> \$GITHUB_OUTPUT || echo "eslint=false" >> \$GITHUB_OUTPUT
+          has 'tsconfig.json' && echo "tsconfig=true" >> \$GITHUB_OUTPUT || echo "tsconfig=false" >> \$GITHUB_OUTPUT
+          has_ext '*.sh' && echo "shell=true" >> \$GITHUB_OUTPUT || echo "shell=false" >> \$GITHUB_OUTPUT
+          has 'Dockerfile' || has_ext '*.Dockerfile' || has 'Containerfile' && \\
+            echo "docker=true" >> \$GITHUB_OUTPUT || echo "docker=false" >> \$GITHUB_OUTPUT
+          has_ext '.env*' && echo "dotenv=true" >> \$GITHUB_OUTPUT || echo "dotenv=false" >> \$GITHUB_OUTPUT
+          has_ext '*.md' && echo "markdown=true" >> \$GITHUB_OUTPUT || echo "markdown=false" >> \$GITHUB_OUTPUT
+
       #
       # Always applicable
       #
@@ -528,28 +548,15 @@ jobs:
       # TypeScript / JavaScript
       #
 
-      - name: Detect ESLint config
-        id: eslint-config
-        shell: bash
-        run: |
-          found=\$(find . -not -path '*/node_modules/*' \\
-            \\( -name 'eslint.config.js' -o -name 'eslint.config.mjs' \\
-               -o -name 'eslint.config.cjs' -o -name 'eslint.config.ts' \\
-               -o -name '.eslintrc' -o -name '.eslintrc.js' \\
-               -o -name '.eslintrc.cjs' -o -name '.eslintrc.json' \\
-               -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' \\) \\
-            2>/dev/null | head -1)
-          echo "found=\$([[ -n "\$found" ]] && echo true || echo false)" >> \$GITHUB_OUTPUT
-
       - name: ESLint
-        if: steps.eslint-config.outputs.found == 'true'
+        if: steps.detect.outputs.eslint == 'true'
         uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1.34.0
         with:
           reporter: github-pr-check
           eslint_flags: .
 
       - name: TypeScript
-        if: \${{ hashFiles('**/tsconfig.json') != '' }}
+        if: steps.detect.outputs.tsconfig == 'true'
         uses: EPMatt/reviewdog-action-tsc@63d923a3c5b4497671940b8874f58a404e2351b5 # v1
         with:
           reporter: github-pr-check
@@ -559,7 +566,7 @@ jobs:
       #
 
       - name: ShellCheck
-        if: \${{ hashFiles('**/*.sh') != '' }}
+        if: steps.detect.outputs.shell == 'true'
         uses: reviewdog/action-shellcheck@4c07458293ac342d477251099501a718ae5ef86e # v1
         with:
           reporter: github-pr-check
@@ -570,14 +577,7 @@ jobs:
       #
 
       - name: Hadolint
-        if: >-
-          \${{
-            hashFiles(
-              '**/Dockerfile',
-              '**/*.Dockerfile',
-              '**/Containerfile'
-            ) != ''
-          }}
+        if: steps.detect.outputs.docker == 'true'
         uses: reviewdog/action-hadolint@1b2cfa6ba72072ad35158d7ff3aa49bbdc03506d # v1
         with:
           reporter: github-pr-check
@@ -588,7 +588,7 @@ jobs:
       #
 
       - name: dotenv-linter
-        if: \${{ hashFiles('**/.env*') != '' }}
+        if: steps.detect.outputs.dotenv == 'true'
         uses: dotenv-linter/action-dotenv-linter@21287e2624aaf2dc8da5dd8ccfe8e49c63501116 # v2
         with:
           reporter: github-code-suggestions
@@ -598,7 +598,7 @@ jobs:
       #
 
       - name: Alex (inclusive language)
-        if: \${{ hashFiles('**/*.md') != '' }}
+        if: steps.detect.outputs.markdown == 'true'
         uses: reviewdog/action-alex@347481655add010a2ae302df34b57c9bcfa0d6e4 # v1
         with:
           reporter: github-pr-check
