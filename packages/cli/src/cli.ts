@@ -10,6 +10,7 @@ import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
+import { runSyncGithub } from "./commands/sync-github.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
@@ -278,6 +279,38 @@ await yargs(hideBin(process.argv))
 				)
 				.demandCommand(1, "Run `holocron npm --help` to see available npm subcommands."),
 		() => {}
+	)
+	.command(
+		"sync-github",
+		"Sync workflow templates and composite actions to theholocron/.github via the GitHub API",
+		(y) =>
+			y
+				.option("repo", {
+					type: "string",
+					default: "theholocron/.github",
+					describe: "Target org/repo (default: theholocron/.github)",
+				})
+				.option("message", {
+					type: "string",
+					describe: "Commit message (default: chore: sync from theholocron/holocron)",
+				}),
+		async (argv) => {
+			const token = argv.token ?? process.env.GITHUB_TOKEN ?? process.env.HOLOCRON_GITHUB_TOKEN;
+			if (!token) {
+				console.error("sync-github: GitHub token required — pass --token or set GITHUB_TOKEN");
+				process.exitCode = 1;
+				return;
+			}
+			const report = await runSyncGithub({
+				token,
+				repo: argv.repo,
+				dryRun: argv.dryRun,
+				...(argv.message ? { message: argv.message } : {}),
+			});
+			if (report.status === "fail") {
+				process.exitCode = 1;
+			}
+		}
 	)
 	.command(
 		"config show",
