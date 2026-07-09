@@ -743,6 +743,16 @@ jobs:
       - run: pnpm build
         name: Build CLI
 
+      - name: Validate generated workflows
+        run: |
+          node packages/cli/dist/cli.mjs sync-github \\
+            --repo "$PRIMARY_REPO" \\
+            --output-dir /tmp/sync-validate
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint /tmp/sync-validate/.github/workflows/*.yml
+        env:
+          PRIMARY_REPO: \${{ inputs.primary-repo }}
+
       - name: Sync primary repo (PR)
         run: >
           node packages/cli/dist/cli.mjs sync-github

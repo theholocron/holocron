@@ -302,9 +302,16 @@ await yargs(hideBin(process.argv))
 				.option("message", {
 					type: "string",
 					describe: "Commit message (default: chore: sync from theholocron/holocron)",
+				})
+				.option("output-dir", {
+					type: "string",
+					describe: "Write generated files to this local directory instead of pushing (for validation)",
 				}),
 		async (argv) => {
-			const token = argv.token ?? process.env.GITHUB_TOKEN ?? process.env.HOLOCRON_GITHUB_TOKEN;
+			const outputDir = argv["output-dir"] as string | undefined;
+			const token = outputDir
+				? "no-token-needed"
+				: (argv.token ?? process.env.GITHUB_TOKEN ?? process.env.HOLOCRON_GITHUB_TOKEN);
 			if (!token) {
 				console.error("sync-github: GitHub token required — pass --token or set GITHUB_TOKEN");
 				process.exitCode = 1;
@@ -317,6 +324,7 @@ await yargs(hideBin(process.argv))
 				...(argv.branch ? { branch: argv.branch } : {}),
 				...(argv.pr ? { createPr: true } : {}),
 				...(argv.message ? { message: argv.message } : {}),
+				...(outputDir ? { outputDir } : {}),
 			});
 			if (report.status === "fail") {
 				process.exitCode = 1;

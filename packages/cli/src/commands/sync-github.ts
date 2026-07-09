@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 import {
 	ACTIONS,
@@ -28,6 +30,12 @@ export interface RunSyncGithubInput {
 	/** Commit message for the sync commit. */
 	message?: string;
 	dryRun?: boolean;
+	/**
+	 * Write generated files to this local directory instead of pushing to the GitHub API.
+	 * Useful for local validation (e.g. actionlint) before a real sync run.
+	 * When set, no API calls are made and token is not required.
+	 */
+	outputDir?: string;
 	print?: (line: string) => void;
 	/** Injectable for testing. */
 	fetch?: typeof globalThis.fetch;
@@ -140,6 +148,17 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	print("");
 
 	const batch = buildBatch(repo);
+
+	// ── output-dir: write to disk and exit without any API calls ─────────────
+	if (input.outputDir) {
+		for (const file of batch) {
+			const dest = join(input.outputDir, file.path);
+			mkdirSync(dirname(dest), { recursive: true });
+			writeFileSync(dest, file.content, "utf8");
+		}
+		print(`  ${batch.length} files written to ${input.outputDir}`);
+		return { status: "ok", created: batch.length, updated: 0, unchanged: 0 };
+	}
 
 	// ── 1. Resolve target branch ─────────────────────────────────────────────
 	let targetBranch = branch;
