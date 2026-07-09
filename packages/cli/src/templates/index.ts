@@ -512,11 +512,11 @@ jobs:
         run: |
           has() { find . -not -path '*/node_modules/*' -name "\$1" -print -quit 2>/dev/null | grep -q .; }
           has_ext() { find . -not -path '*/node_modules/*' -name "\$1" -print -quit 2>/dev/null | grep -q .; }
-          has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \\
-            has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \\
-            has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \\
-            has '.eslintrc.yml' && echo "eslint=true" >> \$GITHUB_OUTPUT || echo "eslint=false" >> \$GITHUB_OUTPUT
-          has 'tsconfig.json' && echo "tsconfig=true" >> \$GITHUB_OUTPUT || echo "tsconfig=false" >> \$GITHUB_OUTPUT
+          { { has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \\
+              has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \\
+              has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \\
+              has '.eslintrc.yml'; } && command -v eslint >/dev/null 2>&1; } && echo "eslint=true" >> \$GITHUB_OUTPUT || echo "eslint=false" >> \$GITHUB_OUTPUT
+          { has 'tsconfig.json' && command -v tsc >/dev/null 2>&1; } && echo "tsconfig=true" >> \$GITHUB_OUTPUT || echo "tsconfig=false" >> \$GITHUB_OUTPUT
           has_ext '*.sh' && echo "shell=true" >> \$GITHUB_OUTPUT || echo "shell=false" >> \$GITHUB_OUTPUT
           has 'Dockerfile' || has_ext '*.Dockerfile' || has 'Containerfile' && \\
             echo "docker=true" >> \$GITHUB_OUTPUT || echo "docker=false" >> \$GITHUB_OUTPUT
