@@ -74,7 +74,13 @@ jobs:
         # hood, so `pnpm publish` inherits npm's OIDC support (or lack
         # thereof). npm 11.5.1+ has native OIDC. Upgrade globally so
         # `pnpm publish` picks it up.
-        run: npm install -g npm@latest
+        #
+        # sigstore is required by libnpmpublish/provenance.js and is loaded
+        # at module parse time (before any config check). npm 11+ removed it
+        # from its own bundled node_modules in some versions, causing
+        # MODULE_NOT_FOUND before provenance=false can take effect. Install
+        # it globally into the same prefix so require() finds it.
+        run: npm install -g npm@latest sigstore
 
       - name: Install
         run: pnpm install --frozen-lockfile
