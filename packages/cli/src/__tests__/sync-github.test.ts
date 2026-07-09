@@ -4,7 +4,9 @@ import { ACTIONS, REUSABLE_WORKFLOWS } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
 import { runSyncGithub } from "../commands/sync-github.js";
 
-const EXPECTED_FILE_COUNT = Object.keys(ACTIONS).length + Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length;
+// Actions are only pushed to the primary .github repo, not secondary targets.
+const PRIMARY_FILE_COUNT = Object.keys(ACTIONS).length + Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length;
+const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
 
@@ -34,7 +36,7 @@ function makeFetch(existingShas: Record<string, string> = {}) {
 }
 
 describe("runSyncGithub", () => {
-	it(`pushes all ${EXPECTED_FILE_COUNT} files (actions + reusable workflows + thin callers)`, async () => {
+	it(`pushes all ${PRIMARY_FILE_COUNT} files to the primary .github repo (actions + workflows + thin callers)`, async () => {
 		const { fn, calls } = makeFetch();
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -43,9 +45,24 @@ describe("runSyncGithub", () => {
 			fetch: fn,
 		});
 		expect(report.status).toBe("ok");
-		expect(report.created).toBe(EXPECTED_FILE_COUNT);
-		// Each file: one GET + one PUT
-		expect(calls).toHaveLength(EXPECTED_FILE_COUNT * 2);
+		expect(report.created).toBe(PRIMARY_FILE_COUNT);
+		expect(calls).toHaveLength(PRIMARY_FILE_COUNT * 2);
+	});
+
+	it(`skips actions for secondary repos (${SECONDARY_FILE_COUNT} files, no actions)`, async () => {
+		const { fn, calls } = makeFetch();
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.created).toBe(SECONDARY_FILE_COUNT);
+		expect(calls).toHaveLength(SECONDARY_FILE_COUNT * 2);
+		// No action files in the batch
+		expect(calls.some((c) => c.url.includes(".github/actions/"))).toBe(false);
 	});
 
 	it("skips PUT when content is unchanged (dry-run baseline)", async () => {
@@ -58,10 +75,10 @@ describe("runSyncGithub", () => {
 		});
 		expect(report.status).toBe("dry-run");
 		// All files new in dry-run (no existing SHAs)
-		expect(report.created).toBe(EXPECTED_FILE_COUNT);
+		expect(report.created).toBe(PRIMARY_FILE_COUNT);
 		// Dry-run: only GETs, no PUTs
 		expect(calls.filter((c) => c.method === "PUT")).toHaveLength(0);
-		expect(calls.filter((c) => c.method === "GET")).toHaveLength(EXPECTED_FILE_COUNT);
+		expect(calls.filter((c) => c.method === "GET")).toHaveLength(PRIMARY_FILE_COUNT);
 	});
 
 	it("issues PUT with sha when file exists (update path)", async () => {
@@ -98,7 +115,7 @@ describe("runSyncGithub", () => {
 		expect(report.message).toContain("Forbidden");
 	});
 
-	it("uses a custom repo when provided", async () => {
+	it("targets the custom repo in all API calls", async () => {
 		const { fn, calls } = makeFetch();
 		await runSyncGithub({
 			token: "ghp_test",
@@ -107,7 +124,7 @@ describe("runSyncGithub", () => {
 			print: () => {},
 			fetch: fn,
 		});
-		expect(calls[0]!.url).toContain("myorg/myrepo");
+		expect(calls.every((c) => c.url.includes("myorg/myrepo"))).toBe(true);
 	});
 
 	it("adds the AUTO-GENERATED header to pushed content", async () => {

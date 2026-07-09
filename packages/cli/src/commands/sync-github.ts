@@ -51,15 +51,21 @@ function thinCallerHeader(): string {
 	].join("\n");
 }
 
-function buildBatch(): FileBatch {
+function buildBatch(repo: string): FileBatch {
 	const files: FileBatch = [];
+	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
 
 	// Composite actions → .github/actions/<name>/action.yml
-	for (const [name, content] of Object.entries(ACTIONS)) {
-		files.push({
-			path: `.github/actions/${name}.yml`,
-			content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
-		});
+	// Only the primary .github repo needs these — reusable workflows reference
+	// them via the full path `theholocron/.github/.github/actions/setup@main`,
+	// so no other repo needs a local copy.
+	if (isPrimaryGithubRepo) {
+		for (const [name, content] of Object.entries(ACTIONS)) {
+			files.push({
+				path: `.github/actions/${name}.yml`,
+				content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
+			});
+		}
 	}
 
 	// Reusable workflows → .github/workflows/<name>.yml
@@ -100,7 +106,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	print(`  repo: ${repo}`);
 	print("");
 
-	const batch = buildBatch();
+	const batch = buildBatch(repo);
 	let created = 0;
 	let updated = 0;
 	let unchanged = 0;
