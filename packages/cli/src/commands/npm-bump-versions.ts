@@ -47,13 +47,6 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 			print(`  ✗ could not parse ${label}`);
 			return;
 		}
-
-		if (pkg.private) {
-			print(`  · skipping private package ${label}`);
-			skipped.push(label);
-			return;
-		}
-
 		const old = pkg.version as string;
 		if (!dryRun) {
 			pkg.version = version;
@@ -63,6 +56,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		bumped.push(label);
 	}
 
+	// Root is always bumped — private means "don't publish", not "don't version".
 	bumpFile(join(cwd, "package.json"), "root");
 
 	const packagesDir = join(cwd, "packages");
@@ -81,9 +75,15 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 			continue;
 		}
 		const pkgFile = join(pkgDir, "package.json");
+		let pkg: Record<string, unknown>;
 		try {
-			readFile(pkgFile);
+			pkg = JSON.parse(readFile(pkgFile)) as Record<string, unknown>;
 		} catch {
+			continue;
+		}
+		if (pkg.private) {
+			print(`  · skipping private package packages/${entry}`);
+			skipped.push(`packages/${entry}`);
 			continue;
 		}
 		bumpFile(pkgFile, `packages/${entry}`);

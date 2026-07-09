@@ -49,7 +49,7 @@ describe("runNpmBumpVersions", () => {
 			isDir,
 		});
 		expect(report.status).toBe("ok");
-		expect(report.bumped).toEqual(["packages/pkg-a", "packages/pkg-b"]);
+		expect(report.bumped).toEqual(["root", "packages/pkg-a", "packages/pkg-b"]);
 		expect(JSON.parse(written[join(CWD, "packages/pkg-a/package.json")]!).version).toBe("4.2.0");
 		expect(JSON.parse(written[join(CWD, "packages/pkg-b/package.json")]!).version).toBe("4.2.0");
 	});
@@ -69,12 +69,12 @@ describe("runNpmBumpVersions", () => {
 			listDir,
 			isDir,
 		});
-		expect(report.bumped).toEqual(["packages/public"]);
+		expect(report.bumped).toEqual(["root", "packages/public"]);
 		expect(report.skipped).toContain("packages/private");
 	});
 
-	it("skips the root package when it is private", async () => {
-		const { readFile, writeFile, listDir, isDir } = makeFs({
+	it("bumps the root package even when it is private", async () => {
+		const { readFile, writeFile, listDir, isDir, written } = makeFs({
 			"package.json": { name: "root", version: "0.0.0", private: true },
 			"packages/pkg/package.json": { name: "@acme/pkg", version: "4.1.0" },
 		});
@@ -87,8 +87,9 @@ describe("runNpmBumpVersions", () => {
 			listDir,
 			isDir,
 		});
-		expect(report.skipped).toContain("root");
-		expect(report.bumped).not.toContain("root");
+		expect(report.bumped).toContain("root");
+		expect(report.skipped).not.toContain("root");
+		expect(JSON.parse(written[join(CWD, "package.json")]!).version).toBe("4.2.0");
 	});
 
 	it("bumps the root package when it is not private", async () => {
@@ -168,7 +169,7 @@ describe("runNpmBumpVersions", () => {
 			listDir: () => ["pkg", "no-manifest"],
 			isDir,
 		});
-		expect(report.bumped).toEqual(["packages/pkg"]);
+		expect(report.bumped).toEqual(["root", "packages/pkg"]);
 	});
 
 	it("prints the version and cwd header", async () => {
