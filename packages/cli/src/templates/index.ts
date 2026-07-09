@@ -543,6 +543,7 @@ jobs:
         uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1
         with:
           reporter: github-pr-check
+          package_manager: pnpm
           eslint_flags: .
 
       - name: TypeScript
