@@ -9,6 +9,7 @@ import type { CapabilityKey } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
@@ -218,6 +219,26 @@ await yargs(hideBin(process.argv))
 				projectId: argv.projectId as string,
 				branch: argv.branch as string,
 				...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+			});
+			if (report.status === "fail") {
+				process.exitCode = 1;
+			}
+		}
+	)
+	.command(
+		"npm bump-versions <version>",
+		"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
+		(y) =>
+			y.positional("version", {
+				type: "string",
+				demandOption: true,
+				describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
+			}),
+		async (argv) => {
+			const report = await runNpmBumpVersions({
+				version: argv.version as string,
+				cwd: argv.cwd,
+				dryRun: argv.dryRun,
 			});
 			if (report.status === "fail") {
 				process.exitCode = 1;
