@@ -1,4 +1,8 @@
-import { ACTIONS, REUSABLE_WORKFLOWS } from "../templates/index.js";
+import {
+	ACTIONS,
+	REUSABLE_WORKFLOWS,
+	WORKFLOW_TEMPLATE_PROPERTIES,
+} from "../templates/index.js";
 import { WORKFLOW_TEMPLATES } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
@@ -86,12 +90,19 @@ function buildBatch(repo: string): FileBatch {
 		});
 	}
 
-	// Thin callers → workflow-templates/<name>.yml
+	// Thin callers → workflow-templates/<name>.yml + companion .properties.json
 	for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 		files.push({
 			path: `workflow-templates/${name}.yml`,
 			content: thinCallerHeader() + content,
 		});
+		const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
+		if (props) {
+			files.push({
+				path: `workflow-templates/${name}.properties.json`,
+				content: props,
+			});
+		}
 	}
 
 	return files;

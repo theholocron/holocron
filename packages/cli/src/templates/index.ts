@@ -753,20 +753,23 @@ jobs:
       - name: Sync primary repo (PR)
         run: >
           node packages/cli/dist/cli.mjs sync-github
-          --repo \${{ inputs.primary-repo }}
-          --branch \${{ inputs.sync-branch }}
+          --repo "$PRIMARY_REPO"
+          --branch "$SYNC_BRANCH"
           --pr
         env:
           GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
+          PRIMARY_REPO: \${{ inputs.primary-repo }}
+          SYNC_BRANCH: \${{ inputs.sync-branch }}
 
       - name: Sync secondary repos (direct push)
         if: \${{ inputs.secondary-repos != '' }}
         run: |
-          for repo in \${{ inputs.secondary-repos }}; do
+          for repo in $SECONDARY_REPOS; do
             node packages/cli/dist/cli.mjs sync-github --repo "$repo"
           done
         env:
           GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
+          SECONDARY_REPOS: \${{ inputs.secondary-repos }}
 `,
 
 	typecheck: `\
@@ -792,4 +795,17 @@ jobs:
       - run: pnpm typecheck
         name: Type check
 `,
+};
+
+export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
+	"sync-github": JSON.stringify(
+		{
+			name: "Sync GitHub Templates",
+			description:
+				"Sync workflow templates and composite actions from the holocron CLI.",
+			iconName: "octicon sync",
+		},
+		null,
+		2,
+	),
 };

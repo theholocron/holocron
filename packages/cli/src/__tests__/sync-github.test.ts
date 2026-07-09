@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { ACTIONS, REUSABLE_WORKFLOWS } from "../templates/index.js";
+import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
 import { runSyncGithub } from "../commands/sync-github.js";
 
 // Actions are only pushed to the primary .github repo, not secondary targets.
-const PRIMARY_FILE_COUNT = Object.keys(ACTIONS).length + Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length;
-const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length;
+// WORKFLOW_TEMPLATE_PROPERTIES adds one .properties.json per keyed template.
+const PROPS_COUNT = Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
+const PRIMARY_FILE_COUNT = Object.keys(ACTIONS).length + Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length + PROPS_COUNT;
+const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length + PROPS_COUNT;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
 
