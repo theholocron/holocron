@@ -48,24 +48,8 @@ describe("runSyncGithub", () => {
 		expect(calls).toHaveLength(EXPECTED_FILE_COUNT * 2);
 	});
 
-	it("skips PUT when content is unchanged", async () => {
-		// Pre-populate one file with matching content
+	it("skips PUT when content is unchanged (dry-run baseline)", async () => {
 		const { fn, calls } = makeFetch();
-		// Override to return matching content for the first call
-		let firstGet = true;
-		const wrappedFn: typeof globalThis.fetch = async (url, init) => {
-			const method = init?.method ?? "GET";
-			if (method === "GET" && firstGet) {
-				firstGet = false;
-				// Return base64 of the actual content so it matches → no PUT
-				const path = url.toString().replace("https://api.github.com/repos/theholocron/.github/contents/", "");
-				void path;
-				// We can't easily compute the exact base64 here, so just test
-				// the sha + content matching path via a simpler scenario.
-			}
-			return fn(url, init);
-		};
-		// Easier: test via dry-run counting
 		const report = await runSyncGithub({
 			token: "ghp_test",
 			dryRun: true,

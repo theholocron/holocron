@@ -1,5 +1,5 @@
 import { ACTIONS, REUSABLE_WORKFLOWS } from "../templates/index.js";
-import { WORKFLOW_HEADER, WORKFLOW_TEMPLATES } from "./setup-workflows.js";
+import { WORKFLOW_TEMPLATES } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
 const API_BASE = "https://api.github.com";
@@ -133,7 +133,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		const verb = existingSha ? "updated " : "created ";
 		if (dryRun) {
 			print(`  ~ ${verb} ${file.path}`);
-			existingSha ? updated++ : created++;
+			if (existingSha) { updated++; } else { created++; }
 			continue;
 		}
 
@@ -154,7 +154,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		}
 
 		print(`  ✓ ${verb} ${file.path}`);
-		existingSha ? updated++ : created++;
+		if (existingSha) { updated++; } else { created++; }
 	}
 
 	print("");
