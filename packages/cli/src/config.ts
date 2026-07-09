@@ -87,6 +87,7 @@ export interface HolocronConfig {
 		/**
 		 * CI workflow names to install as thin wrappers during `holocron setup`.
 		 * Each name maps to a reusable workflow in `theholocron/.github`.
+		 * Use the object form to pass `with:` inputs to the reusable workflow.
 		 *
 		 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
 		 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping-pr" | "audit"
@@ -94,8 +95,11 @@ export interface HolocronConfig {
 		 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
 		 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
 		 * Files are overwritten on each run — they are generated artifacts.
+		 *
+		 * @example
+		 * ["lint", { "name": "release", "with": { "run-build": false } }]
 		 */
-		workflows?: string[];
+		workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
 	};
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];

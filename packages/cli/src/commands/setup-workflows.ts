@@ -279,3 +279,20 @@ jobs:
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
+
+/**
+ * Generate the thin caller content for a workflow, optionally injecting
+ * `with:` inputs before `secrets: inherit` in the jobs block.
+ */
+export function generateThinCallerContent(
+	name: string,
+	withOverrides?: Record<string, unknown>,
+): string {
+	const base = WORKFLOW_TEMPLATES[name];
+	if (!base) return "";
+	if (!withOverrides || Object.keys(withOverrides).length === 0) return base;
+	const withBlock = Object.entries(withOverrides)
+		.map(([k, v]) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`)
+		.join("\n");
+	return base.replace(/    secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
+}

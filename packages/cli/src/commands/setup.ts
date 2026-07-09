@@ -22,7 +22,7 @@ import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vau
 import { ProviderApiError } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
-import { WORKFLOW_TEMPLATES, WORKFLOW_HEADER, KNOWN_WORKFLOWS } from "./setup-workflows.js";
+import { WORKFLOW_HEADER, KNOWN_WORKFLOWS, generateThinCallerContent } from "./setup-workflows.js";
 
 // ── dependabot config template ───────────────────────────────────────
 const DEPENDABOT_CONFIG = `\
@@ -256,7 +256,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (loader.has("source") && workflows && workflows.length > 0) {
 		const source = loader.get("source") as Source;
 		print("  → workflows");
-		for (const name of workflows) {
+		for (const entry of workflows) {
+			const name = typeof entry === "string" ? entry : entry.name;
+			const withOverrides = typeof entry === "object" ? entry.with : undefined;
 			if (!KNOWN_WORKFLOWS.has(name)) {
 				steps.push({
 					capability: "source",
@@ -269,7 +271,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			}
 			steps.push(
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
-					await source.writeWorkflowFile(`${name}.yml`, WORKFLOW_HEADER + WORKFLOW_TEMPLATES[name]!);
+					await source.writeWorkflowFile(
+						`${name}.yml`,
+						WORKFLOW_HEADER + generateThinCallerContent(name, withOverrides),
+					);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
