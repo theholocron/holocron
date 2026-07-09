@@ -64,6 +64,10 @@ runs:
       with:
         node-version: \${{ inputs.node-version }}
         cache: pnpm
+
+    - name: Add node_modules/.bin to PATH
+      shell: bash
+      run: echo "\$GITHUB_WORKSPACE/node_modules/.bin" >> \$GITHUB_PATH
 `,
 };
 
@@ -524,26 +528,24 @@ jobs:
       # TypeScript / JavaScript
       #
 
+      - name: Detect ESLint config
+        id: eslint-config
+        shell: bash
+        run: |
+          found=\$(find . -not -path '*/node_modules/*' \\
+            \\( -name 'eslint.config.js' -o -name 'eslint.config.mjs' \\
+               -o -name 'eslint.config.cjs' -o -name 'eslint.config.ts' \\
+               -o -name '.eslintrc' -o -name '.eslintrc.js' \\
+               -o -name '.eslintrc.cjs' -o -name '.eslintrc.json' \\
+               -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' \\) \\
+            2>/dev/null | head -1)
+          echo "found=\$([[ -n "\$found" ]] && echo true || echo false)" >> \$GITHUB_OUTPUT
+
       - name: ESLint
-        if: >-
-          \${{
-            hashFiles(
-              '**/eslint.config.js',
-              '**/eslint.config.mjs',
-              '**/eslint.config.cjs',
-              '**/eslint.config.ts',
-              '**/.eslintrc',
-              '**/.eslintrc.js',
-              '**/.eslintrc.cjs',
-              '**/.eslintrc.json',
-              '**/.eslintrc.yaml',
-              '**/.eslintrc.yml'
-            ) != ''
-          }}
-        uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1
+        if: steps.eslint-config.outputs.found == 'true'
+        uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1.34.0
         with:
           reporter: github-pr-check
-          package_manager: pnpm
           eslint_flags: .
 
       - name: TypeScript
