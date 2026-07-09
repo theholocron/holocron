@@ -144,12 +144,18 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - main
+      - alpha
+  workflow_dispatch:
 
 permissions:
   contents: write
   id-token: write
   issues: write
   pull-requests: write
+
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
