@@ -515,8 +515,8 @@ jobs:
           { { has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \\
               has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \\
               has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \\
-              has '.eslintrc.yml'; } && command -v eslint >/dev/null 2>&1; } && echo "eslint=true" >> \$GITHUB_OUTPUT || echo "eslint=false" >> \$GITHUB_OUTPUT
-          { has 'tsconfig.json' && command -v tsc >/dev/null 2>&1; } && echo "tsconfig=true" >> \$GITHUB_OUTPUT || echo "tsconfig=false" >> \$GITHUB_OUTPUT
+              has '.eslintrc.yml'; } && grep -qE '"eslint"\s*:' package.json 2>/dev/null; } && echo "eslint=true" >> \$GITHUB_OUTPUT || echo "eslint=false" >> \$GITHUB_OUTPUT
+          { has 'tsconfig.json' && grep -qE '"typescript"\s*:' package.json 2>/dev/null; } && echo "tsconfig=true" >> \$GITHUB_OUTPUT || echo "tsconfig=false" >> \$GITHUB_OUTPUT
           has_ext '*.sh' && echo "shell=true" >> \$GITHUB_OUTPUT || echo "shell=false" >> \$GITHUB_OUTPUT
           has 'Dockerfile' || has_ext '*.Dockerfile' || has 'Containerfile' && \\
             echo "docker=true" >> \$GITHUB_OUTPUT || echo "docker=false" >> \$GITHUB_OUTPUT
