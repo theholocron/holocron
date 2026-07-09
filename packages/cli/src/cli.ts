@@ -226,50 +226,58 @@ await yargs(hideBin(process.argv))
 		}
 	)
 	.command(
-		"npm bump-versions <version>",
-		"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
-		(y) =>
-			y.positional("version", {
-				type: "string",
-				demandOption: true,
-				describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
-			}),
-		async (argv) => {
-			const report = await runNpmBumpVersions({
-				version: argv.version as string,
-				cwd: argv.cwd,
-				dryRun: argv.dryRun,
-			});
-			if (report.status === "fail") {
-				process.exitCode = 1;
-			}
-		}
-	)
-	.command(
-		"npm publish-initial",
-		"One-shot bootstrap publish for trusted-publishing-eligible packages",
+		"npm",
+		"npm-related monorepo utilities",
 		(y) =>
 			y
-				.option("tag", {
-					type: "string",
-					default: "alpha",
-					describe: "npm distribution tag (defaults to alpha)",
-				})
-				.option("otp", {
-					type: "string",
-					describe: "One-time password from your authenticator (required if npm needs 2FA for writes)",
-				}),
-		async (argv) => {
-			const report = await runNpmPublishInitial({
-				cwd: argv.cwd,
-				tag: argv.tag,
-				dryRun: argv.dryRun,
-				...(argv.otp ? { otp: argv.otp as string } : {}),
-			});
-			if (report.status === "fail") {
-				process.exitCode = 1;
-			}
-		}
+				.command(
+					"bump-versions <new-version>",
+					"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
+					(yy) =>
+						yy.positional("new-version", {
+							type: "string",
+							demandOption: true,
+							describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
+						}),
+					async (argv) => {
+						const report = await runNpmBumpVersions({
+							version: argv.newVersion as string,
+							cwd: argv.cwd,
+							dryRun: argv.dryRun,
+						});
+						if (report.status === "fail") {
+							process.exitCode = 1;
+						}
+					}
+				)
+				.command(
+					"publish-initial",
+					"One-shot bootstrap publish for trusted-publishing-eligible packages",
+					(yy) =>
+						yy
+							.option("tag", {
+								type: "string",
+								default: "alpha",
+								describe: "npm distribution tag (defaults to alpha)",
+							})
+							.option("otp", {
+								type: "string",
+								describe: "One-time password from your authenticator (required if npm needs 2FA for writes)",
+							}),
+					async (argv) => {
+						const report = await runNpmPublishInitial({
+							cwd: argv.cwd,
+							tag: argv.tag,
+							dryRun: argv.dryRun,
+							...(argv.otp ? { otp: argv.otp as string } : {}),
+						});
+						if (report.status === "fail") {
+							process.exitCode = 1;
+						}
+					}
+				)
+				.demandCommand(1, "Run `holocron npm --help` to see available npm subcommands."),
+		() => {}
 	)
 	.command(
 		"config show",
