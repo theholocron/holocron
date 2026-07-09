@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
 	ACTIONS,
 	REUSABLE_WORKFLOWS,
@@ -108,6 +110,15 @@ function buildBatch(repo: string): FileBatch {
 	return files;
 }
 
+/** Git blob SHA: sha1("blob {len}\0{content}") — used to detect unchanged files. */
+export function gitBlobSha(content: string): string {
+	const buf = Buffer.from(content, "utf8");
+	return createHash("sha1")
+		.update(`blob ${buf.length}\0`)
+		.update(buf)
+		.digest("hex");
+}
+
 export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGithubReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const repo = input.repo ?? DEFAULT_REPO;
@@ -129,71 +140,154 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	print("");
 
 	const batch = buildBatch(repo);
+
+	// ── 1. Resolve target branch ─────────────────────────────────────────────
+	let targetBranch = branch;
+	if (!targetBranch) {
+		const repoRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}`, { headers });
+		if (!repoRes.ok) {
+			const msg = "failed to fetch repo metadata";
+			print(`  ✗ ${msg}`);
+			return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
+		}
+		const repoData = (await repoRes.json()) as { default_branch: string };
+		targetBranch = repoData.default_branch;
+	}
+
+	// ── 2. Get HEAD commit → base tree ───────────────────────────────────────
+	const refRes = await fetchFn(
+		`${API_BASE}/repos/${owner}/${repoName}/git/ref/heads/${targetBranch}`,
+		{ headers },
+	);
+	if (!refRes.ok) {
+		const msg = `Branch ${targetBranch} not found`;
+		print(`  ✗ ${msg}`);
+		return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
+	}
+	const { object: { sha: headSha } } = (await refRes.json()) as { object: { sha: string } };
+
+	const commitRes = await fetchFn(
+		`${API_BASE}/repos/${owner}/${repoName}/git/commits/${headSha}`,
+		{ headers },
+	);
+	const { tree: { sha: baseTreeSha } } = (await commitRes.json()) as { tree: { sha: string } };
+
+	const treeRes = await fetchFn(
+		`${API_BASE}/repos/${owner}/${repoName}/git/trees/${baseTreeSha}?recursive=1`,
+		{ headers },
+	);
+	const { tree: existingTree } = (await treeRes.json()) as {
+		tree: Array<{ path: string; sha: string; type: string }>;
+	};
+	const existingBlobs = new Map(
+		existingTree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]),
+	);
+
+	// ── 3. Detect changes ────────────────────────────────────────────────────
 	let created = 0;
 	let updated = 0;
 	let unchanged = 0;
+	const changedFiles: Array<{ path: string; content: string }> = [];
 
 	for (const file of batch) {
-		// When targeting a branch, include ?ref=<branch> on the GET so we read
-		// the file's current SHA on that branch (not the default branch SHA).
-		const ref = branch ? `?ref=${encodeURIComponent(branch)}` : "";
-		const url = `${API_BASE}/repos/${owner}/${repoName}/contents/${file.path}`;
-		const newContent = Buffer.from(file.content, "utf8").toString("base64");
+		const localSha = gitBlobSha(file.content);
+		const existingSha = existingBlobs.get(file.path);
 
-		let existingSha: string | undefined;
-		let existingContent: string | undefined;
-		try {
-			const getRes = await fetchFn(`${url}${ref}`, { headers });
-			if (getRes.ok) {
-				const data = (await getRes.json()) as { sha: string; content: string };
-				existingSha = data.sha;
-				existingContent = data.content.replace(/\n/g, "");
-			}
-		} catch {
-			// Network error — surfaced on the PUT below
-		}
-
-		if (existingContent === newContent) {
+		if (existingSha === localSha) {
 			print(`  · unchanged  ${file.path}`);
 			unchanged++;
-			continue;
+		} else if (existingSha) {
+			print(`  ${dryRun ? "~" : "✓"} updated  ${file.path}`);
+			updated++;
+			if (!dryRun) changedFiles.push(file);
+		} else {
+			print(`  ${dryRun ? "~" : "✓"} created  ${file.path}`);
+			created++;
+			if (!dryRun) changedFiles.push(file);
 		}
-
-		const verb = existingSha ? "updated " : "created ";
-		if (dryRun) {
-			print(`  ~ ${verb} ${file.path}`);
-			if (existingSha) { updated++; } else { created++; }
-			continue;
-		}
-
-		const body: Record<string, unknown> = { message, content: newContent };
-		if (existingSha) body.sha = existingSha;
-		if (branch) body.branch = branch;
-
-		const putRes = await fetchFn(url, {
-			method: "PUT",
-			headers,
-			body: JSON.stringify(body),
-		});
-
-		if (!putRes.ok) {
-			const err = (await putRes.json()) as { message?: string };
-			const msg = `failed to push ${file.path}: ${err.message ?? putRes.status}`;
-			print(`  ✗ ${msg}`);
-			return { status: "fail", created, updated, unchanged, message: msg };
-		}
-
-		print(`  ✓ ${verb} ${file.path}`);
-		if (existingSha) { updated++; } else { created++; }
 	}
 
-	const changed = created + updated;
 	print("");
 	print(`  ${created} created, ${updated} updated, ${unchanged} unchanged`);
 
-	// Open a PR from `branch` → default branch when requested and there were changes.
+	if (dryRun || changedFiles.length === 0) {
+		return { status: dryRun ? "dry-run" : "ok", created, updated, unchanged };
+	}
+
+	// ── 4. Create blobs for changed files ────────────────────────────────────
+	const treeEntries: Array<{ path: string; mode: string; type: string; sha: string }> = [];
+	for (const file of changedFiles) {
+		const blobRes = await fetchFn(
+			`${API_BASE}/repos/${owner}/${repoName}/git/blobs`,
+			{
+				method: "POST",
+				headers,
+				body: JSON.stringify({ content: file.content, encoding: "utf-8" }),
+			},
+		);
+		if (!blobRes.ok) {
+			const err = (await blobRes.json()) as { message?: string };
+			const msg = `failed to create blob for ${file.path}: ${err.message ?? blobRes.status}`;
+			print(`  ✗ ${msg}`);
+			return { status: "fail", created, updated, unchanged, message: msg };
+		}
+		const { sha: blobSha } = (await blobRes.json()) as { sha: string };
+		treeEntries.push({ path: file.path, mode: "100644", type: "blob", sha: blobSha });
+	}
+
+	// ── 5. Create tree ───────────────────────────────────────────────────────
+	const newTreeRes = await fetchFn(
+		`${API_BASE}/repos/${owner}/${repoName}/git/trees`,
+		{
+			method: "POST",
+			headers,
+			body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
+		},
+	);
+	if (!newTreeRes.ok) {
+		const err = (await newTreeRes.json()) as { message?: string };
+		const msg = `failed to create tree: ${err.message ?? newTreeRes.status}`;
+		print(`  ✗ ${msg}`);
+		return { status: "fail", created, updated, unchanged, message: msg };
+	}
+	const { sha: newTreeSha } = (await newTreeRes.json()) as { sha: string };
+
+	// ── 6. Create commit ─────────────────────────────────────────────────────
+	const newCommitRes = await fetchFn(
+		`${API_BASE}/repos/${owner}/${repoName}/git/commits`,
+		{
+			method: "POST",
+			headers,
+			body: JSON.stringify({ message, tree: newTreeSha, parents: [headSha] }),
+		},
+	);
+	if (!newCommitRes.ok) {
+		const err = (await newCommitRes.json()) as { message?: string };
+		const msg = `failed to create commit: ${err.message ?? newCommitRes.status}`;
+		print(`  ✗ ${msg}`);
+		return { status: "fail", created, updated, unchanged, message: msg };
+	}
+	const { sha: newCommitSha } = (await newCommitRes.json()) as { sha: string };
+
+	// ── 7. Update branch ref ─────────────────────────────────────────────────
+	const updateRefRes = await fetchFn(
+		`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`,
+		{
+			method: "PATCH",
+			headers,
+			body: JSON.stringify({ sha: newCommitSha }),
+		},
+	);
+	if (!updateRefRes.ok) {
+		const err = (await updateRefRes.json()) as { message?: string };
+		const msg = `failed to update ref: ${err.message ?? updateRefRes.status}`;
+		print(`  ✗ ${msg}`);
+		return { status: "fail", created, updated, unchanged, message: msg };
+	}
+
+	// ── 8. Open PR if requested ──────────────────────────────────────────────
 	let prUrl: string | undefined;
-	if (branch && createPr && changed > 0 && !dryRun) {
+	if (branch && createPr && !dryRun) {
 		const prRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/pulls`, {
 			method: "POST",
 			headers,
@@ -211,7 +305,6 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			print(`  → PR opened: ${prUrl}`);
 		} else {
 			const err = (await prRes.json()) as { message?: string; errors?: Array<{ message: string }> };
-			// "A pull request already exists" is not an error — the branch was updated, PR just needs merging.
 			const alreadyExists = err.errors?.some((e) => e.message.includes("already exists"));
 			if (alreadyExists) {
 				print(`  → PR already open for ${branch} — branch updated, ready to merge`);
@@ -221,5 +314,5 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		}
 	}
 
-	return { status: dryRun ? "dry-run" : "ok", created, updated, unchanged, prUrl };
+	return { status: "ok", created, updated, unchanged, prUrl };
 }
