@@ -503,12 +503,15 @@ jobs:
       # Detect which tools are relevant for this repo, excluding node_modules.
       # hashFiles('**/*') recurses into node_modules/.pnpm and produces false
       # positives for repos that don't own those file types.
+      # -print -quit stops find after the first match without a pipe, avoiding
+      # the SIGPIPE/pipefail exit-141 that find|head-1 triggers under
+      # GitHub Actions' default bash --noprofile --norc -e -o pipefail mode.
       - name: Detect project features
         id: detect
         shell: bash
         run: |
-          has() { find . -not -path '*/node_modules/*' -name "\$1" 2>/dev/null | head -1 | grep -q .; }
-          has_ext() { find . -not -path '*/node_modules/*' -name "\$1" 2>/dev/null | head -1 | grep -q .; }
+          has() { find . -not -path '*/node_modules/*' -name "\$1" -print -quit 2>/dev/null | grep -q .; }
+          has_ext() { find . -not -path '*/node_modules/*' -name "\$1" -print -quit 2>/dev/null | grep -q .; }
           has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \\
             has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \\
             has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \\
