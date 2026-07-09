@@ -79,6 +79,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		try {
 			pkg = JSON.parse(readFile(pkgFile)) as Record<string, unknown>;
 		} catch {
+			print(`  ! skipping packages/${entry}: no package.json or malformed JSON`);
 			continue;
 		}
 		if (pkg.private) {

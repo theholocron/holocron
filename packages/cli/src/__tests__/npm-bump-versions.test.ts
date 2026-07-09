@@ -152,15 +152,16 @@ describe("runNpmBumpVersions", () => {
 		expect(lines.some((l) => l.includes("4.1.0") && l.includes("4.2.0"))).toBe(true);
 	});
 
-	it("silently skips package dirs that have no package.json", async () => {
-		const { readFile, writeFile, listDir, isDir } = makeFs({
+	it("warns and skips package dirs that have no package.json", async () => {
+		const lines: string[] = [];
+		const { readFile, writeFile, isDir } = makeFs({
 			"package.json": { name: "root", version: "0.0.0", private: true },
 			"packages/pkg/package.json": { name: "@acme/pkg", version: "4.1.0" },
 		});
 		const report = await runNpmBumpVersions({
 			version: "4.2.0",
 			cwd: CWD,
-			print: () => {},
+			print: (l) => lines.push(l),
 			readFile: (p) => {
 				if (p.includes("no-manifest")) throw new Error("ENOENT");
 				return readFile(p);
@@ -170,6 +171,7 @@ describe("runNpmBumpVersions", () => {
 			isDir,
 		});
 		expect(report.bumped).toEqual(["root", "packages/pkg"]);
+		expect(lines.some((l) => l.includes("no-manifest") && l.includes("skipping"))).toBe(true);
 	});
 
 	it("prints the version and cwd header", async () => {
