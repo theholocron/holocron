@@ -27,12 +27,12 @@ runs:
   using: composite
 
   steps:
-    - uses: ./.github/actions/setup-node
+    - uses: theholocron/.github/.github/actions/setup-node@main
       with:
         node-version: \${{ inputs.node-version }}
         pnpm-version: \${{ inputs.pnpm-version }}
 
-    - uses: ./.github/actions/install
+    - uses: theholocron/.github/.github/actions/install@main
 `,
 
 	"install/action": `\
