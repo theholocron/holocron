@@ -18,11 +18,6 @@ inputs:
     required: false
     default: "22.x"
 
-  pnpm-version:
-    description: pnpm version
-    required: false
-    default: "10"
-
 runs:
   using: composite
 
@@ -30,7 +25,6 @@ runs:
     - uses: theholocron/.github/.github/actions/setup-node@main
       with:
         node-version: \${{ inputs.node-version }}
-        pnpm-version: \${{ inputs.pnpm-version }}
 
     - uses: theholocron/.github/.github/actions/install@main
 `,
@@ -58,19 +52,12 @@ inputs:
     required: false
     default: "22.x"
 
-  pnpm-version:
-    description: pnpm version
-    required: false
-    default: "10"
-
 runs:
   using: composite
 
   steps:
     - name: Setup pnpm
       uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      with:
-        version: \${{ inputs.pnpm-version }}
 
     - name: Setup Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
