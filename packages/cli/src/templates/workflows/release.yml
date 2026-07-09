@@ -37,8 +37,12 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - run: npm install -g npm@11
+      - run: npm install -g npm@11 sigstore
         name: Upgrade npm for OIDC support
+        # sigstore is required by libnpmpublish/provenance.js at module parse
+        # time — before any config takes effect. Some npm 11.x builds stopped
+        # bundling it; installing it globally into the same prefix ensures it
+        # resolves regardless of npm version. (Discovered 2026-07-09.)
 
       - run: pnpm build
         name: Build
