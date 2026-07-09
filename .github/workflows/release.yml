@@ -93,6 +93,10 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Disable npm provenance signing: pnpm delegates to npm's libnpmpublish
+          # which requires sigstore. We use OIDC for auth, not provenance — the
+          # env var suppresses it regardless of which npm binary is invoked.
+          npm_config_provenance: "false"
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             pnpm exec semantic-release --dry-run
