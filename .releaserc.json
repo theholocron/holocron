@@ -37,7 +37,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "pnpm exec holocron npm bump-versions ${nextRelease.version}",
+        "prepareCmd": "node packages/cli/dist/cli.mjs npm bump-versions ${nextRelease.version}",
         "publishCmd": "pnpm -r --filter='./packages/*' --filter='!@theholocron/cli-utils' publish --access public --no-git-checks --tag ${nextRelease.channel || 'latest'}"
       }
     ],
