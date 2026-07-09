@@ -748,8 +748,9 @@ jobs:
           node packages/cli/dist/cli.mjs sync-github \\
             --repo "$PRIMARY_REPO" \\
             --output-dir /tmp/sync-validate
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.7
-          ./actionlint /tmp/sync-validate/.github/workflows/*.yml
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz \\
+            | tar -xz -C /tmp actionlint
+          /tmp/actionlint /tmp/sync-validate/.github/workflows/*.yml
         env:
           PRIMARY_REPO: \${{ inputs.primary-repo }}
 
