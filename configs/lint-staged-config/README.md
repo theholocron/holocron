@@ -1,40 +1,45 @@
 # Lint Staged Config
 
-A [Lint Staged configuration](https://github.com/okonet/lint-staged#configuration) for linting code that has been staged in Git within the Galaxy.
+A [lint-staged configuration](https://github.com/lint-staged/lint-staged#configuration) for running linters on Git-staged files.
 
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/lint-staged-config
+npm install --save-dev @theholocron/lint-staged-config lint-staged husky
 ```
 
 ## Usage
 
-In your project `.husky/pre-commit` add the following:
+### 1. Set up Husky
 
 ```bash
-# .husky/pre-commit
-npx lint-staged --config @theholocron/lint-staged-config
+npx husky init
 ```
 
-## How We Manage Our Staged Code
+### 2. Wire lint-staged into the pre-commit hook
 
-This library uses [`husky`](https://github.com/typicode/husky) for managing tools and extending that with `lint-staged`. This means we can run automated tasks on any file that is placed on the Git stage. Currently that means we run the following commands on various types of code:
+Replace the contents of `.husky/pre-commit` with:
 
-### [TJ]S(X)
+```bash
+pnpm exec lint-staged --config node_modules/@theholocron/lint-staged-config/lint-staged.config.js
+```
 
-First we run all suffixed files through `prettier` with the `--write` flag in order to format and fix all style issues.
+Or add it to `package.json`:
 
-Then we use `eslint` to check for any glaring code issues.
+```json
+{
+  "lint-staged": "node_modules/@theholocron/lint-staged-config/lint-staged.config.js"
+}
+```
 
-Lastly, we run it through `tsc` in order to check for any type errors.
+## What runs on staged files
 
-If all things pass, then you'll proceed to commit.
-
-### (S)CSS
-
-We use `stylelint` with the `--fix` flag on any staged files.
-
-### Images
-
-We run `imagin-lint-staged` in order to compress any images that may show up on the staging area in order to reduce the size.
+| File pattern | Commands |
+|---|---|
+| `*.{js,jsx}` | `prettier --write`, `eslint` |
+| `*.{ts,tsx}` | `prettier --write`, `eslint`, `tsc-files --noEmit` |
+| `*.css` | `stylelint --fix` |
+| `*.scss` | `stylelint --syntax=scss --fix` |
+| `*.{md,mdx}` | `prettier --write` |
+| `*.{png,jpeg,jpg,gif,svg}` | `imagemin-lint-staged` |
+| `package.json` | `sort-package-json` |

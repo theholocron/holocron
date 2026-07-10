@@ -1,24 +1,25 @@
 # Prettier Config
 
-A [Prettier configuration](https://prettier.io/docs/en/configuration) for formatting libraries in the Galaxy.
+A [Prettier configuration](https://prettier.io/docs/en/configuration) for consistent code formatting.
 
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/prettier-config
+npm install --save-dev @theholocron/prettier-config prettier
 ```
 
 ## Usage
 
-In your project `package.json` add the following:
+In your project `package.json`:
 
 ```json
 {
-	"prettier": "@theholocron/prettier-config"
+  "prettier": "@theholocron/prettier-config"
 }
 ```
 
-## What Do We Format?
+## Formatting choices
 
--   1 tab character over x number of spaces; [don't come at me!](https://lea.verou.me/blog/2012/01/why-tabs-are-clearly-superior/)
--   Use semicolons at the end of statements; for clarity, readability
+- **Tabs over spaces** for indentation
+- **Semicolons** at the end of statements
+- Double quotes for strings

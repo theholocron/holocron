@@ -1,29 +1,47 @@
-# Jest Preset
+# Jest Config — Deprecated
 
-A [Jest preset](https://facebook.github.io/jest/docs/en/configuration.html#preset-string) for testing code within the Galaxy.
+> **This package is deprecated.** New projects should use
+> [`@theholocron/vitest-config`](../vitest-config) instead.
+> Vitest is faster, has native ESM support, and is the standard across all
+> theholocron projects going forward.
 
-## Installation
+A [Jest preset](https://jestjs.io/docs/configuration#preset-string) for testing JavaScript projects.
+
+## Migration
+
+Replace your Jest setup with Vitest:
 
 ```bash
-npm install --save-dev @theholocron/jest-preset
+npm uninstall @theholocron/jest-config jest
+npm install --save-dev @theholocron/vitest-config vitest @vitest/coverage-v8
 ```
 
-## Usage
+Update your config file from `jest.config.js` to `vitest.config.js`:
 
-In your project `package.json` add the following:
+```javascript
+import { defineConfig } from "vitest/config";
+import { node } from "@theholocron/vitest-config/node";
+
+export default defineConfig({ test: node().test });
+```
+
+See [`@theholocron/vitest-config`](../vitest-config) for all available presets.
+
+## Legacy Installation
+
+```bash
+npm install --save-dev @theholocron/jest-config
+```
+
+## Legacy Usage
+
+In your project `package.json`:
 
 ```json
 {
-	"jest": {
-		"displayName": "<project>",
-		"preset": "@theholocron/jest-config"
-	}
+  "jest": {
+    "displayName": "<project>",
+    "preset": "@theholocron/jest-config"
+  }
 }
 ```
-
-## How We Test
-
-Currently we use [Jest](https://jestjs.io/) for our testing framework. There isn't much to our configuration that differs from what Jest provides out of the box with the following exceptions:
-
--   **Coverage**: we enforce coverage collection and require that all work be covered at least 80% at this time, with negligible reduction (< 1%) of coverage per PR
--   **Directory Naming**: while we do support the [same regex that Jest provides](https://jestjs.io/docs/en/configuration#testregex-string--arraystring), our convention is to co-locate all test files as close to the source as possible with the suffix of `.test` added.

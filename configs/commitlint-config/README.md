@@ -5,114 +5,75 @@ A [CommitLint configuration](https://commitlint.js.org/reference/configuration.h
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/commitlint-config
+npm install --save-dev @theholocron/commitlint-config @commitlint/cli @commitlint/config-conventional
 ```
 
 ## Usage
 
-In your project `package.json` add the following:
+In your project `commitlint.config.js`:
 
-```json
-{
-	"commitlint": {
-		"extends": "@theholocron"
-	}
-}
+```javascript
+export default {
+  extends: ["@theholocron/commitlint-config"],
+};
 ```
 
-## How We Write Commits
+## Rules
 
-### Problems
+### `type-enum`
 
-The following rules are considered problems for `@theholocron/commitlint-config` and will yield a non-zero exit code when not met.
-
-Consult [docs/rules](https://conventional-changelog.github.io/commitlint/#/reference-rules) for a list of available rules.
-
-#### type-enum
-
--   **condition**: `type` is found in value
--   **rule**: `always`
--   **value**: "build" | "ci" | "chore" | "docs" | "feat" | "fix" | "perf" | "refactor" | "revert" | "style" | "test"
+Type must be one of: `build`, `ci`, `chore`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
 
 ```sh
-echo "foo: some message" # fails
-echo "fix: some message" # passes
+echo "foo: some message" | commitlint   # fails
+echo "fix: some message" | commitlint   # passes
 ```
 
-#### type-case
-
--   **description**: `type` is in case `value`
--   **rule**: `always`
--   **value**: "lowercase"
+### `type-case` — lowercase
 
 ```sh
-echo "FIX: some message" # fails
-echo "fix: some message" # passes
+echo "FIX: some message" | commitlint   # fails
+echo "fix: some message" | commitlint   # passes
 ```
 
-#### type-empty
-
--   **condition**: `type` is empty
--   **rule**: `never`
+### `type-empty` — never empty
 
 ```sh
-echo ": some message" # fails
-echo "fix: some message" # passes
+echo ": some message" | commitlint      # fails
+echo "fix: some message" | commitlint   # passes
 ```
 
-#### scope-case
-
--   **condition**: `scope` is in case `value`
--   **rule**: `always`
--   **value**: "lowercase"
+### `scope-case` — lowercase
 
 ```sh
-echo "fix(SCOPE): some message" # fails
-echo "fix(scope): some message" # passes
+echo "fix(SCOPE): message" | commitlint  # fails
+echo "fix(scope): message" | commitlint  # passes
 ```
 
-#### subject-case
-
--   **condition**: `subject` is in one of the cases "sentence-case", "start-case", "pascal-case", "upper-case"`
--   **rule**: `never`
+### `subject-case` — not sentence-case, start-case, pascal-case, or upper-case
 
 ```sh
-echo "fix(SCOPE): Some message" # fails
-echo "fix(SCOPE): Some Message" # fails
-echo "fix(SCOPE): SomeMessage" # fails
-echo "fix(SCOPE): SOMEMESSAGE" # fails
-echo "fix(scope): some message" # passes
-echo "fix(scope): some Message" # passes
+echo "fix(scope): Some message" | commitlint   # fails
+echo "fix(scope): some message" | commitlint   # passes
 ```
 
-#### subject-empty
-
--   **condition**: `subject` is empty
--   **rule**: `never`
+### `subject-empty` — never empty
 
 ```sh
-echo "fix:" # fails
-echo "fix: some message" # passes
+echo "fix:" | commitlint               # fails
+echo "fix: some message" | commitlint  # passes
 ```
 
-#### subject-full-stop
-
--   **condition**: `subject` ends with `value`
--   **rule**: `never`
--   **value**: "."
+### `subject-full-stop` — no trailing period
 
 ```sh
-echo "fix: some message." # fails
-echo "fix: some message" # passes
+echo "fix: some message." | commitlint  # fails
+echo "fix: some message" | commitlint   # passes
 ```
 
-#### header-max-length
-
--   **condition**: `header` has `value` or less characters
--   **rule**: `always`
--   **value**: 72
+### `header-max-length` — 72 characters max
 
 ```sh
-echo "fix: some message that is way too long and breaks the line max-length by several characters" # fails
-echo "fix: some message" # passes
+echo "fix: a very long message that exceeds the limit by quite a few characters" | commitlint  # fails
+echo "fix: some message" | commitlint                                                           # passes
 ```

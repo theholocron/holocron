@@ -1,24 +1,27 @@
 # Bundlewatch Config
 
-A [bundlewatch configuration](https://bundlewatch.io/#/reference/configuration) for monitoring file size for libraries.
+A [Bundlewatch configuration](https://bundlewatch.io/#/reference/configuration) for monitoring bundle size in libraries.
 
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/bundlewatch-config
+npm install --save-dev @theholocron/bundlewatch-config bundlewatch
 ```
 
 ## Usage
 
-In your project `package.json` add the following:
+Add the following script to your project `package.json`:
 
 ```json
 {
-	"scripts": {
-		"audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/index.js",
-		"audit": "run-p audit:*"
-	}
+  "scripts": {
+    "audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/bundlewatch.config.js"
+  }
 }
 ```
 
-**Note**: `run-p` uses [`npm-run-all`](https://www.npmjs.com/package/npm-run-all) package to run tasks concurrently, but you could also use [`concurrently`](https://www.npmjs.com/package/concurrently).
+Then run:
+
+```bash
+npm run audit:bundle
+```

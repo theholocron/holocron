@@ -1,6 +1,6 @@
-# Typescript Config
+# TypeScript Config
 
-A [Typescript configuration](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) for writing typed Javascript.
+A [TypeScript configuration](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) for writing typed JavaScript.
 
 ## Installation
 
@@ -10,17 +10,45 @@ npm install --save-dev @theholocron/tsconfig
 
 ## Usage
 
-In your projects `tsconfig.json` add the following:
+In your project `tsconfig.json`, extend one of the four base configurations:
+
+### Next.js
 
 ```json
 {
-	"extends": "@theholcron/tsconfig/<config>/tsconfig.json"
+  "extends": "@theholocron/tsconfig/nextjs/tsconfig.json"
 }
 ```
 
-There are 4 different base configurations to choose from:
+### Node (LTS / current)
 
-1. NextJS (`@theholcron/tsconfig/nextjs/tsconfig.json`)
-2. Node 14 (`@theholcron/tsconfig/node14/tsconfig.json`)
-3. Node 18 (`@theholcron/tsconfig/node18/tsconfig.json`)
-4. Node Next (`@theholcron/tsconfig/node-next/tsconfig.json`)
+Targets the latest Node.js LTS features:
+
+```json
+{
+  "extends": "@theholocron/tsconfig/node-next/tsconfig.json"
+}
+```
+
+### Node 18
+
+For projects that must support Node 18:
+
+```json
+{
+  "extends": "@theholocron/tsconfig/node18/tsconfig.json"
+}
+```
+
+### Node 14 (legacy)
+
+For projects still on Node 14:
+
+```json
+{
+  "extends": "@theholocron/tsconfig/node14/tsconfig.json"
+}
+```
+
+> **Note:** New projects should target `node-next`. `node14` is provided for
+> legacy compatibility only. All theholocron projects require Node 22+.
