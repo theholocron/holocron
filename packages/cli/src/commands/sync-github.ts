@@ -100,18 +100,22 @@ function buildBatch(repo: string): FileBatch {
 		});
 	}
 
-	// Thin callers → workflow-templates/<name>.yml + companion .properties.json
-	for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
-		files.push({
-			path: `workflow-templates/${name}.yml`,
-			content: thinCallerHeader() + content,
-		});
-		const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
-		if (props) {
+	// Workflow templates (starter templates for the Actions UI) → workflow-templates/
+	// Only the primary .github repo surfaces these in GitHub's "New workflow" picker;
+	// secondary repos (e.g. .github-private) don't need them.
+	if (isPrimaryGithubRepo) {
+		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
-				path: `workflow-templates/${name}.properties.json`,
-				content: props,
+				path: `workflow-templates/${name}.yml`,
+				content: thinCallerHeader() + content,
 			});
+			const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
+			if (props) {
+				files.push({
+					path: `workflow-templates/${name}.properties.json`,
+					content: props,
+				});
+			}
 		}
 	}
 
