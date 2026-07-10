@@ -22,7 +22,7 @@ import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vau
 import { ProviderApiError } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
-import { WORKFLOW_HEADER, KNOWN_WORKFLOWS, generateThinCallerContent } from "./setup-workflows.js";
+import { workflowHeader, KNOWN_WORKFLOWS, generateThinCallerContent } from "./setup-workflows.js";
 
 // ── dependabot config template ───────────────────────────────────────
 const DEPENDABOT_CONFIG = `\
@@ -273,7 +273,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
 					await source.writeWorkflowFile(
 						`${name}.yml`,
-						WORKFLOW_HEADER + generateThinCallerContent(name, withOverrides),
+						workflowHeader() + generateThinCallerContent(name, withOverrides),
 					);
 				})
 			);
