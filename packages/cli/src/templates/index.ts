@@ -67,7 +67,7 @@ runs:
 
     - name: Add node_modules/.bin to PATH
       shell: bash
-      run: echo "\$GITHUB_WORKSPACE/node_modules/.bin" >> \$GITHUB_PATH
+      run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> $GITHUB_PATH
 `,
 };
 
@@ -516,18 +516,18 @@ jobs:
         id: detect
         shell: bash
         run: |
-          has() { find . -not -path '*/node_modules/*' -name "\$1" -print -quit 2>/dev/null | grep -q .; }
-          has_ext() { find . -not -path '*/node_modules/*' -name "\$1" -print -quit 2>/dev/null | grep -q .; }
+          has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
+          has_ext() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
           { { has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \\
               has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \\
               has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \\
-              has '.eslintrc.yml'; } && grep -qF '"eslint":' package.json 2>/dev/null; } && echo "eslint=true" >> \$GITHUB_OUTPUT || echo "eslint=false" >> \$GITHUB_OUTPUT
-          { has 'tsconfig.json' && grep -qF '"typescript":' package.json 2>/dev/null; } && echo "tsconfig=true" >> \$GITHUB_OUTPUT || echo "tsconfig=false" >> \$GITHUB_OUTPUT
-          has_ext '*.sh' && echo "shell=true" >> \$GITHUB_OUTPUT || echo "shell=false" >> \$GITHUB_OUTPUT
+              has '.eslintrc.yml'; } && grep -qF '"eslint":' package.json 2>/dev/null; } && echo "eslint=true" >> $GITHUB_OUTPUT || echo "eslint=false" >> $GITHUB_OUTPUT
+          { has 'tsconfig.json' && grep -qF '"typescript":' package.json 2>/dev/null; } && echo "tsconfig=true" >> $GITHUB_OUTPUT || echo "tsconfig=false" >> $GITHUB_OUTPUT
+          has_ext '*.sh' && echo "shell=true" >> $GITHUB_OUTPUT || echo "shell=false" >> $GITHUB_OUTPUT
           has 'Dockerfile' || has_ext '*.Dockerfile' || has 'Containerfile' && \\
-            echo "docker=true" >> \$GITHUB_OUTPUT || echo "docker=false" >> \$GITHUB_OUTPUT
-          has_ext '.env*' && echo "dotenv=true" >> \$GITHUB_OUTPUT || echo "dotenv=false" >> \$GITHUB_OUTPUT
-          has_ext '*.md' && echo "markdown=true" >> \$GITHUB_OUTPUT || echo "markdown=false" >> \$GITHUB_OUTPUT
+            echo "docker=true" >> $GITHUB_OUTPUT || echo "docker=false" >> $GITHUB_OUTPUT
+          has_ext '.env*' && echo "dotenv=true" >> $GITHUB_OUTPUT || echo "dotenv=false" >> $GITHUB_OUTPUT
+          has_ext '*.md' && echo "markdown=true" >> $GITHUB_OUTPUT || echo "markdown=false" >> $GITHUB_OUTPUT
 
       #
       # Always applicable

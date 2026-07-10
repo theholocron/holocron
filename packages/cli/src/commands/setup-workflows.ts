@@ -298,5 +298,5 @@ export function generateThinCallerContent(
 	const withBlock = Object.entries(withOverrides)
 		.map(([k, v]) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`)
 		.join("\n");
-	return base.replace(/    secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
+	return base.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
 }

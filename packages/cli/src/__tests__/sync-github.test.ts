@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
-import { runSyncGithub, gitBlobSha } from "../commands/sync-github.js";
+import { runSyncGithub, gitBlobSha as _gitBlobSha } from "../commands/sync-github.js";
 
 // Actions and workflow-templates are only pushed to the primary .github repo.
 // WORKFLOW_TEMPLATE_PROPERTIES adds one .properties.json per keyed template.
@@ -147,7 +147,7 @@ describe("runSyncGithub", () => {
 		// so sync treats it as unchanged.
 		const releaseContent = Object.entries(REUSABLE_WORKFLOWS).find(([k]) => k === "release")!;
 		// Build the content the same way sync-github does (with header)
-		const header = [
+		const _header = [
 			"# AUTO-GENERATED — do not edit in theholocron/.github directly.",
 			`# Source:  theholocron/holocron · packages/cli/src/templates/index.ts`,
 		].join("\n");
@@ -156,7 +156,7 @@ describe("runSyncGithub", () => {
 		const unchangedSha = "fake-unchanged-sha";
 		// Provide a mismatched SHA so the file IS treated as changed (normal case),
 		// and separately verify that a matching SHA causes unchanged.
-		const { fn: fn1, calls: calls1 } = makeFetch({ ".github/workflows/release.yml": unchangedSha });
+		const { fn: fn1, calls: _calls1 } = makeFetch({ ".github/workflows/release.yml": unchangedSha });
 		const report1 = await runSyncGithub({
 			token: "ghp_test",
 			branch: "chore/sync",

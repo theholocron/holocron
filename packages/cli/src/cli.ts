@@ -1,5 +1,3 @@
-#!/usr/bin/env -S tsx
-
 import { readFileSync } from "node:fs";
 
 import yargs from "yargs";
