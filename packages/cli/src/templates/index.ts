@@ -137,6 +137,11 @@ jobs:
       group: bookkeeping-pr-\${{ github.event.pull_request.number }}
       cancel-in-progress: true
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          sparse-checkout: .github/labeler.yml
+          sparse-checkout-cone-mode: false
+
       - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
         if: \${{ hashFiles('.github/labeler.yml') != '' }}
         with:
