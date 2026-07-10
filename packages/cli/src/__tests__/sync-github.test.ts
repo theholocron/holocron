@@ -15,8 +15,9 @@ type FetchCall = { method: string; url: string; body?: Record<string, unknown> }
 /**
  * Simulate the Git Trees API. existingBlobs maps file path → git blob SHA.
  * Files not in the map are treated as new (not in the tree).
+ * configJson is the parsed content of holocron.config.json to serve from the repo.
  */
-function makeFetch(existingBlobs: Record<string, string> = {}) {
+function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unknown) {
 	const calls: FetchCall[] = [];
 	const fn = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
 		const urlStr = url.toString();
@@ -35,6 +36,12 @@ function makeFetch(existingBlobs: Record<string, string> = {}) {
 		// Commit
 		if (method === "GET" && urlStr.includes("/git/commits/")) {
 			return new Response(JSON.stringify({ tree: { sha: "treesha" } }), { status: 200 });
+		}
+		// holocron.config.json
+		if (method === "GET" && urlStr.includes("/contents/holocron.config.json")) {
+			if (!configJson) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+			const content = Buffer.from(JSON.stringify(configJson)).toString("base64");
+			return new Response(JSON.stringify({ content }), { status: 200 });
 		}
 		// Tree (recursive)
 		if (method === "GET" && urlStr.includes("/git/trees/")) {
@@ -109,6 +116,30 @@ describe("runSyncGithub", () => {
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		expect(blobs).toHaveLength(SECONDARY_FILE_COUNT);
 		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(false);
+	});
+
+	it("respects holocron.config.json workflow allowlist for secondary repos", async () => {
+		const allowedNames = ["lint", "review", "stale"];
+		const config = { project: { workflows: allowedNames } };
+		const { fn, calls } = makeFetch({}, config);
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.created).toBe(allowedNames.length);
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		expect(blobs).toHaveLength(allowedNames.length);
+		// Verify only the allowed workflows are in the batch
+		const blobPaths = blobs.map((c) => {
+			const content = (c.body?.content as string) ?? "";
+			return allowedNames.find((n) => content.includes(`name: ${n.charAt(0).toUpperCase() + n.slice(1)}`));
+		}).filter(Boolean);
+		expect(blobPaths).toHaveLength(allowedNames.length);
 	});
 
 	it("skips unchanged files and omits them from the commit tree", async () => {

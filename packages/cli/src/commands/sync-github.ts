@@ -75,7 +75,7 @@ function thinCallerHeader(): string {
 	].join("\n");
 }
 
-function buildBatch(repo: string): FileBatch {
+function buildBatch(repo: string, allowedWorkflows?: Set<string>): FileBatch {
 	const files: FileBatch = [];
 	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
 
@@ -93,7 +93,10 @@ function buildBatch(repo: string): FileBatch {
 	}
 
 	// Reusable workflows → .github/workflows/<name>.yml
+	// Secondary repos may restrict which workflows they receive via their
+	// holocron.config.json `project.workflows` list; undefined means all.
 	for (const [name, content] of Object.entries(REUSABLE_WORKFLOWS)) {
+		if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
 		files.push({
 			path: `.github/workflows/${name}.yml`,
 			content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
@@ -151,10 +154,11 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	if (branch) print(`  branch: ${branch}`);
 	print("");
 
-	const batch = buildBatch(repo);
-
-	// ── output-dir: write to disk and exit without any API calls ─────────────
+	// ── output-dir: write all files to disk without any API calls ───────────
+	// Always generates the full unfiltered batch — used for local validation
+	// (actionlint smoke test) where we want to check every template.
 	if (input.outputDir) {
+		const batch = buildBatch(repo);
 		for (const file of batch) {
 			const dest = join(input.outputDir, file.path);
 			mkdirSync(dirname(dest), { recursive: true });
@@ -206,7 +210,38 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		existingTree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]),
 	);
 
-	// ── 3. Detect changes ────────────────────────────────────────────────────
+	// ── 3. Fetch workflow allowlist from target repo config ───────────────────
+	// Secondary repos may declare which reusable workflows they want via their
+	// own holocron.config.json. If present and non-empty, only those workflows
+	// are synced; missing or empty config means all workflows are synced.
+	let allowedWorkflows: Set<string> | undefined;
+	if (repo !== DEFAULT_REPO) {
+		try {
+			const configRes = await fetchFn(
+				`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.json`,
+				{ headers },
+			);
+			if (configRes.ok) {
+				const configData = (await configRes.json()) as { content: string };
+				const raw = JSON.parse(
+					Buffer.from(configData.content.replace(/\n/g, ""), "base64").toString("utf8"),
+				) as { project?: { workflows?: Array<string | { name: string }> } };
+				const workflows = raw?.project?.workflows ?? [];
+				if (workflows.length > 0) {
+					allowedWorkflows = new Set(
+						workflows.map((w) => (typeof w === "string" ? w : w.name)),
+					);
+				}
+			}
+		} catch {
+			// No config or parse error — sync all workflows
+		}
+	}
+
+	// ── 4. Build file batch ──────────────────────────────────────────────────
+	const batch = buildBatch(repo, allowedWorkflows);
+
+	// ── 5. Detect changes ────────────────────────────────────────────────────
 	let created = 0;
 	let updated = 0;
 	let unchanged = 0;
@@ -237,7 +272,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		return { status: dryRun ? "dry-run" : "ok", created, updated, unchanged };
 	}
 
-	// ── 4. Create blobs for changed files ────────────────────────────────────
+	// ── 6. Create blobs for changed files ────────────────────────────────────
 	const treeEntries: Array<{ path: string; mode: string; type: string; sha: string }> = [];
 	for (const file of changedFiles) {
 		const blobRes = await fetchFn(
@@ -258,7 +293,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		treeEntries.push({ path: file.path, mode: "100644", type: "blob", sha: blobSha });
 	}
 
-	// ── 5. Create tree ───────────────────────────────────────────────────────
+	// ── 7. Create tree ───────────────────────────────────────────────────────
 	const newTreeRes = await fetchFn(
 		`${API_BASE}/repos/${owner}/${repoName}/git/trees`,
 		{
@@ -275,7 +310,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 	const { sha: newTreeSha } = (await newTreeRes.json()) as { sha: string };
 
-	// ── 6. Create commit ─────────────────────────────────────────────────────
+	// ── 8. Create commit ─────────────────────────────────────────────────────
 	const newCommitRes = await fetchFn(
 		`${API_BASE}/repos/${owner}/${repoName}/git/commits`,
 		{
@@ -292,7 +327,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 	const { sha: newCommitSha } = (await newCommitRes.json()) as { sha: string };
 
-	// ── 7. Update branch ref ─────────────────────────────────────────────────
+	// ── 9. Update branch ref ─────────────────────────────────────────────────
 	const updateRefRes = await fetchFn(
 		`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`,
 		{
@@ -308,7 +343,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		return { status: "fail", created, updated, unchanged, message: msg };
 	}
 
-	// ── 8. Open PR if requested ──────────────────────────────────────────────
+	// ── 10. Open PR if requested ─────────────────────────────────────────────
 	let prUrl: string | undefined;
 	if (branch && createPr && !dryRun) {
 		const prRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/pulls`, {
