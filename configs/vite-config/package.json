@@ -1,0 +1,55 @@
+{
+  "name": "@theholocron/vite-config",
+  "version": "4.1.0",
+  "description": "Vite configuration presets for libraries, React apps, and Node tools within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/vite-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./library": {
+      "import": "./presets/library.js",
+      "default": "./presets/library.js"
+    },
+    "./react-app": {
+      "import": "./presets/react-app.js",
+      "default": "./presets/react-app.js"
+    },
+    "./node-app": {
+      "import": "./presets/node-app.js",
+      "default": "./presets/node-app.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "presets/"
+  ],
+  "peerDependencies": {
+    "vite": "^6",
+    "@vitejs/plugin-react": "^4",
+    "vite-tsconfig-paths": "^5"
+  },
+  "peerDependenciesMeta": {
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "vite-tsconfig-paths": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

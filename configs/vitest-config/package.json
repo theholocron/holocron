@@ -1,0 +1,84 @@
+{
+  "name": "@theholocron/vitest-config",
+  "version": "4.1.0",
+  "description": "Vitest configuration presets for libraries, React apps, and Storybook within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/vitest-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./node": {
+      "import": "./presets/node.js",
+      "default": "./presets/node.js"
+    },
+    "./react": {
+      "import": "./presets/react.js",
+      "default": "./presets/react.js"
+    },
+    "./storybook": {
+      "import": "./presets/storybook.js",
+      "default": "./presets/storybook.js"
+    },
+    "./bundles/library": {
+      "import": "./bundles/library.js",
+      "default": "./bundles/library.js"
+    },
+    "./bundles/react-app": {
+      "import": "./bundles/react-app.js",
+      "default": "./bundles/react-app.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "presets/",
+    "bundles/"
+  ],
+  "peerDependencies": {
+    "vitest": "^4",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@vitest/browser": "^4",
+    "@vitest/coverage-v8": "^4",
+    "@storybook/addon-vitest": "^9",
+    "jsdom": "^26",
+    "playwright": "^1"
+  },
+  "peerDependenciesMeta": {
+    "@testing-library/react": {
+      "optional": true
+    },
+    "@testing-library/user-event": {
+      "optional": true
+    },
+    "@vitest/browser": {
+      "optional": true
+    },
+    "@vitest/coverage-v8": {
+      "optional": true
+    },
+    "@storybook/addon-vitest": {
+      "optional": true
+    },
+    "jsdom": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}
