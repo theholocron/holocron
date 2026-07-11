@@ -1,8 +1,8 @@
 {
   "name": "@theholocron/tsconfig",
   "version": "4.2.2",
-  "description": "A Typescript configuration for checking types within the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
+  "description": "TypeScript base configurations for theholocron projects.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/tsconfig#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
   "repository": {
     "type": "git",
@@ -10,6 +10,12 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "exports": {
+    "./nextjs": "./nextjs/tsconfig.json",
+    "./node-next": "./node-next/tsconfig.json",
+    "./node18": "./node18/tsconfig.json",
+    "./node14": "./node14/tsconfig.json"
+  },
   "files": [
     "nextjs/tsconfig.json",
     "node-next/tsconfig.json",
@@ -17,7 +23,6 @@
     "node18/tsconfig.json"
   ],
   "peerDependencies": {
-    "tsc": "^2",
     "typescript": "^5"
   },
   "publishConfig": {

@@ -8,7 +8,7 @@ A [ESLint configuration](https://eslint.org/docs/latest/use/configure/configurat
 npm install --save-dev @theholocron/eslint-config
 ```
 
-Install only the peer dependencies for the presets you use (all are optional):
+Install only the peer dependencies for the presets you use (all are optional except the core):
 
 ```bash
 # Core (always required)
@@ -40,19 +40,31 @@ npm install --save-dev eslint-plugin-cypress
 
 ### Individual presets
 
-Compose the presets your project needs in `eslint.config.js`:
+Each preset is a separate subpath import so only its plugin loads — importing
+`base` won't pull in React or Cypress plugins you don't use.
+
+`base` and `typescript` are available from the root:
 
 ```javascript
-import { base, typescript, react, node, vitest } from "@theholocron/eslint-config";
+import { base, typescript } from "@theholocron/eslint-config";
 
-export default [...base(), ...typescript(), ...react(), ...vitest()];
+export default [...base(), ...typescript()];
 ```
 
-Available presets: `base`, `typescript`, `react`, `next`, `node`, `vitest`, `storybook`, `cypress`.
+All other presets use subpath imports:
+
+```javascript
+import { node } from "@theholocron/eslint-config/node";
+import { react } from "@theholocron/eslint-config/react";
+import { vitest } from "@theholocron/eslint-config/vitest";
+import { next } from "@theholocron/eslint-config/next";
+import { storybook } from "@theholocron/eslint-config/storybook";
+import { cypress } from "@theholocron/eslint-config/cypress";
+```
 
 ### Bundles
 
-Bundles combine presets and peer plugins into a single import for common project types:
+Bundles combine presets and peer plugins into a single import for common project types. Use these when you want a ready-made config with no manual composition:
 
 ```javascript
 // React app (base + typescript + react + vitest)

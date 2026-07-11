@@ -17,7 +17,7 @@
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
     "cypress": "^14",
-    "jest": "^30",
+    "jest": "^29",
     "jsdom": "^26"
   },
   "publishConfig": {

@@ -19,16 +19,12 @@
     "husky": "^9.1.7"
   },
   "peerDependencies": {
-    "alex": "^11",
     "husky": "^9",
     "imagemin-lint-staged": "^0.5",
     "lint-staged": "^16",
     "sort-package-json": "^4"
   },
   "peerDependenciesMeta": {
-    "alex": {
-      "optional": true
-    },
     "imagemin-lint-staged": {
       "optional": true
     },

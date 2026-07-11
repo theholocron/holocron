@@ -2,7 +2,7 @@ import n from "eslint-plugin-n";
 
 export function node() {
 	return [
-		...n.configs["flat/recommended"],
+		n.configs["flat/recommended-module"],
 		{
 			name: "@theholocron/node",
 			rules: {

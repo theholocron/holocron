@@ -22,8 +22,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ESNext",
-    "types": ["jest"]
+    "target": "ESNext"
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

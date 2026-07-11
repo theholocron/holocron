@@ -16,17 +16,17 @@ In your project `tsconfig.json`, extend one of the four base configurations:
 
 ```json
 {
-  "extends": "@theholocron/tsconfig/nextjs/tsconfig.json"
+  "extends": "@theholocron/tsconfig/nextjs"
 }
 ```
 
 ### Node (LTS / current)
 
-Targets the latest Node.js LTS features:
+Targets the latest Node.js LTS features via ESNext:
 
 ```json
 {
-  "extends": "@theholocron/tsconfig/node-next/tsconfig.json"
+  "extends": "@theholocron/tsconfig/node-next"
 }
 ```
 
@@ -36,7 +36,7 @@ For projects that must support Node 18:
 
 ```json
 {
-  "extends": "@theholocron/tsconfig/node18/tsconfig.json"
+  "extends": "@theholocron/tsconfig/node18"
 }
 ```
 
@@ -46,7 +46,7 @@ For projects still on Node 14:
 
 ```json
 {
-  "extends": "@theholocron/tsconfig/node14/tsconfig.json"
+  "extends": "@theholocron/tsconfig/node14"
 }
 ```
 

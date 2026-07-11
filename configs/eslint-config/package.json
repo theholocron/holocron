@@ -90,7 +90,7 @@
     "eslint-plugin-n": "^18",
     "eslint-plugin-react": "^7",
     "eslint-plugin-storybook": "^10",
-    "globals": "^16",
+    "globals": "^17",
     "typescript-eslint": "^8"
   },
   "peerDependenciesMeta": {
