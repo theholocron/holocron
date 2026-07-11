@@ -11,6 +11,10 @@ export function node(options = {}) {
 			environment: "node",
 			include: ["**/*.{test,spec}.{js,ts,mjs}"],
 			exclude: ["**/node_modules/**", "**/dist/**"],
+			reporters: ["default", "junit"],
+			outputFile: {
+				junit: "./test-report.junit.xml",
+			},
 			...options,
 		},
 	};

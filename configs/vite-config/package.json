@@ -36,10 +36,14 @@
   ],
   "peerDependencies": {
     "vite": "^6",
+    "@codecov/vite-plugin": "^2",
     "@vitejs/plugin-react": "^4",
     "vite-tsconfig-paths": "^5"
   },
   "peerDependenciesMeta": {
+    "@codecov/vite-plugin": {
+      "optional": true
+    },
     "@vitejs/plugin-react": {
       "optional": true
     },

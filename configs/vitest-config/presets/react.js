@@ -16,6 +16,10 @@ export function react(options = {}) {
 				"**/dist/**",
 				"**/*.{story,stories}.{js,jsx,ts,tsx}",
 			],
+			reporters: ["default", "junit"],
+			outputFile: {
+				junit: "./test-report.junit.xml",
+			},
 			...options,
 		},
 	};

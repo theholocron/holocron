@@ -14,15 +14,13 @@ Pick the preset that matches your project type. All presets accept an `overrides
 
 ### Publishable library
 
-Outputs ESM only; externalises `react` and `react-dom` by default.
+Outputs ESM only; externalises `react` and `react-dom` by default. Returns a `Promise` because the plugin is loaded dynamically.
 
 ```javascript
 import { defineConfig } from "vite";
 import { library } from "@theholocron/vite-config/library";
 
-export default defineConfig(
-    library({ entry: "src/index.ts", name: "MyLib" })
-);
+export default defineConfig(await library({ entry: "src/index.ts", name: "MyLib" }));
 ```
 
 ### React single-page application
@@ -48,11 +46,11 @@ export default defineConfig(await reactApp({ plugins: [tsconfigPaths()] }));
 
 ### Node.js CLI tool or server app
 
-Targets Node 22; outputs a single ESM bundle with no browser polyfills.
+Targets Node 22; outputs a single ESM bundle with no browser polyfills. Returns a `Promise` because the plugin is loaded dynamically.
 
 ```javascript
 import { defineConfig } from "vite";
 import { nodeApp } from "@theholocron/vite-config/node-app";
 
-export default defineConfig(nodeApp({ entry: "src/index.ts" }));
+export default defineConfig(await nodeApp({ entry: "src/index.ts" }));
 ```
