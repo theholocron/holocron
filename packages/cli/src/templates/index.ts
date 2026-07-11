@@ -331,6 +331,8 @@ jobs:
       statuses: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      GPG_KEY_SET: \${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         name: Checkout repository
@@ -385,7 +387,7 @@ jobs:
           github.event.pull_request != null &&
           github.event.pull_request.head.repo.full_name == github.repository &&
           github.ref_name != github.event.repository.default_branch &&
-          secrets.SUPER_LINTER_GPG_PRIVATE_KEY != ''
+          env.GPG_KEY_SET == 'true'
         with:
           git_user_signingkey: true
           git_commit_gpgsign: true
@@ -399,7 +401,7 @@ jobs:
           github.event.pull_request != null &&
           github.event.pull_request.head.repo.full_name == github.repository &&
           github.ref_name != github.event.repository.default_branch &&
-          secrets.SUPER_LINTER_GPG_PRIVATE_KEY != ''
+          env.GPG_KEY_SET == 'true'
         with:
           branch: \${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
           commit_message: "chore: fix linting issues"
