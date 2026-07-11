@@ -75,10 +75,20 @@ Code into every conversation in this repo.
 
 ## Quality
 
-- **Run `pnpm typecheck && pnpm lint && pnpm test` before declaring
-  work done or drafting a commit message.** Non-negotiable. CI runs
-  the same set + `pnpm build` via `.github/workflows/ci.yml`;
-  finding out from a failed CI after pushing wastes a round trip.
+- **Definition of done: code + tests + docs + green checks.** A change
+  is not done until all four are true:
+  1. `pnpm typecheck && pnpm lint && pnpm test` pass (same set CI runs
+     plus `pnpm build` — finding failures after pushing wastes a round
+     trip).
+  2. Tests cover the new behavior (new path → new test; bug fix → test
+     that would have caught it).
+  3. Docs are updated: `packages/cli/README.md` for any public API or
+     config shape change; `CLAUDE.md` for any architectural or workflow
+     change; the relevant `.notes/*.spec.md` spec for any design
+     decision or roadmap item resolved. Stale docs that contradict the
+     code are bugs.
+  4. Commit message follows Conventional Commits and references the
+     issue (`Closes #N` / `Refs #N`).
 - **Test patterns:** vitest across all packages. Plugins use
   `stubFetch` (REST plugins) or `stubSpawn` (CLI plugins) — both
   ported from rando-id/rando.id `__tests__/helpers.ts`. Per-plugin
