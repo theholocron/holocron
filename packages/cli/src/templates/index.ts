@@ -425,6 +425,13 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: true
+    secrets:
+      SYNC_TOKEN:
+        description: >
+          Optional PAT with Contents write access. Required when the default
+          branch is protected by a ruleset — github.token cannot push through
+          rulesets, but a PAT with admin bypass can. Falls back to github.token.
+        required: false
 
 jobs:
   release:
@@ -464,7 +471,11 @@ jobs:
       - run: npx semantic-release
         name: Release
         env:
-          GITHUB_TOKEN: \${{ github.token }}
+          # Prefer SYNC_TOKEN (a PAT with Contents write) when available —
+          # the built-in github.token cannot push to protected default branches
+          # because rulesets block non-PAT pushes. Falls back to github.token
+          # for repos without branch protection.
+          GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN || github.token }}
           NPM_CONFIG_PROVENANCE: true
 `,
 
