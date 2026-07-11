@@ -705,8 +705,10 @@ name: Sync GitHub Templates
 # template source files change on main or alpha.
 #
 # Secrets required:
-#   SYNC_TOKEN — fine-grained PAT or GitHub App token with Contents write
-#                access to the primary and secondary repos.
+#   SYNC_TOKEN — fine-grained PAT (resource owner: org) with:
+#                  Contents:      Read and write  (git trees, blobs, refs)
+#                  Pull requests: Read and write  (open sync PR)
+#                  Workflows:     Read and write  (write .github/workflows/*.yml)
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
