@@ -1,20 +1,18 @@
 name: Release
 
-# PAUSED (push trigger disabled). Trigger manually via workflow_dispatch
-# until Trusted Publishing (OIDC) is verified end-to-end.
+# alpha = prereleases (v2.0.0-alpha.N) → npm `alpha` dist-tag
+# main  = stable releases (v2.0.0, v2.0.1, …) → npm `latest` dist-tag
 #
-# Every previous push-triggered run has failed at pnpm publish AFTER
-# @semantic-release/git had already auto-committed a CHANGELOG bump +
-# tagged the next version, leaving main / alpha polluted with runaway
-# state and forcing multiple rewinds.
+# Keep main push-gated until stable v2.0.0 is intentionally cut —
+# see `main-channel-prerelease-gotcha` memory for why.
 #
-# Re-enable the push trigger via a follow-up PR once a dry-run dispatch
-# confirms:
-#   1. semantic-release recognizes v2.0.0-alpha.0 as the last alpha
-#      release (via refs/notes/semantic-release-v2.0.0-alpha.0)
-#   2. pnpm publish successfully exchanges an OIDC id-token with npm
-#      instead of falling back to `npm adduser` prompt (ENEEDAUTH)
-on:
+# workflow_dispatch is kept alongside push so releases can be triggered
+# by hand for recovery / re-runs. The `dry_run` input defaults to true
+# for safety on manual dispatches; push-triggered runs always run fully.
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - alpha
   workflow_dispatch:
     inputs:
       dry_run:
