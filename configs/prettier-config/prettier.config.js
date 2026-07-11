@@ -23,6 +23,17 @@ const config = {
 				useTabs: false,
 			},
 		},
+		{
+			// printWidth: 80 keeps tsconfig references arrays expanded one-per-line
+			// (the collapsed form fits within 120 chars and becomes hard to scan).
+			// String values never split regardless of printWidth, so this only
+			// affects arrays of objects that exceed 80 chars — in practice just
+			// the references array.
+			files: ["tsconfig*.json"],
+			options: {
+				printWidth: 80,
+			},
+		},
 	],
 };
 
