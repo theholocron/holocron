@@ -4,9 +4,11 @@ packages:
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.
 catalog:
-  '@theholocron/eslint-config': ^5.1.1
-  '@theholocron/prettier-config': ^4.1.0
-  '@theholocron/tsconfig': ^4.1.0
+  '@theholocron/commitlint-config': ^5.1.2
+  '@theholocron/eslint-config': ^5.1.2
+  '@theholocron/lint-staged-config': ^5.1.2
+  '@theholocron/prettier-config': ^5.1.2
+  '@theholocron/tsconfig': ^5.1.2
   '@tsconfig/node-lts': ^24.0.0
   '@vitest/eslint-plugin': ^1.6.23
   eslint: ^10.7.0
