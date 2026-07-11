@@ -119,6 +119,9 @@ function buildRulesetPayload(requiredChecks: string[] = []): Record<string, unkn
 		name: RULESET_NAME,
 		target: "branch",
 		enforcement: "active",
+		// Repository admins (role 4) can bypass — required for semantic-release
+		// and other automation that pushes directly to the default branch.
+		bypass_actors: [{ actor_id: 4, actor_type: "RepositoryRole", bypass_mode: "always" }],
 		conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
 		rules,
 	};
