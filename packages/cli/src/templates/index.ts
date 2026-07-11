@@ -452,7 +452,10 @@ jobs:
         name: Checkout repository
         with:
           fetch-depth: 0
-          token: \${{ github.token }}
+          # Use SYNC_TOKEN when available — git push (tags, release commits)
+          # uses the checkout credential, not GITHUB_TOKEN env var. The
+          # built-in github.token cannot push through branch protection rulesets.
+          token: \${{ secrets.SYNC_TOKEN || github.token }}
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
