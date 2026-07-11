@@ -32,6 +32,24 @@ import { CARDINALITY, type CapabilityKey, REQUIRED_CAPABILITIES } from "./capabi
 
 export type ProviderOptions = Record<string, unknown>;
 
+/**
+ * The shape a capability config package's default export must satisfy.
+ * Config packages let teams share a pre-bundled provider + options across
+ * repos (Level 1 of the shareable-configs story, issue #75).
+ *
+ * @example
+ * // @acme/holocron-vault/index.ts
+ * import type { CapabilityConfigPackage } from '@theholocron/cli'
+ * export default {
+ *   provider: '1password',
+ *   options: { vault: 'acme-app' },
+ * } satisfies CapabilityConfigPackage
+ */
+export interface CapabilityConfigPackage {
+	provider: string;
+	options?: ProviderOptions;
+}
+
 export type SingleEntry = string | [provider: string, options: ProviderOptions];
 
 export type MultiEntry = Array<string | [provider: string, options: ProviderOptions]>;

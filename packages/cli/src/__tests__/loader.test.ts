@@ -7,14 +7,12 @@ function loaderWith(rawConfig: Parameters<typeof resolveConfig>[0], modules: Rec
 	const config = resolveConfig(rawConfig);
 	const importer = vi.fn(async (pkg: string) => {
 		if (!(pkg in modules)) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
-		return modules[pkg] as Parameters<PluginImporter>[0] extends never
-			? never
-			: Awaited<ReturnType<PluginImporter>>;
+		return modules[pkg] as Awaited<ReturnType<PluginImporter>>;
 	});
 	const loader = new PluginLoader(
 		config,
 		{ repoRoot: "/tmp/test-repo", repo: "theholocron/holocron" },
-		importer as unknown as PluginImporter
+		importer as PluginImporter
 	);
 	return { loader, importer };
 }
@@ -299,5 +297,114 @@ describe("PluginLoader.loadedKeys", () => {
 		);
 		await loader.load();
 		expect(new Set(loader.loadedKeys())).toEqual(new Set(["vault", "source"]));
+	});
+});
+
+describe("PluginLoader — capability config packages (#75 Level 1)", () => {
+	it("resolves a config package to the underlying plugin", async () => {
+		const vaultImpl = { key: "vault", providerName: "1password" };
+		const { loader, importer } = loaderWith(
+			{
+				project: { name: "demo" },
+				// @acme/holocron-vault is a capability config package, not a plugin
+				providers: { vault: "@acme/holocron-vault" },
+			},
+			{
+				"@acme/holocron-vault": { default: { provider: "1password", options: { vault: "acme" } } },
+				"@theholocron/holocron-plugin-1password": makePlugin("1password", { vault: vaultImpl }),
+			}
+		);
+
+		await loader.load();
+		expect(loader.get("vault")).toBe(vaultImpl);
+		// The importer must have been called for BOTH the config package and the plugin
+		expect(importer).toHaveBeenCalledWith("@acme/holocron-vault");
+		expect(importer).toHaveBeenCalledWith("@theholocron/holocron-plugin-1password");
+	});
+
+	it("merges config-package options with per-project tuple options (project wins)", async () => {
+		const captured: Record<string, unknown> = {};
+		const { loader } = loaderWith(
+			{
+				project: { name: "demo" },
+				// ["@acme/holocron-vault", { vault: "override" }] — project overrides preset
+				providers: { vault: ["@acme/holocron-vault", { vault: "override" }] },
+			},
+			{
+				"@acme/holocron-vault": { default: { provider: "1password", options: { vault: "preset", tag: "acme" } } },
+				"@theholocron/holocron-plugin-1password": {
+					createPlugin: (opts: Record<string, unknown>) => {
+						Object.assign(captured, opts);
+						return { name: "1p", capabilities: { vault: () => ({}) } };
+					},
+				},
+			}
+		);
+
+		await loader.load();
+		// Per-project "vault: override" wins over preset "vault: preset"
+		expect(captured.vault).toBe("override");
+		// Keys only in the preset are still present
+		expect(captured.tag).toBe("acme");
+	});
+
+	it("resolves a config package used in a many-cardinality capability", async () => {
+		const slackImpl = { key: "notifications", providerName: "slack" };
+		const { loader } = loaderWith(
+			{
+				project: { name: "demo" },
+				providers: {
+					notifications: ["@acme/holocron-slack", "discord"],
+				},
+			},
+			{
+				"@acme/holocron-slack": { default: { provider: "slack", options: { channel: "#ops" } } },
+				"@theholocron/holocron-plugin-slack": makePlugin("slack", { notifications: slackImpl }),
+				"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: {} }),
+			}
+		);
+
+		await loader.load();
+		const impls = loader.get("notifications");
+		expect(impls[0]).toBe(slackImpl);
+	});
+
+	it("errors when a config package exports an unresolvable provider", async () => {
+		const { loader } = loaderWith(
+			{
+				project: { name: "demo" },
+				providers: { vault: "@acme/holocron-vault" },
+			},
+			{
+				"@acme/holocron-vault": { default: { provider: "missing-vault" } },
+				// @theholocron/holocron-plugin-missing-vault is intentionally absent
+			}
+		);
+		try {
+			await loader.load();
+			expect.fail("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(LoaderError);
+			expect((err as Error).message).toMatch(/failed to import/);
+		}
+	});
+
+	it("errors when a package exports neither createPlugin nor a capability config", async () => {
+		const { loader } = loaderWith(
+			{
+				project: { name: "demo" },
+				providers: { vault: "broken" },
+			},
+			{
+				"@theholocron/holocron-plugin-broken": { somethingElse: true },
+			}
+		);
+		try {
+			await loader.load();
+			expect.fail("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(LoaderError);
+			expect((err as Error).message).toMatch(/createPlugin/);
+		}
 	});
 });

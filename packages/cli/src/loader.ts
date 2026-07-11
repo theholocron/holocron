@@ -12,6 +12,12 @@
  *      the registry — single-cardinality entries hold one impl,
  *      many-cardinality entries hold an array
  *
+ * A package may instead export a capability config (see
+ * `CapabilityConfigPackage` in config.ts). The loader detects the shape
+ * at import time and re-resolves to the underlying plugin, merging the
+ * preset options with any per-project overrides from the config file
+ * (project options win, mirroring ESLint's `extends` precedence).
+ *
  * Loader keeps NO knowledge of vendor tokens. Each plugin reads its
  * own env vars (`HOLOCRON_GH_TOKEN`, `HOLOCRON_VERCEL_TOKEN`, etc.)
  * inside its `createPlugin`. That keeps the loader vendor-agnostic
@@ -23,7 +29,8 @@
 
 import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
-import type { ResolvedHolocronConfig, ResolvedTuple } from "./config.js";
+import type { CapabilityConfigPackage, ResolvedHolocronConfig, ResolvedTuple } from "./config.js";
+import { resolvePluginPackage } from "./config.js";
 
 /**
  * Per-invocation context every plugin receives, on top of its own
@@ -66,7 +73,8 @@ export interface PluginModule {
 	createPlugin: (opts: Record<string, unknown>) => LoadedPlugin;
 }
 
-export type PluginImporter = (packageName: string) => Promise<PluginModule>;
+/** Returns `unknown` — the loader type-narrows inside `loadOne`. */
+export type PluginImporter = (packageName: string) => Promise<unknown>;
 
 export class LoaderError extends Error {
 	override name = "LoaderError";
@@ -126,29 +134,46 @@ export class PluginLoader {
 
 	/** Internal — invoke a plugin's capability factory and return the impl. */
 	private async loadOne(key: CapabilityKey, tuple: ResolvedTuple): Promise<unknown> {
-		const module = await this.importer(tuple.packageName).catch((err: unknown) => {
+		const mod = await this.importer(tuple.packageName).catch((err: unknown) => {
 			throw new LoaderError(
 				`failed to import \`${tuple.packageName}\` for capability \`${key}\`: ${
 					err instanceof Error ? err.message : String(err)
 				}`
 			);
 		});
-		if (typeof module.createPlugin !== "function") {
-			throw new LoaderError(`\`${tuple.packageName}\` does not export \`createPlugin(options)\``);
+
+		// Plugin package: exports createPlugin(opts) → { capabilities }
+		if (isPluginModule(mod)) {
+			// Precedence (later wins): project-level defaults from config →
+			// runtime context (CLI flags: --repo, --token) → tuple options
+			// (per-plugin overrides in holocron.config.json).
+			const plugin = mod.createPlugin({
+				...this.projectDefaults(),
+				...this.context,
+				...tuple.options,
+			});
+			const factory = plugin.capabilities[key];
+			if (typeof factory !== "function") {
+				throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
+			}
+			return factory();
 		}
-		// Precedence (later wins): project-level defaults from config →
-		// runtime context (CLI flags: --repo, --token) → tuple options
-		// (per-plugin overrides in holocron.config.json).
-		const plugin = module.createPlugin({
-			...this.projectDefaults(),
-			...this.context,
-			...tuple.options,
-		});
-		const factory = plugin.capabilities[key];
-		if (typeof factory !== "function") {
-			throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
+
+		// Capability config package: default export is { provider, options? }.
+		// Re-resolve to the underlying plugin; preset options are the base,
+		// per-project tuple options override them (ESLint extends precedence).
+		if (isCapabilityConfigModule(mod)) {
+			const cap = (mod as { default: CapabilityConfigPackage }).default;
+			return this.loadOne(key, {
+				provider: cap.provider,
+				packageName: resolvePluginPackage(cap.provider),
+				options: { ...cap.options, ...tuple.options },
+			});
 		}
-		return factory();
+
+		throw new LoaderError(
+			`\`${tuple.packageName}\` does not export \`createPlugin(options)\` or a capability config ({ provider, options? })`
+		);
 	}
 
 	/**
@@ -167,8 +192,17 @@ export class PluginLoader {
 
 /** Default importer — native dynamic import. */
 const defaultImporter: PluginImporter = async (pkg) => {
-	return (await import(pkg)) as PluginModule;
+	return import(pkg);
 };
+
+function isPluginModule(mod: unknown): mod is PluginModule {
+	return typeof (mod as PluginModule).createPlugin === "function";
+}
+
+function isCapabilityConfigModule(mod: unknown): mod is { default: CapabilityConfigPackage } {
+	const def = (mod as { default?: unknown }).default;
+	return typeof (def as CapabilityConfigPackage)?.provider === "string";
+}
 
 /** Convenience re-export so callers can compute counts without importing CARDINALITY directly. */
 export function cardinalityOf<K extends CapabilityKey>(key: K): CardinalityFor<K> {
