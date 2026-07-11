@@ -460,6 +460,16 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
+      - name: Configure git identity
+        run: |
+          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
+          GIT_EMAIL=$(gh api user --jq '"\\(.id)+\\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          git config --global format.signoff true
+        env:
+          GH_TOKEN: \${{ secrets.SYNC_TOKEN || github.token }}
+
       - run: npm install -g npm@11 sigstore
         name: Upgrade npm for OIDC support
         # sigstore is required by libnpmpublish/provenance.js at module parse
@@ -779,13 +789,19 @@ jobs:
           PRIMARY_REPO: \${{ inputs.primary-repo }}
 
       - name: Sync primary repo (PR)
-        run: >
-          node packages/cli/dist/cli.mjs sync-github
-          --repo "$PRIMARY_REPO"
-          --branch "$SYNC_BRANCH"
-          --pr
+        run: |
+          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
+          GIT_EMAIL=$(gh api user --jq '"\\(.id)+\\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
+          node packages/cli/dist/cli.mjs sync-github \\
+            --repo "$PRIMARY_REPO" \\
+            --branch "$SYNC_BRANCH" \\
+            --pr \\
+            --message "chore: sync from theholocron/holocron
+
+Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
         env:
           GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
+          GH_TOKEN: \${{ secrets.SYNC_TOKEN }}
           PRIMARY_REPO: \${{ inputs.primary-repo }}
           SYNC_BRANCH: \${{ inputs.sync-branch }}
 

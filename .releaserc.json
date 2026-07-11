@@ -45,7 +45,7 @@
       "@semantic-release/git",
       {
         "assets": ["CHANGELOG.md", "package.json", "packages/*/package.json"],
-        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}\n\nSigned-off-by: Newton <5769156+iamnewton@users.noreply.github.com>"
       }
     ],
     "@semantic-release/github"
