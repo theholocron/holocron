@@ -79,13 +79,13 @@ on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
       build-script:
-        description: Script to build before analyzing bundle size
+        description: Script to build and upload bundle stats to Codecov
         type: string
         required: false
         default: pnpm build
     secrets:
-      BUNDLEWATCH_GITHUB_TOKEN:
-        required: true
+      CODECOV_TOKEN:
+        required: false
 
 jobs:
   bundle-size:
@@ -106,11 +106,10 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - uses: jackyef/bundlewatch-gh-action@01f51133d3580a6daa046ca83eb233d79735e1c1 # 0.3.0
-        name: Analyze using BundleWatch
-        with:
-          build-script: \${{ inputs.build-script }}
-          bundlewatch-github-token: \${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
+      - run: \${{ inputs.build-script }}
+        name: Build and upload bundle stats
+        env:
+          CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
 `,
 
 	"bookkeeping-pr": `\
@@ -716,7 +715,13 @@ jobs:
         name: Run tests with coverage
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
-        name: Upload results to Codecov
+        name: Upload coverage to Codecov
+        with:
+          token: \${{ secrets.CODECOV_TOKEN }}
+
+      - uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
+        name: Upload test results to Codecov
+        if: \${{ !cancelled() }}
         with:
           token: \${{ secrets.CODECOV_TOKEN }}
 `,
