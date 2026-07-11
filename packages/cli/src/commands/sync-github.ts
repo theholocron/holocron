@@ -169,8 +169,12 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 
 	// ── 1. Resolve target branch ─────────────────────────────────────────────
+	// When opening a PR, the commit is based on the default branch and the
+	// PR branch (--branch) is created fresh. For direct pushes, --branch is
+	// used as-is (falls back to default if omitted).
 	let targetBranch = branch;
-	if (!targetBranch) {
+	let defaultBranch: string | undefined;
+	if (!targetBranch || createPr) {
 		const repoRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}`, { headers });
 		if (!repoRes.ok) {
 			const msg = "failed to fetch repo metadata";
@@ -178,16 +182,19 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
 		}
 		const repoData = (await repoRes.json()) as { default_branch: string };
-		targetBranch = repoData.default_branch;
+		defaultBranch = repoData.default_branch;
+		if (!targetBranch) targetBranch = defaultBranch;
 	}
 
 	// ── 2. Get HEAD commit → base tree ───────────────────────────────────────
+	// Always read existing state from the default branch when creating a PR.
+	const baseBranch = createPr && defaultBranch ? defaultBranch : targetBranch;
 	const refRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/ref/heads/${targetBranch}`,
+		`${API_BASE}/repos/${owner}/${repoName}/git/ref/heads/${baseBranch}`,
 		{ headers },
 	);
 	if (!refRes.ok) {
-		const msg = `Branch ${targetBranch} not found`;
+		const msg = `Branch ${baseBranch} not found`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
 	}
@@ -327,18 +334,23 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 	const { sha: newCommitSha } = (await newCommitRes.json()) as { sha: string };
 
-	// ── 9. Update branch ref ─────────────────────────────────────────────────
-	const updateRefRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`,
-		{
+	// ── 9. Update (or create) branch ref ────────────────────────────────────
+	// For PR mode: create a new branch pointing at the new commit.
+	// For direct push: fast-forward the existing branch.
+	const refUpdateRes = createPr && branch
+		? await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommitSha }),
+		})
+		: await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`, {
 			method: "PATCH",
 			headers,
 			body: JSON.stringify({ sha: newCommitSha }),
-		},
-	);
-	if (!updateRefRes.ok) {
-		const err = (await updateRefRes.json()) as { message?: string };
-		const msg = `failed to update ref: ${err.message ?? updateRefRes.status}`;
+		});
+	if (!refUpdateRes.ok) {
+		const err = (await refUpdateRes.json()) as { message?: string };
+		const msg = `failed to update ref: ${err.message ?? refUpdateRes.status}`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created, updated, unchanged, message: msg };
 	}
