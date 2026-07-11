@@ -102,7 +102,10 @@ flow.
 
 ## Config shape
 
-`holocron.config.json` (committed; one per project), ESLint-style:
+`holocron.config.{json,js,ts}` (committed; one per project), ESLint-style.
+The JS/TS form uses `defineConfig` from `@theholocron/cli` for typed
+autocomplete. All three forms are validated through the same
+`resolveConfig` path. Priority: json → js → ts.
 
 ```jsonc
 {
@@ -337,57 +340,45 @@ the "next idea" answer) successfully spins up via `holocron setup`.
 
 ## Roadmap
 
-### Shareable configs (post-v2.0)
+### Shareable configs (shipped — #75, #81)
 
-ESLint-shareable-configs-style sharing at two levels. **Not in v2.0;
-captured so we don't accidentally box ourselves out with the v2.0
-schema.**
+ESLint-shareable-configs-style sharing at two levels. Both shipped in v2.x.
 
-**Level 1 — per-capability config packages.** A single capability
-entry can resolve to a config package that bundles a provider + its
-options:
+**Level 1 — per-capability config packages** (`PluginLoader` in
+`loader.ts`, `CapabilityConfigPackage` in `config.ts`). A provider
+slot can reference a published package that exports
+`{ provider, options }`. The loader detects the shape at import time
+and re-resolves to the underlying plugin. Per-project tuple options
+override the preset (project wins, ESLint `extends` precedence):
 
-```jsonc
-// project's holocron.config.json
-{
-	"providers": {
-		"vault": ["@rando-id/holocron-vault"],
-	},
+```ts
+// project's holocron.config.ts
+providers: {
+  vault: "@rando-id/holocron-vault",                     // preset only
+  source: ["@rando-id/holocron-github", { repo: "x" }], // preset + override
 }
+
+// @rando-id/holocron-vault/index.ts
+import type { CapabilityConfigPackage } from "@theholocron/cli";
+export default {
+  provider: "1password",
+  options: { vault: "rando" },
+} satisfies CapabilityConfigPackage;
 ```
 
-The `@rando-id/holocron-vault` package exports something like
-`{ provider: "1password", options: { vault: "rando", … } }`, and
-holocron resolves that into the same shape as if the project had
-written `["1password", { "vault": "rando", … }]` inline. Lets a team
-share a vault setup across their repos without re-typing the vault
-name in each one.
-
-**Level 2 — whole-config presets.** The config file itself can be
-JS/TS instead of JSON, importing a shared base:
+**Level 2 — whole-config presets** (`defineConfig` in
+`define-config.ts`, JS/TS loader in `load-config.ts`). The config file
+can be JS/TS; the `defineConfig` pass-through gives typed autocomplete.
+A shared base is just an import — no special mechanism needed:
 
 ```ts
 // holocron.config.ts
-import { holocronConfig } from "@rando-id/holocron-config";
-
-export default holocronConfig;
+import { acmeConfig } from "@acme/holocron-config";
+export default acmeConfig;
 ```
 
-Mirrors ESLint flat config — let an org publish their full set of
-provider choices as a base, then individual projects extend / override.
-
-### What the v2.0 schema MUST keep open
-
-- Provider entries must be free to resolve through a config package
-  (level 1) — the discriminator in `config.ts` currently assumes the
-  first array element is a vendor name string; this is compatible
-  with a config-package name (`@rando-id/holocron-vault` is also a
-  valid package name), so level 1 layers cleanly on top later without
-  a breaking change.
-- The config file format must be allowed to evolve from JSON to
-  JS/TS — the loader should look up `holocron.config.{json,js,ts}`
-  in that order from day one, even if v2.0 only documents the JSON
-  form.
+The loader uses `tsImport` from tsx (a runtime dep) for `.ts` files and
+native `import()` for `.js` files. Priority: `json → js → ts`.
 
 ## Open questions
 

@@ -9,8 +9,9 @@ Code into every conversation in this repo.
 
 - **Capability/provider model.** 14 capabilities defined in
   `packages/cli/src/capabilities/index.ts`. Vendors implement N
-  capabilities; ESLint-style `holocron.config.json` wires them up.
-  `vault` is the only REQUIRED capability.
+  capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
+  up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
+  typed autocomplete. `vault` is no longer required (removed constraint).
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
@@ -143,8 +144,6 @@ build them speculatively; pick up the issue when ready. Cross-check
 against `.notes/*.spec.md` before starting; several already have
 design docs.
 
-- **#75** Shareable configs (per-capability + whole-config presets,
-  ESLint-`extends`-style)
 - **#76** Per-plugin `transport: 'rest' | 'cli'` option. Still
   grounded: 1P plugin remains the reference CLI-transport case
   (see #96 — plugin stays published even though this repo doesn't
@@ -156,7 +155,6 @@ design docs.
   reason as #76).
 - **#79** Multi-plugin `--token` disambiguation
 - **#80** Real Svix HMAC verification in `parseWebhook`
-- **#81** `defineConfig({})` API + JS/TS config file format
 - **#82** Extend `holocron setup` with repo policy + branch
   protection — spec at `.notes/tech-setup-and-config.spec.md`
   (also covers `project.repo` config field + capability-factory
