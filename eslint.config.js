@@ -10,16 +10,12 @@ export default [
 		// TODO: move engines.node into each package.json instead (#111 follow-up).
 		settings: { node: { version: ">=22.0.0" } },
 		rules: {
-			// TODO: both rules below move to @theholocron/eslint-config library bundle
-			// once that ships. Remove these overrides after bumping the catalog.
-
-			// Relative imports in TypeScript packages compile to dist/ via tsdown.
-			// The plugin flags src/ files as "unpublished" because `files` lists dist/.
+			// src/ files are compiled to dist/ by tsdown; `files` in package.json
+			// lists dist/, so the plugin flags every relative src/ import as
+			// "unpublished". Project-level false positive for the TypeScript
+			// src→dist build model — intentionally kept here rather than disabled
+			// in the shared org config where the rule is genuinely useful.
 			"n/no-unpublished-import": "off",
-
-			// validate scripts run as CLI scripts but aren't bin entries — the
-			// shebang is intentional and the n/hashbang rule is wrong here.
-			"n/hashbang": "off",
 		},
 	},
 	{
