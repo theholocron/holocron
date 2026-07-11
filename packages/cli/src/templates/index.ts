@@ -98,7 +98,7 @@ jobs:
       group: audit-\${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
         with:
           fetch-depth: 0
@@ -137,7 +137,7 @@ jobs:
       group: bookkeeping-pr-\${{ github.event.pull_request.number }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           sparse-checkout: \${{ inputs.configuration-path || '.github/labeler.yml' }}
           sparse-checkout-cone-mode: false
@@ -181,18 +181,18 @@ jobs:
       group: codeql-\${{ github.ref }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
 
-      - uses: github/codeql-action/init@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3
+      - uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
         name: Initialize CodeQL
         with:
           languages: \${{ inputs.language }}
 
-      - uses: github/codeql-action/autobuild@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3
+      - uses: github/codeql-action/autobuild@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
         name: Autobuild
 
-      - uses: github/codeql-action/analyze@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3
+      - uses: github/codeql-action/analyze@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
         name: Analyze
         with:
           category: /language:\${{ inputs.language }}
@@ -224,7 +224,7 @@ jobs:
       cancel-in-progress: true
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
-      - uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
+      - uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         name: Fetch Dependabot metadata
         id: metadata
 
@@ -257,7 +257,7 @@ jobs:
       group: greetings-\${{ github.event.issue.number || github.event.pull_request.number }}
       cancel-in-progress: false
     steps:
-      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         name: Greet on first contribution
         with:
           script: |
@@ -334,7 +334,7 @@ jobs:
     env:
       GPG_KEY_SET: \${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY != '' }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
         with:
           fetch-depth: 0
@@ -343,7 +343,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - uses: super-linter/super-linter/slim@b92721f792f381cedc002ecdbb9847a15ece5bb8 # v7.1.0
+      - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
         env:
           GITHUB_TOKEN: \${{ github.token }}
@@ -378,7 +378,7 @@ jobs:
           VALIDATE_YAML: true
           YAML_CONFIG_FILE: \${{ inputs.yaml-config }}
 
-      - uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6
+      - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         name: Import GPG Key
         # Conditions mirror auto-commit exactly — no point importing GPG if the
         # commit step will be skipped (fork PR, default branch, or secret unset).
@@ -394,7 +394,7 @@ jobs:
           GPG_PRIVATE_KEY: \${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY }}
           PASSPHRASE: \${{ secrets.SUPER_LINTER_GPG_PASSPHRASE }}
 
-      - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         name: Commit and push linting fixes
         if: >
           inputs.enable-auto-commit == true &&
@@ -448,7 +448,7 @@ jobs:
       group: release-\${{ github.ref }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
         with:
           fetch-depth: 0
@@ -521,7 +521,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup
         if: \${{ hashFiles('pnpm-lock.yaml') != '' }}
@@ -624,7 +624,7 @@ jobs:
 
       - name: dotenv-linter
         if: steps.detect.outputs.dotenv == 'true'
-        uses: dotenv-linter/action-dotenv-linter@21287e2624aaf2dc8da5dd8ccfe8e49c63501116 # v2
+        uses: dotenv-linter/action-dotenv-linter@afde61cfda2ecffe7bea35837b6f20b956c88689 # v3.0.0
         with:
           reporter: github-code-suggestions
 
@@ -666,7 +666,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9
+      - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629 # v10.4.0
         name: Run Stale
         with:
           close-issue-message: >
@@ -704,7 +704,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
         with:
           fetch-depth: 0
@@ -715,7 +715,7 @@ jobs:
       - run: pnpm test -- --coverage
         name: Run tests with coverage
 
-      - uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload results to Codecov
         with:
           token: \${{ secrets.CODECOV_TOKEN }}
@@ -768,7 +768,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
 
       - uses: theholocron/.github/.github/actions/setup@main
@@ -830,7 +830,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
 
       - uses: theholocron/.github/.github/actions/setup@main
