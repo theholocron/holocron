@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@napi-rs/keyring": "^1.3.0",
+    "tsx": "catalog:",
     "yargs": "^18.0.0"
   },
   "devDependencies": {

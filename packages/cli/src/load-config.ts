@@ -1,19 +1,18 @@
 /**
  * `holocron.config.{json,js,ts}` file loader.
  *
- * v2.0 only documents the JSON form, but the loader looks up all three
- * extensions in priority order (json → js → ts) — that's the schema
- * commitment captured in [`.notes/tech-architecture.spec.md` → Roadmap
- * → Shareable configs] so the JS/TS preset story (issue #75) can land
- * later without a breaking change.
+ * Search order: json → js → ts. JSON is parsed directly; JS is loaded
+ * via native dynamic import; TS is loaded via `tsImport` from tsx (a
+ * runtime dep) so operators can write typed configs with `defineConfig`
+ * without needing a separate build step.
  *
- * The JS/TS forms aren't actually parsed today; they trigger a clear
- * error telling the operator to use JSON for v2.0. The contract is the
- * lookup order, not the interpretation.
+ * All three forms are validated through the same `resolveConfig` path.
+ * Implements the lookup-order contract from issue #75 / #81.
  */
 
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import type { HolocronConfig, ResolvedHolocronConfig } from "./config.js";
 import { ConfigError, resolveConfig } from "./config.js";
@@ -33,7 +32,7 @@ export interface LoadedConfig {
 /**
  * Read + parse + resolve `holocron.config.*` from the given directory.
  * Search order: json → js → ts. Throws `ConfigFileError` if nothing
- * found, or `ConfigError` if the JSON is malformed / invalid.
+ * found, or `ConfigError` if the config is malformed / invalid.
  */
 export async function loadConfig(cwd: string): Promise<LoadedConfig> {
 	for (const filename of CANDIDATE_FILENAMES) {
@@ -42,10 +41,10 @@ export async function loadConfig(cwd: string): Promise<LoadedConfig> {
 			if (filename.endsWith(".json")) {
 				return { resolved: await loadJson(fullPath), filepath: fullPath };
 			}
-			throw new ConfigFileError(
-				`${filename} found, but v2.0 only supports the JSON form. ` +
-					`Rename to holocron.config.json. The JS/TS form lands with the preset feature (see issue #75).`
-			);
+			if (filename.endsWith(".ts")) {
+				return { resolved: await loadTs(fullPath), filepath: fullPath };
+			}
+			return { resolved: await loadJs(fullPath), filepath: fullPath };
 		}
 	}
 	throw new ConfigFileError(
@@ -62,6 +61,28 @@ async function loadJson(filepath: string): Promise<ResolvedHolocronConfig> {
 		throw new ConfigError(`${filepath} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`);
 	}
 	return resolveConfig(parsed);
+}
+
+async function loadJs(filepath: string): Promise<ResolvedHolocronConfig> {
+	const mod = await import(pathToFileURL(filepath).href);
+	return extractAndResolve(filepath, mod);
+}
+
+async function loadTs(filepath: string): Promise<ResolvedHolocronConfig> {
+	const { tsImport } = await import("tsx/esm/api");
+	// tsImport wraps the result: outer.default is the module namespace,
+	// so the actual default export lives one level deeper than native import().
+	const outer = await tsImport(pathToFileURL(filepath).href, import.meta.url);
+	const namespace = (outer as Record<string, unknown>).default ?? outer;
+	return extractAndResolve(filepath, namespace);
+}
+
+function extractAndResolve(filepath: string, mod: unknown): ResolvedHolocronConfig {
+	const raw = (mod as { default?: unknown }).default;
+	if (raw === undefined || raw === null) {
+		throw new ConfigFileError(`${filepath} must have a default export (use \`export default defineConfig({…})\`)`);
+	}
+	return resolveConfig(raw as HolocronConfig);
 }
 
 async function fileExists(path: string): Promise<boolean> {

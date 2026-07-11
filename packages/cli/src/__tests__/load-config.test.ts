@@ -17,6 +17,8 @@ describe("loadConfig", () => {
 		await rm(cwd, { recursive: true, force: true });
 	});
 
+	// ── JSON ──────────────────────────────────────────────────────────────
+
 	it("reads + resolves a valid holocron.config.json", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),
@@ -52,22 +54,87 @@ describe("loadConfig", () => {
 		expect(result.resolved.providers.vault).toBeUndefined();
 	});
 
-	it("rejects holocron.config.js with a v2.0 not-supported message", async () => {
-		await writeFile(join(cwd, "holocron.config.js"), "export default { project: {} }");
-		await expect(loadConfig(cwd)).rejects.toThrow(/JSON form/);
-		await expect(loadConfig(cwd)).rejects.toThrow(/issue #75/);
+	// ── JS ────────────────────────────────────────────────────────────────
+
+	it("reads + resolves a valid holocron.config.js", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.js"),
+			`export default { project: { name: "js-demo" }, providers: { source: "github" } };`
+		);
+		const { resolved, filepath } = await loadConfig(cwd);
+		expect(filepath).toBe(join(cwd, "holocron.config.js"));
+		expect(resolved.project.name).toBe("js-demo");
 	});
 
-	it("prefers .json over .js when both exist (lookup-order commitment)", async () => {
+	it("errors when holocron.config.js has no default export", async () => {
+		await writeFile(join(cwd, "holocron.config.js"), `export const x = 1;`);
+		try {
+			await loadConfig(cwd);
+			expect.fail("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(ConfigFileError);
+			expect((err as Error).message).toMatch(/default export/);
+		}
+	});
+
+	it("errors when the JS config is invalid (missing project.name)", async () => {
+		await writeFile(join(cwd, "holocron.config.js"), `export default { project: {}, providers: {} };`);
+		try {
+			await loadConfig(cwd);
+			expect.fail("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(ConfigError);
+		}
+	});
+
+	// ── TS ────────────────────────────────────────────────────────────────
+
+	it("reads + resolves a valid holocron.config.ts (via tsImport)", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.ts"),
+			`export default { project: { name: "ts-demo" }, providers: { source: "github" } } as const;`
+		);
+		const { resolved, filepath } = await loadConfig(cwd);
+		expect(filepath).toBe(join(cwd, "holocron.config.ts"));
+		expect(resolved.project.name).toBe("ts-demo");
+	});
+
+	it("errors when holocron.config.ts has no default export", async () => {
+		await writeFile(join(cwd, "holocron.config.ts"), `export const x: number = 1;`);
+		try {
+			await loadConfig(cwd);
+			expect.fail("should have thrown");
+		} catch (err) {
+			expect(err).toBeInstanceOf(ConfigFileError);
+			expect((err as Error).message).toMatch(/default export/);
+		}
+	});
+
+	// ── Priority ──────────────────────────────────────────────────────────
+
+	it("prefers .json over .js when both exist", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),
-			JSON.stringify({
-				project: { name: "json-wins" },
-				providers: { vault: "1password" },
-			})
+			JSON.stringify({ project: { name: "json-wins" }, providers: {} })
 		);
-		await writeFile(join(cwd, "holocron.config.js"), "export default { project: {} }");
+		await writeFile(
+			join(cwd, "holocron.config.js"),
+			`export default { project: { name: "js-loses" }, providers: {} };`
+		);
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.project.name).toBe("json-wins");
+	});
+
+	it("prefers .js over .ts when both exist (no .json)", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.js"),
+			`export default { project: { name: "js-wins" }, providers: { source: "github" } };`
+		);
+		await writeFile(
+			join(cwd, "holocron.config.ts"),
+			`export default { project: { name: "ts-loses" }, providers: { source: "github" } } as const;`
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.project.name).toBe("js-wins");
 	});
 });
