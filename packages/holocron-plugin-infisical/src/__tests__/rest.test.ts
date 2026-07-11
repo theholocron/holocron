@@ -32,13 +32,9 @@ describe("InfisicalRestClient", () => {
 	it("throws ProviderApiError with the HTTP status on non-2xx", async () => {
 		const stub = stubFetch([{ status: 401, body: { messages: ["invalid"] } }]);
 		const client = new InfisicalRestClient({ token: "bad", fetch: stub.fetch });
-		try {
-			await client.request<unknown>("/me");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(401);
-		}
+		const err = await client.request<unknown>("/me").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(401);
 	});
 
 	it("wraps transport-level failures with status 0", async () => {
@@ -46,13 +42,9 @@ describe("InfisicalRestClient", () => {
 			throw new TypeError("fetch failed");
 		};
 		const client = new InfisicalRestClient({ token: "t", fetch: throwing });
-		try {
-			await client.request<unknown>("/me");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(0);
-		}
+		const err = await client.request<unknown>("/me").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(0);
 	});
 
 	it("trims trailing slashes from the base URL", () => {

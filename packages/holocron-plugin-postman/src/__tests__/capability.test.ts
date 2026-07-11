@@ -248,24 +248,16 @@ describe("PostmanRestClient — plan-limit discrimination", () => {
 				}),
 			},
 		]);
-		try {
-			await tooling.getMyself();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(PostmanPlanLimitError);
-			expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
-		}
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(PostmanPlanLimitError);
+		expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
 	});
 
 	it("throws generic ProviderApiError for non-limit 4xx", async () => {
 		const { tooling } = makeTooling([{ status: 404, text: "not found" }]);
-		try {
-			await tooling.getMyself();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
-		}
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
 	});
 });
 

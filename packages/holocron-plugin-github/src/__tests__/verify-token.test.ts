@@ -8,27 +8,21 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: { login: "cnewton", email: "c@example.com" } }]);
 		const result = await verifyToken("pat-abc", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/user @ cnewton/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/user @ cnewton/);
 	});
 
 	it("falls back to email when login is absent", async () => {
 		const stub = stubFetch([{ status: 200, body: { email: "c@example.com" } }]);
 		const result = await verifyToken("pat-abc", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/c@example.com/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/c@example.com/);
 	});
 
 	it("returns ok:false with the error message on 401", async () => {
 		const stub = stubFetch([{ status: 401, body: { message: "Bad credentials" } }]);
 		const result = await verifyToken("bad", { fetch: stub.fetch });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/→ 401/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/→ 401/);
 	});
 
 	it("returns ok:false when the network layer throws", async () => {
@@ -37,9 +31,7 @@ describe("verifyToken", () => {
 		};
 		const result = await verifyToken("anything", { fetch: throwing });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/network down/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/network down/);
 	});
 
 	it("hits the configured base URL", async () => {

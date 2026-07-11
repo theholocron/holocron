@@ -27,9 +27,7 @@ describe("verifyToken (1password)", () => {
 		});
 		const result = await verifyToken("ignored-token", { spawn });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/cnewton@example.com/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/cnewton@example.com/);
 	});
 
 	it("falls back to url / uuid when email is absent", async () => {
@@ -39,35 +37,27 @@ describe("verifyToken (1password)", () => {
 		});
 		const result = await verifyToken("", { spawn });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/ABC123/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/ABC123/);
 	});
 
 	it("returns ok with a generic subject when stdout is not JSON", async () => {
 		const spawn = makeSpawn({ status: 0, stdout: "not json" });
 		const result = await verifyToken("", { spawn });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/signed in/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/signed in/);
 	});
 
 	it("returns ok:false when the op binary is missing", async () => {
 		const spawn = makeSpawn({ error: new Error("ENOENT") });
 		const result = await verifyToken("", { spawn });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/not found on PATH/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/not found on PATH/);
 	});
 
 	it("returns ok:false when op whoami exits non-zero (not signed in)", async () => {
 		const spawn = makeSpawn({ status: 1, stderr: "You are not currently signed in." });
 		const result = await verifyToken("", { spawn });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/not currently signed in/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/not currently signed in/);
 	});
 });

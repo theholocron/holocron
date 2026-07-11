@@ -46,25 +46,17 @@ describe("InfisicalVault.read", () => {
 	it("rejects a reference that doesn't start with infisical://", async () => {
 		const { client } = makeClient([]);
 		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		try {
-			await vault.read("doppler://x/y/z");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as Error).message).toMatch(/infisical:\/\//);
-		}
+		const err = await vault.read("doppler://x/y/z").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as Error).message).toMatch(/infisical:\/\//);
 	});
 
 	it("rejects a reference missing parts", async () => {
 		const { client } = makeClient([]);
 		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		try {
-			await vault.read("infisical://ws-1/dev");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as Error).message).toMatch(/missing parts/);
-		}
+		const err = await vault.read("infisical://ws-1/dev").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as Error).message).toMatch(/missing parts/);
 	});
 });
 
@@ -108,13 +100,9 @@ describe("InfisicalVault.write", () => {
 	it("rethrows a non-conflict error from POST unchanged", async () => {
 		const { client } = makeClient([{ status: 500, body: "server error" }]);
 		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		try {
-			await vault.write("infisical://ws-1/dev/API_KEY", "v");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(500);
-		}
+		const err = await vault.write("infisical://ws-1/dev/API_KEY", "v").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
 	});
 });
 
@@ -236,13 +224,9 @@ describe("InfisicalVault.ensureProject", () => {
 	it("rethrows unrelated errors", async () => {
 		const { client } = makeClient([{ status: 500, body: "server error" }]);
 		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		try {
-			await vault.ensureProject("demo");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(500);
-		}
+		const err = await vault.ensureProject("demo").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
 	});
 });
 
@@ -315,13 +299,9 @@ describe("InfisicalVault.ensureEnvironment", () => {
 	it("rethrows non-403 errors from the list endpoint (real problems shouldn't be swallowed)", async () => {
 		const { client } = makeClient([{ status: 500, body: "server error" }]);
 		const vault = new InfisicalVault(client, { workspace: "ws-1", environment: "dev" });
-		try {
-			await vault.ensureEnvironment("ws-1", "dev");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(500);
-		}
+		const err = await vault.ensureEnvironment("ws-1", "dev").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
 	});
 
 	it("returns alreadyExists:true on 'duplicate' body from the environments POST", async () => {

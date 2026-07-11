@@ -68,23 +68,15 @@ describe("loadConfig", () => {
 
 	it("errors when holocron.config.js has no default export", async () => {
 		await writeFile(join(cwd, "holocron.config.js"), `export const x = 1;`);
-		try {
-			await loadConfig(cwd);
-			expect.fail("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ConfigFileError);
-			expect((err as Error).message).toMatch(/default export/);
-		}
+		const err = await loadConfig(cwd).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ConfigFileError);
+		expect((err as Error).message).toMatch(/default export/);
 	});
 
 	it("errors when the JS config is invalid (missing project.name)", async () => {
 		await writeFile(join(cwd, "holocron.config.js"), `export default { project: {}, providers: {} };`);
-		try {
-			await loadConfig(cwd);
-			expect.fail("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ConfigError);
-		}
+		const err = await loadConfig(cwd).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ConfigError);
 	});
 
 	// ── TS ────────────────────────────────────────────────────────────────
@@ -101,13 +93,9 @@ describe("loadConfig", () => {
 
 	it("errors when holocron.config.ts has no default export", async () => {
 		await writeFile(join(cwd, "holocron.config.ts"), `export const x: number = 1;`);
-		try {
-			await loadConfig(cwd);
-			expect.fail("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ConfigFileError);
-			expect((err as Error).message).toMatch(/default export/);
-		}
+		const err = await loadConfig(cwd).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ConfigFileError);
+		expect((err as Error).message).toMatch(/default export/);
 	});
 
 	// ── Priority ──────────────────────────────────────────────────────────

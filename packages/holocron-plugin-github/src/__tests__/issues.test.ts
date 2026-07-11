@@ -390,13 +390,9 @@ describe("GitHubIssues without labels config", () => {
 
 	it("transition to inProgress throws with a clear message", async () => {
 		const { issues } = makeIssuesNoLabels([{ status: 200, body: rawIssue() }]);
-		try {
-			await issues.transition("#42", "inProgress");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect((err as Error).message).toMatch(/labels/);
-			expect((err as Error).message).toMatch(/inProgress/);
-		}
+		const err = await issues.transition("#42", "inProgress").catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/labels/);
+		expect((err as Error).message).toMatch(/inProgress/);
 	});
 
 	it("transition to done still works (needs no labels)", async () => {

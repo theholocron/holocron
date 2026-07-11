@@ -380,13 +380,9 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 				// @theholocron/holocron-plugin-missing-vault is intentionally absent
 			}
 		);
-		try {
-			await loader.load();
-			expect.fail("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(LoaderError);
-			expect((err as Error).message).toMatch(/failed to import/);
-		}
+		const err = await loader.load().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(LoaderError);
+		expect((err as Error).message).toMatch(/failed to import/);
 	});
 
 	it("errors when a package exports neither createPlugin nor a capability config", async () => {
@@ -399,12 +395,8 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 				"@theholocron/holocron-plugin-broken": { somethingElse: true },
 			}
 		);
-		try {
-			await loader.load();
-			expect.fail("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(LoaderError);
-			expect((err as Error).message).toMatch(/createPlugin/);
-		}
+		const err = await loader.load().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(LoaderError);
+		expect((err as Error).message).toMatch(/createPlugin/);
 	});
 });

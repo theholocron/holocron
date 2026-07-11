@@ -33,13 +33,9 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError with a helpful message when nothing is set", () => {
-		try {
-			resolveToken({ env: {}, keyring: noKeyring });
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(AuthError);
-			expect((err as Error).message).toMatch(/HOLOCRON_INFISICAL_TOKEN/);
-			expect((err as Error).message).toMatch(/holocron auth set infisical/);
-		}
+		const err = (() => { try { resolveToken({ env: {}, keyring: noKeyring }); } catch (e) { return e; } })();
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as Error).message).toMatch(/HOLOCRON_INFISICAL_TOKEN/);
+		expect((err as Error).message).toMatch(/holocron auth set infisical/);
 	});
 });

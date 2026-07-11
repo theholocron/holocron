@@ -142,13 +142,9 @@ describe("NeonStorage.getConnectionString", () => {
 
 	it("throws clearly when the branch has no databases", async () => {
 		const { storage } = makeStorage([{ status: 200, body: { databases: [] } }]);
-		try {
-			await storage.getConnectionString("br_uninitialized");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).message).toMatch(/initialize/);
-		}
+		const err = await storage.getConnectionString("br_uninitialized").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).message).toMatch(/initialize/);
 	});
 });
 

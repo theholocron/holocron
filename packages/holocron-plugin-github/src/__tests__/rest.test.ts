@@ -46,16 +46,12 @@ describe("GitHubRestClient", () => {
 	it("throws ProviderApiError on non-2xx with status + details", async () => {
 		const { fetch } = stubFetch([{ status: 401, text: "bad creds" }]);
 		const client = new GitHubRestClient({ token: TOKEN, fetch });
-		try {
-			await client.request("/user");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(401);
-			expect(pae.details).toBe("bad creds");
-			expect(pae.message).toContain("401");
-		}
+		const err = await client.request("/user").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(401);
+		expect(pae.details).toBe("bad creds");
+		expect(pae.message).toContain("401");
 	});
 
 	it("strips trailing slashes from baseUrl override", async () => {

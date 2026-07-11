@@ -45,16 +45,12 @@ describe("VercelRestClient", () => {
 	it("throws ProviderApiError with status + path on non-2xx", async () => {
 		const { fetch } = stubFetch([{ status: 404, text: "project not found" }]);
 		const client = new VercelRestClient({ token: TOKEN, fetch });
-		try {
-			await client.request("/v10/projects/missing");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(404);
-			expect(pae.message).toContain("404");
-			expect(pae.message).toContain("/v10/projects/missing");
-		}
+		const err = await client.request("/v10/projects/missing").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(404);
+		expect(pae.message).toContain("404");
+		expect(pae.message).toContain("/v10/projects/missing");
 	});
 
 	it("wraps transport-level failures with status 0 and a clear message", async () => {
@@ -62,15 +58,11 @@ describe("VercelRestClient", () => {
 			throw new TypeError("fetch failed");
 		});
 		const client = new VercelRestClient({ token: TOKEN, fetch: failingFetch });
-		try {
-			await client.request("/v10/projects");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(0);
-			expect(pae.message).toContain("Vercel GET /v10/projects failed");
-		}
+		const err = await client.request("/v10/projects").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(0);
+		expect(pae.message).toContain("Vercel GET /v10/projects failed");
 	});
 
 	it("strips trailing slashes from baseUrl override", async () => {

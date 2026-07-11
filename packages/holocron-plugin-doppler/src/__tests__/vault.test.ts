@@ -47,25 +47,17 @@ describe("DopplerVault.read", () => {
 	it("rejects a reference that does not start with doppler://", async () => {
 		const { client } = makeClient([]);
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
-		try {
-			await vault.read("op://Vault/Item/field");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as Error).message).toMatch(/doppler:\/\//);
-		}
+		const err = await vault.read("op://Vault/Item/field").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as Error).message).toMatch(/doppler:\/\//);
 	});
 
 	it("rejects a reference missing parts", async () => {
 		const { client } = makeClient([]);
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
-		try {
-			await vault.read("doppler://demo/dev");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as Error).message).toMatch(/missing parts/);
-		}
+		const err = await vault.read("doppler://demo/dev").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as Error).message).toMatch(/missing parts/);
 	});
 });
 
@@ -180,13 +172,9 @@ describe("DopplerVault.ensureProject", () => {
 	it("rethrows unrelated errors", async () => {
 		const { client } = makeClient([{ status: 500, body: "server error" }]);
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
-		try {
-			await vault.ensureProject("demo");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(500);
-		}
+		const err = await vault.ensureProject("demo").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
 	});
 });
 
@@ -220,12 +208,8 @@ describe("DopplerVault.ensureEnvironment", () => {
 	it("rethrows a 400 that is NOT an already-exists error", async () => {
 		const { client } = makeClient([{ status: 400, body: `{"messages":["Invalid slug"],"success":false}` }]);
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
-		try {
-			await vault.ensureEnvironment("demo", "dev");
-			throw new Error("should have thrown");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(400);
-		}
+		const err = await vault.ensureEnvironment("demo", "dev").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(400);
 	});
 });

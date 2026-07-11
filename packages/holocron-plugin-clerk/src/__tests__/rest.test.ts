@@ -42,15 +42,11 @@ describe("ClerkRestClient", () => {
 	it("throws ProviderApiError with status + path on non-2xx", async () => {
 		const { fetch } = stubFetch([{ status: 401, text: "invalid secret key" }]);
 		const client = new ClerkRestClient({ token: TOKEN, fetch });
-		try {
-			await client.request("/users/count");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(401);
-			expect(pae.message).toContain("/users/count");
-		}
+		const err = await client.request("/users/count").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(401);
+		expect(pae.message).toContain("/users/count");
 	});
 
 	it("wraps transport-level failures with status 0", async () => {
@@ -58,13 +54,9 @@ describe("ClerkRestClient", () => {
 			throw new TypeError("fetch failed");
 		});
 		const client = new ClerkRestClient({ token: TOKEN, fetch: failingFetch });
-		try {
-			await client.request("/users/count");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(0);
-			expect((err as ProviderApiError).message).toContain("Clerk GET /users/count failed");
-		}
+		const err = await client.request("/users/count").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(0);
+		expect((err as ProviderApiError).message).toContain("Clerk GET /users/count failed");
 	});
 });

@@ -97,9 +97,26 @@ Code into every conversation in this repo.
   its typecheck is a no-op.
 - **Don't call `expect(...).toThrow()` twice on the same stubbed call.**
   The stub queue advances per call; second invocation gets the default
-  empty response and the assertion silently passes (or fails for the
-  wrong reason). Use a single `try/catch` with property assertions
-  on the caught error instead. Captured in the skill's non-negotiables.
+  empty response. For multi-property error checks use the `.catch` capture
+  pattern instead — it avoids both the double-call and `vitest/no-conditional-expect`:
+  ```ts
+  // async
+  const err = await fn().catch((e: unknown) => e);
+  expect(err).toBeInstanceOf(SomeError);
+  expect((err as SomeError).message).toMatch(/pattern/);
+
+  // sync
+  const err = (() => { try { fn(); } catch (e) { return e; } })();
+  expect(err).toBeInstanceOf(SomeError);
+  ```
+- **Discriminated union results** (`{ ok: true; subject } | { ok: false; message }`):
+  assert the branch with `expect(result.ok).toBe(true)` then access the
+  narrowed field via a cast — never use `if (result.ok)` with `expect`
+  inside, as `vitest/no-conditional-expect` correctly flags that:
+  ```ts
+  expect(result.ok).toBe(true);
+  expect((result as { ok: boolean; subject?: string }).subject).toMatch(/pattern/);
+  ```
 - **PR checks must be green before merge.** `pnpm typecheck`,
   `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. CodeQL
   runs separately. DCO checks the Signed-off-by trailer per commit

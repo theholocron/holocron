@@ -48,15 +48,11 @@ describe("NeonRestClient", () => {
 	it("throws ProviderApiError with status + path on non-2xx", async () => {
 		const { fetch } = stubFetch([{ status: 403, text: "managed by vercel" }]);
 		const client = new NeonRestClient({ token: TOKEN, fetch });
-		try {
-			await client.request("/projects", { method: "POST", body: {} });
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(403);
-			expect(pae.message).toContain("/projects");
-		}
+		const err = await client.request("/projects", { method: "POST", body: {} }).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(403);
+		expect(pae.message).toContain("/projects");
 	});
 
 	it("wraps transport-level failures with status 0", async () => {
@@ -64,13 +60,9 @@ describe("NeonRestClient", () => {
 			throw new TypeError("fetch failed");
 		});
 		const client = new NeonRestClient({ token: TOKEN, fetch: failingFetch });
-		try {
-			await client.request("/projects");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(0);
-			expect((err as ProviderApiError).message).toContain("Neon GET /projects failed");
-		}
+		const err = await client.request("/projects").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(0);
+		expect((err as ProviderApiError).message).toContain("Neon GET /projects failed");
 	});
 });

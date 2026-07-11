@@ -20,23 +20,15 @@ describe("verifyOpInstalled", () => {
 
 	it("throws AuthError with an install hint when spawn returns ENOENT", () => {
 		const { spawn } = stubSpawn([{ error: new Error("spawn ENOENT") }]);
-		try {
-			verifyOpInstalled({ spawn });
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(AuthError);
-			expect((err as AuthError).message).toMatch(/brew install 1password-cli/);
-		}
+		const err = (() => { try { verifyOpInstalled({ spawn }); } catch (e) { return e; } })() as AuthError;
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as AuthError).message).toMatch(/brew install 1password-cli/);
 	});
 
 	it("throws AuthError when `op --version` exits non-zero", () => {
 		const { spawn } = stubSpawn([{ status: 1, stderr: "something is busted" }]);
-		try {
-			verifyOpInstalled({ spawn });
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(AuthError);
-			expect((err as AuthError).message).toMatch(/something is busted/);
-		}
+		const err = (() => { try { verifyOpInstalled({ spawn }); } catch (e) { return e; } })() as AuthError;
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as AuthError).message).toMatch(/something is busted/);
 	});
 });

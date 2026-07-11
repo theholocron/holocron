@@ -63,15 +63,11 @@ describe("OpShell.runOrThrow", () => {
 	it("throws ProviderApiError(status=0) on non-zero exit", () => {
 		const { spawn } = stubSpawn([{ status: 1, stderr: "item not found" }]);
 		const shell = new OpShell({ spawn });
-		try {
-			shell.runOrThrow(["read", "op://x/y/z"], "read x");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(0);
-			expect(pae.message).toContain("1Password read x failed");
-			expect(pae.message).toContain("item not found");
-		}
+		const err = (() => { try { shell.runOrThrow(["read", "op://x/y/z"], "read x"); } catch (e) { return e; } })() as ProviderApiError;
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(0);
+		expect(pae.message).toContain("1Password read x failed");
+		expect(pae.message).toContain("item not found");
 	});
 });

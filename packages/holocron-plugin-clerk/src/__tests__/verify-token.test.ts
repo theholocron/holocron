@@ -8,9 +8,7 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: { id: "ins_abc123", environment_type: "development" } }]);
 		const result = await verifyToken("sk_test_abc", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/development instance ins_abc123/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/development instance ins_abc123/);
 	});
 
 	it("hits /instance without doubling the /v1 base-URL prefix", async () => {
@@ -25,18 +23,14 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: {} }]);
 		const result = await verifyToken("sk_test", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/unknown instance unknown/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/unknown instance unknown/);
 	});
 
 	it("returns ok:false with the error message on 401", async () => {
 		const stub = stubFetch([{ status: 401, body: { errors: [{ message: "invalid" }] } }]);
 		const result = await verifyToken("bad", { fetch: stub.fetch });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/→ 401/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/→ 401/);
 	});
 
 	it("returns ok:false when the network layer throws", async () => {
@@ -45,9 +39,7 @@ describe("verifyToken", () => {
 		};
 		const result = await verifyToken("t", { fetch: throwing });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/network down/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/network down/);
 	});
 
 	it("hits the configured base URL", async () => {

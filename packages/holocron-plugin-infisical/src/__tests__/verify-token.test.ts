@@ -18,10 +18,8 @@ describe("verifyToken", () => {
 		]);
 		const result = await verifyToken("token", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/2 workspaces/);
-			expect(result.subject).toMatch(/Rando/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/2 workspaces/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/Rando/);
 		expect(stub.calls[0]?.url).toMatch(/\/v1\/workspace/);
 	});
 
@@ -29,38 +27,30 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: { workspaces: [{ _id: "ws-1", name: "Solo" }] } }]);
 		const result = await verifyToken("t", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/1 workspace · first: Solo/);
-			expect(result.subject).not.toMatch(/workspaces/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/1 workspace · first: Solo/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).not.toMatch(/workspaces/);
 	});
 
 	it("returns ok even with zero workspaces (valid token, just no access)", async () => {
 		const stub = stubFetch([{ status: 200, body: { workspaces: [] } }]);
 		const result = await verifyToken("t", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/0 workspaces/);
-			expect(result.subject).toMatch(/no accessible workspaces/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/0 workspaces/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/no accessible workspaces/);
 	});
 
 	it("returns ok:true with 'scope-limited' subject on 403 (workspace-scoped machine identities)", async () => {
 		const stub = stubFetch([{ status: 403, body: { message: "Forbidden" } }]);
 		const result = await verifyToken("workspace-scoped", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/scope-limited/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/scope-limited/);
 	});
 
 	it("returns ok:false on 401", async () => {
 		const stub = stubFetch([{ status: 401, body: { message: "Unauthorized" } }]);
 		const result = await verifyToken("bad", { fetch: stub.fetch });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/→ 401/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/→ 401/);
 	});
 
 	it("returns ok:false when the network layer throws", async () => {
@@ -69,8 +59,6 @@ describe("verifyToken", () => {
 		};
 		const result = await verifyToken("t", { fetch: throwing });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/network down/);
-		}
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/network down/);
 	});
 });

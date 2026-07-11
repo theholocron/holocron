@@ -25,12 +25,8 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError when nothing is set", () => {
-		try {
-			resolveToken({ env: {}, keyring: () => null });
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(AuthError);
-			expect((err as AuthError).message).toMatch(/HOLOCRON_POSTMAN_API_KEY/);
-		}
+		const err = (() => { try { resolveToken({ env: {}, keyring: () => null }); } catch (e) { return e; } })();
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as AuthError).message).toMatch(/HOLOCRON_POSTMAN_API_KEY/);
 	});
 });

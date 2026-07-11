@@ -42,15 +42,11 @@ describe("PostmanRestClient", () => {
 	it("throws ProviderApiError with status + path on non-2xx", async () => {
 		const { fetch } = stubFetch([{ status: 403, text: "AuthorizationError" }]);
 		const client = new PostmanRestClient({ token: TOKEN, fetch });
-		try {
-			await client.request("/me");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			const pae = err as ProviderApiError;
-			expect(pae.status).toBe(403);
-			expect(pae.message).toContain("/me");
-		}
+		const err = await client.request("/me").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		const pae = err as ProviderApiError;
+		expect(pae.status).toBe(403);
+		expect(pae.message).toContain("/me");
 	});
 
 	it("wraps transport-level failures with status 0", async () => {
@@ -58,13 +54,9 @@ describe("PostmanRestClient", () => {
 			throw new TypeError("fetch failed");
 		});
 		const client = new PostmanRestClient({ token: TOKEN, fetch: failingFetch });
-		try {
-			await client.request("/me");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).status).toBe(0);
-			expect((err as ProviderApiError).message).toContain("Postman GET /me failed");
-		}
+		const err = await client.request("/me").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(0);
+		expect((err as ProviderApiError).message).toContain("Postman GET /me failed");
 	});
 });
