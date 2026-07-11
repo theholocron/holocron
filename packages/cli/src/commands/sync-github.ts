@@ -335,19 +335,36 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	const { sha: newCommitSha } = (await newCommitRes.json()) as { sha: string };
 
 	// ── 9. Update (or create) branch ref ────────────────────────────────────
-	// For PR mode: create a new branch pointing at the new commit.
+	// For PR mode: try to create the branch; if it already exists from a
+	// previous partial run, force-update it instead.
 	// For direct push: fast-forward the existing branch.
-	const refUpdateRes = createPr && branch
-		? await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs`, {
+	let refUpdateRes: Response;
+	if (createPr && branch) {
+		refUpdateRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs`, {
 			method: "POST",
 			headers,
 			body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommitSha }),
-		})
-		: await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`, {
-			method: "PATCH",
-			headers,
-			body: JSON.stringify({ sha: newCommitSha }),
 		});
+		if (refUpdateRes.status === 422) {
+			refUpdateRes = await fetchFn(
+				`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${branch}`,
+				{
+					method: "PATCH",
+					headers,
+					body: JSON.stringify({ sha: newCommitSha, force: true }),
+				},
+			);
+		}
+	} else {
+		refUpdateRes = await fetchFn(
+			`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`,
+			{
+				method: "PATCH",
+				headers,
+				body: JSON.stringify({ sha: newCommitSha }),
+			},
+		);
+	}
 	if (!refUpdateRes.ok) {
 		const err = (await refUpdateRes.json()) as { message?: string };
 		const msg = `failed to update ref: ${err.message ?? refUpdateRes.status}`;
