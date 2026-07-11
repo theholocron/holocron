@@ -30,10 +30,13 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@tsconfig/node-lts": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",

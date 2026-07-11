@@ -1,0 +1,38 @@
+import { defineConfig } from "@theholocron/cli";
+
+export default defineConfig({
+	project: {
+		name: "holocron",
+		description:
+			"The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.",
+		repo: "theholocron/holocron",
+		repoPolicy: {
+			preset: "strict",
+			requiredChecks: [
+				"super-linter (slim)",
+				"tsc --noEmit (every workspace)",
+				"vitest + coverage",
+				"tsdown (every workspace)",
+			],
+		},
+		workflows: [
+			"lint",
+			"test",
+			"typecheck",
+			"codeql",
+			"review",
+			"stale",
+			"greetings",
+			"dependencies",
+			"bookkeeping-pr",
+		],
+	},
+	providers: {
+		vault: ["doppler", { project: "holocron", config: "dev" }],
+		source: "github",
+		ci: "github",
+		secrets: "github",
+		environments: "github",
+		issues: ["github", { labels: { inProgress: "status:in-progress", inReview: "status:in-review" } }],
+	},
+});

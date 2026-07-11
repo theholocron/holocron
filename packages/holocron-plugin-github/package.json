@@ -38,12 +38,14 @@
     "@tsconfig/node-lts": "catalog:",
     "@types/libsodium-wrappers": "^0.7.14",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",

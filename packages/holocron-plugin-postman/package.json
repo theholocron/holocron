@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/holocron-plugin-postman",
   "version": "2.0.0-alpha.18",
-  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API — workspace + collection + spec + environment sync.",
+  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API \u2014 workspace + collection + spec + environment sync.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-postman#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -30,15 +30,18 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@tsconfig/node-lts": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",

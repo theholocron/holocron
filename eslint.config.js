@@ -1,33 +1,33 @@
-// Workspace-level ESLint config (flat). Minimal but strict.
-//
-// Not using `@theholocron/eslint-config` directly yet — that package
-// calls `includeIgnoreFile` on a path relative to its pnpm CAS location,
-// which doesn't exist. Fixed in theholocron/configs#202 (pending merge).
-// Swap back once that ships and the catalog is bumped.
-
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import globals from "globals";
+import { library } from "@theholocron/eslint-config/bundles/library";
+import { vitest } from "@theholocron/eslint-config/vitest";
 
 export default [
+	...library(),
+	...vitest(),
+	{
+		// eslint-plugin-n defaults to Node >=16 when engines.node is absent from
+		// a package — override at workspace level to match our engines requirement.
+		// TODO: move engines.node into each package.json instead (#111 follow-up).
+		settings: { node: { version: ">=22.0.0" } },
+		rules: {
+			// TODO: both rules below move to @theholocron/eslint-config library bundle
+			// once that ships. Remove these overrides after bumping the catalog.
+
+			// Relative imports in TypeScript packages compile to dist/ via tsdown.
+			// The plugin flags src/ files as "unpublished" because `files` lists dist/.
+			"n/no-unpublished-import": "off",
+
+			// validate scripts run as CLI scripts but aren't bin entries — the
+			// shebang is intentional and the n/hashbang rule is wrong here.
+			"n/hashbang": "off",
+		},
+	},
 	{
 		ignores: [
 			"packages/*/dist/**",
 			"packages/*/coverage/**",
-			"packages/cli-utils/**", // v1 carryover — lints when we cherry-pick
+			"packages/cli-utils/**",
 			"**/node_modules/**",
 		],
-	},
-	js.configs.recommended,
-	...tseslint.configs.recommended,
-	{
-		languageOptions: {
-			ecmaVersion: 2024,
-			sourceType: "module",
-			globals: { ...globals.node },
-		},
-		rules: {
-			"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
-		},
 	},
 ];

@@ -30,15 +30,18 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@tsconfig/node-lts": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",
