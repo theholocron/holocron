@@ -1,13 +1,13 @@
 {
-  "name": "@theholocron/http",
+  "name": "@theholocron/http-client",
   "version": "0.1.0",
-  "description": "Shared HTTP primitives for theholocron — REST client factory, auth resolver, and error types",
-  "homepage": "https://github.com/theholocron/clients/tree/main/packages/http#readme",
+  "description": "Shared HTTP primitives for theholocron \u2014 REST client factory, auth resolver, and error types",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/http-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/clients.git",
-    "directory": "packages/http"
+    "directory": "packages/http-client"
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
