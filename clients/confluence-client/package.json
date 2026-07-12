@@ -24,6 +24,9 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@theholocron/http-client": "^0.1.0"
+  },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
