@@ -19,17 +19,14 @@ catalogs:
       specifier: ^5.2.0
       version: 5.2.0
     '@theholocron/tsconfig':
-      specifier: ^5.2.0
-      version: 5.2.0
+      specifier: ^6.0.0
+      version: 6.0.0
     '@theholocron/tsdown-config':
       specifier: ^5.1.2
       version: 5.1.2
     '@theholocron/vitest-config':
       specifier: ^5.2.0
       version: 5.2.0
-    '@tsconfig/node-lts':
-      specifier: ^24.0.0
-      version: 24.0.0
     '@vitest/eslint-plugin':
       specifier: ^1.6.23
       version: 1.6.23
@@ -106,10 +103,7 @@ importers:
         version: 5.2.0(prettier@3.9.3)
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
+        version: 6.0.0(typescript@5.9.3)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -176,13 +170,10 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@types/yargs':
         specifier: ^17.0.35
         version: 17.0.35
@@ -252,10 +243,7 @@ importers:
     devDependencies:
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
+        version: 6.0.0(typescript@5.9.3)
       '@types/play-sound':
         specifier: ^1.1.2
         version: 1.1.2
@@ -276,16 +264,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -321,16 +306,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -366,16 +348,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -415,16 +394,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@types/libsodium-wrappers':
         specifier: ^0.7.14
         version: 0.7.14
@@ -463,16 +439,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -508,16 +481,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -553,16 +523,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -598,16 +565,13 @@ importers:
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: 'catalog:'
-        version: 5.2.0(typescript@5.9.3)
+        version: 6.0.0(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: 'catalog:'
         version: 5.1.2(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
-      '@tsconfig/node-lts':
-        specifier: 'catalog:'
-        version: 24.0.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -1671,8 +1635,8 @@ packages:
     peerDependencies:
       prettier: ^3
 
-  '@theholocron/tsconfig@5.2.0':
-    resolution: {integrity: sha512-LLZHYe0qcn+PPIz25VYbe3F15FtT+ZO3itSoqdk8daYTIwf0HkUl5Ung+mQZmAuAbEa1i1f4RL1gbsaw6ZuUsQ==}
+  '@theholocron/tsconfig@6.0.0':
+    resolution: {integrity: sha512-BIIAVwtsHQwKERy0dl+SVjLWKRTR3N1OScztOmc+yseYQbPa23FmcSTMO1VAh7ajOWH7MoZu6skIYunSAqxeFw==}
     peerDependencies:
       typescript: ^5
 
@@ -1711,9 +1675,6 @@ packages:
         optional: true
       playwright:
         optional: true
-
-  '@tsconfig/node-lts@24.0.0':
-    resolution: {integrity: sha512-8mSTqWwCd6aQpvxSrpQlMoA9RiUZSs7bYhL5qsLXIIaN9HQaINeoydrRu/Y7/fws4bvfuyhs0BRnW9/NI8tySg==}
 
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
@@ -6374,7 +6335,7 @@ snapshots:
     dependencies:
       prettier: 3.9.3
 
-  '@theholocron/tsconfig@5.2.0(typescript@5.9.3)':
+  '@theholocron/tsconfig@6.0.0(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
 
@@ -6392,8 +6353,6 @@ snapshots:
       vitest: 4.1.10(@types/node@26.0.1)(@vitest/coverage-v8@4.1.10)(vite@7.3.6(@types/node@26.0.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       '@vitest/coverage-v8': 4.1.10(vitest@4.1.10)
-
-  '@tsconfig/node-lts@24.0.0': {}
 
   '@tybys/wasm-util@0.10.3':
     dependencies:

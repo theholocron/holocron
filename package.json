@@ -38,7 +38,6 @@
     "@theholocron/lint-staged-config": "catalog:",
     "@theholocron/prettier-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
-    "@tsconfig/node-lts": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "alexjs": "^1.0.0",
     "conventional-changelog-conventionalcommits": "^10.2.0",
