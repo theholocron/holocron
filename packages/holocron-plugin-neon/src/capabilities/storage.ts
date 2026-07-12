@@ -20,7 +20,7 @@
 import { ProviderApiError } from "@theholocron/cli";
 import type { ConnectionStringOptions, Storage, StorageBranch } from "@theholocron/cli";
 
-import type { NeonRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface StorageOptions {
 	projectId: string;
@@ -46,7 +46,7 @@ export class NeonStorage implements Storage {
 	private readonly base: string;
 
 	constructor(
-		private readonly rest: NeonRestClient,
+		private readonly rest: RestClient,
 		opts: StorageOptions
 	) {
 		if (!opts.projectId) {

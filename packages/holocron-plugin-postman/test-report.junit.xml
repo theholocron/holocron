@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="46" failures="0" errors="0" time="0.085414416">
+    <testsuite name="src/__tests__/auth.test.ts" timestamp="2026-07-12T04:44:02.458Z" hostname="Mac-Mini.local" tests="4" failures="0" errors="0" skipped="0" time="0.002754375">
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; uses the explicit CLI token first" time="0.000871959">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; prefers HOLOCRON_POSTMAN_API_KEY over POSTMAN_API_KEY" time="0.00012675">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; falls back to POSTMAN_API_KEY when only it is set" time="0.000067708">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; throws AuthError when nothing is set" time="0.000192">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/capability.test.ts" timestamp="2026-07-12T04:44:02.459Z" hostname="Mac-Mini.local" tests="25" failures="0" errors="0" skipped="0" time="0.036399875">
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling identity &gt; reports key and providerName for the capability map" time="0.0039455">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling identity &gt; throws when workspaceId is missing" time="0.000418">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.getMyself &gt; GETs /me and maps to PostmanUser" time="0.012432625">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.listWorkspaces &gt; GETs /workspaces and maps results" time="0.000768708">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.findCollectionByName &gt; GETs /collections?workspace=… and returns a match" time="0.000311333">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.findCollectionByName &gt; returns null when no match" time="0.000240958">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.deleteCollection &gt; DELETEs by uid" time="0.000240958">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.importOpenApi &gt; POSTs /import/openapi with workspace query + stringified spec" time="0.000450666">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.importOpenApi &gt; throws clearly when Postman returns no collection on import" time="0.00071025">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling environments &gt; finds environments via /environments?workspace=…" time="0.000352792">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling environments &gt; createEnvironment POSTs with body wrapper" time="0.000885042">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling environments &gt; updateEnvironment PUTs to /environments/{uid}" time="0.000207125">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling Spec Hub methods &gt; findSpecByName matches by name within workspace" time="0.000178333">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling Spec Hub methods &gt; createSpec POSTs flat name+type+files (not wrapped under spec)" time="0.000194041">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling Spec Hub methods &gt; upsertSpecFile PATCHes /specs/{id}/files/{path}" time="0.000130041">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanRestClient — plan-limit discrimination &gt; throws PostmanPlanLimitError when the response is a limitReachedError" time="0.000193333">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanRestClient — plan-limit discrimination &gt; throws generic ProviderApiError for non-limit 4xx" time="0.000116875">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.sync &gt; errors when specFile is not configured" time="0.001704667">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.sync &gt; flow: create spec, no existing collection → import; happy path" time="0.005037958">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.sync &gt; flow: existing spec → upsertSpecFile; existing collection → delete then import" time="0.00171175">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.sync &gt; uses info.title from the spec when specName option is omitted" time="0.001363541">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.sync &gt; syncs env files when configured (create + update mix)" time="0.002515875">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.doctor &gt; returns ok when /me + workspace are accessible" time="0.000239791">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.doctor &gt; returns ok:false when the configured workspace is not in the list" time="0.000300208">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="PostmanTooling.doctor &gt; returns ok:false with the error message when /me fails" time="0.000157125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/index.test.ts" timestamp="2026-07-12T04:44:02.461Z" hostname="Mac-Mini.local" tests="4" failures="0" errors="0" skipped="0" time="0.020372375">
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; throws AuthError when no token is found" time="0.009376333">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; throws when workspaceId is missing" time="0.000469167">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; wires the tooling capability" time="0.000265083">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; passes baseUrl + fetch through to the REST client" time="0.009566542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/rest.test.ts" timestamp="2026-07-12T04:44:02.461Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.013992958">
+        <testcase classname="src/__tests__/rest.test.ts" name="PostmanRestClient &gt; sends x-api-key + accept headers on every request" time="0.010142334">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="PostmanRestClient &gt; serializes body on writes and sets content-type" time="0.000560833">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="PostmanRestClient &gt; appends query params when supplied" time="0.000229375">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="PostmanRestClient &gt; returns undefined on 204" time="0.000112458">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="PostmanRestClient &gt; throws ProviderApiError with status + path on non-2xx" time="0.001318">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="PostmanRestClient &gt; wraps transport-level failures with status 0" time="0.000261875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/verify-token.test.ts" timestamp="2026-07-12T04:44:02.461Z" hostname="Mac-Mini.local" tests="7" failures="0" errors="0" skipped="0" time="0.011894833">
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok with the user email when /me returns 200" time="0.009818292">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; falls back to username when email is absent" time="0.000341417">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; falls back to id when username + email + fullName are absent" time="0.000227292">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; falls back to &apos;unknown&apos; when the user body is empty" time="0.000234958">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false with the error message on 401" time="0.00027225">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false when the network layer throws" time="0.000101">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; hits the configured base URL" time="0.00019575">
+        </testcase>
+    </testsuite>
+</testsuites>

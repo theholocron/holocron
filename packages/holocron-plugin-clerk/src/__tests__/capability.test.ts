@@ -2,13 +2,13 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { ClerkAuth } from "../capabilities/auth.js";
-import { ClerkRestClient } from "../rest.js";
+import { createClerkRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
 function makeAuth(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new ClerkRestClient({ token: "sk_test_pat", fetch });
+	const rest = createClerkRestClient({ token: "sk_test_pat", fetch });
 	const auth = new ClerkAuth(rest);
 	return { auth, calls };
 }

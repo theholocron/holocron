@@ -185,8 +185,8 @@ describe("Rendered content sanity", () => {
 		const content = fs.get(fs.paths().find((p) => p.endsWith("src/auth.ts"))!)!;
 		expect(content).toMatch(/HOLOCRON_ACME_TOKEN/);
 		expect(content).toMatch(/ACME_KEY/);
-		expect(content).toMatch(/getKeyringToken/);
-		expect(content).toMatch(/keyring\("acme"\)/);
+		expect(content).toMatch(/createResolveToken/);
+		expect(content).toMatch(/keyringService: "acme"/);
 	});
 
 	it("normalizes trailing slashes in baseUrl so the rest-test's assertion matches", () => {

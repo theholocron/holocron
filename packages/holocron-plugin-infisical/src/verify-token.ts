@@ -27,7 +27,7 @@
 
 import { ProviderApiError } from "@theholocron/cli";
 
-import { InfisicalRestClient } from "./rest.js";
+import { createInfisicalRestClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -51,10 +51,7 @@ export interface VerifyTokenOptions {
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: ConstructorParameters<typeof InfisicalRestClient>[0] = { token };
-	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
-	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = new InfisicalRestClient(restOpts);
+	const rest = createInfisicalRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
 		const res = await rest.request<WorkspaceListResponse>("/v1/workspace");
 		const count = res?.workspaces?.length ?? 0;

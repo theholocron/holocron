@@ -15,7 +15,7 @@ import { join, dirname } from "node:path";
 import type { RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface SourceOptions {
 	repo: string;
@@ -34,7 +34,7 @@ export class GitHubSource implements Source {
 	private readonly workflowDir: string;
 
 	constructor(
-		private readonly rest: GitHubRestClient,
+		private readonly rest: RestClient,
 		opts: SourceOptions
 	) {
 		const { owner, name } = parseRepo(opts.repo);

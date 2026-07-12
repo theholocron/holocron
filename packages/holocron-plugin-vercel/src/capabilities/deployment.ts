@@ -27,7 +27,7 @@ import type {
 	DeploymentTrigger,
 } from "@theholocron/cli";
 
-import type { VercelRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface DeploymentOptions {
 	/** Optional framework hint passed to project creates. Defaults to "nextjs". */
@@ -63,7 +63,7 @@ export class VercelDeployment implements Deployment {
 	private readonly defaultFramework: string;
 
 	constructor(
-		private readonly rest: VercelRestClient,
+		private readonly rest: RestClient,
 		opts: DeploymentOptions = {}
 	) {
 		this.defaultFramework = opts.defaultFramework ?? "nextjs";

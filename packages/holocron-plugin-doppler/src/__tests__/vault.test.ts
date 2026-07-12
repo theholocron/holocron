@@ -2,12 +2,12 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { DopplerVault } from "../capabilities/vault.js";
-import { DopplerRestClient } from "../rest.js";
+import { createDopplerRestClient } from "../rest.js";
 import { stubFetch } from "./helpers.js";
 
 function makeClient(responses: Array<{ status?: number; body?: unknown }>) {
 	const stub = stubFetch(responses);
-	const client = new DopplerRestClient({ token: "t", fetch: stub.fetch });
+	const client = createDopplerRestClient({ token: "t", fetch: stub.fetch });
 	return { client, stub };
 }
 

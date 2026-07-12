@@ -6,11 +6,11 @@
  * for auth + config docs.
  */
 
-import type { Vault } from "@theholocron/cli";
+import type { RestClient, Vault } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { DopplerVault, type DopplerVaultOptions } from "./capabilities/vault.js";
-import { DopplerRestClient } from "./rest.js";
+import { createDopplerRestClient } from "./rest.js";
 
 export interface DopplerPluginOptions extends ResolveTokenInput, DopplerVaultOptions {
 	/** Override base URL for tests. */
@@ -21,17 +21,14 @@ export interface DopplerPluginOptions extends ResolveTokenInput, DopplerVaultOpt
 
 export interface PluginContext {
 	options: DopplerPluginOptions;
-	rest: DopplerRestClient;
+	rest: RestClient;
 }
 
 export function createContext(options: DopplerPluginOptions): PluginContext {
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof DopplerRestClient>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new DopplerRestClient(restOpts),
+		rest: createDopplerRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
@@ -60,7 +57,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { DopplerRestClient } from "./rest.js";
+export { createDopplerRestClient } from "./rest.js";
 export { DopplerVault } from "./capabilities/vault.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

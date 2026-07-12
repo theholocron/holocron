@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { VercelDeployment } from "../capabilities/deployment.js";
-import { VercelRestClient } from "../rest.js";
+import { createVercelRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -11,9 +11,9 @@ function makeDeployment(
 	opts: { teamId?: string; defaultFramework?: string } = {}
 ) {
 	const { fetch, calls } = stubFetch(responses);
-	const restOpts: ConstructorParameters<typeof VercelRestClient>[0] = { token: "pat", fetch };
+	const restOpts: Parameters<typeof createVercelRestClient>[0] = { token: "pat", fetch };
 	if (opts.teamId !== undefined) restOpts.teamId = opts.teamId;
-	const rest = new VercelRestClient(restOpts);
+	const rest = createVercelRestClient(restOpts);
 	const deploymentOpts: ConstructorParameters<typeof VercelDeployment>[1] = {};
 	if (opts.defaultFramework !== undefined) deploymentOpts.defaultFramework = opts.defaultFramework;
 	const deployment = new VercelDeployment(rest, deploymentOpts);

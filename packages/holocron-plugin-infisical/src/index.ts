@@ -6,11 +6,11 @@
  * See README for auth + config docs.
  */
 
-import type { Vault } from "@theholocron/cli";
+import type { RestClient, Vault } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { InfisicalVault, type InfisicalVaultOptions } from "./capabilities/vault.js";
-import { InfisicalRestClient } from "./rest.js";
+import { createInfisicalRestClient } from "./rest.js";
 
 export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaultOptions {
 	/** Override base URL for tests (or self-hosted Infisical). */
@@ -21,17 +21,14 @@ export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaul
 
 export interface PluginContext {
 	options: InfisicalPluginOptions;
-	rest: InfisicalRestClient;
+	rest: RestClient;
 }
 
 export function createContext(options: InfisicalPluginOptions): PluginContext {
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof InfisicalRestClient>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new InfisicalRestClient(restOpts),
+		rest: createInfisicalRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
@@ -72,7 +69,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { InfisicalRestClient } from "./rest.js";
+export { createInfisicalRestClient } from "./rest.js";
 export { InfisicalVault } from "./capabilities/vault.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

@@ -8,7 +8,7 @@
  * returns the bound implementation.
  */
 
-import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
+import type { Auth, Ci, Environments, Issues, RestClient, Secrets, Source } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
@@ -16,7 +16,7 @@ import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
-import { GitHubRestClient } from "./rest.js";
+import { createGitHubRestClient } from "./rest.js";
 
 export interface GitHubPluginOptions extends ResolveTokenInput {
 	/** "owner/name" — e.g., "theholocron/holocron". Required. */
@@ -34,14 +34,14 @@ export interface GitHubPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: GitHubPluginOptions;
-	rest: GitHubRestClient;
+	rest: RestClient;
 	repo: string;
 	repoRoot: string;
 }
 
 export function createContext(options: GitHubPluginOptions): PluginContext {
 	const token = resolveToken(options);
-	const rest = new GitHubRestClient({
+	const rest = createGitHubRestClient({
 		token,
 		baseUrl: options.baseUrl,
 		fetch: options.fetch,
@@ -73,11 +73,6 @@ export function ci(ctx: PluginContext): Ci {
 }
 
 export function issues(ctx: PluginContext): Issues {
-	// Labels are optional at construction — GitHubIssues degrades
-	// gracefully when they're missing (see IssuesOptions.labels docstring).
-	// This lets configs load even before labels are picked; only methods
-	// that need labels (transition/inProgress/inReview) throw at call
-	// time.
 	const opts: IssuesOptions = { repo: ctx.repo };
 	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
 	return new GitHubIssues(ctx.rest, opts);
@@ -114,7 +109,7 @@ export const AUTH_HINT =
 
 export type { Auth };
 export * from "./auth.js";
-export { GitHubRestClient } from "./rest.js";
+export { createGitHubRestClient } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
 export { GitHubSource } from "./capabilities/source.js";
 export { GitHubSecrets } from "./capabilities/secrets.js";

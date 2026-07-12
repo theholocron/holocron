@@ -9,7 +9,7 @@
  * canonical "is this secret key valid?" endpoint.
  */
 
-import { ClerkRestClient } from "./rest.js";
+import { createClerkRestClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -35,10 +35,7 @@ export interface VerifyTokenOptions {
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: ConstructorParameters<typeof ClerkRestClient>[0] = { token };
-	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
-	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = new ClerkRestClient(restOpts);
+	const rest = createClerkRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
 		const instance = await rest.request<InstanceResponse>("/instance");
 		const env = instance?.environment_type ?? "unknown";

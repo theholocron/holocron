@@ -17,7 +17,7 @@
 import type { Secrets, SecretScope } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 import { encryptSecret } from "../sodium.js";
 
 export interface SecretsOptions {
@@ -41,7 +41,7 @@ export class GitHubSecrets implements Secrets {
 	private readonly repoBase: string;
 
 	constructor(
-		private readonly rest: GitHubRestClient,
+		private readonly rest: RestClient,
 		opts: SecretsOptions
 	) {
 		const { owner, name } = parseRepo(opts.repo);

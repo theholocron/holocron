@@ -4,7 +4,7 @@
  * authenticated user).
  */
 
-import { PostmanRestClient } from "./rest.js";
+import { createPostmanRestClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -33,10 +33,7 @@ export interface VerifyTokenOptions {
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: ConstructorParameters<typeof PostmanRestClient>[0] = { token };
-	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
-	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = new PostmanRestClient(restOpts);
+	const rest = createPostmanRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
 		const res = await rest.request<MeResponse>("/me");
 		const subject =

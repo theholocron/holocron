@@ -4,7 +4,7 @@
  * response into the normalized `VerifyTokenResult` shape.
  */
 
-import { VercelRestClient } from "./rest.js";
+import { createVercelRestClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -33,10 +33,7 @@ export interface VerifyTokenOptions {
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: ConstructorParameters<typeof VercelRestClient>[0] = { token };
-	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
-	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = new VercelRestClient(restOpts);
+	const rest = createVercelRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
 		const res = await rest.request<UserResponse>("/v2/user");
 		const subject = res?.user?.email ?? res?.user?.username ?? res?.user?.name ?? res?.user?.id ?? "unknown";

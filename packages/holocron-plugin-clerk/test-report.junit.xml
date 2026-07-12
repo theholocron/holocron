@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="43" failures="0" errors="0" time="0.075154251">
+    <testsuite name="src/__tests__/auth.test.ts" timestamp="2026-07-12T04:44:01.832Z" hostname="Mac-Mini.local" tests="4" failures="0" errors="0" skipped="0" time="0.002013667">
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; uses the explicit CLI token first" time="0.0007475">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; prefers HOLOCRON_CLERK_SECRET_KEY over CLERK_SECRET_KEY" time="0.00011575">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; falls back to CLERK_SECRET_KEY when only it is set" time="0.000063916">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; throws AuthError with a helpful message when nothing is set" time="0.000410541">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/capability.test.ts" timestamp="2026-07-12T04:44:01.833Z" hostname="Mac-Mini.local" tests="14" failures="0" errors="0" skipped="0" time="0.0182215">
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth identity &gt; reports key and providerName for the capability map" time="0.001047583">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.describe &gt; lists the runtime env keys a Clerk-using app needs" time="0.00039175">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.whoami &gt; GETs /users/count and surfaces total_count" time="0.012050208">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.whoami &gt; propagates ProviderApiError on auth failure" time="0.000492083">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.ensureWebhookApp &gt; POSTs /webhooks/svix on a fresh instance" time="0.000302458">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.ensureWebhookApp &gt; treats &quot;already exists&quot; errors as a successful no-op" time="0.000204209">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.ensureWebhookApp &gt; detects &quot;already&quot; in a free-form error body too" time="0.000188834">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.ensureWebhookApp &gt; rethrows unrelated errors (e.g. 401 invalid auth)" time="0.00019475">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.getWebhookDashboardUrl &gt; POSTs /webhooks/svix_url and returns the url field" time="0.000523125">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.getWebhookDashboardUrl &gt; falls back to svix_url when older shape responds" time="0.000165708">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.getWebhookDashboardUrl &gt; throws when neither url field is present" time="0.001039792">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.createUser &gt; POSTs /users with email + password + names, maps response" time="0.000360875">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.createUser &gt; omits first/last name from the body when not provided" time="0.000121583">
+        </testcase>
+        <testcase classname="src/__tests__/capability.test.ts" name="ClerkAuth.createUser &gt; falls back to the input email when Clerk returns no email_addresses" time="0.000128959">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/index.test.ts" timestamp="2026-07-12T04:44:01.835Z" hostname="Mac-Mini.local" tests="3" failures="0" errors="0" skipped="0" time="0.017588125">
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; throws AuthError when no token is found" time="0.007876833">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; wires the auth capability" time="0.000387916">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; passes baseUrl + fetch through to the REST client" time="0.008730916">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/parse-webhook.test.ts" timestamp="2026-07-12T04:44:01.835Z" hostname="Mac-Mini.local" tests="10" failures="0" errors="0" skipped="0" time="0.004846583">
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; maps Clerk user.created to the normalized AuthEvent shape" time="0.002254708">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; picks the primary email when the user has multiple" time="0.000180833">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; falls back to the first email when no primary is marked" time="0.000073625">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; handles user.updated event type" time="0.000122708">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; handles user.deleted event type" time="0.000070209">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; preserves provider-native fields in the `raw` slot" time="0.000392292">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; throws WebhookVerificationError when signingSecret is missing" time="0.00022025">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; throws on malformed JSON body" time="0.000086083">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; throws on unmapped event types (e.g. session.created)" time="0.000396625">
+        </testcase>
+        <testcase classname="src/__tests__/parse-webhook.test.ts" name="parseWebhook &gt; accepts Buffer body (Node http request shape)" time="0.000106708">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/rest.test.ts" timestamp="2026-07-12T04:44:01.836Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.016391959">
+        <testcase classname="src/__tests__/rest.test.ts" name="ClerkRestClient &gt; sends bearer + accept headers on every request" time="0.013812417">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="ClerkRestClient &gt; serializes body on writes and sets content-type" time="0.000544375">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="ClerkRestClient &gt; appends query params when supplied" time="0.000245958">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="ClerkRestClient &gt; returns undefined on 204" time="0.000150291">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="ClerkRestClient &gt; throws ProviderApiError with status + path on non-2xx" time="0.00030825">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="ClerkRestClient &gt; wraps transport-level failures with status 0" time="0.000136166">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/verify-token.test.ts" timestamp="2026-07-12T04:44:01.837Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.016092417">
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok with env + id when /instance returns 200" time="0.014289083">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; hits /instance without doubling the /v1 base-URL prefix" time="0.000279416">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; falls back to &apos;unknown&apos; when instance metadata is missing" time="0.000214">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false with the error message on 401" time="0.000221291">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false when the network layer throws" time="0.000149958">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; hits the configured base URL" time="0.000162042">
+        </testcase>
+    </testsuite>
+</testsuites>

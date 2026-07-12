@@ -5,11 +5,11 @@
  * See README for auth + config docs.
  */
 
-import type { Tooling } from "@theholocron/cli";
+import type { RestClient, Tooling } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { PostmanTooling, type PostmanToolingOptions } from "./capabilities/tooling.js";
-import { PostmanRestClient } from "./rest.js";
+import { createPostmanRestClient } from "./rest.js";
 
 export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingOptions {
 	/** Working repo root. Used to resolve relative paths in specFile/envFiles. Defaults to process.cwd(). */
@@ -22,7 +22,7 @@ export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingO
 
 export interface PluginContext {
 	options: PostmanPluginOptions;
-	rest: PostmanRestClient;
+	rest: RestClient;
 }
 
 export function createContext(options: PostmanPluginOptions): PluginContext {
@@ -30,12 +30,9 @@ export function createContext(options: PostmanPluginOptions): PluginContext {
 		throw new Error("@theholocron/holocron-plugin-postman requires `workspaceId` in options");
 	}
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof PostmanRestClient>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new PostmanRestClient(restOpts),
+		rest: createPostmanRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
@@ -71,7 +68,7 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { PostmanPlanLimitError, detectPlanLimit } from "./errors.js";
-export { PostmanRestClient } from "./rest.js";
+export { createPostmanRestClient } from "./rest.js";
 export { PostmanTooling } from "./capabilities/tooling.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

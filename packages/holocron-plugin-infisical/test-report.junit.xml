@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="44" failures="0" errors="0" time="0.071282915">
+    <testsuite name="src/__tests__/auth.test.ts" timestamp="2026-07-12T04:44:02.440Z" hostname="Mac-Mini.local" tests="5" failures="0" errors="0" skipped="0" time="0.0019055">
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; prefers --token over env vars + keyring" time="0.00076225">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; prefers HOLOCRON_INFISICAL_TOKEN over INFISICAL_TOKEN" time="0.000143042">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; falls back to INFISICAL_TOKEN when HOLOCRON_INFISICAL_TOKEN is unset" time="0.000062667">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; falls back to keyring when env vars are unset" time="0.000095">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; throws AuthError with a helpful message when nothing is set" time="0.000156625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/index.test.ts" timestamp="2026-07-12T04:44:02.441Z" hostname="Mac-Mini.local" tests="2" failures="0" errors="0" skipped="0" time="0.012232416">
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; wires the vault capability against the given fetch + token" time="0.01139425">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="AUTH_HINT &gt; mentions the holocron auth set command + Universal Auth guidance" time="0.000208958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/rest.test.ts" timestamp="2026-07-12T04:44:02.441Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.016099791">
+        <testcase classname="src/__tests__/rest.test.ts" name="InfisicalRestClient &gt; sends bearer + accept headers and returns the parsed body" time="0.013517334">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="InfisicalRestClient &gt; serializes body as JSON and sets content-type when present" time="0.000587583">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="InfisicalRestClient &gt; returns undefined on 204" time="0.00017225">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="InfisicalRestClient &gt; throws ProviderApiError with the HTTP status on non-2xx" time="0.000272875">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="InfisicalRestClient &gt; wraps transport-level failures with status 0" time="0.000121875">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="InfisicalRestClient &gt; trims trailing slashes from the base URL" time="0.000055959">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/vault.test.ts" timestamp="2026-07-12T04:44:02.442Z" hostname="Mac-Mini.local" tests="25" failures="0" errors="0" skipped="0" time="0.027245375">
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault constructor &gt; throws when `workspace` is missing" time="0.001503458">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault constructor &gt; throws when `environment` is missing" time="0.000228167">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.read &gt; hits GET /v3/secrets/raw/{name} with the parsed workspace/env/name" time="0.018290042">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.read &gt; returns empty string when secretValue is absent" time="0.000363375">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.read &gt; rejects a reference that doesn&apos;t start with infisical://" time="0.000219834">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.read &gt; rejects a reference missing parts" time="0.000105083">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.write &gt; POSTs to /v3/secrets/raw/{name} with a create body" time="0.000648958">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.write &gt; falls back to PATCH when POST returns &apos;already exists&apos; (upsert semantics)" time="0.000912833">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.write &gt; rethrows a non-conflict error from POST unchanged" time="0.000545834">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.list &gt; returns secret keys from GET /v3/secrets/raw at the default workspace + environment" time="0.000415375">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.list &gt; returns [] when the response has no secrets" time="0.000198292">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.environments &gt; returns env slugs from GET /v1/workspace/{id}" time="0.000718584">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.environments &gt; returns [] when the workspace has no environments key" time="0.000193958">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.readEnvironment &gt; returns a KEY=VALUE map for the given env" time="0.000152333">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.readEnvironment &gt; skips entries missing a key or non-string value" time="0.000093083">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureProject &gt; returns alreadyExists:false when POST /v2/workspace succeeds" time="0.000125833">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureProject &gt; returns alreadyExists:true on 400 with &apos;already exists&apos; body" time="0.0001715">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureProject &gt; returns alreadyExists:true on 409" time="0.000080125">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureProject &gt; rethrows unrelated errors" time="0.000086708">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureEnvironment &gt; looks up workspace name → id via /v1/workspace, then POSTs to /v1/workspace/{id}/environments" time="0.000250792">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureEnvironment &gt; caches the workspace lookup across sequential calls (holocron setup fires 3 in a row)" time="0.000233333">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureEnvironment &gt; falls back to treating input as id when the list endpoint 403s (scope-limited token)" time="0.000106292">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureEnvironment &gt; falls back to treating input as id when list returns 200 but no match" time="0.000090708">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureEnvironment &gt; rethrows non-403 errors from the list endpoint (real problems shouldn&apos;t be swallowed)" time="0.000087375">
+        </testcase>
+        <testcase classname="src/__tests__/vault.test.ts" name="InfisicalVault.ensureEnvironment &gt; returns alreadyExists:true on &apos;duplicate&apos; body from the environments POST" time="0.000094">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/verify-token.test.ts" timestamp="2026-07-12T04:44:02.443Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.013799833">
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok with a workspace count + first-workspace label on 200" time="0.011896875">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; singular grammar for exactly one workspace" time="0.000378542">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok even with zero workspaces (valid token, just no access)" time="0.000252833">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:true with &apos;scope-limited&apos; subject on 403 (workspace-scoped machine identities)" time="0.000216333">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false on 401" time="0.0002155">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false when the network layer throws" time="0.0001135">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -2,12 +2,12 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { InfisicalVault } from "../capabilities/vault.js";
-import { InfisicalRestClient } from "../rest.js";
+import { createInfisicalRestClient } from "../rest.js";
 import { stubFetch } from "./helpers.js";
 
 function makeClient(responses: Array<{ status?: number; body?: unknown }>) {
 	const stub = stubFetch(responses);
-	const client = new InfisicalRestClient({ token: "t", fetch: stub.fetch });
+	const client = createInfisicalRestClient({ token: "t", fetch: stub.fetch });
 	return { client, stub };
 }
 

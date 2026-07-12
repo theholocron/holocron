@@ -27,7 +27,7 @@
 import { ProviderApiError } from "@theholocron/cli";
 import type { EnsureResult, Vault } from "@theholocron/cli";
 
-import type { InfisicalRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface InfisicalVaultOptions {
 	/** Default workspace (project) id — read/list/etc. operate here unless overridden. */
@@ -67,7 +67,7 @@ export class InfisicalVault implements Vault {
 	private readonly workspaceIdCache = new Map<string, string>();
 
 	constructor(
-		private readonly rest: InfisicalRestClient,
+		private readonly rest: RestClient,
 		opts: InfisicalVaultOptions
 	) {
 		if (!opts.workspace) {

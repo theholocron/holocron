@@ -34,7 +34,7 @@ import type {
 	WebhookDashboardInfo,
 } from "@theholocron/cli";
 
-import type { ClerkRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export type ClerkAuthOptions = Record<string, never>;
 
@@ -55,7 +55,7 @@ export class ClerkAuth implements Auth {
 	readonly providerName = "clerk";
 
 	constructor(
-		private readonly rest: ClerkRestClient,
+		private readonly rest: RestClient,
 		_opts: ClerkAuthOptions = {}
 	) {}
 

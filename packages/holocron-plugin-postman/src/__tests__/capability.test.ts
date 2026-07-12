@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { PostmanTooling } from "../capabilities/tooling.js";
 import { PostmanPlanLimitError } from "../errors.js";
-import { PostmanRestClient } from "../rest.js";
+import { createPostmanRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -22,7 +22,7 @@ function makeTooling(
 	}> = {}
 ) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new PostmanRestClient({ token: "pmak-test", fetch });
+	const rest = createPostmanRestClient({ token: "pmak-test", fetch });
 	const tooling = new PostmanTooling(rest, { workspaceId: "ws-id", ...opts });
 	return { tooling, calls };
 }
@@ -39,7 +39,7 @@ describe("PostmanTooling identity", () => {
 	});
 
 	it("throws when workspaceId is missing", () => {
-		const rest = new PostmanRestClient({ token: "t" });
+		const rest = createPostmanRestClient({ token: "t" });
 		expect(() => new PostmanTooling(rest, { workspaceId: "" })).toThrow(/workspaceId/);
 	});
 });

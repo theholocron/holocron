@@ -26,7 +26,7 @@
 import { ProviderApiError } from "@theholocron/cli";
 import type { EnsureResult, Vault } from "@theholocron/cli";
 
-import type { DopplerRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface DopplerVaultOptions {
 	/** Default project — read/list/etc. operate here unless overridden. */
@@ -61,7 +61,7 @@ export class DopplerVault implements Vault {
 	private readonly config: string;
 
 	constructor(
-		private readonly rest: DopplerRestClient,
+		private readonly rest: RestClient,
 		opts: DopplerVaultOptions
 	) {
 		if (!opts.project) {

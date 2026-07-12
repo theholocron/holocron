@@ -10,7 +10,7 @@
 import type { Environment, Environments } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface EnvironmentsOptions {
 	repo: string;
@@ -39,7 +39,7 @@ export class GitHubEnvironments implements Environments {
 	private readonly base: string;
 
 	constructor(
-		private readonly rest: GitHubRestClient,
+		private readonly rest: RestClient,
 		opts: EnvironmentsOptions
 	) {
 		const { owner, name } = parseRepo(opts.repo);

@@ -1,7 +1,7 @@
 import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it, vi } from "vitest";
 
-import { VercelRestClient } from "../rest.js";
+import { createVercelRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -10,7 +10,7 @@ const TOKEN = "vercel-pat";
 describe("VercelRestClient", () => {
 	it("sends a bearer token on every request", async () => {
 		const { fetch, calls } = stubFetch([{ status: 200, body: { ok: true } }]);
-		const client = new VercelRestClient({ token: TOKEN, fetch });
+		const client = createVercelRestClient({ token: TOKEN, fetch });
 		await client.request("/v10/projects");
 		expect(calls[0]?.headers.authorization).toBe(`Bearer ${TOKEN}`);
 		expect(calls[0]?.headers.accept).toBe("application/json");
@@ -18,14 +18,14 @@ describe("VercelRestClient", () => {
 
 	it("appends teamId as a query param when configured", async () => {
 		const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-		const client = new VercelRestClient({ token: TOKEN, teamId: "team_xx", fetch });
+		const client = createVercelRestClient({ token: TOKEN, teamId: "team_xx", fetch });
 		await client.request("/v10/projects");
 		expect(calls[0]?.url).toBe("https://api.vercel.com/v10/projects?teamId=team_xx");
 	});
 
 	it("merges request-level query params with teamId", async () => {
 		const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-		const client = new VercelRestClient({ token: TOKEN, teamId: "team_xx", fetch });
+		const client = createVercelRestClient({ token: TOKEN, teamId: "team_xx", fetch });
 		await client.request("/v10/projects/abc/env", {
 			method: "POST",
 			query: { upsert: "true" },
@@ -38,13 +38,13 @@ describe("VercelRestClient", () => {
 
 	it("returns undefined for 204 responses", async () => {
 		const { fetch } = stubFetch([{ status: 204 }]);
-		const client = new VercelRestClient({ token: TOKEN, fetch });
+		const client = createVercelRestClient({ token: TOKEN, fetch });
 		expect(await client.request("/v9/projects/abc", { method: "DELETE" })).toBeUndefined();
 	});
 
 	it("throws ProviderApiError with status + path on non-2xx", async () => {
 		const { fetch } = stubFetch([{ status: 404, text: "project not found" }]);
-		const client = new VercelRestClient({ token: TOKEN, fetch });
+		const client = createVercelRestClient({ token: TOKEN, fetch });
 		const err = await client.request("/v10/projects/missing").catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		const pae = err as ProviderApiError;
@@ -57,7 +57,7 @@ describe("VercelRestClient", () => {
 		const failingFetch: typeof fetch = vi.fn(async () => {
 			throw new TypeError("fetch failed");
 		});
-		const client = new VercelRestClient({ token: TOKEN, fetch: failingFetch });
+		const client = createVercelRestClient({ token: TOKEN, fetch: failingFetch });
 		const err = await client.request("/v10/projects").catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		const pae = err as ProviderApiError;
@@ -67,7 +67,7 @@ describe("VercelRestClient", () => {
 
 	it("strips trailing slashes from baseUrl override", async () => {
 		const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-		const client = new VercelRestClient({
+		const client = createVercelRestClient({
 			token: TOKEN,
 			fetch,
 			baseUrl: "https://example.test/",

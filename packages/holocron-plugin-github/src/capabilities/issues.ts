@@ -26,7 +26,7 @@ import type {
 } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface IssuesOptions {
 	repo: string;
@@ -80,7 +80,7 @@ export class GitHubIssues implements Issues {
 	private readonly labels: { inProgress: string; inReview: string } | undefined;
 
 	constructor(
-		private readonly rest: GitHubRestClient,
+		private readonly rest: RestClient,
 		opts: IssuesOptions
 	) {
 		const { owner, name } = parseRepo(opts.repo);

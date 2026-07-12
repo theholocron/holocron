@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="99" failures="0" errors="0" time="0.233568873">
+    <testsuite name="src/__tests__/auth.test.ts" timestamp="2026-07-12T04:44:01.846Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.002240917">
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; uses the explicit CLI token first" time="0.000856708">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; prefers HOLOCRON_GH_TOKEN over GITHUB_TOKEN" time="0.000141792">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; falls back to GITHUB_TOKEN when only it is set" time="0.000070708">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; falls back to keyring when env vars are unset" time="0.0000945">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; throws AuthError with a helpful message when nothing is set" time="0.00018175">
+        </testcase>
+        <testcase classname="src/__tests__/auth.test.ts" name="resolveToken &gt; ignores empty-string cliToken (treats as absent)" time="0.000091791">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/ci.test.ts" timestamp="2026-07-12T04:44:01.847Z" hostname="Mac-Mini.local" tests="7" failures="0" errors="0" skipped="0" time="0.015928625">
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.listRuns &gt; GETs /repos/{repo}/actions/runs with no params when filter omitted" time="0.013147333">
+        </testcase>
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.listRuns &gt; forwards branch + status + limit as query params" time="0.000343958">
+        </testcase>
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.listRuns &gt; collapses status + conclusion onto a single CiRunStatus" time="0.000491125">
+        </testcase>
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.listRuns &gt; falls back to display_title when name is null" time="0.000218583">
+        </testcase>
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.listRuns &gt; omits completedAt for runs that are still in progress" time="0.000264">
+        </testcase>
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.getRun &gt; GETs /actions/runs/{id} and maps the response" time="0.000405875">
+        </testcase>
+        <testcase classname="src/__tests__/ci.test.ts" name="GitHubCi.getRun &gt; handles unrecognized conclusions by falling back to &quot;completed&quot;" time="0.000193667">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/environments.test.ts" timestamp="2026-07-12T04:44:01.848Z" hostname="Mac-Mini.local" tests="5" failures="0" errors="0" skipped="0" time="0.019970292">
+        <testcase classname="src/__tests__/environments.test.ts" name="GitHubEnvironments &gt; listEnvironments returns name + wait_timer + reviewers" time="0.018148084">
+        </testcase>
+        <testcase classname="src/__tests__/environments.test.ts" name="GitHubEnvironments &gt; upsertEnvironment PUTs with the reviewer numeric ids" time="0.000519917">
+        </testcase>
+        <testcase classname="src/__tests__/environments.test.ts" name="GitHubEnvironments &gt; upsertEnvironment URL-encodes environment names with special chars" time="0.000221625">
+        </testcase>
+        <testcase classname="src/__tests__/environments.test.ts" name="GitHubEnvironments &gt; upsertEnvironment sends only fields the caller provided (preserves API defaults)" time="0.000197042">
+        </testcase>
+        <testcase classname="src/__tests__/environments.test.ts" name="GitHubEnvironments &gt; deleteEnvironment → DELETE" time="0.000138">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/index.test.ts" timestamp="2026-07-12T04:44:01.848Z" hostname="Mac-Mini.local" tests="4" failures="0" errors="0" skipped="0" time="0.011485041">
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; throws AuthError when no token is found" time="0.0014625">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; wires every capability with the right concrete implementation" time="0.000576">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; issues capability constructs without `labels` (lazy-degrade)" time="0.000077">
+        </testcase>
+        <testcase classname="src/__tests__/index.test.ts" name="createPlugin &gt; passes baseUrl + fetch through to the REST client" time="0.008048625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/issues.test.ts" timestamp="2026-07-12T04:44:01.848Z" hostname="Mac-Mini.local" tests="32" failures="0" errors="0" skipped="0" time="0.039341833">
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; GETs /issues with state=all + limit when no filter specified" time="0.028928833">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; passes openOnly + limit through to the query" time="0.000393375">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; filters out PRs (the issues endpoint includes them)" time="0.000453666">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; resolves assignee=&quot;currentUser&quot; via /user first, then sets the assignee param" time="0.00039575">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; forwards an explicit assignee string as-is" time="0.000208375">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; maps open + status:in-progress label to category=in-progress" time="0.000208875">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; maps open + status:in-review label to category=in-review" time="0.000180208">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; maps closed → category=done" time="0.000746708">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.search &gt; maps assignee object via login/name/email" time="0.000606959">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.get &gt; GETs a single issue by number" time="0.000257916">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.get &gt; accepts plain number form (&quot;42&quot;)" time="0.000228125">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.get &gt; accepts owner/repo#N form for the bound repo" time="0.000128166">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.get &gt; errors when owner/repo#N references a different repo" time="0.000500291">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.get &gt; errors on garbage keys" time="0.000088208">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.getMyself &gt; GETs /user and maps to TrackerUser" time="0.000113416">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.getMyself &gt; falls back to login when name is null" time="0.000121792">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.create &gt; POSTs with title + body + labels" time="0.00019075">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.create &gt; resolves a numeric milestone reference directly (no API call)" time="0.000333708">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.create &gt; resolves a milestone by title (case-insensitive)" time="0.000159042">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.create &gt; throws when the milestone title is unknown" time="0.000118542">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.transition — done slot &gt; closes an open issue and strips status:* labels" time="0.000229625">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.transition — done slot &gt; is idempotent — already-closed issue returns transitioned=false" time="0.000120167">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.transition — inProgress / inReview slot &gt; opens + labels a fresh issue" time="0.000139667">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.transition — inProgress / inReview slot &gt; is idempotent when issue is already at the target" time="0.000110125">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.transition — inProgress / inReview slot &gt; strips other status:* labels when switching slots" time="0.000147667">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.transition — inProgress / inReview slot &gt; reopens a closed issue when transitioning back" time="0.000167">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.comment &gt; POSTs to /issues/{n}/comments with the body" time="0.000101375">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues.doctor &gt; reports authed user + lifecycle label resolution status" time="0.000344333">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues without labels config &gt; constructs cleanly (no throw at plugin-load time)" time="0.000105917">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues without labels config &gt; transition to inProgress throws with a clear message" time="0.000109084">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues without labels config &gt; transition to done still works (needs no labels)" time="0.000095375">
+        </testcase>
+        <testcase classname="src/__tests__/issues.test.ts" name="GitHubIssues without labels config &gt; doctor reports the two label-backed slots as unresolved with an explanatory note" time="0.001521125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/repo.test.ts" timestamp="2026-07-12T04:44:01.850Z" hostname="Mac-Mini.local" tests="5" failures="0" errors="0" skipped="0" time="0.002468958">
+        <testcase classname="src/__tests__/repo.test.ts" name="parseRepo &gt; parses a well-formed owner/name pair" time="0.000977334">
+        </testcase>
+        <testcase classname="src/__tests__/repo.test.ts" name="parseRepo &gt; throws RepoError when the input is empty" time="0.000457959">
+        </testcase>
+        <testcase classname="src/__tests__/repo.test.ts" name="parseRepo &gt; throws RepoError when the input has no slash" time="0.00012925">
+        </testcase>
+        <testcase classname="src/__tests__/repo.test.ts" name="parseRepo &gt; throws RepoError when the owner half is empty" time="0.000061584">
+        </testcase>
+        <testcase classname="src/__tests__/repo.test.ts" name="parseRepo &gt; throws RepoError when the name half is empty" time="0.00006525">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/rest.test.ts" timestamp="2026-07-12T04:44:01.851Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.023241333">
+        <testcase classname="src/__tests__/rest.test.ts" name="GitHubRestClient &gt; sends the bearer token and api-version headers on GET" time="0.011638375">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="GitHubRestClient &gt; serializes a body on POST and sets content-type" time="0.00073625">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="GitHubRestClient &gt; returns undefined for 204 responses" time="0.000214666">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="GitHubRestClient &gt; returns undefined when expectNoContent is set even on 200" time="0.000138583">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="GitHubRestClient &gt; throws ProviderApiError on non-2xx with status + details" time="0.000359416">
+        </testcase>
+        <testcase classname="src/__tests__/rest.test.ts" name="GitHubRestClient &gt; strips trailing slashes from baseUrl override" time="0.009298708">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/secrets.test.ts" timestamp="2026-07-12T04:44:01.851Z" hostname="Mac-Mini.local" tests="8" failures="0" errors="0" skipped="0" time="0.037662833">
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — repo scope &gt; listSecrets → GET /actions/secrets and returns names" time="0.029044666">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — repo scope &gt; setSecret fetches public key, encrypts, then PUTs the encrypted value" time="0.005454667">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — repo scope &gt; deleteSecret → DELETE /actions/secrets/{name}" time="0.000296041">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — environment scope &gt; listSecrets → environments/{env}/secrets" time="0.000299792">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — environment scope &gt; setSecret hits the environment-scoped public key + secret PUT" time="0.000631542">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — environment scope &gt; deleteSecret → DELETE environments/{env}/secrets/{name}" time="0.000102834">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — organization scope &gt; listSecrets → /orgs/{org}/actions/secrets" time="0.00047275">
+        </testcase>
+        <testcase classname="src/__tests__/secrets.test.ts" name="GitHubSecrets — organization scope &gt; setSecret sends visibility=all on org-scoped writes" time="0.000500958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/sodium.test.ts" timestamp="2026-07-12T04:44:01.852Z" hostname="Mac-Mini.local" tests="3" failures="0" errors="0" skipped="0" time="0.018704333">
+        <testcase classname="src/__tests__/sodium.test.ts" name="encryptSecret &gt; produces ciphertext decryptable by the matching secret key" time="0.001976375">
+        </testcase>
+        <testcase classname="src/__tests__/sodium.test.ts" name="encryptSecret &gt; produces different ciphertexts for the same plaintext (sealed box is non-deterministic)" time="0.015576208">
+        </testcase>
+        <testcase classname="src/__tests__/sodium.test.ts" name="encryptSecret &gt; handles unicode values correctly through base64 round-trip" time="0.000480583">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/source.test.ts" timestamp="2026-07-12T04:44:01.852Z" hostname="Mac-Mini.local" tests="18" failures="0" errors="0" skipped="0" time="0.045969791">
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; whoami → GET /user" time="0.011671917">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; getRepo returns owner + name + default_branch" time="0.000443709">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; throws ProviderApiError on auth failure" time="0.0005385">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; listRulesets → GET /repos/{repo}/rulesets" time="0.000260417">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; createRuleset → POST with payload" time="0.000298542">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; updateRuleset → PUT to ruleset id" time="0.0001955">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; updateRepoSettings → PATCH /repos/{repo}" time="0.000242791">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; enableVulnerabilityAlerts → PUT /vulnerability-alerts" time="0.00014325">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; enableAutomatedSecurityFixes → PUT /automated-security-fixes" time="0.000644209">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; enableSecretScanning → PATCH /repos/{repo} with security_and_analysis" time="0.000248459">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — REST methods &gt; enablePrivateVulnerabilityReporting → PUT" time="0.000161417">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; listWorkflowFiles returns [] when .github/workflows is missing" time="0.006794166">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; listWorkflowFiles returns only .yml/.yaml files, sorted" time="0.012746542">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; readWorkflowFile returns the file contents" time="0.005605792">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; readWorkflowFile returns null when the file does not exist" time="0.000702708">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; writeWorkflowFile creates .github/workflows if missing" time="0.00191575">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; removeWorkflowFile deletes an existing file" time="0.001254375">
+        </testcase>
+        <testcase classname="src/__tests__/source.test.ts" name="GitHubSource — workflow files (local fs) &gt; removeWorkflowFile is a noop when the file is missing" time="0.000525084">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/verify-token.test.ts" timestamp="2026-07-12T04:44:01.853Z" hostname="Mac-Mini.local" tests="5" failures="0" errors="0" skipped="0" time="0.016554917">
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok with the login when /user returns 200" time="0.014632584">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; falls back to email when login is absent" time="0.00034725">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false with the error message on 401" time="0.000260959">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; returns ok:false when the network layer throws" time="0.000112625">
+        </testcase>
+        <testcase classname="src/__tests__/verify-token.test.ts" name="verifyToken &gt; hits the configured base URL" time="0.000215541">
+        </testcase>
+    </testsuite>
+</testsuites>

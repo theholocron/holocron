@@ -5,11 +5,11 @@
  * README for auth + config docs.
  */
 
-import type { Storage } from "@theholocron/cli";
+import type { RestClient, Storage } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { NeonStorage } from "./capabilities/storage.js";
-import { NeonRestClient } from "./rest.js";
+import { createNeonRestClient } from "./rest.js";
 
 export interface NeonPluginOptions extends ResolveTokenInput {
 	/** Neon project id this plugin is bound to. Required. */
@@ -22,7 +22,7 @@ export interface NeonPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: NeonPluginOptions;
-	rest: NeonRestClient;
+	rest: RestClient;
 }
 
 export function createContext(options: NeonPluginOptions): PluginContext {
@@ -30,12 +30,9 @@ export function createContext(options: NeonPluginOptions): PluginContext {
 		throw new Error("@theholocron/holocron-plugin-neon requires `projectId` in options");
 	}
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof NeonRestClient>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new NeonRestClient(restOpts),
+		rest: createNeonRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
@@ -66,7 +63,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { NeonRestClient } from "./rest.js";
+export { createNeonRestClient } from "./rest.js";
 export { NeonStorage } from "./capabilities/storage.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

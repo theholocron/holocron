@@ -9,7 +9,7 @@
  * what we don't have yet at bootstrap time.
  */
 
-import { DopplerRestClient } from "./rest.js";
+import { createDopplerRestClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -40,10 +40,7 @@ export interface VerifyTokenOptions {
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: ConstructorParameters<typeof DopplerRestClient>[0] = { token };
-	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
-	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = new DopplerRestClient(restOpts);
+	const rest = createDopplerRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
 		const me = await rest.request<MeResponse>("/me");
 		const workplace = me.workplace?.name ?? me.slug ?? "unknown";
