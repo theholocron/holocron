@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/zendesk-client",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A TypeScript client for the Zendesk API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/zendesk-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
