@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="0.011214084">
+    <testsuite name="src/__tests__/client.test.ts" timestamp="2026-07-12T22:07:34.741Z" hostname="Mac.socal.rr.com" tests="3" failures="0" errors="0" skipped="0" time="0.011214084">
+        <testcase classname="src/__tests__/client.test.ts" name="createConfluenceClient &gt; sends Bearer auth header on every request" time="0.009775917">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="page.get &gt; GET /&lt;id&gt;" time="0.000377">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="page.update &gt; PUT /&lt;id&gt; with body" time="0.0004955">
+        </testcase>
+    </testsuite>
+</testsuites>
