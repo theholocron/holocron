@@ -1,9 +1,1 @@
-import { defineConfig } from "tsdown";
-
-export default defineConfig({
-	entry: ["src/index.ts"],
-	format: "esm",
-	dts: true,
-	clean: true,
-	deps: { neverBundle: [/^@theholocron\//] },
-});
+export { default } from "@theholocron/tsdown-config/presets/library";
