@@ -12,15 +12,11 @@
   "author": "Newton Koumantzelis",
   "exports": {
     "./nextjs": "./nextjs/tsconfig.json",
-    "./node-next": "./node-next/tsconfig.json",
-    "./node18": "./node18/tsconfig.json",
-    "./node14": "./node14/tsconfig.json"
+    "./node-lts": "./node-lts/tsconfig.json"
   },
   "files": [
     "nextjs/tsconfig.json",
-    "node-next/tsconfig.json",
-    "node14/tsconfig.json",
-    "node18/tsconfig.json"
+    "node-lts/tsconfig.json"
   ],
   "peerDependencies": {
     "typescript": "^5"
