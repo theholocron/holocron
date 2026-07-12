@@ -156,8 +156,8 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       '@theholocron/http':
-        specifier: file:../../../clients/packages/http
-        version: file:../clients/packages/http
+        specifier: ^0.1.0
+        version: 0.1.0
       tsx:
         specifier: 'catalog:'
         version: 4.22.4
@@ -1620,8 +1620,8 @@ packages:
       eslint-plugin-storybook:
         optional: true
 
-  '@theholocron/http@file:../clients/packages/http':
-    resolution: {directory: ../clients/packages/http, type: directory}
+  '@theholocron/http@0.1.0':
+    resolution: {integrity: sha512-lVDDVwfCWD7kxPzHZ86URVLi94fEK3z7VyX29gatPCBbA21+byv3m9iJhm8zQwSKrOU1LrMMA59AzIOHY8M/+A==}
 
   '@theholocron/lint-staged-config@5.2.0':
     resolution: {integrity: sha512-O74y4rxxSnryP/JSPILZy6Hgi3paL4vGEBaovjm0QgkJEEjF334mO04KWy8OgfxprM1KvAYAD7lEiKj6JL38bQ==}
@@ -6330,7 +6330,7 @@ snapshots:
       eslint-plugin-n: 18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)
       eslint-plugin-react: 7.37.5(eslint@10.7.0(jiti@2.6.1))
 
-  '@theholocron/http@file:../clients/packages/http': {}
+  '@theholocron/http@0.1.0': {}
 
   '@theholocron/lint-staged-config@5.2.0(husky@9.1.7)(imagemin-lint-staged@0.5.1)(lint-staged@16.4.0)':
     dependencies:
