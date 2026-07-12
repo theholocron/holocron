@@ -1,30 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-import appConf from "@ce/app-config";
-import { exreq, setBaseURL } from "@ce/utils-fetch";
+import type { RestClient } from "@theholocron/http-client";
 
-const getPage = (id: string, options = {}) =>
-	exreq({
-		operation: id,
-		method: "get",
-		options: {
-			...options,
-			baseURL: setBaseURL("atlassian", appConf, options?.environment),
-		},
-	});
+export function page(rest: RestClient) {
+	return {
+		get: <T = unknown>(id: string): Promise<T> =>
+			rest.request<T>(`/${id}`),
 
-const updatePage = (id: string, data: Record<string, unknown>, options = {}) =>
-	exreq({
-		operation: id,
-		method: "put",
-		data,
-		options: {
-			...options,
-			baseURL: setBaseURL("atlassian", appConf, options?.environment),
-		},
-	});
-
-export default {
-	get: getPage,
-	update: updatePage,
-};
+		update: <T = unknown>(id: string, data: Record<string, unknown>): Promise<T> =>
+			rest.request<T>(`/${id}`, { method: "PUT", body: data }),
+	};
+}

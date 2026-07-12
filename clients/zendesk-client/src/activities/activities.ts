@@ -1,35 +1,12 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-import appConf from "@ce/app-config";
-import { exreq, setBaseURL } from "@ce/utils-fetch";
+import type { RestClient } from "@theholocron/http-client";
 
-import type { IAPIError } from "../types.js";
 import type { IActivityResponse } from "./activities.types.js";
 
-type TGetResponse = [IAPIError | null, IActivityResponse];
+const PATH = "/api/v2/activities";
 
-export interface FetchOptions {
-	environment?: string;
-	headers?: Record<string, unknown>;
-	params?: Record<string, unknown>;
-	token: string;
+export function activities(rest: RestClient) {
+	return {
+		get: (params?: Record<string, string>): Promise<IActivityResponse> =>
+			rest.request<IActivityResponse>(PATH, { query: params }),
+	};
 }
-
-const operation = "/api/v2/activities";
-
-const getActivities = (options: FetchOptions): Promise<TGetResponse> =>
-	exreq({
-		operation,
-		options: {
-			...options,
-			headers: {
-				...options.headers,
-				Authorization: `Basic ${options.token}`,
-			},
-			baseURL: setBaseURL("zendesk", appConf, options?.environment),
-		},
-	});
-
-export default {
-	get: getActivities,
-};

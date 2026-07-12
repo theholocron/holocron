@@ -1,5 +1,1 @@
-import page from "./page.js";
-
-export default {
-	...page,
-};
+export { page } from "./page.js";

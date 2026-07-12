@@ -1,37 +1,14 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-import appConf from "@ce/app-config";
-import { exreq, setBaseURL } from "@ce/utils-fetch";
+import type { RestClient } from "@theholocron/http-client";
 
-import type { IAPIError } from "../types.js";
 import type { ISearchResponse } from "./search.types.js";
 
-type TGetResponse = [IAPIError | null, ISearchResponse];
+const PATH = "/api/v2/search";
 
-export interface FetchOptions {
-	environment?: string;
-	headers?: Record<string, unknown>;
-	params?: Record<string, unknown>;
-	sort?: "asc" | "desc";
-	token: string;
+export function search(rest: RestClient) {
+	return {
+		query: (q: string, params?: Record<string, string>): Promise<ISearchResponse> =>
+			rest.request<ISearchResponse>(PATH, {
+				query: { query: q, sort_order: "desc", ...params },
+			}),
+	};
 }
-
-const operation = "/api/v2/search";
-
-export default (query: string, options: FetchOptions): Promise<TGetResponse> =>
-	exreq({
-		operation,
-		options: {
-			...options,
-			params: {
-				...options.params,
-				query,
-				sort_order: options?.sort || "desc",
-			},
-			headers: {
-				...options.headers,
-				Authorization: `Basic ${options.token}`,
-			},
-			baseURL: setBaseURL("zendesk", appConf, options?.environment),
-		},
-	});
