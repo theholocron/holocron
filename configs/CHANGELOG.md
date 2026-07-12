@@ -1,3 +1,5 @@
+## [6.0.0](https://github.com/theholocron/configs/compare/v5.2.0...v6.0.0) (2026-07-12)
+
 ## [5.2.0](https://github.com/theholocron/configs/compare/v5.1.2...v5.2.0) (2026-07-12)
 
 ## [5.1.2](https://github.com/theholocron/configs/compare/v5.1.1...v5.1.2) (2026-07-11)
