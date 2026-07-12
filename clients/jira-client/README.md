@@ -1,72 +1,49 @@
-# Jira CLI
+# @theholocron/jira-client
 
-Interact with our internal Jira appliance from the command-line.
+TypeScript client for the Jira REST API v2. Covers issues, versions, projects, links, transitions, and search.
 
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/cli-jira
+pnpm add @theholocron/jira-client
 ```
 
-## Table of Contents
+## Usage
 
-* [Usage](#how-do-i-use-this)
-* [Documentation](#documentation-)
+```ts
+import { createJiraClient } from "@theholocron/jira-client";
 
-## How Do I Use This?
+const jira = createJiraClient({
+  host: "https://your-org.atlassian.net/rest/api/2",
+  token: Buffer.from(`${email}:${apiToken}`).toString("base64"),
+});
 
-Run the `--help` or `-h` command to find out how to use the command.
+// Create a ticket
+const issue = await jira.issues.create("Fix login bug", "Bug", "PROJ");
 
-```sh
-Usage: jira <command> [options]
+// Get multiple tickets
+const issues = await jira.issues.getMany(["PROJ-1", "PROJ-2"]);
 
-Options:
-  --verbose      Turn on the extra logging            [boolean] [default: false]
-  -h, --help     Show help                                             [boolean]
-  -v, --version  Show version number                                   [boolean]
+// Search with JQL
+const results = await jira.issues.search({ jql: "project = PROJ AND status = Open" });
 
-Commands:
-  jira link <command> [options]
-  jira search <command> [options]
-  jira ticket <command> [options]
-  jira transition <command> [options]
-  jira version <command> [options]
-
-Examples:
-  jira link create PL-1 PL-2
-  jira link create PL-1 PL-2 --type="Duplicate"
-  jira search 'application-example 2020.1.0'
-  jira search 'application-example 2020.1.0' --project="PL" --subtasks
-  jira ticket create "app has a bug" '{ "description": "follow these steps…" }' --project="PL" --type="Bug"
-  jira ticket edit PL-1 '{ "description": "follow these steps to reproduce…" }'
-  jira ticket get PL-1
-  jira transition create PL-1 released
-  jira transition get PL-1
-  jira version create "app release 2020.1.0" '{ "description": "first release of 2020" }' --project="PL"
-  jira version get 10000 --param="issuesstatus"
-  jira version edit 1000 '{ "description": "second release of 2020" }'
-  jira version delete 10000
-  jira version archive 10000 '{ "description": "archiving releases of 2019" }'
-  jira version release 10000 '{ "releaseDate": "2020-01-01" }'
+// Manage versions
+const version = await jira.versions.create("v1.2.0", "PROJ");
+await jira.versions.update(version.id, { released: true });
 ```
 
-### Token
+## API
 
-This CLI uses Jira's [v2 API](https://developer.atlassian.com/cloud/jira/platform/rest/v2/) and requires a username and password in order to access anything on our GitHub appliance and it expects that to be exposed on the Node environment process.
+- **`jira.issues`** — create, get, getMany, update, getProperty, search
+- **`jira.versions`** — create, get, getMany, update, delete
+- **`jira.projects`** — get
+- **`jira.links`** — create, createMany, getLinkTypes
+- **`jira.transitions`** — create, get, getResolutions
 
-`RP_JIRA_USERNAME` and `RP_JIRA_PASSWORD` is required for this to work on the command-line, so we recommend exposing them by putting them in your `.bashrc` or `.bash_profile` (e.g. `export RP_JIRA_USERNAME=<user>; export RP_JIRA_PASSWORD=<password>`).
+## Auth
 
-You can also source this while running the command (e.g. `RP_JIRA_USERNAME=<username> RP_JIRA_PASSWORD=<password> jira <command>"`), but if you plan on running this more than once, its probably best to follow the above advice.
+Jira REST API v2 uses HTTP Basic auth with a base64-encoded `email:apiToken` string. Generate an API token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens).
 
-### Return
+## License
 
-If command is valid, it will exit with a `0` code.  Otherwise, it will exit with `1` code and an error message.
-
-## Documentation
-
-Because of the complex nature of Jira and its API, this CLI has been broken down into sub-commands based on the groupings provided by Jira's [API documentation](https://developer.atlassian.com/cloud/jira/platform/rest/v2/).  Each sub-command has its own documentation.
-
-* [Link](./src/cmds/link/README.md) - create a link between two tickets
-* [Search](./src/cmds/README.md) - search for anything on a Jira project board
-* [Ticket](./src/cmds/ticket/README.md) - create a ticket, grab information from a ticket, or edit a ticket; anything that correlates to tickets according to [Jira's grouping](https://developer.atlassian.com/cloud/jira/platform/rest/v2/#api-group-Issues)
-* [Version](./src/cmds/version/README.md) - create a version, grab information from a version, edit a version, delete a version, archive or release a version; anything that correlates to versions according to [Jira's grouping](https://developer.atlassian.com/cloud/jira/platform/rest/v2/#api-group-Project-versions)
+GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
