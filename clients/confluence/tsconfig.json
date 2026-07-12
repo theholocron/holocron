@@ -1,0 +1,13 @@
+{
+  "display": "Confluence API Client",
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
