@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="18" failures="0" errors="0" time="0.0142635">
+    <testsuite name="src/__tests__/client.test.ts" timestamp="2026-07-12T22:07:34.808Z" hostname="Mac.socal.rr.com" tests="18" failures="0" errors="0" skipped="0" time="0.0142635">
+        <testcase classname="src/__tests__/client.test.ts" name="createToken &gt; base64-encodes user/token:password" time="0.00073775">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="activities &gt; GET /api/v2/activities" time="0.008896417">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="activities &gt; forwards query params" time="0.00029">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="search &gt; GET /api/v2/search with query and default sort_order=desc" time="0.000257541">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="status &gt; GET /api/v2/custom_statuses (list)" time="0.000187834">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="status &gt; GET /api/v2/custom_statuses/:id" time="0.000162333">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="status &gt; POST /api/v2/custom_statuses on create" time="0.000438459">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="status &gt; PUT /api/v2/custom_statuses/:id on update" time="0.000205875">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="tickets &gt; GET /api/v2/tickets (list) includes custom_statuses" time="0.000407292">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="tickets &gt; GET /api/v2/tickets/:id" time="0.000803042">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="tickets &gt; POST /api/v2/tickets on create" time="0.000265458">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="tickets &gt; PUT /api/v2/tickets/:id on update" time="0.000149542">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="tickets &gt; DELETE /api/v2/tickets/:id" time="0.000074208">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="comments &gt; GET /api/v2/tickets/:id/comments" time="0.000071166">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="comments &gt; PUT /api/v2/tickets/:id on create comment" time="0.000194584">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="fields &gt; GET /api/v2/ticket_fields (list)" time="0.000089208">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="fields &gt; GET /api/v2/ticket_fields/:id" time="0.000067583">
+        </testcase>
+        <testcase classname="src/__tests__/client.test.ts" name="fields &gt; DELETE /api/v2/ticket_fields/:id" time="0.000052709">
+        </testcase>
+    </testsuite>
+</testsuites>

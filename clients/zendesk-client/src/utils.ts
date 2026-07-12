@@ -8,6 +8,8 @@ export interface ZendeskClientOptions {
 	baseUrl: string;
 	/** Token from createToken(email, apiToken). */
 	token: string;
+	/** Override fetch for testing. Defaults to globalThis.fetch. */
+	fetch?: typeof fetch;
 }
 
 export function createZendeskRestClient(opts: ZendeskClientOptions): RestClient {
@@ -15,5 +17,6 @@ export function createZendeskRestClient(opts: ZendeskClientOptions): RestClient 
 		baseUrl: opts.baseUrl,
 		token: opts.token,
 		vendor: "Zendesk",
+		fetch: opts.fetch,
 	});
 }

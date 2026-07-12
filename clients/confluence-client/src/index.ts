@@ -9,6 +9,8 @@ export interface ConfluenceClientOptions {
 	baseUrl: string;
 	/** Base64-encoded "email:apiToken" — use Buffer.from("email:token").toString("base64"). */
 	token: string;
+	/** Override fetch for testing. Defaults to globalThis.fetch. */
+	fetch?: typeof fetch;
 }
 
 function createConfluenceRestClient(opts: ConfluenceClientOptions): RestClient {
@@ -16,6 +18,7 @@ function createConfluenceRestClient(opts: ConfluenceClientOptions): RestClient {
 		baseUrl: opts.baseUrl,
 		token: opts.token,
 		vendor: "Confluence",
+		fetch: opts.fetch,
 	});
 }
 
