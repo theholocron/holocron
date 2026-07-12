@@ -4,16 +4,16 @@
 import {
 	createResolveToken as _createResolveToken,
 	type ResolveTokenConfig as _ResolveTokenConfig,
-} from "@theholocron/http";
+} from "@theholocron/http-client";
 
 import { getToken as getKeyringToken } from "./keyring.js";
 
-export { AuthError, type ResolveTokenInput } from "@theholocron/http";
+export { AuthError, type ResolveTokenInput } from "@theholocron/http-client";
 
 export type ResolveTokenConfig = Omit<_ResolveTokenConfig, "getKeyringToken">;
 
 /** Wraps `createResolveToken` from `@theholocron/http` and injects the
  *  system keyring so plugins stay at a one-liner call site. */
-export function createResolveToken(config: ResolveTokenConfig): (input?: import("@theholocron/http").ResolveTokenInput) => string {
+export function createResolveToken(config: ResolveTokenConfig): (input?: import("@theholocron/http-client").ResolveTokenInput) => string {
 	return _createResolveToken({ ...config, getKeyringToken });
 }

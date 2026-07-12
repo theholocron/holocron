@@ -4,4 +4,4 @@ export {
 	type RestClient,
 	type RequestOptions,
 	type RestClientConfig,
-} from "@theholocron/http";
+} from "@theholocron/http-client";

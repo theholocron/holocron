@@ -62,7 +62,7 @@ export interface ProviderIdentity {
 	readonly providerName: string;
 }
 
-export { ProviderApiError } from "@theholocron/http";
+export { ProviderApiError } from "@theholocron/http-client";
 
 // ───────────────────────────────────────────────────────────────────────
 // source — repos, branches, PRs, rulesets, settings, workflow files
