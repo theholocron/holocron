@@ -1,13 +1,13 @@
 {
-  "name": "@theholocron/client-zendesk",
+  "name": "@theholocron/google-client",
   "version": "0.0.0",
-  "description": "A TypeScript client for the Zendesk API",
-  "homepage": "https://github.com/theholocron/clients/tree/main/packages/zendesk#readme",
+  "description": "A TypeScript client for Google Workspace APIs (Docs, Sheets)",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/google-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/clients.git",
-    "directory": "packages/zendesk"
+    "directory": "packages/google-client"
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
@@ -25,14 +25,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "axios": "^1.10.0"
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^148.0.0",
+    "open": "^10.1.2",
+    "server-destroy": "^1.0.1"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",
     "@theholocron/vitest-config": "catalog:",
+    "@types/server-destroy": "^1.0.4",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",

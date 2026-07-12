@@ -1,13 +1,13 @@
 {
-  "name": "@theholocron/client-confluence",
+  "name": "@theholocron/confluence-client",
   "version": "0.0.0",
   "description": "A TypeScript client for the Confluence API",
-  "homepage": "https://github.com/theholocron/clients/tree/main/packages/confluence#readme",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/confluence-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/clients.git",
-    "directory": "packages/confluence"
+    "directory": "packages/confluence-client"
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",

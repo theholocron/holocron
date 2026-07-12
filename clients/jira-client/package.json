@@ -1,13 +1,13 @@
 {
-  "name": "@theholocron/client-jira",
+  "name": "@theholocron/jira-client",
   "version": "0.0.0",
   "description": "A TypeScript client for the Jira REST API",
-  "homepage": "https://github.com/theholocron/clients/tree/main/packages/jira#readme",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/jira-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/clients.git",
-    "directory": "packages/jira"
+    "directory": "packages/jira-client"
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
