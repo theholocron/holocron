@@ -12,7 +12,8 @@
     "^packages/cli/src/commands/plugin-create/templates/.*",
     "^packages/cli/src/commands/setup-workflows\\.ts$",
     "^packages/cli/src/commands/setup\\.ts$",
-    "^packages/cli/src/templates/index\\.ts$"
+    "^packages/cli/src/templates/index\\.ts$",
+    "^\\.notes/ci-sync-github-smoke-test\\.spec\\.md$"
   ],
   "AllowedContentTypes": [],
   "PassedFiles": [],

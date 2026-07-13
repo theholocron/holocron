@@ -280,6 +280,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -322,6 +325,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -364,6 +370,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -413,6 +422,9 @@ importers:
       '@types/libsodium-wrappers':
         specifier: ^0.7.14
         version: 0.7.14
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -455,6 +467,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -497,6 +512,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -539,6 +557,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -581,6 +602,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
