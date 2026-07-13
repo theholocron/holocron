@@ -104,7 +104,9 @@ describe("parseWebhook", () => {
 	});
 
 	it("throws on unmapped event types (e.g. session.created)", async () => {
-		const err = await parseWebhook(input({ body: clerkBody({ type: "session.created" }) })).catch((e: unknown) => e);
+		const err = await parseWebhook(input({ body: clerkBody({ type: "session.created" }) })).catch(
+			(e: unknown) => e
+		);
 		expect(err).toBeInstanceOf(WebhookVerificationError);
 		expect((err as Error).message).toMatch(/session\.created/);
 	});

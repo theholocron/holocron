@@ -33,7 +33,13 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError with a hint when no token is found anywhere", () => {
-		const err = (() => { try { resolveToken({ env: {}, keyring: noKeyring }); } catch (e) { return e; } })();
+		const err = (() => {
+			try {
+				resolveToken({ env: {}, keyring: noKeyring });
+			} catch (e) {
+				return e;
+			}
+		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/doppler configure get token/);
 		expect((err as Error).message).toMatch(/HOLOCRON_DOPPLER_TOKEN/);

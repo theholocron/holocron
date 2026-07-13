@@ -38,9 +38,8 @@ function patchPackageJson(content: string, from: number, to: number): string | n
 
 function patchYaml(content: string, from: number, to: number): string | null {
 	// node-version: 20  /  node-version: '20'  /  node-version: "20"
-	const updated = content.replace(
-		/node-version:\s+['"]?(\d+)['"]?/g,
-		(match, ver) => (ver === String(from) ? match.replace(String(from), String(to)) : match),
+	const updated = content.replace(/node-version:\s+['"]?(\d+)['"]?/g, (match, ver) =>
+		ver === String(from) ? match.replace(String(from), String(to)) : match
 	);
 	return updated !== content ? updated : null;
 }
@@ -56,18 +55,16 @@ function patchPinFile(content: string, from: number, to: number): string | null 
 
 function patchDockerfile(content: string, from: number, to: number): string | null {
 	// FROM node:20  /  FROM node:20-alpine  /  FROM node:20.11.0
-	const updated = content.replace(
-		/^(FROM\s+node:)(\d+)/gm,
-		(match, prefix, ver) => (ver === String(from) ? `${prefix}${to}` : match),
+	const updated = content.replace(/^(FROM\s+node:)(\d+)/gm, (match, prefix, ver) =>
+		ver === String(from) ? `${prefix}${to}` : match
 	);
 	return updated !== content ? updated : null;
 }
 
 function patchToolVersions(content: string, from: number, to: number): string | null {
 	// nodejs 20  /  nodejs 20.11.0
-	const updated = content.replace(
-		/^(nodejs\s+)(\d+)/gm,
-		(match, prefix, ver) => (ver === String(from) ? `${prefix}${to}` : match),
+	const updated = content.replace(/^(nodejs\s+)(\d+)/gm, (match, prefix, ver) =>
+		ver === String(from) ? `${prefix}${to}` : match
 	);
 	return updated !== content ? updated : null;
 }
@@ -78,11 +75,11 @@ interface Pattern {
 }
 
 const PATTERNS: Pattern[] = [
-	{ matches: (n) => n === "package.json",                              patch: patchPackageJson },
-	{ matches: (n) => n.endsWith(".yml") || n.endsWith(".yaml"),         patch: patchYaml },
-	{ matches: (n) => n === ".nvmrc" || n === ".node-version",           patch: patchPinFile },
+	{ matches: (n) => n === "package.json", patch: patchPackageJson },
+	{ matches: (n) => n.endsWith(".yml") || n.endsWith(".yaml"), patch: patchYaml },
+	{ matches: (n) => n === ".nvmrc" || n === ".node-version", patch: patchPinFile },
 	{ matches: (n) => n === "Dockerfile" || n.startsWith("Dockerfile."), patch: patchDockerfile },
-	{ matches: (n) => n === ".tool-versions",                            patch: patchToolVersions },
+	{ matches: (n) => n === ".tool-versions", patch: patchToolVersions },
 ];
 
 // ── auto-detect current major from the repo ───────────────────────────────────
@@ -92,7 +89,9 @@ function detectFrom(cwd: string, _readFile: (p: string) => string): number | nul
 		try {
 			const major = parseInt(_readFile(join(cwd, name)).trim(), 10);
 			if (!isNaN(major)) return major;
-		} catch { /* absent */ }
+		} catch {
+			/* absent */
+		}
 	}
 	try {
 		const pkg = JSON.parse(_readFile(join(cwd, "package.json"))) as Record<string, unknown>;
@@ -101,7 +100,9 @@ function detectFrom(cwd: string, _readFile: (p: string) => string): number | nul
 			const m = node.match(/(\d+)/);
 			if (m) return parseInt(m[1]!, 10);
 		}
-	} catch { /* absent */ }
+	} catch {
+		/* absent */
+	}
 	return null;
 }
 
@@ -112,14 +113,20 @@ function defaultWalkFiles(dir: string): string[] {
 
 	function walk(current: string): void {
 		let entries: string[];
-		try { entries = readdirSync(current); } catch { return; }
+		try {
+			entries = readdirSync(current);
+		} catch {
+			return;
+		}
 		for (const entry of entries) {
 			if (SKIP_DIRS.has(entry)) continue;
 			const abs = join(current, entry);
 			try {
 				if (statSync(abs).isDirectory()) walk(abs);
 				else results.push(abs);
-			} catch { /* skip unreadable */ }
+			} catch {
+				/* skip unreadable */
+			}
 		}
 	}
 
@@ -185,10 +192,7 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 	print(`Upgrading Node.js ${from} → ${to}${dryRun ? " (dry-run)" : ""}…`);
 
 	const updated: string[] = [];
-	const scanned = [
-		..._walkFiles(cwd),
-		...extra.map((p) => join(cwd, p)),
-	];
+	const scanned = [..._walkFiles(cwd), ...extra.map((p) => join(cwd, p))];
 
 	for (const abs of scanned) {
 		const name = basename(abs);
@@ -196,7 +200,11 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 		if (!pattern) continue;
 
 		let content: string;
-		try { content = _readFile(abs); } catch { continue; }
+		try {
+			content = _readFile(abs);
+		} catch {
+			continue;
+		}
 
 		const patched = pattern.patch(content, from, to);
 		if (patched === null) continue;

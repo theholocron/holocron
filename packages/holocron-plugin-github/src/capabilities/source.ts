@@ -84,10 +84,10 @@ export class GitHubSource implements Source {
 	}
 
 	async protectBranch(branch: string, payload: Record<string, unknown>): Promise<void> {
-		await this.rest.request<void>(
-			`${this.repoPath}/branches/${encodeURIComponent(branch)}/protection`,
-			{ method: "PUT", body: payload }
-		);
+		await this.rest.request<void>(`${this.repoPath}/branches/${encodeURIComponent(branch)}/protection`, {
+			method: "PUT",
+			body: payload,
+		});
 	}
 
 	// ── security toggles (idempotent flip-or-noop) ──────────────────────

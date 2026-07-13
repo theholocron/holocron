@@ -28,11 +28,7 @@ import { workflowHeader, KNOWN_WORKFLOWS, generateThinCallerContent } from "./se
 // Canonical allow-list for the alex prose linter. Shared across all
 // theholocron repos via `holocron setup` so the list only needs to be
 // updated here.
-const ALEX_CONFIG = JSON.stringify(
-	{ allow: ["dead", "hook", "hooks", "husky", "period"] },
-	null,
-	2,
-) + "\n";
+const ALEX_CONFIG = JSON.stringify({ allow: ["dead", "hook", "hooks", "husky", "period"] }, null, 2) + "\n";
 
 // ── dependabot config template ───────────────────────────────────────
 const DEPENDABOT_CONFIG = `\
@@ -85,10 +81,7 @@ const BALANCED_REPO_SETTINGS: RepoSettings = {
 
 function buildClassicProtectionPayload(requiredChecks: string[] = []): Record<string, unknown> {
 	return {
-		required_status_checks:
-			requiredChecks.length > 0
-				? { strict: false, contexts: requiredChecks }
-				: null,
+		required_status_checks: requiredChecks.length > 0 ? { strict: false, contexts: requiredChecks } : null,
 		enforce_admins: false,
 		required_pull_request_reviews: {
 			required_approving_review_count: 0,
@@ -162,7 +155,12 @@ async function upsertBranchProtection(
 		return { capability: "source", step, status: "ok", message: "created" };
 	} catch (err) {
 		if (!(err instanceof ProviderApiError) || err.status !== 403) {
-			return { capability: "source", step, status: "fail", message: err instanceof Error ? err.message : String(err) };
+			return {
+				capability: "source",
+				step,
+				status: "fail",
+				message: err instanceof Error ? err.message : String(err),
+			};
 		}
 	}
 
@@ -180,7 +178,12 @@ async function upsertBranchProtection(
 				message: "branch protection unavailable on private repos without GitHub Pro/Team",
 			};
 		}
-		return { capability: "source", step, status: "fail", message: err instanceof Error ? err.message : String(err) };
+		return {
+			capability: "source",
+			step,
+			status: "fail",
+			message: err instanceof Error ? err.message : String(err),
+		};
 	}
 }
 
@@ -286,7 +289,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
 					await source.writeWorkflowFile(
 						`${name}.yml`,
-						workflowHeader() + generateThinCallerContent(name, withOverrides),
+						workflowHeader() + generateThinCallerContent(name, withOverrides)
 					);
 				})
 			);

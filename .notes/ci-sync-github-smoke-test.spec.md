@@ -1,7 +1,8 @@
-<!-- editorconfig-checker-disable-file -->
----
+## <!-- editorconfig-checker-disable-file -->
+
 status: proposed
 issue: 115
+
 ---
 
 # Smoke-test synced actions in sync-github workflow
@@ -32,7 +33,7 @@ Add a smoke-test job to the `sync-github` reusable workflow that runs
 1. **actionlint** — lint the pushed workflow YAML files for structural
    errors and expression type issues. Fast, catches most classes of
    mistake before runtime.
-2. *(stretch)* Trigger a `workflow_dispatch` dry-run in a known consumer
+2. _(stretch)_ Trigger a `workflow_dispatch` dry-run in a known consumer
    repo (e.g. `theholocron/.github` itself) to catch runtime failures
    before they land in `main`.
 

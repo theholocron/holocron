@@ -2,11 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import {
-	ACTIONS,
-	REUSABLE_WORKFLOWS,
-	WORKFLOW_TEMPLATE_PROPERTIES,
-} from "../templates/index.js";
+import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
@@ -128,10 +124,7 @@ function buildBatch(repo: string, allowedWorkflows?: Set<string>): FileBatch {
 /** Git blob SHA: sha1("blob {len}\0{content}") — used to detect unchanged files. */
 export function gitBlobSha(content: string): string {
 	const buf = Buffer.from(content, "utf8");
-	return createHash("sha1")
-		.update(`blob ${buf.length}\0`)
-		.update(buf)
-		.digest("hex");
+	return createHash("sha1").update(`blob ${buf.length}\0`).update(buf).digest("hex");
 }
 
 export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGithubReport> {
@@ -189,33 +182,28 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// ── 2. Get HEAD commit → base tree ───────────────────────────────────────
 	// Always read existing state from the default branch when creating a PR.
 	const baseBranch = createPr && defaultBranch ? defaultBranch : targetBranch;
-	const refRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/ref/heads/${baseBranch}`,
-		{ headers },
-	);
+	const refRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/ref/heads/${baseBranch}`, { headers });
 	if (!refRes.ok) {
 		const msg = `Branch ${baseBranch} not found`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
 	}
-	const { object: { sha: headSha } } = (await refRes.json()) as { object: { sha: string } };
+	const {
+		object: { sha: headSha },
+	} = (await refRes.json()) as { object: { sha: string } };
 
-	const commitRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/commits/${headSha}`,
-		{ headers },
-	);
-	const { tree: { sha: baseTreeSha } } = (await commitRes.json()) as { tree: { sha: string } };
+	const commitRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/commits/${headSha}`, { headers });
+	const {
+		tree: { sha: baseTreeSha },
+	} = (await commitRes.json()) as { tree: { sha: string } };
 
-	const treeRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/trees/${baseTreeSha}?recursive=1`,
-		{ headers },
-	);
+	const treeRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/trees/${baseTreeSha}?recursive=1`, {
+		headers,
+	});
 	const { tree: existingTree } = (await treeRes.json()) as {
 		tree: Array<{ path: string; sha: string; type: string }>;
 	};
-	const existingBlobs = new Map(
-		existingTree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]),
-	);
+	const existingBlobs = new Map(existingTree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]));
 
 	// ── 3. Fetch workflow allowlist from target repo config ───────────────────
 	// Secondary repos may declare which reusable workflows they want via their
@@ -224,20 +212,17 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	let allowedWorkflows: Set<string> | undefined;
 	if (repo !== DEFAULT_REPO) {
 		try {
-			const configRes = await fetchFn(
-				`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.json`,
-				{ headers },
-			);
+			const configRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.json`, {
+				headers,
+			});
 			if (configRes.ok) {
 				const configData = (await configRes.json()) as { content: string };
 				const raw = JSON.parse(
-					Buffer.from(configData.content.replace(/\n/g, ""), "base64").toString("utf8"),
+					Buffer.from(configData.content.replace(/\n/g, ""), "base64").toString("utf8")
 				) as { project?: { workflows?: Array<string | { name: string }> } };
 				const workflows = raw?.project?.workflows ?? [];
 				if (workflows.length > 0) {
-					allowedWorkflows = new Set(
-						workflows.map((w) => (typeof w === "string" ? w : w.name)),
-					);
+					allowedWorkflows = new Set(workflows.map((w) => (typeof w === "string" ? w : w.name)));
 				}
 			}
 		} catch {
@@ -282,14 +267,11 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// ── 6. Create blobs for changed files ────────────────────────────────────
 	const treeEntries: Array<{ path: string; mode: string; type: string; sha: string }> = [];
 	for (const file of changedFiles) {
-		const blobRes = await fetchFn(
-			`${API_BASE}/repos/${owner}/${repoName}/git/blobs`,
-			{
-				method: "POST",
-				headers,
-				body: JSON.stringify({ content: file.content, encoding: "utf-8" }),
-			},
-		);
+		const blobRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/blobs`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ content: file.content, encoding: "utf-8" }),
+		});
 		if (!blobRes.ok) {
 			const err = (await blobRes.json()) as { message?: string };
 			const msg = `failed to create blob for ${file.path}: ${err.message ?? blobRes.status}`;
@@ -301,14 +283,11 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 
 	// ── 7. Create tree ───────────────────────────────────────────────────────
-	const newTreeRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/trees`,
-		{
-			method: "POST",
-			headers,
-			body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
-		},
-	);
+	const newTreeRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/trees`, {
+		method: "POST",
+		headers,
+		body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
+	});
 	if (!newTreeRes.ok) {
 		const err = (await newTreeRes.json()) as { message?: string };
 		const msg = `failed to create tree: ${err.message ?? newTreeRes.status}`;
@@ -318,14 +297,11 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	const { sha: newTreeSha } = (await newTreeRes.json()) as { sha: string };
 
 	// ── 8. Create commit ─────────────────────────────────────────────────────
-	const newCommitRes = await fetchFn(
-		`${API_BASE}/repos/${owner}/${repoName}/git/commits`,
-		{
-			method: "POST",
-			headers,
-			body: JSON.stringify({ message, tree: newTreeSha, parents: [headSha] }),
-		},
-	);
+	const newCommitRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/commits`, {
+		method: "POST",
+		headers,
+		body: JSON.stringify({ message, tree: newTreeSha, parents: [headSha] }),
+	});
 	if (!newCommitRes.ok) {
 		const err = (await newCommitRes.json()) as { message?: string };
 		const msg = `failed to create commit: ${err.message ?? newCommitRes.status}`;
@@ -346,24 +322,18 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommitSha }),
 		});
 		if (refUpdateRes.status === 422) {
-			refUpdateRes = await fetchFn(
-				`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${branch}`,
-				{
-					method: "PATCH",
-					headers,
-					body: JSON.stringify({ sha: newCommitSha, force: true }),
-				},
-			);
-		}
-	} else {
-		refUpdateRes = await fetchFn(
-			`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`,
-			{
+			refUpdateRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${branch}`, {
 				method: "PATCH",
 				headers,
-				body: JSON.stringify({ sha: newCommitSha }),
-			},
-		);
+				body: JSON.stringify({ sha: newCommitSha, force: true }),
+			});
+		}
+	} else {
+		refUpdateRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`, {
+			method: "PATCH",
+			headers,
+			body: JSON.stringify({ sha: newCommitSha }),
+		});
 	}
 	if (!refUpdateRes.ok) {
 		const err = (await refUpdateRes.json()) as { message?: string };

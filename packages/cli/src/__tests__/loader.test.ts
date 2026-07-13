@@ -331,7 +331,9 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 				providers: { vault: ["@acme/holocron-vault", { vault: "override" }] },
 			},
 			{
-				"@acme/holocron-vault": { default: { provider: "1password", options: { vault: "preset", tag: "acme" } } },
+				"@acme/holocron-vault": {
+					default: { provider: "1password", options: { vault: "preset", tag: "acme" } },
+				},
 				"@theholocron/holocron-plugin-1password": {
 					createPlugin: (opts: Record<string, unknown>) => {
 						Object.assign(captured, opts);

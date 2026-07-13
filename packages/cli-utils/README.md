@@ -3,10 +3,10 @@
 Shared CLI primitives carried over from the v1 single-package CLI:
 
 - `ui/` — prompts wrappers (`@inquirer/prompts` for autocomplete /
-	confirm / input / search / select), browser + editor openers
+  confirm / input / search / select), browser + editor openers
 - `tasks/` — find + replace helpers for file operations
 - `utils/` — shell `$`, config, env loading, logging (winston), node
-	helpers
+  helpers
 
 Consumed by `@theholocron/cli` and (eventually) every plugin under
 `packages/holocron-plugin-*`.

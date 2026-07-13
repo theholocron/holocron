@@ -91,16 +91,16 @@ holocron deploy          # ship to your `deployment` provider
 ## How it works
 
 - **Capabilities** are the contracts (14 of them — see the
-	[architecture spec](./.notes/tech-architecture.spec.md)).
+  [architecture spec](./.notes/tech-architecture.spec.md)).
 - **Plugins** are npm packages named `holocron-plugin-<provider>`
-	(or `@theholocron/holocron-plugin-<provider>` for the built-in
-	set). Each plugin exports the capabilities it implements — a
-	single provider can cover several (GitHub does source + CI +
-	issues + secrets + environments).
+  (or `@theholocron/holocron-plugin-<provider>` for the built-in
+  set). Each plugin exports the capabilities it implements — a
+  single provider can cover several (GitHub does source + CI +
+  issues + secrets + environments).
 - **Config** is ESLint-style: short form `"vercel"` for defaults,
-	tuple form `["vercel", { team: "my-team" }]` for options,
-	multi-list `["slack", "discord"]` for capabilities that allow
-	several providers active at once.
+  tuple form `["vercel", { team: "my-team" }]` for options,
+  multi-list `["slack", "discord"]` for capabilities that allow
+  several providers active at once.
 
 ## The vault is special
 

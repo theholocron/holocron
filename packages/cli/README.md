@@ -1,4 +1,5 @@
 <!-- editorconfig-checker-disable-file -->
+
 # `@theholocron/cli`
 
 The Holocron CLI — a pluggable, capability-based orchestrator for
@@ -17,29 +18,31 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 (priority: json → js → ts).
 
 **JSON** (simplest):
+
 ```jsonc
 // holocron.config.json
 {
 	"project": { "name": "my-app" },
 	"providers": {
 		"vault": ["1password", { "vault": "my-app" }],
-		"source": "github"
-	}
+		"source": "github",
+	},
 }
 ```
 
 **JS/TS** — use `defineConfig` for autocomplete and type-checking:
+
 ```ts
 // holocron.config.ts
-import { defineConfig } from '@theholocron/cli'
+import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
-	project: { name: 'my-app' },
+	project: { name: "my-app" },
 	providers: {
-		vault: ['1password', { vault: 'my-app' }],
-		source: 'github',
+		vault: ["1password", { vault: "my-app" }],
+		source: "github",
 	},
-})
+});
 ```
 
 ### Shareable configs
@@ -57,12 +60,13 @@ providers: {
 ```
 
 A capability config package exports a `CapabilityConfigPackage` default:
+
 ```ts
-import type { CapabilityConfigPackage } from '@theholocron/cli'
+import type { CapabilityConfigPackage } from "@theholocron/cli";
 export default {
-	provider: '1password',
-	options: { vault: 'acme-app' },
-} satisfies CapabilityConfigPackage
+	provider: "1password",
+	options: { vault: "acme-app" },
+} satisfies CapabilityConfigPackage;
 ```
 
 **Level 2 — whole-config presets.** Because the config file can be
@@ -70,23 +74,23 @@ JS/TS, a shared base is just an import:
 
 ```ts
 // holocron.config.ts
-import { acmeConfig } from '@acme/holocron-config'
-export default acmeConfig
+import { acmeConfig } from "@acme/holocron-config";
+export default acmeConfig;
 ```
 
 ## What's in here
 
 - `src/capabilities/` — the 14 capability interfaces that providers
-	implement
+  implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
-	`CapabilityConfigPackage`
+  `CapabilityConfigPackage`
 - `src/load-config.ts` — `loadConfig` — reads JSON/JS/TS config files
 - `src/define-config.ts` — `defineConfig` typed pass-through
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
-	capability config packages, builds the capability registry
+  capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands
 - `src/commands/` — `setup`, `doctor`, `deploy`, `secret set`,
-	`secrets sync`, `npm publish-initial`
+  `secrets sync`, `npm publish-initial`
 
 ## Status
 

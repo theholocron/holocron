@@ -63,8 +63,9 @@ ever has to know about any other vendor's CLI or storage format.
 
 Steps 1–3 already exist. Step 4 is new. Step 5 gets an upgraded
 message: when no token is found, the error names all four options
-+ a vendor-specific hint pointing at the fastest bootstrap path
-(e.g., Doppler: `doppler configure get token --plain | pbcopy;
+
+- a vendor-specific hint pointing at the fastest bootstrap path
+  (e.g., Doppler: `doppler configure get token --plain | pbcopy;
 holocron auth set doppler <paste>`).
 
 ### Keyring service naming
@@ -102,15 +103,15 @@ plugins).
 
 ```ts
 export interface VerifyTokenResult {
-    ok: true;
-    /** Human-readable identifier — "workplace: acme" / "user: cnewton@x" */
-    subject: string;
+	ok: true;
+	/** Human-readable identifier — "workplace: acme" / "user: cnewton@x" */
+	subject: string;
 }
 
 export interface VerifyTokenFailure {
-    ok: false;
-    /** Reason the token was rejected. Surfaces to `holocron auth set` output. */
-    message: string;
+	ok: false;
+	/** Reason the token was rejected. Surfaces to `holocron auth set` output. */
+	message: string;
 }
 
 export async function verifyToken(token: string): Promise<VerifyTokenResult | VerifyTokenFailure>;

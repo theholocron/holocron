@@ -27,7 +27,9 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: { workspaces: [{ _id: "ws-1", name: "Solo" }] } }]);
 		const result = await verifyToken("t", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/1 workspace · first: Solo/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(
+			/1 workspace · first: Solo/
+		);
 		expect((result as { ok: boolean; subject?: string; message?: string }).subject).not.toMatch(/workspaces/);
 	});
 
@@ -36,7 +38,9 @@ describe("verifyToken", () => {
 		const result = await verifyToken("t", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
 		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/0 workspaces/);
-		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/no accessible workspaces/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(
+			/no accessible workspaces/
+		);
 	});
 
 	it("returns ok:true with 'scope-limited' subject on 403 (workspace-scoped machine identities)", async () => {

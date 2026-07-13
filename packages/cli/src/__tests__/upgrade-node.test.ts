@@ -19,11 +19,12 @@ function makeFs(files: Record<string, string>) {
 		return content;
 	};
 
-	const writeFile = (p: string, c: string) => { written[rel(abs(p))] = c; };
+	const writeFile = (p: string, c: string) => {
+		written[rel(abs(p))] = c;
+	};
 
 	// walkFiles returns absolute paths for every file in the map
-	const walkFiles = (_dir: string): string[] =>
-		Object.keys(files).map((k) => join(CWD, k));
+	const walkFiles = (_dir: string): string[] => Object.keys(files).map((k) => join(CWD, k));
 
 	return { readFile, writeFile, walkFiles, written };
 }
@@ -69,7 +70,12 @@ describe("auto-detect from", () => {
 			"package.json": pkg({ engines: { node: ">=22.0.0" } }),
 		});
 		const report = await runUpgradeNode({
-			to: 22, cwd: CWD, print: (l) => lines.push(l), readFile, writeFile, walkFiles,
+			to: 22,
+			cwd: CWD,
+			print: (l) => lines.push(l),
+			readFile,
+			writeFile,
+			walkFiles,
 		});
 		expect(report.status).toBe("ok");
 		expect(report.updated).toHaveLength(0);
@@ -208,7 +214,7 @@ describe("GitHub Actions YAML", () => {
 describe("Dockerfile", () => {
 	it("updates FROM node:<major>", async () => {
 		const { readFile, writeFile, walkFiles, written } = makeFs({
-			"Dockerfile": "FROM node:20\nRUN npm install\n",
+			Dockerfile: "FROM node:20\nRUN npm install\n",
 		});
 		await runUpgradeNode({ to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles });
 		expect(written["Dockerfile"]).toContain("FROM node:22");
@@ -216,7 +222,7 @@ describe("Dockerfile", () => {
 
 	it("updates FROM node:<major>-<tag>", async () => {
 		const { readFile, writeFile, walkFiles, written } = makeFs({
-			"Dockerfile": "FROM node:20-alpine\n",
+			Dockerfile: "FROM node:20-alpine\n",
 		});
 		await runUpgradeNode({ to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles });
 		expect(written["Dockerfile"]).toContain("FROM node:22-alpine");
@@ -261,8 +267,12 @@ describe("extra paths", () => {
 		});
 		const limitedWalk = () => [] as string[];
 		await runUpgradeNode({
-			to: 22, from: 20, cwd: CWD, print: () => {},
-			readFile, writeFile,
+			to: 22,
+			from: 20,
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
 			walkFiles: limitedWalk,
 			extra: ["infra/Dockerfile"],
 		});
@@ -279,7 +289,13 @@ describe("error resilience", () => {
 			"package.json": "{ invalid json }",
 		});
 		const report = await runUpgradeNode({
-			to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles,
+			to: 22,
+			from: 20,
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			walkFiles,
 		});
 		expect(report.status).toBe("ok");
 		expect(written["package.json"]).toBeUndefined();
@@ -298,7 +314,13 @@ describe("error resilience", () => {
 			throw new Error(`ENOENT: ${p}`);
 		};
 		const report = await runUpgradeNode({
-			to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles,
+			to: 22,
+			from: 20,
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			walkFiles,
 		});
 		expect(report.status).toBe("ok");
 	});
@@ -312,8 +334,14 @@ describe("dry-run", () => {
 			".github/workflows/ci.yml": "with:\n  node-version: 20\n",
 		});
 		const report = await runUpgradeNode({
-			to: 22, from: 20, cwd: CWD, dryRun: true, print: () => {},
-			readFile, writeFile, walkFiles,
+			to: 22,
+			from: 20,
+			cwd: CWD,
+			dryRun: true,
+			print: () => {},
+			readFile,
+			writeFile,
+			walkFiles,
 		});
 		expect(report.status).toBe("dry-run");
 		expect(Object.keys(written)).toHaveLength(0);
@@ -326,8 +354,14 @@ describe("dry-run", () => {
 			"package.json": pkg({ engines: { node: ">=20.0.0" } }),
 		});
 		const report = await runUpgradeNode({
-			to: 22, from: 20, cwd: CWD, dryRun: true, print: (l) => lines.push(l),
-			readFile, writeFile, walkFiles,
+			to: 22,
+			from: 20,
+			cwd: CWD,
+			dryRun: true,
+			print: (l) => lines.push(l),
+			readFile,
+			writeFile,
+			walkFiles,
 		});
 		expect(report.updated.length).toBeGreaterThan(0);
 		expect(lines.some((l) => l.includes("~"))).toBe(true);

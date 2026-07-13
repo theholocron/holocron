@@ -33,7 +33,7 @@ always cover what holocron needs at the API level. Explicit token only.
 ```
 
 - `teamId` (optional) — Vercel team id. When set, all requests are
-	scoped to that team. Leave unset for personal-account projects.
+  scoped to that team. Leave unset for personal-account projects.
 
 ## Status
 

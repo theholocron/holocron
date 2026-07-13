@@ -43,7 +43,7 @@ same template drift; we consolidate on the CLI.
 
 - Issue #77 makes the case: the skill is fine for AI-assisted
   scaffolding, but the CLI is what an operator reaches for from a
-  regular shell — and it's what a *downstream* project reaches for
+  regular shell — and it's what a _downstream_ project reaches for
   when they need to author their own vendor plugin.
 - The scaffolding logic is already codified in the skill; it just
   needs to be re-hosted as TS code invoked through the existing
@@ -98,7 +98,7 @@ Legend: ✅ shipped in Phase 1a · ⏳ Phase 1b follow-up.
 5. **Generate** ✅ — write the 17 template files to
    `packages/holocron-plugin-<slug>/` (see §Templates below).
 6. **Verify** ⏳ — (unless `--no-verify`) run `pnpm install && pnpm
-   --filter <pkg> typecheck lint test`. Flag exists in yargs
+--filter <pkg> typecheck lint test`. Flag exists in yargs
    already; the actual pnpm invocation lands in Phase 1b.
 7. **Print next steps** ✅ — 7-step operator checklist including
    pnpm install, typecheck/lint/test, implement methods, replace
@@ -146,6 +146,7 @@ added post-#94 to reflect the session-derived plugin conventions):
 - `index-test.ts` → `src/__tests__/index.test.ts`
 
 Inline TS over file-based `.tmpl` templates because:
+
 - No template engine dep
 - Templates get typechecked against a shared `TemplateInputs` type
 - Editor jumps to the string source directly
@@ -162,15 +163,15 @@ and can be removed in a future cleanup pass.
 
 ```ts
 interface TemplateInputs {
-    slug: string;                       // 'clerk'
-    vendorName: string;                 // 'Clerk' (PascalCase)
-    vendorUpper: string;                // 'CLERK'
-    capability: CapabilityKey;          // 'auth'
-    capabilityClass: string;            // 'ClerkAuth'
-    tokenEnv: string;                   // 'HOLOCRON_CLERK_TOKEN'
-    vendorEnv: string;                  // 'CLERK_SECRET_KEY'
-    baseUrl: string;                    // 'https://api.clerk.com/v1'
-    transport: "rest";                  // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
+	slug: string; // 'clerk'
+	vendorName: string; // 'Clerk' (PascalCase)
+	vendorUpper: string; // 'CLERK'
+	capability: CapabilityKey; // 'auth'
+	capabilityClass: string; // 'ClerkAuth'
+	tokenEnv: string; // 'HOLOCRON_CLERK_TOKEN'
+	vendorEnv: string; // 'CLERK_SECRET_KEY'
+	baseUrl: string; // 'https://api.clerk.com/v1'
+	transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
 }
 ```
 
@@ -204,9 +205,11 @@ throwaway plugin, `.claude/skills/holocron-plugin.md` becomes a
 
 > The scaffolding logic lives in `holocron plugin create`.
 > Run it directly:
+>
 > ```
 > holocron plugin create <slug> <vendor>
 > ```
+>
 > The skill file itself is deprecated — kept only so old references
 > resolve.
 
@@ -223,7 +226,7 @@ throwaway plugin, `.claude/skills/holocron-plugin.md` becomes a
 - **Manual end-to-end** — during development, scaffolded a
   `testvendor` plugin with `--capability tooling`, ran
   `pnpm --filter @theholocron/holocron-plugin-testvendor typecheck
-  lint test` — all green. The command's output matches expectations.
+lint test` — all green. The command's output matches expectations.
 
 **Follow-up (Phase 1b)**:
 
@@ -247,7 +250,7 @@ throwaway plugin, `.claude/skills/holocron-plugin.md` becomes a
 - **Phase 1b** (follow-up — same issue #77): Interactive prompts
   for missing `--capability` / `--vendor-env` / `--base-url`.
   Post-scaffold verify step (`pnpm install && pnpm --filter <pkg>
-  typecheck lint test`) gated by `--no-verify`. Full integration
+typecheck lint test`) gated by `--no-verify`. Full integration
   test (behind an env flag — spawns pnpm install and typechecks
   the generated package end-to-end).
 - **Phase 2** (**CANCELLED** 2026-07-06): originally to add a
@@ -263,7 +266,7 @@ throwaway plugin, `.claude/skills/holocron-plugin.md` becomes a
 
 ## Open questions
 
-1. **Should `--dry-run` also show file *contents*, gated behind
+1. **Should `--dry-run` also show file _contents_, gated behind
    `-v`?** Argument for: operator can review before writing. Argument
    against: prints ~800 lines to the terminal.
 2. **Should there be a `holocron plugin list` complement?** Trivial
