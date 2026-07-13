@@ -1,6 +1,6 @@
-import holocron from "@theholocron/eslint-config/eslint.config.js";
+import { library } from "@theholocron/eslint-config/bundles/library";
 
 /** @type {import("eslint").Linter.Config} */
-const config = [...holocron];
+const config = [...library()];
 
 export default config;
