@@ -101,7 +101,7 @@ database-you-babysit to avoid a lock-in risk that (a) hasn't
 materialized and (b) is escapable in under an hour via the
 Migration Path section is a bad trade. If Doppler ever squeezes
 its free tier, we already have the Infisical cloud plugin
-built — flip config, done. If Infisical cloud *also* goes bad,
+built — flip config, done. If Infisical cloud _also_ goes bad,
 that's the moment to spin up self-host — not now.
 
 ### sops + age (dark horse)
@@ -149,7 +149,7 @@ Regardless of which we pick:
 3. Update `holocron.config.json` — flip `vault` from `1password` to
    the new plugin.
 4. Verify with `holocron doctor` + a full `secrets sync` dry-run.
-5. Retire 1P as *this repo's* default — but keep the plugin package
+5. Retire 1P as _this repo's_ default — but keep the plugin package
    published + maintained for any downstream project that prefers
    1Password's biometric-first UX (see #96).
 
@@ -171,7 +171,7 @@ the new CLI so #77 gets a real-world acceptance test.
   See `.notes/tool-plugin-create.spec.md`.
 - **Phase 3** (shipped): Built `@theholocron/holocron-plugin-infisical`
   via `holocron plugin create infisical Infisical --capability vault
-  --vendor-env INFISICAL_TOKEN --base-url https://app.infisical.com/api`.
+--vendor-env INFISICAL_TOKEN --base-url https://app.infisical.com/api`.
   Same plugin shape, Infisical's REST API. Doubled as the first
   real production use of #77's CLI — 17 files scaffolded, gate
   green from the get-go, only the vault capability methods needed
@@ -180,11 +180,11 @@ the new CLI so #77 gets a real-world acceptance test.
   vault from `1password` to `doppler` (or `infisical` — operator
   choice). Dump secrets from 1Password, push to chosen vault, flip
   config, verify with `holocron doctor` + a `secrets sync` dry-run.
-- **Phase 5** (later, no rush): Retire 1P as *this repo's* default
+- **Phase 5** (later, no rush): Retire 1P as _this repo's_ default
   — narrow, doc-focused polish tracked in #96. The plugin package
   itself STAYS published + maintained; anyone who prefers 1P's
   biometric UX in their own project can still `pnpm add
-  @theholocron/holocron-plugin-1password` and go.
+@theholocron/holocron-plugin-1password` and go.
 
 ## Downstream consequences
 
@@ -202,9 +202,9 @@ Nothing to close speculatively.
 ## Open questions
 
 1. **Timing relative to v2.0.0 stable.** Options:
-   - **(a)** Ship Phases 1–4 as part of v2.0.0 stable — clean cutover,
-     v2 launches on Doppler, no 1Password baggage.
-   - **(b)** Ship v2.0.0 stable on 1Password (current alpha state),
-     do Phases 1–4 as v2.1.
-   - Leaning **(a)** if Doppler plugin comes together fast; **(b)**
-     if it drags. Decide after Phase 1's PR lands.
+    - **(a)** Ship Phases 1–4 as part of v2.0.0 stable — clean cutover,
+      v2 launches on Doppler, no 1Password baggage.
+    - **(b)** Ship v2.0.0 stable on 1Password (current alpha state),
+      do Phases 1–4 as v2.1.
+    - Leaning **(a)** if Doppler plugin comes together fast; **(b)**
+      if it drags. Decide after Phase 1's PR lands.

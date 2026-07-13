@@ -25,7 +25,13 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError when nothing is set", () => {
-		const err = (() => { try { resolveToken({ env: {}, keyring: () => null }); } catch (e) { return e; } })();
+		const err = (() => {
+			try {
+				resolveToken({ env: {}, keyring: () => null });
+			} catch (e) {
+				return e;
+			}
+		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as AuthError).message).toMatch(/HOLOCRON_POSTMAN_API_KEY/);
 	});

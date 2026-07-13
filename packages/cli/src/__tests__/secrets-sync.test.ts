@@ -226,7 +226,9 @@ describe("runSecretsSync", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				secrets: {
 					providerName: "github",
-					setSecret: async () => { throw "403 forbidden string"; },
+					setSecret: async () => {
+						throw "403 forbidden string";
+					},
 				},
 			}),
 		});

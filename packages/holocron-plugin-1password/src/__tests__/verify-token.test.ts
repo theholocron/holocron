@@ -58,7 +58,9 @@ describe("verifyToken (1password)", () => {
 		const spawn = makeSpawn({ status: 1, stderr: "You are not currently signed in." });
 		const result = await verifyToken("", { spawn });
 		expect(result.ok).toBe(false);
-		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/not currently signed in/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(
+			/not currently signed in/
+		);
 	});
 
 	it("includes exit code in error when op whoami exits non-zero with no stderr", async () => {

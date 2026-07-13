@@ -8,7 +8,8 @@ const resolveToken = createResolveToken({
 	envName: "HOLOCRON_TEST_TOKEN",
 	vendorEnvName: "TEST_TOKEN",
 	keyringService: "test",
-	errorMessage: "no test token found. Pass --token <TOKEN>, set HOLOCRON_TEST_TOKEN / TEST_TOKEN, or run: holocron auth set test <TOKEN>",
+	errorMessage:
+		"no test token found. Pass --token <TOKEN>, set HOLOCRON_TEST_TOKEN / TEST_TOKEN, or run: holocron auth set test <TOKEN>",
 });
 
 describe("createResolveToken", () => {
@@ -18,7 +19,7 @@ describe("createResolveToken", () => {
 				cliToken: "cli-tok",
 				env: { HOLOCRON_TEST_TOKEN: "env-tok", TEST_TOKEN: "vendor-tok" },
 				keyring: () => "kr-tok",
-			}),
+			})
 		).toBe("cli-tok");
 	});
 
@@ -27,7 +28,7 @@ describe("createResolveToken", () => {
 			resolveToken({
 				env: { HOLOCRON_TEST_TOKEN: "env-tok", TEST_TOKEN: "vendor-tok" },
 				keyring: noKeyring,
-			}),
+			})
 		).toBe("env-tok");
 	});
 
@@ -40,11 +41,19 @@ describe("createResolveToken", () => {
 	});
 
 	it("ignores empty-string cliToken", () => {
-		expect(resolveToken({ cliToken: "", env: { TEST_TOKEN: "vendor-tok" }, keyring: noKeyring })).toBe("vendor-tok");
+		expect(resolveToken({ cliToken: "", env: { TEST_TOKEN: "vendor-tok" }, keyring: noKeyring })).toBe(
+			"vendor-tok"
+		);
 	});
 
 	it("throws AuthError with the configured message when nothing is set", () => {
-		const err = (() => { try { resolveToken({ env: {}, keyring: noKeyring }); } catch (e) { return e; } })();
+		const err = (() => {
+			try {
+				resolveToken({ env: {}, keyring: noKeyring });
+			} catch (e) {
+				return e;
+			}
+		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/HOLOCRON_TEST_TOKEN/);
 		expect((err as Error).message).toMatch(/--token/);
@@ -52,7 +61,13 @@ describe("createResolveToken", () => {
 	});
 
 	it("AuthError.name is 'AuthError'", () => {
-		const err = (() => { try { resolveToken({ env: {}, keyring: noKeyring }); } catch (e) { return e; } })();
+		const err = (() => {
+			try {
+				resolveToken({ env: {}, keyring: noKeyring });
+			} catch (e) {
+				return e;
+			}
+		})();
 		expect((err as Error).name).toBe("AuthError");
 	});
 });

@@ -63,7 +63,13 @@ describe("OpShell.runOrThrow", () => {
 	it("throws ProviderApiError(status=0) on non-zero exit", () => {
 		const { spawn } = stubSpawn([{ status: 1, stderr: "item not found" }]);
 		const shell = new OpShell({ spawn });
-		const err = (() => { try { shell.runOrThrow(["read", "op://x/y/z"], "read x"); } catch (e) { return e; } })() as ProviderApiError;
+		const err = (() => {
+			try {
+				shell.runOrThrow(["read", "op://x/y/z"], "read x");
+			} catch (e) {
+				return e;
+			}
+		})() as ProviderApiError;
 		expect(err).toBeInstanceOf(ProviderApiError);
 		const pae = err as ProviderApiError;
 		expect(pae.status).toBe(0);

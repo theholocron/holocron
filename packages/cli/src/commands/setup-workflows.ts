@@ -288,10 +288,7 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * Generate the thin caller content for a workflow, optionally injecting
  * `with:` inputs before `secrets: inherit` in the jobs block.
  */
-export function generateThinCallerContent(
-	name: string,
-	withOverrides?: Record<string, unknown>,
-): string {
+export function generateThinCallerContent(name: string, withOverrides?: Record<string, unknown>): string {
 	const base = WORKFLOW_TEMPLATES[name];
 	if (!base) return "";
 	if (!withOverrides || Object.keys(withOverrides).length === 0) return base;

@@ -7,7 +7,11 @@ import { runSyncGithub, gitBlobSha as _gitBlobSha } from "../commands/sync-githu
 // Actions and workflow-templates are only pushed to the primary .github repo.
 // WORKFLOW_TEMPLATE_PROPERTIES adds one .properties.json per keyed template.
 const PROPS_COUNT = Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
-const PRIMARY_FILE_COUNT = Object.keys(ACTIONS).length + Object.keys(REUSABLE_WORKFLOWS).length + Object.keys(WORKFLOW_TEMPLATES).length + PROPS_COUNT;
+const PRIMARY_FILE_COUNT =
+	Object.keys(ACTIONS).length +
+	Object.keys(REUSABLE_WORKFLOWS).length +
+	Object.keys(WORKFLOW_TEMPLATES).length +
+	PROPS_COUNT;
 const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
@@ -115,7 +119,9 @@ describe("runSyncGithub", () => {
 		expect(report.created).toBe(SECONDARY_FILE_COUNT);
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		expect(blobs).toHaveLength(SECONDARY_FILE_COUNT);
-		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(false);
+		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(
+			false
+		);
 	});
 
 	it("respects holocron.config.json workflow allowlist for secondary repos", async () => {
@@ -135,10 +141,12 @@ describe("runSyncGithub", () => {
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		expect(blobs).toHaveLength(allowedNames.length);
 		// Verify only the allowed workflows are in the batch
-		const blobPaths = blobs.map((c) => {
-			const content = (c.body?.content as string) ?? "";
-			return allowedNames.find((n) => content.includes(`name: ${n.charAt(0).toUpperCase() + n.slice(1)}`));
-		}).filter(Boolean);
+		const blobPaths = blobs
+			.map((c) => {
+				const content = (c.body?.content as string) ?? "";
+				return allowedNames.find((n) => content.includes(`name: ${n.charAt(0).toUpperCase() + n.slice(1)}`));
+			})
+			.filter(Boolean);
 		expect(blobPaths).toHaveLength(allowedNames.length);
 	});
 
@@ -249,7 +257,7 @@ describe("runSyncGithub", () => {
 			(c) =>
 				typeof c.body?.content === "string" &&
 				(c.body.content as string).includes("AUTO-GENERATED") &&
-				(c.body.content as string).includes("Semantic release"),
+				(c.body.content as string).includes("Semantic release")
 		);
 		expect(releaseBlob).toBeDefined();
 	});
@@ -266,7 +274,7 @@ describe("runSyncGithub", () => {
 		const releaseBlob = allBlobs.find(
 			(c) =>
 				typeof c.body?.content === "string" &&
-				(c.body.content as string).includes("npm install -g npm@11 sigstore"),
+				(c.body.content as string).includes("npm install -g npm@11 sigstore")
 		);
 		expect(releaseBlob).toBeDefined();
 	});
@@ -358,7 +366,9 @@ describe("runSyncGithub", () => {
 			const method = init?.method ?? "GET";
 			// Branch creation for PR mode (POST /git/refs, not /git/refs/)
 			if (method === "POST" && urlStr.match(/\/git\/refs$/) && !urlStr.includes("/git/ref/")) {
-				return new Response(JSON.stringify({ ref: "refs/heads/chore/sync", object: { sha: "newcommitsha" } }), { status: 201 });
+				return new Response(JSON.stringify({ ref: "refs/heads/chore/sync", object: { sha: "newcommitsha" } }), {
+					status: 201,
+				});
 			}
 			return baseFn(url, init);
 		};
@@ -383,10 +393,9 @@ describe("runSyncGithub", () => {
 				return new Response(JSON.stringify({ message: "Reference already exists" }), { status: 422 });
 			}
 			if (method === "POST" && urlStr.includes("/pulls")) {
-				return new Response(
-					JSON.stringify({ errors: [{ message: "A pull request already exists for" }] }),
-					{ status: 422 },
-				);
+				return new Response(JSON.stringify({ errors: [{ message: "A pull request already exists for" }] }), {
+					status: 422,
+				});
 			}
 			return baseFn(url, init);
 		};

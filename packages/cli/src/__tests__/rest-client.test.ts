@@ -9,7 +9,12 @@ function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: st
 	const mock = vi.fn(async (input: string | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input.toString();
 		const body = typeof init?.body === "string" ? JSON.parse(init.body) : (init?.body ?? null);
-		calls.push({ url, method: (init?.method ?? "GET").toUpperCase(), headers: (init?.headers as Record<string, string>) ?? {}, body });
+		calls.push({
+			url,
+			method: (init?.method ?? "GET").toUpperCase(),
+			headers: (init?.headers as Record<string, string>) ?? {},
+			body,
+		});
 		const next = responses[i++] ?? { status: 200, body: {} };
 		const status = next.status ?? 200;
 		if (status === 204) return new Response(null, { status });
@@ -41,7 +46,13 @@ describe("createRestClient", () => {
 	describe("apikey tokenScheme", () => {
 		it("sends token in custom header, no Authorization", async () => {
 			const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-			const client = createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, tokenScheme: "apikey", apiKeyHeader: "x-api-key", fetch });
+			const client = createRestClient({
+				baseUrl: "https://api.example.com",
+				token: TOKEN,
+				tokenScheme: "apikey",
+				apiKeyHeader: "x-api-key",
+				fetch,
+			});
 			await client.request("/ping");
 			expect(calls[0]?.headers["x-api-key"]).toBe(TOKEN);
 			expect(calls[0]?.headers.authorization).toBeUndefined();
@@ -66,14 +77,24 @@ describe("createRestClient", () => {
 	describe("defaultQuery", () => {
 		it("appends to every request URL", async () => {
 			const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-			const client = createRestClient({ baseUrl: "https://api.vercel.com", token: TOKEN, defaultQuery: { teamId: "team_abc" }, fetch });
+			const client = createRestClient({
+				baseUrl: "https://api.vercel.com",
+				token: TOKEN,
+				defaultQuery: { teamId: "team_abc" },
+				fetch,
+			});
 			await client.request("/projects");
 			expect(calls[0]?.url).toBe("https://api.vercel.com/projects?teamId=team_abc");
 		});
 
 		it("merges with per-request query", async () => {
 			const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-			const client = createRestClient({ baseUrl: "https://api.vercel.com", token: TOKEN, defaultQuery: { teamId: "team_abc" }, fetch });
+			const client = createRestClient({
+				baseUrl: "https://api.vercel.com",
+				token: TOKEN,
+				defaultQuery: { teamId: "team_abc" },
+				fetch,
+			});
 			await client.request("/projects", { query: { limit: "10" } });
 			const url = new URL(calls[0]!.url);
 			expect(url.searchParams.get("teamId")).toBe("team_abc");
@@ -125,7 +146,12 @@ describe("createRestClient", () => {
 	describe("error handling", () => {
 		it("throws ProviderApiError with status on non-2xx", async () => {
 			const { fetch } = stubFetch([{ status: 401, text: "unauthorized" }]);
-			const client = createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, vendor: "Example", fetch });
+			const client = createRestClient({
+				baseUrl: "https://api.example.com",
+				token: TOKEN,
+				vendor: "Example",
+				fetch,
+			});
 			const err = await client.request("/user").catch((e: unknown) => e);
 			expect(err).toBeInstanceOf(ProviderApiError);
 			expect((err as ProviderApiError).status).toBe(401);
@@ -134,8 +160,15 @@ describe("createRestClient", () => {
 		});
 
 		it("wraps transport failure as ProviderApiError with status 0", async () => {
-			const fetch = vi.fn(async () => { throw new TypeError("fetch failed"); }) as unknown as typeof globalThis.fetch;
-			const client = createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, vendor: "Example", fetch });
+			const fetch = vi.fn(async () => {
+				throw new TypeError("fetch failed");
+			}) as unknown as typeof globalThis.fetch;
+			const client = createRestClient({
+				baseUrl: "https://api.example.com",
+				token: TOKEN,
+				vendor: "Example",
+				fetch,
+			});
 			const err = await client.request("/ping").catch((e: unknown) => e);
 			expect(err).toBeInstanceOf(ProviderApiError);
 			expect((err as ProviderApiError).status).toBe(0);

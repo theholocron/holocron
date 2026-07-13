@@ -18,9 +18,9 @@ import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
 import { loadConfig } from "./load-config.js";
 
-const { version: CLI_VERSION } = JSON.parse(
-	readFileSync(new URL("../package.json", import.meta.url), "utf-8")
-) as { version: string };
+const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
+	version: string;
+};
 
 await yargs(hideBin(process.argv))
 	.scriptName("holocron")
@@ -263,7 +263,8 @@ await yargs(hideBin(process.argv))
 							})
 							.option("otp", {
 								type: "string",
-								describe: "One-time password from your authenticator (required if npm needs 2FA for writes)",
+								describe:
+									"One-time password from your authenticator (required if npm needs 2FA for writes)",
 							}),
 					async (argv) => {
 						const report = await runNpmPublishInitial({
@@ -292,7 +293,8 @@ await yargs(hideBin(process.argv))
 				})
 				.option("branch", {
 					type: "string",
-					describe: "Push to this branch instead of the default branch (enables PR-based workflow for protected repos)",
+					describe:
+						"Push to this branch instead of the default branch (enables PR-based workflow for protected repos)",
 				})
 				.option("pr", {
 					type: "boolean",
@@ -440,7 +442,9 @@ await yargs(hideBin(process.argv))
 							if (Array.isArray(upgradeNode?.extra)) {
 								extra = upgradeNode.extra as string[];
 							}
-						} catch { /* no config or no upgrade section — fine */ }
+						} catch {
+							/* no config or no upgrade section — fine */
+						}
 
 						const report = await runUpgradeNode({
 							to: argv.to as number,
@@ -453,7 +457,7 @@ await yargs(hideBin(process.argv))
 							if (report.message) console.error(`upgrade node: ${report.message}`);
 							process.exitCode = 1;
 						}
-					},
+					}
 				)
 				.demandCommand(1, "Run `holocron upgrade --help` to see available upgrade subcommands."),
 		() => {}

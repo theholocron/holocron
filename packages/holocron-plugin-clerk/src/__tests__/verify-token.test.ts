@@ -8,7 +8,9 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: { id: "ins_abc123", environment_type: "development" } }]);
 		const result = await verifyToken("sk_test_abc", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/development instance ins_abc123/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(
+			/development instance ins_abc123/
+		);
 	});
 
 	it("hits /instance without doubling the /v1 base-URL prefix", async () => {
@@ -23,7 +25,9 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: {} }]);
 		const result = await verifyToken("sk_test", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/unknown instance unknown/);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(
+			/unknown instance unknown/
+		);
 	});
 
 	it("returns ok:false with the error message on 401", async () => {

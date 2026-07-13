@@ -2,11 +2,7 @@ import { createRestClient, type RequestOptions, type RestClient } from "@theholo
 
 export type { RequestOptions, RestClient };
 
-export function createClerkRestClient(opts: {
-	token: string;
-	baseUrl?: string;
-	fetch?: typeof fetch;
-}): RestClient {
+export function createClerkRestClient(opts: { token: string; baseUrl?: string; fetch?: typeof fetch }): RestClient {
 	return createRestClient({
 		baseUrl: opts.baseUrl ?? "https://api.clerk.com/v1",
 		token: opts.token,

@@ -33,7 +33,13 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError with a helpful message when nothing is set", () => {
-		const err = (() => { try { resolveToken({ env: {}, keyring: noKeyring }); } catch (e) { return e; } })();
+		const err = (() => {
+			try {
+				resolveToken({ env: {}, keyring: noKeyring });
+			} catch (e) {
+				return e;
+			}
+		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/HOLOCRON_GH_TOKEN/);
 		expect((err as Error).message).toMatch(/--token/);

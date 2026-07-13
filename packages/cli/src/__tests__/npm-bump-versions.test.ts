@@ -8,7 +8,7 @@ const PACKAGES_DIR = join(CWD, "packages");
 
 function makeFs(files: Record<string, Record<string, unknown>>) {
 	const written: Record<string, string> = {};
-	const toRel = (p: string) => p.startsWith(CWD + "/") ? p.slice(CWD.length + 1) : p;
+	const toRel = (p: string) => (p.startsWith(CWD + "/") ? p.slice(CWD.length + 1) : p);
 	const readFile = (p: string): string => {
 		const rel = toRel(p);
 		const data = files[rel];
@@ -227,7 +227,9 @@ describe("runNpmBumpVersions", () => {
 			readFile,
 			writeFile,
 			listDir,
-			isDir: () => { throw new Error("EPERM: permission denied"); },
+			isDir: () => {
+				throw new Error("EPERM: permission denied");
+			},
 		});
 		expect(report.status).toBe("ok");
 		expect(report.bumped).toContain("root");

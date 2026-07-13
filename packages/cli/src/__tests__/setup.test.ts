@@ -47,12 +47,25 @@ describe("runSetup", () => {
 	it("runs all six source security steps + reports ok for each", async () => {
 		const calls: string[] = [];
 		const source = {
-			enableVulnerabilityAlerts: async () => { calls.push("vuln-alerts"); },
-			enableAutomatedSecurityFixes: async () => { calls.push("auto-sec-fixes"); },
-			enableSecretScanning: async () => { calls.push("secret-scan"); },
-			enablePrivateVulnerabilityReporting: async () => { calls.push("private-vuln"); },
-			enableDependencyGraph: async () => { calls.push("dep-graph"); },
-			enableCodeScanning: async () => { calls.push("code-scan"); return "run 1"; },
+			enableVulnerabilityAlerts: async () => {
+				calls.push("vuln-alerts");
+			},
+			enableAutomatedSecurityFixes: async () => {
+				calls.push("auto-sec-fixes");
+			},
+			enableSecretScanning: async () => {
+				calls.push("secret-scan");
+			},
+			enablePrivateVulnerabilityReporting: async () => {
+				calls.push("private-vuln");
+			},
+			enableDependencyGraph: async () => {
+				calls.push("dep-graph");
+			},
+			enableCodeScanning: async () => {
+				calls.push("code-scan");
+				return "run 1";
+			},
 		};
 		const loaded = loadedFrom({
 			project: { name: "demo" },
@@ -72,9 +85,20 @@ describe("runSetup", () => {
 			print: () => {},
 		});
 
-		expect(calls).toEqual(["vuln-alerts", "auto-sec-fixes", "secret-scan", "private-vuln", "dep-graph", "code-scan"]);
+		expect(calls).toEqual([
+			"vuln-alerts",
+			"auto-sec-fixes",
+			"secret-scan",
+			"private-vuln",
+			"dep-graph",
+			"code-scan",
+		]);
 		const securitySteps = report.steps.filter(
-			(s) => s.capability === "source" && !s.step.startsWith("write") && !s.step.startsWith("upsert") && !s.step.startsWith("updateRepo")
+			(s) =>
+				s.capability === "source" &&
+				!s.step.startsWith("write") &&
+				!s.step.startsWith("upsert") &&
+				!s.step.startsWith("updateRepo")
 		);
 		expect(securitySteps).toHaveLength(6);
 		expect(securitySteps.every((s) => s.status === "ok")).toBe(true);
@@ -100,11 +124,22 @@ describe("runSetup", () => {
 					enableVulnerabilityAlerts: async () => {
 						throw new Error("403 forbidden");
 					},
-					enableAutomatedSecurityFixes: async () => { calls.push("auto-sec-fixes"); },
-					enableSecretScanning: async () => { calls.push("secret-scan"); },
-					enablePrivateVulnerabilityReporting: async () => { calls.push("private-vuln"); },
-					enableDependencyGraph: async () => { calls.push("dep-graph"); },
-					enableCodeScanning: async () => { calls.push("code-scan"); return "run 1"; },
+					enableAutomatedSecurityFixes: async () => {
+						calls.push("auto-sec-fixes");
+					},
+					enableSecretScanning: async () => {
+						calls.push("secret-scan");
+					},
+					enablePrivateVulnerabilityReporting: async () => {
+						calls.push("private-vuln");
+					},
+					enableDependencyGraph: async () => {
+						calls.push("dep-graph");
+					},
+					enableCodeScanning: async () => {
+						calls.push("code-scan");
+						return "run 1";
+					},
 					writeRepoFile: async () => {},
 				},
 			}),
@@ -734,5 +769,78 @@ describe("runSetup", () => {
 		const joined = lines.join("\n");
 		expect(joined).toMatch(/Holocron setup — demo/);
 		expect(joined).toMatch(/1 ok, 0 fail/);
+	});
+
+	it("writes .alexrc.json whenever source is available", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(written[".alexrc.json"]).toBeDefined();
+		const parsed = JSON.parse(written[".alexrc.json"]!);
+		expect(parsed.allow).toContain("hooks");
+		expect(parsed.allow).toContain("hook");
+		const step = report.steps.find((s) => s.step === "write .alexrc.json");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("dry-run does not write .alexrc.json", async () => {
+		let writeCalled = false;
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {
+						writeCalled = true;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(writeCalled).toBe(false);
+		const step = report.steps.find((s) => s.step === "write .alexrc.json");
+		expect(step?.status).toBe("dry-run");
 	});
 });

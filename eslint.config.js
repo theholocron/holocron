@@ -19,11 +19,6 @@ export default [
 		},
 	},
 	{
-		ignores: [
-			"packages/*/dist/**",
-			"packages/*/coverage/**",
-			"packages/cli-utils/**",
-			"**/node_modules/**",
-		],
+		ignores: ["packages/*/dist/**", "packages/*/coverage/**", "packages/cli-utils/**", "**/node_modules/**"],
 	},
 ];

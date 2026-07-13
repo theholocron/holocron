@@ -4,11 +4,7 @@ import { PostmanPlanLimitError, detectPlanLimit } from "./errors.js";
 
 export type { RequestOptions, RestClient };
 
-export function createPostmanRestClient(opts: {
-	token: string;
-	baseUrl?: string;
-	fetch?: typeof fetch;
-}): RestClient {
+export function createPostmanRestClient(opts: { token: string; baseUrl?: string; fetch?: typeof fetch }): RestClient {
 	const base = createRestClient({
 		baseUrl: opts.baseUrl ?? "https://api.getpostman.com",
 		token: opts.token,

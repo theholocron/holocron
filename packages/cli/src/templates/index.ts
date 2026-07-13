@@ -346,6 +346,7 @@ jobs:
         name: Run Super Linter
         env:
           GITHUB_TOKEN: \${{ github.token }}
+          DEFAULT_BRANCH: \${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           ANNOTATE_ONLY: true
           DISABLE_COMMENTS: false
           IGNORE_GITIGNORED_FILES: true
@@ -850,11 +851,10 @@ export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
 	"sync-github": JSON.stringify(
 		{
 			name: "Sync GitHub Templates",
-			description:
-				"Sync workflow templates and composite actions from the holocron CLI.",
+			description: "Sync workflow templates and composite actions from the holocron CLI.",
 			iconName: "octicon sync",
 		},
 		null,
-		2,
+		2
 	),
 };

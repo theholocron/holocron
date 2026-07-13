@@ -2,11 +2,7 @@ import { createRestClient, type RequestOptions, type RestClient } from "@theholo
 
 export type { RequestOptions, RestClient };
 
-export function createDopplerRestClient(opts: {
-	token: string;
-	baseUrl?: string;
-	fetch?: typeof fetch;
-}): RestClient {
+export function createDopplerRestClient(opts: { token: string; baseUrl?: string; fetch?: typeof fetch }): RestClient {
 	return createRestClient({
 		baseUrl: opts.baseUrl ?? "https://api.doppler.com/v3",
 		token: opts.token,
