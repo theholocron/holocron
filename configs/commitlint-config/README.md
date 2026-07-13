@@ -5,8 +5,10 @@ A [CommitLint configuration](https://commitlint.js.org/reference/configuration.h
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/commitlint-config @commitlint/cli @commitlint/config-conventional
+pnpm add -D @theholocron/commitlint-config @commitlint/cli
 ```
+
+`@commitlint/cli` is required to run commitlint directly (e.g., in git hooks or CI). `@commitlint/config-conventional` is a peer dependency resolved automatically by your package manager.
 
 ## Usage
 
