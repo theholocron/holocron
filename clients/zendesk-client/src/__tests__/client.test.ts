@@ -138,6 +138,22 @@ describe("fields", () => {
 		expect(calls[0]?.url).toContain("/api/v2/ticket_fields/7");
 	});
 
+	it("POST /api/v2/ticket_fields on create", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { ticket_field: { id: 7 } } }]);
+		await client.fields.create({ title: "Account ID", type: "text" } as never);
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/api/v2/ticket_fields");
+		expect(calls[0]?.body).toEqual({ ticket_field: { title: "Account ID", type: "text" } });
+	});
+
+	it("PUT /api/v2/ticket_fields/:id on update", async () => {
+		const { client, calls } = makeClient([{ body: { ticket_field: {} } }]);
+		await client.fields.update(7, { title: "Updated" } as never);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain("/api/v2/ticket_fields/7");
+		expect(calls[0]?.body).toEqual({ ticket_field: { title: "Updated" } });
+	});
+
 	it("DELETE /api/v2/ticket_fields/:id", async () => {
 		const { client, calls } = makeClient([{ status: 204 }]);
 		await client.fields.delete(7);
