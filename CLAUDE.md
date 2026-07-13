@@ -36,6 +36,8 @@ Three repos, one rule per concern:
 
 ## Code patterns
 
+- **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
+- **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-plugin` skill at `.claude/skills/holocron-plugin.md`. The
   skill produces ~14 files in the right shape; only the capability
