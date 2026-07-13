@@ -1,4 +1,4 @@
-import { mockUser } from "../user/user.mocks.js"
+import { mockUser } from "../user/user.mocks.js";
 import type { IActivity, IActivityResponse } from "./activities.types.js";
 
 export const mockActivity: IActivity = {
@@ -9,28 +9,28 @@ export const mockActivity: IActivity = {
 	object: {
 		ticket: {
 			id: 1521,
-			subject: "test"
-		}
+			subject: "test",
+		},
 	},
 	target: {
 		ticket: {
 			id: 1521,
-			subject: "test"
-		}
+			subject: "test",
+		},
 	},
 	title: "Tedd assigned ticket #1521 to you.",
 	updated_at: "2020-11-17T00:34:40Z",
 	url: "https://example.zendesk.com/api/v2/activities/29183462.json",
 	user: mockUser,
 	user_id: 3343,
-	verb: "tickets.assignment"
+	verb: "tickets.assignment",
 };
 
 export const mockActivityResponse: IActivityResponse = {
-	activities: [ mockActivity ],
-	actors: [ mockUser ],
+	activities: [mockActivity],
+	actors: [mockUser],
 	count: 1,
 	next_page: null,
 	previous_page: null,
-	users: [ mockUser ]
+	users: [mockUser],
 };

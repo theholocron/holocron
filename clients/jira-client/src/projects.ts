@@ -6,10 +6,13 @@ export function projects(options: JiraClientOptions) {
 
 	return {
 		get(id: string): Promise<JiraProject> {
-			return request<JiraProject>(buildUrl(options, `/project/${id}`, { expand: "issueTypes" }), {
-				method: "GET",
-				headers,
-			});
+			return request<JiraProject>(
+				buildUrl(options, `/project/${id}`, { expand: "issueTypes" }),
+				{
+					method: "GET",
+					headers,
+				},
+			);
 		},
 	};
 }

@@ -1,4 +1,9 @@
-import type { ICustomStatus, ICustomStatusesResponse, ICustomStatusResponse, IDefaultStatus } from "./status.types.js";
+import type {
+	ICustomStatus,
+	ICustomStatusesResponse,
+	ICustomStatusResponse,
+	IDefaultStatus,
+} from "./status.types.js";
 
 export const mockDefaultStatus: IDefaultStatus = {
 	active: true,
@@ -7,7 +12,7 @@ export const mockDefaultStatus: IDefaultStatus = {
 	end_user_description: "Your ticket is being responded to",
 	end_user_label: "open",
 	status_category: "open",
-}
+};
 export const mockCustomStatus: ICustomStatus = {
 	active: true,
 	agent_label: "Responding quickly",
@@ -22,12 +27,12 @@ export const mockCustomStatus: ICustomStatus = {
 	raw_end_user_description: "Your ticket is being responded to",
 	raw_end_user_label: "Urgent processing",
 	status_category: "open",
-	updated_at: "2021-07-20T22:55:29Z"
+	updated_at: "2021-07-20T22:55:29Z",
 };
 
 export const mockCustomStatusesResponse: ICustomStatusesResponse = {
 	count: 1,
-	custom_statuses: [ mockCustomStatus ],
+	custom_statuses: [mockCustomStatus],
 };
 
 export const mockCustomStatusResponse: ICustomStatusResponse = {

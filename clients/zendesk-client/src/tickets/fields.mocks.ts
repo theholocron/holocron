@@ -1,13 +1,18 @@
-import type { ICustomField, ITicketField, TTicketFieldResponse, TTicketFieldsResponse } from "./fields.types.js";
+import type {
+	ICustomField,
+	ITicketField,
+	TTicketFieldResponse,
+	TTicketFieldsResponse,
+} from "./fields.types.js";
 
 export const mockCustomField1: ICustomField = {
 	id: 27642,
-	value: "745"
+	value: "745",
 };
 
 export const mockCustomField2: ICustomField = {
 	id: 27648,
-	value: "yes"
+	value: "yes",
 };
 
 export const mockCustomFields: ICustomField[] = [
@@ -41,7 +46,7 @@ export const mockTicketField: ITicketField = {
 
 export const mockTicketFieldsResponse: TTicketFieldsResponse = {
 	count: 1,
-	ticket_fields: [ mockTicketField ],
+	ticket_fields: [mockTicketField],
 };
 
 export const mockTicketFieldResponse: TTicketFieldResponse = {

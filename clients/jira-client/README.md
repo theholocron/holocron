@@ -25,7 +25,9 @@ const issue = await jira.issues.create("Fix login bug", "Bug", "PROJ");
 const issues = await jira.issues.getMany(["PROJ-1", "PROJ-2"]);
 
 // Search with JQL
-const results = await jira.issues.search({ jql: "project = PROJ AND status = Open" });
+const results = await jira.issues.search({
+  jql: "project = PROJ AND status = Open",
+});
 
 // Manage versions
 const version = await jira.versions.create("v1.2.0", "PROJ");

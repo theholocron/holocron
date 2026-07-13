@@ -6,17 +6,17 @@ import type { ISearchResponse } from "./search.types.js";
 export const mockSearchResponseGroups: ISearchResponse = {
 	count: 1,
 	facets: null,
-	results: [ mockGroup ],
+	results: [mockGroup],
 };
 
 export const mockSearchResponseTickets: ISearchResponse = {
 	count: 1,
 	facets: null,
-	results: [ mockTicket ],
+	results: [mockTicket],
 };
 
 export const mockSearchResponseUsers: ISearchResponse = {
 	count: 1,
 	facets: null,
-	results: [ mockUser ],
+	results: [mockUser],
 };

@@ -25,7 +25,11 @@ export interface IActivity {
 	// The id of the agent making the request
 	user_id?: number | null;
 	// The type of activity
-	verb?: "tickets.assignment" | "tickets.comment" | "tickets.priority_increase" | null;
+	verb?:
+		| "tickets.assignment"
+		| "tickets.comment"
+		| "tickets.priority_increase"
+		| null;
 }
 
 export interface IActivityResponse extends IAPIResponse {

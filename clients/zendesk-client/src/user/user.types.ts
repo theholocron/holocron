@@ -66,7 +66,12 @@ export interface IUser {
 	// The user's tags. Only present if your account has user tagging enabled
 	tags?: string[] | null;
 	// Specifies which tickets the user has access to.
-	ticket_restriction?: "organization" | "groups" | "assigned"  | "requested" | null;
+	ticket_restriction?:
+		| "organization"
+		| "groups"
+		| "assigned"
+		| "requested"
+		| null;
 	// The user's time zone. See Time Zone
 	time_zone?: string | null;
 	// If two-factor authentication is enabled

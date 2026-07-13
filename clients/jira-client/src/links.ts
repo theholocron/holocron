@@ -22,7 +22,11 @@ export function links(options: JiraClientOptions) {
 			}).then((r) => r.status);
 		},
 
-		createMany(tickets: string[], link: string, type: string): Promise<IssueLinkResult[]> {
+		createMany(
+			tickets: string[],
+			link: string,
+			type: string,
+		): Promise<IssueLinkResult[]> {
 			return Promise.all(
 				tickets.map(async (ticket) => ({
 					ticket,
@@ -31,7 +35,9 @@ export function links(options: JiraClientOptions) {
 			);
 		},
 
-		getLinkTypes(params?: Record<string, string>): Promise<{ issueLinkTypes: JiraIssueLinkType[] }> {
+		getLinkTypes(
+			params?: Record<string, string>,
+		): Promise<{ issueLinkTypes: JiraIssueLinkType[] }> {
 			return request<{ issueLinkTypes: JiraIssueLinkType[] }>(
 				buildUrl(options, "/issueLinkType", params),
 				{ method: "GET", headers },

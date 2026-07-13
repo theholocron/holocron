@@ -2,7 +2,10 @@
 // @ts-nocheck
 import zendesk, { createToken } from "./src";
 
-const token = createToken("disclosures-eng@pnmac.com", "8gW7Jn1SYGK8NepkmYQKUFeMFekU1KuH2BbXR1un");
+const token = createToken(
+	"disclosures-eng@pnmac.com",
+	"8gW7Jn1SYGK8NepkmYQKUFeMFekU1KuH2BbXR1un",
+);
 
 /*
 zendesk.activities.get({ token, params: { since: "2023-06-01T00:00:00.000Z" } })
@@ -19,7 +22,8 @@ zendesk.search(`loanNumber=6120150431`, { params: { "include": "tickets(metric_s
 	.then((data) => console.log({ data: data[1].results }));
 */
 
-zendesk.tickets.comments.get(2700, { params: { "include": "users", }, token })
+zendesk.tickets.comments
+	.get(2700, { params: { include: "users" }, token })
 	.then((data) => console.log({ data: data[1].users }));
 
 /*

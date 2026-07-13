@@ -38,14 +38,19 @@ export interface ResolveTokenConfig {
  * });
  * ```
  */
-export function createResolveToken(config: ResolveTokenConfig): (input?: ResolveTokenInput) => string {
+export function createResolveToken(
+	config: ResolveTokenConfig,
+): (input?: ResolveTokenInput) => string {
 	const defaultKeyring = config.getKeyringToken ?? (() => null);
 	return function resolveToken(input: ResolveTokenInput = {}): string {
 		const env = input.env ?? process.env;
 		const keyring = input.keyring ?? defaultKeyring;
 		// Bracket access so numeric-prefixed env var names remain syntactically valid.
 		const token =
-			input.cliToken || env[config.envName] || env[config.vendorEnvName] || keyring(config.keyringService);
+			input.cliToken ||
+			env[config.envName] ||
+			env[config.vendorEnvName] ||
+			keyring(config.keyringService);
 		if (!token) {
 			throw new AuthError(config.errorMessage);
 		}
