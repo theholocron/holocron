@@ -1,3 +1,4 @@
+<!-- editorconfig-checker-disable-file -->
 # Self-hosting — npm publishing via Trusted Publishing
 
 This repo publishes its own `@theholocron/*` packages via **npm Trusted Publishing**

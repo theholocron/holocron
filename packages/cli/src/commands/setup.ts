@@ -28,7 +28,8 @@ import { workflowHeader, KNOWN_WORKFLOWS, generateThinCallerContent } from "./se
 // Canonical allow-list for the alex prose linter. Shared across all
 // theholocron repos via `holocron setup` so the list only needs to be
 // updated here.
-const ALEX_CONFIG = JSON.stringify({ allow: ["dead", "hook", "hooks", "husky", "period"] }, null, 2) + "\n";
+const ALEX_CONFIG =
+	JSON.stringify({ allow: ["dead", "failure", "failures", "hook", "hooks", "husky", "period"] }, null, 2) + "\n";
 
 // ── dependabot config template ───────────────────────────────────────
 const DEPENDABOT_CONFIG = `\

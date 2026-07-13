@@ -1,3 +1,4 @@
+<!-- editorconfig-checker-disable-file -->
 # `@theholocron/cli-utils`
 
 Shared CLI primitives carried over from the v1 single-package CLI:

@@ -1,3 +1,4 @@
+<!-- editorconfig-checker-disable-file -->
 # Holocron
 
 A pluggable, capability-based CLI for spinning up and operating
