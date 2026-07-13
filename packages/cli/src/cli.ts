@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -8,6 +9,7 @@ import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
+import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
@@ -403,6 +405,58 @@ await yargs(hideBin(process.argv))
 				throw err;
 			}
 		}
+	)
+	.command(
+		"upgrade",
+		"Upgrade toolchain version pins across the repo",
+		(y) =>
+			y
+				.command(
+					"node <to>",
+					"Scan the repo and update every Node.js version pin to a new major",
+					(yy) =>
+						yy
+							.positional("to", {
+								type: "number",
+								demandOption: true,
+								describe: "Target Node.js major version (e.g., 22)",
+							})
+							.option("from", {
+								type: "number",
+								describe:
+									"Current major version to replace. Auto-detected from .nvmrc / engines.node when omitted.",
+							}),
+					async (argv) => {
+						// Read upgrade.node.extra from holocron.config.json if present.
+						// We read the raw file directly rather than through loadConfig because
+						// the upgrade config is not part of the plugin schema.
+						let extra: string[] = [];
+						try {
+							const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
+							const cfg = JSON.parse(raw) as Record<string, unknown>;
+							const upgradeNode = (cfg.upgrade as Record<string, unknown> | undefined)?.node as
+								| Record<string, unknown>
+								| undefined;
+							if (Array.isArray(upgradeNode?.extra)) {
+								extra = upgradeNode.extra as string[];
+							}
+						} catch { /* no config or no upgrade section — fine */ }
+
+						const report = await runUpgradeNode({
+							to: argv.to as number,
+							...(argv.from != null ? { from: argv.from as number } : {}),
+							cwd: argv.cwd,
+							dryRun: argv.dryRun,
+							extra,
+						});
+						if (report.status === "fail") {
+							if (report.message) console.error(`upgrade node: ${report.message}`);
+							process.exitCode = 1;
+						}
+					},
+				)
+				.demandCommand(1, "Run `holocron upgrade --help` to see available upgrade subcommands."),
+		() => {}
 	)
 	.command(
 		"auth <subcommand>",

@@ -117,6 +117,15 @@ Code into every conversation in this repo.
   expect(result.ok).toBe(true);
   expect((result as { ok: boolean; subject?: string }).subject).toMatch(/pattern/);
   ```
+- **`holocron upgrade node` pattern registry.** When you introduce a
+  new file type that pins the Node.js version (e.g., a new CI platform's
+  config, an `.engines` file, a custom script), add a `Pattern` entry to
+  the `PATTERNS` array in
+  `packages/cli/src/commands/upgrade-node.ts` — a `matches` predicate
+  on the filename and a `patch` function that replaces the old major with
+  the new one. The `upgrade.node.extra` field in `holocron.config.json`
+  is only for non-conventional *file paths* (unusual locations for known
+  file types); it is not a substitute for adding a new pattern.
 - **PR checks must be green before merge.** `pnpm typecheck`,
   `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. CodeQL
   runs separately. DCO checks the Signed-off-by trailer per commit
