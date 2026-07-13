@@ -55,6 +55,9 @@
     "dist",
     "README.md"
   ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "releases": "https://github.com/theholocron/clients/releases",
   "wiki": "https://github.com/theholocron/clients/wiki"
 }
