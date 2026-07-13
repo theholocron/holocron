@@ -1,4 +1,5 @@
 <!-- editorconfig-checker-disable-file -->
+
 # `@theholocron/holocron-plugin-neon`
 
 Neon plugin for [Holocron](../cli). Implements the `storage`

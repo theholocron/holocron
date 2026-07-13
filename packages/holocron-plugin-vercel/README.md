@@ -1,4 +1,5 @@
 <!-- editorconfig-checker-disable-file -->
+
 # `@theholocron/holocron-plugin-vercel`
 
 Vercel plugin for [Holocron](../cli). Implements the `deployment`
