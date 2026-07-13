@@ -1,3 +1,9 @@
 {
-  "allow": ["dead", "hook", "hooks", "husky", "period"]
+  "allow": [
+    "dead",
+    "hook",
+    "hooks",
+    "husky",
+    "period"
+  ]
 }
