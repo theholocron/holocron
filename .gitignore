@@ -87,3 +87,6 @@ coverage
 reports
 dist
 super-linter-output
+
+# Generated test output — not useful in version control
+test-report.junit.xml
