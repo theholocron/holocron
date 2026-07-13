@@ -15,7 +15,7 @@ import { google, googleAuth } from "@theholocron/google-client";
 
 // Service account auth (env vars — see Auth section)
 const authClient = await googleAuth([
-  "https://www.googleapis.com/auth/spreadsheets.readonly",
+	"https://www.googleapis.com/auth/spreadsheets.readonly",
 ]);
 
 // Read a spreadsheet
@@ -56,7 +56,7 @@ GOOGLE_REDIRECT_URI=http://localhost:4000/oauth2callback  # optional
 import { oauth } from "@theholocron/google-client";
 
 const authClient = await oauth([
-  "https://www.googleapis.com/auth/spreadsheets",
+	"https://www.googleapis.com/auth/spreadsheets",
 ]);
 ```
 
