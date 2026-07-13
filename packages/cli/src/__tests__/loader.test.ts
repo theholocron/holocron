@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { LoaderError, PluginLoader, type PluginImporter } from "../loader.js";
+import { cardinalityOf, LoaderError, PluginLoader, type PluginImporter } from "../loader.js";
 import { resolveConfig } from "../config.js";
 
 function loaderWith(rawConfig: Parameters<typeof resolveConfig>[0], modules: Record<string, unknown>) {
@@ -398,5 +398,16 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 		const err = await loader.load().catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(LoaderError);
 		expect((err as Error).message).toMatch(/createPlugin/);
+	});
+});
+
+describe("cardinalityOf", () => {
+	it("returns single for single-cardinality capabilities", () => {
+		expect(cardinalityOf("source")).toBe("single");
+		expect(cardinalityOf("vault")).toBe("single");
+	});
+
+	it("returns many for many-cardinality capabilities", () => {
+		expect(cardinalityOf("notifications")).toBe("many");
 	});
 });

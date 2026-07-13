@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
+import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "../commands/setup-workflows.js";
 import { runSyncGithub, gitBlobSha as _gitBlobSha } from "../commands/sync-github.js";
 
 // Actions and workflow-templates are only pushed to the primary .github repo.
@@ -269,5 +269,168 @@ describe("runSyncGithub", () => {
 				(c.body.content as string).includes("npm install -g npm@11 sigstore"),
 		);
 		expect(releaseBlob).toBeDefined();
+	});
+
+	it("fails when the ref fetch returns an error", async () => {
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			if (method === "GET" && urlStr.includes("/git/ref/")) {
+				return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+			}
+			return baseFn(url, init);
+		};
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("not found");
+	});
+
+	it("fails when the tree creation returns an error", async () => {
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			if (method === "POST" && urlStr.includes("/git/trees")) {
+				return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+			}
+			return baseFn(url, init);
+		};
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("failed to create tree");
+	});
+
+	it("fails when the commit creation returns an error", async () => {
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			if (method === "POST" && urlStr.includes("/git/commits")) {
+				return new Response(JSON.stringify({ message: "Unprocessable Entity" }), { status: 422 });
+			}
+			return baseFn(url, init);
+		};
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("failed to create commit");
+	});
+
+	it("fails when the ref update returns an error", async () => {
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			if (method === "PATCH" && urlStr.includes("/git/refs/")) {
+				return new Response(JSON.stringify({ message: "Forbidden" }), { status: 403 });
+			}
+			return baseFn(url, init);
+		};
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("failed to update ref");
+	});
+
+	it("opens a PR when createPr is true and reports the PR URL", async () => {
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			// Branch creation for PR mode (POST /git/refs, not /git/refs/)
+			if (method === "POST" && urlStr.match(/\/git\/refs$/) && !urlStr.includes("/git/ref/")) {
+				return new Response(JSON.stringify({ ref: "refs/heads/chore/sync", object: { sha: "newcommitsha" } }), { status: 201 });
+			}
+			return baseFn(url, init);
+		};
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			createPr: true,
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.prUrl).toBe("https://github.com/org/repo/pull/1");
+	});
+
+	it("handles already-open PR gracefully when createPr is true", async () => {
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			// Branch creation returns 422 → falls back to force-push PATCH
+			if (method === "POST" && urlStr.match(/\/git\/refs$/) && !urlStr.includes("/git/ref/")) {
+				return new Response(JSON.stringify({ message: "Reference already exists" }), { status: 422 });
+			}
+			if (method === "POST" && urlStr.includes("/pulls")) {
+				return new Response(
+					JSON.stringify({ errors: [{ message: "A pull request already exists for" }] }),
+					{ status: 422 },
+				);
+			}
+			return baseFn(url, init);
+		};
+		const lines: string[] = [];
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			createPr: true,
+			print: (l) => lines.push(l),
+			fetch: fn,
+		});
+		expect(report.status).toBe("ok");
+		expect(lines.join("\n")).toContain("already open");
+	});
+});
+
+describe("generateThinCallerContent", () => {
+	it("returns empty string for unknown workflow name", () => {
+		expect(generateThinCallerContent("nonexistent-workflow")).toBe("");
+	});
+
+	it("returns base template unchanged when withOverrides is empty", () => {
+		const base = generateThinCallerContent("test", {});
+		expect(base).toContain("name: Test");
+		expect(base).toContain("secrets: inherit");
+	});
+
+	it("returns base template unchanged when withOverrides is omitted", () => {
+		const base = generateThinCallerContent("test");
+		expect(base).toContain("name: Test");
+		expect(base).toContain("secrets: inherit");
+	});
+
+	it("injects boolean true, boolean false, and string overrides into the with block", () => {
+		// The `test` template ends with bare `secrets: inherit` so injection works
+		const content = generateThinCallerContent("test", {
+			enable: true,
+			debug: false,
+			version: "1.2.3",
+		});
+		expect(content).toContain("with:");
+		expect(content).toContain("enable: true");
+		expect(content).toContain("debug: false");
+		expect(content).toContain("version: 1.2.3");
+		expect(content).toContain("secrets: inherit");
 	});
 });

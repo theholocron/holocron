@@ -272,6 +272,38 @@ describe("extra paths", () => {
 
 // ── dry-run ───────────────────────────────────────────────────────────────────
 
+describe("error resilience", () => {
+	it("skips package.json files with invalid JSON", async () => {
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			".nvmrc": "20\n",
+			"package.json": "{ invalid json }",
+		});
+		const report = await runUpgradeNode({
+			to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles,
+		});
+		expect(report.status).toBe("ok");
+		expect(written["package.json"]).toBeUndefined();
+	});
+
+	it("skips files that cannot be read", async () => {
+		const { writeFile, walkFiles } = makeFs({
+			".nvmrc": "20\n",
+			"package.json": "{}",
+			"unreadable.yml": "node-version: 20",
+		});
+		const readFile = (p: string): string => {
+			if (p.endsWith("unreadable.yml")) throw new Error("EACCES: permission denied");
+			if (p.endsWith(".nvmrc")) return "20\n";
+			if (p.endsWith("package.json")) return "{}";
+			throw new Error(`ENOENT: ${p}`);
+		};
+		const report = await runUpgradeNode({
+			to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles,
+		});
+		expect(report.status).toBe("ok");
+	});
+});
+
 describe("dry-run", () => {
 	it("does not write any files", async () => {
 		const { readFile, writeFile, walkFiles, written } = makeFs({

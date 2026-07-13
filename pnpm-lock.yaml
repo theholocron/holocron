@@ -27,6 +27,9 @@ catalogs:
     '@theholocron/vitest-config':
       specifier: ^5.2.0
       version: 5.2.0
+    '@types/node':
+      specifier: ^26
+      version: 26.0.1
     '@vitest/eslint-plugin':
       specifier: ^1.6.23
       version: 1.6.23
@@ -177,6 +180,9 @@ importers:
       '@theholocron/vitest-config':
         specifier: 'catalog:'
         version: 5.2.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.0.1
       '@types/yargs':
         specifier: ^17.0.35
         version: 17.0.35
@@ -6397,7 +6403,7 @@ snapshots:
 
   '@types/mute-stream@0.0.1':
     dependencies:
-      '@types/node': 20.19.43
+      '@types/node': 26.0.1
 
   '@types/node@20.19.43':
     dependencies:
