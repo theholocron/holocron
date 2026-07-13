@@ -1,3 +1,4 @@
+<!-- editorconfig-checker-disable-file -->
 # `@theholocron/cli`
 
 The Holocron CLI — a pluggable, capability-based orchestrator for

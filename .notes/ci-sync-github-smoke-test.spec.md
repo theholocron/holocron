@@ -1,3 +1,4 @@
+<!-- editorconfig-checker-disable-file -->
 ---
 status: proposed
 issue: 115
