@@ -346,6 +346,7 @@ jobs:
         name: Run Super Linter
         env:
           GITHUB_TOKEN: \${{ github.token }}
+          DEFAULT_BRANCH: \${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           ANNOTATE_ONLY: true
           DISABLE_COMMENTS: false
           IGNORE_GITIGNORED_FILES: true
