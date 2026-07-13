@@ -21,7 +21,10 @@ const zendesk = createZendeskClient({
 // Tickets
 const ticket = await zendesk.tickets.get(12345);
 const all = await zendesk.tickets.list();
-await zendesk.tickets.create({ subject: "Bug report", comment: { body: "Details..." } });
+await zendesk.tickets.create({
+  subject: "Bug report",
+  comment: { body: "Details..." },
+});
 await zendesk.tickets.update(12345, { status: "solved" });
 await zendesk.tickets.delete(12345);
 
@@ -35,10 +38,15 @@ const field = await zendesk.fields.get(7);
 
 // Status
 const statuses = await zendesk.status.list();
-await zendesk.status.create({ agent_label: "Escalated", status_category: "open" });
+await zendesk.status.create({
+  agent_label: "Escalated",
+  status_category: "open",
+});
 
 // Search
-const results = await zendesk.search.query("type:ticket status:open assignee:me");
+const results = await zendesk.search.query(
+  "type:ticket status:open assignee:me",
+);
 
 // Activities
 const activities = await zendesk.activities.get();
@@ -61,10 +69,10 @@ Pass `token` to `createZendeskClient` along with your subdomain base URL.
 
 ### `createZendeskClient(opts)`
 
-| Option | Type | Description |
-|--------|------|-------------|
+| Option    | Type     | Description                                                   |
+| --------- | -------- | ------------------------------------------------------------- |
 | `baseUrl` | `string` | Your Zendesk instance URL, e.g. `"https://myorg.zendesk.com"` |
-| `token` | `string` | Encoded token from `createToken(email, apiToken)` |
+| `token`   | `string` | Encoded token from `createToken(email, apiToken)`             |
 
 Returns a client with `activities`, `comments`, `fields`, `search`, `status`, and `tickets` namespaces.
 

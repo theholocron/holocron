@@ -20,7 +20,7 @@ import { createRestClient } from "@theholocron/http-client";
 const client = createRestClient({
   baseUrl: "https://api.example.com",
   token: process.env.EXAMPLE_TOKEN!,
-  vendor: "Example",   // prefix for error messages
+  vendor: "Example", // prefix for error messages
 });
 
 const data = await client.request<{ id: string }>("/widgets/42");
@@ -28,16 +28,16 @@ const data = await client.request<{ id: string }>("/widgets/42");
 
 **Config options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `baseUrl` | `string` | — | Base URL, trailing slashes trimmed automatically |
-| `token` | `string` | — | Auth token |
-| `tokenScheme` | `"bearer" \| "apikey"` | `"bearer"` | How the token is sent |
-| `apiKeyHeader` | `string` | `"x-api-key"` | Header name when `tokenScheme` is `"apikey"` |
-| `extraHeaders` | `Record<string, string>` | — | Static headers merged into every request |
-| `defaultQuery` | `Record<string, string>` | — | Query params appended to every request URL |
-| `vendor` | `string` | — | Vendor label for error messages |
-| `fetch` | `typeof fetch` | `globalThis.fetch` | Override fetch for testing |
+| Option         | Type                     | Default            | Description                                      |
+| -------------- | ------------------------ | ------------------ | ------------------------------------------------ |
+| `baseUrl`      | `string`                 | —                  | Base URL, trailing slashes trimmed automatically |
+| `token`        | `string`                 | —                  | Auth token                                       |
+| `tokenScheme`  | `"bearer" \| "apikey"`   | `"bearer"`         | How the token is sent                            |
+| `apiKeyHeader` | `string`                 | `"x-api-key"`      | Header name when `tokenScheme` is `"apikey"`     |
+| `extraHeaders` | `Record<string, string>` | —                  | Static headers merged into every request         |
+| `defaultQuery` | `Record<string, string>` | —                  | Query params appended to every request URL       |
+| `vendor`       | `string`                 | —                  | Vendor label for error messages                  |
+| `fetch`        | `typeof fetch`           | `globalThis.fetch` | Override fetch for testing                       |
 
 ### `createResolveToken(config)`
 

@@ -14,7 +14,9 @@ pnpm add @theholocron/google-client
 import { google, googleAuth } from "@theholocron/google-client";
 
 // Service account auth (env vars — see Auth section)
-const authClient = await googleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"]);
+const authClient = await googleAuth([
+  "https://www.googleapis.com/auth/spreadsheets.readonly",
+]);
 
 // Read a spreadsheet
 const [err, data] = await google.spreadsheets.get("1BxiMVs0XRA...");
@@ -53,7 +55,9 @@ GOOGLE_REDIRECT_URI=http://localhost:4000/oauth2callback  # optional
 ```ts
 import { oauth } from "@theholocron/google-client";
 
-const authClient = await oauth(["https://www.googleapis.com/auth/spreadsheets"]);
+const authClient = await oauth([
+  "https://www.googleapis.com/auth/spreadsheets",
+]);
 ```
 
 ## License

@@ -5,6 +5,6 @@ export interface IAPIResponse {
 }
 
 export interface IAPIError {
-  error: string;
-  description: string;
+	error: string;
+	description: string;
 }

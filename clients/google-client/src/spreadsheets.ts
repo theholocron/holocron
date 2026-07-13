@@ -4,13 +4,17 @@ import type { Return } from "./types.js";
 
 const sheets = google.sheets("v4");
 
-async function getSpreadsheet(id: string): Promise<Return<sheets_v4.Schema$Spreadsheet>> {
+async function getSpreadsheet(
+	id: string,
+): Promise<Return<sheets_v4.Schema$Spreadsheet>> {
 	if (!id) {
 		return [new Error("No ID was provided!"), null, 0];
 	}
 
 	const start = performance.now();
-	const authClient = await googleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"]);
+	const authClient = await googleAuth([
+		"https://www.googleapis.com/auth/spreadsheets.readonly",
+	]);
 
 	try {
 		const response = await sheets.spreadsheets.get({

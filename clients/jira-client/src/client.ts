@@ -8,7 +8,11 @@ export function buildHeaders(token: string): Record<string, string> {
 	};
 }
 
-export function buildUrl(options: JiraClientOptions, path: string, params?: Record<string, unknown>): string {
+export function buildUrl(
+	options: JiraClientOptions,
+	path: string,
+	params?: Record<string, unknown>,
+): string {
 	const url = new URL(`${options.host}${path}`);
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {
@@ -23,9 +27,14 @@ export function buildUrl(options: JiraClientOptions, path: string, params?: Reco
 export async function request<T>(url: string, init: RequestInit): Promise<T> {
 	const response = await fetch(url, init);
 	if (!response.ok) {
-		throw new Error(`Jira API error ${response.status}: ${response.statusText}`);
+		throw new Error(
+			`Jira API error ${response.status}: ${response.statusText}`,
+		);
 	}
-	if (response.status === 204 || response.headers.get("content-length") === "0") {
+	if (
+		response.status === 204 ||
+		response.headers.get("content-length") === "0"
+	) {
 		return undefined as T;
 	}
 	return response.json() as Promise<T>;

@@ -27,7 +27,10 @@ vi.mock("../authentication.js", () => ({
 // Dynamic imports must come AFTER vi.mock calls
 const { documents } = await import("../documents.js");
 const { spreadsheets } = await import("../spreadsheets.js");
-const googleapisMod = await import("googleapis") as unknown as { __docGet: ReturnType<typeof vi.fn>; __sheetGet: ReturnType<typeof vi.fn> };
+const googleapisMod = (await import("googleapis")) as unknown as {
+	__docGet: ReturnType<typeof vi.fn>;
+	__sheetGet: ReturnType<typeof vi.fn>;
+};
 
 describe("documents.get", () => {
 	beforeEach(() => {
@@ -42,7 +45,9 @@ describe("documents.get", () => {
 	});
 
 	it("returns [null, data, timing] on success", async () => {
-		googleapisMod.__docGet.mockResolvedValue({ data: { documentId: "doc-1", title: "My Doc" } });
+		googleapisMod.__docGet.mockResolvedValue({
+			data: { documentId: "doc-1", title: "My Doc" },
+		});
 		const [err, data] = await documents.get("doc-1");
 		expect(err).toBeNull();
 		expect((data as { documentId: string }).documentId).toBe("doc-1");
@@ -69,10 +74,14 @@ describe("spreadsheets.get", () => {
 	});
 
 	it("returns [null, data, timing] on success", async () => {
-		googleapisMod.__sheetGet.mockResolvedValue({ data: { spreadsheetId: "sheet-1" } });
+		googleapisMod.__sheetGet.mockResolvedValue({
+			data: { spreadsheetId: "sheet-1" },
+		});
 		const [err, data] = await spreadsheets.get("sheet-1");
 		expect(err).toBeNull();
-		expect((data as { spreadsheetId: string }).spreadsheetId).toBe("sheet-1");
+		expect((data as { spreadsheetId: string }).spreadsheetId).toBe(
+			"sheet-1",
+		);
 	});
 
 	it("returns [error, null, timing] when the API call throws", async () => {

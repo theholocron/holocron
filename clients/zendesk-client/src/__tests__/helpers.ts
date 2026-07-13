@@ -7,12 +7,17 @@ export interface FetchCall {
 	body: unknown;
 }
 
-export function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: string }>) {
+export function stubFetch(
+	responses: Array<{ status?: number; body?: unknown; text?: string }>,
+) {
 	const calls: FetchCall[] = [];
 	let i = 0;
 	const mock = vi.fn(async (input: string | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input.toString();
-		const body = typeof init?.body === "string" ? JSON.parse(init.body) : (init?.body ?? null);
+		const body =
+			typeof init?.body === "string"
+				? JSON.parse(init.body)
+				: (init?.body ?? null);
 		calls.push({
 			url,
 			method: (init?.method ?? "GET").toUpperCase(),

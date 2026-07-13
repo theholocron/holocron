@@ -7,18 +7,18 @@ confluence.page.get('185181811688')
 	.then(res => console.log({ res }));
 */
 
-
-confluence.page.update('2075885825sasdf', {
-	version: {
-		number: 2,
-	},
-	title: "newtons test page",
-	type: 'page',
-	body: {
-		editor: {
-			value: "foo",
-			representation: 'editor',
+confluence.page
+	.update("2075885825sasdf", {
+		version: {
+			number: 2,
 		},
-	},
-})
-	.then(res => console.log({ res }));
+		title: "newtons test page",
+		type: "page",
+		body: {
+			editor: {
+				value: "foo",
+				representation: "editor",
+			},
+		},
+	})
+	.then((res) => console.log({ res }));

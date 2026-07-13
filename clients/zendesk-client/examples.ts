@@ -2,7 +2,10 @@
 // @ts-nocheck
 import zendesk, { createToken } from "./src";
 
-const token = createToken("REDACTED_EMAIL", "REDACTED_TOKEN");
+const token = createToken(
+	"REDACTED_EMAIL",
+	"REDACTED_TOKEN",
+);
 
 /*
 zendesk.activities.get({ token, params: { since: "2023-06-01T00:00:00.000Z" } })
@@ -19,7 +22,8 @@ zendesk.search(`loanNumber=6120150431`, { params: { "include": "tickets(metric_s
 	.then((data) => console.log({ data: data[1].results }));
 */
 
-zendesk.tickets.comments.get(2700, { params: { "include": "users", }, token })
+zendesk.tickets.comments
+	.get(2700, { params: { include: "users" }, token })
 	.then((data) => console.log({ data: data[1].users }));
 
 /*

@@ -31,9 +31,7 @@ export const mockUser: IUser = {
 	shared_phone_number: null,
 	signature: "test",
 	suspended: false,
-	tags: [
-		"101",
-	],
+	tags: ["101"],
 	ticket_restriction: null,
 	time_zone: "American Samoa",
 	two_factor_auth_enabled: null,

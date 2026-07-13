@@ -15,7 +15,9 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 describe("createToken", () => {
 	it("base64-encodes user/token:password", () => {
 		const tok = createToken("user@example.com", "abc123");
-		expect(tok).toBe(Buffer.from("user@example.com/token:abc123").toString("base64"));
+		expect(tok).toBe(
+			Buffer.from("user@example.com/token:abc123").toString("base64"),
+		);
 	});
 });
 
@@ -47,7 +49,9 @@ describe("search", () => {
 
 describe("status", () => {
 	it("GET /api/v2/custom_statuses (list)", async () => {
-		const { client, calls } = makeClient([{ body: { custom_statuses: [] } }]);
+		const { client, calls } = makeClient([
+			{ body: { custom_statuses: [] } },
+		]);
 		await client.status.list();
 		expect(calls[0]?.url).toContain("/api/v2/custom_statuses");
 		expect(calls[0]?.method).toBe("GET");
@@ -60,10 +64,20 @@ describe("status", () => {
 	});
 
 	it("POST /api/v2/custom_statuses on create", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { custom_status: {} } }]);
-		await client.status.create({ agent_label: "Escalated", status_category: "open" } as never);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { custom_status: {} } },
+		]);
+		await client.status.create({
+			agent_label: "Escalated",
+			status_category: "open",
+		} as never);
 		expect(calls[0]?.method).toBe("POST");
-		expect(calls[0]?.body).toEqual({ custom_status: { agent_label: "Escalated", status_category: "open" } });
+		expect(calls[0]?.body).toEqual({
+			custom_status: {
+				agent_label: "Escalated",
+				status_category: "open",
+			},
+		});
 	});
 
 	it("PUT /api/v2/custom_statuses/:id on update", async () => {
@@ -88,10 +102,17 @@ describe("tickets", () => {
 	});
 
 	it("POST /api/v2/tickets on create", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { ticket: { id: 1 } } }]);
-		await client.tickets.create({ subject: "Help", comment: { body: "Issue" } } as never);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { ticket: { id: 1 } } },
+		]);
+		await client.tickets.create({
+			subject: "Help",
+			comment: { body: "Issue" },
+		} as never);
 		expect(calls[0]?.method).toBe("POST");
-		expect(calls[0]?.body).toEqual({ ticket: { subject: "Help", comment: { body: "Issue" } } });
+		expect(calls[0]?.body).toEqual({
+			ticket: { subject: "Help", comment: { body: "Issue" } },
+		});
 	});
 
 	it("PUT /api/v2/tickets/:id on update", async () => {
@@ -120,7 +141,9 @@ describe("comments", () => {
 		const { client, calls } = makeClient([{ body: { ticket: {} } }]);
 		await client.comments.create(123, "Thanks for reaching out");
 		expect(calls[0]?.method).toBe("PUT");
-		expect(calls[0]?.body).toEqual({ ticket: { comment: { body: "Thanks for reaching out" } } });
+		expect(calls[0]?.body).toEqual({
+			ticket: { comment: { body: "Thanks for reaching out" } },
+		});
 	});
 });
 
@@ -139,11 +162,18 @@ describe("fields", () => {
 	});
 
 	it("POST /api/v2/ticket_fields on create", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { ticket_field: { id: 7 } } }]);
-		await client.fields.create({ title: "Account ID", type: "text" } as never);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { ticket_field: { id: 7 } } },
+		]);
+		await client.fields.create({
+			title: "Account ID",
+			type: "text",
+		} as never);
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/api/v2/ticket_fields");
-		expect(calls[0]?.body).toEqual({ ticket_field: { title: "Account ID", type: "text" } });
+		expect(calls[0]?.body).toEqual({
+			ticket_field: { title: "Account ID", type: "text" },
+		});
 	});
 
 	it("PUT /api/v2/ticket_fields/:id on update", async () => {

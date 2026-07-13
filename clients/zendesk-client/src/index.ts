@@ -19,10 +19,7 @@ export type * from "./types.js";
 export type * from "./user/index.js";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
-export {
-	mockActivity,
-	mockActivityResponse,
-} from "./activities/index.js";
+export { mockActivity, mockActivityResponse } from "./activities/index.js";
 export {
 	mockImage,
 	mockThumbnail,

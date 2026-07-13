@@ -3,7 +3,7 @@ import type { IComment, ICommentResponse } from "./comments.types.js";
 import { mockMetadata } from "./tickets.mocks.js";
 
 export const mockComment: IComment = {
-	attachments: [ mockAttachment ],
+	attachments: [mockAttachment],
 	audit_id: 432567,
 	author_id: 123123,
 	body: "Thanks for your help!",
@@ -11,9 +11,9 @@ export const mockComment: IComment = {
 	id: 1274,
 	metadata: mockMetadata,
 	public: true,
-	type: "Comment"
+	type: "Comment",
 };
 
 export const mockCommentResponse: ICommentResponse = {
-	comments: [ mockComment ],
+	comments: [mockComment],
 };

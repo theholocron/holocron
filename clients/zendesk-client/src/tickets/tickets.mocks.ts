@@ -1,4 +1,10 @@
-import type { ITicket, TTicketResponse, TTicketsResponse, IVia, IMetadata } from "./tickets.types.js";
+import type {
+	ITicket,
+	TTicketResponse,
+	TTicketsResponse,
+	IVia,
+	IMetadata,
+} from "./tickets.types.js";
 import { mockCustomFields } from "./fields.mocks.js";
 
 export const mockVia: IVia = {
@@ -6,8 +12,8 @@ export const mockVia: IVia = {
 	source: {
 		from: {},
 		rel: "web_widget",
-		to: {}
-	}
+		to: {},
+	},
 };
 
 export const mockMetadata: IMetadata = {
@@ -16,21 +22,21 @@ export const mockMetadata: IMetadata = {
 		ip_address: "1.1.1.1",
 		latitude: -37.000000000001,
 		location: "Melbourne, 07, Australia",
-		longitude: 144.0000000000002
+		longitude: 144.0000000000002,
 	},
 	via: mockVia,
 };
 
 export const mockTicket: ITicket = {
 	assignee_id: 235323,
-	collaborator_ids: [ 35334, 234 ],
+	collaborator_ids: [35334, 234],
 	created_at: "2009-07-20T22:55:29Z",
 	custom_fields: mockCustomFields,
 	custom_status_id: 123,
 	description: "The fire is very colorful.",
 	due_at: null,
 	external_id: "ahg35h3jh",
-	follower_ids: [ 35334, 234 ],
+	follower_ids: [35334, 234],
 	from_messaging_channel: false,
 	group_id: 98738,
 	has_incidents: false,
@@ -46,11 +52,11 @@ export const mockTicket: ITicket = {
 		id: 1234,
 		score: "good",
 	},
-	sharing_agreement_ids: [ 84432 ],
+	sharing_agreement_ids: [84432],
 	status: "open",
 	subject: "Help, my printer is on fire!",
 	submitter_id: 76872,
-	tags: [ "enterprise", "other_tag" ],
+	tags: ["enterprise", "other_tag"],
 	type: "incident",
 	updated_at: "2011-05-05T10:38:52Z",
 	url: "https://company.zendesk.com/api/v2/tickets/35436.json",
@@ -59,7 +65,7 @@ export const mockTicket: ITicket = {
 
 export const mockTicketsResponse: TTicketsResponse = {
 	count: 1,
-	tickets: [ mockTicket ],
+	tickets: [mockTicket],
 };
 
 export const mockTicketResponse: TTicketResponse = {

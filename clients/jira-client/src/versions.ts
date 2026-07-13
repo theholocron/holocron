@@ -5,7 +5,11 @@ export function versions(options: JiraClientOptions) {
 	const headers = buildHeaders(options.token);
 
 	return {
-		create(name: string, project: string, fields: Partial<JiraVersion> = {}): Promise<JiraVersion> {
+		create(
+			name: string,
+			project: string,
+			fields: Partial<JiraVersion> = {},
+		): Promise<JiraVersion> {
 			return request<JiraVersion>(buildUrl(options, "/version"), {
 				method: "POST",
 				headers,
@@ -18,23 +22,38 @@ export function versions(options: JiraClientOptions) {
 			});
 		},
 
-		get(version: string, params?: Record<string, string>): Promise<JiraVersion> {
-			return request<JiraVersion>(buildUrl(options, `/version/${version}`, params), {
-				method: "GET",
-				headers,
-			});
+		get(
+			version: string,
+			params?: Record<string, string>,
+		): Promise<JiraVersion> {
+			return request<JiraVersion>(
+				buildUrl(options, `/version/${version}`, params),
+				{
+					method: "GET",
+					headers,
+				},
+			);
 		},
 
-		getMany(versionIds: string[], params?: Record<string, string>): Promise<JiraVersion[]> {
+		getMany(
+			versionIds: string[],
+			params?: Record<string, string>,
+		): Promise<JiraVersion[]> {
 			return Promise.all(versionIds.map((v) => this.get(v, params)));
 		},
 
-		update(version: string, fields: Partial<JiraVersion>): Promise<JiraVersion> {
-			return request<JiraVersion>(buildUrl(options, `/version/${version}`), {
-				method: "PUT",
-				headers,
-				body: JSON.stringify(fields),
-			});
+		update(
+			version: string,
+			fields: Partial<JiraVersion>,
+		): Promise<JiraVersion> {
+			return request<JiraVersion>(
+				buildUrl(options, `/version/${version}`),
+				{
+					method: "PUT",
+					headers,
+					body: JSON.stringify(fields),
+				},
+			);
 		},
 
 		delete(version: string): Promise<void> {
