@@ -191,4 +191,45 @@ describe("runNpmBumpVersions", () => {
 		});
 		expect(lines[0]).toContain("4.2.0");
 	});
+
+	it("reports and skips root package.json with invalid JSON", async () => {
+		const lines: string[] = [];
+		const { writeFile, listDir, isDir } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"packages/pkg/package.json": { name: "@acme/pkg", version: "4.1.0" },
+		});
+		const rootPath = join(CWD, "package.json");
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: (l) => lines.push(l),
+			readFile: (p) => {
+				if (p === rootPath) return "{ invalid json }";
+				return JSON.stringify({ name: "@acme/pkg", version: "4.1.0" }, null, 2) + "\n";
+			},
+			writeFile,
+			listDir,
+			isDir,
+		});
+		expect(report.status).toBe("ok");
+		expect(lines.some((l) => l.includes("could not parse"))).toBe(true);
+	});
+
+	it("skips directory entries when isDir throws", async () => {
+		const { readFile, writeFile, listDir } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"packages/pkg/package.json": { name: "@acme/pkg", version: "4.1.0" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir,
+			isDir: () => { throw new Error("EPERM: permission denied"); },
+		});
+		expect(report.status).toBe("ok");
+		expect(report.bumped).toContain("root");
+	});
 });

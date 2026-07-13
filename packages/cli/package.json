@@ -44,6 +44,7 @@
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/vitest-config": "catalog:",
+    "@types/node": "catalog:",
     "@types/yargs": "^17.0.35",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",

@@ -12,6 +12,7 @@ Three repos, one rule per concern:
 - **Shareable tool config (ESLint, Prettier, TSConfig, Vitest, …)** → `theholocron/configs`. If you find yourself copy-pasting a tool config across repos, it belongs there as a `@theholocron/*-config` package.
 - **HTTP clients and API wrappers** → `theholocron/clients`. REST clients for third-party services and shared HTTP primitives live there.
 - **Anything that can be automated** → `theholocron/holocron` (this repo). Infrastructure commands (`setup`, `upgrade`, `doctor`, `secrets sync`), CI orchestration, and repo lifecycle automation belong here in the Holocron CLI.
+- **`holocron.config` format** — use `holocron.config.ts` with `defineConfig` in any repo that has a `package.json` (the CLI must be resolvable at runtime). Use `holocron.config.json` in content-only repos with no Node.js infrastructure (e.g., `.github`, `.github-private`).
 
 ## Architecture
 
@@ -63,6 +64,7 @@ Three repos, one rule per concern:
 
 ## Workflow
 
+- **Always open a PR — never push directly to the default branch.** Even for small fixes: create a branch, push it, open a PR. This lets CI run, keeps history reviewable, and respects branch protection. The only exception is bootstrapping a brand-new repo before protection is set up.
 - **Commits use Conventional Commits.** `feat:` / `fix:` /
   `chore(scope):` / `docs:` / `ci:` / `test:` / `refactor:` /
   `perf:` — semantic-release parses these to compute the next

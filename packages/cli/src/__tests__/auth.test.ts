@@ -144,6 +144,21 @@ describe("runAuthSet", () => {
 		expect(lines.join("\n")).toMatch(/failed to load/);
 	});
 
+	it("prints no hint when the plugin fails to load and no token supplied", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "doppler",
+			env: {},
+			importer: async () => {
+				throw new Error("MODULE_NOT_FOUND");
+			},
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/no token supplied/);
+		expect(lines.join("\n")).not.toMatch(/hint:/);
+	});
+
 	it("reads token from HOLOCRON_<X>_TOKEN when no positional supplied", async () => {
 		const result = await runAuthSet({
 			provider: "doppler",
@@ -227,6 +242,40 @@ describe("runAuthCheck", () => {
 		expect(result.status).toBe("ok");
 		expect(result.message).toBe("stored, unverified");
 		expect(lines.join("\n")).toMatch(/can't confirm validity/);
+	});
+
+	it("reports fail when verifyToken throws", async () => {
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({
+				verifyToken: async () => {
+					throw new Error("network error");
+				},
+			}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(result.message).toContain("network error");
+		expect(lines.join("\n")).toMatch(/cannot verify/);
+	});
+
+	it("reports fail with string coercion when a non-Error is thrown", async () => {
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({
+				verifyToken: async () => {
+					throw "bad string error";
+				},
+			}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(result.message).toBe("bad string error");
+		expect(lines.join("\n")).toMatch(/cannot verify/);
 	});
 });
 

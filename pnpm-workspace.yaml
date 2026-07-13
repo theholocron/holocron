@@ -20,3 +20,4 @@ catalog:
   vitest: ^4.1.10
   '@vitest/coverage-v8': ^4.1.10
   typescript: ^5.9.3
+  '@types/node': ^26

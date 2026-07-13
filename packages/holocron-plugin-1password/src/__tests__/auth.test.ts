@@ -31,4 +31,11 @@ describe("verifyOpInstalled", () => {
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as AuthError).message).toMatch(/something is busted/);
 	});
+
+	it("includes exit code in error when `op --version` exits non-zero with no stderr", () => {
+		const { spawn } = stubSpawn([{ status: 2 }]);
+		const err = (() => { try { verifyOpInstalled({ spawn }); } catch (e) { return e; } })() as AuthError;
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as AuthError).message).toMatch(/exit 2/);
+	});
 });

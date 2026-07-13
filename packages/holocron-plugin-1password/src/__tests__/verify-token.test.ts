@@ -60,4 +60,18 @@ describe("verifyToken (1password)", () => {
 		expect(result.ok).toBe(false);
 		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/not currently signed in/);
 	});
+
+	it("includes exit code in error when op whoami exits non-zero with no stderr", async () => {
+		const spawn = makeSpawn({ status: 3 });
+		const result = await verifyToken("", { spawn });
+		expect(result.ok).toBe(false);
+		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/exit 3/);
+	});
+
+	it("returns ok with generic subject when whoami output has no identity fields", async () => {
+		const spawn = makeSpawn({ status: 0, stdout: JSON.stringify({ account_uuid: "acc_1" }) });
+		const result = await verifyToken("", { spawn });
+		expect(result.ok).toBe(true);
+		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/signed in/);
+	});
 });
