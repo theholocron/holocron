@@ -735,4 +735,75 @@ describe("runSetup", () => {
 		expect(joined).toMatch(/Holocron setup — demo/);
 		expect(joined).toMatch(/1 ok, 0 fail/);
 	});
+
+	it("writes .alexrc.json whenever source is available", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(written[".alexrc.json"]).toBeDefined();
+		const parsed = JSON.parse(written[".alexrc.json"]!);
+		expect(parsed.allow).toContain("hooks");
+		expect(parsed.allow).toContain("hook");
+		const step = report.steps.find((s) => s.step === "write .alexrc.json");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("dry-run does not write .alexrc.json", async () => {
+		let writeCalled = false;
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => { writeCalled = true; },
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(writeCalled).toBe(false);
+		const step = report.steps.find((s) => s.step === "write .alexrc.json");
+		expect(step?.status).toBe("dry-run");
+	});
 });
