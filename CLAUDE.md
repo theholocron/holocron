@@ -63,6 +63,7 @@ Three repos, one rule per concern:
 
 ## Workflow
 
+- **Always open a PR — never push directly to the default branch.** Even for small fixes: create a branch, push it, open a PR. This lets CI run, keeps history reviewable, and respects branch protection. The only exception is bootstrapping a brand-new repo before protection is set up.
 - **Commits use Conventional Commits.** `feat:` / `fix:` /
   `chore(scope):` / `docs:` / `ci:` / `test:` / `refactor:` /
   `perf:` — semantic-release parses these to compute the next
