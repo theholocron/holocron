@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@theholocron/commitlint-config':
-      specifier: ^5.2.0
-      version: 5.2.0
+      specifier: ^6.0.1
+      version: 6.0.1
     '@theholocron/eslint-config':
       specifier: ^5.2.0
       version: 5.2.0
@@ -70,7 +70,7 @@ importers:
         version: 10.0.1(semantic-release@25.0.5(typescript@5.9.3))
       '@theholocron/commitlint-config':
         specifier: 'catalog:'
-        version: 5.2.0(@commitlint/cli@19.8.1(@types/node@26.0.1)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)
+        version: 6.0.1(@commitlint/cli@19.8.1(@types/node@26.0.1)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)
       '@theholocron/eslint-config':
         specifier: 'catalog:'
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
@@ -1617,11 +1617,11 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@theholocron/commitlint-config@5.2.0':
-    resolution: {integrity: sha512-W0Culm7+6ADgRBgq+StRGZTCda3uB9H9O/rew73H7wOi87VDSIUeW1YpBToUjXmdpzCtNWpzWZymbaIC3tlh+g==}
+  '@theholocron/commitlint-config@6.0.1':
+    resolution: {integrity: sha512-t/wQNXpseoCYI5ngPP1B7KkH9Xkg3n13KKE2GN92c0BQSMSOnbZgxes9v+LKznXK9vaCxW3kN5Z+y7UTkOx3Zg==}
     peerDependencies:
-      '@commitlint/cli': ^21
-      '@commitlint/config-conventional': ^21
+      '@commitlint/cli': ^19
+      '@commitlint/config-conventional': ^19
 
   '@theholocron/eslint-config@5.2.0':
     resolution: {integrity: sha512-qmqXqPvBwPUyL2V6KrkiyYW+QAq5YURtoui0IKZ1J5cFI+F7iYiZZISq1570qFbtSfH0dvw2J+d9y7DElh1uTg==}
@@ -6344,7 +6344,7 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@theholocron/commitlint-config@5.2.0(@commitlint/cli@19.8.1(@types/node@26.0.1)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)':
+  '@theholocron/commitlint-config@6.0.1(@commitlint/cli@19.8.1(@types/node@26.0.1)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)':
     dependencies:
       '@commitlint/cli': 19.8.1(@types/node@26.0.1)(typescript@5.9.3)
       '@commitlint/config-conventional': 19.8.1
