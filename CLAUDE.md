@@ -5,6 +5,14 @@
 Conventions for working on Holocron. Loaded automatically by Claude
 Code into every conversation in this repo.
 
+## Where code lives (org-wide rule)
+
+Three repos, one rule per concern:
+
+- **Shareable tool config (ESLint, Prettier, TSConfig, Vitest, …)** → `theholocron/configs`. If you find yourself copy-pasting a tool config across repos, it belongs there as a `@theholocron/*-config` package.
+- **HTTP clients and API wrappers** → `theholocron/clients`. REST clients for third-party services and shared HTTP primitives live there.
+- **Anything that can be automated** → `theholocron/holocron` (this repo). Infrastructure commands (`setup`, `upgrade`, `doctor`, `secrets sync`), CI orchestration, and repo lifecycle automation belong here in the Holocron CLI.
+
 ## Architecture
 
 - **Capability/provider model.** 14 capabilities defined in
