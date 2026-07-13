@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/cli",
-  "version": "2.0.0-alpha.20",
-  "description": "The Holocron CLI \u2014 a pluggable, capability-based orchestrator for spinning up and operating software projects.",
+  "version": "2.0.0-alpha.21",
+  "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
