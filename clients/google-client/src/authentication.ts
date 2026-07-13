@@ -34,7 +34,7 @@ export const oauth = async (scopes: string[]): Promise<OAuth2Client | null> => {
 					if (req.url && req.url.indexOf("/oauth2callback") > -1) {
 						const qs = new url.URL(req.url, `http://localhost:${port}`).searchParams;
 						res.end("Authentication successful! Please return to the console.");
-						server.destroy();
+						(server as unknown as { destroy(): void }).destroy();
 						const { tokens } = await oauth2Client.getToken(qs.get("code") ?? "");
 						oauth2Client.credentials = tokens;
 						resolve(oauth2Client);
@@ -46,7 +46,7 @@ export const oauth = async (scopes: string[]): Promise<OAuth2Client | null> => {
 			.listen(port, () => {
 				open(authorizeUrl, { wait: false }).then((cp) => cp.unref());
 			});
-		destroyer(server);
+		destroyer(server as unknown as Parameters<typeof destroyer>[0]);
 	});
 };
 

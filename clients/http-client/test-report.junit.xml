@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="19" failures="0" errors="0" time="0.016317625">
+    <testsuite name="src/__tests__/auth-resolver.test.ts" timestamp="2026-07-13T00:04:47.024Z" hostname="Mac-Mini.local" tests="6" failures="0" errors="0" skipped="0" time="0.002157208">
+        <testcase classname="src/__tests__/auth-resolver.test.ts" name="createResolveToken &gt; uses cliToken first" time="0.000741625">
+        </testcase>
+        <testcase classname="src/__tests__/auth-resolver.test.ts" name="createResolveToken &gt; prefers envName over vendorEnvName" time="0.000141708">
+        </testcase>
+        <testcase classname="src/__tests__/auth-resolver.test.ts" name="createResolveToken &gt; falls back to vendorEnvName" time="0.000107542">
+        </testcase>
+        <testcase classname="src/__tests__/auth-resolver.test.ts" name="createResolveToken &gt; falls back to keyring" time="0.000128416">
+        </testcase>
+        <testcase classname="src/__tests__/auth-resolver.test.ts" name="createResolveToken &gt; ignores empty-string cliToken" time="0.000069167">
+        </testcase>
+        <testcase classname="src/__tests__/auth-resolver.test.ts" name="createResolveToken &gt; throws AuthError when nothing is set" time="0.000130417">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/errors.test.ts" timestamp="2026-07-13T00:04:47.025Z" hostname="Mac-Mini.local" tests="3" failures="0" errors="0" skipped="0" time="0.001629875">
+        <testcase classname="src/__tests__/errors.test.ts" name="ProviderApiError &gt; name is &apos;ProviderApiError&apos;" time="0.00073425">
+        </testcase>
+        <testcase classname="src/__tests__/errors.test.ts" name="ProviderApiError &gt; carries status and details" time="0.000168708">
+        </testcase>
+        <testcase classname="src/__tests__/errors.test.ts" name="ProviderApiError &gt; instanceof Error" time="0.000098208">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/rest-client.test.ts" timestamp="2026-07-13T00:04:47.025Z" hostname="Mac-Mini.local" tests="10" failures="0" errors="0" skipped="0" time="0.012530542">
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — bearer auth &gt; sends Authorization: Bearer header" time="0.009182416">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — bearer auth &gt; sets accept: application/json by default" time="0.000271459">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — apikey tokenScheme &gt; sends token in custom header instead of Authorization" time="0.000238667">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — extraHeaders &gt; can override default accept header" time="0.000160625">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — defaultQuery &gt; appends to every request URL" time="0.00021825">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — 204 / no-content &gt; returns undefined for 204" time="0.000094167">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — 204 / no-content &gt; returns undefined when expectNoContent is set" time="0.000182667">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — error handling &gt; throws ProviderApiError with status on non-2xx" time="0.000268166">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — error handling &gt; wraps transport failure as ProviderApiError with status 0" time="0.000528208">
+        </testcase>
+        <testcase classname="src/__tests__/rest-client.test.ts" name="createRestClient — error handling &gt; trims trailing slashes from baseUrl" time="0.000366917">
+        </testcase>
+    </testsuite>
+</testsuites>
