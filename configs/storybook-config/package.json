@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/storybook-config",
-  "version": "6.0.1",
+  "version": "6.0.2",
   "description": "A Storybook configuration for writing tested components within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/storybook-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
