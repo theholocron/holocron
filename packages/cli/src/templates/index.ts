@@ -341,6 +341,7 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
+        if: \${{ hashFiles('pnpm-lock.yaml') != '' }}
 
       - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
