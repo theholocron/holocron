@@ -1,5 +1,7 @@
 <!-- editorconfig-checker-disable-file -->
 
+@../github-private/CLAUDE.md
+
 # CLAUDE.md
 
 Conventions for working on Holocron. Loaded automatically by Claude
@@ -9,8 +11,9 @@ Code into every conversation in this repo.
 
 - **Capability/provider model.** 14 capabilities defined in
   `packages/cli/src/capabilities/index.ts`. Vendors implement N
-  capabilities; ESLint-style `holocron.config.json` wires them up.
-  `vault` is the only REQUIRED capability.
+  capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
+  up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
+  typed autocomplete. `vault` is no longer required (removed constraint).
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
@@ -52,32 +55,30 @@ Code into every conversation in this repo.
 
 ## Workflow
 
-- **Commits use Conventional Commits.** `feat:` / `fix:` /
-  `chore(scope):` / `docs:` / `ci:` / `test:` / `refactor:` /
-  `perf:` — semantic-release parses these to compute the next
-  version on push-to-main.
-- **Always `git commit --signoff` (or `-s`).** DCO is enforced; the
-  `Signed-off-by:` trailer is required on every commit. `-s`
-  generates it automatically from `git config user.name` + `email`.
-- **No Claude attribution in commits / PRs / issues / docs.** No
-  footer, no Co-Authored-By trailer. The author is the user.
-- **One PR = one focused change = one squashed commit = one release.**
-  Squash-merge by default. The PR title becomes the squashed commit
-  subject, which semantic-release uses for the changelog. Write
-  meaningful PR titles that follow Conventional Commits.
 - **Discuss → `.notes/<topic>.spec.md` → GitHub issue.** Non-trivial
   decisions get a spec file in `.notes/` before acting. Same lifecycle
   as Rando (`draft → proposed → approved → archived`). Spec name
   prefixes: `tech-` / `tool-` / `process-` / `ci-` / `security-`.
 - **File issues for non-trivial work** and reference in commits/PRs
-  (`Closes #N` / `Refs #N`). Skip for typo fixes.
+  (`Closes #N` / `Refs #N`). Cross-check against `.notes/*.spec.md`
+  before starting; several already have design docs. Skip for typo fixes.
 
 ## Quality
 
-- **Run `pnpm typecheck && pnpm lint && pnpm test` before declaring
-  work done or drafting a commit message.** Non-negotiable. CI runs
-  the same set + `pnpm build` via `.github/workflows/ci.yml`;
-  finding out from a failed CI after pushing wastes a round trip.
+- **Definition of done: code + tests + docs + green checks.** A change
+  is not done until all four are true:
+    1. `pnpm typecheck && pnpm lint && pnpm test` pass (same set CI runs
+       plus `pnpm build` — finding failures after pushing wastes a round
+       trip).
+    2. Tests cover the new behavior (new path → new test; bug fix → test
+       that would have caught it).
+    3. Docs are updated: `packages/cli/README.md` for any public API or
+       config shape change; `CLAUDE.md` for any architectural or workflow
+       change; the relevant `.notes/*.spec.md` spec for any design
+       decision or roadmap item resolved. Stale docs that contradict the
+       code are bugs.
+    4. Commit message follows Conventional Commits and references the
+       issue (`Closes #N` / `Refs #N`).
 - **Test patterns:** vitest across all packages. Plugins use
   `stubFetch` (REST plugins) or `stubSpawn` (CLI plugins) — both
   ported from rando-id/rando.id `__tests__/helpers.ts`. Per-plugin
@@ -86,9 +87,43 @@ Code into every conversation in this repo.
   its typecheck is a no-op.
 - **Don't call `expect(...).toThrow()` twice on the same stubbed call.**
   The stub queue advances per call; second invocation gets the default
-  empty response and the assertion silently passes (or fails for the
-  wrong reason). Use a single `try/catch` with property assertions
-  on the caught error instead. Captured in the skill's non-negotiables.
+  empty response. For multi-property error checks use the `.catch` capture
+  pattern instead — it avoids both the double-call and `vitest/no-conditional-expect`:
+
+    ```ts
+    // async
+    const err = await fn().catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SomeError);
+    expect((err as SomeError).message).toMatch(/pattern/);
+
+    // sync
+    const err = (() => {
+    	try {
+    		fn();
+    	} catch (e) {
+    		return e;
+    	}
+    })();
+    expect(err).toBeInstanceOf(SomeError);
+    ```
+
+- **Discriminated union results** (`{ ok: true; subject } | { ok: false; message }`):
+  assert the branch with `expect(result.ok).toBe(true)` then access the
+  narrowed field via a cast — never use `if (result.ok)` with `expect`
+  inside, as `vitest/no-conditional-expect` correctly flags that:
+    ```ts
+    expect(result.ok).toBe(true);
+    expect((result as { ok: boolean; subject?: string }).subject).toMatch(/pattern/);
+    ```
+- **`holocron upgrade node` pattern registry.** When you introduce a
+  new file type that pins the Node.js version (e.g., a new CI platform's
+  config, an `.engines` file, a custom script), add a `Pattern` entry to
+  the `PATTERNS` array in
+  `packages/cli/src/commands/upgrade-node.ts` — a `matches` predicate
+  on the filename and a `patch` function that replaces the old major with
+  the new one. The `upgrade.node.extra` field in `holocron.config.json`
+  is only for non-conventional _file paths_ (unusual locations for known
+  file types); it is not a substitute for adding a new pattern.
 - **PR checks must be green before merge.** `pnpm typecheck`,
   `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. CodeQL
   runs separately. DCO checks the Signed-off-by trailer per commit
@@ -139,15 +174,31 @@ scripts/bump-versions.mjs         — lockstep version bump invoked by semantic-
 ## What's deliberately out of scope (for now)
 
 These are real future work captured as tracking issues — DO NOT
-build them speculatively; pick up the issue when ready.
+build them speculatively; pick up the issue when ready. Cross-check
+against `.notes/*.spec.md` before starting; several already have
+design docs.
 
-- **#75** Shareable configs (per-capability + whole-config presets,
-  ESLint-`extends`-style)
-- **#76** Per-plugin `transport: 'rest' | 'cli'` option
+- **#76** Per-plugin `transport: 'rest' | 'cli'` option. Still
+  grounded: 1P plugin remains the reference CLI-transport case
+  (see #96 — plugin stays published even though this repo doesn't
+  use it as default).
 - **#77** `holocron plugin create` CLI command (promote the
-  scaffolding skill to a first-class CLI feature)
-- **#78** CLI-transport sibling skill
+  scaffolding skill to a first-class CLI feature) — spec at
+  `.notes/tool-plugin-create.spec.md` (Phase 1 unblocked).
+- **#78** CLI-transport sibling skill — still motivated (same
+  reason as #76).
 - **#79** Multi-plugin `--token` disambiguation
 - **#80** Real Svix HMAC verification in `parseWebhook`
-- **#81** `defineConfig({})` API + JS/TS config file format
-- **#82** Extend `holocron setup` with repo policy + branch protection
+- **#82** Extend `holocron setup` with repo policy + branch
+  protection — spec at `.notes/tech-setup-and-config.spec.md`
+  (also covers `project.repo` config field + capability-factory
+  lazy-load pattern discovered during v2 alpha migration).
+
+Additional session-derived design docs (not on GitHub yet — file
+issues when the work is scheduled):
+
+- `.notes/tech-auth-bootstrap.spec.md` — keyring-backed bootstrap
+  credentials + `holocron auth` subcommand. Foundation shipped in
+  PR #94; ongoing pattern for future plugins.
+- `.notes/tech-vault-choice.spec.md` — Doppler + Infisical adoption,
+  1P deprecation roadmap.
