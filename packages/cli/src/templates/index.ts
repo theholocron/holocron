@@ -801,13 +801,12 @@ jobs:
         run: |
           GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
           GIT_EMAIL=$(gh api user --jq '"\\(.id)+\\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
+          COMMIT_MSG="chore: sync from theholocron/holocron"$'\\n\\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
           node packages/cli/dist/cli.mjs sync-github \\
             --repo "$PRIMARY_REPO" \\
             --branch "$SYNC_BRANCH" \\
             --pr \\
-            --message "chore: sync from theholocron/holocron
-
-Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
+            --message "$COMMIT_MSG"
         env:
           GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
           GH_TOKEN: \${{ secrets.SYNC_TOKEN }}
