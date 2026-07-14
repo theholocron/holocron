@@ -14,16 +14,16 @@ pnpm add @theholocron/zendesk-client
 import { createZendeskClient, createToken } from "@theholocron/zendesk-client";
 
 const zendesk = createZendeskClient({
-	baseUrl: "https://myorg.zendesk.com",
-	token: createToken("agent@example.com", "your-api-token"),
+  baseUrl: "https://myorg.zendesk.com",
+  token: createToken("agent@example.com", "your-api-token"),
 });
 
 // Tickets
 const ticket = await zendesk.tickets.get(12345);
 const all = await zendesk.tickets.list();
 await zendesk.tickets.create({
-	subject: "Bug report",
-	comment: { body: "Details..." },
+  subject: "Bug report",
+  comment: { body: "Details..." },
 });
 await zendesk.tickets.update(12345, { status: "solved" });
 await zendesk.tickets.delete(12345);
@@ -39,13 +39,13 @@ const field = await zendesk.fields.get(7);
 // Status
 const statuses = await zendesk.status.list();
 await zendesk.status.create({
-	agent_label: "Escalated",
-	status_category: "open",
+  agent_label: "Escalated",
+  status_category: "open",
 });
 
 // Search
 const results = await zendesk.search.query(
-	"type:ticket status:open assignee:me",
+  "type:ticket status:open assignee:me",
 );
 
 // Activities
