@@ -70,14 +70,19 @@ async function loadJs(filepath: string): Promise<ResolvedHolocronConfig> {
 
 async function loadTs(filepath: string): Promise<ResolvedHolocronConfig> {
 	const { tsImport } = await import("tsx/esm/api");
-	// tsImport returns the module namespace (same shape as native import()), so
-	// pass it directly to extractAndResolve which reads mod.default from there.
 	const mod = await tsImport(pathToFileURL(filepath).href, import.meta.url);
 	return extractAndResolve(filepath, mod);
 }
 
 function extractAndResolve(filepath: string, mod: unknown): ResolvedHolocronConfig {
-	const raw = (mod as { default?: unknown }).default;
+	const outer = (mod as { default?: unknown }).default;
+	// tsx CJS-transforms `export default x` into `exports.default = x`, which
+	// dynamic import wraps as { default: { __esModule: true, default: x } }.
+	// Unwrap the extra layer when present so both ESM and CJS outputs work.
+	const raw =
+		(outer as { __esModule?: boolean })?.__esModule === true
+			? (outer as { default?: unknown }).default
+			: outer;
 	if (raw === undefined || raw === null) {
 		throw new ConfigFileError(`${filepath} must have a default export (use \`export default defineConfig({…})\`)`);
 	}

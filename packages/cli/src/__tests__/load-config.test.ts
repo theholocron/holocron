@@ -7,9 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigError } from "../config.js";
 import { ConfigFileError, loadConfig } from "../load-config.js";
 
-// vitest's module system wraps tsImport results in an extra { default: ... }
-// layer that doesn't exist in real Node.js ESM. Unwrap one level so loadTs
-// gets the same shape it would in production.
+// In production, tsx CJS-transforms `export default x` into `exports.default = x`,
+// so dynamic import produces { default: { __esModule: true, default: x } }.
+// In vitest's module system tsImport adds a further outer { default: ... } wrap,
+// so we strip one layer here to match the production double-wrap shape that
+// extractAndResolve now handles.
 vi.mock("tsx/esm/api", async (importOriginal) => {
 	const real = await importOriginal<typeof import("tsx/esm/api")>();
 	return {
