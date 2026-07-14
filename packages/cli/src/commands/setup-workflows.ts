@@ -285,6 +285,20 @@ jobs:
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
 
 /**
+ * GitHub check context name each CI workflow produces on a PR.
+ *
+ * The format is "{caller-workflow-name} / {reusable-job-name}". The caller
+ * job's own `name:` field does NOT appear in the external check name — only
+ * the calling workflow's top-level `name:` and the inner reusable-workflow
+ * job name matter. Only workflows that gate merges are listed here.
+ */
+export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
+	lint: "Lint / Lint entire codebase",
+	test: "Test / Run tests and collect coverage",
+	typecheck: "Typecheck / tsc --noEmit",
+};
+
+/**
  * Generate the thin caller content for a workflow, optionally injecting
  * `with:` inputs before `secrets: inherit` in the jobs block.
  */
