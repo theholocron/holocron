@@ -956,6 +956,7 @@ describe("runSetup", () => {
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(written[".github/labeler.yml"]).toBeDefined();
+		expect(written[".github/labeler.yml"]).toContain("AUTO-GENERATED — do not edit directly");
 		expect(written[".github/labeler.yml"]).toContain("^fix");
 		expect(written[".github/labeler.yml"]).toContain("^docs");
 		const step = report.steps.find((s) => s.step === "write .github/labeler.yml");
