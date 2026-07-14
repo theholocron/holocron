@@ -2,10 +2,24 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConfigError } from "../config.js";
 import { ConfigFileError, loadConfig } from "../load-config.js";
+
+// vitest's module system wraps tsImport results in an extra { default: ... }
+// layer that doesn't exist in real Node.js ESM. Unwrap one level so loadTs
+// gets the same shape it would in production.
+vi.mock("tsx/esm/api", async (importOriginal) => {
+	const real = await importOriginal<typeof import("tsx/esm/api")>();
+	return {
+		...real,
+		tsImport: async (...args: Parameters<typeof real.tsImport>) => {
+			const result = (await real.tsImport(...args)) as Record<string, unknown>;
+			return "default" in result ? (result.default as Record<string, unknown>) : result;
+		},
+	};
+});
 
 describe("loadConfig", () => {
 	let cwd: string;

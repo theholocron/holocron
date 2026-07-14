@@ -70,11 +70,10 @@ async function loadJs(filepath: string): Promise<ResolvedHolocronConfig> {
 
 async function loadTs(filepath: string): Promise<ResolvedHolocronConfig> {
 	const { tsImport } = await import("tsx/esm/api");
-	// tsImport wraps the result: outer.default is the module namespace,
-	// so the actual default export lives one level deeper than native import().
-	const outer = await tsImport(pathToFileURL(filepath).href, import.meta.url);
-	const namespace = (outer as Record<string, unknown>).default ?? outer;
-	return extractAndResolve(filepath, namespace);
+	// tsImport returns the module namespace (same shape as native import()), so
+	// pass it directly to extractAndResolve which reads mod.default from there.
+	const mod = await tsImport(pathToFileURL(filepath).href, import.meta.url);
+	return extractAndResolve(filepath, mod);
 }
 
 function extractAndResolve(filepath: string, mod: unknown): ResolvedHolocronConfig {
