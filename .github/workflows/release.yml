@@ -18,8 +18,8 @@ on: # yamllint disable-line rule:truthy
       dry_run:
         description: |
           Run semantic-release --dry-run. True = analyze + preview only, no
-          git writes, no publish. Set to false ONLY once dry-run reports
-          clean.
+          git writes, no publish. Only meaningful for workflow_dispatch runs;
+          push-triggered runs always run fully.
         required: false
         default: 'true'
         type: choice
