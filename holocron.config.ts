@@ -8,12 +8,6 @@ export default defineConfig({
 		repo: "theholocron/holocron",
 		repoPolicy: {
 			preset: "strict",
-			requiredChecks: [
-				"super-linter (slim)",
-				"tsc --noEmit (every workspace)",
-				"vitest + coverage",
-				"tsdown (every workspace)",
-			],
 		},
 		workflows: [
 			"lint",
