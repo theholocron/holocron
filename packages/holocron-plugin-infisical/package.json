@@ -1,0 +1,63 @@
+{
+  "name": "@theholocron/holocron-plugin-infisical",
+  "version": "2.0.0-alpha.27",
+  "description": "Holocron plugin for Infisical. Implements the vault capability against Infisical's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-infisical#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/holocron-plugin-infisical"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "validate": "tsx scripts/validate.mjs"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@types/node": "catalog:",
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@theholocron/tsdown-config": "catalog:",
+    "@theholocron/vitest-config": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

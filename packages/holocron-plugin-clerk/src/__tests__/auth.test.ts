@@ -25,7 +25,7 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError with a helpful message when nothing is set", () => {
-		expect(() => resolveToken({ env: {} })).toThrow(AuthError);
-		expect(() => resolveToken({ env: {} })).toThrow(/HOLOCRON_CLERK_SECRET_KEY/);
+		expect(() => resolveToken({ env: {}, keyring: () => null })).toThrow(AuthError);
+		expect(() => resolveToken({ env: {}, keyring: () => null })).toThrow(/HOLOCRON_CLERK_SECRET_KEY/);
 	});
 });

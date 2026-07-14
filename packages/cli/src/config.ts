@@ -32,6 +32,24 @@ import { CARDINALITY, type CapabilityKey, REQUIRED_CAPABILITIES } from "./capabi
 
 export type ProviderOptions = Record<string, unknown>;
 
+/**
+ * The shape a capability config package's default export must satisfy.
+ * Config packages let teams share a pre-bundled provider + options across
+ * repos (Level 1 of the shareable-configs story, issue #75).
+ *
+ * @example
+ * // @acme/holocron-vault/index.ts
+ * import type { CapabilityConfigPackage } from '@theholocron/cli'
+ * export default {
+ *   provider: '1password',
+ *   options: { vault: 'acme-app' },
+ * } satisfies CapabilityConfigPackage
+ */
+export interface CapabilityConfigPackage {
+	provider: string;
+	options?: ProviderOptions;
+}
+
 export type SingleEntry = string | [provider: string, options: ProviderOptions];
 
 export type MultiEntry = Array<string | [provider: string, options: ProviderOptions]>;
@@ -39,6 +57,23 @@ export type MultiEntry = Array<string | [provider: string, options: ProviderOpti
 export type RawProviderEntry = SingleEntry | MultiEntry;
 
 export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>>;
+
+export interface RepoPolicyConfig {
+	/**
+	 * "balanced" — squash-only merges, delete-branch-on-merge, issues/discussions/projects
+	 * enabled, auto-merge enabled, web sign-off required, always suggest updating, no wiki;
+	 * plus a ruleset that blocks force-push + deletion and requires a pull request (0 reviews).
+	 *
+	 * "strict" — everything in "balanced" plus required status checks from `requiredChecks`.
+	 *
+	 * "none" — skips repo settings + ruleset entirely.
+	 *
+	 * @default "balanced"
+	 */
+	preset?: "balanced" | "strict" | "none";
+	/** CI check context names required on the default branch (used by "strict"). */
+	requiredChecks?: string[];
+}
 
 export interface AppConfig {
 	name: string;
@@ -51,7 +86,39 @@ export interface DoctorConfig {
 }
 
 export interface HolocronConfig {
-	project: { name: string; description?: string };
+	project: {
+		name: string;
+		description?: string;
+		/**
+		 * Repo coord — `"owner/name"`. When set, `PluginLoader` injects
+		 * it into every plugin's `RuntimeContext.repo` so plugins that
+		 * need a repo (github, etc.) don't require `--repo` on every
+		 * invocation. `--repo` on the command line still overrides.
+		 */
+		repo?: string;
+		/**
+		 * Repo-level policy applied by `holocron setup`. Defines merge
+		 * strategy, branch protection rulesets, and security defaults.
+		 * Requires `source` capability to be configured.
+		 */
+		repoPolicy?: RepoPolicyConfig;
+		/**
+		 * CI workflow names to install as thin wrappers during `holocron setup`.
+		 * Each name maps to a reusable workflow in `theholocron/.github`.
+		 * Use the object form to pass `with:` inputs to the reusable workflow.
+		 *
+		 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
+		 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping-pr" | "audit"
+		 *
+		 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
+		 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
+		 * Files are overwritten on each run — they are generated artifacts.
+		 *
+		 * @example
+		 * ["lint", { "name": "release", "with": { "run-build": false } }]
+		 */
+		workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
+	};
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;

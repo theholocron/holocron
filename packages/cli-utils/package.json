@@ -2,7 +2,7 @@
   "name": "@theholocron/cli-utils",
   "version": "0.0.0",
   "private": true,
-  "description": "Shared CLI primitives (prompts, openers, shell, logging) for the Holocron monorepo. Battle-tested helpers carried over from the v1 single-package CLI. PRIVATE — not published; bits get cherry-picked into @theholocron/cli over time.",
+  "description": "Shared CLI primitives (prompts, openers, shell, logging) for the Holocron monorepo. Battle-tested helpers carried over from the v1 single-package CLI. PRIVATE \u2014 not published; bits get cherry-picked into @theholocron/cli over time.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli-utils#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -21,7 +21,7 @@
     "./utils": "./src/utils/index.ts"
   },
   "scripts": {
-    "typecheck": "echo 'cli-utils: v1 carryover — fix imports + type errors as we cherry-pick into @theholocron/cli; see .notes/tech-architecture.spec.md'"
+    "typecheck": "echo 'cli-utils: v1 carryover \u2014 fix imports + type errors as we cherry-pick into @theholocron/cli; see .notes/tech-architecture.spec.md'"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
@@ -40,7 +40,6 @@
   },
   "devDependencies": {
     "@theholocron/tsconfig": "catalog:",
-    "@tsconfig/node-lts": "catalog:",
     "@types/play-sound": "^1.1.2",
     "@types/update-notifier": "^6.0.8",
     "typescript": "catalog:"

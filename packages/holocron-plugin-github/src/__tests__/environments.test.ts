@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GitHubEnvironments } from "../capabilities/environments.js";
-import { GitHubRestClient } from "../rest.js";
+import { createGitHubRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -9,7 +9,7 @@ const REPO = "theholocron/holocron";
 
 function makeEnvs(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new GitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubRestClient({ token: "pat", fetch });
 	const envs = new GitHubEnvironments(rest, { repo: REPO });
 	return { envs, calls };
 }

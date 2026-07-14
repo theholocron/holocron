@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { PostmanTooling } from "../capabilities/tooling.js";
 import { PostmanPlanLimitError } from "../errors.js";
-import { PostmanRestClient } from "../rest.js";
+import { createPostmanRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -22,7 +22,7 @@ function makeTooling(
 	}> = {}
 ) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new PostmanRestClient({ token: "pmak-test", fetch });
+	const rest = createPostmanRestClient({ token: "pmak-test", fetch });
 	const tooling = new PostmanTooling(rest, { workspaceId: "ws-id", ...opts });
 	return { tooling, calls };
 }
@@ -39,7 +39,7 @@ describe("PostmanTooling identity", () => {
 	});
 
 	it("throws when workspaceId is missing", () => {
-		const rest = new PostmanRestClient({ token: "t" });
+		const rest = createPostmanRestClient({ token: "t" });
 		expect(() => new PostmanTooling(rest, { workspaceId: "" })).toThrow(/workspaceId/);
 	});
 });
@@ -248,24 +248,16 @@ describe("PostmanRestClient — plan-limit discrimination", () => {
 				}),
 			},
 		]);
-		try {
-			await tooling.getMyself();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(PostmanPlanLimitError);
-			expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
-		}
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(PostmanPlanLimitError);
+		expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
 	});
 
 	it("throws generic ProviderApiError for non-limit 4xx", async () => {
 		const { tooling } = makeTooling([{ status: 404, text: "not found" }]);
-		try {
-			await tooling.getMyself();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
-		}
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
 	});
 });
 

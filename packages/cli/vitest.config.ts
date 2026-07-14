@@ -1,15 +1,25 @@
+import { library } from "@theholocron/vitest-config/bundles/library";
 import { defineConfig } from "vitest/config";
 
+const base = library();
+
 export default defineConfig({
+	...base,
 	test: {
-		environment: "node",
-		globals: false,
+		...base.test,
 		coverage: {
-			provider: "v8",
-			reporter: ["text", "html", "json-summary"],
-			include: ["src/**/*.ts"],
-			exclude: ["src/**/__tests__/**", "src/**/*.test.ts", "src/index.ts"],
-			thresholds: { lines: 0, functions: 0, branches: 0, statements: 0 },
+			...base.test?.coverage,
+			exclude: [
+				...(base.test?.coverage?.exclude ?? []),
+				// CLI entry point — not unit-testable (yargs wiring, process.exit, etc.).
+				// See issue #117.
+				"src/cli.ts",
+				// Pure TypeScript type definitions; no executable logic to cover.
+				// See issue #117.
+				"src/capabilities/index.ts",
+				// Pure re-export shim — all logic lives in @theholocron/http-client.
+				"src/rest-client.ts",
+			],
 		},
 	},
 });

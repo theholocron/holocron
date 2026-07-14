@@ -5,11 +5,11 @@
  * See README for auth + config docs.
  */
 
-import type { Deployment } from "@theholocron/cli";
+import type { Deployment, RestClient } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { VercelDeployment } from "./capabilities/deployment.js";
-import { VercelRestClient } from "./rest.js";
+import { createVercelRestClient } from "./rest.js";
 
 export interface VercelPluginOptions extends ResolveTokenInput {
 	/** Vercel team id. Set when working with a team-owned project. */
@@ -24,18 +24,19 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: VercelPluginOptions;
-	rest: VercelRestClient;
+	rest: RestClient;
 }
 
 export function createContext(options: VercelPluginOptions = {}): PluginContext {
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof VercelRestClient>[0] = { token };
-	if (options.teamId !== undefined) restOpts.teamId = options.teamId;
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new VercelRestClient(restOpts),
+		rest: createVercelRestClient({
+			token,
+			teamId: options.teamId,
+			baseUrl: options.baseUrl,
+			fetch: options.fetch,
+		}),
 	};
 }
 
@@ -57,8 +58,20 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set vercel` when no token
+ * is supplied or the supplied token is rejected. Points operators at
+ * https://vercel.com/account/tokens where PATs are minted with
+ * "Full Account" scope for team-level ops.
+ */
+export const AUTH_HINT =
+	"generate a Vercel Personal Access Token at https://vercel.com/account/tokens " +
+	"(scope: Full Account for team ops), then run: holocron auth set vercel <PAT>";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { VercelRestClient } from "./rest.js";
+export { createVercelRestClient } from "./rest.js";
 export { VercelDeployment } from "./capabilities/deployment.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

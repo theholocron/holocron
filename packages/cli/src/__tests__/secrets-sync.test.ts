@@ -211,6 +211,41 @@ describe("runSecretsSync", () => {
 		expect(report.summary.dryRun).toBe(1);
 	});
 
+	it("soft-skips with string coercion when provider throws a non-Error", async () => {
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ KEY: "value" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async () => {
+						throw "403 forbidden string";
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			loader,
+			print: () => {},
+		});
+
+		expect(report.summary.fail).toBe(1);
+		const failedRow = report.rows.find((r) => r.status === "fail");
+		expect(failedRow?.message).toBe("403 forbidden string");
+	});
+
 	it("soft-skips individual key failures (continues with other keys)", async () => {
 		const loaded = loadedFrom({
 			project: { name: "demo" },

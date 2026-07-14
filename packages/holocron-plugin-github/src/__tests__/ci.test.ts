@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GitHubCi } from "../capabilities/ci.js";
-import { GitHubRestClient } from "../rest.js";
+import { createGitHubRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -9,7 +9,7 @@ const REPO = "theholocron/holocron";
 
 function makeCi(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new GitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubRestClient({ token: "pat", fetch });
 	const ci = new GitHubCi(rest, { repo: REPO });
 	return { ci, calls };
 }

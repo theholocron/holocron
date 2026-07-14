@@ -10,7 +10,7 @@
 import type { Ci, CiRun, CiRunFilter, CiRunStatus } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface CiOptions {
 	repo: string;
@@ -41,7 +41,7 @@ export class GitHubCi implements Ci {
 	private readonly base: string;
 
 	constructor(
-		private readonly rest: GitHubRestClient,
+		private readonly rest: RestClient,
 		opts: CiOptions
 	) {
 		const { owner, name } = parseRepo(opts.repo);

@@ -6,7 +6,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { GitHubSource } from "../capabilities/source.js";
-import { GitHubRestClient } from "../rest.js";
+import { createGitHubRestClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -14,7 +14,7 @@ const REPO = "theholocron/holocron";
 
 function makeSource(responses: Parameters<typeof stubFetch>[0], repoRoot: string = process.cwd()) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new GitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubRestClient({ token: "pat", fetch });
 	const source = new GitHubSource(rest, { repo: REPO, repoRoot });
 	return { source, calls };
 }
@@ -88,6 +88,8 @@ describe("GitHubSource — REST methods", () => {
 			security_and_analysis: {
 				secret_scanning: { status: "enabled" },
 				secret_scanning_push_protection: { status: "enabled" },
+				secret_scanning_validity_checks: { status: "enabled" },
+				secret_scanning_non_provider_patterns: { status: "enabled" },
 			},
 		});
 	});

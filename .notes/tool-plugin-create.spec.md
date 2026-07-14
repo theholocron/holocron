@@ -1,20 +1,31 @@
 ---
-status: draft # draft → proposed (issue filed) → approved (milestone attached) → archived
+status: proposed # draft → proposed (issue filed) → approved (milestone attached) → archived
 issue: 77
-blocked-by: [76, 78]
+blocked-by: []
 ---
 
 <!-- editorconfig-checker-disable-file -->
 
 # `holocron plugin create <slug> <vendor>`
 
-> **Blocked.** Design deferred until #76 (per-plugin `transport`
-> option) and #78 (CLI-transport sibling skill) land. Reason: the
-> template shape depends on how transport variants are declared in
-> `holocron.config.json` and what the CLI-transport plugin structure
-> looks like. Designing REST-only templates first would likely bake
-> in the wrong abstractions and force a rewrite once the other two
-> land. Revisit this spec after both are merged.
+> **Phased.** Phase 1 (REST-only) **shipped** on `alpha` — 17
+> templates, subcommand wired, orchestrator + preflight + slug
+> collision + capability validation + generate + print-next-steps.
+> The skill file is a stub pointing at the CLI.
+>
+> **Prompts + verify are follow-ups** (see §Roadmap). The command
+> currently errors clearly when `--capability` / `--vendor-env` /
+> `--base-url` are missing; interactive prompts + post-scaffold
+> `pnpm install + typecheck + lint + test` are next.
+>
+> **Phase 2 (`--transport cli` variant) is CANCELLED** as of
+> 2026-07-06 — its two prerequisites (#76 per-plugin `transport`
+> option, #78 CLI-transport sibling skill) both closed as won't-fix.
+> 1P remains the sole CLI-transport plugin and no additional
+> CLI-transport plugins are planned. If that ever changes,
+> hand-modify from 1P as the reference and file a fresh focused
+> issue rather than reviving Phase 2 here. Phase 3 (`--from-rando`)
+> remains a nice-to-have.
 
 ## Decision
 
@@ -32,7 +43,7 @@ same template drift; we consolidate on the CLI.
 
 - Issue #77 makes the case: the skill is fine for AI-assisted
   scaffolding, but the CLI is what an operator reaches for from a
-  regular shell — and it's what a *downstream* project reaches for
+  regular shell — and it's what a _downstream_ project reaches for
   when they need to author their own vendor plugin.
 - The scaffolding logic is already codified in the skill; it just
   needs to be re-hosted as TS code invoked through the existing
@@ -56,8 +67,8 @@ holocron plugin create <slug> <vendor>
                                  # (interactive prompt if omitted)
     [--base-url <URL>]           # REST base URL
                                  # (interactive prompt if omitted)
-    [--transport <rest|cli>]     # default: rest
-                                 # cli transport blocked pending #78
+    # --transport was planned but CANCELLED (see §Roadmap Phase 2).
+    # REST-only scaffolding covers every plugin now on the roster.
     [--dry-run]                  # print the file list, write nothing
     [--no-verify]                # skip post-scaffold pnpm install/typecheck/lint/test
 ```
@@ -69,72 +80,98 @@ which also mix positional + interactive prompts.
 
 ## Behavior — happy path
 
-1. **Preflight**: verify CWD is a holocron workspace root
+Legend: ✅ shipped in Phase 1a · ⏳ Phase 1b follow-up.
+
+1. **Preflight** ✅ — verify CWD is a holocron workspace root
    (`pnpm-workspace.yaml` + `packages/` dir present). If not, error
-   with the same message pnpm gives on out-of-workspace runs.
-2. **Slug collision**: `packages/holocron-plugin-<slug>/` must not
-   exist. If it does, error "already scaffolded, edit in place".
-3. **Prompt for anything missing**: capability key, vendor-native env,
-   base URL — using `@theholocron/cli-utils` prompts.
-4. **Capability sanity**: capability key must be one of the 14; error
-   if not. If capability cardinality is `many` (per `CARDINALITY` in
-   `capabilities/index.ts`), print a warning + confirm — those need
-   different wiring in `holocron.config.json`.
-5. **Generate**: write the 14 template files to
+   with a clear message.
+2. **Slug collision** ✅ — `packages/holocron-plugin-<slug>/` must
+   not exist. If it does, error "already exists — edit in place or
+   pick a different slug".
+3. **Prompt for anything missing** ⏳ — capability key, vendor-native
+   env, base URL — using `@theholocron/cli-utils` prompts. Today the
+   command errors clearly if these flags are absent; interactive
+   prompts land in Phase 1b.
+4. **Capability sanity** ✅ — capability key must be one of the 14
+   in `CARDINALITY`; error if not. Prints a many-cardinality
+   warning (not a hard confirm; a confirmation gate is Phase 1b).
+5. **Generate** ✅ — write the 17 template files to
    `packages/holocron-plugin-<slug>/` (see §Templates below).
-6. **Verify** (unless `--no-verify`): run
-   `pnpm install && pnpm --filter <pkg> typecheck lint test`. If any
-   step fails, surface verbatim and leave the scaffold in place — the
-   operator can inspect + delete if they choose.
-7. **Print next steps**: implement the capability methods, replace
-   `it.todo`, update README, commit.
+6. **Verify** ⏳ — (unless `--no-verify`) run `pnpm install && pnpm
+--filter <pkg> typecheck lint test`. Flag exists in yargs
+   already; the actual pnpm invocation lands in Phase 1b.
+7. **Print next steps** ✅ — 7-step operator checklist including
+   pnpm install, typecheck/lint/test, implement methods, replace
+   `it.todo`, commit.
 
 `--dry-run` skips steps 5–7 and prints the file list only.
 
 ## Templates
 
 Template content lives **inline as TS string builders** in
-`packages/cli/src/commands/plugin-create/templates/`:
+`packages/cli/src/commands/plugin-create/templates/`. The as-shipped
+list is **17 files** (not 14 as the original spec estimated —
+`verify-token.ts` / `verify-token.test.ts` / `tsdown.config.ts` were
+added post-#94 to reflect the session-derived plugin conventions):
 
-- `package-json.ts` → returns the `package.json` string given inputs
+**Config (5)**
+
+- `package-json.ts` → returns the `package.json` string
 - `tsconfig-json.ts` → returns the `tsconfig.json` string
-- `vitest-config.ts` → `vitest.config.ts` string
-- `eslint-config.ts` → `eslint.config.js` string
-- `readme.ts` → `README.md` string
-- `auth.ts` → `src/auth.ts` string
-- `rest.ts` → `src/rest.ts` string
-- `plugin-index.ts` → `src/index.ts` string
-- `capability.ts` → `src/capabilities/<key>.ts` string (stubbed body)
-- `helpers.ts` → `src/__tests__/helpers.ts` string (stubFetch)
-- `auth-test.ts` → `src/__tests__/auth.test.ts` string
-- `rest-test.ts` → `src/__tests__/rest.test.ts` string
-- `capability-test.ts` → `src/__tests__/<key>.test.ts` string (it.todo)
-- `index-test.ts` → `src/__tests__/index.test.ts` string
+- `vitest-config.ts` → `vitest.config.ts`
+- `eslint-config.ts` → `eslint.config.js`
+- `tsdown-config.ts` → `tsdown.config.ts` (new since draft)
+
+**Docs (1)**
+
+- `readme.ts` → `README.md`
+
+**Source (5)**
+
+- `auth.ts` → `src/auth.ts` (4-step keyring precedence)
+- `rest.ts` → `src/rest.ts`
+- `verify-token.ts` → `src/verify-token.ts` (new since draft)
+- `plugin-index.ts` → `src/index.ts` (includes `AUTH_HINT` +
+  `verifyToken` re-exports)
+- `capability.ts` → `src/capabilities/<key>.ts` (stubbed body — no
+  `implements` at scaffold time; operator adds it once methods land)
+
+**Tests (6)**
+
+- `helpers.ts` → `src/__tests__/helpers.ts` (stubFetch)
+- `auth-test.ts` → `src/__tests__/auth.test.ts`
+- `rest-test.ts` → `src/__tests__/rest.test.ts`
+- `verify-token-test.ts` → `src/__tests__/verify-token.test.ts` (new)
+- `capability-test.ts` → `src/__tests__/<key>.test.ts` (it.todo)
+- `index-test.ts` → `src/__tests__/index.test.ts`
 
 Inline TS over file-based `.tmpl` templates because:
+
 - No template engine dep
 - Templates get typechecked against a shared `TemplateInputs` type
 - Editor jumps to the string source directly
-- Small enough surface (14 files, ~800 LOC of templates) that it
+- Small enough surface (17 files, ~1000 LOC of templates) that it
   doesn't overwhelm the codebase
 
 Each template exports `(inputs: TemplateInputs) => string` and takes
-the same input record — a tagged discriminated union for
-REST/CLI-transport variants (CLI-transport variant deferred to #78).
+the same input record. The original design anticipated a tagged
+discriminated union for REST/CLI-transport variants; with Phase 2
+cancelled, `TemplateInputs.transport` is effectively a constant `"rest"`
+and can be removed in a future cleanup pass.
 
 ### `TemplateInputs`
 
 ```ts
 interface TemplateInputs {
-    slug: string;                       // 'clerk'
-    vendorName: string;                 // 'Clerk' (PascalCase)
-    vendorUpper: string;                // 'CLERK'
-    capability: CapabilityKey;          // 'auth'
-    capabilityClass: string;            // 'ClerkAuth'
-    tokenEnv: string;                   // 'HOLOCRON_CLERK_TOKEN'
-    vendorEnv: string;                  // 'CLERK_SECRET_KEY'
-    baseUrl: string;                    // 'https://api.clerk.com/v1'
-    transport: "rest";                  // 'cli' variant pending #78
+	slug: string; // 'clerk'
+	vendorName: string; // 'Clerk' (PascalCase)
+	vendorUpper: string; // 'CLERK'
+	capability: CapabilityKey; // 'auth'
+	capabilityClass: string; // 'ClerkAuth'
+	tokenEnv: string; // 'HOLOCRON_CLERK_TOKEN'
+	vendorEnv: string; // 'CLERK_SECRET_KEY'
+	baseUrl: string; // 'https://api.clerk.com/v1'
+	transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
 }
 ```
 
@@ -168,43 +205,68 @@ throwaway plugin, `.claude/skills/holocron-plugin.md` becomes a
 
 > The scaffolding logic lives in `holocron plugin create`.
 > Run it directly:
+>
 > ```
 > holocron plugin create <slug> <vendor>
 > ```
+>
 > The skill file itself is deprecated — kept only so old references
 > resolve.
 
 ## Test plan
 
-- **Unit**: each template module gets a golden-file test — input
-  record → expected string. Add a template, add a golden.
-- **Integration**: single vitest scenario that spawns
-  `holocron plugin create test-plugin TestVendor` in a temp workspace
-  fixture (with the minimum viable `pnpm-workspace.yaml` +
-  `holocron.config.json`), asserts:
-  1. The 14 files exist and their content matches golden output
-  2. `pnpm --filter @theholocron/holocron-plugin-test-plugin typecheck`
-     passes on the scaffolded package
-- **Skipped on CI initially**: the integration test runs `pnpm install`
-  which is slow — mark it `describe.skip` behind an env flag, run
-  locally + as a periodic job. Similar to Rando's Postgres opt-in
-  tests.
+**Shipped (Phase 1a)**:
+
+- **Unit** — `packages/cli/src/__tests__/plugin-create.test.ts`
+  covers the orchestrator surface: file count (17), path
+  substitution (`{{capability}}` → real key), dry-run vs write,
+  preflight failure, slug collision, unknown capability rejection,
+  many-cardinality warning, and rendered-content sanity checks on
+  package.json / auth.ts / index.ts.
+- **Manual end-to-end** — during development, scaffolded a
+  `testvendor` plugin with `--capability tooling`, ran
+  `pnpm --filter @theholocron/holocron-plugin-testvendor typecheck
+lint test` — all green. The command's output matches expectations.
+
+**Follow-up (Phase 1b)**:
+
+- **Golden-file tests per template** — the original spec called for
+  17 individual goldens. Shipped as inline rendered-content
+  assertions instead (fewer files, similar coverage). Full goldens
+  would be additive; not urgent.
+- **Automated integration test** — vitest scenario that spawns
+  `holocron plugin create` against a temp workspace fixture, runs
+  the generated package's `pnpm install && typecheck lint test`,
+  cleans up. Skip on CI initially per the original spec (pnpm
+  install is slow); gate behind `RUN_PLUGIN_CREATE_E2E=1`.
 
 ## Roadmap
 
-- **Phase 1** (this issue): Ship `holocron plugin create <slug> <vendor>`
-  REST-only. Templates + prompts + verify.
-- **Phase 2** (needs #76+#78): Add `--transport cli` variant. Requires
-  the `transport` option in `holocron.config.json` (#76) and the
-  CLI-transport skill/design (#78).
+- **Phase 1a** (shipped): `holocron plugin create <slug> <vendor>`
+  REST-only. 17 templates, subcommand, preflight, slug collision
+  check, capability validation, `--dry-run`, generate loop with
+  `{{capability}}` path substitution, print-next-steps. Skill file
+  reduced to a stub.
+- **Phase 1b** (follow-up — same issue #77): Interactive prompts
+  for missing `--capability` / `--vendor-env` / `--base-url`.
+  Post-scaffold verify step (`pnpm install && pnpm --filter <pkg>
+typecheck lint test`) gated by `--no-verify`. Full integration
+  test (behind an env flag — spawns pnpm install and typechecks
+  the generated package end-to-end).
+- **Phase 2** (**CANCELLED** 2026-07-06): originally to add a
+  `--transport cli` variant. Both prerequisites (#76 per-plugin
+  transport option, #78 CLI-transport sibling skill) were closed as
+  won't-fix. 1P stays as the sole CLI-transport plugin; if another
+  ever surfaces, hand-modify from 1P as the reference and open a
+  fresh focused issue rather than reopening this phase.
 - **Phase 3** (later): Add `--from-rando <path>` flag that reads an
   existing Rando adapter and pre-fills the template — turns the
-  Rando-porting checklist at the bottom of the skill into a machine
-  step.
+  Rando-porting checklist at the bottom of the (now-stub) skill
+  into a machine step.
 
 ## Open questions
 
-1. **Should `--dry-run` also show file *contents*, gated behind
+1. **Should `--dry-run` also show file _contents_, gated behind
    `-v`?** Argument for: operator can review before writing. Argument
    against: prints ~800 lines to the terminal.
 2. **Should there be a `holocron plugin list` complement?** Trivial

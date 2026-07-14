@@ -1,0 +1,11 @@
+{
+  "allow": [
+    "dead",
+    "failure",
+    "failures",
+    "hook",
+    "hooks",
+    "husky",
+    "period"
+  ]
+}

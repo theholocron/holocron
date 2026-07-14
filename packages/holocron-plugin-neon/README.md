@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # `@theholocron/holocron-plugin-neon`
 
 Neon plugin for [Holocron](../cli). Implements the `storage`
@@ -28,7 +30,7 @@ Token resolution order:
 ```
 
 - `projectId` (required) — the Neon project id. The plugin binds to
-	this project; every method operates within it.
+  this project; every method operates within it.
 
 ## What's implemented
 

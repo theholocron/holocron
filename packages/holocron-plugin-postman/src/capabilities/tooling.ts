@@ -27,7 +27,7 @@ import { basename, resolve } from "node:path";
 import { ProviderApiError } from "@theholocron/cli";
 import type { Tooling, ToolingDoctorReport } from "@theholocron/cli";
 
-import type { PostmanRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface PostmanToolingOptions {
 	workspaceId: string;
@@ -117,7 +117,7 @@ export class PostmanTooling implements Tooling {
 	private readonly repoRoot: string;
 
 	constructor(
-		private readonly rest: PostmanRestClient,
+		private readonly rest: RestClient,
 		opts: PostmanToolingOptions
 	) {
 		if (!opts.workspaceId) {

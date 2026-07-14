@@ -92,33 +92,23 @@ describe("parseWebhook", () => {
 	});
 
 	it("throws WebhookVerificationError when signingSecret is missing", async () => {
-		try {
-			await parseWebhook({ body: clerkBody(), headers: {}, signingSecret: "" });
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(WebhookVerificationError);
-			expect((err as Error).message).toMatch(/whsec_/);
-		}
+		const err = await parseWebhook({ body: clerkBody(), headers: {}, signingSecret: "" }).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/whsec_/);
 	});
 
 	it("throws on malformed JSON body", async () => {
-		try {
-			await parseWebhook(input({ body: "{ this is not json" }));
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(WebhookVerificationError);
-			expect((err as Error).message).toMatch(/not valid JSON/);
-		}
+		const err = await parseWebhook(input({ body: "{ this is not json" })).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/not valid JSON/);
 	});
 
 	it("throws on unmapped event types (e.g. session.created)", async () => {
-		try {
-			await parseWebhook(input({ body: clerkBody({ type: "session.created" }) }));
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(WebhookVerificationError);
-			expect((err as Error).message).toMatch(/session\.created/);
-		}
+		const err = await parseWebhook(input({ body: clerkBody({ type: "session.created" }) })).catch(
+			(e: unknown) => e
+		);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/session\.created/);
 	});
 
 	it("accepts Buffer body (Node http request shape)", async () => {

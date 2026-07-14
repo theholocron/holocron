@@ -1,15 +1,14 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-07-14T05:25:52.000Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
 name: Typecheck
 
-# tsc --noEmit across every workspace. Fast and self-contained — no
-# coverage, no artifacts; just "do the types compile?"
-
-on:
+on: # yamllint disable-line rule:truthy
   push:
-    branches-ignore:
-      - main # release.yml runs the same typecheck before publishing
+    branches: [main, alpha]
   pull_request:
-    branches:
-      - main
 
 concurrency:
   group: typecheck-${{ github.ref }}
@@ -20,26 +19,6 @@ permissions:
 
 jobs:
   typecheck:
-    name: tsc --noEmit (every workspace)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm typecheck
+    name: Typecheck
+    uses: theholocron/.github/.github/workflows/typecheck.yml@main
+    secrets: inherit

@@ -10,12 +10,12 @@
  */
 
 import { readdir, readFile, rm, writeFile, mkdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 import type { RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { RestClient } from "@theholocron/cli";
 
 export interface SourceOptions {
 	repo: string;
@@ -30,16 +30,18 @@ export class GitHubSource implements Source {
 	private readonly owner: string;
 	private readonly name: string;
 	private readonly repoPath: string;
+	private readonly repoRoot: string;
 	private readonly workflowDir: string;
 
 	constructor(
-		private readonly rest: GitHubRestClient,
+		private readonly rest: RestClient,
 		opts: SourceOptions
 	) {
 		const { owner, name } = parseRepo(opts.repo);
 		this.owner = owner;
 		this.name = name;
 		this.repoPath = `/repos/${owner}/${name}`;
+		this.repoRoot = opts.repoRoot;
 		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
 	}
 
@@ -81,6 +83,13 @@ export class GitHubSource implements Source {
 		await this.rest.request<void>(this.repoPath, { method: "PATCH", body: settings });
 	}
 
+	async protectBranch(branch: string, payload: Record<string, unknown>): Promise<void> {
+		await this.rest.request<void>(`${this.repoPath}/branches/${encodeURIComponent(branch)}/protection`, {
+			method: "PUT",
+			body: payload,
+		});
+	}
+
 	// ── security toggles (idempotent flip-or-noop) ──────────────────────
 
 	async enableVulnerabilityAlerts(): Promise<void> {
@@ -98,15 +107,53 @@ export class GitHubSource implements Source {
 	}
 
 	async enableSecretScanning(): Promise<void> {
-		// PATCHing `security_and_analysis` is the only way to flip both
-		// secret scanning AND its push-protection sibling. Enabling push
-		// protection without secret scanning is a no-op, so we set both.
 		await this.rest.request<void>(this.repoPath, {
 			method: "PATCH",
 			body: {
 				security_and_analysis: {
 					secret_scanning: { status: "enabled" },
 					secret_scanning_push_protection: { status: "enabled" },
+					// Validity checks confirm found secrets are still active (reduces
+					// false positives). Non-provider patterns catches secrets outside
+					// known provider formats. Both require org-level GHAS — accepted
+					// as a no-op until that is enabled.
+					secret_scanning_validity_checks: { status: "enabled" },
+					secret_scanning_non_provider_patterns: { status: "enabled" },
+				},
+			},
+		});
+	}
+
+	async enableCodeScanning(): Promise<string> {
+		const result = await this.rest.request<{ run_id: number; run_url: string }>(
+			`${this.repoPath}/code-scanning/default-setup`,
+			{
+				method: "PATCH",
+				// remote_and_local covers both remote exploits AND local paths
+				// (path traversal, injection via local input, etc.) — this is what
+				// GitHub surfaces as "code quality" alongside the security queries.
+				body: { state: "configured", query_suite: "extended", threat_model: "remote_and_local" },
+			}
+		);
+		return `run ${result.run_id}`;
+	}
+
+	async disableDefaultCodeScanning(): Promise<void> {
+		await this.rest.request<void>(`${this.repoPath}/code-scanning/default-setup`, {
+			method: "PATCH",
+			body: { state: "not-configured" },
+		});
+	}
+
+	async enableDependencyGraph(): Promise<void> {
+		await this.rest.request<void>(this.repoPath, {
+			method: "PATCH",
+			body: {
+				security_and_analysis: {
+					// Auto-on for public repos; explicit for private repos.
+					dependency_graph: { status: "enabled" },
+					// Automatically submits dependency snapshots via GitHub Actions.
+					dependency_graph_autosubmit_action: { status: "enabled" },
 				},
 			},
 		});
@@ -152,6 +199,12 @@ export class GitHubSource implements Source {
 			if (isENOENT(err)) return;
 			throw err;
 		}
+	}
+
+	async writeRepoFile(path: string, contents: string): Promise<void> {
+		const full = join(this.repoRoot, path);
+		await ensureDir(dirname(full));
+		await writeFile(full, contents, "utf8");
 	}
 }
 

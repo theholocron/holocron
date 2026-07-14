@@ -5,11 +5,11 @@
  * See README for auth + config docs.
  */
 
-import type { Auth } from "@theholocron/cli";
+import type { Auth, RestClient } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ClerkAuth } from "./capabilities/auth.js";
-import { ClerkRestClient } from "./rest.js";
+import { createClerkRestClient } from "./rest.js";
 
 export interface ClerkPluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
@@ -20,17 +20,14 @@ export interface ClerkPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: ClerkPluginOptions;
-	rest: ClerkRestClient;
+	rest: RestClient;
 }
 
 export function createContext(options: ClerkPluginOptions = {}): PluginContext {
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof ClerkRestClient>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new ClerkRestClient(restOpts),
+		rest: createClerkRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
@@ -48,9 +45,21 @@ export function createPlugin(options: ClerkPluginOptions = {}) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set clerk` when no token
+ * is supplied or the supplied token is rejected. Points operators at
+ * the Clerk dashboard's API Keys section — MUST be the SECRET key
+ * (sk_test_* / sk_live_*), not the publishable key.
+ */
+export const AUTH_HINT =
+	"grab your SECRET key (sk_test_* / sk_live_*) at https://dashboard.clerk.com → API Keys, " +
+	"then run: holocron auth set clerk <KEY>. Do NOT use the publishable key.";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { ClerkRestClient } from "./rest.js";
+export { createClerkRestClient } from "./rest.js";
 export { ClerkAuth } from "./capabilities/auth.js";
 export { parseWebhook } from "./parse-webhook.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

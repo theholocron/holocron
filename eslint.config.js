@@ -1,35 +1,24 @@
-// Workspace-level ESLint config (flat). Minimal but strict.
-//
-// Not using `@theholocron/eslint-config@4.1.0` directly yet — that
-// package calls `includeIgnoreFile` on a `.gitignore` it doesn't ship
-// in the npm tarball, so consuming it programmatically fails (see
-// https://github.com/theholocron/eslint-config — upstream bug). The
-// v1 repo only ran lint via super-linter in Docker, so the issue
-// never surfaced. Swap back once the org config is fixed.
-
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import globals from "globals";
+import { library } from "@theholocron/eslint-config/bundles/library";
+import { vitest } from "@theholocron/eslint-config/vitest";
 
 export default [
+	...library(),
+	...vitest(),
 	{
-		ignores: [
-			"packages/*/dist/**",
-			"packages/*/coverage/**",
-			"packages/cli-utils/**", // v1 carryover — lints when we cherry-pick
-			"**/node_modules/**",
-		],
-	},
-	js.configs.recommended,
-	...tseslint.configs.recommended,
-	{
-		languageOptions: {
-			ecmaVersion: 2024,
-			sourceType: "module",
-			globals: { ...globals.node },
-		},
+		// eslint-plugin-n defaults to Node >=16 when engines.node is absent from
+		// a package — override at workspace level to match our engines requirement.
+		// TODO: move engines.node into each package.json instead (#111 follow-up).
+		settings: { node: { version: ">=22.0.0" } },
 		rules: {
-			"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+			// src/ files are compiled to dist/ by tsdown; `files` in package.json
+			// lists dist/, so the plugin flags every relative src/ import as
+			// "unpublished". Project-level false positive for the TypeScript
+			// src→dist build model — intentionally kept here rather than disabled
+			// in the shared org config where the rule is genuinely useful.
+			"n/no-unpublished-import": "off",
 		},
+	},
+	{
+		ignores: ["packages/*/dist/**", "packages/*/coverage/**", "packages/cli-utils/**", "**/node_modules/**"],
 	},
 ];

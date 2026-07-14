@@ -7,6 +7,15 @@
 Conventions for working on Holocron. Loaded automatically by Claude
 Code into every conversation in this repo.
 
+## Where code lives (org-wide rule)
+
+Three repos, one rule per concern:
+
+- **Shareable tool config (ESLint, Prettier, TSConfig, Vitest, …)** → `theholocron/configs`. If you find yourself copy-pasting a tool config across repos, it belongs there as a `@theholocron/*-config` package.
+- **HTTP clients and API wrappers** → `theholocron/clients`. REST clients for third-party services and shared HTTP primitives live there.
+- **Anything that can be automated** → `theholocron/holocron` (this repo). Infrastructure commands (`setup`, `upgrade`, `doctor`, `secrets sync`), CI orchestration, and repo lifecycle automation belong here in the Holocron CLI.
+- **`holocron.config` format** — use `holocron.config.ts` with `defineConfig` in any repo that has a `package.json` (the CLI must be resolvable at runtime). Use `holocron.config.json` in content-only repos with no Node.js infrastructure (e.g., `.github`, `.github-private`).
+
 ## Architecture
 
 - **Capability/provider model.** 14 capabilities defined in
@@ -30,6 +39,8 @@ Code into every conversation in this repo.
 
 ## Code patterns
 
+- **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
+- **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-plugin` skill at `.claude/skills/holocron-plugin.md`. The
   skill produces ~14 files in the right shape; only the capability
