@@ -361,9 +361,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: labeler config ───────────────────────────────────────────
 	if (
 		loader.has("source") &&
-		(config.project.workflows ?? [])
-			.map((e) => (typeof e === "string" ? e : e.name))
-			.includes("bookkeeping-pr")
+		(config.project.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping-pr")
 	) {
 		const source = loader.get("source") as Source;
 		steps.push(
