@@ -929,6 +929,68 @@ describe("runSetup", () => {
 		expect(step?.status).toBe("ok");
 	});
 
+	it("writes .github/labeler.yml when bookkeeping-pr workflow is configured", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint", "bookkeeping-pr"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/labeler.yml"]).toBeDefined();
+		expect(written[".github/labeler.yml"]).toContain("^fix");
+		expect(written[".github/labeler.yml"]).toContain("^docs");
+		const step = report.steps.find((s) => s.step === "write .github/labeler.yml");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("does not write .github/labeler.yml when bookkeeping-pr is not configured", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint", "test"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/labeler.yml"]).toBeUndefined();
+	});
+
 	it("dry-run does not write .alexrc.json", async () => {
 		let writeCalled = false;
 		const loaded = loadedFrom({
