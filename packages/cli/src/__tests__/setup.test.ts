@@ -959,6 +959,7 @@ describe("runSetup", () => {
 		expect(written[".github/labeler.yml"]).toContain("AUTO-GENERATED — do not edit directly");
 		expect(written[".github/labeler.yml"]).toContain("^fix");
 		expect(written[".github/labeler.yml"]).toContain("^docs");
+		expect(written[".github/labeler.yml"]).toMatch(/\n$/);
 		const step = report.steps.find((s) => s.step === "write .github/labeler.yml");
 		expect(step?.status).toBe("ok");
 	});
