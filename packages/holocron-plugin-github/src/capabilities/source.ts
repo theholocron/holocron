@@ -138,6 +138,13 @@ export class GitHubSource implements Source {
 		return `run ${result.run_id}`;
 	}
 
+	async disableDefaultCodeScanning(): Promise<void> {
+		await this.rest.request<void>(`${this.repoPath}/code-scanning/default-setup`, {
+			method: "PATCH",
+			body: { state: "not-configured" },
+		});
+	}
+
 	async enableDependencyGraph(): Promise<void> {
 		await this.rest.request<void>(this.repoPath, {
 			method: "PATCH",

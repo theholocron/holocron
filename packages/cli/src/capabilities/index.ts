@@ -139,6 +139,13 @@ export interface Source extends ProviderIdentity {
 	 */
 	enableCodeScanning(): Promise<string>;
 
+	/**
+	 * Disables CodeQL default setup. Required when the repo uses an advanced
+	 * CodeQL workflow instead — GitHub rejects SARIF from advanced workflows
+	 * while default setup is active.
+	 */
+	disableDefaultCodeScanning(): Promise<void>;
+
 	// Workflow files — local YAML files in `.github/workflows/` (or
 	// equivalent). These are conceptually repo content; providers may
 	// throw `NotImplementedError` if the underlying VCS has no notion

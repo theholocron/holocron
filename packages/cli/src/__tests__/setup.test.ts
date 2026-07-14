@@ -419,6 +419,75 @@ describe("runSetup", () => {
 		expect(report.steps.some((s) => s.step.startsWith("ensureEnvironment"))).toBe(false);
 	});
 
+	it("disables default CodeQL setup when codeql workflow is configured", async () => {
+		let defaultSetupDisabled = false;
+		let defaultSetupEnabled = false;
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint", "codeql"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => {
+						defaultSetupEnabled = true;
+						return "run 1";
+					},
+					disableDefaultCodeScanning: async () => {
+						defaultSetupDisabled = true;
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(defaultSetupDisabled).toBe(true);
+		expect(defaultSetupEnabled).toBe(false);
+		const step = report.steps.find((s) => s.step === "disableDefaultCodeScanning");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("enables default CodeQL setup when no codeql workflow is configured", async () => {
+		let defaultSetupEnabled = false;
+		const loaded = loadedFrom({
+			project: { name: "demo", workflows: ["lint"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => {
+						defaultSetupEnabled = true;
+						return "run 1";
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(defaultSetupEnabled).toBe(true);
+	});
+
 	it("applies balanced repo settings + creates a ruleset when repoPolicy.preset is 'balanced'", async () => {
 		let settingsApplied: Record<string, unknown> | null = null;
 		let rulesetCreated: Record<string, unknown> | null = null;

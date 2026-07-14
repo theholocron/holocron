@@ -249,10 +249,22 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
+		const usesAdvancedCodeQL = (config.project.workflows ?? [])
+			.map((e) => (typeof e === "string" ? e : e.name))
+			.includes("codeql");
 		steps.push(
-			await runStep("source", "enableCodeScanning", dryRun, async () => {
-				return await source.enableCodeScanning();
-			})
+			await runStep(
+				"source",
+				usesAdvancedCodeQL ? "disableDefaultCodeScanning" : "enableCodeScanning",
+				dryRun,
+				async () => {
+					if (usesAdvancedCodeQL) {
+						await source.disableDefaultCodeScanning();
+					} else {
+						return await source.enableCodeScanning();
+					}
+				}
+			)
 		);
 		print(formatStep(steps[steps.length - 1]!));
 
