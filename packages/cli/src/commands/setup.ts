@@ -54,6 +54,7 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+indent_style = unset
 
 [.*{rc,ignore}]
 indent_style = space

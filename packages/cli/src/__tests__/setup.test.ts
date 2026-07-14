@@ -931,6 +931,7 @@ describe("runSetup", () => {
 		expect(written[".editorconfig"]).toBeDefined();
 		expect(written[".editorconfig"]).toContain("indent_style = tab");
 		expect(written[".editorconfig"]).toContain("[*.{json,yml,yaml}]");
+		expect(written[".editorconfig"]).toContain("indent_style = unset");
 		expect(written[".editorconfig"]).toMatch(/\n$/);
 		const editorStep = report.steps.find((s) => s.step === "write .editorconfig");
 		expect(editorStep?.status).toBe("ok");
