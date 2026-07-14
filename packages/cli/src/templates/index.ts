@@ -38,6 +38,7 @@ runs:
 
   steps:
     - name: Install dependencies
+      if: \${{ hashFiles('pnpm-lock.yaml') != '' }}
       shell: bash
       run: pnpm install --frozen-lockfile
 `,
@@ -57,13 +58,14 @@ runs:
 
   steps:
     - name: Setup pnpm
+      if: \${{ hashFiles('pnpm-lock.yaml') != '' }}
       uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
     - name: Setup Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version: \${{ inputs.node-version }}
-        cache: pnpm
+        cache: \${{ hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
 
     - name: Add node_modules/.bin to PATH
       shell: bash
