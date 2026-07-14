@@ -927,6 +927,20 @@ describe("runSetup", () => {
 		expect(parsed.allow).toContain("hook");
 		const step = report.steps.find((s) => s.step === "write .alexrc.json");
 		expect(step?.status).toBe("ok");
+
+		expect(written[".editorconfig"]).toBeDefined();
+		expect(written[".editorconfig"]).toContain("indent_style = tab");
+		expect(written[".editorconfig"]).toContain("[*.{json,yml,yaml}]");
+		expect(written[".editorconfig"]).toMatch(/\n$/);
+		const editorStep = report.steps.find((s) => s.step === "write .editorconfig");
+		expect(editorStep?.status).toBe("ok");
+
+		expect(written[".editorconfig-checker.json"]).toBeDefined();
+		const checker = JSON.parse(written[".editorconfig-checker.json"]!);
+		expect(checker.Exclude).toContain("(^|.+/)LICENSE$");
+		expect(written[".editorconfig-checker.json"]).toMatch(/\n$/);
+		const checkerStep = report.steps.find((s) => s.step === "write .editorconfig-checker.json");
+		expect(checkerStep?.status).toBe("ok");
 	});
 
 	it("writes .github/labeler.yml when bookkeeping-pr workflow is configured", async () => {

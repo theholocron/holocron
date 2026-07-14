@@ -29,6 +29,65 @@ import {
 	WORKFLOW_CHECK_CONTEXTS,
 } from "./setup-workflows.js";
 
+// ── .editorconfig ────────────────────────────────────────────────────
+// Canonical editor settings shared across all theholocron repos.
+// Kept in sync via `holocron setup` so drift (e.g. missing yaml glob)
+// is corrected automatically.
+const EDITORCONFIG = `\
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = tab
+indent_size = 4
+
+[.gitattributes]
+indent_style = space
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[.*{rc,ignore}]
+indent_style = space
+indent_size = 2
+`;
+
+// ── .editorconfig-checker.json ───────────────────────────────────────
+// Canonical exclusions for editorconfig-checker. LICENSE files use a
+// non-standard format and must be excluded; public/ is generated output.
+const EDITORCONFIG_CHECKER_CONFIG = JSON.stringify(
+	{
+		Version: "v3.7.0",
+		Verbose: false,
+		Format: "",
+		Debug: false,
+		IgnoreDefaults: false,
+		SpacesAfterTabs: false,
+		NoColor: false,
+		Exclude: ["(^|.+/)LICENSE$", "^public/.*"],
+		AllowedContentTypes: [],
+		PassedFiles: [],
+		Disable: {
+			EndOfLine: false,
+			Indentation: false,
+			InsertFinalNewline: false,
+			TrimTrailingWhitespace: false,
+			IndentSize: false,
+			MaxLineLength: false,
+		},
+	},
+	null,
+	2
+) + "\n";
+
 // ── alex config ──────────────────────────────────────────────────────
 // Canonical allow-list for the alex prose linter. Shared across all
 // theholocron repos via `holocron setup` so the list only needs to be
@@ -391,6 +450,18 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		steps.push(
 			await runStep("source", "write .alexrc.json", dryRun, async () => {
 				await source.writeRepoFile(".alexrc.json", ALEX_CONFIG);
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write .editorconfig", dryRun, async () => {
+				await source.writeRepoFile(".editorconfig", EDITORCONFIG);
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write .editorconfig-checker.json", dryRun, async () => {
+				await source.writeRepoFile(".editorconfig-checker.json", EDITORCONFIG_CHECKER_CONFIG);
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
