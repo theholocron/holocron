@@ -1,9 +1,11 @@
 ## <!-- editorconfig-checker-disable-file -->
----
-status: proposed
-issue: 115
+
 ---
 
+status: proposed
+issue: 115
+
+---
 
 # Smoke-test synced actions in sync-github workflow
 

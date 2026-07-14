@@ -466,12 +466,13 @@ describe("runSetup", () => {
 		expect(policySteps[0]?.status).toBe("ok");
 	});
 
-	it("includes required_status_checks rule when preset is 'strict'", async () => {
+	it("derives required_status_checks from configured workflows when preset is 'strict'", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
 			project: {
 				name: "demo",
-				repoPolicy: { preset: "strict", requiredChecks: ["lint", "typecheck", "test"] },
+				repoPolicy: { preset: "strict" },
+				workflows: ["lint", "test", "typecheck"],
 			},
 			providers: { vault: "1password", source: "github" },
 		});
@@ -491,6 +492,7 @@ describe("runSetup", () => {
 						rulesetPayload = p;
 						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
 					},
+					writeWorkflowFile: async () => {},
 				},
 			}),
 		});
@@ -502,7 +504,56 @@ describe("runSetup", () => {
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
 		expect(checksRule).toBeDefined();
 		expect(checksRule?.parameters).toMatchObject({
-			required_status_checks: [{ context: "lint" }, { context: "typecheck" }, { context: "test" }],
+			required_status_checks: [
+				{ context: "DCO" },
+				{ context: "Lint / Lint entire codebase" },
+				{ context: "Test / Run tests and collect coverage" },
+				{ context: "Typecheck / tsc --noEmit" },
+			],
+		});
+	});
+
+	it("appends extra requiredChecks from config to the auto-derived list", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repoPolicy: { preset: "strict", requiredChecks: ["some-extra-check"] },
+				workflows: ["lint"],
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule?.parameters).toMatchObject({
+			required_status_checks: [
+				{ context: "DCO" },
+				{ context: "Lint / Lint entire codebase" },
+				{ context: "some-extra-check" },
+			],
 		});
 	});
 

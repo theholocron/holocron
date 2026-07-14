@@ -22,7 +22,12 @@ import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vau
 import { ProviderApiError } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
-import { workflowHeader, KNOWN_WORKFLOWS, generateThinCallerContent } from "./setup-workflows.js";
+import {
+	workflowHeader,
+	KNOWN_WORKFLOWS,
+	generateThinCallerContent,
+	WORKFLOW_CHECK_CONTEXTS,
+} from "./setup-workflows.js";
 
 // ── alex config ──────────────────────────────────────────────────────
 // Canonical allow-list for the alex prose linter. Shared across all
@@ -262,7 +267,20 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			);
 			print(formatStep(steps[steps.length - 1]!));
 
-			const requiredChecks = preset === "strict" ? (policy.requiredChecks ?? []) : [];
+			const configuredWorkflowNames = (config.project.workflows ?? []).map((entry) =>
+				typeof entry === "string" ? entry : entry.name
+			);
+			const requiredChecks =
+				preset === "strict"
+					? [
+							"DCO",
+							...configuredWorkflowNames.flatMap((name) => {
+								const ctx = WORKFLOW_CHECK_CONTEXTS[name];
+								return ctx ? [ctx] : [];
+							}),
+							...(policy.requiredChecks ?? []),
+						]
+					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
 			print(formatStep(steps[steps.length - 1]!));
 		}
