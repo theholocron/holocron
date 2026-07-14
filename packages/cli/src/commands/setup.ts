@@ -33,34 +33,43 @@ import {
 // Canonical editor settings shared across all theholocron repos.
 // Kept in sync via `holocron setup` so drift (e.g. missing yaml glob)
 // is corrected automatically.
-const EDITORCONFIG = `\
-root = true
-
-[*]
-end_of_line = lf
-charset = utf-8
-trim_trailing_whitespace = true
-insert_final_newline = true
-indent_style = tab
-indent_size = 4
-
-[.gitattributes]
-indent_style = space
-indent_size = 2
-
-[*.{json,yml,yaml}]
-indent_style = space
-indent_size = 2
-
-[*.md]
-trim_trailing_whitespace = false
-indent_style = space
-indent_size = 2
-
-[.*{rc,ignore}]
-indent_style = space
-indent_size = 2
-`;
+function editorconfigContent(): string {
+	return [
+		`# AUTO-GENERATED — do not edit directly.`,
+		`# Source:  theholocron/holocron · packages/cli/src/commands/setup.ts`,
+		`# Synced:  ${new Date().toISOString()}`,
+		`# Tool:    holocron setup`,
+		`# Changes: run \`holocron setup\` to regenerate.`,
+		``,
+		`root = true`,
+		``,
+		`[*]`,
+		`end_of_line = lf`,
+		`charset = utf-8`,
+		`trim_trailing_whitespace = true`,
+		`insert_final_newline = true`,
+		`indent_style = tab`,
+		`indent_size = 4`,
+		``,
+		`[.gitattributes]`,
+		`indent_style = space`,
+		`indent_size = 2`,
+		``,
+		`[*.{json,yml,yaml}]`,
+		`indent_style = space`,
+		`indent_size = 2`,
+		``,
+		`[*.md]`,
+		`trim_trailing_whitespace = false`,
+		`indent_style = space`,
+		`indent_size = 2`,
+		``,
+		`[.*{rc,ignore}]`,
+		`indent_style = space`,
+		`indent_size = 2`,
+		``,
+	].join("\n");
+}
 
 // ── .editorconfig-checker.json ───────────────────────────────────────
 // Canonical exclusions for editorconfig-checker. LICENSE files use a
@@ -457,7 +466,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .editorconfig", dryRun, async () => {
-				await source.writeRepoFile(".editorconfig", EDITORCONFIG);
+				await source.writeRepoFile(".editorconfig", editorconfigContent());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));

@@ -929,6 +929,7 @@ describe("runSetup", () => {
 		expect(step?.status).toBe("ok");
 
 		expect(written[".editorconfig"]).toBeDefined();
+		expect(written[".editorconfig"]).toContain("AUTO-GENERATED — do not edit directly");
 		expect(written[".editorconfig"]).toContain("indent_style = tab");
 		expect(written[".editorconfig"]).toContain("[*.{json,yml,yaml}]");
 		expect(written[".editorconfig"]).toContain("indent_style = space");
