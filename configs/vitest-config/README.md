@@ -69,6 +69,6 @@ export default defineConfig({ test: reactApp().test });
 
 We use [Vitest](https://vitest.dev/) as our testing framework with the following conventions:
 
--   **Coverage**: enforced at 80% on lines, branches, functions, and statements via `@vitest/coverage-v8`
--   **File naming**: test files use the `.test.{js,ts}` or `.spec.{js,ts}` suffix, co-located with source
--   **Stories excluded**: `*.{story,stories}.*` files are excluded from unit test runs; use the `storybook` preset for those
+- **Coverage**: enforced at 80% on lines, branches, functions, and statements via `@vitest/coverage-v8`
+- **File naming**: test files use the `.test.{js,ts}` or `.spec.{js,ts}` suffix, co-located with source
+- **Stories excluded**: `*.{story,stories}.*` files are excluded from unit test runs; use the `storybook` preset for those

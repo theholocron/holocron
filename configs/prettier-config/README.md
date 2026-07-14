@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # Prettier Config
 
 A [Prettier configuration](https://prettier.io/docs/en/configuration) for consistent code formatting.
@@ -14,7 +16,7 @@ In your project `package.json`:
 
 ```json
 {
-  "prettier": "@theholocron/prettier-config"
+	"prettier": "@theholocron/prettier-config"
 }
 ```
 

@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # Browserslist Config
 
 A [browserslist configuration](https://github.com/browserslist/browserslist#shareable-configs) defining the browsers and devices supported by theholocron projects.
@@ -14,7 +16,7 @@ In your project `package.json`:
 
 ```json
 {
-  "browserslist": ["extends @theholocron/browserslist-config"]
+	"browserslist": ["extends @theholocron/browserslist-config"]
 }
 ```
 

@@ -20,7 +20,9 @@ Outputs ESM only; externalises `react` and `react-dom` by default. Returns a `Pr
 import { defineConfig } from "vite";
 import { library } from "@theholocron/vite-config/library";
 
-export default defineConfig(await library({ entry: "src/index.ts", name: "MyLib" }));
+export default defineConfig(
+	await library({ entry: "src/index.ts", name: "MyLib" }),
+);
 ```
 
 ### React single-page application

@@ -13,7 +13,12 @@ import { getPackageName } from "./get-package-name.js";
  * @param {import('vite').UserConfig} [options.overrides={}] Merged last
  * @returns {Promise<import('vite').UserConfig>}
  */
-export async function library({ entry = "src/index.ts", name, external = [], overrides = {} } = {}) {
+export async function library({
+	entry = "src/index.ts",
+	name,
+	external = [],
+	overrides = {},
+} = {}) {
 	const plugins = [];
 	try {
 		const { codecovVitePlugin } = await import("@codecov/vite-plugin");

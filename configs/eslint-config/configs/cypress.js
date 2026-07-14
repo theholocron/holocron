@@ -5,9 +5,7 @@ export function cypressConfig() {
 		{
 			name: "@theholocron/cypress",
 			files: ["cypress/**/*.{js,ts,jsx,tsx}"],
-			extends: [
-				cypress.configs.recommended,
-			],
+			extends: [cypress.configs.recommended],
 		},
 	];
 }

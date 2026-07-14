@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # Jest Config — Deprecated
 
 > **This package is deprecated.** New projects should use
@@ -39,9 +41,9 @@ In your project `package.json`:
 
 ```json
 {
-  "jest": {
-    "displayName": "<project>",
-    "preset": "@theholocron/jest-config"
-  }
+	"jest": {
+		"displayName": "<project>",
+		"preset": "@theholocron/jest-config"
+	}
 }
 ```

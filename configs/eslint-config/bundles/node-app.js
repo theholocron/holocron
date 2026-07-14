@@ -4,10 +4,5 @@ import { typescript } from "../configs/typescript.js";
 import { vitest } from "../configs/vitest.js";
 
 export function nodeApp() {
-	return [
-		...base(),
-		...node(),
-		...typescript(),
-		...vitest(),
-	];
+	return [...base(), ...node(), ...typescript(), ...vitest()];
 }

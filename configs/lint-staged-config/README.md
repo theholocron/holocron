@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # Lint Staged Config
 
 A [lint-staged configuration](https://github.com/lint-staged/lint-staged#configuration) for running linters on Git-staged files.
@@ -28,18 +30,18 @@ Or add it to `package.json`:
 
 ```json
 {
-  "lint-staged": "node_modules/@theholocron/lint-staged-config/lint-staged.config.js"
+	"lint-staged": "node_modules/@theholocron/lint-staged-config/lint-staged.config.js"
 }
 ```
 
 ## What runs on staged files
 
-| File pattern | Commands |
-|---|---|
-| `*.{js,jsx}` | `prettier --write`, `eslint` |
-| `*.{ts,tsx}` | `prettier --write`, `eslint`, `tsc-files --noEmit` |
-| `*.css` | `stylelint --fix` |
-| `*.scss` | `stylelint --syntax=scss --fix` |
-| `*.{md,mdx}` | `prettier --write` |
-| `*.{png,jpeg,jpg,gif,svg}` | `imagemin-lint-staged` |
-| `package.json` | `sort-package-json` |
+| File pattern               | Commands                                           |
+| -------------------------- | -------------------------------------------------- |
+| `*.{js,jsx}`               | `prettier --write`, `eslint`                       |
+| `*.{ts,tsx}`               | `prettier --write`, `eslint`, `tsc-files --noEmit` |
+| `*.css`                    | `stylelint --fix`                                  |
+| `*.scss`                   | `stylelint --syntax=scss --fix`                    |
+| `*.{md,mdx}`               | `prettier --write`                                 |
+| `*.{png,jpeg,jpg,gif,svg}` | `imagemin-lint-staged`                             |
+| `package.json`             | `sort-package-json`                                |
