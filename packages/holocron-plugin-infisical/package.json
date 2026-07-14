@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-infisical",
-  "version": "2.0.0-alpha.26",
+  "version": "2.0.0-alpha.27",
   "description": "Holocron plugin for Infisical. Implements the vault capability against Infisical's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-infisical#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
