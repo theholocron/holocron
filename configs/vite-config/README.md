@@ -21,7 +21,7 @@ import { defineConfig } from "vite";
 import { library } from "@theholocron/vite-config/library";
 
 export default defineConfig(
-	await library({ entry: "src/index.ts", name: "MyLib" }),
+  await library({ entry: "src/index.ts", name: "MyLib" }),
 );
 ```
 

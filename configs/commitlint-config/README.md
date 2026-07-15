@@ -18,7 +18,7 @@ In your project `commitlint.config.js`:
 
 ```javascript
 export default {
-	extends: ["@theholocron/commitlint-config"],
+  extends: ["@theholocron/commitlint-config"],
 };
 ```
 

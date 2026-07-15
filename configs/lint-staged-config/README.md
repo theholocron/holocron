@@ -30,7 +30,7 @@ Or add it to `package.json`:
 
 ```json
 {
-	"lint-staged": "node_modules/@theholocron/lint-staged-config/lint-staged.config.js"
+  "lint-staged": "node_modules/@theholocron/lint-staged-config/lint-staged.config.js"
 }
 ```
 

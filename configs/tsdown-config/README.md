@@ -26,6 +26,6 @@ To customise entry points or other options, use the `library()` factory:
 import { library } from "@theholocron/tsdown-config/presets/library";
 
 export default library({
-	entry: ["src/index.ts", "src/capabilities/index.ts"],
+  entry: ["src/index.ts", "src/capabilities/index.ts"],
 });
 ```

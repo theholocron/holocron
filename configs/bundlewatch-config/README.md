@@ -16,9 +16,9 @@ Add the following script to your project `package.json`:
 
 ```json
 {
-	"scripts": {
-		"audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/bundlewatch.config.js"
-	}
+  "scripts": {
+    "audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/bundlewatch.config.js"
+  }
 }
 ```
 
