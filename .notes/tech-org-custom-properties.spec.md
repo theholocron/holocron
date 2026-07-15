@@ -28,6 +28,7 @@ GitHub custom properties API (`string`, `single_select`, `true_false`,
 | Property                  | Type            | Values                                    | Source                                 |
 | ------------------------- | --------------- | ----------------------------------------- | -------------------------------------- |
 | `branch_protection_level` | `single_select` | `balanced` / `strict` / `none`            | derived from `repoPolicy.preset`       |
+| `lifecycle`               | `single_select` | `active` / `experimental` / `deprecated`  | manual in `holocron.config.ts`         |
 | `monorepo`                | `true_false`    | —                                         | derived: `pnpm-workspace.yaml` present |
 | `open_source`             | `true_false`    | —                                         | manual in `holocron.config.ts`         |
 | `runtime_environment`     | `single_select` | `node` / `browser` / `universal` / `none` | manual in `holocron.config.ts`         |
@@ -41,13 +42,14 @@ Defaults to `balanced` when `repoPolicy` is omitted. No config key needed.
 **`monorepo`** — `true` when a `pnpm-workspace.yaml` (with a `packages:` key)
 exists in the repo root at setup time. Detectable without any config change.
 
-**`open_source`**, **`runtime_environment`**, **`uses_external_packages`** —
+**`lifecycle`**, **`open_source`**, **`runtime_environment`**, **`uses_external_packages`** —
 cannot be reliably derived; require opt-in in `holocron.config.ts`:
 
 ```typescript
 project: {
   // ...
   properties: {
+    lifecycle: "active",
     open_source: true,
     runtime_environment: "node",
     uses_external_packages: true,
@@ -71,6 +73,10 @@ Repos that omit `properties` get only the two derived properties set.
 - **`runtime_environment`** — useful for filtering ("show me all Node repos")
   and for future tooling that needs to know whether a repo targets the browser
   (e.g. bundle size audits are only relevant for browser/universal).
+- **`lifecycle`** — captures development status independently of GitHub's archive
+  feature (a repo can be `deprecated` but still readable/forkable without being
+  archived). Drives stale thresholds, access decisions, and dashboard filtering.
+  Future: ruleset scoping could relax required checks on `deprecated` repos.
 - **`uses_external_packages`** — flags repos that publish to npm; relevant for
   Trusted Publishing config, release workflow validation, and audit workflows.
 
@@ -95,6 +101,7 @@ Add an optional `properties` key to the project config schema in
 
 ```typescript
 interface ProjectProperties {
+	lifecycle?: "active" | "experimental" | "deprecated";
 	open_source?: boolean;
 	runtime_environment?: "node" | "browser" | "universal" | "none";
 	uses_external_packages?: boolean;
@@ -135,6 +142,7 @@ properties["monorepo"] = String(isMonorepo);
 
 // Manual
 const manual = config.project.properties ?? {};
+if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
 if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
 if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
 if (manual.uses_external_packages !== undefined)
@@ -148,20 +156,27 @@ if (source.syncProperties) {
 ### Step 5 — One-time: define the org schema
 
 Before any repo can have properties set, the org schema must declare them.
-This can be done via the GitHub API (unlike org default labels, which are UI-only):
+This can be done via the GitHub API (unlike org default labels, which are UI-only).
+Note: the API rejects `default_value` on all property types — leave it out.
+
+**Already completed** (2026-07-15) via:
 
 ```bash
-for prop in \
-  '{"property_name":"branch_protection_level","value_type":"single_select","required":false,"default_value":"balanced","allowed_values":["balanced","strict","none"]}' \
-  '{"property_name":"monorepo","value_type":"true_false","required":false,"default_value":"false"}' \
-  '{"property_name":"open_source","value_type":"true_false","required":false}' \
-  '{"property_name":"runtime_environment","value_type":"single_select","required":false,"allowed_values":["node","browser","universal","none"]}' \
-  '{"property_name":"uses_external_packages","value_type":"true_false","required":false}'; do
-  gh api /orgs/theholocron/properties/schema -X PUT --input - <<< "$prop"
-done
+gh api /orgs/theholocron/properties/schema -X PATCH --input - <<'EOF'
+{
+  "properties": [
+    {"property_name":"branch_protection_level","value_type":"single_select","required":false,"description":"Branch protection preset applied by holocron setup","allowed_values":["balanced","strict","none"]},
+    {"property_name":"lifecycle","value_type":"single_select","required":false,"description":"Development status of the repo","allowed_values":["active","experimental","deprecated"]},
+    {"property_name":"monorepo","value_type":"true_false","required":false,"description":"Whether the repo is a pnpm workspace monorepo"},
+    {"property_name":"open_source","value_type":"true_false","required":false,"description":"Whether the repo is publicly licensed and open to external contributors"},
+    {"property_name":"runtime_environment","value_type":"single_select","required":false,"description":"Target runtime for the repo's primary artifact","allowed_values":["node","browser","universal","none"]},
+    {"property_name":"uses_external_packages","value_type":"true_false","required":false,"description":"Whether the repo publishes packages to npm"}
+  ]
+}
+EOF
 ```
 
-This is a one-time setup step (idempotent — PUT upserts).
+Future additions use the same `PATCH` call (idempotent — upserts by name).
 
 ### Step 6 — Run `holocron setup` across repos
 
