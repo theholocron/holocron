@@ -7,9 +7,11 @@ spinning up and operating software projects.
 
 ## Install
 
+<!-- prettier-ignore -->
 ```bash
 npm i -g @theholocron/cli@alpha
 holocron --help
+
 ```
 
 ## Config file
@@ -19,30 +21,34 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 
 **JSON** (simplest):
 
+<!-- prettier-ignore -->
 ```jsonc
 // holocron.config.json
 {
-	"project": { "name": "my-app" },
-	"providers": {
-		"vault": ["1password", { "vault": "my-app" }],
-		"source": "github",
-	},
+  "project": { "name": "my-app" },
+  "providers": {
+    "vault": ["1password", { "vault": "my-app" }],
+    "source": "github",
+  },
 }
+
 ```
 
 **JS/TS** — use `defineConfig` for autocomplete and type-checking:
 
+<!-- prettier-ignore -->
 ```ts
 // holocron.config.ts
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
-	project: { name: "my-app" },
-	providers: {
-		vault: ["1password", { vault: "my-app" }],
-		source: "github",
-	},
+  project: { name: "my-app" },
+  providers: {
+    vault: ["1password", { vault: "my-app" }],
+    source: "github",
+  },
 });
+
 ```
 
 ### Shareable configs
@@ -52,30 +58,36 @@ package in any provider slot and Holocron resolves its bundled
 `{ provider, options }` automatically. Per-project options merge on
 top (project wins):
 
+<!-- prettier-ignore -->
 ```ts
 providers: {
-	vault: '@acme/holocron-vault',                     // preset only
-	source: ['@acme/holocron-github', { repo: 'x' }], // preset + override
+  vault: '@acme/holocron-vault',                     // preset only
+  source: ['@acme/holocron-github', { repo: 'x' }], // preset + override
 }
+
 ```
 
 A capability config package exports a `CapabilityConfigPackage` default:
 
+<!-- prettier-ignore -->
 ```ts
 import type { CapabilityConfigPackage } from "@theholocron/cli";
 export default {
-	provider: "1password",
-	options: { vault: "acme-app" },
+  provider: "1password",
+  options: { vault: "acme-app" },
 } satisfies CapabilityConfigPackage;
+
 ```
 
 **Level 2 — whole-config presets.** Because the config file can be
 JS/TS, a shared base is just an import:
 
+<!-- prettier-ignore -->
 ```ts
 // holocron.config.ts
 import { acmeConfig } from "@acme/holocron-config";
 export default acmeConfig;
+
 ```
 
 ## What's in here

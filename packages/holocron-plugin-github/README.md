@@ -13,8 +13,10 @@ against the GitHub REST API:
 
 ## Install
 
+<!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-github@alpha
+
 ```
 
 ## Auth
@@ -33,17 +35,19 @@ toggles, etc.) — silent fallback would surface as mysterious 403s.
 
 ## Config
 
+<!-- prettier-ignore -->
 ```jsonc
 // holocron.config.json
 {
-	"providers": {
-		"source": "github",
-		"ci": "github",
-		"secrets": "github",
-		"environments": "github",
-		"issues": ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }],
-	},
+  "providers": {
+    "source": "github",
+    "ci": "github",
+    "secrets": "github",
+    "environments": "github",
+    "issues": ["github", { "labels": { "inProgress": "status:in-progress", "inReview": "status:in-review" } }],
+  },
 }
+
 ```
 
 ## Status

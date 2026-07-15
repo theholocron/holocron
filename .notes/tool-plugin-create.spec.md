@@ -54,6 +54,7 @@ same template drift; we consolidate on the CLI.
 
 ## Command shape
 
+<!-- prettier-ignore -->
 ```bash
 holocron plugin create <slug> <vendor>
     [--capability <key>]         # source|ci|secrets|environments|issues|
@@ -71,6 +72,7 @@ holocron plugin create <slug> <vendor>
     # REST-only scaffolding covers every plugin now on the roster.
     [--dry-run]                  # print the file list, write nothing
     [--no-verify]                # skip post-scaffold pnpm install/typecheck/lint/test
+
 ```
 
 Positional args (`slug`, `vendor`) are required — everything else has
@@ -161,18 +163,20 @@ and can be removed in a future cleanup pass.
 
 ### `TemplateInputs`
 
+<!-- prettier-ignore -->
 ```ts
 interface TemplateInputs {
-	slug: string; // 'clerk'
-	vendorName: string; // 'Clerk' (PascalCase)
-	vendorUpper: string; // 'CLERK'
-	capability: CapabilityKey; // 'auth'
-	capabilityClass: string; // 'ClerkAuth'
-	tokenEnv: string; // 'HOLOCRON_CLERK_TOKEN'
-	vendorEnv: string; // 'CLERK_SECRET_KEY'
-	baseUrl: string; // 'https://api.clerk.com/v1'
-	transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
+  slug: string; // 'clerk'
+  vendorName: string; // 'Clerk' (PascalCase)
+  vendorUpper: string; // 'CLERK'
+  capability: CapabilityKey; // 'auth'
+  capabilityClass: string; // 'ClerkAuth'
+  tokenEnv: string; // 'HOLOCRON_CLERK_TOKEN'
+  vendorEnv: string; // 'CLERK_SECRET_KEY'
+  baseUrl: string; // 'https://api.clerk.com/v1'
+  transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
 }
+
 ```
 
 ## Non-negotiables (mirrored from the skill)

@@ -4,10 +4,12 @@ Interact with node packages.
 
 ## Usage
 
+<!-- prettier-ignore -->
 ```javascript
 import { node } from "@/utils";
 
 const name = node.pkg("~/code/foo");
+
 ```
 
 ## API

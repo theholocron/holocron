@@ -47,8 +47,10 @@ Both patterns are fully supported — switch by editing
 
 ## Install
 
+<!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-1password@alpha
+
 ```
 
 Requires the `op` binary on PATH (see [Prerequisite](#prerequisite)).
@@ -73,9 +75,11 @@ CLI's.
 
 The `op` binary must be on PATH. Install:
 
+<!-- prettier-ignore -->
 ```bash
 brew install 1password-cli   # macOS
 # or follow https://developer.1password.com/docs/cli/get-started
+
 ```
 
 The plugin throws a clear error at construction time if `op` isn't
@@ -96,18 +100,20 @@ holocron.
 
 ## Config
 
+<!-- prettier-ignore -->
 ```jsonc
 {
-	"providers": {
-		"vault": [
-			"1password",
-			{
-				"vault": "rando", // 1P vault name
-				"account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
-			},
-		],
-	},
+  "providers": {
+    "vault": [
+      "1password",
+      {
+        "vault": "rando", // 1P vault name
+        "account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
+      },
+    ],
+  },
 }
+
 ```
 
 - `vault` (required) — the 1Password vault name items live in.

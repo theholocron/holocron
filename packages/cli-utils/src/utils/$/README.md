@@ -4,24 +4,26 @@ Interact with the file system or run commands.
 
 ## Usage
 
+<!-- prettier-ignore -->
 ```javascript
 import { $ } from "@/utils";
 
 async function main() {
-	const hasBrew = await $.command("brew");
-	if (hasBrew) {
-		const [err, data] = await $("brew install test");
+  const hasBrew = await $.command("brew");
+  if (hasBrew) {
+    const [err, data] = await $("brew install test");
 
-		if (err) {
-			console.error("Error:", err);
-			process.exit(1);
-		}
+    if (err) {
+      console.error("Error:", err);
+      process.exit(1);
+    }
 
-		console.log(data);
-	}
+    console.log(data);
+  }
 }
 
 main();
+
 ```
 
 ## API

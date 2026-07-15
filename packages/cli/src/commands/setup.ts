@@ -74,30 +74,31 @@ function editorconfigContent(): string {
 // ── .editorconfig-checker.json ───────────────────────────────────────
 // Canonical exclusions for editorconfig-checker. LICENSE files use a
 // non-standard format and must be excluded; public/ is generated output.
-const EDITORCONFIG_CHECKER_CONFIG = JSON.stringify(
-	{
-		Version: "v3.7.0",
-		Verbose: false,
-		Format: "",
-		Debug: false,
-		IgnoreDefaults: false,
-		SpacesAfterTabs: false,
-		NoColor: false,
-		Exclude: ["(^|.+/)LICENSE$", "^public/.*"],
-		AllowedContentTypes: [],
-		PassedFiles: [],
-		Disable: {
-			EndOfLine: false,
-			Indentation: false,
-			InsertFinalNewline: false,
-			TrimTrailingWhitespace: false,
-			IndentSize: false,
-			MaxLineLength: false,
+const EDITORCONFIG_CHECKER_CONFIG =
+	JSON.stringify(
+		{
+			Version: "v3.7.0",
+			Verbose: false,
+			Format: "",
+			Debug: false,
+			IgnoreDefaults: false,
+			SpacesAfterTabs: false,
+			NoColor: false,
+			Exclude: ["(^|.+/)LICENSE$", "^public/.*"],
+			AllowedContentTypes: [],
+			PassedFiles: [],
+			Disable: {
+				EndOfLine: false,
+				Indentation: false,
+				InsertFinalNewline: false,
+				TrimTrailingWhitespace: false,
+				IndentSize: false,
+				MaxLineLength: false,
+			},
 		},
-	},
-	null,
-	2
-) + "\n";
+		null,
+		2
+	) + "\n";
 
 // ── alex config ──────────────────────────────────────────────────────
 // Canonical allow-list for the alex prose linter. Shared across all

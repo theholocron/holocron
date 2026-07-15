@@ -6,19 +6,21 @@ An action to interact with the configuration file.
 
 Run the `--help` or `-h` command to find out how to use the command.
 
+<!-- prettier-ignore -->
 ```sh
 Usage: tsx ./src/cli.ts conf <command> [options]
 
 Commands:
-	tsx ./src/cli.ts conf add <key> <value> [options]
-	tsx ./src/cli.ts conf edit [options]
-	tsx ./src/cli.ts conf view [key] [options]
+  tsx ./src/cli.ts conf add <key> <value> [options]
+  tsx ./src/cli.ts conf edit [options]
+  tsx ./src/cli.ts conf view [key] [options]
 
 Examples:
-	tsx ./src/cli.ts conf add
-	tsx ./src/cli.ts conf edit
-	tsx ./src/cli.ts conf view
-	tsx ./src/cli.ts conf view domains
+  tsx ./src/cli.ts conf add
+  tsx ./src/cli.ts conf edit
+  tsx ./src/cli.ts conf view
+  tsx ./src/cli.ts conf view domains
+
 ```
 
 All [global options](/README.md#options) are supported as well.

@@ -15,28 +15,34 @@ software projects — your own infrastructure-as-tool.
 
 ## Quickstart
 
+<!-- prettier-ignore -->
 ```bash
 # 1. Install the CLI + the two plugins you'll always need
 npm  i -g @theholocron/cli@alpha
 pnpm add -D @theholocron/holocron-plugin-github@alpha \
-			@theholocron/holocron-plugin-1password@alpha
+      @theholocron/holocron-plugin-1password@alpha
+
 ```
 
+<!-- prettier-ignore -->
 ```jsonc
 // 2. Drop a minimal holocron.config.json at your repo root
 {
-	"project": { "name": "my-app" },
-	"providers": {
-		"source": "github",
-		"vault": ["1password", { "vault": "my-app" }],
-	},
+  "project": { "name": "my-app" },
+  "providers": {
+    "source": "github",
+    "vault": ["1password", { "vault": "my-app" }],
+  },
 }
+
 ```
 
+<!-- prettier-ignore -->
 ```bash
 # 3. Verify the wiring
 export HOLOCRON_GH_TOKEN=ghp_...          # or use --token / a fine-grained PAT
 holocron doctor
+
 ```
 
 Every additional capability (`ci`, `secrets`, `deployment`, `storage`,
@@ -50,44 +56,48 @@ database, an auth provider, a secret vault, a CI host. Wire all the
 secrets, the workflows, the deploys, the issue tracker. Holocron
 makes that work **declarative, swappable, and re-runnable**.
 
+<!-- prettier-ignore -->
 ```jsonc
 // holocron.config.json
 {
-	"project": { "name": "my-app" },
+  "project": { "name": "my-app" },
 
-	"providers": {
-		// Code + CI
-		"source": "github",
-		"ci": "github",
-		"secrets": "github",
-		"environments": "github",
-		"issues": "github",
+  "providers": {
+    // Code + CI
+    "source": "github",
+    "ci": "github",
+    "secrets": "github",
+    "environments": "github",
+    "issues": "github",
 
-		// Hosting + data
-		"deployment": ["vercel", { "team": "my-team" }],
-		"storage": ["neon", { "kind": "postgres" }],
-		"auth": "clerk",
-		"dns": "cloudflare",
+    // Hosting + data
+    "deployment": ["vercel", { "team": "my-team" }],
+    "storage": ["neon", { "kind": "postgres" }],
+    "auth": "clerk",
+    "dns": "cloudflare",
 
-		// Source of truth for secrets (required)
-		"vault": ["1password", { "vault": "my-app" }],
+    // Source of truth for secrets (required)
+    "vault": ["1password", { "vault": "my-app" }],
 
-		// Multi-provider
-		"tooling": ["postman", "storybook"],
-		"notifications": ["slack", "discord"],
-		"analytics": ["google"],
-		"observability": ["sentry"],
-	},
+    // Multi-provider
+    "tooling": ["postman", "storybook"],
+    "notifications": ["slack", "discord"],
+    "analytics": ["google"],
+    "observability": ["sentry"],
+  },
 }
+
 ```
 
 Then:
 
+<!-- prettier-ignore -->
 ```bash
 holocron setup           # apply the whole config, top to bottom
 holocron doctor          # check everything's wired right
 holocron secrets sync    # vault → secrets + deployment env vars + .env
 holocron deploy          # ship to your `deployment` provider
+
 ```
 
 ## How it works
@@ -111,28 +121,32 @@ don't go in the config — they go in the **vault**, which is the only
 required capability. Everything else that needs secrets (CI, runtime
 env vars, local `.env`) syncs FROM the vault:
 
+<!-- prettier-ignore -->
 ```
 vault (1Password)
-	├─→ secrets       (GitHub Actions)
-	├─→ deployment    (Vercel env vars)
-	└─→ local .env    (for dev)
+  ├─→ secrets       (GitHub Actions)
+  ├─→ deployment    (Vercel env vars)
+  └─→ local .env    (for dev)
+
 ```
 
 ## Repo layout (v2)
 
+<!-- prettier-ignore -->
 ```
 packages/
-	cli/                            — @theholocron/cli                       (binary + capability runtime)
-	cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
-	holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
-	holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
-	holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
-	holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
-	holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
-	holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
+  cli/                            — @theholocron/cli                       (binary + capability runtime)
+  cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
+  holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
+  holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
+  holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
+  holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
+  holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
+  holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
 holocron.config.json              — this repo's own holocron config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
+
 ```
 
 ## Self-hosting

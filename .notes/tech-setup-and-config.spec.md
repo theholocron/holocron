@@ -51,6 +51,7 @@ repo-level policy or branch protection, both of which belong in the
 
 Add to `HolocronConfig`:
 
+<!-- prettier-ignore -->
 ```jsonc
 {
   "project": {
@@ -60,6 +61,7 @@ Add to `HolocronConfig`:
   },
   "providers": { ... }
 }
+
 ```
 
 Resolution + flow:

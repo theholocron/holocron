@@ -108,9 +108,10 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - run: \${{ inputs.build-script }}
+      - run: eval "$BUILD_SCRIPT"
         name: Build and upload bundle stats
         env:
+          BUILD_SCRIPT: \${{ inputs.build-script }}
           CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
 `,
 
