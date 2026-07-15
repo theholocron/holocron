@@ -757,12 +757,13 @@ on: # yamllint disable-line rule:truthy
       secondary-repos:
         description: >
           Space-separated list of secondary repos (reusable workflows + thin
-          callers only, no composite actions). Pushed directly to main.
+          callers only, no composite actions). Changes are delivered via pull
+          request, same as the primary repo.
         type: string
         required: false
         default: ""
       sync-branch:
-        description: Branch name used for the primary-repo PR
+        description: Branch name used for the primary and secondary repo PRs
         type: string
         required: false
         default: chore/sync-templates
@@ -814,15 +815,24 @@ jobs:
           PRIMARY_REPO: \${{ inputs.primary-repo }}
           SYNC_BRANCH: \${{ inputs.sync-branch }}
 
-      - name: Sync secondary repos (direct push)
+      - name: Sync secondary repos (PR)
         if: \${{ inputs.secondary-repos != '' }}
         run: |
+          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
+          GIT_EMAIL=$(gh api user --jq '"\\(.id)+\\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
+          COMMIT_MSG="chore: sync from theholocron/holocron"$'\\n\\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
           for repo in $SECONDARY_REPOS; do
-            node packages/cli/dist/cli.mjs sync-github --repo "$repo"
+            node packages/cli/dist/cli.mjs sync-github \\
+              --repo "$repo" \\
+              --branch "$SYNC_BRANCH" \\
+              --pr \\
+              --message "$COMMIT_MSG"
           done
         env:
           GITHUB_TOKEN: \${{ secrets.SYNC_TOKEN }}
+          GH_TOKEN: \${{ secrets.SYNC_TOKEN }}
           SECONDARY_REPOS: \${{ inputs.secondary-repos }}
+          SYNC_BRANCH: \${{ inputs.sync-branch }}
 `,
 
 	typecheck: `\
