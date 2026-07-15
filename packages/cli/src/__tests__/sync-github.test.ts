@@ -4,15 +4,20 @@ import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../te
 import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "../commands/setup-workflows.js";
 import { runSyncGithub, gitBlobSha as _gitBlobSha } from "../commands/sync-github.js";
 
-// Actions and workflow-templates are only pushed to the primary .github repo.
-// WORKFLOW_TEMPLATE_PROPERTIES adds one .properties.json per keyed template.
+// Actions, reusable workflow definitions, and workflow-templates are only pushed
+// to the primary .github repo. WORKFLOW_TEMPLATE_PROPERTIES adds one
+// .properties.json per keyed template.
+// Secondary repos receive thin callers (one per reusable workflow that has a
+// corresponding thin-caller template).
 const PROPS_COUNT = Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
 const PRIMARY_FILE_COUNT =
 	Object.keys(ACTIONS).length +
 	Object.keys(REUSABLE_WORKFLOWS).length +
 	Object.keys(WORKFLOW_TEMPLATES).length +
 	PROPS_COUNT;
-const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).length;
+const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).filter(
+	(name) => generateThinCallerContent(name) !== ""
+).length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
 
@@ -105,7 +110,7 @@ describe("runSyncGithub", () => {
 		expect(refUpdate).toHaveLength(1);
 	});
 
-	it(`skips actions for secondary repos (${SECONDARY_FILE_COUNT} files, no actions)`, async () => {
+	it(`pushes thin callers (not definitions) to secondary repos (${SECONDARY_FILE_COUNT} files, no actions)`, async () => {
 		const { fn, calls } = makeFetch();
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -119,9 +124,14 @@ describe("runSyncGithub", () => {
 		expect(report.created).toBe(SECONDARY_FILE_COUNT);
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		expect(blobs).toHaveLength(SECONDARY_FILE_COUNT);
+		// No composite actions
 		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(
 			false
 		);
+		// Thin callers reference .github's workflows via uses:, not inline implementations
+		const blobContents = blobs.map((c) => (c.body?.content as string) ?? "");
+		expect(blobContents.every((c) => c.includes("theholocron/.github/.github/workflows/"))).toBe(true);
+		expect(blobContents.some((c) => c.includes("runs-on:"))).toBe(false);
 	});
 
 	it("respects holocron.config.json workflow allowlist for secondary repos", async () => {

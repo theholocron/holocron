@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { WORKFLOW_TEMPLATES } from "./setup-workflows.js";
+import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
 const API_BASE = "https://api.github.com";
@@ -60,13 +60,16 @@ function reusableHeader(source: string): string {
 	].join("\n");
 }
 
-function thinCallerHeader(): string {
+function thinCallerHeader(forPrimary = false): string {
+	const doNotEdit = forPrimary
+		? `# AUTO-GENERATED — do not edit in theholocron/.github directly.`
+		: `# AUTO-GENERATED — do not edit directly.`;
 	return [
-		`# AUTO-GENERATED — do not edit in theholocron/.github directly.`,
+		doNotEdit,
 		`# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts`,
 		`# Synced:  ${new Date().toISOString()}`,
 		`# Tool:    holocron sync-github`,
-		`# Changes: edit setup-workflows.ts in theholocron/holocron and push.`,
+		`# Changes: edit source in theholocron/holocron and push to alpha or main.`,
 		``,
 	].join("\n");
 }
@@ -88,25 +91,22 @@ function buildBatch(repo: string, allowedWorkflows?: Set<string>): FileBatch {
 		}
 	}
 
-	// Reusable workflows → .github/workflows/<name>.yml
-	// Secondary repos may restrict which workflows they receive via their
-	// holocron.config.json `project.workflows` list; undefined means all.
-	for (const [name, content] of Object.entries(REUSABLE_WORKFLOWS)) {
-		if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
-		files.push({
-			path: `.github/workflows/${name}.yml`,
-			content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
-		});
-	}
-
-	// Workflow templates (starter templates for the Actions UI) → workflow-templates/
-	// Only the primary .github repo surfaces these in GitHub's "New workflow" picker;
-	// secondary repos (e.g. .github-private) don't need them.
 	if (isPrimaryGithubRepo) {
+		// Reusable workflow definitions → .github/workflows/<name>.yml
+		// Only .github hosts the implementations; all other repos call them via uses:.
+		for (const [name, content] of Object.entries(REUSABLE_WORKFLOWS)) {
+			files.push({
+				path: `.github/workflows/${name}.yml`,
+				content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
+			});
+		}
+
+		// Workflow templates (starter templates for the Actions UI) → workflow-templates/
+		// Only the primary .github repo surfaces these in GitHub's "New workflow" picker.
 		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
 				path: `workflow-templates/${name}.yml`,
-				content: thinCallerHeader() + content,
+				content: thinCallerHeader(true) + content,
 			});
 			const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 			if (props) {
@@ -115,6 +115,19 @@ function buildBatch(repo: string, allowedWorkflows?: Set<string>): FileBatch {
 					content: props,
 				});
 			}
+		}
+	} else {
+		// Secondary repos get thin callers in .github/workflows/ that delegate to
+		// .github's reusable implementations. The config may restrict which workflows
+		// a repo receives via project.workflows; undefined means all.
+		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
+			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
+			const content = generateThinCallerContent(name);
+			if (!content) continue;
+			files.push({
+				path: `.github/workflows/${name}.yml`,
+				content: thinCallerHeader() + content,
+			});
 		}
 	}
 
