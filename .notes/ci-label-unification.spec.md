@@ -17,32 +17,32 @@ Labels are inconsistent across the five active repos. Key pain points:
 
 ## Current state (as of 2026-07-15)
 
-| Label | `.github` | `.github-private` | `configs` | `holocron` | `clients` |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `bug` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `dependencies` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `documentation` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `duplicate` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `enhancement` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `good first issue` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `help wanted` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `invalid` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `question` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `wontfix` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `chore` | ✓ | — | ✓ | — | — |
-| `ci` | ✓ | — | ✓ | — | — |
-| `github_actions` | ✓ | ✓ | — | — | ✓ |
-| `refactor` | ✓ (e4e669) | — | ✓ (cfd3d7) | — | — |
-| `test` | ✓ | — | ✓ | — | — |
-| `performance` | ✓ (fbca04) | — | ✓ (c5def5) | — | — |
-| `triage` | — | — | — | ✓ | ✓ |
-| `released` | — | — | ✓ | ✓ | ✓ |
-| `autorelease: pending` | — | — | ✓ | ✓ | — |
-| `autorelease: tagged` | — | — | — | ✓ | — |
-| `released on @alpha` | — | — | — | ✓ | — |
-| `javascript` | — | — | ✓ | ✓ | ✓ |
-| `status:in-progress` | — | — | — | — | — |
-| `status:in-review` | — | — | — | — | — |
+| Label                  | `.github`  | `.github-private` | `configs`  | `holocron` | `clients` |
+| ---------------------- | :--------: | :---------------: | :--------: | :--------: | :-------: |
+| `bug`                  |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `dependencies`         |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `documentation`        |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `duplicate`            |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `enhancement`          |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `good first issue`     |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `help wanted`          |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `invalid`              |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `question`             |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `wontfix`              |     ✓      |         ✓         |     ✓      |     ✓      |     ✓     |
+| `chore`                |     ✓      |         —         |     ✓      |     —      |     —     |
+| `ci`                   |     ✓      |         —         |     ✓      |     —      |     —     |
+| `github_actions`       |     ✓      |         ✓         |     —      |     —      |     ✓     |
+| `refactor`             | ✓ (e4e669) |         —         | ✓ (cfd3d7) |     —      |     —     |
+| `test`                 |     ✓      |         —         |     ✓      |     —      |     —     |
+| `performance`          | ✓ (fbca04) |         —         | ✓ (c5def5) |     —      |     —     |
+| `triage`               |     —      |         —         |     —      |     ✓      |     ✓     |
+| `released`             |     —      |         —         |     ✓      |     ✓      |     ✓     |
+| `autorelease: pending` |     —      |         —         |     ✓      |     ✓      |     —     |
+| `autorelease: tagged`  |     —      |         —         |     —      |     ✓      |     —     |
+| `released on @alpha`   |     —      |         —         |     —      |     ✓      |     —     |
+| `javascript`           |     —      |         —         |     ✓      |     ✓      |     ✓     |
+| `status:in-progress`   |     —      |         —         |     —      |     —      |     —     |
+| `status:in-review`     |     —      |         —         |     —      |     —      |     —     |
 
 Note: `status:in-progress` and `status:in-review` are referenced in
 `configs/holocron.config.ts` issues config but don't exist in any repo.
@@ -51,25 +51,25 @@ Note: `status:in-progress` and `status:in-review` are referenced in
 
 All repos should have exactly these labels. Colors are hex without `#`.
 
-| Label | Color | Description | Maps from |
-|---|---|---|---|
-| `bug` | `d73a4a` | Something isn't working | `fix:` |
-| `chore` | `ededed` | Maintenance, no user-facing change | `chore:` |
-| `ci` | `0075ca` | CI/CD pipeline changes | `ci:` |
-| `dependencies` | `0366d6` | Dependency update | `chore(deps):` / dependabot |
-| `documentation` | `0075ca` | Documentation only | `docs:` |
-| `duplicate` | `cfd3d7` | Already reported | — |
-| `enhancement` | `a2eeef` | New feature or request | `feat:` |
-| `good first issue` | `7057ff` | Good for newcomers | — |
-| `help wanted` | `008672` | Extra attention needed | — |
-| `invalid` | `e4e669` | Doesn't seem right | — |
-| `performance` | `fbca04` | Performance improvement | `perf:` |
-| `question` | `d876e3` | Further information requested | — |
-| `refactor` | `cfd3d7` | Code restructuring | `refactor:` |
-| `released` | `ededed` | Included in a release | — (semantic-release) |
-| `test` | `bfd4f2` | Test-related changes | `test:` |
-| `triage` | `e4e669` | Needs investigation | — |
-| `wontfix` | `ffffff` | Won't be addressed | — |
+| Label              | Color    | Description                        | Maps from                   |
+| ------------------ | -------- | ---------------------------------- | --------------------------- |
+| `bug`              | `d73a4a` | Something isn't working            | `fix:`                      |
+| `chore`            | `ededed` | Maintenance, no user-facing change | `chore:`                    |
+| `ci`               | `0075ca` | CI/CD pipeline changes             | `ci:`                       |
+| `dependencies`     | `0366d6` | Dependency update                  | `chore(deps):` / dependabot |
+| `documentation`    | `0075ca` | Documentation only                 | `docs:`                     |
+| `duplicate`        | `cfd3d7` | Already reported                   | —                           |
+| `enhancement`      | `a2eeef` | New feature or request             | `feat:`                     |
+| `good first issue` | `7057ff` | Good for newcomers                 | —                           |
+| `help wanted`      | `008672` | Extra attention needed             | —                           |
+| `invalid`          | `e4e669` | Doesn't seem right                 | —                           |
+| `performance`      | `fbca04` | Performance improvement            | `perf:`                     |
+| `question`         | `d876e3` | Further information requested      | —                           |
+| `refactor`         | `cfd3d7` | Code restructuring                 | `refactor:`                 |
+| `released`         | `ededed` | Included in a release              | — (semantic-release)        |
+| `test`             | `bfd4f2` | Test-related changes               | `test:`                     |
+| `triage`           | `e4e669` | Needs investigation                | —                           |
+| `wontfix`          | `ffffff` | Won't be addressed                 | —                           |
 
 ### Labels to DELETE from every repo
 
@@ -91,34 +91,34 @@ generated `labeler.yml` files in all repos need `github_actions` → `ci`:
 ```yaml
 # Before
 github_actions:
-  - '^ci'
+    - "^ci"
 
 # After
 ci:
-  - '^ci'
+    - "^ci"
 ```
 
 Also add the missing conventional commit types:
 
 ```yaml
 bug:
-  - '^fix'
+    - "^fix"
 chore:
-  - '^chore(?!\(deps)'   # chore: but not chore(deps:)
+    - '^chore(?!\(deps)' # chore: but not chore(deps:)
 ci:
-  - '^ci'
+    - "^ci"
 dependencies:
-  - '^chore\(deps'
+    - '^chore\(deps'
 documentation:
-  - '^docs'
+    - "^docs"
 enhancement:
-  - '^feat'
+    - "^feat"
 performance:
-  - '^perf'
+    - "^perf"
 refactor:
-  - '^refactor'
+    - "^refactor"
 test:
-  - '^test'
+    - "^test"
 ```
 
 ## Automation approach
@@ -157,48 +157,49 @@ In `packages/cli/src/commands/setup.ts` (near `ALEX_CONFIG`):
 
 ```typescript
 export const CANONICAL_LABELS = [
-  { name: "bug",           color: "d73a4a", description: "Something isn't working" },
-  { name: "chore",         color: "ededed", description: "Maintenance, no user-facing change" },
-  { name: "ci",            color: "0075ca", description: "CI/CD pipeline changes" },
-  { name: "dependencies",  color: "0366d6", description: "Dependency update" },
-  { name: "documentation", color: "0075ca", description: "Documentation only" },
-  { name: "duplicate",     color: "cfd3d7", description: "Already reported" },
-  { name: "enhancement",   color: "a2eeef", description: "New feature or request" },
-  { name: "good first issue", color: "7057ff", description: "Good for newcomers" },
-  { name: "help wanted",   color: "008672", description: "Extra attention needed" },
-  { name: "invalid",       color: "e4e669", description: "Doesn't seem right" },
-  { name: "performance",   color: "fbca04", description: "Performance improvement" },
-  { name: "question",      color: "d876e3", description: "Further information requested" },
-  { name: "refactor",      color: "cfd3d7", description: "Code restructuring" },
-  { name: "released",      color: "ededed", description: "Included in a release" },
-  { name: "test",          color: "bfd4f2", description: "Test-related changes" },
-  { name: "triage",        color: "e4e669", description: "Needs investigation" },
-  { name: "wontfix",       color: "ffffff", description: "Won't be addressed" },
+	{ name: "bug", color: "d73a4a", description: "Something isn't working" },
+	{ name: "chore", color: "ededed", description: "Maintenance, no user-facing change" },
+	{ name: "ci", color: "0075ca", description: "CI/CD pipeline changes" },
+	{ name: "dependencies", color: "0366d6", description: "Dependency update" },
+	{ name: "documentation", color: "0075ca", description: "Documentation only" },
+	{ name: "duplicate", color: "cfd3d7", description: "Already reported" },
+	{ name: "enhancement", color: "a2eeef", description: "New feature or request" },
+	{ name: "good first issue", color: "7057ff", description: "Good for newcomers" },
+	{ name: "help wanted", color: "008672", description: "Extra attention needed" },
+	{ name: "invalid", color: "e4e669", description: "Doesn't seem right" },
+	{ name: "performance", color: "fbca04", description: "Performance improvement" },
+	{ name: "question", color: "d876e3", description: "Further information requested" },
+	{ name: "refactor", color: "cfd3d7", description: "Code restructuring" },
+	{ name: "released", color: "ededed", description: "Included in a release" },
+	{ name: "test", color: "bfd4f2", description: "Test-related changes" },
+	{ name: "triage", color: "e4e669", description: "Needs investigation" },
+	{ name: "wontfix", color: "ffffff", description: "Won't be addressed" },
 ] as const;
 
 export const STALE_LABELS = [
-  "github_actions",
-  "javascript",
-  "autorelease: pending",
-  "autorelease: tagged",
-  "released on @alpha",
+	"github_actions",
+	"javascript",
+	"autorelease: pending",
+	"autorelease: tagged",
+	"released on @alpha",
 ];
 ```
 
 **Step 2 — Add `syncLabels` function to `holocron-plugin-github`**
 
 Fetches current labels, diffs against canonical set, then:
+
 - `POST /repos/{owner}/{repo}/labels` — create missing
 - `PATCH /repos/{owner}/{repo}/labels/{name}` — fix color/description mismatches
 - `DELETE /repos/{owner}/{repo}/labels/{name}` — remove stale labels
 
 ```typescript
 export async function syncLabels(
-  github: GitHubClient,
-  repo: string,
-  canonical: typeof CANONICAL_LABELS,
-  stale: string[],
-): Promise<void>
+	github: GitHubClient,
+	repo: string,
+	canonical: typeof CANONICAL_LABELS,
+	stale: string[]
+): Promise<void>;
 ```
 
 **Step 3 — Call `syncLabels` inside `runSetup`**
@@ -207,9 +208,7 @@ Add after the existing repoPolicy step in
 `packages/cli/src/commands/setup.ts`:
 
 ```typescript
-await runStep("Sync labels", () =>
-  syncLabels(github, config.project.repo, CANONICAL_LABELS, STALE_LABELS)
-);
+await runStep("Sync labels", () => syncLabels(github, config.project.repo, CANONICAL_LABELS, STALE_LABELS));
 ```
 
 **Step 4 — Update `labeler.yml` template in `setup.ts`**
@@ -242,13 +241,13 @@ be done manually in the UI.
 
 ## Files to change
 
-| File | Change |
-|---|---|
-| `packages/cli/src/commands/setup.ts` | Add `CANONICAL_LABELS`, `STALE_LABELS` constants; call `syncLabels` in `runSetup` |
-| `packages/cli/src/commands/setup.ts` | Update `generateLabelerYml` to use full conventional-commit mapping |
-| `packages/holocron-plugin-github/src/capabilities/labels.ts` | New file — `syncLabels` implementation |
-| `packages/holocron-plugin-github/src/index.ts` | Export `labels` capability |
-| Tests | Unit tests for `syncLabels` covering create/update/delete paths |
+| File                                                         | Change                                                                            |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `packages/cli/src/commands/setup.ts`                         | Add `CANONICAL_LABELS`, `STALE_LABELS` constants; call `syncLabels` in `runSetup` |
+| `packages/cli/src/commands/setup.ts`                         | Update `generateLabelerYml` to use full conventional-commit mapping               |
+| `packages/holocron-plugin-github/src/capabilities/labels.ts` | New file — `syncLabels` implementation                                            |
+| `packages/holocron-plugin-github/src/index.ts`               | Export `labels` capability                                                        |
+| Tests                                                        | Unit tests for `syncLabels` covering create/update/delete paths                   |
 
 ## Open questions
 
