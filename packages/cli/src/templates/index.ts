@@ -146,6 +146,9 @@ jobs:
 
       - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
         if: \${{ hashFiles(inputs.configuration-path || '.github/labeler.yml') != '' }}
+        # v3.4 bundles Node 20; allow it to run under Actions' current default.
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
         with:
           # Fall back to default path when triggered directly (not via workflow_call)
           # because inputs.* defaults only apply on workflow_call events.
