@@ -1,9 +1,12 @@
-# Spec: Unified org-wide label management
+---
+status: archived # draft → proposed (issue filed) → approved (milestone attached) → archived (shipped)
+---
 
-> **Status: complete** — all steps shipped as of 2026-07-15.
-> Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix).
-> Docs: .github#40 (public label table), .github-private runbook updated.
-> Open follow-up: org custom properties — see `.notes/org-custom-properties.spec.md` (not yet written).
+<!-- Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix) -->
+<!-- Docs: .github#40 (public label table), .github-private runbook updated, 2026-07-15 -->
+<!-- Follow-up: org custom properties — .notes/org-custom-properties.spec.md (not yet written) -->
+
+# Spec: Unified org-wide label management
 
 ## Problem
 
