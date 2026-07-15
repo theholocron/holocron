@@ -383,6 +383,30 @@ describe("runSyncGithub", () => {
 		expect(report.prUrl).toBe("https://github.com/org/repo/pull/1");
 	});
 
+	it("uses only the first line of a multi-line message as the PR title", async () => {
+		const { fn: baseFn, calls } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const urlStr = url.toString();
+			const method = init?.method ?? "GET";
+			if (method === "POST" && urlStr.match(/\/git\/refs$/) && !urlStr.includes("/git/ref/")) {
+				return new Response(JSON.stringify({ ref: "refs/heads/chore/sync", object: { sha: "newcommitsha" } }), {
+					status: 201,
+				});
+			}
+			return baseFn(url, init);
+		};
+		await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			createPr: true,
+			message: "chore: sync\n\nDetailed description",
+			print: () => {},
+			fetch: fn,
+		});
+		const prCall = calls.find((c) => c.method === "POST" && c.url.includes("/pulls"));
+		expect(prCall?.body?.title).toBe("chore: sync");
+	});
+
 	it("handles already-open PR gracefully when createPr is true", async () => {
 		const { fn: baseFn } = makeFetch();
 		const fn: typeof globalThis.fetch = async (url, init) => {
