@@ -757,12 +757,13 @@ on: # yamllint disable-line rule:truthy
       secondary-repos:
         description: >
           Space-separated list of secondary repos (reusable workflows + thin
-          callers only, no composite actions). Pushed directly to main.
+          callers only, no composite actions). Changes are delivered via pull
+          request, same as the primary repo.
         type: string
         required: false
         default: ""
       sync-branch:
-        description: Branch name used for the primary-repo PR
+        description: Branch name used for the primary and secondary repo PRs
         type: string
         required: false
         default: chore/sync-templates
