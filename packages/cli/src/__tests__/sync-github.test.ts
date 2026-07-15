@@ -16,7 +16,7 @@ const PRIMARY_FILE_COUNT =
 	Object.keys(WORKFLOW_TEMPLATES).length +
 	PROPS_COUNT;
 const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).filter(
-	(name) => generateThinCallerContent(name) !== "",
+	(name) => generateThinCallerContent(name) !== ""
 ).length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
@@ -125,7 +125,9 @@ describe("runSyncGithub", () => {
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		expect(blobs).toHaveLength(SECONDARY_FILE_COUNT);
 		// No composite actions
-		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(false);
+		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(
+			false
+		);
 		// Thin callers reference .github's workflows via uses:, not inline implementations
 		const blobContents = blobs.map((c) => (c.body?.content as string) ?? "");
 		expect(blobContents.every((c) => c.includes("theholocron/.github/.github/workflows/"))).toBe(true);
