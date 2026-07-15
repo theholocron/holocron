@@ -98,15 +98,15 @@ holocron.
 
 ```jsonc
 {
-	"providers": {
-		"vault": [
-			"1password",
-			{
-				"vault": "rando", // 1P vault name
-				"account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
-			},
-		],
-	},
+  "providers": {
+    "vault": [
+      "1password",
+      {
+        "vault": "rando", // 1P vault name
+        "account": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // optional: 1P account UUID
+      },
+    ],
+  },
 }
 ```
 

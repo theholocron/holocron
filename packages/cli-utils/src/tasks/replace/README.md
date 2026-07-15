@@ -8,29 +8,29 @@ Find a string in a file and replace it with something else.
 import { findReplace } from "@/tasks";
 
 const filePaths = [
-	`/packages/developer-experience/sdk-session/src/tests/handlers.ts`,
+  `/packages/developer-experience/sdk-session/src/tests/handlers.ts`,
 ];
 const baseString: string = "const BAM_BROWSER_SDK_VERSION =";
 
 async function main() {
-	const [, , version] = process.argv;
-	const [major, minor] = version.split(".");
+  const [, , version] = process.argv;
+  const [major, minor] = version.split(".");
 
-	try {
-		const [err, data, duration] = await findReplace(filePaths, baseString, `${major}.${minor}`);
+  try {
+    const [err, data, duration] = await findReplace(filePaths, baseString, `${major}.${minor}`);
 
-		if (err) {
-			console.error("Error:", err);
-			process.exit(1);
-		}
+    if (err) {
+      console.error("Error:", err);
+      process.exit(1);
+    }
 
-		console.log("Files replaced:\n");
-		console.table(data);
-		console.log(`It took ${duration} milliseconds`);
-	}
-	catch (error) {
-		console.error("Error:", error);
-	}
+    console.log("Files replaced:\n");
+    console.table(data);
+    console.log(`It took ${duration} milliseconds`);
+  }
+  catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 main();

@@ -28,9 +28,9 @@ always cover what holocron needs at the API level. Explicit token only.
 ```jsonc
 // holocron.config.json
 {
-	"providers": {
-		"deployment": ["vercel", { "teamId": "team_xxx" }],
-	},
+  "providers": {
+    "deployment": ["vercel", { "teamId": "team_xxx" }],
+  },
 }
 ```
 

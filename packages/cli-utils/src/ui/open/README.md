@@ -8,21 +8,21 @@ Open an application after a confirmation.
 import { open } from "@/ui";
 
 async function main() {
-	const [, , name, location] = process.argv;
+  const [, , name, location] = process.argv;
 
-	try {
-		const [err, isOpened] = await open.editor(name, location);
+  try {
+    const [err, isOpened] = await open.editor(name, location);
 
-		if (err) {
-			console.error(err);
-			process.exit(1);
-		}
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
 
-		console.log(`${name} ${isOpened ? "was" : "was not"} opened.`);
-	} catch (error) {
-		console.error("An error occurred:", error);
-		process.exit(1);
-	}
+    console.log(`${name} ${isOpened ? "was" : "was not"} opened.`);
+  } catch (error) {
+    console.error("An error occurred:", error);
+    process.exit(1);
+  }
 }
 
 main();

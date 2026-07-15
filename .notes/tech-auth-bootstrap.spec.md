@@ -103,15 +103,15 @@ plugins).
 
 ```ts
 export interface VerifyTokenResult {
-	ok: true;
-	/** Human-readable identifier — "workplace: acme" / "user: cnewton@x" */
-	subject: string;
+  ok: true;
+  /** Human-readable identifier — "workplace: acme" / "user: cnewton@x" */
+  subject: string;
 }
 
 export interface VerifyTokenFailure {
-	ok: false;
-	/** Reason the token was rejected. Surfaces to `holocron auth set` output. */
-	message: string;
+  ok: false;
+  /** Reason the token was rejected. Surfaces to `holocron auth set` output. */
+  message: string;
 }
 
 export async function verifyToken(token: string): Promise<VerifyTokenResult | VerifyTokenFailure>;

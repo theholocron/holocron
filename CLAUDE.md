@@ -109,11 +109,11 @@ Three repos, one rule per concern:
 
     // sync
     const err = (() => {
-    	try {
-    		fn();
-    	} catch (e) {
-    		return e;
-    	}
+      try {
+        fn();
+      } catch (e) {
+        return e;
+      }
     })();
     expect(err).toBeInstanceOf(SomeError);
     ```

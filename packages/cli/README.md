@@ -22,11 +22,11 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 ```jsonc
 // holocron.config.json
 {
-	"project": { "name": "my-app" },
-	"providers": {
-		"vault": ["1password", { "vault": "my-app" }],
-		"source": "github",
-	},
+  "project": { "name": "my-app" },
+  "providers": {
+    "vault": ["1password", { "vault": "my-app" }],
+    "source": "github",
+  },
 }
 ```
 
@@ -37,11 +37,11 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
-	project: { name: "my-app" },
-	providers: {
-		vault: ["1password", { vault: "my-app" }],
-		source: "github",
-	},
+  project: { name: "my-app" },
+  providers: {
+    vault: ["1password", { vault: "my-app" }],
+    source: "github",
+  },
 });
 ```
 
@@ -54,8 +54,8 @@ top (project wins):
 
 ```ts
 providers: {
-	vault: '@acme/holocron-vault',                     // preset only
-	source: ['@acme/holocron-github', { repo: 'x' }], // preset + override
+  vault: '@acme/holocron-vault',                     // preset only
+  source: ['@acme/holocron-github', { repo: 'x' }], // preset + override
 }
 ```
 
@@ -64,8 +64,8 @@ A capability config package exports a `CapabilityConfigPackage` default:
 ```ts
 import type { CapabilityConfigPackage } from "@theholocron/cli";
 export default {
-	provider: "1password",
-	options: { vault: "acme-app" },
+  provider: "1password",
+  options: { vault: "acme-app" },
 } satisfies CapabilityConfigPackage;
 ```
 

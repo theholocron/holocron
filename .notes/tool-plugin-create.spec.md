@@ -163,15 +163,15 @@ and can be removed in a future cleanup pass.
 
 ```ts
 interface TemplateInputs {
-	slug: string; // 'clerk'
-	vendorName: string; // 'Clerk' (PascalCase)
-	vendorUpper: string; // 'CLERK'
-	capability: CapabilityKey; // 'auth'
-	capabilityClass: string; // 'ClerkAuth'
-	tokenEnv: string; // 'HOLOCRON_CLERK_TOKEN'
-	vendorEnv: string; // 'CLERK_SECRET_KEY'
-	baseUrl: string; // 'https://api.clerk.com/v1'
-	transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
+  slug: string; // 'clerk'
+  vendorName: string; // 'Clerk' (PascalCase)
+  vendorUpper: string; // 'CLERK'
+  capability: CapabilityKey; // 'auth'
+  capabilityClass: string; // 'ClerkAuth'
+  tokenEnv: string; // 'HOLOCRON_CLERK_TOKEN'
+  vendorEnv: string; // 'CLERK_SECRET_KEY'
+  baseUrl: string; // 'https://api.clerk.com/v1'
+  transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
 }
 ```
 

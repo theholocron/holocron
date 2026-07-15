@@ -19,17 +19,17 @@ software projects — your own infrastructure-as-tool.
 # 1. Install the CLI + the two plugins you'll always need
 npm  i -g @theholocron/cli@alpha
 pnpm add -D @theholocron/holocron-plugin-github@alpha \
-			@theholocron/holocron-plugin-1password@alpha
+      @theholocron/holocron-plugin-1password@alpha
 ```
 
 ```jsonc
 // 2. Drop a minimal holocron.config.json at your repo root
 {
-	"project": { "name": "my-app" },
-	"providers": {
-		"source": "github",
-		"vault": ["1password", { "vault": "my-app" }],
-	},
+  "project": { "name": "my-app" },
+  "providers": {
+    "source": "github",
+    "vault": ["1password", { "vault": "my-app" }],
+  },
 }
 ```
 
@@ -53,31 +53,31 @@ makes that work **declarative, swappable, and re-runnable**.
 ```jsonc
 // holocron.config.json
 {
-	"project": { "name": "my-app" },
+  "project": { "name": "my-app" },
 
-	"providers": {
-		// Code + CI
-		"source": "github",
-		"ci": "github",
-		"secrets": "github",
-		"environments": "github",
-		"issues": "github",
+  "providers": {
+    // Code + CI
+    "source": "github",
+    "ci": "github",
+    "secrets": "github",
+    "environments": "github",
+    "issues": "github",
 
-		// Hosting + data
-		"deployment": ["vercel", { "team": "my-team" }],
-		"storage": ["neon", { "kind": "postgres" }],
-		"auth": "clerk",
-		"dns": "cloudflare",
+    // Hosting + data
+    "deployment": ["vercel", { "team": "my-team" }],
+    "storage": ["neon", { "kind": "postgres" }],
+    "auth": "clerk",
+    "dns": "cloudflare",
 
-		// Source of truth for secrets (required)
-		"vault": ["1password", { "vault": "my-app" }],
+    // Source of truth for secrets (required)
+    "vault": ["1password", { "vault": "my-app" }],
 
-		// Multi-provider
-		"tooling": ["postman", "storybook"],
-		"notifications": ["slack", "discord"],
-		"analytics": ["google"],
-		"observability": ["sentry"],
-	},
+    // Multi-provider
+    "tooling": ["postman", "storybook"],
+    "notifications": ["slack", "discord"],
+    "analytics": ["google"],
+    "observability": ["sentry"],
+  },
 }
 ```
 
@@ -113,23 +113,23 @@ env vars, local `.env`) syncs FROM the vault:
 
 ```
 vault (1Password)
-	├─→ secrets       (GitHub Actions)
-	├─→ deployment    (Vercel env vars)
-	└─→ local .env    (for dev)
+  ├─→ secrets       (GitHub Actions)
+  ├─→ deployment    (Vercel env vars)
+  └─→ local .env    (for dev)
 ```
 
 ## Repo layout (v2)
 
 ```
 packages/
-	cli/                            — @theholocron/cli                       (binary + capability runtime)
-	cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
-	holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
-	holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
-	holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
-	holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
-	holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
-	holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
+  cli/                            — @theholocron/cli                       (binary + capability runtime)
+  cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
+  holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
+  holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
+  holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
+  holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
+  holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
+  holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
 holocron.config.json              — this repo's own holocron config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
