@@ -1,5 +1,3 @@
-<!-- editorconfig-checker-disable-file -->
-
 # CommitLint Config
 
 A [CommitLint configuration](https://commitlint.js.org/reference/configuration.html#shareable-configuration) for writing well-formatted and consistent Git commits.

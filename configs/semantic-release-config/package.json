@@ -1,0 +1,43 @@
+{
+  "name": "@theholocron/semantic-release-config",
+  "version": "6.0.2",
+  "description": "A semantic-release configuration for automated versioning and publishing.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/semantic-release-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js"
+  ],
+  "peerDependencies": {
+    "@semantic-release/changelog": "^6",
+    "@semantic-release/commit-analyzer": "^13",
+    "@semantic-release/exec": "^7",
+    "@semantic-release/git": "^10",
+    "@semantic-release/github": "^11 || ^12",
+    "@semantic-release/release-notes-generator": "^14",
+    "conventional-changelog-conventionalcommits": "^10",
+    "semantic-release": "^24 || ^25"
+  },
+  "peerDependenciesMeta": {
+    "@semantic-release/exec": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

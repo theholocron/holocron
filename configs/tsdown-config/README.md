@@ -1,5 +1,3 @@
-<!-- editorconfig-checker-disable-file -->
-
 # tsdown Config
 
 Shared [tsdown](https://tsdown.dev) configurations for `@theholocron` packages.
