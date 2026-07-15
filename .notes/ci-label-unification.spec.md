@@ -1,3 +1,11 @@
+---
+status: archived # draft → proposed (issue filed) → approved (milestone attached) → archived (shipped)
+---
+
+<!-- Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix) -->
+<!-- Docs: .github#40 (public label table), .github-private runbook updated, 2026-07-15 -->
+<!-- Follow-up: org custom properties — .notes/org-custom-properties.spec.md (not yet written) -->
+
 # Spec: Unified org-wide label management
 
 ## Problem
