@@ -12,10 +12,11 @@
 import { readdir, readFile, rm, writeFile, mkdir, stat } from "node:fs/promises";
 import { join, dirname } from "node:path";
 
-import type { RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
+import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
 
 import { parseRepo } from "../repo.js";
 import type { RestClient } from "@theholocron/cli";
+import { syncLabels } from "./labels.js";
 
 export interface SourceOptions {
 	repo: string;
@@ -205,6 +206,10 @@ export class GitHubSource implements Source {
 		const full = join(this.repoRoot, path);
 		await ensureDir(dirname(full));
 		await writeFile(full, contents, "utf8");
+	}
+
+	async syncLabels(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string> {
+		return syncLabels(this.rest, `${this.owner}/${this.name}`, canonical, stale);
 	}
 }
 

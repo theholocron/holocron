@@ -96,6 +96,12 @@ export interface RepoRef {
 	defaultBranch: string;
 }
 
+export interface LabelDef {
+	readonly name: string;
+	readonly color: string;
+	readonly description: string;
+}
+
 export interface Source extends ProviderIdentity {
 	readonly key: "source";
 
@@ -161,6 +167,13 @@ export interface Source extends ProviderIdentity {
 	 * (e.g. `.github/dependabot.yml`).
 	 */
 	writeRepoFile(path: string, contents: string): Promise<void>;
+
+	/**
+	 * Idempotently sync repo labels to a canonical set. Creates missing
+	 * labels, patches color/description drift, deletes stale labels.
+	 * Optional — providers that have no label concept omit this.
+	 */
+	syncLabels?(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
