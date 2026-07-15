@@ -108,7 +108,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - run: $BUILD_SCRIPT
+      - run: eval "$BUILD_SCRIPT"
         name: Build and upload bundle stats
         env:
           BUILD_SCRIPT: \${{ inputs.build-script }}
