@@ -31,7 +31,7 @@ export async function syncLabels(
 	const base = `/repos/${owner}/${name}`;
 
 	const existing = await rest.request<RawLabel[]>(`${base}/labels?per_page=100`);
-	const existingMap = new Map(existing.map((l) => [l.name, l]));
+	const existingMap = new Map(existing.map((l) => [l.name.toLowerCase(), l]));
 
 	let created = 0;
 	let updated = 0;
