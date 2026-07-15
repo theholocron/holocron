@@ -516,4 +516,29 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("version: 1.2.3");
 		expect(content).toContain("secrets: inherit");
 	});
+
+	it("merges overrides into an existing with: block (lint template)", () => {
+		// lint already has `with:\n      enable-auto-commit: true` so the
+		// injection path can't append before `secrets: inherit` at end-of-file.
+		const content = generateThinCallerContent("lint", { "yaml-config": "custom.yml" });
+		expect(content).toContain("enable-auto-commit: true");
+		expect(content).toContain("yaml-config: custom.yml");
+	});
+
+	it("replaces an existing key when the override matches it (lint template)", () => {
+		const content = generateThinCallerContent("lint", { "enable-auto-commit": false });
+		// Should have exactly one occurrence of enable-auto-commit, set to false
+		const matches = content.match(/enable-auto-commit:/g);
+		expect(matches).toHaveLength(1);
+		expect(content).toContain("enable-auto-commit: false");
+	});
+
+	it("merges overrides into the sync-github with: block, replacing existing keys", () => {
+		// sync-github has `with:\n      secondary-repos: ...` before an explicit secrets: block.
+		// Overriding secondary-repos should replace it, not duplicate it.
+		const content = generateThinCallerContent("sync-github", { "secondary-repos": "theholocron/clients" });
+		const matches = content.match(/secondary-repos:/g);
+		expect(matches).toHaveLength(1);
+		expect(content).toContain("secondary-repos: theholocron/clients");
+	});
 });
