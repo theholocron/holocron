@@ -116,5 +116,7 @@ export { GitHubSecrets } from "./capabilities/secrets.js";
 export { GitHubEnvironments } from "./capabilities/environments.js";
 export { GitHubCi } from "./capabilities/ci.js";
 export { GitHubIssues } from "./capabilities/issues.js";
+export { syncLabels } from "./capabilities/labels.js";
+export type { CanonicalLabel } from "./capabilities/labels.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
