@@ -47,7 +47,6 @@ Both patterns are fully supported — switch by editing
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-1password@alpha
@@ -76,7 +75,6 @@ CLI's.
 
 The `op` binary must be on PATH. Install:
 
-
 <!-- prettier-ignore -->
 ```bash
 brew install 1password-cli   # macOS
@@ -101,7 +99,6 @@ confirm you're signed in — a useful sanity check independent of
 holocron.
 
 ## Config
-
 
 <!-- prettier-ignore -->
 ```jsonc

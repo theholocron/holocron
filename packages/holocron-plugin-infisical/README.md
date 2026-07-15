@@ -31,7 +31,6 @@ Switch by editing `holocron.config.json`.
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-infisical@alpha
@@ -68,7 +67,6 @@ Universal Auth is a two-step flow (client id + client secret → login
 endpoint → short-lived access token). Support for that exchange is
 tracked as a follow-up; for now, use one of the two above.
 
-
 <!-- prettier-ignore -->
 ```bash
 # 1. Generate the token per the note above.
@@ -91,7 +89,6 @@ precedence still work; step 4 quietly falls through.
 
 ## Config
 
-
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -109,7 +106,6 @@ precedence still work; step 4 quietly falls through.
   or `prd`). `list()` reads secrets from this environment.
 
 Individual `read` / `write` calls take a fully-qualified reference:
-
 
 <!-- prettier-ignore -->
 ```
@@ -144,7 +140,6 @@ convention):
 ## Self-hosted Infisical
 
 Set the `baseUrl` option in `holocron.config.json`:
-
 
 <!-- prettier-ignore -->
 ```jsonc

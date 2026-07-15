@@ -14,7 +14,6 @@ Holocron v2 is a **monorepo** of capability-based packages. The core
 loads plugins that declare which capabilities they implement. A
 single `holocron.config.json` per project wires capabilities → plugins.
 
-
 <!-- prettier-ignore -->
 ```
 packages/
@@ -87,7 +86,6 @@ somewhere; holocron's job is to keep them out of the repo and out of
 the config. The vault is the canonical store, and all other secret
 destinations are populated from it:
 
-
 <!-- prettier-ignore -->
 ```
 1Password (vault, source of truth)
@@ -112,7 +110,6 @@ flow.
 The JS/TS form uses `defineConfig` from `@theholocron/cli` for typed
 autocomplete. All three forms are validated through the same
 `resolveConfig` path. Priority: json → js → ts.
-
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -217,7 +214,6 @@ shapes** in core (`AuthEvent`, `NormalizedAuthUser`, …). Auth plugins
 export a `parseWebhook(input): AuthEvent` utility that translates
 the vendor's webhook payload into the normalized shape.
 
-
 <!-- prettier-ignore -->
 ```ts
 // User app code — vendor-agnostic
@@ -248,7 +244,6 @@ ships the contract + JSON parsing; production-grade HMAC verification
 lands in a follow-up.
 
 ## Package layout
-
 
 <!-- prettier-ignore -->
 ```
@@ -366,7 +361,6 @@ slot can reference a published package that exports
 and re-resolves to the underlying plugin. Per-project tuple options
 override the preset (project wins, ESLint `extends` precedence):
 
-
 <!-- prettier-ignore -->
 ```ts
 // project's holocron.config.ts
@@ -388,7 +382,6 @@ export default {
 `define-config.ts`, JS/TS loader in `load-config.ts`). The config file
 can be JS/TS; the `defineConfig` pass-through gives typed autocomplete.
 A shared base is just an import — no special mechanism needed:
-
 
 <!-- prettier-ignore -->
 ```ts

@@ -6,7 +6,6 @@ This provides functions for logging messages with different log levels (error, i
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { log } from "@/utils";

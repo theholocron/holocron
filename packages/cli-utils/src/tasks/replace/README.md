@@ -4,7 +4,6 @@ Find a string in a file and replace it with something else.
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { findReplace } from "@/tasks";

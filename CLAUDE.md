@@ -165,7 +165,6 @@ publish-initial` (chicken-and-egg: trusted publishing needs the
 
 ## Repo layout
 
-
 <!-- prettier-ignore -->
 ```
 packages/

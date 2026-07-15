@@ -7,7 +7,6 @@ capability against the [Vercel REST API](https://vercel.com/docs/rest-api).
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-vercel@alpha
@@ -27,7 +26,6 @@ fallback — Vercel's CLI auth is per-account and the scopes don't
 always cover what holocron needs at the API level. Explicit token only.
 
 ## Config
-
 
 <!-- prettier-ignore -->
 ```jsonc

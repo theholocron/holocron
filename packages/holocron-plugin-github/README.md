@@ -13,7 +13,6 @@ against the GitHub REST API:
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-github@alpha
@@ -35,7 +34,6 @@ admin-level holocron commands need (rulesets, repo settings, security
 toggles, etc.) — silent fallback would surface as mysterious 403s.
 
 ## Config
-
 
 <!-- prettier-ignore -->
 ```jsonc

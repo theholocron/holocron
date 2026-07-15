@@ -15,7 +15,6 @@ software projects — your own infrastructure-as-tool.
 
 ## Quickstart
 
-
 <!-- prettier-ignore -->
 ```bash
 # 1. Install the CLI + the two plugins you'll always need
@@ -24,7 +23,6 @@ pnpm add -D @theholocron/holocron-plugin-github@alpha \
       @theholocron/holocron-plugin-1password@alpha
 
 ```
-
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -38,7 +36,6 @@ pnpm add -D @theholocron/holocron-plugin-github@alpha \
 }
 
 ```
-
 
 <!-- prettier-ignore -->
 ```bash
@@ -58,7 +55,6 @@ Many projects share the same setup work: pick a hosting provider, a
 database, an auth provider, a secret vault, a CI host. Wire all the
 secrets, the workflows, the deploys, the issue tracker. Holocron
 makes that work **declarative, swappable, and re-runnable**.
-
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -95,7 +91,6 @@ makes that work **declarative, swappable, and re-runnable**.
 
 Then:
 
-
 <!-- prettier-ignore -->
 ```bash
 holocron setup           # apply the whole config, top to bottom
@@ -126,7 +121,6 @@ don't go in the config — they go in the **vault**, which is the only
 required capability. Everything else that needs secrets (CI, runtime
 env vars, local `.env`) syncs FROM the vault:
 
-
 <!-- prettier-ignore -->
 ```
 vault (1Password)
@@ -137,7 +131,6 @@ vault (1Password)
 ```
 
 ## Repo layout (v2)
-
 
 <!-- prettier-ignore -->
 ```

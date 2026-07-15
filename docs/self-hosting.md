@@ -30,7 +30,6 @@ to walk through steps 1–2 for itself.
 
 ## Step 1 — one-time manual publish
 
-
 <!-- prettier-ignore -->
 ```bash
 # From the holocron repo root, on a clean checkout.
@@ -103,7 +102,6 @@ that produced it.
 
 For one-off secrets that ARE token-based (not covered by OIDC), the
 `secret set` command still helps:
-
 
 <!-- prettier-ignore -->
 ```bash

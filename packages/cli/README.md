@@ -7,7 +7,6 @@ spinning up and operating software projects.
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 npm i -g @theholocron/cli@alpha
@@ -21,7 +20,6 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 (priority: json → js → ts).
 
 **JSON** (simplest):
-
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -37,7 +35,6 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 ```
 
 **JS/TS** — use `defineConfig` for autocomplete and type-checking:
-
 
 <!-- prettier-ignore -->
 ```ts
@@ -61,7 +58,6 @@ package in any provider slot and Holocron resolves its bundled
 `{ provider, options }` automatically. Per-project options merge on
 top (project wins):
 
-
 <!-- prettier-ignore -->
 ```ts
 providers: {
@@ -72,7 +68,6 @@ providers: {
 ```
 
 A capability config package exports a `CapabilityConfigPackage` default:
-
 
 <!-- prettier-ignore -->
 ```ts
@@ -86,7 +81,6 @@ export default {
 
 **Level 2 — whole-config presets.** Because the config file can be
 JS/TS, a shared base is just an import:
-
 
 <!-- prettier-ignore -->
 ```ts

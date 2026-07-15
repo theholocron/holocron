@@ -6,7 +6,6 @@ The configuration will pull from a `.env` file within the repository and place a
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { env } from "@/utils";

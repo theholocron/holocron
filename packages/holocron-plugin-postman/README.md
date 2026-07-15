@@ -5,7 +5,6 @@ Postman plugin for [Holocron](../cli). Implements the **multi-cardinality**
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-postman@alpha
@@ -31,7 +30,6 @@ Token resolution order:
 Generate the key at <https://web.postman.co/settings/me/api-keys>.
 
 ## Config
-
 
 <!-- prettier-ignore -->
 ```jsonc

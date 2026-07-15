@@ -7,7 +7,6 @@ capability against [Neon's REST API](https://api-docs.neon.tech/reference/gettin
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-neon@alpha
@@ -23,7 +22,6 @@ Token resolution order:
 3. `NEON_API_KEY` env var (the default Neon's own CLI reads)
 
 ## Config
-
 
 <!-- prettier-ignore -->
 ```jsonc

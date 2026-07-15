@@ -53,7 +53,6 @@ ever has to know about any other vendor's CLI or storage format.
 
 ### Auth precedence (every plugin)
 
-
 <!-- prettier-ignore -->
 ```
 1. --token          CLI flag (per-command override)
@@ -86,7 +85,6 @@ holocron auth set doppler <paste>`).
 Thin wrapper over `@napi-rs/keyring` (Rust-based, N-API prebuilt
 binaries, no node-gyp; actively maintained; `keytar` is archived).
 
-
 <!-- prettier-ignore -->
 ```ts
 export async function setToken(provider: string, token: string): Promise<void>;
@@ -106,7 +104,6 @@ service" — we probe.
 Every plugin exports a top-level `verifyToken` alongside
 `createPlugin` (mirrors the existing `parseWebhook` pattern for auth
 plugins).
-
 
 <!-- prettier-ignore -->
 ```ts
@@ -132,7 +129,6 @@ initialization typically requires an already-resolved token, which
 is exactly what we don't have yet.
 
 ### `holocron auth <subcommand>`
-
 
 <!-- prettier-ignore -->
 ```
@@ -160,7 +156,6 @@ orchestrator pattern (`try/catch`, continue, summary counts).
 
 Every existing plugin's `auth.ts` gains one line:
 
-
 <!-- prettier-ignore -->
 ```ts
 import { getToken as getKeyringToken } from "@theholocron/cli";
@@ -172,7 +167,6 @@ if (keyringToken) return keyringToken;
 ```
 
 Every existing plugin's `index.ts` gains a top-level export:
-
 
 <!-- prettier-ignore -->
 ```ts

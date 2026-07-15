@@ -8,7 +8,6 @@ plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-doppler@alpha
@@ -30,7 +29,6 @@ Token resolution order (matches the standard 4-step precedence set by
 
 Doppler's free tier does not expose Service Accounts (Team+ only). Use
 a Personal Token or CLI token instead.
-
 
 <!-- prettier-ignore -->
 ```bash
@@ -58,7 +56,6 @@ precedence still work; step 4 quietly falls through.
 
 ## Config
 
-
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -75,7 +72,6 @@ precedence still work; step 4 quietly falls through.
   `prd`). `list()` reads secrets from this config.
 
 Individual `read` / `write` calls take a fully-qualified reference:
-
 
 <!-- prettier-ignore -->
 ```

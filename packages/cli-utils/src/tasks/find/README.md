@@ -4,7 +4,6 @@ Find a folder recursively.
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { findFolder } from "@/tasks";

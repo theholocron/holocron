@@ -4,7 +4,6 @@ Open an application after a confirmation.
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { open } from "@/ui";

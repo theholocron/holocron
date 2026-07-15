@@ -4,7 +4,6 @@ Inquirer prompts
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { prompt } from "@/ui";

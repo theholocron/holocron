@@ -10,7 +10,6 @@ description: Scaffold a new @theholocron/holocron-plugin-<slug> package. Since v
 Since v2.0.0-alpha, plugin scaffolding is a first-class CLI command.
 Skip this skill; just run:
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm holocron plugin create <slug> <vendor> \

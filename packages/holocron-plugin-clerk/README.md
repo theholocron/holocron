@@ -5,7 +5,6 @@ against [Clerk's Backend REST API](https://clerk.com/docs/reference/backend-api)
 
 ## Install
 
-
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-clerk@alpha
@@ -26,7 +25,6 @@ api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
 > pattern across the other holocron plugins.
 
 ## Config
-
 
 <!-- prettier-ignore -->
 ```jsonc

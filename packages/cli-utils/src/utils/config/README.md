@@ -6,7 +6,6 @@ The configuration will pull from a `config.json` file within the operating syste
 
 ## Usage
 
-
 <!-- prettier-ignore -->
 ```javascript
 import { config } from "@/utils";

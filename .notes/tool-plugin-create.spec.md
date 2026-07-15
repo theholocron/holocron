@@ -54,7 +54,6 @@ same template drift; we consolidate on the CLI.
 
 ## Command shape
 
-
 <!-- prettier-ignore -->
 ```bash
 holocron plugin create <slug> <vendor>
@@ -163,7 +162,6 @@ cancelled, `TemplateInputs.transport` is effectively a constant `"rest"`
 and can be removed in a future cleanup pass.
 
 ### `TemplateInputs`
-
 
 <!-- prettier-ignore -->
 ```ts
