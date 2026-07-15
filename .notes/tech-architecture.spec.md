@@ -109,41 +109,41 @@ autocomplete. All three forms are validated through the same
 
 ```jsonc
 {
-  "project": {
-    "name": "rando-id",
-    "description": "Location-based contacts app",
-  },
+	"project": {
+		"name": "rando-id",
+		"description": "Location-based contacts app",
+	},
 
-  "providers": {
-    // Single-cardinality, short form: "provider"
-    "source": "github",
-    "ci": "github",
-    "secrets": "github",
-    "environments": "github",
-    "issues": "github",
-    "auth": "clerk",
-    "dns": "cloudflare",
+	"providers": {
+		// Single-cardinality, short form: "provider"
+		"source": "github",
+		"ci": "github",
+		"secrets": "github",
+		"environments": "github",
+		"issues": "github",
+		"auth": "clerk",
+		"dns": "cloudflare",
 
-    // Single-cardinality, tuple form: [provider, options]
-    "deployment": ["vercel", { "team": "rando", "projectIds": { "web": "prj_…" } }],
-    "storage": ["neon", { "kind": "postgres-postgis", "branchStrategy": "per-pr" }],
-    "vault": ["1password", { "vault": "rando", "account": "uuid…" }],
+		// Single-cardinality, tuple form: [provider, options]
+		"deployment": ["vercel", { "team": "rando", "projectIds": { "web": "prj_…" } }],
+		"storage": ["neon", { "kind": "postgres-postgis", "branchStrategy": "per-pr" }],
+		"vault": ["1password", { "vault": "rando", "account": "uuid…" }],
 
-    // Many-cardinality, short form: [provider1, provider2, …]
-    "tooling": ["postman", "storybook", "chromatic"],
-    "notifications": ["slack", "discord"],
-    "analytics": ["google"],
-    "observability": ["sentry"],
-  },
+		// Many-cardinality, short form: [provider1, provider2, …]
+		"tooling": ["postman", "storybook", "chromatic"],
+		"notifications": ["slack", "discord"],
+		"analytics": ["google"],
+		"observability": ["sentry"],
+	},
 
-  "apps": [
-    { "name": "web", "path": "apps/web", "kind": "next" },
-    { "name": "api", "path": "apps/api", "kind": "next-api" },
-  ],
+	"apps": [
+		{ "name": "web", "path": "apps/web", "kind": "next" },
+		{ "name": "api", "path": "apps/api", "kind": "next-api" },
+	],
 
-  "doctor": {
-    "checks": ["brewfile", "secrets", "env"],
-  },
+	"doctor": {
+		"checks": ["brewfile", "secrets", "env"],
+	},
 }
 ```
 
@@ -214,12 +214,12 @@ import { parseWebhook } from "@theholocron/holocron-plugin-clerk";
 import type { AuthEvent } from "@theholocron/cli";
 
 app.post("/webhooks/clerk", async (req) => {
-  const event: AuthEvent = await parseWebhook({
-    body: req.body,
-    headers: req.headers,
-    signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
-  });
-  await db.users.upsert(event.user); // works regardless of auth provider
+	const event: AuthEvent = await parseWebhook({
+		body: req.body,
+		headers: req.headers,
+		signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
+	});
+	await db.users.upsert(event.user); // works regardless of auth provider
 });
 ```
 

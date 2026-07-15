@@ -26,9 +26,9 @@ api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
 
 ```jsonc
 {
-  "providers": {
-    "auth": "clerk",
-  },
+	"providers": {
+		"auth": "clerk",
+	},
 }
 ```
 

@@ -54,9 +54,9 @@ precedence still work; step 4 quietly falls through.
 
 ```jsonc
 {
-  "providers": {
-    "vault": ["doppler", { "project": "my-app", "config": "dev" }],
-  },
+	"providers": {
+		"vault": ["doppler", { "project": "my-app", "config": "dev" }],
+	},
 }
 ```
 

@@ -80,9 +80,7 @@ function extractAndResolve(filepath: string, mod: unknown): ResolvedHolocronConf
 	// dynamic import wraps as { default: { __esModule: true, default: x } }.
 	// Unwrap the extra layer when present so both ESM and CJS outputs work.
 	const raw =
-		(outer as { __esModule?: boolean })?.__esModule === true
-			? (outer as { default?: unknown }).default
-			: outer;
+		(outer as { __esModule?: boolean })?.__esModule === true ? (outer as { default?: unknown }).default : outer;
 	if (raw === undefined || raw === null) {
 		throw new ConfigFileError(`${filepath} must have a default export (use \`export default defineConfig({…})\`)`);
 	}

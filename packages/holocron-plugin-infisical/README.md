@@ -87,9 +87,9 @@ precedence still work; step 4 quietly falls through.
 
 ```jsonc
 {
-  "providers": {
-    "vault": ["infisical", { "workspace": "<workspace-id>", "environment": "dev" }],
-  },
+	"providers": {
+		"vault": ["infisical", { "workspace": "<workspace-id>", "environment": "dev" }],
+	},
 }
 ```
 
@@ -135,16 +135,16 @@ Set the `baseUrl` option in `holocron.config.json`:
 
 ```jsonc
 {
-  "providers": {
-    "vault": [
-      "infisical",
-      {
-        "workspace": "<id>",
-        "environment": "dev",
-        "baseUrl": "https://infisical.internal.example.com/api",
-      },
-    ],
-  },
+	"providers": {
+		"vault": [
+			"infisical",
+			{
+				"workspace": "<id>",
+				"environment": "dev",
+				"baseUrl": "https://infisical.internal.example.com/api",
+			},
+		],
+	},
 }
 ```
 

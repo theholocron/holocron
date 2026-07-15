@@ -8,22 +8,22 @@ Find a folder recursively.
 import { findFolder } from "@/tasks";
 
 async function main() {
-  const [, , folder] = process.argv;
+	const [, , folder] = process.argv;
 
-  try {
-    const [err, data] = await findFolder(folder);
+	try {
+		const [err, data] = await findFolder(folder);
 
-    if (err) {
-      console.error(err);
-      process.exit(1);
-    }
+		if (err) {
+			console.error(err);
+			process.exit(1);
+		}
 
-    console.log("Folders Found:\n");
-    console.table(data);
-  } catch (error) {
-    console.error("An error occurred:", error);
-    process.exit(1);
-  }
+		console.log("Folders Found:\n");
+		console.table(data);
+	} catch (error) {
+		console.error("An error occurred:", error);
+		process.exit(1);
+	}
 }
 
 main();

@@ -8,14 +8,14 @@ Inquirer prompts
 import { prompt } from "@/ui";
 
 async function main() {
-  const [, , project] = process.argv;
+	const [, , project] = process.argv;
 
-  try {
-    const filepath = await prompt.search(project, undefined, undefined, {});
-    console.log(filepath);
-  } catch (error) {
-    console.error("Error:", error);
-  }
+	try {
+		const filepath = await prompt.search(project, undefined, undefined, {});
+		console.log(filepath);
+	} catch (error) {
+		console.error("Error:", error);
+	}
 }
 
 main();

@@ -23,9 +23,9 @@ Token resolution order:
 
 ```jsonc
 {
-  "providers": {
-    "storage": ["neon", { "projectId": "ancient-resonance-…" }],
-  },
+	"providers": {
+		"storage": ["neon", { "projectId": "ancient-resonance-…" }],
+	},
 }
 ```
 
