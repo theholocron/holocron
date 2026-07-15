@@ -48,6 +48,59 @@ export interface SyncGithubReport {
 }
 
 type FileBatch = Array<{ path: string; content: string }>;
+type WorkflowEntry = { name: string; with?: Record<string, unknown> };
+
+/**
+ * Extracts the `project.workflows` array from a `holocron.config.ts` source string.
+ * Handles both plain string entries and `{ name, with }` object entries.
+ * Falls back to an empty array if the array cannot be found or parsed.
+ */
+function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
+	const keyMatch = source.match(/\bworkflows\s*:\s*\[/);
+	if (!keyMatch) return [];
+
+	// Walk forward to find the matching ]
+	const start = keyMatch.index! + keyMatch[0].length;
+	let depth = 1;
+	let i = start;
+	while (i < source.length && depth > 0) {
+		if (source[i] === "[") depth++;
+		else if (source[i] === "]") depth--;
+		i++;
+	}
+	const body = source.slice(start, i - 1);
+
+	const entries: Array<{ pos: number; entry: WorkflowEntry }> = [];
+	const objSpans: Array<[number, number]> = [];
+
+	// Pass 1: object entries — { name: "foo", with: { ... } }
+	// The `with` value must be a flat object (no nested braces) to keep the regex simple.
+	const objRe = /\{\s*name\s*:\s*"([^"]+)"(?:\s*,\s*with\s*:\s*(\{[^}]*\}))?\s*\}/g;
+	let m: RegExpExecArray | null;
+	while ((m = objRe.exec(body)) !== null) {
+		objSpans.push([m.index, m.index + m[0].length]);
+		let withObj: Record<string, unknown> | undefined;
+		if (m[2]) {
+			try {
+				withObj = JSON.parse(m[2]);
+			} catch {
+				/* ignore malformed with: value */
+			}
+		}
+		entries.push({ pos: m.index, entry: { name: m[1], ...(withObj && { with: withObj }) } });
+	}
+
+	// Pass 2: simple string entries — "workflowname" — skip chars inside object spans
+	const strRe = /"([^"]+)"/g;
+	while ((m = strRe.exec(body)) !== null) {
+		if (!objSpans.some(([s, e]) => m!.index >= s && m!.index < e)) {
+			entries.push({ pos: m.index, entry: { name: m[1] } });
+		}
+	}
+
+	entries.sort((a, b) => a.pos - b.pos);
+	return entries.map(({ entry }) => entry);
+}
 
 function reusableHeader(source: string): string {
 	return [
@@ -74,7 +127,11 @@ function thinCallerHeader(forPrimary = false): string {
 	].join("\n");
 }
 
-function buildBatch(repo: string, allowedWorkflows?: Set<string>): FileBatch {
+function buildBatch(
+	repo: string,
+	allowedWorkflows?: Set<string>,
+	withOverrides?: Map<string, Record<string, unknown>>,
+): FileBatch {
 	const files: FileBatch = [];
 	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
 
@@ -122,7 +179,7 @@ function buildBatch(repo: string, allowedWorkflows?: Set<string>): FileBatch {
 		// a repo receives via project.workflows; undefined means all.
 		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
-			const content = generateThinCallerContent(name);
+			const content = generateThinCallerContent(name, withOverrides?.get(name));
 			if (!content) continue;
 			files.push({
 				path: `.github/workflows/${name}.yml`,
@@ -218,33 +275,50 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	};
 	const existingBlobs = new Map(existingTree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]));
 
-	// ── 3. Fetch workflow allowlist from target repo config ───────────────────
-	// Secondary repos may declare which reusable workflows they want via their
-	// own holocron.config.json. If present and non-empty, only those workflows
-	// are synced; missing or empty config means all workflows are synced.
+	// ── 3. Fetch workflow allowlist + per-workflow overrides from target repo ─
+	// Reads holocron.config.json first; falls back to holocron.config.ts.
+	// If present and non-empty, only listed workflows are synced.
+	// Object entries ({ name, with }) also carry per-caller with: overrides.
 	let allowedWorkflows: Set<string> | undefined;
+	let withOverrides: Map<string, Record<string, unknown>> | undefined;
 	if (repo !== DEFAULT_REPO) {
 		try {
-			const configRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.json`, {
+			let entries: WorkflowEntry[] = [];
+
+			const jsonRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.json`, {
 				headers,
 			});
-			if (configRes.ok) {
-				const configData = (await configRes.json()) as { content: string };
+			if (jsonRes.ok) {
+				const data = (await jsonRes.json()) as { content: string };
 				const raw = JSON.parse(
-					Buffer.from(configData.content.replace(/\n/g, ""), "base64").toString("utf8")
-				) as { project?: { workflows?: Array<string | { name: string }> } };
-				const workflows = raw?.project?.workflows ?? [];
-				if (workflows.length > 0) {
-					allowedWorkflows = new Set(workflows.map((w) => (typeof w === "string" ? w : w.name)));
+					Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8"),
+				) as { project?: { workflows?: Array<string | WorkflowEntry> } };
+				entries = (raw?.project?.workflows ?? []).map((w) =>
+					typeof w === "string" ? { name: w } : w,
+				);
+			} else {
+				const tsRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.ts`, {
+					headers,
+				});
+				if (tsRes.ok) {
+					const data = (await tsRes.json()) as { content: string };
+					const source = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
+					entries = parseWorkflowsFromTs(source);
 				}
 			}
+
+			if (entries.length > 0) {
+				allowedWorkflows = new Set(entries.map((e) => e.name));
+				const overrideEntries = entries.filter((e) => e.with != null).map((e) => [e.name, e.with!] as const);
+				if (overrideEntries.length > 0) withOverrides = new Map(overrideEntries);
+			}
 		} catch {
-			// No config or parse error — sync all workflows
+			// No config or parse error — sync all workflows with no overrides
 		}
 	}
 
 	// ── 4. Build file batch ──────────────────────────────────────────────────
-	const batch = buildBatch(repo, allowedWorkflows);
+	const batch = buildBatch(repo, allowedWorkflows, withOverrides);
 
 	// ── 5. Detect changes ────────────────────────────────────────────────────
 	let created = 0;
