@@ -1,5 +1,10 @@
 # Spec: Unified org-wide label management
 
+> **Status: complete** — all steps shipped as of 2026-07-15.
+> Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix).
+> Docs: .github#40 (public label table), .github-private runbook updated.
+> Open follow-up: org custom properties — see `.notes/org-custom-properties.spec.md` (not yet written).
+
 ## Problem
 
 Labels are inconsistent across the five active repos. Key pain points:
