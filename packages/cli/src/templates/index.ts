@@ -132,6 +132,7 @@ jobs:
     name: Add Labels to PRs
     permissions:
       contents: read
+      issues: write
       pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
