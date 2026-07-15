@@ -299,15 +299,54 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 };
 
 /**
- * Generate the thin caller content for a workflow, optionally injecting
- * `with:` inputs before `secrets: inherit` in the jobs block.
+ * Generate the thin caller content for a workflow, optionally injecting or
+ * merging `with:` overrides into the jobs block.
+ *
+ * Two strategies are used depending on the template:
+ * - Templates that already have a `with:` block (e.g. lint, sync-github):
+ *   the override entries are merged in, replacing existing keys and appending
+ *   new ones.
+ * - Templates that end with `    secrets: inherit`: a new `with:` block is
+ *   injected immediately before `secrets: inherit`.
+ * If neither pattern matches the template, a warning is emitted and the
+ * base template is returned unchanged.
  */
 export function generateThinCallerContent(name: string, withOverrides?: Record<string, unknown>): string {
 	const base = WORKFLOW_TEMPLATES[name];
 	if (!base) return "";
 	if (!withOverrides || Object.keys(withOverrides).length === 0) return base;
+
+	const fmt = (k: string, v: unknown) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`;
+
+	// If the template already has a with: block, merge overrides into it.
+	// Existing keys are replaced; new keys are appended.
+	const withBlockRe = /( {4}with:\n)((?:[ ]{6}[^\n]+\n)*)/;
+	const existingMatch = base.match(withBlockRe);
+	if (existingMatch) {
+		const existingEntries = new Map(
+			existingMatch[2]
+				.split("\n")
+				.filter(Boolean)
+				.map((line) => {
+					const m = line.match(/^ {6}([^:]+):\s*(.*)/);
+					return m ? ([m[1].trim(), m[2].trim()] as [string, string]) : null;
+				})
+				.filter((e): e is [string, string] => e !== null)
+		);
+		for (const [k, v] of Object.entries(withOverrides)) {
+			existingEntries.set(k, v === true ? "true" : v === false ? "false" : String(v));
+		}
+		const merged = [...existingEntries.entries()].map(([k, v]) => `      ${k}: ${v}`).join("\n");
+		return base.replace(withBlockRe, `    with:\n${merged}\n`);
+	}
+
+	// No existing with: block — inject before `    secrets: inherit` at end.
 	const withBlock = Object.entries(withOverrides)
-		.map(([k, v]) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`)
+		.map(([k, v]) => fmt(k, v))
 		.join("\n");
-	return base.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
+	const result = base.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
+	if (result === base) {
+		console.warn(`[generateThinCallerContent] could not inject with: overrides into "${name}" template`);
+	}
+	return result;
 }
