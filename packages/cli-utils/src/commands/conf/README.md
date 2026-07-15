@@ -6,6 +6,7 @@ An action to interact with the configuration file.
 
 Run the `--help` or `-h` command to find out how to use the command.
 
+
 <!-- prettier-ignore -->
 ```sh
 Usage: tsx ./src/cli.ts conf <command> [options]
@@ -20,7 +21,7 @@ Examples:
   tsx ./src/cli.ts conf edit
   tsx ./src/cli.ts conf view
   tsx ./src/cli.ts conf view domains
-<!-- prettier-ignore -->
+
 ```
 
 All [global options](/README.md#options) are supported as well.

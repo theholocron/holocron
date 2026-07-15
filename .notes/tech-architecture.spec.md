@@ -14,6 +14,7 @@ Holocron v2 is a **monorepo** of capability-based packages. The core
 loads plugins that declare which capabilities they implement. A
 single `holocron.config.json` per project wires capabilities → plugins.
 
+
 <!-- prettier-ignore -->
 ```
 packages/
@@ -26,7 +27,7 @@ packages/
   holocron-plugin-1password/    — (not yet)
   holocron-plugin-postman/      — (not yet)
   …
-<!-- prettier-ignore -->
+
 ```
 
 The published name pattern is `@theholocron/holocron-plugin-<provider>`
@@ -86,13 +87,14 @@ somewhere; holocron's job is to keep them out of the repo and out of
 the config. The vault is the canonical store, and all other secret
 destinations are populated from it:
 
+
 <!-- prettier-ignore -->
 ```
 1Password (vault, source of truth)
    ├─→ GitHub Actions secrets   (synced by `secrets` capability)
    ├─→ Vercel env vars          (synced by `deployment` capability)
    └─→ Local .env               (synced by `holocron secrets sync`)
-<!-- prettier-ignore -->
+
 ```
 
 The `secrets` capability (e.g., GitHub Actions secrets) is conceptually
@@ -110,6 +112,7 @@ flow.
 The JS/TS form uses `defineConfig` from `@theholocron/cli` for typed
 autocomplete. All three forms are validated through the same
 `resolveConfig` path. Priority: json → js → ts.
+
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -150,7 +153,7 @@ autocomplete. All three forms are validated through the same
     "checks": ["brewfile", "secrets", "env"],
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 Discriminator rule (in `packages/cli/src/config.ts`): an array entry
@@ -214,6 +217,7 @@ shapes** in core (`AuthEvent`, `NormalizedAuthUser`, …). Auth plugins
 export a `parseWebhook(input): AuthEvent` utility that translates
 the vendor's webhook payload into the normalized shape.
 
+
 <!-- prettier-ignore -->
 ```ts
 // User app code — vendor-agnostic
@@ -228,7 +232,7 @@ app.post("/webhooks/clerk", async (req) => {
   });
   await db.users.upsert(event.user); // works regardless of auth provider
 });
-<!-- prettier-ignore -->
+
 ```
 
 Swap clerk for another auth plugin → change one import line; the
@@ -245,6 +249,7 @@ lands in a follow-up.
 
 ## Package layout
 
+
 <!-- prettier-ignore -->
 ```
 package.json                — monorepo root, scripts that fan to packages
@@ -256,7 +261,7 @@ packages/
   cli/                      — @theholocron/cli (binary + runtime + interfaces)
   cli-utils/                — @theholocron/cli-utils (v1 carryover)
   holocron-plugin-github/   — @theholocron/holocron-plugin-github
-<!-- prettier-ignore -->
+
 ```
 
 Tests use **vitest** (workspace catalog) with per-package
@@ -361,6 +366,7 @@ slot can reference a published package that exports
 and re-resolves to the underlying plugin. Per-project tuple options
 override the preset (project wins, ESLint `extends` precedence):
 
+
 <!-- prettier-ignore -->
 ```ts
 // project's holocron.config.ts
@@ -375,7 +381,7 @@ export default {
   provider: "1password",
   options: { vault: "rando" },
 } satisfies CapabilityConfigPackage;
-<!-- prettier-ignore -->
+
 ```
 
 **Level 2 — whole-config presets** (`defineConfig` in
@@ -383,12 +389,13 @@ export default {
 can be JS/TS; the `defineConfig` pass-through gives typed autocomplete.
 A shared base is just an import — no special mechanism needed:
 
+
 <!-- prettier-ignore -->
 ```ts
 // holocron.config.ts
 import { acmeConfig } from "@acme/holocron-config";
 export default acmeConfig;
-<!-- prettier-ignore -->
+
 ```
 
 The loader uses `tsImport` from tsx (a runtime dep) for `.ts` files and

@@ -8,10 +8,11 @@ plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
 
 ## Install
 
+
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-doppler@alpha
-<!-- prettier-ignore -->
+
 ```
 
 ## Auth
@@ -30,6 +31,7 @@ Token resolution order (matches the standard 4-step precedence set by
 Doppler's free tier does not expose Service Accounts (Team+ only). Use
 a Personal Token or CLI token instead.
 
+
 <!-- prettier-ignore -->
 ```bash
 # 1. Install the Doppler CLI
@@ -46,7 +48,7 @@ holocron auth set doppler $(doppler configure get token --plain)
 
 # 4. Verify:
 holocron auth check doppler
-<!-- prettier-ignore -->
+
 ```
 
 **CI**: the keyring is not available in headless containers. Expose
@@ -56,6 +58,7 @@ precedence still work; step 4 quietly falls through.
 
 ## Config
 
+
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -63,7 +66,7 @@ precedence still work; step 4 quietly falls through.
     "vault": ["doppler", { "project": "my-app", "config": "dev" }],
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 - `project` (required) — Doppler project name. `read` / `list` /
@@ -73,10 +76,11 @@ precedence still work; step 4 quietly falls through.
 
 Individual `read` / `write` calls take a fully-qualified reference:
 
+
 <!-- prettier-ignore -->
 ```
 doppler://<project>/<config>/<name>
-<!-- prettier-ignore -->
+
 ```
 
 The default project + config in options apply to `list()`,

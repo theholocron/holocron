@@ -5,10 +5,11 @@ Postman plugin for [Holocron](../cli). Implements the **multi-cardinality**
 
 ## Install
 
+
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-postman@alpha
-<!-- prettier-ignore -->
+
 ```
 
 ## Why REST, not the CLI
@@ -31,6 +32,7 @@ Generate the key at <https://web.postman.co/settings/me/api-keys>.
 
 ## Config
 
+
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -50,7 +52,7 @@ Generate the key at <https://web.postman.co/settings/me/api-keys>.
     ],
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 - `workspaceId` (required) — Postman workspace id. Find via `holocron tooling postman workspaces`.

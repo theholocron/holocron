@@ -31,10 +31,11 @@ Switch by editing `holocron.config.json`.
 
 ## Install
 
+
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-infisical@alpha
-<!-- prettier-ignore -->
+
 ```
 
 ## Auth
@@ -67,6 +68,7 @@ Universal Auth is a two-step flow (client id + client secret → login
 endpoint → short-lived access token). Support for that exchange is
 tracked as a follow-up; for now, use one of the two above.
 
+
 <!-- prettier-ignore -->
 ```bash
 # 1. Generate the token per the note above.
@@ -74,7 +76,7 @@ tracked as a follow-up; for now, use one of the two above.
 holocron auth set infisical <TOKEN>
 # 3. Verify (calls GET /v1/workspace and reports accessible workspaces):
 holocron auth check infisical
-<!-- prettier-ignore -->
+
 ```
 
 **If you have a machine identity that's Universal-Auth-only**: add a
@@ -89,6 +91,7 @@ precedence still work; step 4 quietly falls through.
 
 ## Config
 
+
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -96,7 +99,7 @@ precedence still work; step 4 quietly falls through.
     "vault": ["infisical", { "workspace": "<workspace-id>", "environment": "dev" }],
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 - `workspace` (required) — Infisical workspace (project) id. Find via
@@ -107,10 +110,11 @@ precedence still work; step 4 quietly falls through.
 
 Individual `read` / `write` calls take a fully-qualified reference:
 
+
 <!-- prettier-ignore -->
 ```
 infisical://<workspaceId>/<environment>/<name>
-<!-- prettier-ignore -->
+
 ```
 
 The default `workspace` + `environment` in options apply to `list()`,
@@ -141,6 +145,7 @@ convention):
 
 Set the `baseUrl` option in `holocron.config.json`:
 
+
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -155,7 +160,7 @@ Set the `baseUrl` option in `holocron.config.json`:
     ],
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 ## Status

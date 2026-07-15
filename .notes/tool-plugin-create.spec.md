@@ -54,6 +54,7 @@ same template drift; we consolidate on the CLI.
 
 ## Command shape
 
+
 <!-- prettier-ignore -->
 ```bash
 holocron plugin create <slug> <vendor>
@@ -72,7 +73,7 @@ holocron plugin create <slug> <vendor>
     # REST-only scaffolding covers every plugin now on the roster.
     [--dry-run]                  # print the file list, write nothing
     [--no-verify]                # skip post-scaffold pnpm install/typecheck/lint/test
-<!-- prettier-ignore -->
+
 ```
 
 Positional args (`slug`, `vendor`) are required — everything else has
@@ -163,6 +164,7 @@ and can be removed in a future cleanup pass.
 
 ### `TemplateInputs`
 
+
 <!-- prettier-ignore -->
 ```ts
 interface TemplateInputs {
@@ -176,7 +178,7 @@ interface TemplateInputs {
   baseUrl: string; // 'https://api.clerk.com/v1'
   transport: "rest"; // constant — 'cli' variant cancelled (Phase 2 CANCELLED)
 }
-<!-- prettier-ignore -->
+
 ```
 
 ## Non-negotiables (mirrored from the skill)

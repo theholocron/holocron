@@ -4,6 +4,7 @@ Interact with the file system or run commands.
 
 ## Usage
 
+
 <!-- prettier-ignore -->
 ```javascript
 import { $ } from "@/utils";
@@ -23,7 +24,7 @@ async function main() {
 }
 
 main();
-<!-- prettier-ignore -->
+
 ```
 
 ## API

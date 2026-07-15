@@ -7,11 +7,12 @@ spinning up and operating software projects.
 
 ## Install
 
+
 <!-- prettier-ignore -->
 ```bash
 npm i -g @theholocron/cli@alpha
 holocron --help
-<!-- prettier-ignore -->
+
 ```
 
 ## Config file
@@ -20,6 +21,7 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 (priority: json → js → ts).
 
 **JSON** (simplest):
+
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -31,10 +33,11 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
     "source": "github",
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 **JS/TS** — use `defineConfig` for autocomplete and type-checking:
+
 
 <!-- prettier-ignore -->
 ```ts
@@ -48,7 +51,7 @@ export default defineConfig({
     source: "github",
   },
 });
-<!-- prettier-ignore -->
+
 ```
 
 ### Shareable configs
@@ -58,16 +61,18 @@ package in any provider slot and Holocron resolves its bundled
 `{ provider, options }` automatically. Per-project options merge on
 top (project wins):
 
+
 <!-- prettier-ignore -->
 ```ts
 providers: {
   vault: '@acme/holocron-vault',                     // preset only
   source: ['@acme/holocron-github', { repo: 'x' }], // preset + override
 }
-<!-- prettier-ignore -->
+
 ```
 
 A capability config package exports a `CapabilityConfigPackage` default:
+
 
 <!-- prettier-ignore -->
 ```ts
@@ -76,18 +81,19 @@ export default {
   provider: "1password",
   options: { vault: "acme-app" },
 } satisfies CapabilityConfigPackage;
-<!-- prettier-ignore -->
+
 ```
 
 **Level 2 — whole-config presets.** Because the config file can be
 JS/TS, a shared base is just an import:
+
 
 <!-- prettier-ignore -->
 ```ts
 // holocron.config.ts
 import { acmeConfig } from "@acme/holocron-config";
 export default acmeConfig;
-<!-- prettier-ignore -->
+
 ```
 
 ## What's in here

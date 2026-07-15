@@ -4,6 +4,7 @@ Inquirer prompts
 
 ## Usage
 
+
 <!-- prettier-ignore -->
 ```javascript
 import { prompt } from "@/ui";
@@ -20,7 +21,7 @@ async function main() {
 }
 
 main();
-<!-- prettier-ignore -->
+
 ```
 
 ## API

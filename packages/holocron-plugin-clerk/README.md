@@ -5,10 +5,11 @@ against [Clerk's Backend REST API](https://clerk.com/docs/reference/backend-api)
 
 ## Install
 
+
 <!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-clerk@alpha
-<!-- prettier-ignore -->
+
 ```
 
 ## Auth
@@ -26,6 +27,7 @@ api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
 
 ## Config
 
+
 <!-- prettier-ignore -->
 ```jsonc
 {
@@ -33,7 +35,7 @@ api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
     "auth": "clerk",
   },
 }
-<!-- prettier-ignore -->
+
 ```
 
 No plugin-level options today. Per-instance scoping (Development vs.
