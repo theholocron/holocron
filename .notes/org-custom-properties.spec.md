@@ -25,13 +25,13 @@ All properties are defined at the org level and set per-repo. Types follow the
 GitHub custom properties API (`string`, `single_select`, `true_false`,
 `multi_select`).
 
-| Property | Type | Values | Source |
-|---|---|---|---|
-| `branch_protection_level` | `single_select` | `balanced` / `strict` / `none` | derived from `repoPolicy.preset` |
-| `monorepo` | `true_false` | — | derived: `pnpm-workspace.yaml` present |
-| `open_source` | `true_false` | — | manual in `holocron.config.ts` |
-| `runtime_environment` | `single_select` | `node` / `browser` / `universal` / `none` | manual in `holocron.config.ts` |
-| `uses_external_packages` | `true_false` | — | manual in `holocron.config.ts` |
+| Property                  | Type            | Values                                    | Source                                 |
+| ------------------------- | --------------- | ----------------------------------------- | -------------------------------------- |
+| `branch_protection_level` | `single_select` | `balanced` / `strict` / `none`            | derived from `repoPolicy.preset`       |
+| `monorepo`                | `true_false`    | —                                         | derived: `pnpm-workspace.yaml` present |
+| `open_source`             | `true_false`    | —                                         | manual in `holocron.config.ts`         |
+| `runtime_environment`     | `single_select` | `node` / `browser` / `universal` / `none` | manual in `holocron.config.ts`         |
+| `uses_external_packages`  | `true_false`    | —                                         | manual in `holocron.config.ts`         |
 
 ### Derivation rules
 
@@ -95,9 +95,9 @@ Add an optional `properties` key to the project config schema in
 
 ```typescript
 interface ProjectProperties {
-  open_source?: boolean;
-  runtime_environment?: "node" | "browser" | "universal" | "none";
-  uses_external_packages?: boolean;
+	open_source?: boolean;
+	runtime_environment?: "node" | "browser" | "universal" | "none";
+	uses_external_packages?: boolean;
 }
 ```
 
@@ -106,11 +106,7 @@ interface ProjectProperties {
 New file: `packages/holocron-plugin-github/src/capabilities/properties.ts`
 
 ```typescript
-export async function syncProperties(
-  rest: RestClient,
-  repo: string,
-  values: Record<string, string>
-): Promise<string>
+export async function syncProperties(rest: RestClient, repo: string, values: Record<string, string>): Promise<string>;
 ```
 
 Calls `PATCH /repos/{owner}/{repo}/properties/values` with the resolved set.
@@ -131,7 +127,10 @@ const properties: Record<string, string> = {};
 const preset = config.project.repoPolicy?.preset ?? "balanced";
 if (preset !== "none") properties["branch_protection_level"] = preset;
 
-const isMonorepo = await fs.access("pnpm-workspace.yaml").then(() => true).catch(() => false);
+const isMonorepo = await fs
+	.access("pnpm-workspace.yaml")
+	.then(() => true)
+	.catch(() => false);
 properties["monorepo"] = String(isMonorepo);
 
 // Manual
@@ -139,12 +138,10 @@ const manual = config.project.properties ?? {};
 if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
 if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
 if (manual.uses_external_packages !== undefined)
-  properties["uses_external_packages"] = String(manual.uses_external_packages);
+	properties["uses_external_packages"] = String(manual.uses_external_packages);
 
 if (source.syncProperties) {
-  steps.push(await runStep("source", "sync properties", dryRun, () =>
-    source.syncProperties!(properties)
-  ));
+	steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));
 }
 ```
 
