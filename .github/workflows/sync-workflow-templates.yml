@@ -15,5 +15,6 @@ jobs:
     uses: theholocron/.github/.github/workflows/sync-github.yml@main
     with:
       primary-repo: theholocron/.github
+      secondary-repos: theholocron/.github-private
     secrets:
       SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
