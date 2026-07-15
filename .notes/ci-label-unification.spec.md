@@ -4,16 +4,16 @@
 
 Labels are inconsistent across the five active repos. Key pain points:
 
-1. `labeler.yml` maps `'^ci'` → `github_actions`, but `github_actions` doesn't
-   exist in `configs` or `holocron` — any `ci:` PR in those repos silently
-   fails to label.
-2. `performance` and `refactor` have different hex colors between `.github` and
-   `configs`.
-3. Stale/repo-specific labels (`javascript`, `autorelease: pending`,
-   `autorelease: tagged`, `released on @alpha`, `triage`) are present in some
-   repos but not others.
-4. Org repository defaults haven't been set, so new repos start with GitHub's
-   default label set instead of the org's.
+- `labeler.yml` maps `'^ci'` → `github_actions`, but `github_actions` doesn't
+  exist in `configs` or `holocron` — any `ci:` PR in those repos silently
+  fails to label.
+- `performance` and `refactor` have different hex colors between `.github` and
+  `configs`.
+- Stale/repo-specific labels (`javascript`, `autorelease: pending`,
+  `autorelease: tagged`, `released on @alpha`, `triage`) are present in some
+  repos but not others.
+- Org repository defaults haven't been set, so new repos start with GitHub's
+  default label set instead of the org's.
 
 ## Current state (as of 2026-07-15)
 
