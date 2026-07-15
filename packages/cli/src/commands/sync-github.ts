@@ -130,7 +130,7 @@ function thinCallerHeader(forPrimary = false): string {
 function buildBatch(
 	repo: string,
 	allowedWorkflows?: Set<string>,
-	withOverrides?: Map<string, Record<string, unknown>>,
+	withOverrides?: Map<string, Record<string, unknown>>
 ): FileBatch {
 	const files: FileBatch = [];
 	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
@@ -290,12 +290,10 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			});
 			if (jsonRes.ok) {
 				const data = (await jsonRes.json()) as { content: string };
-				const raw = JSON.parse(
-					Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8"),
-				) as { project?: { workflows?: Array<string | WorkflowEntry> } };
-				entries = (raw?.project?.workflows ?? []).map((w) =>
-					typeof w === "string" ? { name: w } : w,
-				);
+				const raw = JSON.parse(Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")) as {
+					project?: { workflows?: Array<string | WorkflowEntry> };
+				};
+				entries = (raw?.project?.workflows ?? []).map((w) => (typeof w === "string" ? { name: w } : w));
 			} else {
 				const tsRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.ts`, {
 					headers,

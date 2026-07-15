@@ -316,8 +316,7 @@ export function generateThinCallerContent(name: string, withOverrides?: Record<s
 	if (!base) return "";
 	if (!withOverrides || Object.keys(withOverrides).length === 0) return base;
 
-	const fmt = (k: string, v: unknown) =>
-		`      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`;
+	const fmt = (k: string, v: unknown) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`;
 
 	// If the template already has a with: block, merge overrides into it.
 	// Existing keys are replaced; new keys are appended.
@@ -332,7 +331,7 @@ export function generateThinCallerContent(name: string, withOverrides?: Record<s
 					const m = line.match(/^ {6}([^:]+):\s*(.*)/);
 					return m ? ([m[1].trim(), m[2].trim()] as [string, string]) : null;
 				})
-				.filter((e): e is [string, string] => e !== null),
+				.filter((e): e is [string, string] => e !== null)
 		);
 		for (const [k, v] of Object.entries(withOverrides)) {
 			existingEntries.set(k, v === true ? "true" : v === false ? "false" : String(v));
@@ -342,7 +341,9 @@ export function generateThinCallerContent(name: string, withOverrides?: Record<s
 	}
 
 	// No existing with: block — inject before `    secrets: inherit` at end.
-	const withBlock = Object.entries(withOverrides).map(([k, v]) => fmt(k, v)).join("\n");
+	const withBlock = Object.entries(withOverrides)
+		.map(([k, v]) => fmt(k, v))
+		.join("\n");
 	const result = base.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
 	if (result === base) {
 		console.warn(`[generateThinCallerContent] could not inject with: overrides into "${name}" template`);

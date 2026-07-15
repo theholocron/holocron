@@ -195,7 +195,7 @@ describe("runSyncGithub", () => {
 		});
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		const releaseBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Release"),
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Release")
 		);
 		expect(releaseBlob?.body?.content).toContain("run-build: false");
 	});
