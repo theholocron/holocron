@@ -7,8 +7,10 @@ capability against the [Vercel REST API](https://vercel.com/docs/rest-api).
 
 ## Install
 
+<!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-vercel@alpha
+<!-- prettier-ignore -->
 ```
 
 ## Auth
@@ -25,13 +27,15 @@ always cover what holocron needs at the API level. Explicit token only.
 
 ## Config
 
+<!-- prettier-ignore -->
 ```jsonc
 // holocron.config.json
 {
-	"providers": {
-		"deployment": ["vercel", { "teamId": "team_xxx" }],
-	},
+  "providers": {
+    "deployment": ["vercel", { "teamId": "team_xxx" }],
+  },
 }
+<!-- prettier-ignore -->
 ```
 
 - `teamId` (optional) — Vercel team id. When set, all requests are

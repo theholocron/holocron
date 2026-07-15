@@ -30,6 +30,7 @@ to walk through steps 1–2 for itself.
 
 ## Step 1 — one-time manual publish
 
+<!-- prettier-ignore -->
 ```bash
 # From the holocron repo root, on a clean checkout.
 # Interactive npm sign-in via the browser (no token stored locally beyond
@@ -49,6 +50,7 @@ pnpm build
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
 pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp 123456
+<!-- prettier-ignore -->
 ```
 
 The bootstrap command does the publish + reminds you exactly which URLs
@@ -101,10 +103,12 @@ that produced it.
 For one-off secrets that ARE token-based (not covered by OIDC), the
 `secret set` command still helps:
 
+<!-- prettier-ignore -->
 ```bash
 # Example: set a Vercel deploy hook secret on the holocron repo
 DEPLOY_HOOK=https://api.vercel.com/.../v1 HOLOCRON_GH_TOKEN=ghp_xxx \
   holocron secret set DEPLOY_HOOK
+<!-- prettier-ignore -->
 ```
 
 Replaces clicking through GH Settings → Secrets → Actions → New for

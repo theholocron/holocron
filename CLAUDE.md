@@ -109,11 +109,11 @@ Three repos, one rule per concern:
 
     // sync
     const err = (() => {
-    	try {
-    		fn();
-    	} catch (e) {
-    		return e;
-    	}
+      try {
+        fn();
+      } catch (e) {
+        return e;
+      }
     })();
     expect(err).toBeInstanceOf(SomeError);
     ```
@@ -165,6 +165,7 @@ publish-initial` (chicken-and-egg: trusted publishing needs the
 
 ## Repo layout
 
+<!-- prettier-ignore -->
 ```
 packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
@@ -180,6 +181,7 @@ holocron.config.json              — this repo's own config (self-hosted)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
 .github/workflows/                — ci.yml (PR), release.yml (main), codeql.yml, etc.
 scripts/bump-versions.mjs         — lockstep version bump invoked by semantic-release
+<!-- prettier-ignore -->
 ```
 
 ## What's deliberately out of scope (for now)

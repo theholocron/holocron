@@ -6,6 +6,7 @@ The configuration will pull from a `.env` file within the repository and place a
 
 ## Usage
 
+<!-- prettier-ignore -->
 ```javascript
 import { env } from "@/utils";
 
@@ -17,6 +18,7 @@ const [readAllErr, readAllData] = env.read("SOME_ENV_VAR");
 
 // set a specific variable
 const [writeErr, writeData] = env.write({ mockKey: "mockValue" });
+<!-- prettier-ignore -->
 ```
 
 ### When to use `env` methods or `process.env`

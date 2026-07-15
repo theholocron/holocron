@@ -6,6 +6,7 @@ This provides functions for logging messages with different log levels (error, i
 
 ## Usage
 
+<!-- prettier-ignore -->
 ```javascript
 import { log } from "@/utils";
 
@@ -20,6 +21,7 @@ log.info(FN, "This is an info message", options);
 log.process(FN, "this is a processing message", options);
 log.success(FN, "This is a success message", options);
 log.warning(FN, "This is a warning message", options);
+<!-- prettier-ignore -->
 ```
 
 ## API

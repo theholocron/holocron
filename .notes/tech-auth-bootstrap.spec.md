@@ -53,12 +53,14 @@ ever has to know about any other vendor's CLI or storage format.
 
 ### Auth precedence (every plugin)
 
+<!-- prettier-ignore -->
 ```
 1. --token          CLI flag (per-command override)
 2. HOLOCRON_<X>     holocron-namespaced env var
 3. <vendor>-native  vendor's own env var (DOPPLER_TOKEN, etc.)
 4. keyring          `com.theholocron.cli` service, key = <provider>
 5. AuthError        with a vendor-specific hint
+<!-- prettier-ignore -->
 ```
 
 Steps 1–3 already exist. Step 4 is new. Step 5 gets an upgraded
@@ -83,11 +85,13 @@ holocron auth set doppler <paste>`).
 Thin wrapper over `@napi-rs/keyring` (Rust-based, N-API prebuilt
 binaries, no node-gyp; actively maintained; `keytar` is archived).
 
+<!-- prettier-ignore -->
 ```ts
 export async function setToken(provider: string, token: string): Promise<void>;
 export async function getToken(provider: string): Promise<string | null>;
 export async function deleteToken(provider: string): Promise<void>;
 export async function listProviders(): Promise<string[]>;
+<!-- prettier-ignore -->
 ```
 
 `listProviders` iterates provider slugs the CLI knows about (from
@@ -101,20 +105,22 @@ Every plugin exports a top-level `verifyToken` alongside
 `createPlugin` (mirrors the existing `parseWebhook` pattern for auth
 plugins).
 
+<!-- prettier-ignore -->
 ```ts
 export interface VerifyTokenResult {
-	ok: true;
-	/** Human-readable identifier — "workplace: acme" / "user: cnewton@x" */
-	subject: string;
+  ok: true;
+  /** Human-readable identifier — "workplace: acme" / "user: cnewton@x" */
+  subject: string;
 }
 
 export interface VerifyTokenFailure {
-	ok: false;
-	/** Reason the token was rejected. Surfaces to `holocron auth set` output. */
-	message: string;
+  ok: false;
+  /** Reason the token was rejected. Surfaces to `holocron auth set` output. */
+  message: string;
 }
 
 export async function verifyToken(token: string): Promise<VerifyTokenResult | VerifyTokenFailure>;
+<!-- prettier-ignore -->
 ```
 
 Plugin-level export (not a capability method) so the auth command
@@ -124,6 +130,7 @@ is exactly what we don't have yet.
 
 ### `holocron auth <subcommand>`
 
+<!-- prettier-ignore -->
 ```
 holocron auth set <provider> [token]
     Verify + store a token in the keyring.
@@ -139,6 +146,7 @@ holocron auth check <provider>
 
 holocron auth list
     Table of every known provider + storage/validity status.
+<!-- prettier-ignore -->
 ```
 
 All four subcommands soft-skip failures per the standard
@@ -148,18 +156,22 @@ orchestrator pattern (`try/catch`, continue, summary counts).
 
 Every existing plugin's `auth.ts` gains one line:
 
+<!-- prettier-ignore -->
 ```ts
 import { getToken as getKeyringToken } from "@theholocron/cli";
 
 // after existing --token / HOLOCRON_<X> / <native> checks:
 const keyringToken = await getKeyringToken(providerSlug);
 if (keyringToken) return keyringToken;
+<!-- prettier-ignore -->
 ```
 
 Every existing plugin's `index.ts` gains a top-level export:
 
+<!-- prettier-ignore -->
 ```ts
 export { verifyToken } from "./verify-token.js";
+<!-- prettier-ignore -->
 ```
 
 New plugins get both baked in via the `holocron-plugin` skill

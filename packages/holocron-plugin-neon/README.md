@@ -7,8 +7,10 @@ capability against [Neon's REST API](https://api-docs.neon.tech/reference/gettin
 
 ## Install
 
+<!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-neon@alpha
+<!-- prettier-ignore -->
 ```
 
 ## Auth
@@ -21,12 +23,14 @@ Token resolution order:
 
 ## Config
 
+<!-- prettier-ignore -->
 ```jsonc
 {
-	"providers": {
-		"storage": ["neon", { "projectId": "ancient-resonance-…" }],
-	},
+  "providers": {
+    "storage": ["neon", { "projectId": "ancient-resonance-…" }],
+  },
 }
+<!-- prettier-ignore -->
 ```
 
 - `projectId` (required) — the Neon project id. The plugin binds to
