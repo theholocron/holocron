@@ -26,7 +26,7 @@ type FetchCall = { method: string; url: string; body?: Record<string, unknown> }
  * Files not in the map are treated as new (not in the tree).
  * configJson is the parsed content of holocron.config.json to serve from the repo.
  */
-function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unknown) {
+function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unknown, configTs?: string) {
 	const calls: FetchCall[] = [];
 	const fn = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
 		const urlStr = url.toString();
@@ -50,6 +50,12 @@ function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unkn
 		if (method === "GET" && urlStr.includes("/contents/holocron.config.json")) {
 			if (!configJson) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
 			const content = Buffer.from(JSON.stringify(configJson)).toString("base64");
+			return new Response(JSON.stringify({ content }), { status: 200 });
+		}
+		// holocron.config.ts (fallback when .json absent)
+		if (method === "GET" && urlStr.includes("/contents/holocron.config.ts")) {
+			if (!configTs) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+			const content = Buffer.from(configTs).toString("base64");
 			return new Response(JSON.stringify({ content }), { status: 200 });
 		}
 		// Tree (recursive)
@@ -158,6 +164,40 @@ describe("runSyncGithub", () => {
 			})
 			.filter(Boolean);
 		expect(blobPaths).toHaveLength(allowedNames.length);
+	});
+
+	it("reads workflow allowlist from holocron.config.ts when .json is absent", async () => {
+		const allowedNames = ["lint", "review", "stale"];
+		const configTs = `export default defineConfig({ project: { workflows: ${JSON.stringify(allowedNames)} } })`;
+		const { fn } = makeFetch({}, undefined, configTs);
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.created).toBe(allowedNames.length);
+	});
+
+	it("applies per-workflow with: overrides from config to thin callers", async () => {
+		const configTs = `export default defineConfig({ project: { workflows: [{ name: "release", with: { "run-build": false } }] } })`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		const releaseBlob = blobs.find(
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Release")
+		);
+		expect(releaseBlob?.body?.content).toContain("run-build: false");
 	});
 
 	it("skips unchanged files and omits them from the commit tree", async () => {
@@ -475,5 +515,30 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("debug: false");
 		expect(content).toContain("version: 1.2.3");
 		expect(content).toContain("secrets: inherit");
+	});
+
+	it("merges overrides into an existing with: block (lint template)", () => {
+		// lint already has `with:\n      enable-auto-commit: true` so the
+		// injection path can't append before `secrets: inherit` at end-of-file.
+		const content = generateThinCallerContent("lint", { "yaml-config": "custom.yml" });
+		expect(content).toContain("enable-auto-commit: true");
+		expect(content).toContain("yaml-config: custom.yml");
+	});
+
+	it("replaces an existing key when the override matches it (lint template)", () => {
+		const content = generateThinCallerContent("lint", { "enable-auto-commit": false });
+		// Should have exactly one occurrence of enable-auto-commit, set to false
+		const matches = content.match(/enable-auto-commit:/g);
+		expect(matches).toHaveLength(1);
+		expect(content).toContain("enable-auto-commit: false");
+	});
+
+	it("merges overrides into the sync-github with: block, replacing existing keys", () => {
+		// sync-github has `with:\n      secondary-repos: ...` before an explicit secrets: block.
+		// Overriding secondary-repos should replace it, not duplicate it.
+		const content = generateThinCallerContent("sync-github", { "secondary-repos": "theholocron/clients" });
+		const matches = content.match(/secondary-repos:/g);
+		expect(matches).toHaveLength(1);
+		expect(content).toContain("secondary-repos: theholocron/clients");
 	});
 });
