@@ -60,18 +60,18 @@ above — the string form remains valid for repos that only need the name.
 type RepoProtection = "balanced" | "strict" | "none";
 
 interface RepoProperties {
-  lifecycle?: "active" | "experimental" | "deprecated";
-  open_source?: boolean;
-  runtime_environment?: "node" | "browser" | "universal" | "none";
-  uses_external_packages?: boolean;
+	lifecycle?: "active" | "experimental" | "deprecated";
+	open_source?: boolean;
+	runtime_environment?: "node" | "browser" | "universal" | "none";
+	uses_external_packages?: boolean;
 }
 
 interface RepoConfig {
-  name: string;
-  protection?: RepoProtection;       // default: "balanced"
-  requiredChecks?: string[];         // only meaningful when protection = "strict"
-  topics?: string[];
-  properties?: RepoProperties;
+	name: string;
+	protection?: RepoProtection; // default: "balanced"
+	requiredChecks?: string[]; // only meaningful when protection = "strict"
+	topics?: string[];
+	properties?: RepoProperties;
 }
 
 // project.repo: string | RepoConfig
@@ -82,14 +82,14 @@ interface RepoConfig {
 All properties are defined at the org level and set per-repo via
 `PATCH /repos/{owner}/{repo}/properties/values`.
 
-| Property | Type | Values | Source |
-|---|---|---|---|
-| `branch_protection_level` | `single_select` | `balanced` / `strict` / `none` | derived from `repo.protection` |
-| `lifecycle` | `single_select` | `active` / `experimental` / `deprecated` | `repo.properties.lifecycle` |
-| `monorepo` | `true_false` | — | derived: `pnpm-workspace.yaml` present |
-| `open_source` | `true_false` | — | `repo.properties.open_source` |
-| `runtime_environment` | `single_select` | `node` / `browser` / `universal` / `none` | `repo.properties.runtime_environment` |
-| `uses_external_packages` | `true_false` | — | `repo.properties.uses_external_packages` |
+| Property                  | Type            | Values                                    | Source                                   |
+| ------------------------- | --------------- | ----------------------------------------- | ---------------------------------------- |
+| `branch_protection_level` | `single_select` | `balanced` / `strict` / `none`            | derived from `repo.protection`           |
+| `lifecycle`               | `single_select` | `active` / `experimental` / `deprecated`  | `repo.properties.lifecycle`              |
+| `monorepo`                | `true_false`    | —                                         | derived: `pnpm-workspace.yaml` present   |
+| `open_source`             | `true_false`    | —                                         | `repo.properties.open_source`            |
+| `runtime_environment`     | `single_select` | `node` / `browser` / `universal` / `none` | `repo.properties.runtime_environment`    |
+| `uses_external_packages`  | `true_false`    | —                                         | `repo.properties.uses_external_packages` |
 
 **Org schema already defined** (2026-07-15). Future additions:
 
@@ -135,11 +135,7 @@ still a string (backwards compat during rollout).
 New file: `packages/holocron-plugin-github/src/capabilities/properties.ts`
 
 ```typescript
-export async function syncProperties(
-  rest: RestClient,
-  repo: string,
-  values: Record<string, string>
-): Promise<string>
+export async function syncProperties(rest: RestClient, repo: string, values: Record<string, string>): Promise<string>;
 ```
 
 Calls `PATCH /repos/{owner}/{repo}/properties/values`. Returns `"N properties set"`.
@@ -149,11 +145,7 @@ Calls `PATCH /repos/{owner}/{repo}/properties/values`. Returns `"N properties se
 New file: `packages/holocron-plugin-github/src/capabilities/topics.ts`
 
 ```typescript
-export async function syncTopics(
-  rest: RestClient,
-  repo: string,
-  topics: string[]
-): Promise<string>
+export async function syncTopics(rest: RestClient, repo: string, topics: string[]): Promise<string>;
 ```
 
 Calls `PUT /repos/{owner}/{repo}/topics`. Returns `"N topics set"`.
@@ -174,7 +166,10 @@ const properties: Record<string, string> = {};
 const preset = repoConfig.protection ?? config.project.repoPolicy?.preset ?? "balanced";
 if (preset !== "none") properties["branch_protection_level"] = preset;
 
-const isMonorepo = await fs.access("pnpm-workspace.yaml").then(() => true).catch(() => false);
+const isMonorepo = await fs
+	.access("pnpm-workspace.yaml")
+	.then(() => true)
+	.catch(() => false);
 properties["monorepo"] = String(isMonorepo);
 
 // Manual
@@ -183,18 +178,16 @@ if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
 if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
 if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
 if (manual.uses_external_packages !== undefined)
-  properties["uses_external_packages"] = String(manual.uses_external_packages);
+	properties["uses_external_packages"] = String(manual.uses_external_packages);
 
 if (source.syncProperties) {
-  steps.push(await runStep("source", "sync properties", dryRun,
-    () => source.syncProperties!(properties)));
+	steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));
 }
 
 // Topics
 const topics = repoConfig.topics ?? [];
 if (topics.length > 0 && source.syncTopics) {
-  steps.push(await runStep("source", "sync topics", dryRun,
-    () => source.syncTopics!(topics)));
+	steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 }
 ```
 
