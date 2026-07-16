@@ -5,9 +5,16 @@ export default defineConfig({
 		name: "holocron",
 		description:
 			"The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.",
-		repo: "theholocron/holocron",
-		repoPolicy: {
-			preset: "strict",
+		repo: {
+			name: "theholocron/holocron",
+			protection: "strict",
+			topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
+			properties: {
+				lifecycle: "active",
+				open_source: true,
+				runtime_environment: "node",
+				uses_external_packages: true,
+			},
 		},
 		workflows: [
 			"lint",

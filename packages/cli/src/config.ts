@@ -119,13 +119,12 @@ export interface HolocronConfig {
 		name: string;
 		description?: string;
 		/**
-		 * Repository identity and metadata. Accepts a bare `"owner/name"` string
-		 * or a full `RepoConfig` object. When set, `PluginLoader` injects the repo
-		 * name into every plugin's `RuntimeContext.repo` so plugins that need a repo
-		 * (github, etc.) don't require `--repo` on every invocation. `--repo` on the
-		 * command line still overrides.
+		 * Repository identity and metadata. When set, `PluginLoader` injects
+		 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
+		 * need a repo (github, etc.) don't require `--repo` on every invocation.
+		 * `--repo` on the command line still overrides.
 		 */
-		repo?: string | RepoConfig;
+		repo?: RepoConfig;
 		/**
 		 * Repo-level policy applied by `holocron setup`. Defines merge
 		 * strategy, branch protection rulesets, and security defaults.

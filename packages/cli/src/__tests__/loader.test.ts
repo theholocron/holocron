@@ -163,7 +163,7 @@ describe("PluginLoader — project.repo defaults", () => {
 	it("injects config.project.repo into plugin options when context.repo is absent", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo", repo: "acme/foo" },
+			project: { name: "demo", repo: { name: "acme/foo" } },
 			providers: { vault: "1password", source: "github" },
 		});
 		const importer = vi.fn(async (pkg: string) => {
@@ -185,7 +185,7 @@ describe("PluginLoader — project.repo defaults", () => {
 	it("context.repo (CLI --repo flag) overrides config.project.repo", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo", repo: "acme/from-config" },
+			project: { name: "demo", repo: { name: "acme/from-config" } },
 			providers: { vault: "1password", source: "github" },
 		});
 		const importer = vi.fn(async (pkg: string) => {
@@ -211,7 +211,7 @@ describe("PluginLoader — project.repo defaults", () => {
 	it("per-plugin tuple options override both context and project defaults", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo", repo: "acme/from-config" },
+			project: { name: "demo", repo: { name: "acme/from-config" } },
 			providers: {
 				vault: "1password",
 				source: ["github", { repo: "override/from-tuple" }],

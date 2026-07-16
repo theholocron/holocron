@@ -22,7 +22,6 @@ import { access } from "node:fs/promises";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
-import type { RepoConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import {
@@ -534,10 +533,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const repoConfig: Partial<RepoConfig> = typeof config.project.repo === "object" ? config.project.repo : {};
+		const repo = config.project.repo;
 		const properties: Record<string, string> = {};
 
-		const preset = repoConfig.protection ?? config.project.repoPolicy?.preset ?? "balanced";
+		const preset = repo?.protection ?? config.project.repoPolicy?.preset ?? "balanced";
 		if (preset !== "none") properties["branch_protection_level"] = preset;
 
 		const isMonorepo = await access("pnpm-workspace.yaml")
@@ -545,7 +544,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			.catch(() => false);
 		properties["monorepo"] = String(isMonorepo);
 
-		const manual = repoConfig.properties ?? {};
+		const manual = repo?.properties ?? {};
 		if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
 		if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
 		if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
@@ -557,7 +556,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const topics = repoConfig.topics ?? [];
+		const topics = repo?.topics ?? [];
 		if (topics.length > 0 && source.syncTopics) {
 			steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 			print(formatStep(steps[steps.length - 1]!));
