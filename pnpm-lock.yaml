@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@theholocron/clerk-client':
+      specifier: ^0.3.2
+      version: 0.3.2
     '@theholocron/commitlint-config':
       specifier: ^6.0.1
       version: 6.0.1
@@ -328,6 +331,9 @@ importers:
 
   packages/holocron-plugin-clerk:
     devDependencies:
+      '@theholocron/clerk-client':
+        specifier: 'catalog:'
+        version: 0.3.2
       '@theholocron/cli':
         specifier: workspace:*
         version: link:../cli
@@ -1637,6 +1643,10 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@theholocron/clerk-client@0.3.2':
+    resolution: {integrity: sha512-RP/XOqIzupxjRF/uao0eXa7OfBBqxoagxjBoihn1NSSB35oO6uS4y/G74VleQOV9DDac5oXa396diiMIJt9jsg==}
+    engines: {node: '>=22.0.0'}
 
   '@theholocron/commitlint-config@6.0.1':
     resolution: {integrity: sha512-t/wQNXpseoCYI5ngPP1B7KkH9Xkg3n13KKE2GN92c0BQSMSOnbZgxes9v+LKznXK9vaCxW3kN5Z+y7UTkOx3Zg==}
@@ -6395,6 +6405,10 @@ snapshots:
       text-hex: 1.0.0
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@theholocron/clerk-client@0.3.2':
+    dependencies:
+      '@theholocron/http-client': 0.3.2
 
   '@theholocron/commitlint-config@6.0.1(@commitlint/cli@19.8.1(@types/node@26.1.1)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)':
     dependencies:

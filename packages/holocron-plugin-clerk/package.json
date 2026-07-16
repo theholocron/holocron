@@ -26,9 +26,11 @@
     "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
+    "@theholocron/clerk-client": "catalog:",
     "@theholocron/cli": "workspace:*"
   },
   "devDependencies": {
+    "@theholocron/clerk-client": "catalog:",
     "@theholocron/cli": "workspace:*",
     "@types/node": "catalog:",
     "@theholocron/eslint-config": "catalog:",

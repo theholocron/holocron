@@ -7,6 +7,7 @@ catalog:
   '@theholocron/commitlint-config': ^6.0.1
   '@theholocron/semantic-release-config': ^6.1.0
   '@theholocron/eslint-config': ^5.2.0
+  '@theholocron/clerk-client': ^0.3.2
   '@theholocron/github-client': ^0.3.2
   '@theholocron/http-client': ^0.3.2
   '@theholocron/lint-staged-config': ^5.2.0

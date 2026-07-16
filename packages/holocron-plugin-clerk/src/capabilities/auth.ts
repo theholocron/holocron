@@ -34,28 +34,16 @@ import type {
 	WebhookDashboardInfo,
 } from "@theholocron/cli";
 
-import type { RestClient } from "@theholocron/cli";
+import type { ClerkClient } from "../rest.js";
 
 export type ClerkAuthOptions = Record<string, never>;
-
-interface ClerkCreateUserResponse {
-	id: string;
-	email_addresses: Array<{ email_address: string }>;
-}
-
-interface ClerkSvixUrlResponse {
-	/** Older endpoint shape. */
-	url?: string;
-	/** Newer endpoint shape. */
-	svix_url?: string;
-}
 
 export class ClerkAuth implements Auth {
 	readonly key = "auth" as const;
 	readonly providerName = "clerk";
 
 	constructor(
-		private readonly rest: RestClient,
+		private readonly client: ClerkClient,
 		_opts: ClerkAuthOptions = {}
 	) {}
 
@@ -71,10 +59,10 @@ export class ClerkAuth implements Auth {
 	// ── whoami ──────────────────────────────────────────────────────────
 
 	async whoami(): Promise<AuthIdentity> {
-		const body = await this.rest.request<{ total_count: number }>("/users/count");
+		const result = await this.client.users.count();
 		return {
 			provider: "clerk",
-			details: { userCount: body.total_count },
+			details: { userCount: result.total_count },
 		};
 	}
 
@@ -82,7 +70,7 @@ export class ClerkAuth implements Auth {
 
 	async ensureWebhookApp(): Promise<{ alreadyExists: boolean }> {
 		try {
-			await this.rest.request<void>("/webhooks/svix", { method: "POST" });
+			await this.client.webhooks.ensureSvixApp();
 			return { alreadyExists: false };
 		} catch (err) {
 			if (err instanceof ProviderApiError && isAlreadyExistsError(err)) {
@@ -93,9 +81,7 @@ export class ClerkAuth implements Auth {
 	}
 
 	async getWebhookDashboardUrl(): Promise<WebhookDashboardInfo> {
-		const body = await this.rest.request<ClerkSvixUrlResponse>("/webhooks/svix_url", {
-			method: "POST",
-		});
+		const body = await this.client.webhooks.getSvixUrl();
 		const url = body.url ?? body.svix_url;
 		if (!url) {
 			throw new ProviderApiError("Clerk POST /webhooks/svix_url returned 200 but no `url` field", 500, undefined);
@@ -106,17 +92,14 @@ export class ClerkAuth implements Auth {
 	// ── users ───────────────────────────────────────────────────────────
 
 	async createUser(input: CreateAuthUserInput): Promise<AuthUser> {
-		const body = await this.rest.request<ClerkCreateUserResponse>("/users", {
-			method: "POST",
-			body: {
-				email_address: [input.email],
-				password: input.password,
-				...(input.firstName ? { first_name: input.firstName } : {}),
-				...(input.lastName ? { last_name: input.lastName } : {}),
-			},
+		const user = await this.client.users.create({
+			email_address: [input.email],
+			password: input.password,
+			...(input.firstName ? { first_name: input.firstName } : {}),
+			...(input.lastName ? { last_name: input.lastName } : {}),
 		});
-		const email = body.email_addresses[0]?.email_address ?? input.email;
-		return { id: body.id, email };
+		const email = user.email_addresses[0]?.email_address ?? input.email;
+		return { id: user.id, email };
 	}
 }
 
