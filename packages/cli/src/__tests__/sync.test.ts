@@ -263,9 +263,71 @@ describe("runSync", () => {
 		expect(step?.message).toContain("does not implement syncProperties");
 	});
 
-	it("reports skip when provider does not implement syncTopics", async () => {
+	it("skips syncTopics with 'no topics configured' when topics list is absent", async () => {
+		let called = false;
 		const loaded = loadedFrom({
 			project: { name: "demo" },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTopics: async () => { called = true; return "0 topics set"; },
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["topics"],
+			print: () => {},
+		});
+
+		expect(called).toBe(false);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	it("skips syncTopics with 'no topics configured' when topics list is empty", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", topics: [] },
+			},
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTopics: async () => { called = true; return "0 topics set"; },
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["topics"],
+			print: () => {},
+		});
+
+		expect(called).toBe(false);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	it("reports skip when provider does not implement syncTopics (topics configured)", async () => {
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", topics: ["ts"] },
+			},
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {

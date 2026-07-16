@@ -84,8 +84,16 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			}
 
 			if (stepName === "topics") {
-				if (source.syncTopics) {
-					const topics = config.project.repo?.topics ?? [];
+				const topics = config.project.repo?.topics ?? [];
+				if (topics.length === 0) {
+					steps.push({
+						capability: "source",
+						step: "sync topics",
+						status: "skip",
+						message: "no topics configured",
+					});
+					print(formatSyncStep(steps[steps.length - 1]!));
+				} else if (source.syncTopics) {
 					steps.push(await runSyncStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 					print(formatSyncStep(steps[steps.length - 1]!));
 				} else {
