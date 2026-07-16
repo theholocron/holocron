@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/jira-client",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "A TypeScript client for the Jira REST API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/jira-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
