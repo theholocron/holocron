@@ -18,8 +18,11 @@
  * one central place.
  */
 
+import { access } from "node:fs/promises";
+
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
+import type { RepoConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import {
@@ -527,6 +530,40 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				await runStep("source", "sync labels", dryRun, async () => {
 					return source.syncLabels!(CANONICAL_LABELS, STALE_LABELS);
 				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		const repoConfig: Partial<RepoConfig> =
+			typeof config.project.repo === "object" ? config.project.repo : {};
+		const properties: Record<string, string> = {};
+
+		const preset = repoConfig.protection ?? config.project.repoPolicy?.preset ?? "balanced";
+		if (preset !== "none") properties["branch_protection_level"] = preset;
+
+		const isMonorepo = await access("pnpm-workspace.yaml")
+			.then(() => true)
+			.catch(() => false);
+		properties["monorepo"] = String(isMonorepo);
+
+		const manual = repoConfig.properties ?? {};
+		if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
+		if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
+		if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
+		if (manual.uses_external_packages !== undefined)
+			properties["uses_external_packages"] = String(manual.uses_external_packages);
+
+		if (source.syncProperties) {
+			steps.push(
+				await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties))
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		const topics = repoConfig.topics ?? [];
+		if (topics.length > 0 && source.syncTopics) {
+			steps.push(
+				await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics))
 			);
 			print(formatStep(steps[steps.length - 1]!));
 		}
