@@ -5,8 +5,7 @@
 A pluggable, capability-based CLI for spinning up and operating
 software projects — your own infrastructure-as-tool.
 
-> **Status:** `v2.0.0-alpha.0` — [release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
-> Published under the `alpha` dist-tag on npm. APIs, config shape,
+> **Status:** Published under the `alpha` dist-tag on npm. APIs, config shape,
 > and CLI surface may shift before stable v2.0.0. The v1.0.0 line at
 > `@theholocron/cli` (a project-bootstrap CLI) is preserved as an
 > archive under the `v1.0.0` git tag. Design in
