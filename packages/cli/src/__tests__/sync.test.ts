@@ -272,7 +272,10 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncTopics: async () => { called = true; return "0 topics set"; },
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
 				},
 			}),
 		});
@@ -303,7 +306,10 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncTopics: async () => { called = true; return "0 topics set"; },
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
 				},
 			}),
 		});
