@@ -37,6 +37,35 @@ Three repos, one rule per concern:
       (NOT a capability method). Swap auth providers without rewriting
       handlers.
 
+## Consuming packages from `theholocron/clients`
+
+When a plugin or the CLI gains a dependency on a `@theholocron/*`
+package published from the clients repo:
+
+1. **Add to catalog** in `pnpm-workspace.yaml` under `catalog:`, e.g.:
+    ```yaml
+    "@theholocron/github-client": ^0.3.2
+    ```
+2. **Reference via `catalog:`** in the consuming `package.json`
+   instead of hardcoding a version.
+3. **The `overrides:` block** in `pnpm-workspace.yaml` already forces
+   `@theholocron/http-client` to a single version. Any new clients
+   package that transitively depends on `http-client` is covered
+   automatically — no extra override needed unless the new client
+   introduces a different shared dep that could split.
+
+**Why overrides matter:** `@theholocron/github-client` and
+`@theholocron/cli` both depend on `@theholocron/http-client`. Without
+the override, pnpm can resolve them to different versions, creating two
+separate module instances. `instanceof ProviderApiError` then silently
+returns `false` — the same class from different instances is never
+equal. The `overrides:` block in `pnpm-workspace.yaml` collapses all
+resolutions to one version.
+
+**`ProviderApiError.details` is a raw string**, not parsed JSON.
+When checking error body content use `String(err.details).includes(...)`,
+not object destructuring.
+
 ## Code patterns
 
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
