@@ -183,7 +183,8 @@ export class PluginLoader {
 	 */
 	private projectDefaults(): Partial<RuntimeContext> {
 		const defaults: Partial<RuntimeContext> = {};
-		if (this.config.project.repo) defaults.repo = this.config.project.repo;
+		const repo = this.config.project.repo;
+		if (repo) defaults.repo = typeof repo === "string" ? repo : repo.name;
 		return defaults;
 	}
 }
