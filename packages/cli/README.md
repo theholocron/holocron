@@ -110,5 +110,5 @@ export default acmeConfig;
 **`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
 [Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
 Design in
-[`.notes/tech-architecture.spec.md`](../../.notes/archive/tech-architecture.spec.md).
+[`.notes/archive/tech-architecture.spec.md`](../../.notes/archive/tech-architecture.spec.md).
 APIs may still shift before stable v2.0.0.
