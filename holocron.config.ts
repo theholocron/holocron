@@ -1,4 +1,5 @@
 import { defineConfig } from "@theholocron/cli";
+import type { HolocronConfig } from "@theholocron/cli";
 
 export default defineConfig({
 	project: {
@@ -36,4 +37,4 @@ export default defineConfig({
 		environments: "github",
 		issues: ["github", { labels: { inProgress: "status:in-progress", inReview: "status:in-review" } }],
 	},
-});
+} satisfies HolocronConfig);
