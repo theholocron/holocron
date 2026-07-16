@@ -235,7 +235,7 @@ jobs:
         id: metadata
 
       - run: gh pr merge --auto --squash "$PR_URL"
-        # --squash is intentional: repoPolicy sets allow_merge_commit: false,
+        # --squash is intentional: repo protection sets allow_merge_commit: false,
         # so --merge would fail on any repo using the standard preset.
         name: Enable auto-merge for Dependabot PRs
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch'

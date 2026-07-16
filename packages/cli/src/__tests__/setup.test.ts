@@ -488,11 +488,11 @@ describe("runSetup", () => {
 		expect(defaultSetupEnabled).toBe(true);
 	});
 
-	it("applies balanced repo settings + creates a ruleset when repoPolicy.preset is 'balanced'", async () => {
+	it("applies balanced repo settings + creates a ruleset when repo.protection is 'balanced'", async () => {
 		let settingsApplied: Record<string, unknown> | null = null;
 		let rulesetCreated: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
-			project: { name: "demo", repoPolicy: { preset: "balanced" } },
+			project: { name: "demo", repo: { name: "theholocron/demo", protection: "balanced" } },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -535,12 +535,12 @@ describe("runSetup", () => {
 		expect(policySteps[0]?.status).toBe("ok");
 	});
 
-	it("derives required_status_checks from configured workflows when preset is 'strict'", async () => {
+	it("derives required_status_checks from configured workflows when repo.protection is 'strict'", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
 			project: {
 				name: "demo",
-				repoPolicy: { preset: "strict" },
+				repo: { name: "theholocron/demo", protection: "strict" },
 				workflows: ["lint", "test", "typecheck"],
 			},
 			providers: { vault: "1password", source: "github" },
@@ -587,7 +587,7 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			project: {
 				name: "demo",
-				repoPolicy: { preset: "strict", requiredChecks: ["some-extra-check"] },
+				repo: { name: "theholocron/demo", protection: "strict", requiredChecks: ["some-extra-check"] },
 				workflows: ["lint"],
 			},
 			providers: { vault: "1password", source: "github" },
@@ -630,7 +630,7 @@ describe("runSetup", () => {
 		const created: unknown[] = [];
 		const updated: unknown[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo", repoPolicy: { preset: "balanced" } },
+			project: { name: "demo", repo: { name: "theholocron/demo", protection: "balanced" } },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -671,10 +671,10 @@ describe("runSetup", () => {
 		expect(rulesetStep?.message).toBe("updated");
 	});
 
-	it("skips repo policy steps when preset is 'none'", async () => {
+	it("skips repo policy steps when repo.protection is 'none'", async () => {
 		let settingsCalled = false;
 		const loaded = loadedFrom({
-			project: { name: "demo", repoPolicy: { preset: "none" } },
+			project: { name: "demo", repo: { name: "theholocron/demo", protection: "none" } },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -706,7 +706,7 @@ describe("runSetup", () => {
 		expect(report.steps.some((s) => s.step.includes("ruleset"))).toBe(false);
 	});
 
-	it("skips repo policy steps when no repoPolicy in config", async () => {
+	it("skips repo policy steps when no protection in config", async () => {
 		let settingsCalled = false;
 		const loaded = loadedFrom({
 			project: { name: "demo" },
