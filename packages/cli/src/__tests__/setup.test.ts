@@ -1010,6 +1010,256 @@ describe("runSetup", () => {
 		expect(written[".github/labeler.yml"]).toBeUndefined();
 	});
 
+	it("calls syncProperties with derived and manual properties when source supports it", async () => {
+		let captured: Record<string, string> | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: {
+					name: "theholocron/demo",
+					protection: "strict",
+					properties: {
+						lifecycle: "active",
+						open_source: true,
+						runtime_environment: "node",
+						uses_external_packages: false,
+					},
+				},
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
+					writeRepoFile: async () => {},
+					syncProperties: async (values: Record<string, string>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).not.toBeNull();
+		expect(captured!["branch_protection_level"]).toBe("strict");
+		expect(captured!["monorepo"]).toBe("false"); // /tmp/test has no pnpm-workspace.yaml
+		expect(captured!["lifecycle"]).toBe("active");
+		expect(captured!["open_source"]).toBe("true");
+		expect(captured!["runtime_environment"]).toBe("node");
+		expect(captured!["uses_external_packages"]).toBe("false");
+		const step = report.steps.find((s) => s.step === "sync properties");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toContain("properties set");
+	});
+
+	it("does not set branch_protection_level property when no protection is configured", async () => {
+		let captured: Record<string, string> | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", properties: { lifecycle: "experimental" } },
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncProperties: async (values: Record<string, string>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).not.toBeNull();
+		expect(captured!["branch_protection_level"]).toBeUndefined();
+		expect(captured!["lifecycle"]).toBe("experimental");
+	});
+
+	it("calls syncTopics with the configured topics", async () => {
+		let capturedTopics: string[] | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncTopics: async (topics: string[]) => {
+						capturedTopics = topics;
+						return `${topics.length} topics set`;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(capturedTopics).toEqual(["cli", "nodejs", "typescript"]);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("3 topics set");
+	});
+
+	it("skips syncTopics when topics list is empty", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", topics: [] },
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+		expect(report.steps.some((s) => s.step === "sync topics")).toBe(false);
+	});
+
+	it("skips syncTopics when repo has no topics field", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+	});
+
+	it("skips dependabot when repo.protection is 'none'", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", protection: "none" },
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string) => {
+						written.push(path);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written).not.toContain(".github/dependabot.yml");
+	});
+
+	it("writes dependabot when no protection is configured (effectivePreset undefined)", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			project: { name: "demo" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string) => {
+						written.push(path);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written).toContain(".github/dependabot.yml");
+	});
+
 	it("dry-run does not write .alexrc.json", async () => {
 		let writeCalled = false;
 		const loaded = loadedFrom({

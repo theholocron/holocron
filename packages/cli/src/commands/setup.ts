@@ -490,7 +490,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: dependabot config ────────────────────────────────────────
-	if (loader.has("source") && config.project.repoPolicy?.preset !== "none") {
+	if (loader.has("source") && effectivePreset !== "none") {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
