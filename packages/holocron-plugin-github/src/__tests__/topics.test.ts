@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { syncTopics } from "../capabilities/topics.js";
-import { createGitHubRestClient } from "../rest.js";
+import { createGitHubClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -9,7 +9,7 @@ const REPO = "theholocron/holocron";
 
 function makeRest(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = createGitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubClient({ token: "pat", fetch });
 	return { rest, calls };
 }
 

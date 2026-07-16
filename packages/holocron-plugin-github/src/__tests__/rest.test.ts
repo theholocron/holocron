@@ -1,18 +1,18 @@
 import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
-import { createGitHubRestClient } from "../rest.js";
+import { createGitHubClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
 const TOKEN = "gh_pat_test";
 
-describe("GitHubRestClient", () => {
+describe("GitHubClient HTTP plumbing", () => {
 	it("sends the bearer token and api-version headers on GET", async () => {
-		const { fetch, calls } = stubFetch([{ status: 200, body: { login: "iamnewton" } }]);
-		const client = createGitHubRestClient({ token: TOKEN, fetch });
-		const result = await client.request<{ login: string }>("/user");
-		expect(result).toEqual({ login: "iamnewton" });
+		const { fetch, calls } = stubFetch([{ status: 200, body: { login: "iamnewton", name: null, email: null } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.user.getCurrentUser();
+		expect(result.login).toBe("iamnewton");
 		expect(calls[0]?.url).toBe("https://api.github.com/user");
 		expect(calls[0]?.method).toBe("GET");
 		expect(calls[0]?.headers.authorization).toBe(`Bearer ${TOKEN}`);
@@ -21,32 +21,27 @@ describe("GitHubRestClient", () => {
 	});
 
 	it("serializes a body on POST and sets content-type", async () => {
-		const { fetch, calls } = stubFetch([{ status: 201, body: { id: 1 } }]);
-		const client = createGitHubRestClient({ token: TOKEN, fetch });
-		await client.request("/repos/x/y/issues", { method: "POST", body: { title: "hi" } });
+		const { fetch, calls } = stubFetch([
+			{ status: 201, body: { name: "bug", color: "d73a4a", description: null } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.labels.createLabel("x/y", { name: "bug", color: "d73a4a", description: "A bug" });
 		expect(calls[0]?.method).toBe("POST");
-		expect(calls[0]?.body).toEqual({ title: "hi" });
+		expect(calls[0]?.body).toMatchObject({ name: "bug", color: "d73a4a" });
 		expect(calls[0]?.headers["content-type"]).toBe("application/json");
 	});
 
 	it("returns undefined for 204 responses", async () => {
 		const { fetch } = stubFetch([{ status: 204 }]);
-		const client = createGitHubRestClient({ token: TOKEN, fetch });
-		const result = await client.request("/repos/x/y/secrets/PROD", { method: "PUT" });
-		expect(result).toBeUndefined();
-	});
-
-	it("returns undefined when expectNoContent is set even on 200", async () => {
-		const { fetch } = stubFetch([{ status: 200 }]);
-		const client = createGitHubRestClient({ token: TOKEN, fetch });
-		const result = await client.request("/repos/x/y/something", { expectNoContent: true });
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.security.enableVulnerabilityAlerts("x/y");
 		expect(result).toBeUndefined();
 	});
 
 	it("throws ProviderApiError on non-2xx with status + details", async () => {
 		const { fetch } = stubFetch([{ status: 401, text: "bad creds" }]);
-		const client = createGitHubRestClient({ token: TOKEN, fetch });
-		const err = await client.request("/user").catch((e: unknown) => e);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const err = await client.user.getCurrentUser().catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		const pae = err as ProviderApiError;
 		expect(pae.status).toBe(401);
@@ -55,13 +50,9 @@ describe("GitHubRestClient", () => {
 	});
 
 	it("strips trailing slashes from baseUrl override", async () => {
-		const { fetch, calls } = stubFetch([{ status: 200, body: {} }]);
-		const client = createGitHubRestClient({
-			token: TOKEN,
-			fetch,
-			baseUrl: "https://example.test/api/",
-		});
-		await client.request("/foo");
-		expect(calls[0]?.url).toBe("https://example.test/api/foo");
+		const { fetch, calls } = stubFetch([{ status: 200, body: { login: "x", name: null, email: null } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch, baseUrl: "https://example.test/api/" });
+		await client.user.getCurrentUser();
+		expect(calls[0]?.url).toBe("https://example.test/api/user");
 	});
 });

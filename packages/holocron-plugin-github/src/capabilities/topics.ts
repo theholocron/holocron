@@ -1,19 +1,6 @@
-import { parseRepo } from "../repo.js";
-import type { RestClient } from "@theholocron/cli";
+import type { GitHubClient } from "@theholocron/github-client";
 
-/**
- * Replace a repo's topic set with the supplied list.
- *
- * Calls `PUT /repos/{owner}/{name}/topics` — GitHub replaces the full
- * set atomically, so the config is always the source of truth.
- */
-export async function syncTopics(rest: RestClient, repo: string, topics: string[]): Promise<string> {
-	const { owner, name } = parseRepo(repo);
-
-	await rest.request<void>(`/repos/${owner}/${name}/topics`, {
-		method: "PUT",
-		body: { names: topics },
-	});
-
+export async function syncTopics(client: GitHubClient, repo: string, topics: string[]): Promise<string> {
+	await client.topics.setTopics(repo, topics);
 	return `${topics.length} topics set`;
 }

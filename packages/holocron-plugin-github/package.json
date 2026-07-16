@@ -26,13 +26,15 @@
     "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
-    "@theholocron/cli": "workspace:*"
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/github-client": "^0.3.2"
   },
   "dependencies": {
     "libsodium-wrappers": "^0.7.15"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/github-client": "^0.3.2",
     "@types/node": "catalog:",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",

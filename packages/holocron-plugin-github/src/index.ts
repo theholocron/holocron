@@ -8,7 +8,8 @@
  * returns the bound implementation.
  */
 
-import type { Auth, Ci, Environments, Issues, RestClient, Secrets, Source } from "@theholocron/cli";
+import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
+import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
@@ -16,7 +17,6 @@ import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
-import { createGitHubRestClient } from "./rest.js";
 
 export interface GitHubPluginOptions extends ResolveTokenInput {
 	/** "owner/name" — e.g., "theholocron/holocron". Required. */
@@ -34,21 +34,21 @@ export interface GitHubPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: GitHubPluginOptions;
-	rest: RestClient;
+	client: GitHubClient;
 	repo: string;
 	repoRoot: string;
 }
 
 export function createContext(options: GitHubPluginOptions): PluginContext {
 	const token = resolveToken(options);
-	const rest = createGitHubRestClient({
+	const client = createGitHubClient({
 		token,
 		baseUrl: options.baseUrl,
 		fetch: options.fetch,
 	});
 	return {
 		options,
-		rest,
+		client,
 		repo: options.repo,
 		repoRoot: options.repoRoot ?? process.cwd(),
 	};
@@ -57,25 +57,25 @@ export function createContext(options: GitHubPluginOptions): PluginContext {
 // ── Capability factories ──────────────────────────────────────────────
 
 export function source(ctx: PluginContext): Source {
-	return new GitHubSource(ctx.rest, { repo: ctx.repo, repoRoot: ctx.repoRoot });
+	return new GitHubSource(ctx.client, { repo: ctx.repo, repoRoot: ctx.repoRoot });
 }
 
 export function secrets(ctx: PluginContext): Secrets {
-	return new GitHubSecrets(ctx.rest, { repo: ctx.repo });
+	return new GitHubSecrets(ctx.client, { repo: ctx.repo });
 }
 
 export function environments(ctx: PluginContext): Environments {
-	return new GitHubEnvironments(ctx.rest, { repo: ctx.repo });
+	return new GitHubEnvironments(ctx.client, { repo: ctx.repo });
 }
 
 export function ci(ctx: PluginContext): Ci {
-	return new GitHubCi(ctx.rest, { repo: ctx.repo });
+	return new GitHubCi(ctx.client, { repo: ctx.repo });
 }
 
 export function issues(ctx: PluginContext): Issues {
 	const opts: IssuesOptions = { repo: ctx.repo };
 	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
-	return new GitHubIssues(ctx.rest, opts);
+	return new GitHubIssues(ctx.client, opts);
 }
 
 // ── Plugin barrel for the core loader ─────────────────────────────────
@@ -109,7 +109,7 @@ export const AUTH_HINT =
 
 export type { Auth };
 export * from "./auth.js";
-export { createGitHubRestClient } from "./rest.js";
+export { createGitHubClient } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
 export { GitHubSource } from "./capabilities/source.js";
 export { GitHubSecrets } from "./capabilities/secrets.js";
