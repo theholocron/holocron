@@ -374,7 +374,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const dryRun = input.context.dryRun ?? false;
 	const steps: SetupStepResult[] = [];
 	const repo = config.project.repo;
-	const effectivePreset = repo?.protection ?? config.project.repoPolicy?.preset;
+	const effectivePreset = repo?.protection;
 
 	print(`Holocron setup — ${config.project.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
@@ -437,7 +437,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 								const ctx = WORKFLOW_CHECK_CONTEXTS[name];
 								return ctx ? [ctx] : [];
 							}),
-							...(repo?.requiredChecks ?? config.project.repoPolicy?.requiredChecks ?? []),
+							...(repo?.requiredChecks ?? []),
 						]
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
@@ -501,7 +501,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: alex config ───────────────────────────────────────────────
-	// Always written — not gated on repoPolicy since all prose benefits from
+	// Always written — not gated on protection since all prose benefits from
 	// a consistent allow-list. Update ALEX_CONFIG above to propagate changes.
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;

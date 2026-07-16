@@ -183,9 +183,7 @@ export class PluginLoader {
 	 */
 	private projectDefaults(): Partial<RuntimeContext> {
 		const defaults: Partial<RuntimeContext> = {};
-		const repo = this.config.project.repo;
-		// Runtime guard: JSON configs may still carry the old string form during rollout.
-		if (repo) defaults.repo = typeof repo === "string" ? repo : repo.name;
+		if (this.config.project.repo) defaults.repo = this.config.project.repo.name;
 		return defaults;
 	}
 }
