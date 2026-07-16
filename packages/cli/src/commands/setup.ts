@@ -19,6 +19,7 @@
  */
 
 import { access } from "node:fs/promises";
+import { join } from "node:path";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
@@ -536,7 +537,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		if (effectivePreset && effectivePreset !== "none") properties["branch_protection_level"] = effectivePreset;
 
-		const isMonorepo = await access("pnpm-workspace.yaml")
+		const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
 			.then(() => true)
 			.catch(() => false);
 		properties["monorepo"] = String(isMonorepo);
