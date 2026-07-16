@@ -16,6 +16,7 @@ import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/ind
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
+import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
@@ -280,6 +281,37 @@ await yargs(hideBin(process.argv))
 				)
 				.demandCommand(1, "Run `holocron npm --help` to see available npm subcommands."),
 		() => {}
+	)
+	.command(
+		"sync [steps..]",
+		"Sync source-level state (labels, properties, topics) from config to the provider",
+		(y) =>
+			y
+				.positional("steps", {
+					type: "string",
+					array: true,
+					describe: "Steps to run: labels, properties, topics (default: all)",
+				})
+				.option("repo", {
+					type: "string",
+					describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
+				}),
+		async (argv) => {
+			const loaded = await loadConfig(argv.cwd);
+			const report = await runSync({
+				loaded,
+				context: {
+					repoRoot: argv.cwd,
+					dryRun: argv.dryRun,
+					...(argv.repo ? { repo: argv.repo } : {}),
+					...(argv.token ? { cliToken: argv.token } : {}),
+				},
+				...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps as string[] } : {}),
+			});
+			if (report.summary.fail > 0) {
+				process.exitCode = 1;
+			}
+		}
 	)
 	.command(
 		"sync-github",

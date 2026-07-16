@@ -101,13 +101,14 @@ export default acmeConfig;
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands
-- `src/commands/` — `setup`, `doctor`, `deploy`, `secret set`,
-  `secrets sync`, `npm publish-initial`
+- `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
+  `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
+  `plugin create`, `auth`
 
 ## Status
 
 **`v2.0.0-alpha.0`** — published on npm under the `alpha` dist-tag.
 [Release notes](https://github.com/theholocron/holocron/releases/tag/v2.0.0-alpha.0).
 Design in
-[`.notes/tech-architecture.spec.md`](../../.notes/archive/tech-architecture.spec.md).
+[`.notes/archive/tech-architecture.spec.md`](../../.notes/archive/tech-architecture.spec.md).
 APIs may still shift before stable v2.0.0.
