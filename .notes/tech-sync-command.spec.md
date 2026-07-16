@@ -28,11 +28,11 @@ holocron sync                   # sync all available steps
 
 Named steps map 1:1 to optional `Source` methods:
 
-| Step         | Source method      | API call                                      |
-| ------------ | ------------------ | --------------------------------------------- |
-| `labels`     | `syncLabels?`      | GET + POST/PATCH/DELETE `/repos/{o}/{n}/labels` |
-| `properties` | `syncProperties?`  | PATCH `/repos/{o}/{n}/properties/values`        |
-| `topics`     | `syncTopics?`      | PUT `/repos/{o}/{n}/topics`                    |
+| Step         | Source method     | API call                                        |
+| ------------ | ----------------- | ----------------------------------------------- |
+| `labels`     | `syncLabels?`     | GET + POST/PATCH/DELETE `/repos/{o}/{n}/labels` |
+| `properties` | `syncProperties?` | PATCH `/repos/{o}/{n}/properties/values`        |
+| `topics`     | `syncTopics?`     | PUT `/repos/{o}/{n}/topics`                     |
 
 `holocron sync` with no step arguments runs all three in the order above.
 Unknown step names are reported as `skip` (same pattern as unknown workflows
@@ -47,11 +47,11 @@ New top-level command `sync` alongside `setup`, `doctor`, etc. Registered in
 
 ### Flags
 
-| Flag        | Description                                       |
-| ----------- | ------------------------------------------------- |
-| `--dry-run` | Print what would be synced without calling APIs.  |
-| `--repo`    | Override `project.repo.name` (same as setup).     |
-| `--token`   | Override auth token (same as setup).              |
+| Flag        | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `--dry-run` | Print what would be synced without calling APIs. |
+| `--repo`    | Override `project.repo.name` (same as setup).    |
+| `--token`   | Override auth token (same as setup).             |
 
 ### Output format
 
@@ -82,6 +82,7 @@ refactor — the external contract of `setup` is unaffected.
 **Step 1 — Add `runSync` function in `packages/cli/src/commands/sync.ts`**
 
 Mirror the structure of `runSetup`:
+
 - Accept `RunSyncInput` (same shape as `RunSetupInput`, plus optional
   `steps?: string[]` to filter which syncs to run)
 - Load the source plugin
@@ -91,11 +92,11 @@ Mirror the structure of `runSetup`:
 
 ```typescript
 export interface RunSyncInput {
-  loaded: LoadedConfig;
-  context: RuntimeContext;
-  steps?: string[];   // undefined = all; [] = none; ["topics"] = topics only
-  loader?: PluginLoader;
-  print?: SetupPrintLine;
+	loaded: LoadedConfig;
+	context: RuntimeContext;
+	steps?: string[]; // undefined = all; [] = none; ["topics"] = topics only
+	loader?: PluginLoader;
+	print?: SetupPrintLine;
 }
 ```
 
