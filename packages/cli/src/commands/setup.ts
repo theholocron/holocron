@@ -18,6 +18,9 @@
  * one central place.
  */
 
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
@@ -370,6 +373,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
 	const steps: SetupStepResult[] = [];
+	const repo = config.project.repo;
+	const effectivePreset = repo?.protection ?? config.project.repoPolicy?.preset;
 
 	print(`Holocron setup — ${config.project.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
@@ -413,10 +418,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		);
 		print(formatStep(steps[steps.length - 1]!));
 
-		const policy = config.project.repoPolicy;
-		if (policy && policy.preset !== "none") {
-			const preset = policy.preset ?? "balanced";
-
+		if (effectivePreset && effectivePreset !== "none") {
 			steps.push(
 				await runStep("source", "updateRepoSettings", dryRun, async () => {
 					await source.updateRepoSettings(BALANCED_REPO_SETTINGS);
@@ -428,14 +430,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				typeof entry === "string" ? entry : entry.name
 			);
 			const requiredChecks =
-				preset === "strict"
+				effectivePreset === "strict"
 					? [
 							"DCO",
 							...configuredWorkflowNames.flatMap((name) => {
 								const ctx = WORKFLOW_CHECK_CONTEXTS[name];
 								return ctx ? [ctx] : [];
 							}),
-							...(policy.requiredChecks ?? []),
+							...(repo?.requiredChecks ?? config.project.repoPolicy?.requiredChecks ?? []),
 						]
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
@@ -488,7 +490,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: dependabot config ────────────────────────────────────────
-	if (loader.has("source") && config.project.repoPolicy?.preset !== "none") {
+	if (loader.has("source") && effectivePreset !== "none") {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
@@ -528,6 +530,33 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return source.syncLabels!(CANONICAL_LABELS, STALE_LABELS);
 				})
 			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		const properties: Record<string, string> = {};
+
+		if (effectivePreset && effectivePreset !== "none") properties["branch_protection_level"] = effectivePreset;
+
+		const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
+			.then(() => true)
+			.catch(() => false);
+		properties["monorepo"] = String(isMonorepo);
+
+		const manual = repo?.properties ?? {};
+		if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
+		if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
+		if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
+		if (manual.uses_external_packages !== undefined)
+			properties["uses_external_packages"] = String(manual.uses_external_packages);
+
+		if (source.syncProperties) {
+			steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		const topics = repo?.topics ?? [];
+		if (topics.length > 0 && source.syncTopics) {
+			steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 			print(formatStep(steps[steps.length - 1]!));
 		}
 	}

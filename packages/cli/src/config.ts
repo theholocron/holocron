@@ -69,10 +69,39 @@ export interface RepoPolicyConfig {
 	 * "none" — skips repo settings + ruleset entirely.
 	 *
 	 * @default "balanced"
+	 * @deprecated Use `project.repo.protection` instead.
 	 */
 	preset?: "balanced" | "strict" | "none";
-	/** CI check context names required on the default branch (used by "strict"). */
+	/**
+	 * CI check context names required on the default branch (used by "strict").
+	 * @deprecated Use `project.repo.requiredChecks` instead.
+	 */
 	requiredChecks?: string[];
+}
+
+export type RepoProtection = "balanced" | "strict" | "none";
+
+export interface RepoProperties {
+	lifecycle?: "active" | "experimental" | "deprecated";
+	open_source?: boolean;
+	runtime_environment?: "node" | "browser" | "universal" | "none";
+	uses_external_packages?: boolean;
+}
+
+export interface RepoConfig {
+	/** "owner/name" — the GitHub repository coordinate. */
+	name: string;
+	/**
+	 * Branch protection preset applied by `holocron setup`. When omitted,
+	 * no protection is applied and no `branch_protection_level` property is set.
+	 */
+	protection?: RepoProtection;
+	/** CI check context names required on the default branch (only used when `protection` is "strict"). */
+	requiredChecks?: string[];
+	/** GitHub topics set on the repository. */
+	topics?: string[];
+	/** GitHub custom properties synced to the org dashboard. */
+	properties?: RepoProperties;
 }
 
 export interface AppConfig {
@@ -90,12 +119,12 @@ export interface HolocronConfig {
 		name: string;
 		description?: string;
 		/**
-		 * Repo coord — `"owner/name"`. When set, `PluginLoader` injects
-		 * it into every plugin's `RuntimeContext.repo` so plugins that
-		 * need a repo (github, etc.) don't require `--repo` on every
-		 * invocation. `--repo` on the command line still overrides.
+		 * Repository identity and metadata. When set, `PluginLoader` injects
+		 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
+		 * need a repo (github, etc.) don't require `--repo` on every invocation.
+		 * `--repo` on the command line still overrides.
 		 */
-		repo?: string;
+		repo?: RepoConfig;
 		/**
 		 * Repo-level policy applied by `holocron setup`. Defines merge
 		 * strategy, branch protection rulesets, and security defaults.

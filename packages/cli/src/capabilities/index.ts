@@ -174,6 +174,18 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers that have no label concept omit this.
 	 */
 	syncLabels?(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string>;
+
+	/**
+	 * Set org-level custom property values on the repo.
+	 * Optional — providers that don't support custom properties omit this.
+	 */
+	syncProperties?(values: Record<string, string>): Promise<string>;
+
+	/**
+	 * Replace the repo's topic set with the supplied list.
+	 * Optional — providers that don't support topics omit this.
+	 */
+	syncTopics?(topics: string[]): Promise<string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

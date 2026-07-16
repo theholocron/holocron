@@ -13,7 +13,7 @@ describe("defineConfig", () => {
 
 	it("preserves nested options", () => {
 		const config = {
-			project: { name: "my-app", repo: "org/my-app" },
+			project: { name: "my-app", repo: { name: "org/my-app" } },
 			providers: {
 				vault: ["1password", { vault: "my-app" }] as [string, Record<string, unknown>],
 				source: "github" as const,
