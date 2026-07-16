@@ -2,11 +2,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { createGitHubClient } from "@theholocron/github-client";
+import { ProviderApiError } from "@theholocron/http-client";
+
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
-const API_BASE = "https://api.github.com";
 
 export type SyncGithubStatus = "ok" | "fail" | "dry-run";
 
@@ -74,7 +76,6 @@ function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	const objSpans: Array<[number, number]> = [];
 
 	// Pass 1: object entries — { name: "foo", with: { ... } }
-	// The `with` value must be a flat object (no nested braces) to keep the regex simple.
 	const objRe = /\{\s*name\s*:\s*"([^"]+)"(?:\s*,\s*with\s*:\s*(\{[^}]*\}))?\s*\}/g;
 	let m: RegExpExecArray | null;
 	while ((m = objRe.exec(body)) !== null) {
@@ -135,10 +136,6 @@ function buildBatch(
 	const files: FileBatch = [];
 	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
 
-	// Composite actions → .github/actions/<name>/action.yml
-	// Only the primary .github repo needs these — reusable workflows reference
-	// them via the full path `theholocron/.github/.github/actions/setup@main`,
-	// so no other repo needs a local copy.
 	if (isPrimaryGithubRepo) {
 		for (const [name, content] of Object.entries(ACTIONS)) {
 			files.push({
@@ -149,8 +146,6 @@ function buildBatch(
 	}
 
 	if (isPrimaryGithubRepo) {
-		// Reusable workflow definitions → .github/workflows/<name>.yml
-		// Only .github hosts the implementations; all other repos call them via uses:.
 		for (const [name, content] of Object.entries(REUSABLE_WORKFLOWS)) {
 			files.push({
 				path: `.github/workflows/${name}.yml`,
@@ -158,8 +153,6 @@ function buildBatch(
 			});
 		}
 
-		// Workflow templates (starter templates for the Actions UI) → workflow-templates/
-		// Only the primary .github repo surfaces these in GitHub's "New workflow" picker.
 		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
 				path: `workflow-templates/${name}.yml`,
@@ -174,9 +167,6 @@ function buildBatch(
 			}
 		}
 	} else {
-		// Secondary repos get thin callers in .github/workflows/ that delegate to
-		// .github's reusable implementations. The config may restrict which workflows
-		// a repo receives via project.workflows; undefined means all.
 		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
 			const content = generateThinCallerContent(name, withOverrides?.get(name));
@@ -200,17 +190,10 @@ export function gitBlobSha(content: string): string {
 export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGithubReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const repo = input.repo ?? DEFAULT_REPO;
-	const [owner, repoName] = repo.split("/");
 	const { token, dryRun = false, branch, createPr = false } = input;
 	const message = input.message ?? `chore: sync from theholocron/holocron`;
-	const fetchFn = input.fetch ?? globalThis.fetch;
 
-	const headers = {
-		Authorization: `Bearer ${token}`,
-		Accept: "application/vnd.github+json",
-		"Content-Type": "application/json",
-		"X-GitHub-Api-Version": "2022-11-28",
-	};
+	const client = createGitHubClient({ token, fetch: input.fetch });
 
 	print(`holocron sync-github${dryRun ? " (dry-run)" : ""}`);
 	print(`  repo:   ${repo}`);
@@ -218,8 +201,6 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	print("");
 
 	// ── output-dir: write all files to disk without any API calls ───────────
-	// Always generates the full unfiltered batch — used for local validation
-	// (actionlint smoke test) where we want to check every template.
 	if (input.outputDir) {
 		const batch = buildBatch(repo);
 		for (const file of batch) {
@@ -232,76 +213,62 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 
 	// ── 1. Resolve target branch ─────────────────────────────────────────────
-	// When opening a PR, the commit is based on the default branch and the
-	// PR branch (--branch) is created fresh. For direct pushes, --branch is
-	// used as-is (falls back to default if omitted).
 	let targetBranch = branch;
 	let defaultBranch: string | undefined;
 	if (!targetBranch || createPr) {
-		const repoRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}`, { headers });
-		if (!repoRes.ok) {
+		try {
+			const repoData = await client.repos.getRepo(repo);
+			defaultBranch = repoData.default_branch;
+			if (!targetBranch) targetBranch = defaultBranch;
+		} catch {
 			const msg = "failed to fetch repo metadata";
 			print(`  ✗ ${msg}`);
 			return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
 		}
-		const repoData = (await repoRes.json()) as { default_branch: string };
-		defaultBranch = repoData.default_branch;
-		if (!targetBranch) targetBranch = defaultBranch;
 	}
 
 	// ── 2. Get HEAD commit → base tree ───────────────────────────────────────
-	// Always read existing state from the default branch when creating a PR.
-	const baseBranch = createPr && defaultBranch ? defaultBranch : targetBranch;
-	const refRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/ref/heads/${baseBranch}`, { headers });
-	if (!refRes.ok) {
-		const msg = `Branch ${baseBranch} not found`;
+	const baseBranch = createPr && defaultBranch ? defaultBranch : targetBranch!;
+	let headSha: string;
+	let baseTreeSha: string;
+	let existingBlobs: Map<string, string>;
+	try {
+		const ref = await client.git.getRef(repo, baseBranch);
+		headSha = ref.object.sha;
+		const commit = await client.git.getCommit(repo, headSha);
+		baseTreeSha = commit.tree.sha;
+		const treeData = await client.git.getTree(repo, baseTreeSha, true);
+		existingBlobs = new Map(
+			treeData.tree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha])
+		);
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : `Branch ${baseBranch} not found`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
 	}
-	const {
-		object: { sha: headSha },
-	} = (await refRes.json()) as { object: { sha: string } };
-
-	const commitRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/commits/${headSha}`, { headers });
-	const {
-		tree: { sha: baseTreeSha },
-	} = (await commitRes.json()) as { tree: { sha: string } };
-
-	const treeRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/trees/${baseTreeSha}?recursive=1`, {
-		headers,
-	});
-	const { tree: existingTree } = (await treeRes.json()) as {
-		tree: Array<{ path: string; sha: string; type: string }>;
-	};
-	const existingBlobs = new Map(existingTree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]));
 
 	// ── 3. Fetch workflow allowlist + per-workflow overrides from target repo ─
-	// Reads holocron.config.json first; falls back to holocron.config.ts.
-	// If present and non-empty, only listed workflows are synced.
-	// Object entries ({ name, with }) also carry per-caller with: overrides.
 	let allowedWorkflows: Set<string> | undefined;
 	let withOverrides: Map<string, Record<string, unknown>> | undefined;
 	if (repo !== DEFAULT_REPO) {
 		try {
 			let entries: WorkflowEntry[] = [];
 
-			const jsonRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.json`, {
-				headers,
-			});
-			if (jsonRes.ok) {
-				const data = (await jsonRes.json()) as { content: string };
-				const raw = JSON.parse(Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")) as {
-					project?: { workflows?: Array<string | WorkflowEntry> };
-				};
+			try {
+				const data = await client.git.getContents(repo, "holocron.config.json");
+				const raw = JSON.parse(
+					Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")
+				) as { project?: { workflows?: Array<string | WorkflowEntry> } };
 				entries = (raw?.project?.workflows ?? []).map((w) => (typeof w === "string" ? { name: w } : w));
-			} else {
-				const tsRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/contents/holocron.config.ts`, {
-					headers,
-				});
-				if (tsRes.ok) {
-					const data = (await tsRes.json()) as { content: string };
+			} catch (err) {
+				if (!(err instanceof ProviderApiError) || err.status !== 404) throw err;
+				// Fall back to .ts config
+				try {
+					const data = await client.git.getContents(repo, "holocron.config.ts");
 					const source = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
 					entries = parseWorkflowsFromTs(source);
+				} catch {
+					// No config — sync all workflows with no overrides
 				}
 			}
 
@@ -311,7 +278,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 				if (overrideEntries.length > 0) withOverrides = new Map(overrideEntries);
 			}
 		} catch {
-			// No config or parse error — sync all workflows with no overrides
+			// Parse error — sync all workflows with no overrides
 		}
 	}
 
@@ -352,77 +319,53 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// ── 6. Create blobs for changed files ────────────────────────────────────
 	const treeEntries: Array<{ path: string; mode: string; type: string; sha: string }> = [];
 	for (const file of changedFiles) {
-		const blobRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/blobs`, {
-			method: "POST",
-			headers,
-			body: JSON.stringify({ content: file.content, encoding: "utf-8" }),
-		});
-		if (!blobRes.ok) {
-			const err = (await blobRes.json()) as { message?: string };
-			const msg = `failed to create blob for ${file.path}: ${err.message ?? blobRes.status}`;
+		try {
+			const blob = await client.git.createBlob(repo, file.content);
+			treeEntries.push({ path: file.path, mode: "100644", type: "blob", sha: blob.sha });
+		} catch (err) {
+			const msg = `failed to create blob for ${file.path}: ${err instanceof Error ? err.message : String(err)}`;
 			print(`  ✗ ${msg}`);
 			return { status: "fail", created, updated, unchanged, message: msg };
 		}
-		const { sha: blobSha } = (await blobRes.json()) as { sha: string };
-		treeEntries.push({ path: file.path, mode: "100644", type: "blob", sha: blobSha });
 	}
 
 	// ── 7. Create tree ───────────────────────────────────────────────────────
-	const newTreeRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/trees`, {
-		method: "POST",
-		headers,
-		body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
-	});
-	if (!newTreeRes.ok) {
-		const err = (await newTreeRes.json()) as { message?: string };
-		const msg = `failed to create tree: ${err.message ?? newTreeRes.status}`;
+	let newTreeSha: string;
+	try {
+		const newTree = await client.git.createTree(repo, treeEntries, baseTreeSha);
+		newTreeSha = newTree.sha;
+	} catch (err) {
+		const msg = `failed to create tree: ${err instanceof Error ? err.message : String(err)}`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created, updated, unchanged, message: msg };
 	}
-	const { sha: newTreeSha } = (await newTreeRes.json()) as { sha: string };
 
 	// ── 8. Create commit ─────────────────────────────────────────────────────
-	const newCommitRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/commits`, {
-		method: "POST",
-		headers,
-		body: JSON.stringify({ message, tree: newTreeSha, parents: [headSha] }),
-	});
-	if (!newCommitRes.ok) {
-		const err = (await newCommitRes.json()) as { message?: string };
-		const msg = `failed to create commit: ${err.message ?? newCommitRes.status}`;
+	let newCommitSha: string;
+	try {
+		const newCommit = await client.git.createCommit(repo, message, newTreeSha, [headSha]);
+		newCommitSha = newCommit.sha;
+	} catch (err) {
+		const msg = `failed to create commit: ${err instanceof Error ? err.message : String(err)}`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created, updated, unchanged, message: msg };
 	}
-	const { sha: newCommitSha } = (await newCommitRes.json()) as { sha: string };
 
 	// ── 9. Update (or create) branch ref ────────────────────────────────────
-	// For PR mode: try to create the branch; if it already exists from a
-	// previous partial run, force-update it instead.
-	// For direct push: fast-forward the existing branch.
-	let refUpdateRes: Response;
-	if (createPr && branch) {
-		refUpdateRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs`, {
-			method: "POST",
-			headers,
-			body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommitSha }),
-		});
-		if (refUpdateRes.status === 422) {
-			refUpdateRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${branch}`, {
-				method: "PATCH",
-				headers,
-				body: JSON.stringify({ sha: newCommitSha, force: true }),
-			});
+	try {
+		if (createPr && branch) {
+			try {
+				await client.git.createRef(repo, `refs/heads/${branch}`, newCommitSha);
+			} catch (err) {
+				if (!(err instanceof ProviderApiError) || err.status !== 422) throw err;
+				// Branch already exists from a previous partial run — force-update it.
+				await client.git.updateRef(repo, `heads/${branch}`, newCommitSha, true);
+			}
+		} else {
+			await client.git.updateRef(repo, `heads/${targetBranch!}`, newCommitSha);
 		}
-	} else {
-		refUpdateRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/git/refs/heads/${targetBranch}`, {
-			method: "PATCH",
-			headers,
-			body: JSON.stringify({ sha: newCommitSha }),
-		});
-	}
-	if (!refUpdateRes.ok) {
-		const err = (await refUpdateRes.json()) as { message?: string };
-		const msg = `failed to update ref: ${err.message ?? refUpdateRes.status}`;
+	} catch (err) {
+		const msg = `failed to update ref: ${err instanceof Error ? err.message : String(err)}`;
 		print(`  ✗ ${msg}`);
 		return { status: "fail", created, updated, unchanged, message: msg };
 	}
@@ -430,28 +373,24 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// ── 10. Open PR if requested ─────────────────────────────────────────────
 	let prUrl: string | undefined;
 	if (branch && createPr && !dryRun) {
-		const prRes = await fetchFn(`${API_BASE}/repos/${owner}/${repoName}/pulls`, {
-			method: "POST",
-			headers,
-			body: JSON.stringify({
-				title: message.split("\n")[0],
+		try {
+			const pr = await client.git.createPull(repo, {
+				title: message.split("\n")[0]!,
 				head: branch,
 				base: "main",
 				body: "Auto-generated by `holocron sync-github`. Review and merge to apply template updates.",
-			}),
-		});
-
-		if (prRes.ok) {
-			const pr = (await prRes.json()) as { html_url: string };
+			});
 			prUrl = pr.html_url;
 			print(`  → PR opened: ${prUrl}`);
-		} else {
-			const err = (await prRes.json()) as { message?: string; errors?: Array<{ message: string }> };
-			const alreadyExists = err.errors?.some((e) => e.message.includes("already exists"));
+		} catch (err) {
+			const alreadyExists =
+				err instanceof ProviderApiError &&
+				err.status === 422 &&
+				String(err.details).includes("already exists");
 			if (alreadyExists) {
 				print(`  → PR already open for ${branch} — branch updated, ready to merge`);
 			} else {
-				print(`  ⚠ PR creation failed: ${err.message ?? prRes.status}`);
+				print(`  ⚠ PR creation failed: ${err instanceof Error ? err.message : String(err)}`);
 			}
 		}
 	}

@@ -277,7 +277,7 @@ describe("runSyncGithub", () => {
 			fetch: fn,
 		});
 		expect(report.status).toBe("fail");
-		expect(report.message).toContain("Forbidden");
+		expect(report.message).toContain("403");
 		expect(blobCalls).toBe(1);
 	});
 
@@ -346,7 +346,7 @@ describe("runSyncGithub", () => {
 			fetch: fn,
 		});
 		expect(report.status).toBe("fail");
-		expect(report.message).toContain("not found");
+		expect(report.message).toContain("404");
 	});
 
 	it("fails when the tree creation returns an error", async () => {

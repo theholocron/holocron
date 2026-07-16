@@ -1,28 +1,15 @@
-/**
- * `source` capability for GitHub.
- *
- * Ported from rando-id/rando.id `packages/cli/src/adapters/gh-rest.ts`
- * with two changes for v2:
- *
- *  - Repo coords are bound at construction time (not passed per call)
- *  - Workflow files are local-fs operations (not GH API) — they live
- *    in the consumer's `.github/workflows/` directory
- */
-
 import { readdir, readFile, rm, writeFile, mkdir, stat } from "node:fs/promises";
 import { join, dirname } from "node:path";
 
 import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
+import type { GitHubClient } from "@theholocron/github-client";
 
-import { parseRepo } from "../repo.js";
-import type { RestClient } from "@theholocron/cli";
 import { syncLabels } from "./labels.js";
 import { syncProperties } from "./properties.js";
 import { syncTopics } from "./topics.js";
 
 export interface SourceOptions {
 	repo: string;
-	/** Absolute path to the repo root. Workflow file ops are scoped here. */
 	repoRoot: string;
 }
 
@@ -32,141 +19,81 @@ export class GitHubSource implements Source {
 
 	private readonly owner: string;
 	private readonly name: string;
-	private readonly repoPath: string;
+	private readonly repo: string;
 	private readonly repoRoot: string;
 	private readonly workflowDir: string;
 
 	constructor(
-		private readonly rest: RestClient,
+		private readonly client: GitHubClient,
 		opts: SourceOptions
 	) {
-		const { owner, name } = parseRepo(opts.repo);
+		const [owner = "", name = ""] = opts.repo.split("/", 2);
 		this.owner = owner;
 		this.name = name;
-		this.repoPath = `/repos/${owner}/${name}`;
+		this.repo = opts.repo;
 		this.repoRoot = opts.repoRoot;
 		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
 	}
 
-	// ── auth + repo identity ────────────────────────────────────────────
-
 	async whoami(): Promise<{ login: string }> {
-		const data = await this.rest.request<{ login: string }>("/user");
+		const data = await this.client.user.getCurrentUser();
 		return { login: data.login };
 	}
 
 	async getRepo(): Promise<RepoRef> {
-		const data = await this.rest.request<{ default_branch: string }>(this.repoPath);
+		const data = await this.client.repos.getRepo(this.repo);
 		return { owner: this.owner, name: this.name, defaultBranch: data.default_branch };
 	}
 
-	// ── rulesets ────────────────────────────────────────────────────────
-
 	async listRulesets(): Promise<Ruleset[]> {
-		return this.rest.request<Ruleset[]>(`${this.repoPath}/rulesets`);
+		// GitHubRuleset.enforcement is string; Ruleset.enforcement is a narrower
+		// union — safe at runtime since GitHub only returns the three known values.
+		return this.client.rulesets.listRulesets(this.repo) as unknown as Promise<Ruleset[]>;
 	}
 
 	async createRuleset(payload: Record<string, unknown>): Promise<Ruleset> {
-		return this.rest.request<Ruleset>(`${this.repoPath}/rulesets`, {
-			method: "POST",
-			body: payload,
-		});
+		return this.client.rulesets.createRuleset(this.repo, payload) as unknown as Promise<Ruleset>;
 	}
 
 	async updateRuleset(id: number, payload: Record<string, unknown>): Promise<Ruleset> {
-		return this.rest.request<Ruleset>(`${this.repoPath}/rulesets/${id}`, {
-			method: "PUT",
-			body: payload,
-		});
+		return this.client.rulesets.updateRuleset(this.repo, id, payload) as unknown as Promise<Ruleset>;
 	}
 
-	// ── repo settings ───────────────────────────────────────────────────
-
 	async updateRepoSettings(settings: RepoSettings): Promise<void> {
-		await this.rest.request<void>(this.repoPath, { method: "PATCH", body: settings });
+		await this.client.repos.updateRepo(this.repo, settings as Record<string, unknown>);
 	}
 
 	async protectBranch(branch: string, payload: Record<string, unknown>): Promise<void> {
-		await this.rest.request<void>(`${this.repoPath}/branches/${encodeURIComponent(branch)}/protection`, {
-			method: "PUT",
-			body: payload,
-		});
+		await this.client.branches.protectBranch(this.repo, branch, payload);
 	}
 
-	// ── security toggles (idempotent flip-or-noop) ──────────────────────
-
 	async enableVulnerabilityAlerts(): Promise<void> {
-		await this.rest.request<void>(`${this.repoPath}/vulnerability-alerts`, {
-			method: "PUT",
-			expectNoContent: true,
-		});
+		await this.client.security.enableVulnerabilityAlerts(this.repo);
 	}
 
 	async enableAutomatedSecurityFixes(): Promise<void> {
-		await this.rest.request<void>(`${this.repoPath}/automated-security-fixes`, {
-			method: "PUT",
-			expectNoContent: true,
-		});
+		await this.client.security.enableAutomatedSecurityFixes(this.repo);
 	}
 
 	async enableSecretScanning(): Promise<void> {
-		await this.rest.request<void>(this.repoPath, {
-			method: "PATCH",
-			body: {
-				security_and_analysis: {
-					secret_scanning: { status: "enabled" },
-					secret_scanning_push_protection: { status: "enabled" },
-					// Validity checks confirm found secrets are still active (reduces
-					// false positives). Non-provider patterns catches secrets outside
-					// known provider formats. Both require org-level GHAS — accepted
-					// as a no-op until that is enabled.
-					secret_scanning_validity_checks: { status: "enabled" },
-					secret_scanning_non_provider_patterns: { status: "enabled" },
-				},
-			},
-		});
+		await this.client.security.enableSecretScanning(this.repo);
 	}
 
 	async enableCodeScanning(): Promise<string> {
-		const result = await this.rest.request<{ run_id: number; run_url: string }>(
-			`${this.repoPath}/code-scanning/default-setup`,
-			{
-				method: "PATCH",
-				// remote_and_local covers both remote exploits AND local paths
-				// (path traversal, injection via local input, etc.) — this is what
-				// GitHub surfaces as "code quality" alongside the security queries.
-				body: { state: "configured", query_suite: "extended", threat_model: "remote_and_local" },
-			}
-		);
+		const result = await this.client.security.enableCodeScanning(this.repo);
 		return `run ${result.run_id}`;
 	}
 
 	async disableDefaultCodeScanning(): Promise<void> {
-		await this.rest.request<void>(`${this.repoPath}/code-scanning/default-setup`, {
-			method: "PATCH",
-			body: { state: "not-configured" },
-		});
+		await this.client.security.disableDefaultCodeScanning(this.repo);
 	}
 
 	async enableDependencyGraph(): Promise<void> {
-		await this.rest.request<void>(this.repoPath, {
-			method: "PATCH",
-			body: {
-				security_and_analysis: {
-					// Auto-on for public repos; explicit for private repos.
-					dependency_graph: { status: "enabled" },
-					// Automatically submits dependency snapshots via GitHub Actions.
-					dependency_graph_autosubmit_action: { status: "enabled" },
-				},
-			},
-		});
+		await this.client.security.enableDependencyGraph(this.repo);
 	}
 
 	async enablePrivateVulnerabilityReporting(): Promise<void> {
-		await this.rest.request<void>(`${this.repoPath}/private-vulnerability-reporting`, {
-			method: "PUT",
-			expectNoContent: true,
-		});
+		await this.client.security.enablePrivateVulnerabilityReporting(this.repo);
 	}
 
 	// ── workflow files (local fs) ───────────────────────────────────────
@@ -211,15 +138,15 @@ export class GitHubSource implements Source {
 	}
 
 	async syncLabels(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string> {
-		return syncLabels(this.rest, `${this.owner}/${this.name}`, canonical, stale);
+		return syncLabels(this.client, this.repo, canonical, stale);
 	}
 
 	async syncProperties(values: Record<string, string>): Promise<string> {
-		return syncProperties(this.rest, `${this.owner}/${this.name}`, values);
+		return syncProperties(this.client, this.repo, values);
 	}
 
 	async syncTopics(topics: string[]): Promise<string> {
-		return syncTopics(this.rest, `${this.owner}/${this.name}`, topics);
+		return syncTopics(this.client, this.repo, topics);
 	}
 }
 

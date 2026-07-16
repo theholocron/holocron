@@ -9,7 +9,7 @@
  * what we don't have yet at bootstrap time.
  */
 
-import { createGitHubRestClient } from "./rest.js";
+import { createGitHubClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -23,21 +23,15 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface UserResponse {
-	login?: string;
-	name?: string | null;
-	email?: string | null;
-}
-
 export interface VerifyTokenOptions {
 	baseUrl?: string;
 	fetch?: typeof fetch;
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const rest = createGitHubRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
+	const client = createGitHubClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const me = await rest.request<UserResponse>("/user");
+		const me = await client.user.getCurrentUser();
 		const subject = me.login ?? me.email ?? "unknown";
 		return { ok: true, subject: `user @ ${subject}` };
 	} catch (err) {

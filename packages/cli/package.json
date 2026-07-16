@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@napi-rs/keyring": "^1.3.0",
-    "@theholocron/http-client": "^0.1.0",
+    "@theholocron/github-client": "^0.3.2",
+    "@theholocron/http-client": "^0.3.2",
     "tsx": "catalog:",
     "yargs": "^18.0.0"
   },

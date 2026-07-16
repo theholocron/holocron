@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GitHubIssues } from "../capabilities/issues.js";
-import { createGitHubRestClient } from "../rest.js";
+import { createGitHubClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -10,7 +10,7 @@ const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" 
 
 function makeIssues(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = createGitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubClient({ token: "pat", fetch });
 	const issues = new GitHubIssues(rest, { repo: REPO, labels: LABELS });
 	return { issues, calls };
 }
@@ -227,7 +227,8 @@ describe("GitHubIssues.create", () => {
 			{ status: 201, body: rawIssue({ number: 101 }) },
 		]);
 		await issues.create({ summary: "x", milestone: "V0.1 — feature parity" });
-		expect(calls[0]?.url).toContain("/milestones?state=all");
+		expect(calls[0]?.url).toContain("/milestones")
+		expect(calls[0]?.url).toContain("state=all");
 		expect(calls[1]?.body).toMatchObject({ milestone: 12 });
 	});
 
@@ -377,7 +378,7 @@ describe("GitHubIssues.doctor", () => {
 
 function makeIssuesNoLabels(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = createGitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubClient({ token: "pat", fetch });
 	const issues = new GitHubIssues(rest, { repo: REPO });
 	return { issues, calls };
 }
