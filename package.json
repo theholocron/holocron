@@ -27,6 +27,7 @@
     "@semantic-release/git": "^10.0.1",
     "@theholocron/commitlint-config": "catalog:",
     "@theholocron/eslint-config": "catalog:",
+    "@theholocron/semantic-release-config": "catalog:",
     "@theholocron/cli": "workspace:*",
     "@theholocron/holocron-plugin-1password": "workspace:*",
     "@theholocron/holocron-plugin-clerk": "workspace:*",
