@@ -412,8 +412,8 @@ jobs:
           env.GPG_KEY_SET == 'true'
         with:
           branch: \${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
-          commit_message: "chore: fix linting issues"
-          commit_options: "--no-verify --signoff"
+          commit_message: "chore: fix linting issues\\n\\nSigned-off-by: super-linter <super-linter@super-linter.dev>"
+          commit_options: "--no-verify"
           commit_user_name: super-linter
           commit_user_email: super-linter@super-linter.dev
 `,
