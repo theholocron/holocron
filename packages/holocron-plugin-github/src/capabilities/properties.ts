@@ -7,11 +7,7 @@ import type { RestClient } from "@theholocron/cli";
  * Calls `PATCH /repos/{owner}/{name}/properties/values` with the full
  * map — GitHub replaces only the supplied keys, leaving others untouched.
  */
-export async function syncProperties(
-	rest: RestClient,
-	repo: string,
-	values: Record<string, string>
-): Promise<string> {
+export async function syncProperties(rest: RestClient, repo: string, values: Record<string, string>): Promise<string> {
 	const { owner, name } = parseRepo(repo);
 
 	const properties = Object.entries(values).map(([property_name, value]) => ({ property_name, value }));

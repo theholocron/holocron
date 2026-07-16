@@ -534,8 +534,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const repoConfig: Partial<RepoConfig> =
-			typeof config.project.repo === "object" ? config.project.repo : {};
+		const repoConfig: Partial<RepoConfig> = typeof config.project.repo === "object" ? config.project.repo : {};
 		const properties: Record<string, string> = {};
 
 		const preset = repoConfig.protection ?? config.project.repoPolicy?.preset ?? "balanced";
@@ -554,17 +553,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			properties["uses_external_packages"] = String(manual.uses_external_packages);
 
 		if (source.syncProperties) {
-			steps.push(
-				await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties))
-			);
+			steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
 		const topics = repoConfig.topics ?? [];
 		if (topics.length > 0 && source.syncTopics) {
-			steps.push(
-				await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics))
-			);
+			steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 			print(formatStep(steps[steps.length - 1]!));
 		}
 	}
