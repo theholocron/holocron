@@ -10,7 +10,7 @@ software projects — your own infrastructure-as-tool.
 > and CLI surface may shift before stable v2.0.0. The v1.0.0 line at
 > `@theholocron/cli` (a project-bootstrap CLI) is preserved as an
 > archive under the `v1.0.0` git tag. Design in
-> [`.notes/tech-architecture.spec.md`](./.notes/tech-architecture.spec.md)
+> [`.notes/tech-architecture.spec.md`](./.notes/archive/tech-architecture.spec.md)
 > (tracked in [#74](https://github.com/theholocron/holocron/issues/74)).
 
 ## Quickstart
@@ -103,7 +103,7 @@ holocron deploy          # ship to your `deployment` provider
 ## How it works
 
 - **Capabilities** are the contracts (14 of them — see the
-  [architecture spec](./.notes/tech-architecture.spec.md)).
+  [architecture spec](./.notes/archive/tech-architecture.spec.md)).
 - **Plugins** are npm packages named `holocron-plugin-<provider>`
   (or `@theholocron/holocron-plugin-<provider>` for the built-in
   set). Each plugin exports the capabilities it implements — a
