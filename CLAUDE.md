@@ -43,9 +43,9 @@ When a plugin or the CLI gains a dependency on a `@theholocron/*`
 package published from the clients repo:
 
 1. **Add to catalog** in `pnpm-workspace.yaml` under `catalog:`, e.g.:
-   ```yaml
-   '@theholocron/github-client': ^0.3.2
-   ```
+    ```yaml
+    "@theholocron/github-client": ^0.3.2
+    ```
 2. **Reference via `catalog:`** in the consuming `package.json`
    instead of hardcoding a version.
 3. **The `overrides:` block** in `pnpm-workspace.yaml` already forces
