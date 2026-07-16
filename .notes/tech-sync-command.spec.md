@@ -3,6 +3,7 @@ status: draft # draft → proposed (issue filed) → approved (milestone attache
 ---
 
 <!-- editorconfig-checker-disable-file -->
+<!-- markdownlint-disable MD013 -->
 
 # Spec: `holocron sync` command
 
@@ -21,7 +22,7 @@ call the GitHub API directly (out-of-band, config diverges).
 
 ## Proposed command
 
-```
+```sh
 holocron sync [step...]         # sync one or more named steps
 holocron sync                   # sync all available steps
 ```
@@ -58,7 +59,7 @@ New top-level command `sync` alongside `setup`, `doctor`, etc. Registered in
 Reuses the same `runStep` / `formatStep` / `SetupReport` machinery from
 `setup.ts` so output is consistent:
 
-```
+```text
 Holocron sync — configs
   config: /path/to/holocron.config.ts
 
@@ -79,7 +80,7 @@ refactor — the external contract of `setup` is unaffected.
 
 ## Implementation steps
 
-**Step 1 — Add `runSync` function in `packages/cli/src/commands/sync.ts`**
+### Step 1 — Add `runSync` in `packages/cli/src/commands/sync.ts`
 
 Mirror the structure of `runSetup`:
 
@@ -92,20 +93,20 @@ Mirror the structure of `runSetup`:
 
 ```typescript
 export interface RunSyncInput {
-	loaded: LoadedConfig;
-	context: RuntimeContext;
-	steps?: string[]; // undefined = all; [] = none; ["topics"] = topics only
-	loader?: PluginLoader;
-	print?: SetupPrintLine;
+  loaded: LoadedConfig;
+  context: RuntimeContext;
+  steps?: string[]; // undefined = all; [] = none; ["topics"] = topics only
+  loader?: PluginLoader;
+  print?: SetupPrintLine;
 }
 ```
 
-**Step 2 — Wire the CLI entrypoint**
+### Step 2 — Wire the CLI entrypoint
 
 Register `sync [steps...]` in the command router. Pass positional args as
 `steps` to `runSync`.
 
-**Step 3 — Tests**
+### Step 3 — Tests
 
 - `sync.test.ts`: covers all-steps run, single-step filter, unknown step skip,
   dry-run, and provider-does-not-implement skip.

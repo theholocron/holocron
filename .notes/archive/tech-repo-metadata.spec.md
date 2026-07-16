@@ -12,6 +12,7 @@ prs:
 ---
 
 <!-- editorconfig-checker-disable-file -->
+<!-- markdownlint-disable MD013 -->
 
 # Spec: Unified repo metadata config
 
