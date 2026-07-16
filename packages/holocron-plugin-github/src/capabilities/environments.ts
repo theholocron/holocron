@@ -38,9 +38,7 @@ export class GitHubEnvironments implements Environments {
 		await this.client.environments.deleteEnvironment(this.opts.repo, name);
 	}
 
-	private flattenReviewers(
-		rules: GitHubEnvironment["protection_rules"]
-	): Environment["reviewers"] {
+	private flattenReviewers(rules: GitHubEnvironment["protection_rules"]): Environment["reviewers"] {
 		if (!rules) return undefined;
 		const reviewersRule = rules.find((r) => r.type === "required_reviewers");
 		if (!reviewersRule?.reviewers) return undefined;

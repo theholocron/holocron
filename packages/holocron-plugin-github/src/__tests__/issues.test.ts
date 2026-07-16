@@ -227,7 +227,7 @@ describe("GitHubIssues.create", () => {
 			{ status: 201, body: rawIssue({ number: 101 }) },
 		]);
 		await issues.create({ summary: "x", milestone: "V0.1 — feature parity" });
-		expect(calls[0]?.url).toContain("/milestones")
+		expect(calls[0]?.url).toContain("/milestones");
 		expect(calls[0]?.url).toContain("state=all");
 		expect(calls[1]?.body).toMatchObject({ milestone: 12 });
 	});

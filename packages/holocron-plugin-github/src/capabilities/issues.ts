@@ -190,7 +190,12 @@ export class GitHubIssues implements Issues {
 							? `label exists in ${repo.full_name}`
 							: "(label not defined yet — auto-created on first apply)",
 					},
-					{ slot: "done", value: "closed (state_reason=completed)", resolved: true, note: "(intrinsic — GitHub close-with-reason)" },
+					{
+						slot: "done",
+						value: "closed (state_reason=completed)",
+						resolved: true,
+						note: "(intrinsic — GitHub close-with-reason)",
+					},
 				]
 			: [
 					{
@@ -205,7 +210,12 @@ export class GitHubIssues implements Issues {
 						resolved: false,
 						note: "no `labels` configured in plugin options — transitions to `inReview` will error",
 					},
-					{ slot: "done", value: "closed (state_reason=completed)", resolved: true, note: "(intrinsic — GitHub close-with-reason)" },
+					{
+						slot: "done",
+						value: "closed (state_reason=completed)",
+						resolved: true,
+						note: "(intrinsic — GitHub close-with-reason)",
+					},
 				];
 
 		return {
@@ -257,7 +267,11 @@ export class GitHubIssues implements Issues {
 			status: statusName,
 			statusCategory: category,
 			assignee: raw.assignee
-				? { id: raw.assignee.login, displayName: raw.assignee.name ?? raw.assignee.login, ...(raw.assignee.email ? { emailAddress: raw.assignee.email } : {}) }
+				? {
+						id: raw.assignee.login,
+						displayName: raw.assignee.name ?? raw.assignee.login,
+						...(raw.assignee.email ? { emailAddress: raw.assignee.email } : {}),
+					}
 				: null,
 			updated: raw.updated_at,
 			url: raw.html_url,

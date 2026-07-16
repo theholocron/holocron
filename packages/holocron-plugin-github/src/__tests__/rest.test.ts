@@ -21,7 +21,9 @@ describe("GitHubClient HTTP plumbing", () => {
 	});
 
 	it("serializes a body on POST and sets content-type", async () => {
-		const { fetch, calls } = stubFetch([{ status: 201, body: { name: "bug", color: "d73a4a", description: null } }]);
+		const { fetch, calls } = stubFetch([
+			{ status: 201, body: { name: "bug", color: "d73a4a", description: null } },
+		]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.labels.createLabel("x/y", { name: "bug", color: "d73a4a", description: "A bug" });
 		expect(calls[0]?.method).toBe("POST");

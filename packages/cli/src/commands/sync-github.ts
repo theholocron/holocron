@@ -238,9 +238,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		const commit = await client.git.getCommit(repo, headSha);
 		baseTreeSha = commit.tree.sha;
 		const treeData = await client.git.getTree(repo, baseTreeSha, true);
-		existingBlobs = new Map(
-			treeData.tree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha])
-		);
+		existingBlobs = new Map(treeData.tree.filter((i) => i.type === "blob").map((i) => [i.path, i.sha]));
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : `Branch ${baseBranch} not found`;
 		print(`  ✗ ${msg}`);
@@ -256,9 +254,9 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 
 			try {
 				const data = await client.git.getContents(repo, "holocron.config.json");
-				const raw = JSON.parse(
-					Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")
-				) as { project?: { workflows?: Array<string | WorkflowEntry> } };
+				const raw = JSON.parse(Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")) as {
+					project?: { workflows?: Array<string | WorkflowEntry> };
+				};
 				entries = (raw?.project?.workflows ?? []).map((w) => (typeof w === "string" ? { name: w } : w));
 			} catch (err) {
 				if (!(err instanceof ProviderApiError) || err.status !== 404) throw err;
@@ -384,9 +382,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			print(`  → PR opened: ${prUrl}`);
 		} catch (err) {
 			const alreadyExists =
-				err instanceof ProviderApiError &&
-				err.status === 422 &&
-				String(err.details).includes("already exists");
+				err instanceof ProviderApiError && err.status === 422 && String(err.details).includes("already exists");
 			if (alreadyExists) {
 				print(`  → PR already open for ${branch} — branch updated, ready to merge`);
 			} else {
