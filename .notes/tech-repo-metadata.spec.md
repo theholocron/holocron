@@ -115,7 +115,8 @@ Topics are not auto-derived; they must be set explicitly. Conventions:
 ## Derivation rules for custom properties
 
 **`branch_protection_level`** — read from `repo.protection` (or `repoPolicy.preset`
-during the migration window). Defaults to `balanced`.
+during the migration window). Only written when explicitly set and not `"none"`; omitting
+`protection` leaves the property unset.
 
 **`monorepo`** — `true` when `pnpm-workspace.yaml` exists at the repo root.
 

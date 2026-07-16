@@ -92,8 +92,8 @@ export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. */
 	name: string;
 	/**
-	 * Branch protection preset applied by `holocron setup`.
-	 * @default "balanced"
+	 * Branch protection preset applied by `holocron setup`. When omitted,
+	 * no protection is applied and no `branch_protection_level` property is set.
 	 */
 	protection?: RepoProtection;
 	/** CI check context names required on the default branch (only used when `protection` is "strict"). */
