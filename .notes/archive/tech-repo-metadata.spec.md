@@ -2,13 +2,13 @@
 status: archived
 completed: 2026-07-15
 prs:
-  - theholocron/holocron#145  # Steps 1–6
-  - theholocron/holocron#146  # Step 7 — drop repoPolicy
-  - theholocron/holocron#147  # HolocronConfig type in self-hosted config
-  - theholocron/configs#235
-  - theholocron/clients#123
-  - theholocron/.github#41
-  - theholocron/.github-private#16
+    - theholocron/holocron#145 # Steps 1–6
+    - theholocron/holocron#146 # Step 7 — drop repoPolicy
+    - theholocron/holocron#147 # HolocronConfig type in self-hosted config
+    - theholocron/configs#235
+    - theholocron/clients#123
+    - theholocron/.github#41
+    - theholocron/.github-private#16
 ---
 
 <!-- editorconfig-checker-disable-file -->
@@ -72,18 +72,18 @@ export default defineConfig({
 type RepoProtection = "balanced" | "strict" | "none";
 
 interface RepoProperties {
-  lifecycle?: "active" | "experimental" | "deprecated";
-  open_source?: boolean;
-  runtime_environment?: "node" | "browser" | "universal" | "none";
-  uses_external_packages?: boolean;
+	lifecycle?: "active" | "experimental" | "deprecated";
+	open_source?: boolean;
+	runtime_environment?: "node" | "browser" | "universal" | "none";
+	uses_external_packages?: boolean;
 }
 
 interface RepoConfig {
-  name: string;
-  protection?: RepoProtection; // omit = no protection applied, no property set
-  requiredChecks?: string[];   // only meaningful when protection = "strict"
-  topics?: string[];
-  properties?: RepoProperties;
+	name: string;
+	protection?: RepoProtection; // omit = no protection applied, no property set
+	requiredChecks?: string[]; // only meaningful when protection = "strict"
+	topics?: string[];
+	properties?: RepoProperties;
 }
 ```
 

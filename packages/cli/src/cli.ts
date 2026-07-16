@@ -290,7 +290,7 @@ await yargs(hideBin(process.argv))
 				.positional("steps", {
 					type: "string",
 					array: true,
-					describe: 'Steps to run: labels, properties, topics (default: all)',
+					describe: "Steps to run: labels, properties, topics (default: all)",
 				})
 				.option("repo", {
 					type: "string",

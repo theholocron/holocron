@@ -46,9 +46,18 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncLabels: async () => { called.push("labels"); return "17 synced"; },
-					syncProperties: async () => { called.push("properties"); return "2 properties set"; },
-					syncTopics: async (topics: string[]) => { called.push("topics"); return `${topics.length} topics set`; },
+					syncLabels: async () => {
+						called.push("labels");
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called.push("properties");
+						return "2 properties set";
+					},
+					syncTopics: async (topics: string[]) => {
+						called.push("topics");
+						return `${topics.length} topics set`;
+					},
 				},
 			}),
 		});
@@ -73,9 +82,18 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncLabels: async () => { called.push("labels"); return "17 synced"; },
-					syncProperties: async () => { called.push("properties"); return "1 set"; },
-					syncTopics: async () => { called.push("topics"); return "1 topics set"; },
+					syncLabels: async () => {
+						called.push("labels");
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called.push("properties");
+						return "1 set";
+					},
+					syncTopics: async () => {
+						called.push("topics");
+						return "1 topics set";
+					},
 				},
 			}),
 		});
@@ -106,9 +124,18 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncLabels: async () => { called.push("labels"); return "17 synced"; },
-					syncProperties: async () => { called.push("properties"); return "1 set"; },
-					syncTopics: async () => { called.push("topics"); return "1 topics set"; },
+					syncLabels: async () => {
+						called.push("labels");
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called.push("properties");
+						return "1 set";
+					},
+					syncTopics: async () => {
+						called.push("topics");
+						return "1 topics set";
+					},
 				},
 			}),
 		});
@@ -164,9 +191,18 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncLabels: async () => { called = true; return "17 synced"; },
-					syncProperties: async () => { called = true; return "1 set"; },
-					syncTopics: async () => { called = true; return "1 topics set"; },
+					syncLabels: async () => {
+						called = true;
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called = true;
+						return "1 set";
+					},
+					syncTopics: async () => {
+						called = true;
+						return "1 topics set";
+					},
 				},
 			}),
 		});
@@ -359,7 +395,9 @@ describe("runSync", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				source: {
-					syncLabels: async () => { throw new Error("API rate limit"); },
+					syncLabels: async () => {
+						throw new Error("API rate limit");
+					},
 					syncProperties: async () => "1 set",
 					syncTopics: async () => "0 topics set",
 				},

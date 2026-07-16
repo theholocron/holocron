@@ -40,9 +40,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 
 			if (stepName === "labels") {
 				if (source.syncLabels) {
-					steps.push(await runSyncStep("source", "sync labels", dryRun, () =>
-						source.syncLabels!(CANONICAL_LABELS, STALE_LABELS)
-					));
+					steps.push(
+						await runSyncStep("source", "sync labels", dryRun, () =>
+							source.syncLabels!(CANONICAL_LABELS, STALE_LABELS)
+						)
+					);
 					print(formatSyncStep(steps[steps.length - 1]!));
 				} else {
 					steps.push({
@@ -66,9 +68,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					if (manual.uses_external_packages !== undefined)
 						properties["uses_external_packages"] = String(manual.uses_external_packages);
 
-					steps.push(await runSyncStep("source", "sync properties", dryRun, () =>
-						source.syncProperties!(properties)
-					));
+					steps.push(
+						await runSyncStep("source", "sync properties", dryRun, () => source.syncProperties!(properties))
+					);
 					print(formatSyncStep(steps[steps.length - 1]!));
 				} else {
 					steps.push({
@@ -84,9 +86,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			if (stepName === "topics") {
 				if (source.syncTopics) {
 					const topics = config.project.repo?.topics ?? [];
-					steps.push(await runSyncStep("source", "sync topics", dryRun, () =>
-						source.syncTopics!(topics)
-					));
+					steps.push(await runSyncStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 					print(formatSyncStep(steps[steps.length - 1]!));
 				} else {
 					steps.push({
