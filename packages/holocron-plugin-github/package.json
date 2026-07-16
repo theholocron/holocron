@@ -27,14 +27,14 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/github-client": "^0.3.2"
+    "@theholocron/github-client": "catalog:"
   },
   "dependencies": {
     "libsodium-wrappers": "^0.7.15"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/github-client": "^0.3.2",
+    "@theholocron/github-client": "catalog:",
     "@types/node": "catalog:",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",

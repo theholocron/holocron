@@ -12,6 +12,9 @@ catalogs:
     '@theholocron/eslint-config':
       specifier: ^5.2.0
       version: 5.2.0
+    '@theholocron/github-client':
+      specifier: ^0.3.2
+      version: 0.3.2
     '@theholocron/lint-staged-config':
       specifier: ^5.2.0
       version: 5.2.0
@@ -165,7 +168,7 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       '@theholocron/github-client':
-        specifier: ^0.3.2
+        specifier: 'catalog:'
         version: 0.3.2
       '@theholocron/http-client':
         specifier: ^0.3.2
@@ -420,7 +423,7 @@ importers:
         specifier: 'catalog:'
         version: 5.2.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
       '@theholocron/github-client':
-        specifier: ^0.3.2
+        specifier: 'catalog:'
         version: 0.3.2
       '@theholocron/tsconfig':
         specifier: 'catalog:'
