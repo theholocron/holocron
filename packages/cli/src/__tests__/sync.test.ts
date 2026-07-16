@@ -387,7 +387,7 @@ describe("runSync", () => {
 		expect(step?.message).toBe("3 topics set");
 	});
 
-	it("passes manual properties to syncProperties", async () => {
+	it("passes manual and derived properties to syncProperties", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
 			project: {
@@ -424,12 +424,68 @@ describe("runSync", () => {
 		});
 
 		expect(captured).not.toBeNull();
+		// derived: monorepo always present; branch_protection_level absent when protection unset
+		expect(captured!["monorepo"]).toBe("false"); // /tmp/test has no pnpm-workspace.yaml
+		expect(captured!["branch_protection_level"]).toBeUndefined();
+		// manual properties
 		expect(captured!["lifecycle"]).toBe("active");
 		expect(captured!["open_source"]).toBe("true");
 		expect(captured!["runtime_environment"]).toBe("node");
 		expect(captured!["uses_external_packages"]).toBe("false");
 		const step = report.steps.find((s) => s.step === "sync properties");
 		expect(step?.status).toBe("ok");
+	});
+
+	it("includes branch_protection_level when repo.protection is set", async () => {
+		let captured: Record<string, string> | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", protection: "strict" },
+			},
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncProperties: async (values: Record<string, string>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["properties"], print: () => {} });
+
+		expect(captured!["branch_protection_level"]).toBe("strict");
+		expect(captured!["monorepo"]).toBe("false");
+	});
+
+	it("omits branch_protection_level when repo.protection is 'none'", async () => {
+		let captured: Record<string, string> | null = null;
+		const loaded = loadedFrom({
+			project: {
+				name: "demo",
+				repo: { name: "theholocron/demo", protection: "none" },
+			},
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncProperties: async (values: Record<string, string>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["properties"], print: () => {} });
+
+		expect(captured!["branch_protection_level"]).toBeUndefined();
+		expect(captured!["monorepo"]).toBe("false");
 	});
 
 	it("output includes a header and summary line", async () => {

@@ -1,3 +1,6 @@
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { Source } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
@@ -61,6 +64,13 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				if (source.syncProperties) {
 					const repo = config.project.repo;
 					const properties: Record<string, string> = {};
+					const effectivePreset = repo?.protection;
+					if (effectivePreset && effectivePreset !== "none")
+						properties["branch_protection_level"] = effectivePreset;
+					const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
+						.then(() => true)
+						.catch(() => false);
+					properties["monorepo"] = String(isMonorepo);
 					const manual = repo?.properties ?? {};
 					if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
 					if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
