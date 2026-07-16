@@ -1,5 +1,5 @@
 ---
-status: draft # draft → proposed (issue filed) → approved (milestone attached) → archived
+status: archived # draft → proposed (issue filed) → approved (milestone attached) → archived
 ---
 
 <!-- editorconfig-checker-disable-file -->

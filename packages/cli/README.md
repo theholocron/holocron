@@ -101,8 +101,9 @@ export default acmeConfig;
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands
-- `src/commands/` — `setup`, `doctor`, `deploy`, `secret set`,
-  `secrets sync`, `npm publish-initial`
+- `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
+  `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
+  `plugin create`, `auth`
 
 ## Status
 
