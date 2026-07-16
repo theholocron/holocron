@@ -1,5 +1,5 @@
 ---
-status: proposed # draft → proposed (issue filed) → approved (milestone attached)
+status: archived # draft → proposed (issue filed) → approved (milestone attached) → archived (shipped)
 issue: 74
 ---
 
@@ -19,12 +19,14 @@ single `holocron.config.json` per project wires capabilities → plugins.
 packages/
   cli/                          — @theholocron/cli                    (binary + runtime + capability interfaces)
   cli-utils/                    — @theholocron/cli-utils              (prompts, openers, shell, log — v1 carryover)
-  holocron-plugin-github/       — @theholocron/holocron-plugin-github (first real plugin)
-  holocron-plugin-vercel/       — (not yet)
-  holocron-plugin-neon/         — (not yet)
-  holocron-plugin-clerk/        — (not yet)
-  holocron-plugin-1password/    — (not yet)
-  holocron-plugin-postman/      — (not yet)
+  holocron-plugin-github/       — @theholocron/holocron-plugin-github
+  holocron-plugin-vercel/       — @theholocron/holocron-plugin-vercel
+  holocron-plugin-neon/         — @theholocron/holocron-plugin-neon
+  holocron-plugin-clerk/        — @theholocron/holocron-plugin-clerk
+  holocron-plugin-1password/    — @theholocron/holocron-plugin-1password
+  holocron-plugin-doppler/      — @theholocron/holocron-plugin-doppler
+  holocron-plugin-infisical/    — @theholocron/holocron-plugin-infisical
+  holocron-plugin-postman/      — @theholocron/holocron-plugin-postman
   …
 
 ```
@@ -256,6 +258,13 @@ packages/
   cli/                      — @theholocron/cli (binary + runtime + interfaces)
   cli-utils/                — @theholocron/cli-utils (v1 carryover)
   holocron-plugin-github/   — @theholocron/holocron-plugin-github
+  holocron-plugin-vercel/   — @theholocron/holocron-plugin-vercel
+  holocron-plugin-neon/     — @theholocron/holocron-plugin-neon
+  holocron-plugin-clerk/    — @theholocron/holocron-plugin-clerk
+  holocron-plugin-1password/ — @theholocron/holocron-plugin-1password
+  holocron-plugin-doppler/  — @theholocron/holocron-plugin-doppler
+  holocron-plugin-infisical/ — @theholocron/holocron-plugin-infisical
+  holocron-plugin-postman/  — @theholocron/holocron-plugin-postman
 
 ```
 
@@ -263,12 +272,9 @@ Tests use **vitest** (workspace catalog) with per-package
 `vitest.config.ts`; lint uses **typescript-eslint** + `@eslint/js`
 recommended + a small handful of overrides.
 
-> **Note on `@theholocron/eslint-config`:** v4.1.0 has an upstream
-> bug — it calls `includeIgnoreFile()` on a `.gitignore` that isn't
-> shipped in the npm tarball, so consuming it programmatically fails.
-> The v1 repo only ran lint via super-linter in Docker, so this never
-> surfaced. v2 uses a minimal local config until the org config is
-> fixed (tracked at [theholocron/configs#197](https://github.com/theholocron/configs/issues/197)).
+> **Note on `@theholocron/eslint-config`:** v4.1.0 had an upstream
+> bug with `includeIgnoreFile()`. Fixed in v5+ — the workspace now
+> consumes `@theholocron/eslint-config` directly.
 
 ## License
 
@@ -394,19 +400,16 @@ export default acmeConfig;
 The loader uses `tsImport` from tsx (a runtime dep) for `.ts` files and
 native `import()` for `.js` files. Priority: `json → js → ts`.
 
-## Open questions
+## Decisions made (formerly open questions)
 
-- **Plugin loader implementation.** Dynamic import via package name?
-  Explicit `plugins[]` array in config? Inclined toward implicit
-  resolution from the `providers` block (the package list is derived).
-- **Cross-capability dependencies.** `tooling` needs to know the repo
-  coords; `deployment` needs the storage connection string at deploy
-  time. The core needs a capability registry that plugins can query.
-- **State persistence.** Where do remembered choices live (e.g.,
-  "Vercel project prj_X already linked to apps/web")?
-- **Doctor check registration.** Mirror ESLint's `rules` model:
-  `doctor.checks: { "github/secrets-up-to-date": "warn" }`.
-- **Versioning model.** Independent per-plugin vs lockstep across the
-  monorepo? Inclined toward independent.
-- **Binary distribution.** v1 used `tsx` + `marked-man`. v2 needs a
-  real build step (probably `tsdown` or `unbuild`).
+- **Plugin loader:** implicit resolution from `providers` block via
+  dynamic import — shipped as `PluginLoader` in `packages/cli/src/loader.ts`.
+- **Cross-capability dependencies:** `RuntimeContext` (repo, repoRoot,
+  dryRun, cliToken) is injected into every plugin at load time — shipped.
+- **State persistence:** deferred; not yet needed in practice.
+- **Doctor check registration:** `doctor.checks[]` string array (not ESLint
+  rules map) — simpler, sufficient for current use.
+- **Versioning model:** lockstep across the monorepo via
+  `scripts/bump-versions.mjs` — easier to reason about for a tightly
+  coupled plugin set.
+- **Binary distribution:** `tsdown` — shipped.
