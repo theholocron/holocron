@@ -17,6 +17,8 @@ import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source } from "@theholoc
 import { parseRepo } from "../repo.js";
 import type { RestClient } from "@theholocron/cli";
 import { syncLabels } from "./labels.js";
+import { syncProperties } from "./properties.js";
+import { syncTopics } from "./topics.js";
 
 export interface SourceOptions {
 	repo: string;
@@ -210,6 +212,14 @@ export class GitHubSource implements Source {
 
 	async syncLabels(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string> {
 		return syncLabels(this.rest, `${this.owner}/${this.name}`, canonical, stale);
+	}
+
+	async syncProperties(values: Record<string, string>): Promise<string> {
+		return syncProperties(this.rest, `${this.owner}/${this.name}`, values);
+	}
+
+	async syncTopics(topics: string[]): Promise<string> {
+		return syncTopics(this.rest, `${this.owner}/${this.name}`, topics);
 	}
 }
 
