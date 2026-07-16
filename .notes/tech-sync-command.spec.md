@@ -67,7 +67,7 @@ Holocron sync — configs
   ✓ source  sync properties      5 properties set
   ✓ source  sync topics          16 topics set
 
-  2 ok, 0 fail, 0 skip, 0 dry-run
+  3 ok, 0 fail, 0 skip, 0 dry-run
 ```
 
 ### Relationship to setup
