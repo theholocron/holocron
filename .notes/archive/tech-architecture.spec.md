@@ -171,7 +171,7 @@ of sharing (see Roadmap §Shareable configs).
 
 These are the cross-cutting conventions every command + plugin in v2
 honors. Codified in the
-[`/holocron-plugin` skill](../.claude/skills/holocron-plugin.md) so
+[`/holocron-plugin` skill](../../.claude/skills/holocron-plugin.md) so
 scaffolds inherit them automatically.
 
 ### `--dry-run` (global flag)
