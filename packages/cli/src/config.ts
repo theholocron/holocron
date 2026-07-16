@@ -58,7 +58,6 @@ export type RawProviderEntry = SingleEntry | MultiEntry;
 
 export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>>;
 
-
 export type RepoProtection = "balanced" | "strict" | "none";
 
 export interface RepoProperties {
