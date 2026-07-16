@@ -372,6 +372,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
 	const steps: SetupStepResult[] = [];
+	const repo = config.project.repo;
+	const effectivePreset = repo?.protection ?? config.project.repoPolicy?.preset;
 
 	print(`Holocron setup — ${config.project.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
@@ -415,10 +417,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		);
 		print(formatStep(steps[steps.length - 1]!));
 
-		const policy = config.project.repoPolicy;
-		if (policy && policy.preset !== "none") {
-			const preset = policy.preset ?? "balanced";
-
+		if (effectivePreset && effectivePreset !== "none") {
 			steps.push(
 				await runStep("source", "updateRepoSettings", dryRun, async () => {
 					await source.updateRepoSettings(BALANCED_REPO_SETTINGS);
@@ -430,14 +429,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				typeof entry === "string" ? entry : entry.name
 			);
 			const requiredChecks =
-				preset === "strict"
+				effectivePreset === "strict"
 					? [
 							"DCO",
 							...configuredWorkflowNames.flatMap((name) => {
 								const ctx = WORKFLOW_CHECK_CONTEXTS[name];
 								return ctx ? [ctx] : [];
 							}),
-							...(policy.requiredChecks ?? []),
+							...(repo?.requiredChecks ?? config.project.repoPolicy?.requiredChecks ?? []),
 						]
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
@@ -533,11 +532,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const repo = config.project.repo;
 		const properties: Record<string, string> = {};
 
-		const preset = repo?.protection ?? config.project.repoPolicy?.preset ?? "balanced";
-		if (preset !== "none") properties["branch_protection_level"] = preset;
+		if (effectivePreset && effectivePreset !== "none") properties["branch_protection_level"] = effectivePreset;
 
 		const isMonorepo = await access("pnpm-workspace.yaml")
 			.then(() => true)
