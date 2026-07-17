@@ -5,7 +5,7 @@
  * shape.
  */
 
-import { createNeonRestClient } from "./rest.js";
+import { createNeonClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -19,22 +19,15 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface MeResponse {
-	id?: string;
-	email?: string;
-	name?: string;
-	login?: string;
-}
-
 export interface VerifyTokenOptions {
 	baseUrl?: string;
 	fetch?: typeof fetch;
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const rest = createNeonRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
+	const client = createNeonClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const me = await rest.request<MeResponse>("/users/me");
+		const me = await client.users.me();
 		const subject = me?.email ?? me?.login ?? me?.name ?? me?.id ?? "unknown";
 		return { ok: true, subject: `user @ ${subject}` };
 	} catch (err) {

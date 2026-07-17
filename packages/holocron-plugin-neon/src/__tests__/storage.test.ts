@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { NeonStorage } from "../capabilities/storage.js";
-import { createNeonRestClient } from "../rest.js";
+import { createNeonClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -11,8 +11,8 @@ const BASE = `https://console.neon.tech/api/v2/projects/${PROJECT_ID}`;
 
 function makeStorage(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = createNeonRestClient({ token: "pat", fetch });
-	const storage = new NeonStorage(rest, { projectId: PROJECT_ID });
+	const client = createNeonClient({ token: "neon-test-pat", fetch });
+	const storage = new NeonStorage(client, { projectId: PROJECT_ID });
 	return { storage, calls };
 }
 
@@ -180,7 +180,7 @@ describe("NeonStorage.enableExtension", () => {
 
 describe("NeonStorage construction", () => {
 	it("throws when projectId is missing", () => {
-		const rest = createNeonRestClient({ token: "t" });
-		expect(() => new NeonStorage(rest, { projectId: "" })).toThrow(/projectId/);
+		const client = createNeonClient({ token: "neon-test-pat" });
+		expect(() => new NeonStorage(client, { projectId: "" })).toThrow(/projectId/);
 	});
 });
