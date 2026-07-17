@@ -1,3 +1,4 @@
+import type { Linter } from "eslint";
 import { library } from "@theholocron/eslint-config/bundles/library";
 import { vitest } from "@theholocron/eslint-config/vitest";
 
@@ -21,4 +22,4 @@ export default [
 	{
 		ignores: ["packages/*/dist/**", "packages/*/coverage/**", "packages/cli-utils/**", "**/node_modules/**"],
 	},
-];
+] satisfies Linter.Config[];
