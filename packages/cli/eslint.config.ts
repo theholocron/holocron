@@ -1,3 +1,4 @@
+import type { Linter } from "eslint";
 import root from "../../eslint.config.js";
 
 export default [
@@ -8,4 +9,4 @@ export default [
 		rules: { "n/hashbang": "off" },
 	},
 	{ ignores: ["dist/**", "coverage/**"] },
-];
+] satisfies Linter.Config[];
