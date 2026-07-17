@@ -18,4 +18,15 @@ describe("createClerkClient", () => {
 		await client.users.get("user_1");
 		expect(calls[0]?.url).toContain("https://api.clerk.com/v1");
 	});
+
+	it("respects baseUrl override", async () => {
+		const { fetch, calls } = stubFetch([{ body: { id: "user_1" } }]);
+		const client = createClerkClient({
+			token: TOKEN,
+			baseUrl: "https://clerk.test.invalid/v1",
+			fetch,
+		});
+		await client.users.get("user_1");
+		expect(calls[0]?.url).toContain("https://clerk.test.invalid/v1");
+	});
 });
