@@ -8,8 +8,8 @@ catalog:
   '@theholocron/semantic-release-config': ^6.1.0
   '@theholocron/eslint-config': ^5.2.0
   '@theholocron/clerk-client': ^0.5.0
-  '@theholocron/github-client': ^0.3.2
-  '@theholocron/http-client': ^0.3.2
+  '@theholocron/github-client': ^0.5.0
+  '@theholocron/http-client': ^0.5.0
   '@theholocron/lint-staged-config': ^5.2.0
   '@theholocron/prettier-config': ^5.2.0
   '@theholocron/tsconfig': ^6.0.0
@@ -30,4 +30,4 @@ catalog:
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  '@theholocron/http-client': ^0.3.2
+  '@theholocron/http-client': ^0.5.0
