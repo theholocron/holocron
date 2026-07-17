@@ -1,11 +1,8 @@
+import type { Config } from "prettier";
 import theholocron from "@theholocron/prettier-config";
 
-/**
- * @see https://prettier.io/docs/en/configuration
- * @type {import("prettier").Config}
- */
 const config = {
 	...theholocron,
-};
+} satisfies Config;
 
 export default config;
