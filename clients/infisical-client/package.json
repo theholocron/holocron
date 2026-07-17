@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/infisical-client",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "A TypeScript client for the Infisical API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/infisical-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
