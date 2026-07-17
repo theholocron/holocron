@@ -1,3 +1,13 @@
+interface ExecOptions {
+	prepareCmd?: string;
+	publishCmd?: string;
+}
+interface Options {
+	branches?: Array<string | Record<string, unknown>>;
+	exec?: ExecOptions;
+	assets?: string[];
+}
+
 const releaseRules = [
 	{ type: "feat", release: "minor" },
 	{ type: "fix", release: "patch" },
@@ -38,13 +48,12 @@ const defaultMessage =
 
 /**
  * @see https://semantic-release.gitbook.io/semantic-release/usage/configuration
- * @param {{ branches?: Array<string|object>, exec?: { prepareCmd?: string, publishCmd?: string }, assets?: string[] }} [options]
  */
 export function defineConfig({
 	branches = ["main"],
 	exec,
 	assets = defaultAssets,
-} = {}) {
+}: Options = {}): object {
 	return {
 		branches,
 		plugins: [

@@ -21,65 +21,84 @@
     "storybook"
   ],
   "type": "module",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
   "exports": {
     ".": {
-      "import": "./index.js",
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./base": {
-      "import": "./configs/base.js",
-      "default": "./configs/base.js"
+      "types": "./dist/configs/base.d.ts",
+      "import": "./dist/configs/base.js",
+      "default": "./dist/configs/base.js"
     },
     "./typescript": {
-      "import": "./configs/typescript.js",
-      "default": "./configs/typescript.js"
+      "types": "./dist/configs/typescript.d.ts",
+      "import": "./dist/configs/typescript.js",
+      "default": "./dist/configs/typescript.js"
     },
     "./react": {
-      "import": "./configs/react.js",
-      "default": "./configs/react.js"
+      "types": "./dist/configs/react.d.ts",
+      "import": "./dist/configs/react.js",
+      "default": "./dist/configs/react.js"
     },
     "./next": {
-      "import": "./configs/next.js",
-      "default": "./configs/next.js"
+      "types": "./dist/configs/next.d.ts",
+      "import": "./dist/configs/next.js",
+      "default": "./dist/configs/next.js"
     },
     "./node": {
-      "import": "./configs/node.js",
-      "default": "./configs/node.js"
+      "types": "./dist/configs/node.d.ts",
+      "import": "./dist/configs/node.js",
+      "default": "./dist/configs/node.js"
     },
     "./vitest": {
-      "import": "./configs/vitest.js",
-      "default": "./configs/vitest.js"
+      "types": "./dist/configs/vitest.d.ts",
+      "import": "./dist/configs/vitest.js",
+      "default": "./dist/configs/vitest.js"
     },
     "./storybook": {
-      "import": "./configs/storybook.js",
-      "default": "./configs/storybook.js"
+      "types": "./dist/configs/storybook.d.ts",
+      "import": "./dist/configs/storybook.js",
+      "default": "./dist/configs/storybook.js"
     },
     "./cypress": {
-      "import": "./configs/cypress.js",
-      "default": "./configs/cypress.js"
+      "types": "./dist/configs/cypress.d.ts",
+      "import": "./dist/configs/cypress.js",
+      "default": "./dist/configs/cypress.js"
     },
     "./bundles/library": {
-      "import": "./bundles/library.js",
-      "default": "./bundles/library.js"
+      "types": "./dist/bundles/library.d.ts",
+      "import": "./dist/bundles/library.js",
+      "default": "./dist/bundles/library.js"
     },
     "./bundles/next-app": {
-      "import": "./bundles/next-app.js",
-      "default": "./bundles/next-app.js"
+      "types": "./dist/bundles/next-app.d.ts",
+      "import": "./dist/bundles/next-app.js",
+      "default": "./dist/bundles/next-app.js"
     },
     "./bundles/node-app": {
-      "import": "./bundles/node-app.js",
-      "default": "./bundles/node-app.js"
+      "types": "./dist/bundles/node-app.d.ts",
+      "import": "./dist/bundles/node-app.js",
+      "default": "./dist/bundles/node-app.js"
     },
     "./bundles/react-app": {
-      "import": "./bundles/react-app.js",
-      "default": "./bundles/react-app.js"
+      "types": "./dist/bundles/react-app.d.ts",
+      "import": "./dist/bundles/react-app.js",
+      "default": "./dist/bundles/react-app.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "index.js",
-    "configs/",
-    "bundles/"
+    "dist/"
   ],
   "peerDependencies": {
     "@eslint/js": "^10",

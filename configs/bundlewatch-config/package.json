@@ -11,7 +11,26 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "bundlewatch.config.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
   "peerDependencies": {
     "bundlewatch": "^0.4.0"
   },

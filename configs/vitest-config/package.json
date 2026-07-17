@@ -11,37 +11,49 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
   "exports": {
     ".": {
-      "import": "./index.js",
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./node": {
-      "import": "./presets/node.js",
-      "default": "./presets/node.js"
+      "types": "./dist/presets/node.d.ts",
+      "import": "./dist/presets/node.js",
+      "default": "./dist/presets/node.js"
     },
     "./react": {
-      "import": "./presets/react.js",
-      "default": "./presets/react.js"
+      "types": "./dist/presets/react.d.ts",
+      "import": "./dist/presets/react.js",
+      "default": "./dist/presets/react.js"
     },
     "./storybook": {
-      "import": "./presets/storybook.js",
-      "default": "./presets/storybook.js"
+      "types": "./dist/presets/storybook.d.ts",
+      "import": "./dist/presets/storybook.js",
+      "default": "./dist/presets/storybook.js"
     },
     "./bundles/library": {
-      "import": "./bundles/library.js",
-      "default": "./bundles/library.js"
+      "types": "./dist/bundles/library.d.ts",
+      "import": "./dist/bundles/library.js",
+      "default": "./dist/bundles/library.js"
     },
     "./bundles/react-app": {
-      "import": "./bundles/react-app.js",
-      "default": "./bundles/react-app.js"
+      "types": "./dist/bundles/react-app.d.ts",
+      "import": "./dist/bundles/react-app.js",
+      "default": "./dist/bundles/react-app.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "index.js",
-    "presets/",
-    "bundles/"
+    "dist/"
   ],
   "peerDependencies": {
     "vitest": "^4",

@@ -1,4 +1,4 @@
-import { mergeConfig } from "vite";
+import { mergeConfig, type UserConfig } from "vite";
 import { getPackageName } from "./get-package-name.js";
 
 /**
@@ -6,11 +6,10 @@ import { getPackageName } from "./get-package-name.js";
  * Wires up @vitejs/plugin-react; accepts a vite-tsconfig-paths instance
  * via options.plugins if tsconfig path aliases are needed.
  * Uploads bundle stats to Codecov when CODECOV_TOKEN is set.
- *
- * @param {import('vite').UserConfig} [overrides={}]
- * @returns {Promise<import('vite').UserConfig>}
  */
-export async function reactApp(overrides = {}) {
+export async function reactApp(
+	overrides: UserConfig = {},
+): Promise<UserConfig> {
 	const { default: react } = await import("@vitejs/plugin-react");
 
 	const plugins = [react()];

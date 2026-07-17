@@ -1,10 +1,13 @@
 import { setProjectAnnotations } from "@storybook/react";
-import { storybookConfig } from "./main";
-import { initialize as initMSW, storybookPreview } from "./preview";
-import { storybookTestRunner } from "./test-runner";
+import { storybookConfig } from "./main.js";
+import {
+	initialize as initMSW,
+	preview as storybookPreview,
+} from "./preview.js";
+import { storybookTestRunner } from "./test-runner.js";
 
-export type { StorybookConfig } from "./main";
-export type { Preview } from "./preview";
+export type { StorybookConfig } from "./main.js";
+export type { Preview } from "./preview.js";
 
 export default {
 	initMSW,

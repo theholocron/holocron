@@ -11,28 +11,39 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
   "exports": {
     ".": {
-      "import": "./index.js",
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./library": {
-      "import": "./presets/library.js",
-      "default": "./presets/library.js"
+      "types": "./dist/presets/library.d.ts",
+      "import": "./dist/presets/library.js",
+      "default": "./dist/presets/library.js"
     },
     "./react-app": {
-      "import": "./presets/react-app.js",
-      "default": "./presets/react-app.js"
+      "types": "./dist/presets/react-app.d.ts",
+      "import": "./dist/presets/react-app.js",
+      "default": "./dist/presets/react-app.js"
     },
     "./node-app": {
-      "import": "./presets/node-app.js",
-      "default": "./presets/node-app.js"
+      "types": "./dist/presets/node-app.d.ts",
+      "import": "./dist/presets/node-app.js",
+      "default": "./dist/presets/node-app.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "index.js",
-    "presets/"
+    "dist/"
   ],
   "peerDependencies": {
     "vite": "^6",

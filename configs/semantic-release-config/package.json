@@ -11,14 +11,24 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
   "exports": {
     ".": {
-      "import": "./index.js",
-      "default": "./index.js"
-    }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "index.js"
+    "dist/"
   ],
   "peerDependencies": {
     "@semantic-release/changelog": "^6",

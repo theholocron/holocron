@@ -11,13 +11,28 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "lint-staged.config.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "tsdown",
     "prepare": "husky"
   },
   "devDependencies": {
-    "husky": "^9.1.7"
+    "@theholocron/tsconfig": "workspace:*",
+    "husky": "^9.1.7",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
   "peerDependencies": {
     "husky": "^9",
     "imagemin-lint-staged": "^0.5",

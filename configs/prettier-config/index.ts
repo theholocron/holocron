@@ -1,6 +1,7 @@
+import type { Config } from "prettier";
+
 /**
  * @see https://prettier.io/docs/en/configuration.html
- * @type {import("prettier").Config}
  */
 const config = {
 	arrowParens: "always",
@@ -35,6 +36,6 @@ const config = {
 			},
 		},
 	],
-};
+} satisfies Config;
 
 export default config;

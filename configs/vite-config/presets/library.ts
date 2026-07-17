@@ -1,17 +1,22 @@
-import { mergeConfig } from "vite";
+import { mergeConfig, type UserConfig } from "vite";
 import { getPackageName } from "./get-package-name.js";
 
 /**
- * Vite preset for Node.js CLI tools and server apps.
- * Targets Node 22, outputs a single ESM bundle, no browser polyfills.
+ * Vite preset for publishable libraries.
+ * Outputs ESM only; externalises React and react-dom by default.
  * Uploads bundle stats to Codecov when CODECOV_TOKEN is set.
- *
- * @param {object} options
- * @param {string} [options.entry='src/index.ts'] Application entry point
- * @param {import('vite').UserConfig} [options.overrides={}] Merged last
- * @returns {Promise<import('vite').UserConfig>}
  */
-export async function nodeApp({ entry = "src/index.ts", overrides = {} } = {}) {
+export async function library({
+	entry = "src/index.ts",
+	name,
+	external = [],
+	overrides = {},
+}: {
+	entry?: string;
+	name?: string;
+	external?: string[];
+	overrides?: UserConfig;
+} = {}): Promise<UserConfig> {
 	const plugins = [];
 	try {
 		const { codecovVitePlugin } = await import("@codecov/vite-plugin");
@@ -30,16 +35,22 @@ export async function nodeApp({ entry = "src/index.ts", overrides = {} } = {}) {
 		{
 			plugins,
 			build: {
-				target: "node22",
 				lib: {
 					entry,
+					name,
 					formats: ["es"],
 					fileName: () => "index.mjs",
 				},
-				sourcemap: true,
 				rollupOptions: {
-					external: [/^node:/],
+					external: ["react", "react-dom", ...external],
+					output: {
+						globals: {
+							react: "React",
+							"react-dom": "ReactDOM",
+						},
+					},
 				},
+				sourcemap: true,
 			},
 		},
 		overrides,

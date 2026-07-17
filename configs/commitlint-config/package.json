@@ -11,17 +11,31 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "commitlint.config.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "tsdown",
     "test": "commitlint --from HEAD~1 --to HEAD --verbose"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1"
+    "@commitlint/types": "^21.2.0",
+    "@theholocron/tsconfig": "workspace:*",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
   "peerDependencies": {
-    "@commitlint/cli": "^19",
-    "@commitlint/config-conventional": "^19"
+    "@commitlint/cli": "^21",
+    "@commitlint/config-conventional": "^21"
   },
   "publishConfig": {
     "access": "public"

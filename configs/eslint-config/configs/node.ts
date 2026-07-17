@@ -1,6 +1,7 @@
 import n from "eslint-plugin-n";
+import type { Linter } from "eslint";
 
-export function node() {
+export function node(): Linter.FlatConfig[] {
 	return [
 		n.configs["flat/recommended-module"],
 		{

@@ -1,6 +1,7 @@
 import next from "@next/eslint-plugin-next";
+import type { Linter } from "eslint";
 
-export function nextConfig() {
+export function nextConfig(): Linter.FlatConfig[] {
 	return [
 		{
 			name: "@theholocron/next",

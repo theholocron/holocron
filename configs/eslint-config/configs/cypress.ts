@@ -1,6 +1,7 @@
 import cypress from "eslint-plugin-cypress";
+import type { Linter } from "eslint";
 
-export function cypressConfig() {
+export function cypressConfig(): Linter.FlatConfig[] {
 	return [
 		{
 			name: "@theholocron/cypress",
