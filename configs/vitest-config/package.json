@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/vitest-config",
-  "version": "6.1.1",
+  "version": "7.0.0",
   "description": "Vitest configuration presets for libraries, React apps, and Storybook within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/vitest-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
