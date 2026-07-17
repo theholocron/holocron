@@ -1,5 +1,1 @@
-export {
-	createDopplerClient,
-	type DopplerClient,
-	type DopplerClientOptions,
-} from "@theholocron/doppler-client";
+export { createDopplerClient, type DopplerClient, type DopplerClientOptions } from "@theholocron/doppler-client";
