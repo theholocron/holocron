@@ -26,31 +26,13 @@
 import { ProviderApiError } from "@theholocron/cli";
 import type { EnsureResult, Vault } from "@theholocron/cli";
 
-import type { RestClient } from "@theholocron/cli";
+import type { DopplerClient } from "../rest.js";
 
 export interface DopplerVaultOptions {
 	/** Default project — read/list/etc. operate here unless overridden. */
 	project: string;
 	/** Default config name — dev / stg / prd, etc. */
 	config: string;
-}
-
-interface SecretsListResponse {
-	secrets?: Record<string, { raw?: string; computed?: string } | null>;
-}
-
-interface SecretReadResponse {
-	name?: string;
-	value?: { raw?: string; computed?: string } | null;
-}
-
-interface SecretsDownloadResponse {
-	// `format=json` returns `{NAME: "value", ...}` at the top level.
-	[key: string]: string;
-}
-
-interface EnvironmentsListResponse {
-	environments?: Array<{ id?: string; name?: string; slug?: string }>;
 }
 
 export class DopplerVault implements Vault {
@@ -61,7 +43,7 @@ export class DopplerVault implements Vault {
 	private readonly config: string;
 
 	constructor(
-		private readonly rest: RestClient,
+		private readonly client: DopplerClient,
 		opts: DopplerVaultOptions
 	) {
 		if (!opts.project) {
@@ -78,44 +60,29 @@ export class DopplerVault implements Vault {
 
 	async read(reference: string): Promise<string> {
 		const parsed = parseReference(reference);
-		const res = await this.rest.request<SecretReadResponse>("/configs/config/secret", {
-			query: { project: parsed.project, config: parsed.config, name: parsed.name },
-		});
+		const res = await this.client.secrets.get(parsed.project, parsed.config, parsed.name);
 		return res.value?.computed ?? res.value?.raw ?? "";
 	}
 
 	async write(reference: string, value: string): Promise<void> {
 		const parsed = parseReference(reference);
-		await this.rest.request<unknown>("/configs/config/secrets", {
-			method: "POST",
-			body: {
-				project: parsed.project,
-				config: parsed.config,
-				secrets: { [parsed.name]: value },
-			},
-		});
+		await this.client.secrets.update(parsed.project, parsed.config, { [parsed.name]: value });
 	}
 
 	async list(): Promise<string[]> {
-		const res = await this.rest.request<SecretsListResponse>("/configs/config/secrets", {
-			query: { project: this.project, config: this.config },
-		});
+		const res = await this.client.secrets.list(this.project, this.config);
 		return Object.keys(res.secrets ?? {});
 	}
 
 	// ── environments ────────────────────────────────────────────────────
 
 	async environments(): Promise<string[]> {
-		const res = await this.rest.request<EnvironmentsListResponse>("/environments", {
-			query: { project: this.project },
-		});
+		const res = await this.client.environments.list(this.project);
 		return (res.environments ?? []).map((e) => e.slug ?? e.name ?? "").filter(Boolean);
 	}
 
 	async readEnvironment(environmentId: string): Promise<Record<string, string>> {
-		const res = await this.rest.request<SecretsDownloadResponse>("/configs/config/secrets/download", {
-			query: { project: this.project, config: environmentId, format: "json" },
-		});
+		const res = await this.client.secrets.download(this.project, environmentId);
 		// Filter out any non-string entries defensively.
 		const out: Record<string, string> = {};
 		for (const [k, v] of Object.entries(res)) {
@@ -128,10 +95,7 @@ export class DopplerVault implements Vault {
 
 	async ensureProject(name: string): Promise<EnsureResult> {
 		try {
-			await this.rest.request<unknown>("/projects", {
-				method: "POST",
-				body: { name, description: `Managed by holocron` },
-			});
+			await this.client.projects.create(name, "Managed by holocron");
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };
@@ -141,10 +105,7 @@ export class DopplerVault implements Vault {
 
 	async ensureEnvironment(project: string, name: string): Promise<EnsureResult> {
 		try {
-			await this.rest.request<unknown>("/environments", {
-				method: "POST",
-				body: { project, name, slug: name },
-			});
+			await this.client.environments.create(project, name, name);
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };

@@ -26,10 +26,12 @@
     "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
-    "@theholocron/cli": "workspace:*"
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/doppler-client": "catalog:"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/doppler-client": "catalog:",
     "@types/node": "catalog:",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",

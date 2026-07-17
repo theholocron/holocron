@@ -9,7 +9,7 @@
  * what we don't have yet at bootstrap time.
  */
 
-import { createDopplerRestClient } from "./rest.js";
+import { createDopplerClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -23,26 +23,15 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface MeResponse {
-	/** Token type: "cli", "personal", "service", "service_account". */
-	type?: string;
-	/** Workplace-level identifier. */
-	slug?: string;
-	/** Workplace object (present on account-level tokens). */
-	workplace?: { name?: string; slug?: string };
-	/** Present on user tokens. */
-	name?: string;
-}
-
 export interface VerifyTokenOptions {
 	baseUrl?: string;
 	fetch?: typeof fetch;
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const rest = createDopplerRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
+	const client = createDopplerClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const me = await rest.request<MeResponse>("/me");
+		const me = await client.me.get();
 		const workplace = me.workplace?.name ?? me.slug ?? "unknown";
 		const kind = me.type ?? "token";
 		return { ok: true, subject: `${kind} @ ${workplace}` };
