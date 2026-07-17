@@ -1,6 +1,6 @@
+import type { Linter } from "eslint";
 import { library } from "@theholocron/eslint-config/bundles/library";
 
-/** @type {import("eslint").Linter.Config} */
 const config = [
 	...library(),
 	{
@@ -12,6 +12,6 @@ const config = [
 		},
 	},
 	{ ignores: ["dist/**", "coverage/**"] },
-];
+] satisfies Linter.Config[];
 
 export default config;
