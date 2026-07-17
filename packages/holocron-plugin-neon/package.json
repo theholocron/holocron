@@ -27,7 +27,7 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/neon-client": "^0.7.0"
+    "@theholocron/neon-client": "catalog:"
   },
   "peerDependenciesMeta": {
     "@theholocron/neon-client": {
