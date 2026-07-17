@@ -733,6 +733,7 @@ jobs:
         if: \${{ !cancelled() }}
         with:
           token: \${{ secrets.CODECOV_TOKEN }}
+          files: '**/test-report.junit.xml'
 `,
 
 	"sync-github": `\
