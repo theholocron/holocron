@@ -5,11 +5,11 @@
  * See README for auth + config docs.
  */
 
-import type { Auth, RestClient } from "@theholocron/cli";
+import type { Auth } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ClerkAuth } from "./capabilities/auth.js";
-import { createClerkRestClient } from "./rest.js";
+import { createClerkClient, type ClerkClient } from "./rest.js";
 
 export interface ClerkPluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
@@ -20,19 +20,19 @@ export interface ClerkPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: ClerkPluginOptions;
-	rest: RestClient;
+	client: ClerkClient;
 }
 
 export function createContext(options: ClerkPluginOptions = {}): PluginContext {
 	const token = resolveToken(options);
 	return {
 		options,
-		rest: createClerkRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: createClerkClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
 export function auth(ctx: PluginContext): Auth {
-	return new ClerkAuth(ctx.rest);
+	return new ClerkAuth(ctx.client);
 }
 
 export function createPlugin(options: ClerkPluginOptions = {}) {
@@ -58,7 +58,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createClerkRestClient } from "./rest.js";
+export { createClerkClient } from "./rest.js";
 export { ClerkAuth } from "./capabilities/auth.js";
 export { parseWebhook } from "./parse-webhook.js";
 export { verifyToken } from "./verify-token.js";

@@ -9,7 +9,7 @@
  * canonical "is this secret key valid?" endpoint.
  */
 
-import { createClerkRestClient } from "./rest.js";
+import { createClerkClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -23,23 +23,17 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface InstanceResponse {
-	id?: string;
-	environment_type?: string; // "development" | "production" | "staging"
-	object?: string;
-}
-
 export interface VerifyTokenOptions {
 	baseUrl?: string;
 	fetch?: typeof fetch;
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const rest = createClerkRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
+	const client = createClerkClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const instance = await rest.request<InstanceResponse>("/instance");
-		const env = instance?.environment_type ?? "unknown";
-		const id = instance?.id ?? "unknown";
+		const inst = await client.instance.get();
+		const env = inst?.environment_type ?? "unknown";
+		const id = inst?.id ?? "unknown";
 		return { ok: true, subject: `${env} instance ${id}` };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
