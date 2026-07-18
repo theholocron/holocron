@@ -104,7 +104,7 @@ const res = await client.<resource>.<method>();
 ```yaml
 # pnpm-workspace.yaml
 catalog:
-  "@theholocron/<slug>-client": ^<version>
+    "@theholocron/<slug>-client": ^<version>
 ```
 
 ```json
