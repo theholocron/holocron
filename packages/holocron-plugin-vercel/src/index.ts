@@ -5,11 +5,11 @@
  * See README for auth + config docs.
  */
 
-import type { Deployment, RestClient } from "@theholocron/cli";
+import type { Deployment } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { VercelDeployment } from "./capabilities/deployment.js";
-import { createVercelRestClient } from "./rest.js";
+import { createVercelClient, type VercelClient } from "./rest.js";
 
 export interface VercelPluginOptions extends ResolveTokenInput {
 	/** Vercel team id. Set when working with a team-owned project. */
@@ -24,14 +24,14 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: VercelPluginOptions;
-	rest: RestClient;
+	client: VercelClient;
 }
 
 export function createContext(options: VercelPluginOptions = {}): PluginContext {
 	const token = resolveToken(options);
 	return {
 		options,
-		rest: createVercelRestClient({
+		client: createVercelClient({
 			token,
 			teamId: options.teamId,
 			baseUrl: options.baseUrl,
@@ -45,7 +45,7 @@ export function deployment(ctx: PluginContext): Deployment {
 	if (ctx.options.defaultFramework !== undefined) {
 		opts.defaultFramework = ctx.options.defaultFramework;
 	}
-	return new VercelDeployment(ctx.rest, opts);
+	return new VercelDeployment(ctx.client, opts);
 }
 
 export function createPlugin(options: VercelPluginOptions = {}) {
@@ -60,9 +60,7 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 
 /**
  * One-line hint printed by `holocron auth set vercel` when no token
- * is supplied or the supplied token is rejected. Points operators at
- * https://vercel.com/account/tokens where PATs are minted with
- * "Full Account" scope for team-level ops.
+ * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Vercel Personal Access Token at https://vercel.com/account/tokens " +
@@ -71,7 +69,8 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createVercelRestClient } from "./rest.js";
+export { createVercelClient } from "./rest.js";
+export type { VercelClient } from "./rest.js";
 export { VercelDeployment } from "./capabilities/deployment.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
