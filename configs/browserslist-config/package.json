@@ -10,11 +10,20 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "browserslist",
+    "browsers",
+    "config",
+    "theholocron"
+  ],
   "main": "index.js",
   "files": [
     "browserslistrc.json",
     "index.js"
   ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "publishConfig": {
     "access": "public"
   },

@@ -10,11 +10,20 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "commitlint",
+    "conventional-commits",
+    "git",
+    "commits",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsdown",
-    "test": "commitlint --from HEAD~1 --to HEAD --verbose"
+    "test": "commitlint --from HEAD~1 --to HEAD --verbose",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@commitlint/types": "^21.2.0",
@@ -36,6 +45,9 @@
   "peerDependencies": {
     "@commitlint/cli": "^21",
     "@commitlint/config-conventional": "^21"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

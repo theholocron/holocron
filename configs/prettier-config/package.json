@@ -10,10 +10,18 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "prettier",
+    "formatting",
+    "code-style",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -33,6 +41,9 @@
   ],
   "peerDependencies": {
     "prettier": "^3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

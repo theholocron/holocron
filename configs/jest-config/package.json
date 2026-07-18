@@ -3,7 +3,7 @@
   "version": "7.0.0",
   "description": "DEPRECATED: Use @theholocron/vitest-config instead.",
   "deprecated": "This package is no longer maintained. Migrate to @theholocron/vitest-config.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/jest-preset#readme",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/jest-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
   "repository": {
     "type": "git",
@@ -11,10 +11,18 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "jest",
+    "testing",
+    "deprecated",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "main": "dist/jest-preset.js",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -44,6 +52,9 @@
     "cypress": "^14",
     "jest": "^29",
     "jsdom": "^26"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

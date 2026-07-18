@@ -10,9 +10,18 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "vitest",
+    "testing",
+    "coverage",
+    "typescript",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -87,6 +96,9 @@
     "playwright": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

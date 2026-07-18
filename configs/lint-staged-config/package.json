@@ -10,11 +10,20 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "lint-staged",
+    "husky",
+    "git-hooks",
+    "pre-commit",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsdown",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -46,6 +55,9 @@
     "sort-package-json": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

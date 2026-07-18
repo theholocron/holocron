@@ -2,7 +2,7 @@
   "name": "@theholocron/stylelint-config",
   "version": "7.0.0",
   "description": "A StyleLint configuration for writing well-formed CSS within the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/stylelint-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
   "repository": {
     "type": "git",
@@ -10,10 +10,19 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "stylelint",
+    "css",
+    "scss",
+    "linting",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -35,6 +44,9 @@
     "stylelint": "^16",
     "stylelint-config-standard": "^38",
     "stylelint-config-standard-scss": "^15"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

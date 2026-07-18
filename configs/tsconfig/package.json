@@ -10,6 +10,12 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "typescript",
+    "tsconfig",
+    "config",
+    "theholocron"
+  ],
   "exports": {
     "./nextjs": "./nextjs/tsconfig.json",
     "./node-lts": "./node-lts/tsconfig.json"
@@ -20,6 +26,9 @@
   ],
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

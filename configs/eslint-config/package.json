@@ -22,7 +22,8 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -131,6 +132,9 @@
     "eslint-plugin-storybook": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

@@ -10,10 +10,19 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "storybook",
+    "components",
+    "react",
+    "visual-testing",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -64,6 +73,9 @@
     "react": "^19",
     "react-dom": "^19",
     "storybook-addon-pseudo-states": "^9"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"

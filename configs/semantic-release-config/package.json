@@ -10,9 +10,18 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "semantic-release",
+    "release",
+    "versioning",
+    "changelog",
+    "config",
+    "theholocron"
+  ],
   "type": "module",
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -44,6 +53,9 @@
     "@semantic-release/exec": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"
