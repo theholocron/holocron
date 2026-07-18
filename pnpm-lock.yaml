@@ -21,6 +21,9 @@ catalogs:
     '@theholocron/github-client':
       specifier: ^0.7.0
       version: 0.7.0
+    '@theholocron/infisical-client':
+      specifier: ^0.10.0
+      version: 0.10.0
     '@theholocron/lint-staged-config':
       specifier: ^7.0.0
       version: 7.0.0
@@ -500,6 +503,9 @@ importers:
       '@theholocron/eslint-config':
         specifier: 'catalog:'
         version: 7.0.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
+      '@theholocron/infisical-client':
+        specifier: 'catalog:'
+        version: 0.10.0
       '@theholocron/tsconfig':
         specifier: 'catalog:'
         version: 7.0.0(typescript@5.9.3)
@@ -1715,6 +1721,10 @@ packages:
 
   '@theholocron/http-client@0.7.0':
     resolution: {integrity: sha512-D2zC97WwBtMSrfKFtZM3GPVHxbuTJeMDjBH/JxlcB5YYSUzWX+LXrN8GrcHgm9heOPcwEf2GOGN6K9+DBq8Ntg==}
+    engines: {node: '>=22.0.0'}
+
+  '@theholocron/infisical-client@0.10.0':
+    resolution: {integrity: sha512-yE89Ev/fjtbK6zckXUNRlu2bcMVNKT5xEarqdw1zUWkYdrkU59Vymku16/2MdhenMyPCookR42Yp0JbsOG6aMw==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/lint-staged-config@7.0.0':
@@ -6475,6 +6485,10 @@ snapshots:
       '@theholocron/http-client': 0.7.0
 
   '@theholocron/http-client@0.7.0': {}
+
+  '@theholocron/infisical-client@0.10.0':
+    dependencies:
+      '@theholocron/http-client': 0.7.0
 
   '@theholocron/lint-staged-config@7.0.0(husky@9.1.7)(imagemin-lint-staged@0.5.1)(lint-staged@16.4.0)':
     dependencies:

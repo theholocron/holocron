@@ -7,13 +7,6 @@
  * `environment` (slug, typically `dev`/`stg`/`prd`) so `list()` /
  * `environments()` / `readEnvironment()` don't need a three-part ref.
  *
- * Infisical's data model:
- *   - Workspace (aka project) — top-level container
- *   - Environments — dev / stg / prd, scoped to a workspace
- *   - Secrets — scoped to a workspace + environment, with a path
- *     (defaults to root `/` in this plugin; a `secretPath` option
- *     would extend it but Phase 1 keeps it flat)
- *
  * Write semantics: Infisical's REST API separates CREATE (`POST`) and
  * UPDATE (`PATCH`). We attempt POST first; on the vendor's "already
  * exists" response we PATCH to upsert. The isConflict helper follows
@@ -26,30 +19,13 @@
 
 import { ProviderApiError } from "@theholocron/cli";
 import type { EnsureResult, Vault } from "@theholocron/cli";
-
-import type { RestClient } from "@theholocron/cli";
+import type { InfisicalClient } from "@theholocron/infisical-client";
 
 export interface InfisicalVaultOptions {
 	/** Default workspace (project) id — read/list/etc. operate here unless overridden. */
 	workspace: string;
 	/** Default environment slug — e.g., "dev", "stg", "prd". */
 	environment: string;
-}
-
-interface SecretsListResponse {
-	secrets?: Array<{ secretKey?: string; secretValue?: string }>;
-}
-
-interface SecretReadResponse {
-	secret?: { secretKey?: string; secretValue?: string };
-}
-
-interface WorkspaceEnvironmentsResponse {
-	workspace?: { environments?: Array<{ name?: string; slug?: string; id?: string }> };
-}
-
-interface WorkspaceListResponse {
-	workspaces?: Array<{ _id?: string; id?: string; name?: string; slug?: string }>;
 }
 
 export class InfisicalVault implements Vault {
@@ -61,13 +37,13 @@ export class InfisicalVault implements Vault {
 	/**
 	 * Cache of resolved workspace name/slug → id. `ensureEnvironment`
 	 * is called once per environment during `holocron setup` (dev / stg
-	 * / prd), so a single \`GET /v1/workspace\` lookup covers all three
+	 * / prd), so a single `GET /v1/workspace` lookup covers all three
 	 * calls in the same run.
 	 */
 	private readonly workspaceIdCache = new Map<string, string>();
 
 	constructor(
-		private readonly rest: RestClient,
+		private readonly client: InfisicalClient,
 		opts: InfisicalVaultOptions
 	) {
 		if (!opts.workspace) {
@@ -84,14 +60,12 @@ export class InfisicalVault implements Vault {
 
 	async read(reference: string): Promise<string> {
 		const parsed = parseReference(reference);
-		const res = await this.rest.request<SecretReadResponse>(`/v3/secrets/raw/${encodeURIComponent(parsed.name)}`, {
-			query: {
-				workspaceId: parsed.workspace,
-				environment: parsed.environment,
-				secretPath: "/",
-			},
+		const { secret } = await this.client.secrets.get(parsed.name, {
+			workspaceId: parsed.workspace,
+			environment: parsed.environment,
+			secretPath: "/",
 		});
-		return res.secret?.secretValue ?? "";
+		return secret?.secretValue ?? "";
 	}
 
 	async write(reference: string, value: string): Promise<void> {
@@ -103,57 +77,37 @@ export class InfisicalVault implements Vault {
 			secretValue: value,
 		};
 		try {
-			// Create: needs `type` (Infisical distinguishes `shared` vs
-			// `personal` secrets at creation time).
-			await this.rest.request<unknown>(`/v3/secrets/raw/${encodeURIComponent(parsed.name)}`, {
-				method: "POST",
-				body: { ...scope, type: "shared" as const },
-			});
-			return;
+			await this.client.secrets.create(parsed.name, { ...scope, type: "shared" });
 		} catch (err) {
 			if (!isConflict(err)) throw err;
-			// Already exists — PATCH with the minimum body needed for
-			// update. `type` is a creation classifier; omitting it keeps
-			// the existing secret's type intact and avoids leaking
-			// creation-specific fields into the update path (Infisical
-			// may start rejecting unknown fields on PATCH in the future).
-			await this.rest.request<unknown>(`/v3/secrets/raw/${encodeURIComponent(parsed.name)}`, {
-				method: "PATCH",
-				body: scope,
-			});
+			await this.client.secrets.update(parsed.name, scope);
 		}
 	}
 
 	async list(): Promise<string[]> {
-		const res = await this.rest.request<SecretsListResponse>("/v3/secrets/raw", {
-			query: {
-				workspaceId: this.workspace,
-				environment: this.environment,
-				secretPath: "/",
-			},
+		const { secrets } = await this.client.secrets.list({
+			workspaceId: this.workspace,
+			environment: this.environment,
+			secretPath: "/",
 		});
-		return (res.secrets ?? []).map((s) => s.secretKey ?? "").filter(Boolean);
+		return (secrets ?? []).map((s) => s.secretKey ?? "").filter(Boolean);
 	}
 
 	// ── environments ────────────────────────────────────────────────────
 
 	async environments(): Promise<string[]> {
-		const res = await this.rest.request<WorkspaceEnvironmentsResponse>(
-			`/v1/workspace/${encodeURIComponent(this.workspace)}`
-		);
-		return (res.workspace?.environments ?? []).map((e) => e.slug ?? e.name ?? "").filter(Boolean);
+		const { workspace } = await this.client.workspaces.get(this.workspace);
+		return (workspace?.environments ?? []).map((e) => e.slug ?? e.name ?? "").filter(Boolean);
 	}
 
 	async readEnvironment(environmentId: string): Promise<Record<string, string>> {
-		const res = await this.rest.request<SecretsListResponse>("/v3/secrets/raw", {
-			query: {
-				workspaceId: this.workspace,
-				environment: environmentId,
-				secretPath: "/",
-			},
+		const { secrets } = await this.client.secrets.list({
+			workspaceId: this.workspace,
+			environment: environmentId,
+			secretPath: "/",
 		});
 		const out: Record<string, string> = {};
-		for (const s of res.secrets ?? []) {
+		for (const s of secrets ?? []) {
 			if (s.secretKey && typeof s.secretValue === "string") {
 				out[s.secretKey] = s.secretValue;
 			}
@@ -165,10 +119,7 @@ export class InfisicalVault implements Vault {
 
 	async ensureProject(name: string): Promise<EnsureResult> {
 		try {
-			await this.rest.request<unknown>("/v2/workspace", {
-				method: "POST",
-				body: { projectName: name, slug: name },
-			});
+			await this.client.workspaces.create(name, name);
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };
@@ -179,10 +130,7 @@ export class InfisicalVault implements Vault {
 	async ensureEnvironment(project: string, name: string): Promise<EnsureResult> {
 		const workspaceId = await this.resolveWorkspaceId(project);
 		try {
-			await this.rest.request<unknown>(`/v1/workspace/${encodeURIComponent(workspaceId)}/environments`, {
-				method: "POST",
-				body: { environmentName: name, environmentSlug: name },
-			});
+			await this.client.workspaces.createEnvironment(workspaceId, name, name);
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };
@@ -190,46 +138,19 @@ export class InfisicalVault implements Vault {
 		}
 	}
 
-	/**
-	 * Resolve a workspace name / slug to its Infisical workspace id.
-	 *
-	 * `runSetup` calls `ensureEnvironment(config.project.name, envName)`
-	 * — for Doppler that's directly the API's input, but Infisical's
-	 * environments endpoint takes the workspace **id** (UUID/nanoid),
-	 * not the name. This helper does the translation via
-	 * `GET /v1/workspace` (which the token needs org-level list scope
-	 * to call).
-	 *
-	 * Graceful degrade: for workspace-scoped tokens that 403 on the
-	 * org-level list, we fall back to treating the input as an id
-	 * directly. If the operator's `holocron.config.json` names a real
-	 * id, the subsequent POST works. If they named a slug, the POST
-	 * 404s and the operator gets a clear "workspace not found" error
-	 * from the API — better than swallowing the 403 silently.
-	 *
-	 * Results are cached per-instance so the 3 back-to-back
-	 * `ensureEnvironment` calls in `runSetup` share one lookup.
-	 */
 	private async resolveWorkspaceId(nameOrId: string): Promise<string> {
 		const cached = this.workspaceIdCache.get(nameOrId);
 		if (cached) return cached;
 
 		try {
-			const res = await this.rest.request<WorkspaceListResponse>("/v1/workspace");
-			const match = (res?.workspaces ?? []).find((w) => w.name === nameOrId || w.slug === nameOrId);
+			const { workspaces } = await this.client.workspaces.list();
+			const match = (workspaces ?? []).find((w) => w.name === nameOrId || w.slug === nameOrId);
 			const resolvedId = match?._id ?? match?.id;
 			if (resolvedId) {
 				this.workspaceIdCache.set(nameOrId, resolvedId);
 				return resolvedId;
 			}
-			// Listed workspaces successfully but no match by name/slug —
-			// assume the input IS the id (or belongs to a workspace the
-			// token can't see; either way, pass through and let the
-			// subsequent POST speak for itself).
 		} catch (err) {
-			// 403 = workspace-scoped token can't list at org level. Not
-			// fatal — fall through to id-passthrough. Other errors are
-			// real problems.
 			if (!(err instanceof ProviderApiError) || err.status !== 403) throw err;
 		}
 		return nameOrId;
@@ -244,10 +165,6 @@ interface ParsedReference {
 	name: string;
 }
 
-/**
- * Parse `infisical://<workspaceId>/<environment>/<name>` into its
- * parts. Throws when the shape doesn't match.
- */
 function parseReference(reference: string): ParsedReference {
 	if (!reference.startsWith("infisical://")) {
 		throw new ProviderApiError(
@@ -269,13 +186,6 @@ function parseReference(reference: string): ParsedReference {
 	return { workspace: workspace!, environment: environment!, name: nameParts.join("/") };
 }
 
-/**
- * Infisical returns duplicate-create errors as 400 or 409 depending
- * on the endpoint, with a body message that includes "already exists"
- * (paraphrased). The REST client wraps both as ProviderApiError. We
- * accept 409 outright and treat 400/422 with an "already exists" body
- * as idempotent conflict — same pattern as the Doppler plugin.
- */
 function isConflict(err: unknown): boolean {
 	if (!(err instanceof ProviderApiError)) return false;
 	if (err.status === 409) return true;

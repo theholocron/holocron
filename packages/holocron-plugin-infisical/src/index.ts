@@ -6,11 +6,11 @@
  * See README for auth + config docs.
  */
 
-import type { RestClient, Vault } from "@theholocron/cli";
+import type { Vault } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { InfisicalVault, type InfisicalVaultOptions } from "./capabilities/vault.js";
-import { createInfisicalRestClient } from "./rest.js";
+import { createInfisicalClient, type InfisicalClient } from "./rest.js";
 
 export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaultOptions {
 	/** Override base URL for tests (or self-hosted Infisical). */
@@ -21,19 +21,19 @@ export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaul
 
 export interface PluginContext {
 	options: InfisicalPluginOptions;
-	rest: RestClient;
+	client: InfisicalClient;
 }
 
 export function createContext(options: InfisicalPluginOptions): PluginContext {
 	const token = resolveToken(options);
 	return {
 		options,
-		rest: createInfisicalRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: createInfisicalClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
 export function vault(ctx: PluginContext): Vault {
-	return new InfisicalVault(ctx.rest, {
+	return new InfisicalVault(ctx.client, {
 		workspace: ctx.options.workspace,
 		environment: ctx.options.environment,
 	});
@@ -52,13 +52,6 @@ export function createPlugin(options: InfisicalPluginOptions) {
 /**
  * One-line hint printed by `holocron auth set infisical` when no
  * token is supplied or the supplied token is rejected.
- *
- * IMPORTANT — the token must be usable as a `Authorization: Bearer`
- * directly. Two token types work: **Personal API Token** (inherits
- * user perms) or a **Token Auth** token on a machine identity (a
- * single long-lived string). Universal Auth's Client Secret is NOT
- * a bearer — it needs a `/v1/auth/universal-auth/login` exchange
- * step this plugin doesn't yet do (Phase 2 follow-up).
  */
 export const AUTH_HINT =
 	"generate a Token Auth token on your machine identity (organization → " +
@@ -69,7 +62,8 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createInfisicalRestClient } from "./rest.js";
+export { createInfisicalClient } from "./rest.js";
+export type { InfisicalClient } from "./rest.js";
 export { InfisicalVault } from "./capabilities/vault.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
