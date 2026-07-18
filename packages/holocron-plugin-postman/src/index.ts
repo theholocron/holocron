@@ -5,11 +5,11 @@
  * See README for auth + config docs.
  */
 
-import type { RestClient, Tooling } from "@theholocron/cli";
+import type { Tooling } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { PostmanTooling, type PostmanToolingOptions } from "./capabilities/tooling.js";
-import { createPostmanRestClient } from "./rest.js";
+import { createPostmanClient, type PostmanClient } from "./rest.js";
 
 export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingOptions {
 	/** Working repo root. Used to resolve relative paths in specFile/envFiles. Defaults to process.cwd(). */
@@ -22,7 +22,7 @@ export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingO
 
 export interface PluginContext {
 	options: PostmanPluginOptions;
-	rest: RestClient;
+	client: PostmanClient;
 }
 
 export function createContext(options: PostmanPluginOptions): PluginContext {
@@ -32,7 +32,7 @@ export function createContext(options: PostmanPluginOptions): PluginContext {
 	const token = resolveToken(options);
 	return {
 		options,
-		rest: createPostmanRestClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: createPostmanClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
@@ -43,7 +43,7 @@ export function tooling(ctx: PluginContext): Tooling {
 	if (ctx.options.collectionName !== undefined) opts.collectionName = ctx.options.collectionName;
 	if (ctx.options.envFiles !== undefined) opts.envFiles = ctx.options.envFiles;
 	if (ctx.options.repoRoot !== undefined) opts.repoRoot = ctx.options.repoRoot;
-	return new PostmanTooling(ctx.rest, opts);
+	return new PostmanTooling(ctx.client, opts);
 }
 
 export function createPlugin(options: PostmanPluginOptions) {
@@ -67,8 +67,8 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { PostmanPlanLimitError, detectPlanLimit } from "./errors.js";
-export { createPostmanRestClient } from "./rest.js";
+export { PostmanPlanLimitError, detectPlanLimit, createPostmanClient } from "./rest.js";
+export type { PostmanClient } from "./rest.js";
 export { PostmanTooling } from "./capabilities/tooling.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

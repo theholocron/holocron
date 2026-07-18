@@ -5,9 +5,10 @@ import { join } from "node:path";
 import { ProviderApiError } from "@theholocron/cli";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { PostmanPlanLimitError } from "@theholocron/postman-client";
+
 import { PostmanTooling } from "../capabilities/tooling.js";
-import { PostmanPlanLimitError } from "../errors.js";
-import { createPostmanRestClient } from "../rest.js";
+import { createPostmanClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -22,8 +23,8 @@ function makeTooling(
 	}> = {}
 ) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = createPostmanRestClient({ token: "pmak-test", fetch });
-	const tooling = new PostmanTooling(rest, { workspaceId: "ws-id", ...opts });
+	const client = createPostmanClient({ token: "pmak-test", fetch });
+	const tooling = new PostmanTooling(client, { workspaceId: "ws-id", ...opts });
 	return { tooling, calls };
 }
 
@@ -39,8 +40,8 @@ describe("PostmanTooling identity", () => {
 	});
 
 	it("throws when workspaceId is missing", () => {
-		const rest = createPostmanRestClient({ token: "t" });
-		expect(() => new PostmanTooling(rest, { workspaceId: "" })).toThrow(/workspaceId/);
+		const client = createPostmanClient({ token: "t" });
+		expect(() => new PostmanTooling(client, { workspaceId: "" })).toThrow(/workspaceId/);
 	});
 });
 

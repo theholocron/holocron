@@ -13,6 +13,8 @@ catalog:
   '@theholocron/neon-client': ^0.7.0
   '@theholocron/github-client': ^0.7.0
   '@theholocron/http-client': ^0.7.0
+  '@theholocron/postman-client': ^0.10.0
+  '@theholocron/vercel-client': ^0.10.0
   '@theholocron/lint-staged-config': ^7.0.0
   '@theholocron/prettier-config': ^7.0.0
   '@theholocron/tsconfig': ^7.0.0
