@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/clerk-client",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A TypeScript client for the Clerk Backend API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/clerk-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
