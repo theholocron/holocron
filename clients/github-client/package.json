@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/github-client",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "A TypeScript client for the GitHub REST API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/github-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
