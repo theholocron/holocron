@@ -75,9 +75,12 @@ export class VercelDeployment implements Deployment {
 		const result = await this.client.projects.update(projectId, {
 			previewDeploymentsDisabled: settings.previewDeploymentsDisabled,
 			// createDeployments accepts boolean at runtime; client type is narrower than needed
-			gitProviderOptions: settings.gitProviderCreateDeployments !== undefined
-				? ({ createDeployments: settings.gitProviderCreateDeployments } as unknown as { createDeployments?: string })
-				: undefined,
+			gitProviderOptions:
+				settings.gitProviderCreateDeployments !== undefined
+					? ({ createDeployments: settings.gitProviderCreateDeployments } as unknown as {
+							createDeployments?: string;
+						})
+					: undefined,
 		});
 		return mapProject(result);
 	}

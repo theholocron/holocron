@@ -54,10 +54,12 @@ describe("createPostmanClient", () => {
 	});
 
 	it("wraps limitReachedError as PostmanPlanLimitError", async () => {
-		const { fetch } = stubFetch([{
-			status: 403,
-			text: JSON.stringify({ error: { name: "limitReachedError", message: "upgrade required" } }),
-		}]);
+		const { fetch } = stubFetch([
+			{
+				status: 403,
+				text: JSON.stringify({ error: { name: "limitReachedError", message: "upgrade required" } }),
+			},
+		]);
 		const client = createPostmanClient({ token: TOKEN, fetch });
 		const err = await client.specs.list("ws1").catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(PostmanPlanLimitError);
