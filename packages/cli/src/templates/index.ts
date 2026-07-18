@@ -64,7 +64,7 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
-        node-version: \${{ inputs.node-version }}
+        node-version: \${{ hashFiles('.node-version') != '' && '' || inputs.node-version }}
         node-version-file: \${{ hashFiles('.node-version') != '' && '.node-version' || '' }}
         cache: \${{ hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
 
