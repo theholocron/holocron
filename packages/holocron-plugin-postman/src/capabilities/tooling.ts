@@ -26,8 +26,14 @@ import { basename, resolve } from "node:path";
 
 import { ProviderApiError } from "@theholocron/cli";
 import type { Tooling, ToolingDoctorReport } from "@theholocron/cli";
-
-import type { RestClient } from "@theholocron/cli";
+import type {
+	PostmanClient,
+	PostmanCollection,
+	PostmanEnvironment,
+	PostmanSpec,
+	PostmanUser,
+	PostmanWorkspace,
+} from "@theholocron/postman-client";
 
 export interface PostmanToolingOptions {
 	workspaceId: string;
@@ -43,72 +49,6 @@ export interface PostmanToolingOptions {
 	repoRoot?: string;
 }
 
-// ── Domain shapes (vendor-specific) ──────────────────────────────────
-
-export interface PostmanUser {
-	id: number;
-	username: string;
-	fullName: string;
-}
-
-export interface PostmanWorkspace {
-	id: string;
-	name: string;
-	type: string;
-}
-
-export interface PostmanCollection {
-	id: string;
-	uid: string;
-	name: string;
-}
-
-export interface PostmanEnvironment {
-	id: string;
-	uid: string;
-	name: string;
-}
-
-export interface PostmanSpec {
-	id: string;
-	name: string;
-	type: string;
-}
-
-// ── Raw response shapes (narrow — only fields we read) ───────────────
-
-interface RawUser {
-	id: number;
-	username: string;
-	fullName: string;
-}
-
-interface RawWorkspace {
-	id: string;
-	name: string;
-	type: string;
-}
-
-interface RawCollection {
-	id: string;
-	uid: string;
-	name: string;
-}
-
-interface RawEnvironment {
-	id: string;
-	uid: string;
-	name: string;
-}
-
-interface RawSpec {
-	id: string;
-	name: string;
-	type: string;
-}
-
-// ── Implementation ──────────────────────────────────────────────────
-
 export class PostmanTooling implements Tooling {
 	readonly key = "tooling" as const;
 	readonly providerName = "postman";
@@ -117,7 +57,7 @@ export class PostmanTooling implements Tooling {
 	private readonly repoRoot: string;
 
 	constructor(
-		private readonly rest: RestClient,
+		private readonly client: PostmanClient,
 		opts: PostmanToolingOptions
 	) {
 		if (!opts.workspaceId) {
@@ -141,7 +81,6 @@ export class PostmanTooling implements Tooling {
 		const specName = this.opts.specName ?? inferredName;
 		const collectionName = this.opts.collectionName ?? specName;
 
-		// 1. Spec Hub — find-or-create, then PATCH the file content.
 		const existingSpec = await this.findSpecByName({
 			workspaceId: this.opts.workspaceId,
 			name: specName,
@@ -160,8 +99,6 @@ export class PostmanTooling implements Tooling {
 			});
 		}
 
-		// 2. Collection — delete-then-import (Postman's OpenAPI import is
-		// create-only; no stable-id update path).
 		const existingCollection = await this.findCollectionByName({
 			workspaceId: this.opts.workspaceId,
 			name: collectionName,
@@ -174,7 +111,6 @@ export class PostmanTooling implements Tooling {
 			spec: specObj,
 		});
 
-		// 3. Environments — find-or-create for each file.
 		for (const file of this.opts.envFiles ?? []) {
 			const envPath = resolve(this.repoRoot, file);
 			const envText = await readFile(envPath, "utf8");
@@ -220,39 +156,27 @@ export class PostmanTooling implements Tooling {
 	// ── Postman-specific methods ───────────────────────────────────────
 
 	async getMyself(): Promise<PostmanUser> {
-		const raw = await this.rest.request<{ user: RawUser }>("/me");
-		return { id: raw.user.id, username: raw.user.username, fullName: raw.user.fullName };
+		const res = await this.client.me.get();
+		return res.user ?? {};
 	}
 
 	async listWorkspaces(): Promise<PostmanWorkspace[]> {
-		const raw = await this.rest.request<{ workspaces: RawWorkspace[] }>("/workspaces");
-		return raw.workspaces.map((w) => ({ id: w.id, name: w.name, type: w.type }));
+		const { workspaces } = await this.client.workspaces.list();
+		return workspaces;
 	}
 
 	async findCollectionByName(input: { workspaceId: string; name: string }): Promise<PostmanCollection | null> {
-		const raw = await this.rest.request<{ collections: RawCollection[] }>("/collections", {
-			query: { workspace: input.workspaceId },
-		});
-		const match = raw.collections.find((c) => c.name === input.name);
-		return match ? { id: match.id, uid: match.uid, name: match.name } : null;
+		const { collections } = await this.client.collections.list(input.workspaceId);
+		return collections.find((c) => c.name === input.name) ?? null;
 	}
 
 	async deleteCollection(uid: string): Promise<void> {
-		await this.rest.request<void>(`/collections/${encodeURIComponent(uid)}`, {
-			method: "DELETE",
-		});
+		await this.client.collections.delete(uid);
 	}
 
 	async importOpenApi(input: { workspaceId: string; spec: unknown }): Promise<PostmanCollection> {
-		const raw = await this.rest.request<{ collections: RawCollection[] }>("/import/openapi", {
-			method: "POST",
-			query: { workspace: input.workspaceId },
-			body: {
-				type: "string",
-				input: typeof input.spec === "string" ? input.spec : JSON.stringify(input.spec),
-			},
-		});
-		const created = raw.collections[0];
+		const { collections } = await this.client.import.openapi(input.workspaceId, input.spec);
+		const created = collections[0];
 		if (!created) {
 			throw new ProviderApiError(
 				"Postman returned no collection on import — check the OpenAPI spec is well-formed",
@@ -260,14 +184,12 @@ export class PostmanTooling implements Tooling {
 				undefined
 			);
 		}
-		return { id: created.id, uid: created.uid, name: created.name };
+		return created;
 	}
 
 	async listEnvironments(input: { workspaceId: string }): Promise<PostmanEnvironment[]> {
-		const raw = await this.rest.request<{ environments: RawEnvironment[] }>("/environments", {
-			query: { workspace: input.workspaceId },
-		});
-		return raw.environments.map((e) => ({ id: e.id, uid: e.uid, name: e.name }));
+		const { environments } = await this.client.environments.list(input.workspaceId);
+		return environments;
 	}
 
 	async findEnvironmentByName(input: { workspaceId: string; name: string }): Promise<PostmanEnvironment | null> {
@@ -276,28 +198,18 @@ export class PostmanTooling implements Tooling {
 	}
 
 	async createEnvironment(input: { workspaceId: string; environment: unknown }): Promise<PostmanEnvironment> {
-		const raw = await this.rest.request<{ environment: RawEnvironment }>("/environments", {
-			method: "POST",
-			query: { workspace: input.workspaceId },
-			body: { environment: input.environment },
-		});
-		return { id: raw.environment.id, uid: raw.environment.uid, name: raw.environment.name };
+		const { environment } = await this.client.environments.create(input.workspaceId, input.environment);
+		return environment;
 	}
 
 	async updateEnvironment(input: { uid: string; environment: unknown }): Promise<PostmanEnvironment> {
-		const raw = await this.rest.request<{ environment: RawEnvironment }>(
-			`/environments/${encodeURIComponent(input.uid)}`,
-			{ method: "PUT", body: { environment: input.environment } }
-		);
-		return { id: raw.environment.id, uid: raw.environment.uid, name: raw.environment.name };
+		const { environment } = await this.client.environments.update(input.uid, input.environment);
+		return environment;
 	}
 
 	async findSpecByName(input: { workspaceId: string; name: string }): Promise<PostmanSpec | null> {
-		const raw = await this.rest.request<{ specs: RawSpec[] }>("/specs", {
-			query: { workspaceId: input.workspaceId },
-		});
-		const match = raw.specs.find((s) => s.name === input.name);
-		return match ? { id: match.id, name: match.name, type: match.type } : null;
+		const { specs } = await this.client.specs.list(input.workspaceId);
+		return specs.find((s) => s.name === input.name) ?? null;
 	}
 
 	async createSpec(input: {
@@ -307,25 +219,15 @@ export class PostmanTooling implements Tooling {
 		filePath?: string;
 		fileContent: string;
 	}): Promise<PostmanSpec> {
-		// Body shape verified empirically — name + type are flat (not
-		// wrapped under `spec`); files is an array of `{ path, content }`.
-		const raw = await this.rest.request<RawSpec>("/specs", {
-			method: "POST",
-			query: { workspaceId: input.workspaceId },
-			body: {
-				name: input.name,
-				type: input.type ?? "OPENAPI:3.0",
-				files: [{ path: input.filePath ?? "index.json", content: input.fileContent }],
-			},
+		return this.client.specs.create(input.workspaceId, {
+			name: input.name,
+			type: input.type,
+			filePath: input.filePath,
+			fileContent: input.fileContent,
 		});
-		return { id: raw.id, name: raw.name, type: raw.type };
 	}
 
 	async upsertSpecFile(input: { specId: string; filePath: string; content: string }): Promise<void> {
-		// PATCH (PUT returns 404 against this surface — verified empirically).
-		await this.rest.request<void>(
-			`/specs/${encodeURIComponent(input.specId)}/files/${encodeURIComponent(input.filePath)}`,
-			{ method: "PATCH", body: { content: input.content } }
-		);
+		await this.client.specs.updateFile(input.specId, input.filePath, input.content);
 	}
 }
