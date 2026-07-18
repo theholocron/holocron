@@ -13,21 +13,11 @@
  *     will name the specific workspace + environment the token
  *     actually has access to.
  *   - 401 or other → token is invalid.
- *
- * The distinction matters: verifyToken answers "is this a real
- * Infisical token?", not "does it have every possible permission?"
- * — per-capability permission failures surface at the actual read /
- * write / list call sites.
- *
- * Kept as a standalone function (not a capability method) so the auth
- * command can call it without initializing the full plugin — plugin
- * construction requires an already-resolved token, which is exactly
- * what we don't have yet at bootstrap time.
  */
 
 import { ProviderApiError } from "@theholocron/cli";
 
-import { createInfisicalRestClient } from "./rest.js";
+import { createInfisicalClient } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -41,27 +31,20 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface WorkspaceListResponse {
-	workspaces?: Array<{ _id?: string; id?: string; name?: string; slug?: string }>;
-}
-
 export interface VerifyTokenOptions {
 	baseUrl?: string;
 	fetch?: typeof fetch;
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const rest = createInfisicalRestClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
+	const client = createInfisicalClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const res = await rest.request<WorkspaceListResponse>("/v1/workspace");
-		const count = res?.workspaces?.length ?? 0;
-		const first = res?.workspaces?.[0];
+		const { workspaces } = await client.workspaces.list();
+		const count = workspaces?.length ?? 0;
+		const first = workspaces?.[0];
 		const label = first?.name ?? first?.slug ?? "no accessible workspaces";
 		return { ok: true, subject: `${count} workspace${count === 1 ? "" : "s"} · first: ${label}` };
 	} catch (err) {
-		// 403 = token authenticates but lacks workspace-list scope
-		// (typical for workspace-scoped Universal Auth machine identities).
-		// Report ok with a scope-limited subject.
 		if (err instanceof ProviderApiError && err.status === 403) {
 			return {
 				ok: true,

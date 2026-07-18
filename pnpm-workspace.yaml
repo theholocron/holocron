@@ -9,6 +9,7 @@ catalog:
   '@theholocron/eslint-config': ^7.0.0
   '@theholocron/clerk-client': ^0.7.0
   '@theholocron/doppler-client': ^0.7.0
+  '@theholocron/infisical-client': ^0.10.0
   '@theholocron/neon-client': ^0.7.0
   '@theholocron/github-client': ^0.7.0
   '@theholocron/http-client': ^0.7.0
