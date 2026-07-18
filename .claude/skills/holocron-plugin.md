@@ -43,6 +43,79 @@ Then follow the "Next" steps printed by the command:
    capability interface in `packages/cli/src/capabilities/index.ts`.
 4. Replace `it.todo(...)` with real tests.
 5. Commit + push when the capability is functionally complete.
+6. **Wire a typed client** (see below) once `@theholocron/<slug>-client`
+   exists in the `theholocron/clients` repo.
+
+## Step 6: migrate to a typed client
+
+The scaffolded `rest.ts` uses the raw `createRestClient` from `@theholocron/cli`.
+Once a typed client package exists for the vendor (in `theholocron/clients`),
+replace it.
+
+**`src/rest.ts`** — swap to a re-export:
+
+```ts
+export {
+  create<Vendor>Client,
+  type <Vendor>Client,
+  type <Vendor>ClientOptions,
+} from "@theholocron/<slug>-client";
+```
+
+**`src/index.ts`** — change `PluginContext.rest: RestClient` to `client: <Vendor>Client`:
+
+```ts
+export interface PluginContext {
+  options: <Vendor>PluginOptions;
+  client: <Vendor>Client;
+}
+
+export function createContext(options: <Vendor>PluginOptions): PluginContext {
+  const token = resolveToken(options);
+  return {
+    options,
+    client: create<Vendor>Client({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+  };
+}
+```
+
+**`src/capabilities/<key>.ts`** — constructor takes `<Vendor>Client` instead of `RestClient`:
+
+```ts
+import type { <Vendor>Client } from "@theholocron/<slug>-client";
+
+constructor(private readonly client: <Vendor>Client, ...) {}
+```
+
+Replace all `this.rest.request<T>(...)` calls with typed client methods
+(`this.client.<resource>.<method>(...)`).
+
+**`src/verify-token.ts`** — use the typed client:
+
+```ts
+import { create<Vendor>Client } from "./rest.js";
+
+const client = create<Vendor>Client({ token, ... });
+const res = await client.<resource>.<method>();
+```
+
+**`pnpm-workspace.yaml` catalog + plugin `package.json`** — add the client:
+
+```yaml
+# pnpm-workspace.yaml
+catalog:
+  "@theholocron/<slug>-client": ^<version>
+```
+
+```json
+"peerDependencies": { "@theholocron/<slug>-client": "catalog:" },
+"peerDependenciesMeta": { "@theholocron/<slug>-client": { "optional": false } },
+"devDependencies": { "@theholocron/<slug>-client": "catalog:" }
+```
+
+**Tests** — update `makeXxx()` helpers to call `create<Vendor>Client` instead
+of the inline rest client factory; import any error classes (e.g. `PostmanPlanLimitError`)
+from the client package rather than the plugin's own `errors.ts`.
 
 ## Design context
 
