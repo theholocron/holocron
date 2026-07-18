@@ -1,0 +1,66 @@
+{
+  "name": "@theholocron/postman-client",
+  "version": "0.8.1",
+  "description": "A TypeScript client for the Postman API",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/postman-client#readme",
+  "bugs": "https://github.com/theholocron/clients/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/clients.git",
+    "directory": "packages/postman-client"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@theholocron/http-client": "^0.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@theholocron/tsdown-config": "catalog:",
+    "@theholocron/vitest-config": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "releases": "https://github.com/theholocron/clients/releases",
+  "wiki": "https://github.com/theholocron/clients/wiki"
+}

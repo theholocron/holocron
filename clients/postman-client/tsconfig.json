@@ -1,0 +1,7 @@
+{
+  "display": "Postman API Client",
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": { "baseUrl": "./", "outDir": "./dist" },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
