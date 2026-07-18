@@ -28,7 +28,7 @@ export interface VercelCreateProjectInput {
 
 export interface VercelUpdateProjectInput {
 	previewDeploymentsDisabled?: boolean;
-	gitProviderOptions?: { createDeployments?: string };
+	gitProviderOptions?: { createDeployments?: boolean | string };
 }
 
 export function projects(rest: RestClient) {
