@@ -15,6 +15,7 @@ export function reactApp(options = {}) {
 		test: {
 			...base.test,
 			coverage: {
+				enabled: true,
 				provider: "v8",
 				reporter: ["lcov", "text"],
 				include: ["src/**"],

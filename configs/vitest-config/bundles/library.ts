@@ -33,6 +33,7 @@ export function library({
 		test: {
 			...base.test,
 			coverage: {
+				enabled: true,
 				provider: "v8",
 				reporter: ["lcov", "text"],
 				include: ["src/**/*.ts"],
