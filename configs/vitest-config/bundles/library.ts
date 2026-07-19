@@ -34,6 +34,7 @@ export function library({
 			...base.test,
 			coverage: {
 				provider: "v8",
+				reporter: ["lcov", "text"],
 				include: ["src/**/*.ts"],
 				exclude: [
 					"src/**/__tests__/**",
