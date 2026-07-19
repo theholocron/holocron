@@ -4,6 +4,7 @@ packages:
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.
 catalog:
+  '@theholocron/holocron-config': ^7.2.0
   '@theholocron/commitlint-config': ^7.0.0
   '@theholocron/semantic-release-config': ^7.0.0
   '@theholocron/eslint-config': ^7.0.0

@@ -29,6 +29,7 @@
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/semantic-release-config": "catalog:",
     "@theholocron/cli": "workspace:*",
+    "@theholocron/holocron-config": "catalog:",
     "@theholocron/holocron-plugin-1password": "workspace:*",
     "@theholocron/holocron-plugin-clerk": "workspace:*",
     "@theholocron/holocron-plugin-doppler": "workspace:*",
