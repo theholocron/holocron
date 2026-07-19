@@ -20,7 +20,7 @@ catalog:
   '@theholocron/prettier-config': ^7.0.0
   '@theholocron/tsconfig': ^7.0.0
   '@theholocron/tsdown-config': ^7.0.0
-  '@theholocron/vitest-config': ^7.0.0
+  '@theholocron/vitest-config': ^7.2.2
   '@vitest/eslint-plugin': ^1.6.23
   eslint: ^10.7.0
   eslint-plugin-n: ^18.2.2
