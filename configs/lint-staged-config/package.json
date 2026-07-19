@@ -23,13 +23,16 @@
   "scripts": {
     "build": "tsdown",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
     "husky": "^9.1.7",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "@theholocron/vitest-config": "workspace:*"
   },
   "exports": {
     ".": {

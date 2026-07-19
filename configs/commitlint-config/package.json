@@ -22,14 +22,16 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsdown",
-    "test": "commitlint --from HEAD~1 --to HEAD --verbose",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@commitlint/types": "^21.2.0",
     "@theholocron/tsconfig": "workspace:*",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "@theholocron/vitest-config": "workspace:*"
   },
   "exports": {
     ".": {

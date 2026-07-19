@@ -23,12 +23,18 @@
   "type": "module",
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "@theholocron/vitest-config": "workspace:*",
+    "@eslint/js": "^10.0.0",
+    "globals": "^17.0.0",
+    "typescript-eslint": "^8.0.0"
   },
   "exports": {
     ".": {
