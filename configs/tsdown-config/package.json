@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/tsdown-config",
-  "version": "7.2.0",
+  "version": "7.2.1",
   "description": "Shared tsdown configurations for @theholocron packages.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/tsdown-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
