@@ -1,6 +1,0 @@
-{
-  "extends": "@theholocron/tsconfig/node-lts",
-  "compilerOptions": { "rootDir": ".", "outDir": "dist" },
-  "include": ["**/*.ts"],
-  "exclude": ["dist", "node_modules", "tsdown.config.ts"]
-}
