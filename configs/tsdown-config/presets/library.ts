@@ -1,10 +1,10 @@
-import { defineConfig, type Options } from "tsdown";
+import { defineConfig, type UserConfig } from "tsdown";
 
 /**
  * tsdown preset for a published ESM library.
  * Single entry point, generates types, does not bundle @theholocron/* peers.
  */
-export function library(options: Options = {}) {
+export function library(options: UserConfig = {}) {
 	return defineConfig({
 		entry: ["src/index.ts"],
 		format: "esm",

@@ -5,7 +5,9 @@ export { initialize } from "msw-storybook-addon";
 
 export type { Preview };
 
-export const preview: Preview = {
+// `layout` is valid storybook v9 runtime config but absent from
+// ProjectAnnotations<ReactRenderer> in the type definitions — cast to accept it.
+export const preview = {
 	layout: "centered",
 	loaders: [mswLoader],
 	parameters: {
@@ -27,4 +29,4 @@ export const preview: Preview = {
 		},
 	},
 	tags: ["autodocs"],
-};
+} as unknown as Preview;

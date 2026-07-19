@@ -28,14 +28,17 @@ describe("storybook-config", () => {
 	it("exports storybookConfig with addons and framework", () => {
 		expect(typeof config.storybookConfig).toBe("object");
 		expect(Array.isArray(config.storybookConfig.addons)).toBe(true);
-		expect(config.storybookConfig.framework?.name).toBe(
-			"@storybook/react-vite",
-		);
+		// framework can be a string name or { name, options } — normalise to name
+		const fw = config.storybookConfig.framework;
+		const fwName = typeof fw === "object" && fw !== null ? fw.name : fw;
+		expect(fwName).toBe("@storybook/react-vite");
 	});
 
 	it("exports storybookPreview with layout and parameters", () => {
 		expect(typeof config.storybookPreview).toBe("object");
-		expect(config.storybookPreview.layout).toBe("centered");
+		// layout lives on the preview object at runtime; cast to access it
+		const preview = config.storybookPreview as Record<string, unknown>;
+		expect(preview.layout).toBe("centered");
 	});
 
 	it("exports storybookTestRunner with preVisit and postVisit hooks", () => {

@@ -47,14 +47,10 @@
   ],
   "peerDependencies": {
     "husky": "^9",
-    "imagemin-lint-staged": "^0.5",
     "lint-staged": "^16",
     "sort-package-json": "^4"
   },
   "peerDependenciesMeta": {
-    "imagemin-lint-staged": {
-      "optional": true
-    },
     "sort-package-json": {
       "optional": true
     }

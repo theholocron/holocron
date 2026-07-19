@@ -40,8 +40,10 @@ describe("eslint-config — bundles", () => {
 
 	it("library() includes a config named @theholocron/library", () => {
 		const config = library();
-		expect(config.some((c) => c.name === "@theholocron/library")).toBe(
-			true,
-		);
+		expect(
+			config.some(
+				(c) => "name" in c && c.name === "@theholocron/library",
+			),
+		).toBe(true);
 	});
 });

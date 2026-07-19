@@ -32,12 +32,11 @@ export { default } from "@theholocron/lint-staged-config";
 
 ## What runs on staged files
 
-| File pattern               | Commands                        |
-| -------------------------- | ------------------------------- |
-| `*.{js,jsx}`               | `prettier --write`, `eslint`    |
-| `*.{ts,tsx}`               | `prettier --write`, `eslint`    |
-| `*.css`                    | `stylelint --fix`               |
-| `*.scss`                   | `stylelint --syntax=scss --fix` |
-| `*.{md,mdx}`               | `prettier --write`              |
-| `*.{png,jpeg,jpg,gif,svg}` | `imagemin-lint-staged`          |
-| `package.json`             | `sort-package-json`             |
+| File pattern   | Commands                        |
+| -------------- | ------------------------------- |
+| `*.{js,jsx}`   | `prettier --write`, `eslint`    |
+| `*.{ts,tsx}`   | `prettier --write`, `eslint`    |
+| `*.css`        | `stylelint --fix`               |
+| `*.scss`       | `stylelint --syntax=scss --fix` |
+| `*.{md,mdx}`   | `prettier --write`              |
+| `package.json` | `sort-package-json`             |
