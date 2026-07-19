@@ -11,6 +11,13 @@ export default defineConfig({
 		repo: {
 			name: "theholocron/holocron",
 			protection: "strict",
+			topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
+			properties: {
+				lifecycle: "active",
+				open_source: true,
+				runtime_environment: "node",
+				uses_external_packages: true,
+			},
 		},
 		workflows: defaults.workflows,
 	},
