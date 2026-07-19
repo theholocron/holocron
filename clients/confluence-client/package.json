@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/confluence-client",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "A TypeScript client for the Confluence API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/confluence-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
