@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/tsconfig",
-  "version": "7.1.5",
+  "version": "7.2.0",
   "description": "TypeScript base configurations for theholocron projects.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/tsconfig#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
