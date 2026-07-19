@@ -21,6 +21,9 @@ catalogs:
     '@theholocron/github-client':
       specifier: ^0.7.0
       version: 0.7.0
+    '@theholocron/holocron-config':
+      specifier: ^7.2.0
+      version: 7.2.0
     '@theholocron/infisical-client':
       specifier: ^0.10.0
       version: 0.10.0
@@ -104,6 +107,9 @@ importers:
       '@theholocron/eslint-config':
         specifier: 'catalog:'
         version: 7.0.0(@eslint/js@10.0.1(eslint@10.7.0(jiti@2.6.1)))(@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.7.0(jiti@2.6.1)))(eslint@10.7.0(jiti@2.6.1))(globals@17.7.0)(typescript-eslint@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))
+      '@theholocron/holocron-config':
+        specifier: 'catalog:'
+        version: 7.2.0(@theholocron/cli@packages+cli)
       '@theholocron/holocron-plugin-1password':
         specifier: workspace:*
         version: link:packages/holocron-plugin-1password
@@ -1718,6 +1724,12 @@ packages:
   '@theholocron/github-client@0.7.0':
     resolution: {integrity: sha512-7fQ1AY0ZUh95cS7HARBfTWMyYnP56aBMJ0TfT6XKCzQEgSUc4VvsCzUsBW0gnBF/BrqgBHNWQXfK0Fs1kFXUVw==}
     engines: {node: '>=22.0.0'}
+
+  '@theholocron/holocron-config@7.2.0':
+    resolution: {integrity: sha512-eEQVNP5YGL1eA/ur8yjqbB4iq9khgL1jy2ZSR+8d7OSYjWMPe2osKL3GALF2qpaT9AjcVH9Enycy1kyDIviT9A==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@theholocron/cli': '>=2.0.0-alpha.1'
 
   '@theholocron/http-client@0.7.0':
     resolution: {integrity: sha512-D2zC97WwBtMSrfKFtZM3GPVHxbuTJeMDjBH/JxlcB5YYSUzWX+LXrN8GrcHgm9heOPcwEf2GOGN6K9+DBq8Ntg==}
@@ -6483,6 +6495,10 @@ snapshots:
   '@theholocron/github-client@0.7.0':
     dependencies:
       '@theholocron/http-client': 0.7.0
+
+  '@theholocron/holocron-config@7.2.0(@theholocron/cli@packages+cli)':
+    dependencies:
+      '@theholocron/cli': link:packages/cli
 
   '@theholocron/http-client@0.7.0': {}
 
