@@ -8,8 +8,10 @@ export default defineConfig({
 		name: "holocron",
 		description:
 			"The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.",
-		repo: "theholocron/holocron",
-		repoPolicy: defaults.repoPolicy,
+		repo: {
+			name: "theholocron/holocron",
+			protection: "strict",
+		},
 		workflows: defaults.workflows,
 	},
 	providers: {
