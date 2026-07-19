@@ -15,5 +15,5 @@ In your project `stylelint.config.js`:
 ```javascript
 import theHolocron from "@theholocron/stylelint-config";
 
-export default [...theHolocron];
+export default theHolocron;
 ```

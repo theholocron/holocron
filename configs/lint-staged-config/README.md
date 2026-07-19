@@ -21,25 +21,23 @@ npx husky init
 Replace the contents of `.husky/pre-commit` with:
 
 ```bash
-pnpm exec lint-staged --config node_modules/@theholocron/lint-staged-config/lint-staged.config.js
+pnpm exec lint-staged
 ```
 
-Or add it to `package.json`:
+Then create a `lint-staged.config.js` at your project root:
 
-```json
-{
-  "lint-staged": "node_modules/@theholocron/lint-staged-config/lint-staged.config.js"
-}
+```js
+export { default } from "@theholocron/lint-staged-config";
 ```
 
 ## What runs on staged files
 
-| File pattern               | Commands                                           |
-| -------------------------- | -------------------------------------------------- |
-| `*.{js,jsx}`               | `prettier --write`, `eslint`                       |
-| `*.{ts,tsx}`               | `prettier --write`, `eslint`, `tsc-files --noEmit` |
-| `*.css`                    | `stylelint --fix`                                  |
-| `*.scss`                   | `stylelint --syntax=scss --fix`                    |
-| `*.{md,mdx}`               | `prettier --write`                                 |
-| `*.{png,jpeg,jpg,gif,svg}` | `imagemin-lint-staged`                             |
-| `package.json`             | `sort-package-json`                                |
+| File pattern               | Commands                        |
+| -------------------------- | ------------------------------- |
+| `*.{js,jsx}`               | `prettier --write`, `eslint`    |
+| `*.{ts,tsx}`               | `prettier --write`, `eslint`    |
+| `*.css`                    | `stylelint --fix`               |
+| `*.scss`                   | `stylelint --syntax=scss --fix` |
+| `*.{md,mdx}`               | `prettier --write`              |
+| `*.{png,jpeg,jpg,gif,svg}` | `imagemin-lint-staged`          |
+| `package.json`             | `sort-package-json`             |

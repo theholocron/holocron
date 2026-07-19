@@ -10,18 +10,24 @@ npm install --save-dev @theholocron/bundlewatch-config bundlewatch
 
 ## Usage
 
-Add the following script to your project `package.json`:
+Create a `bundlewatch.config.js` at your project root that re-exports the shared config:
+
+```js
+export { default } from "@theholocron/bundlewatch-config";
+```
+
+Then add a script to `package.json`:
 
 ```json
 {
   "scripts": {
-    "audit:bundle": "bundlewatch --config ./node_modules/@theholocron/bundlewatch-config/bundlewatch.config.js"
+    "audit:bundle": "bundlewatch --config bundlewatch.config.js"
   }
 }
 ```
 
-Then run:
+Run it with:
 
 ```bash
-npm run audit:bundle
+pnpm run audit:bundle
 ```
