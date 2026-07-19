@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/bundlewatch-config",
-  "version": "7.1.2",
+  "version": "7.1.3",
   "description": "DEPRECATED: Use Codecov bundle analysis via @theholocron/vite-config instead.",
   "deprecated": "This package is no longer maintained. Migrate to Codecov bundle analysis — install @codecov/vite-plugin and use any @theholocron/vite-config preset. Bundle stats upload automatically when CODECOV_TOKEN is set.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/bundlewatch-config#readme",
