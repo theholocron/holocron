@@ -56,3 +56,23 @@ import { nodeApp } from "@theholocron/vite-config/node-app";
 
 export default defineConfig(await nodeApp({ entry: "src/index.ts" }));
 ```
+
+## Codecov bundle analysis
+
+All three presets automatically include [`@codecov/vite-plugin`](https://www.npmjs.com/package/@codecov/vite-plugin) when `@codecov/vite-plugin` is installed and `CODECOV_TOKEN` is set in the environment. No extra configuration in `vite.config.ts` is needed — bundle stats are uploaded to Codecov on every build.
+
+Install the peer dependency:
+
+```bash
+npm install --save-dev @codecov/vite-plugin
+```
+
+Set `CODECOV_TOKEN` as a CI secret, then add the following to your `codecov.yml` to control when Codecov posts bundle size comments on PRs:
+
+```yaml
+comment:
+  require_bundle_changes: true
+  bundle_change_threshold: "1Kb"
+```
+
+This posts a comment only when bundle size changes by more than 1 KB — enough to flag meaningful regressions without noise from routine fluctuations. See the [Codecov bundle analysis docs](https://docs.codecov.com/docs/javascript-bundle-analysis) for more threshold options.
