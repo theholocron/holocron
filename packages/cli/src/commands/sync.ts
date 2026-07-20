@@ -255,6 +255,9 @@ async function writePackageJsonField(repoRoot: string, field: string, value: unk
 	return true;
 }
 
+const README_DESC_START = "<!-- holocron:description -->";
+const README_DESC_END = "<!-- /holocron:description -->";
+
 async function updateReadmeDescription(repoRoot: string, description: string): Promise<boolean> {
 	const readmePath = join(repoRoot, "README.md");
 	let content: string;
@@ -264,22 +267,20 @@ async function updateReadmeDescription(repoRoot: string, description: string): P
 		return false;
 	}
 	const lines = content.split("\n");
+
+	const startIdx = lines.findIndex((l) => l.trim() === README_DESC_START);
+	const endIdx = lines.findIndex((l) => l.trim() === README_DESC_END);
+	if (startIdx !== -1) {
+		if (endIdx === -1 || endIdx <= startIdx) return false;
+		lines.splice(startIdx + 1, endIdx - startIdx - 1, description);
+		await writeFile(readmePath, lines.join("\n"), "utf8");
+		return true;
+	}
+
 	const h1Index = lines.findIndex((l) => /^# /.test(l));
 	if (h1Index === -1) return false;
 
-	let i = h1Index + 1;
-	while (i < lines.length && lines[i]!.trim() === "") i++;
-
-	if (i >= lines.length || lines[i]!.startsWith("#")) {
-		lines.splice(h1Index + 1, 0, "", description);
-	} else {
-		const descStart = i;
-		let descEnd = i;
-		while (descEnd < lines.length && lines[descEnd]!.trim() !== "" && !lines[descEnd]!.startsWith("#")) {
-			descEnd++;
-		}
-		lines.splice(descStart, descEnd - descStart, description);
-	}
+	lines.splice(h1Index + 1, 0, "", README_DESC_START, description, README_DESC_END);
 	await writeFile(readmePath, lines.join("\n"), "utf8");
 	return true;
 }

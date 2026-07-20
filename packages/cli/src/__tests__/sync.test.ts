@@ -523,13 +523,11 @@ describe("runSync", () => {
 			expect(pkg.description).toBe("A great tool");
 		});
 
-		it("updates the description line in README.md", async () => {
-			await writeFile(join(tmpDir, "README.md"), "# Demo\n\nOld description.\n\n## Usage\n");
-			const loaded = loadedFrom({
-				name: "demo",
-				description: "New description.",
-				providers: { source: "github" },
-			});
+		it("replaces description within existing marker block", async () => {
+			const initial =
+				"# Demo\n\n<!-- holocron:description -->\nOld description.\n<!-- /holocron:description -->\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "New description.", providers: { source: "github" } });
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
@@ -539,15 +537,29 @@ describe("runSync", () => {
 			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
 			expect(readme).toContain("New description.");
 			expect(readme).not.toContain("Old description.");
+			expect(readme).toContain("## Usage");
 		});
 
-		it("inserts description into README.md when none exists", async () => {
-			await writeFile(join(tmpDir, "README.md"), "# Demo\n\n## Usage\n");
-			const loaded = loadedFrom({
-				name: "demo",
-				description: "A new description.",
-				providers: { source: "github" },
+		it("marker block update is idempotent across multiple syncs", async () => {
+			const initial =
+				"# Demo\n\n<!-- holocron:description -->\nFirst.\n<!-- /holocron:description -->\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "Second.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme.match(/<!-- holocron:description -->/g)).toHaveLength(1);
+			expect(readme).toContain("Second.");
+		});
+
+		it("inserts marker block after H1 when no block exists", async () => {
+			await writeFile(join(tmpDir, "README.md"), "# Demo\n\n## Usage\n");
+			const loaded = loadedFrom({ name: "demo", description: "A new description.", providers: { source: "github" } });
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
@@ -555,8 +567,55 @@ describe("runSync", () => {
 			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
 
 			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("<!-- holocron:description -->");
 			expect(readme).toContain("A new description.");
+			expect(readme).toContain("<!-- /holocron:description -->");
 			expect(readme).toContain("## Usage");
+		});
+
+		it("does nothing when start marker exists but end marker is missing", async () => {
+			const initial = "# Demo\n\n<!-- holocron:description -->\nOrphaned content.\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "My tool.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toBe(initial);
+		});
+
+		it("does nothing when end marker appears before start marker", async () => {
+			const initial = "# Demo\n\n<!-- /holocron:description -->\nContent.\n<!-- holocron:description -->\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "My tool.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toBe(initial);
+		});
+
+		it("does not overwrite badge lines immediately after H1", async () => {
+			const initial =
+				"# Demo\n\n[![Build](https://img.shields.io/ci)](https://ci.example.com)\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "My tool.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("[![Build]");
+			expect(readme).toContain("My tool.");
+			expect(readme).toContain("<!-- holocron:description -->");
 		});
 
 		it("calls source.syncDescription when provider implements it", async () => {
