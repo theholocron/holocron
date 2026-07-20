@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/http-client",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "Shared HTTP primitives for theholocron — REST client factory, auth resolver, and error types",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/http-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
