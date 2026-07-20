@@ -587,6 +587,21 @@ describe("runSync", () => {
 			expect(step?.message).toContain("GitHub");
 		});
 
+		it("skips README.md update when file has no H1 heading", async () => {
+			await writeFile(join(tmpDir, "README.md"), "No heading here.\n\n## Usage\n");
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const step = report.steps.find((s) => s.step === "sync description");
+			expect(step?.status).toBe("ok");
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).not.toContain("A great tool");
+		});
+
 		it("step reports ok even when package.json and README.md are absent", async () => {
 			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
 			const loader = makeLoaderWith(loaded, {
