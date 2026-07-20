@@ -94,6 +94,18 @@ describe("projects.update", () => {
 			previewDeploymentsDisabled: true,
 		});
 	});
+
+	it("includes gitProviderOptions when provided", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "p1", name: "my-app" } },
+		]);
+		await client.projects.update("p1", {
+			gitProviderOptions: { createDeployments: true },
+		});
+		expect(calls[0]?.body).toMatchObject({
+			gitProviderOptions: { createDeployments: true },
+		});
+	});
 });
 
 describe("env.list", () => {
