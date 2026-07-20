@@ -70,14 +70,12 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 	}
 
 	try {
-		const record = await withSpinner(
-			`Deploying ${input.branch}${input.target ? ` → ${input.target}` : ""}…`,
-			() =>
-				deploy.triggerDeployment({
-					projectId: input.projectId,
-					branch: input.branch,
-					...(input.target ? { target: input.target } : {}),
-				})
+		const record = await withSpinner(`Deploying ${input.branch}${input.target ? ` → ${input.target}` : ""}…`, () =>
+			deploy.triggerDeployment({
+				projectId: input.projectId,
+				branch: input.branch,
+				...(input.target ? { target: input.target } : {}),
+			})
 		);
 		print(`  ${style.success(`${record.status} — ${record.url}`)}`);
 		return { deployment: record, status: "ok" };
