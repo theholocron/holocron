@@ -240,7 +240,9 @@ describe("runPluginCreate — post-scaffold verify", () => {
 			writeFile: fs.writeFile,
 			print: () => {},
 			dryRun: true,
-			exec: () => { execCalled = true; },
+			exec: () => {
+				execCalled = true;
+			},
 		});
 		expect(execCalled).toBe(false);
 		expect(report.status).toBe("ok");
@@ -254,7 +256,9 @@ describe("runPluginCreate — post-scaffold verify", () => {
 			writeFile: fs.writeFile,
 			print: () => {},
 			noVerify: true,
-			exec: () => { execCalled = true; },
+			exec: () => {
+				execCalled = true;
+			},
 		});
 		expect(execCalled).toBe(false);
 		expect(report.status).toBe("ok");
@@ -267,7 +271,9 @@ describe("runPluginCreate — post-scaffold verify", () => {
 			...BASE_INPUT,
 			writeFile: fs.writeFile,
 			print: () => {},
-			exec: (cmd, args) => { calls.push(`${cmd} ${args.join(" ")}`); },
+			exec: (cmd, args) => {
+				calls.push(`${cmd} ${args.join(" ")}`);
+			},
 		});
 		expect(calls).toEqual([
 			`pnpm install --frozen-lockfile=false`,
@@ -313,7 +319,10 @@ describe("runPluginCreate — post-scaffold verify", () => {
 		mock.mockReturnValue(Buffer.from(""));
 		const fs = makeFakeFs();
 		runPluginCreate({ ...BASE_INPUT, writeFile: fs.writeFile, print: () => {} });
-		expect(mock).toHaveBeenCalledWith("pnpm", ["install", "--frozen-lockfile=false"], { cwd: WORKSPACE_ROOT, stdio: "inherit" });
+		expect(mock).toHaveBeenCalledWith("pnpm", ["install", "--frozen-lockfile=false"], {
+			cwd: WORKSPACE_ROOT,
+			stdio: "inherit",
+		});
 		mock.mockReset();
 	});
 });
