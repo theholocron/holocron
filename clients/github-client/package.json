@@ -34,7 +34,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@theholocron/http-client": "catalog:"
+    "@theholocron/http-client": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "catalog:",
