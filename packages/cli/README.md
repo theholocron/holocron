@@ -51,6 +51,29 @@ export default defineConfig({
 
 ```
 
+### Auto-derived fields
+
+`name` and `repo.name` are optional. When absent, Holocron fills them
+in at load time:
+
+| Field | Derived from | Fallback |
+|---|---|---|
+| `name` | `package.json` → `name` field (scope stripped) | directory basename |
+| `repo.name` | `git remote get-url origin` (parsed to `owner/repo`) | not set |
+
+A minimal config — for repos with a `package.json` and a GitHub remote
+— only needs `providers`:
+
+<!-- prettier-ignore -->
+```jsonc
+{ "providers": { "source": "github" } }
+```
+
+Set `name` explicitly whenever the derived value would be wrong: content
+repos without a `package.json` (e.g. `.github`) will fall back to the
+directory basename, which may not match what your vault or deployment
+provider expects as a project identifier.
+
 ### Shareable configs
 
 **Level 1 — per-capability config packages.** Reference a published
