@@ -67,6 +67,15 @@ describe("GitHubSource — REST methods", () => {
 		expect(calls[0]?.body).toEqual({ allow_squash_merge: true });
 	});
 
+	it("syncDescription → PATCH /repos/{repo} with description", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: {} }]);
+		const result = await source.syncDescription("A great tool.");
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}`);
+		expect(calls[0]?.body).toEqual({ description: "A great tool." });
+		expect(result).toBe("description updated");
+	});
+
 	it("enableVulnerabilityAlerts → PUT /vulnerability-alerts", async () => {
 		const { source, calls } = makeSource([{ status: 204 }]);
 		await source.enableVulnerabilityAlerts();

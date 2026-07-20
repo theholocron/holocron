@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
 import { runSync } from "../commands/sync.js";
@@ -34,10 +38,11 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 }
 
 describe("runSync", () => {
-	it("runs all three sync steps when no steps filter is given", async () => {
+	it("runs all sync steps when no steps filter is given", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
+			description: "A demo CLI tool",
 			repo: { name: "theholocron/demo", topics: ["ts", "cli"] },
 			providers: { source: "github" },
 		});
@@ -63,9 +68,9 @@ describe("runSync", () => {
 		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
-		expect(report.steps).toHaveLength(3);
+		expect(report.steps).toHaveLength(5);
 		expect(report.steps.every((s) => s.status === "ok")).toBe(true);
-		expect(report.summary).toMatchObject({ ok: 3, fail: 0, skip: 0 });
+		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 0 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -177,6 +182,7 @@ describe("runSync", () => {
 		let called = false;
 		const loaded = loadedFrom({
 			name: "demo",
+			description: "A demo CLI tool",
 			repo: { name: "theholocron/demo", topics: ["ts"] },
 			providers: { source: "github" },
 		});
@@ -208,7 +214,7 @@ describe("runSync", () => {
 
 		expect(called).toBe(false);
 		expect(report.steps.every((s) => s.status === "dry-run")).toBe(true);
-		expect(report.summary.dryRun).toBe(3);
+		expect(report.summary.dryRun).toBe(5);
 	});
 
 	it("reports skip when provider does not implement syncLabels", async () => {
@@ -371,6 +377,169 @@ describe("runSync", () => {
 		const step = report.steps.find((s) => s.step === "sync topics");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("3 topics set");
+	});
+
+	it("skips sync keywords when no topics are configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["keywords"], print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync keywords");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	it("skips sync keywords when topics list is empty", async () => {
+		const loaded = loadedFrom({ name: "demo", repo: { topics: [] }, providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["keywords"], print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync keywords");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	describe("sync keywords — package.json write", () => {
+		let tmpDir: string;
+		beforeEach(async () => { tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-")); });
+		afterEach(async () => { await rm(tmpDir, { recursive: true }); });
+
+		it("writes topics to package.json#keywords", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n");
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli", "typescript"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["keywords"], print: () => {} });
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("2 keywords written");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { keywords: string[] };
+			expect(pkg.keywords).toEqual(["cli", "typescript"]);
+		});
+
+		it("succeeds gracefully when package.json is absent", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["keywords"], print: () => {} });
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("no package.json");
+		});
+	});
+
+	it("skips sync description when no description is configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["description"], print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync description");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no description configured");
+	});
+
+	describe("sync description — file writes and GitHub sync", () => {
+		let tmpDir: string;
+		beforeEach(async () => { tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-")); });
+		afterEach(async () => { await rm(tmpDir, { recursive: true }); });
+
+		it("writes description to package.json#description", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo", description: "" }, null, 2) + "\n");
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { description: string };
+			expect(pkg.description).toBe("A great tool");
+		});
+
+		it("updates the description line in README.md", async () => {
+			await writeFile(join(tmpDir, "README.md"), "# Demo\n\nOld description.\n\n## Usage\n");
+			const loaded = loadedFrom({ name: "demo", description: "New description.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("New description.");
+			expect(readme).not.toContain("Old description.");
+		});
+
+		it("inserts description into README.md when none exists", async () => {
+			await writeFile(join(tmpDir, "README.md"), "# Demo\n\n## Usage\n");
+			const loaded = loadedFrom({ name: "demo", description: "A new description.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("A new description.");
+			expect(readme).toContain("## Usage");
+		});
+
+		it("calls source.syncDescription when provider implements it", async () => {
+			let capturedDesc: string | null = null;
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncDescription: async (desc: string) => {
+							capturedDesc = desc;
+							return "description updated";
+						},
+					},
+				}),
+			});
+
+			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			expect(capturedDesc).toBe("A great tool");
+			const step = report.steps.find((s) => s.step === "sync description");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("GitHub");
+		});
+
+		it("step reports ok even when package.json and README.md are absent", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const step = report.steps.find((s) => s.step === "sync description");
+			expect(step?.status).toBe("ok");
+		});
 	});
 
 	it("passes manual and derived properties to syncProperties", async () => {
