@@ -10,6 +10,9 @@ export default defineConfig({
 	plugins: [...(base.plugins ?? []), rawYml()],
 	test: {
 		...base.test,
+		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
+		// FORCE_COLOR=1). Tests assert on plain-text strings without ANSI codes.
+		env: { ...base.test?.env, FORCE_COLOR: "0" },
 		coverage: {
 			...base.test?.coverage,
 			exclude: [
