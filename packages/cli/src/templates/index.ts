@@ -46,6 +46,15 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 };
 
 export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
+	bookkeeping: JSON.stringify(
+		{
+			name: "Bookkeeping",
+			description: "Label and track issues and pull requests.",
+			iconName: "octicon tag",
+		},
+		null,
+		2
+	),
 	"sync-github": JSON.stringify(
 		{
 			name: "Sync GitHub Templates",
