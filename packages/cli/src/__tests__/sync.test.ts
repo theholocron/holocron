@@ -385,7 +385,13 @@ describe("runSync", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 		});
 
-		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["keywords"], print: () => {} });
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["keywords"],
+			print: () => {},
+		});
 
 		const step = report.steps.find((s) => s.step === "sync keywords");
 		expect(step?.status).toBe("skip");
@@ -398,7 +404,13 @@ describe("runSync", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 		});
 
-		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["keywords"], print: () => {} });
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["keywords"],
+			print: () => {},
+		});
 
 		const step = report.steps.find((s) => s.step === "sync keywords");
 		expect(step?.status).toBe("skip");
@@ -407,11 +419,18 @@ describe("runSync", () => {
 
 	describe("sync keywords — package.json write", () => {
 		let tmpDir: string;
-		beforeEach(async () => { tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-")); });
-		afterEach(async () => { await rm(tmpDir, { recursive: true }); });
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
 
 		it("writes topics to package.json#keywords", async () => {
-			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n");
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n"
+			);
 			const loaded = loadedFrom({
 				name: "demo",
 				repo: { topics: ["cli", "typescript"] },
@@ -421,7 +440,13 @@ describe("runSync", () => {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
 
-			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["keywords"], print: () => {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
 
 			const step = report.steps.find((s) => s.step === "sync keywords");
 			expect(step?.status).toBe("ok");
@@ -440,7 +465,13 @@ describe("runSync", () => {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
 
-			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["keywords"], print: () => {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
 
 			const step = report.steps.find((s) => s.step === "sync keywords");
 			expect(step?.status).toBe("ok");
@@ -454,7 +485,13 @@ describe("runSync", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 		});
 
-		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["description"], print: () => {} });
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["description"],
+			print: () => {},
+		});
 
 		const step = report.steps.find((s) => s.step === "sync description");
 		expect(step?.status).toBe("skip");
@@ -463,11 +500,18 @@ describe("runSync", () => {
 
 	describe("sync description — file writes and GitHub sync", () => {
 		let tmpDir: string;
-		beforeEach(async () => { tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-")); });
-		afterEach(async () => { await rm(tmpDir, { recursive: true }); });
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
 
 		it("writes description to package.json#description", async () => {
-			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo", description: "" }, null, 2) + "\n");
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", description: "" }, null, 2) + "\n"
+			);
 			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
@@ -481,7 +525,11 @@ describe("runSync", () => {
 
 		it("updates the description line in README.md", async () => {
 			await writeFile(join(tmpDir, "README.md"), "# Demo\n\nOld description.\n\n## Usage\n");
-			const loaded = loadedFrom({ name: "demo", description: "New description.", providers: { source: "github" } });
+			const loaded = loadedFrom({
+				name: "demo",
+				description: "New description.",
+				providers: { source: "github" },
+			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
@@ -495,7 +543,11 @@ describe("runSync", () => {
 
 		it("inserts description into README.md when none exists", async () => {
 			await writeFile(join(tmpDir, "README.md"), "# Demo\n\n## Usage\n");
-			const loaded = loadedFrom({ name: "demo", description: "A new description.", providers: { source: "github" } });
+			const loaded = loadedFrom({
+				name: "demo",
+				description: "A new description.",
+				providers: { source: "github" },
+			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
@@ -521,7 +573,13 @@ describe("runSync", () => {
 				}),
 			});
 
-			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["description"],
+				print: () => {},
+			});
 
 			expect(capturedDesc).toBe("A great tool");
 			const step = report.steps.find((s) => s.step === "sync description");
@@ -535,7 +593,13 @@ describe("runSync", () => {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
 
-			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["description"],
+				print: () => {},
+			});
 
 			const step = report.steps.find((s) => s.step === "sync description");
 			expect(step?.status).toBe("ok");

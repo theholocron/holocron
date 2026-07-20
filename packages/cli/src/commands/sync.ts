@@ -131,7 +131,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					steps.push(
 						await runSyncStep("source", "sync keywords", dryRun, async () => {
 							const wrote = await writePackageJsonField(input.context.repoRoot, "keywords", topics);
-							return wrote ? `${topics.length} keywords written` : `${topics.length} topics (no package.json)`;
+							return wrote
+								? `${topics.length} keywords written`
+								: `${topics.length} topics (no package.json)`;
 						})
 					);
 					print(formatSyncStep(steps[steps.length - 1]!));
@@ -151,7 +153,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				} else {
 					steps.push(
 						await runSyncStep("source", "sync description", dryRun, async () => {
-							const pkgWrote = await writePackageJsonField(input.context.repoRoot, "description", description);
+							const pkgWrote = await writePackageJsonField(
+								input.context.repoRoot,
+								"description",
+								description
+							);
 							const readmeWrote = await updateReadmeDescription(input.context.repoRoot, description);
 							if (source.syncDescription) {
 								await source.syncDescription(description);
