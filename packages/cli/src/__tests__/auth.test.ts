@@ -253,6 +253,21 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/doppler configure get token/);
 	});
 
+	it("reports fail without hint when the rejected module exports no AUTH_HINT", async () => {
+		store.set("com.theholocron.cli::doppler", "stale");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({
+				verifyToken: async () => ({ ok: false as const, message: "401 unauthorized" }),
+			}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/rejected/);
+		expect(lines.join("\n")).not.toMatch(/hint:/);
+	});
+
 	it("reports ok-unverified when the plugin has no verifyToken", async () => {
 		store.set("com.theholocron.cli::custom", "abc");
 		const { print, lines } = collect();
@@ -351,5 +366,16 @@ describe("runAuthList", () => {
 			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "x" }) }),
 		});
 		expect(lines.join("\n")).toMatch(/· ghost/);
+	});
+
+	it("renders a provider line without detail when the subject is empty", async () => {
+		// An empty subject is falsy, so check.message ? ` — ${msg}` : "" takes the "" branch.
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		await runAuthList({
+			print,
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "" }) }),
+		});
+		expect(lines.join("\n")).toMatch(/✓ doppler\s*$/m);
 	});
 });
