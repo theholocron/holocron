@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/semantic-release-config",
-  "version": "7.2.3",
+  "version": "7.3.0",
   "description": "A semantic-release configuration for automated versioning and publishing.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/semantic-release-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
