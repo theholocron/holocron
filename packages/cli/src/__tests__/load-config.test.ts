@@ -1,6 +1,7 @@
+import { execSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -112,6 +113,91 @@ describe("loadConfig", () => {
 		const err = await loadConfig(cwd).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigFileError);
 		expect((err as Error).message).toMatch(/default export/);
+	});
+
+	// ── name derivation ───────────────────────────────────────────────────
+
+	it("derives name from package.json when absent from config", async () => {
+		await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "my-package" }));
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe("my-package");
+	});
+
+	it("strips @scope/ prefix from scoped package names", async () => {
+		await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "@theholocron/my-package" }));
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe("my-package");
+	});
+
+	it("falls back to directory basename when no package.json exists", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe(basename(cwd));
+	});
+
+	it("does not override name when explicitly set in config", async () => {
+		await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "from-package-json" }));
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "from-config", providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe("from-config");
+	});
+
+	// ── repo.name derivation ──────────────────────────────────────────────
+
+	it("leaves repo.name absent when no git remote is configured", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", repo: {}, providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.repo?.name).toBeUndefined();
+	});
+
+	it("derives repo.name from an HTTPS git remote", async () => {
+		execSync("git init", { cwd });
+		execSync("git remote add origin https://github.com/theholocron/my-app.git", { cwd });
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", repo: {}, providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.repo?.name).toBe("theholocron/my-app");
+	});
+
+	it("derives repo.name from an SSH git remote", async () => {
+		execSync("git init", { cwd });
+		execSync("git remote add origin git@github.com:theholocron/my-app.git", { cwd });
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", repo: {}, providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.repo?.name).toBe("theholocron/my-app");
+	});
+
+	it("does not override repo.name when explicitly set in config", async () => {
+		execSync("git init", { cwd });
+		execSync("git remote add origin https://github.com/theholocron/ignored.git", { cwd });
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", repo: { name: "theholocron/explicit" }, providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.repo?.name).toBe("theholocron/explicit");
 	});
 
 	// ── Priority ──────────────────────────────────────────────────────────
