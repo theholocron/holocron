@@ -38,6 +38,7 @@ export default defineConfig({
 				// Pure re-export shim — all logic lives in @theholocron/http-client.
 				"src/rest-client.ts",
 				// yml template files — string content only, no executable logic.
+				"src/commands/dependabot.yml",
 				"src/commands/workflows/**",
 				"src/templates/actions/**",
 				"src/templates/workflows/**",
