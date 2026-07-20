@@ -1,21 +1,18 @@
 /**
  * Translates a Clerk webhook delivery into the normalized `AuthEvent`
- * shape defined in `@theholocron/cli`. The first concrete example of
- * the cross-provider sync pattern (see `AuthEvent` JSDoc in core).
+ * shape defined in `@theholocron/cli`, with full Svix HMAC-SHA256
+ * signature verification (closes #80).
  *
- * Status: signature SHIPPED, body STUBBED. Real Svix signature
- * verification (HMAC-SHA256 over `svix-id.svix-timestamp.body` with
- * the `whsec_…` signing secret, base64-decoded) lands in a follow-up
- * (tracked at #80). For now, parseWebhook trusts the request and
- * focuses on shape translation — usable in environments where
- * signature verification happens upstream (e.g., Vercel middleware,
- * an API gateway), and an explicit error in production-grade
- * deployments until the verification body lands.
- *
- * Reference event shapes:
- *   https://clerk.com/docs/integrations/webhooks/overview
- *   https://clerk.com/docs/reference/backend-api/tag/Webhooks
+ * Verification algorithm (https://docs.svix.com/receiving/verifying-payloads/how-manual):
+ *   1. Require svix-id, svix-timestamp, svix-signature headers
+ *   2. Reject if svix-timestamp is outside the ±5-minute replay window
+ *   3. Decode the whsec_<base64> signing secret
+ *   4. Compute HMAC-SHA256(secretBytes, "${id}.${timestamp}.${body}")
+ *   5. Constant-time compare against each v1,<base64> signature in the
+ *      space-separated svix-signature header (supports key rotation)
  */
+
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { WebhookVerificationError, type AuthEvent, type AuthEventType, type ParseWebhookInput } from "@theholocron/cli";
 
@@ -39,10 +36,9 @@ const CLERK_TO_NORMALIZED: Record<string, AuthEventType> = {
 	"user.deleted": "user.deleted",
 };
 
+const REPLAY_WINDOW_SECONDS = 5 * 60;
+
 export async function parseWebhook(input: ParseWebhookInput): Promise<AuthEvent> {
-	// Real signature verification arrives with #80. Until then we treat
-	// the absence of signing-secret-validated headers as a soft-skip;
-	// production deployments should not rely on this code path.
 	await verifySignature(input);
 
 	const bodyStr = typeof input.body === "string" ? input.body : input.body.toString("utf8");
@@ -79,25 +75,66 @@ export async function parseWebhook(input: ParseWebhookInput): Promise<AuthEvent>
 	};
 }
 
-/**
- * Stub for Svix signature verification. The real implementation
- * lands at #80 and will:
- *
- *   1. Read svix-id, svix-timestamp, svix-signature headers
- *   2. Verify svix-timestamp is within the replay window (±5 min)
- *   3. Compute HMAC-SHA256(<signing_secret>, `${id}.${timestamp}.${body}`)
- *   4. Compare (constant-time) against the base64 sig in svix-signature
- *
- * For now: throw WebhookVerificationError when the signing secret is
- * missing, so consumers see the contract; let the call through
- * otherwise (signature-validation TODO).
- */
 async function verifySignature(input: ParseWebhookInput): Promise<void> {
 	if (!input.signingSecret) {
 		throw new WebhookVerificationError(
 			"Clerk webhook signingSecret is required (use the Svix whsec_… value from the Clerk dashboard)"
 		);
 	}
-	// TODO(#80): real HMAC verification. Until then, accept and move on.
-	return Promise.resolve();
+
+	const lower = (s: string) => s.toLowerCase();
+	const h = (name: string): string | undefined => {
+		const target = lower(name);
+		for (const [k, v] of Object.entries(input.headers)) {
+			if (lower(k) === target) return Array.isArray(v) ? v[0] : (v as string | undefined);
+		}
+		return undefined;
+	};
+
+	const svixId = h("svix-id");
+	const svixTimestamp = h("svix-timestamp");
+	const svixSignature = h("svix-signature");
+
+	if (!svixId || !svixTimestamp || !svixSignature) {
+		throw new WebhookVerificationError(
+			"Missing required Svix headers: svix-id, svix-timestamp, svix-signature"
+		);
+	}
+
+	const ts = parseInt(svixTimestamp, 10);
+	if (isNaN(ts)) {
+		throw new WebhookVerificationError(`Invalid svix-timestamp: "${svixTimestamp}"`);
+	}
+	const nowSeconds = Math.floor(Date.now() / 1000);
+	if (Math.abs(nowSeconds - ts) > REPLAY_WINDOW_SECONDS) {
+		throw new WebhookVerificationError(
+			`Message timestamp is outside the ${REPLAY_WINDOW_SECONDS / 60}-minute replay window`
+		);
+	}
+
+	const secretBase64 = input.signingSecret.startsWith("whsec_")
+		? input.signingSecret.slice("whsec_".length)
+		: input.signingSecret;
+	const secretBytes = Buffer.from(secretBase64, "base64");
+
+	const bodyStr = typeof input.body === "string" ? input.body : input.body.toString("utf8");
+	const toSign = `${svixId}.${svixTimestamp}.${bodyStr}`;
+	const computed = createHmac("sha256", secretBytes).update(toSign).digest();
+
+	const matched = svixSignature.split(" ").some((sig) => {
+		const comma = sig.indexOf(",");
+		if (comma === -1 || sig.slice(0, comma) !== "v1") return false;
+		let sigBytes: Buffer;
+		try {
+			sigBytes = Buffer.from(sig.slice(comma + 1), "base64");
+		} catch {
+			return false;
+		}
+		if (sigBytes.length !== computed.length) return false;
+		return timingSafeEqual(sigBytes, computed);
+	});
+
+	if (!matched) {
+		throw new WebhookVerificationError("Svix signature verification failed");
+	}
 }
