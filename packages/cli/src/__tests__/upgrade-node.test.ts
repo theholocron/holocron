@@ -94,6 +94,14 @@ describe("package.json", () => {
 		expect(JSON.parse(written["package.json"]!).engines.node).toBe(">=22.0.0");
 	});
 
+	it("updates engines.node when written without .0.0 suffix (>=20)", async () => {
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"package.json": pkg({ engines: { node: ">=20" } }),
+		});
+		await runUpgradeNode({ to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles });
+		expect(JSON.parse(written["package.json"]!).engines.node).toBe(">=22.0.0");
+	});
+
 	it("updates @types/node in devDependencies", async () => {
 		const { readFile, writeFile, walkFiles, written } = makeFs({
 			"package.json": pkg({ devDependencies: { "@types/node": "^20.0.0" } }),
