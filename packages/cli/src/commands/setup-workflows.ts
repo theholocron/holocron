@@ -218,8 +218,8 @@ jobs:
     secrets: inherit
 `,
 
-	"bookkeeping-pr": `\
-name: PR Bookkeeping
+	bookkeeping: `\
+name: Bookkeeping
 
 on: # yamllint disable-line rule:truthy
   pull_request:
@@ -234,7 +234,7 @@ permissions:
 
 jobs:
   bookkeeping:
-    uses: ${ref("bookkeeping-pr")}
+    uses: ${ref("bookkeeping")}
     secrets: inherit
 `,
 

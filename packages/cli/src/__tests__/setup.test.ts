@@ -955,11 +955,11 @@ describe("runSetup", () => {
 		expect(checkerStep?.status).toBe("ok");
 	});
 
-	it("writes .github/labeler.yml when bookkeeping-pr workflow is configured", async () => {
+	it("writes .github/labeler.yml when bookkeeping workflow is configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "bookkeeping-pr"],
+			workflows: ["lint", "bookkeeping"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -991,7 +991,7 @@ describe("runSetup", () => {
 		expect(step?.status).toBe("ok");
 	});
 
-	it("does not write .github/labeler.yml when bookkeeping-pr is not configured", async () => {
+	it("does not write .github/labeler.yml when bookkeeping is not configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",

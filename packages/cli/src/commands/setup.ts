@@ -224,8 +224,8 @@ export const STALE_LABELS = [
 
 // ── labeler config template ──────────────────────────────────────────
 // Maps Conventional Commit title prefixes to standard GitHub label names.
-// Written when bookkeeping-pr is in the workflows list; read by the
-// github/issue-labeler action inside the bookkeeping-pr reusable workflow.
+// Written when bookkeeping is in the workflows list; read by the
+// github/issue-labeler action inside the bookkeeping reusable workflow.
 function labelerConfig(): string {
 	return [
 		`# AUTO-GENERATED — do not edit directly.`,
@@ -563,7 +563,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: labeler config ───────────────────────────────────────────
 	if (
 		loader.has("source") &&
-		(config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping-pr")
+		(config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping")
 	) {
 		const source = loader.get("source") as Source;
 		steps.push(
