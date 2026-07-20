@@ -64,4 +64,4 @@ const status = await vercel.deployments.get(deployment.id);
 
 ## Status
 
-`v0.9.0` — published on npm. APIs may shift before v1.
+`v0.11.3` — published on npm. APIs may shift before v1.

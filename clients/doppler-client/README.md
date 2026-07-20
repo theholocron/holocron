@@ -42,4 +42,4 @@ await doppler.environments.create("my-project", "Staging", "stg");
 
 ## Status
 
-`v0.5.0` — published on npm. APIs may shift before v1.
+`v0.11.3` — published on npm. APIs may shift before v1.

@@ -58,4 +58,4 @@ await infisical.secrets.update("DB_URL", {
 
 ## Status
 
-`v0.7.0` — published on npm. APIs may shift before v1.
+`v0.11.3` — published on npm. APIs may shift before v1.

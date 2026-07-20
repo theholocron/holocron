@@ -55,4 +55,4 @@ await neon.branches.destroy("my-project-id", branch.id);
 
 ## Status
 
-`v0.6.2` — published on npm. APIs may shift before v1.
+`v0.11.3` — published on npm. APIs may shift before v1.
