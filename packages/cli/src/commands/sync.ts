@@ -28,7 +28,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const requestedSteps = input.steps;
 	const steps: SetupStepResult[] = [];
 
-	print(`Holocron sync — ${config.project.name}${dryRun ? " (dry-run)" : ""}`);
+	print(`Holocron sync — ${config.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
 	print("");
 
@@ -62,7 +62,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 
 			if (stepName === "properties") {
 				if (source.syncProperties) {
-					const repo = config.project.repo;
+					const repo = config.repo;
 					const properties: Record<string, string> = {};
 					const effectivePreset = repo?.protection;
 					if (effectivePreset && effectivePreset !== "none")
@@ -94,7 +94,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			}
 
 			if (stepName === "topics") {
-				const topics = config.project.repo?.topics ?? [];
+				const topics = config.repo?.topics ?? [];
 				if (topics.length === 0) {
 					steps.push({
 						capability: "source",

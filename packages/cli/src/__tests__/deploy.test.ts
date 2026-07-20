@@ -37,7 +37,7 @@ describe("runDeploy", () => {
 	it("triggers a deployment via the configured provider", async () => {
 		const triggerCalls: Array<{ projectId: string; branch: string; target?: string }> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -81,7 +81,7 @@ describe("runDeploy", () => {
 	it("passes named target through (production / staging)", async () => {
 		const triggerCalls: Array<{ target?: string }> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -117,7 +117,7 @@ describe("runDeploy", () => {
 
 	it("errors when deployment capability is not configured", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -139,7 +139,7 @@ describe("runDeploy", () => {
 	it("dry-run skips the actual triggerDeployment call", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -172,7 +172,7 @@ describe("runDeploy", () => {
 
 	it("dry-run includes target in message when target is provided", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -201,7 +201,7 @@ describe("runDeploy", () => {
 
 	it("returns status=fail with the error message when the provider throws", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -231,7 +231,7 @@ describe("runDeploy", () => {
 
 	it("returns status=fail with string coercion when a non-Error is thrown", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {

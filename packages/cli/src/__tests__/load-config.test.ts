@@ -39,13 +39,13 @@ describe("loadConfig", () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),
 			JSON.stringify({
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "1password", source: "github" },
 			})
 		);
 		const { resolved, filepath } = await loadConfig(cwd);
 		expect(filepath).toBe(join(cwd, "holocron.config.json"));
-		expect(resolved.project.name).toBe("demo");
+		expect(resolved.name).toBe("demo");
 		expect(resolved.providers.vault?.cardinality).toBe("single");
 	});
 
@@ -63,10 +63,10 @@ describe("loadConfig", () => {
 	it("loads valid config without vault (vault is no longer required)", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),
-			JSON.stringify({ project: { name: "demo" }, providers: { source: "github" } })
+			JSON.stringify({ name: "demo", providers: { source: "github" } })
 		);
 		const result = await loadConfig(cwd);
-		expect(result.resolved.project.name).toBe("demo");
+		expect(result.resolved.name).toBe("demo");
 		expect(result.resolved.providers.vault).toBeUndefined();
 	});
 
@@ -75,11 +75,11 @@ describe("loadConfig", () => {
 	it("reads + resolves a valid holocron.config.js", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.js"),
-			`export default { project: { name: "js-demo" }, providers: { source: "github" } };`
+			`export default { name: "js-demo", providers: { source: "github" } };`
 		);
 		const { resolved, filepath } = await loadConfig(cwd);
 		expect(filepath).toBe(join(cwd, "holocron.config.js"));
-		expect(resolved.project.name).toBe("js-demo");
+		expect(resolved.name).toBe("js-demo");
 	});
 
 	it("errors when holocron.config.js has no default export", async () => {
@@ -89,8 +89,8 @@ describe("loadConfig", () => {
 		expect((err as Error).message).toMatch(/default export/);
 	});
 
-	it("errors when the JS config is invalid (missing project.name)", async () => {
-		await writeFile(join(cwd, "holocron.config.js"), `export default { project: {}, providers: {} };`);
+	it("errors when the JS config is invalid (missing providers)", async () => {
+		await writeFile(join(cwd, "holocron.config.js"), `export default { name: "demo" };`);
 		const err = await loadConfig(cwd).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigError);
 	});
@@ -100,11 +100,11 @@ describe("loadConfig", () => {
 	it("reads + resolves a valid holocron.config.ts (via tsImport)", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.ts"),
-			`export default { project: { name: "ts-demo" }, providers: { source: "github" } } as const;`
+			`export default { name: "ts-demo", providers: { source: "github" } } as const;`
 		);
 		const { resolved, filepath } = await loadConfig(cwd);
 		expect(filepath).toBe(join(cwd, "holocron.config.ts"));
-		expect(resolved.project.name).toBe("ts-demo");
+		expect(resolved.name).toBe("ts-demo");
 	});
 
 	it("errors when holocron.config.ts has no default export", async () => {
@@ -119,26 +119,26 @@ describe("loadConfig", () => {
 	it("prefers .json over .js when both exist", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),
-			JSON.stringify({ project: { name: "json-wins" }, providers: {} })
+			JSON.stringify({ name: "json-wins", providers: {} })
 		);
 		await writeFile(
 			join(cwd, "holocron.config.js"),
-			`export default { project: { name: "js-loses" }, providers: {} };`
+			`export default { name: "js-loses", providers: {} };`
 		);
 		const { resolved } = await loadConfig(cwd);
-		expect(resolved.project.name).toBe("json-wins");
+		expect(resolved.name).toBe("json-wins");
 	});
 
 	it("prefers .js over .ts when both exist (no .json)", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.js"),
-			`export default { project: { name: "js-wins" }, providers: { source: "github" } };`
+			`export default { name: "js-wins", providers: { source: "github" } };`
 		);
 		await writeFile(
 			join(cwd, "holocron.config.ts"),
-			`export default { project: { name: "ts-loses" }, providers: { source: "github" } } as const;`
+			`export default { name: "ts-loses", providers: { source: "github" } } as const;`
 		);
 		const { resolved } = await loadConfig(cwd);
-		expect(resolved.project.name).toBe("js-wins");
+		expect(resolved.name).toBe("js-wins");
 	});
 });

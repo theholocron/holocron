@@ -373,10 +373,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
 	const steps: SetupStepResult[] = [];
-	const repo = config.project.repo;
+	const repo = config.repo;
 	const effectivePreset = repo?.protection;
 
-	print(`Holocron setup — ${config.project.name}${dryRun ? " (dry-run)" : ""}`);
+	print(`Holocron setup — ${config.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
 	print("");
 
@@ -399,7 +399,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const usesAdvancedCodeQL = (config.project.workflows ?? [])
+		const usesAdvancedCodeQL = (config.workflows ?? [])
 			.map((e) => (typeof e === "string" ? e : e.name))
 			.includes("codeql");
 		steps.push(
@@ -426,7 +426,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			);
 			print(formatStep(steps[steps.length - 1]!));
 
-			const configuredWorkflowNames = (config.project.workflows ?? []).map((entry) =>
+			const configuredWorkflowNames = (config.workflows ?? []).map((entry) =>
 				typeof entry === "string" ? entry : entry.name
 			);
 			const requiredChecks =
@@ -446,7 +446,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: workflow thin wrappers ──────────────────────────────────
-	const workflows = config.project.workflows;
+	const workflows = config.workflows;
 	if (loader.has("source") && workflows && workflows.length > 0) {
 		const source = loader.get("source") as Source;
 		print("  → workflows");
@@ -478,7 +478,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: labeler config ───────────────────────────────────────────
 	if (
 		loader.has("source") &&
-		(config.project.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping-pr")
+		(config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping-pr")
 	) {
 		const source = loader.get("source") as Source;
 		steps.push(
@@ -580,8 +580,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const deploy = loader.get("deployment") as Deployment;
 		print("  → deployment");
 		steps.push(
-			await runStep("deployment", `ensureProject ${config.project.name}`, dryRun, async () => {
-				await deploy.ensureProject({ name: config.project.name });
+			await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
+				await deploy.ensureProject({ name: config.name });
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
@@ -618,8 +618,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		// ensureProject — providers that have a top-level container.
 		if (vault.ensureProject) {
 			steps.push(
-				await runStep("vault", `ensureProject ${config.project.name}`, dryRun, async () => {
-					const result = await vault.ensureProject!(config.project.name);
+				await runStep("vault", `ensureProject ${config.name}`, dryRun, async () => {
+					const result = await vault.ensureProject!(config.name);
 					return `project ${result.alreadyExists ? "exists" : "created"}`;
 				})
 			);
@@ -633,7 +633,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			for (const envName of ["dev", "stg", "prd"]) {
 				steps.push(
 					await runStep("vault", `ensureEnvironment ${envName}`, dryRun, async () => {
-						const result = await vault.ensureEnvironment!(config.project.name, envName);
+						const result = await vault.ensureEnvironment!(config.name, envName);
 						return `${envName} ${result.alreadyExists ? "exists" : "created"}`;
 					})
 				);

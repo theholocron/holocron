@@ -37,10 +37,8 @@ describe("runSync", () => {
 	it("runs all three sync steps when no steps filter is given", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["ts", "cli"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts", "cli"] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -73,10 +71,8 @@ describe("runSync", () => {
 	it("runs only the requested step when a single step filter is given", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["ts"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -115,10 +111,8 @@ describe("runSync", () => {
 	it("runs a subset of steps when multiple steps are requested", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["ts"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -154,7 +148,7 @@ describe("runSync", () => {
 
 	it("reports skip for an unknown step name", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -182,10 +176,8 @@ describe("runSync", () => {
 	it("dry-run does not call any sync methods", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["ts"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -221,7 +213,7 @@ describe("runSync", () => {
 
 	it("reports skip when provider does not implement syncLabels", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -243,7 +235,7 @@ describe("runSync", () => {
 
 	it("reports skip when provider does not implement syncProperties", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -266,7 +258,7 @@ describe("runSync", () => {
 	it("skips syncTopics with 'no topics configured' when topics list is absent", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -297,10 +289,8 @@ describe("runSync", () => {
 	it("skips syncTopics with 'no topics configured' when topics list is empty", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: [] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: [] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -330,10 +320,8 @@ describe("runSync", () => {
 
 	it("reports skip when provider does not implement syncTopics (topics configured)", async () => {
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["ts"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -356,10 +344,8 @@ describe("runSync", () => {
 	it("passes the configured topics to syncTopics", async () => {
 		let capturedTopics: string[] | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -390,16 +376,14 @@ describe("runSync", () => {
 	it("passes manual and derived properties to syncProperties", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: {
-					name: "theholocron/demo",
-					properties: {
-						lifecycle: "active",
-						open_source: true,
-						runtime_environment: "node",
-						uses_external_packages: false,
-					},
+			name: "demo",
+			repo: {
+				name: "theholocron/demo",
+				properties: {
+					lifecycle: "active",
+					open_source: true,
+					runtime_environment: "node",
+					uses_external_packages: false,
 				},
 			},
 			providers: { source: "github" },
@@ -439,10 +423,8 @@ describe("runSync", () => {
 	it("includes branch_protection_level when repo.protection is set", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", protection: "strict" },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -465,10 +447,8 @@ describe("runSync", () => {
 	it("omits branch_protection_level when repo.protection is 'none'", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", protection: "none" },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "none" },
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -491,7 +471,7 @@ describe("runSync", () => {
 	it("output includes a header and summary line", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -513,7 +493,7 @@ describe("runSync", () => {
 
 	it("marks step as fail when syncLabels throws", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {

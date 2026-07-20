@@ -142,7 +142,7 @@ describe("runSyncGithub", () => {
 
 	it("respects holocron.config.json workflow allowlist for secondary repos", async () => {
 		const allowedNames = ["lint", "review", "stale"];
-		const config = { project: { workflows: allowedNames } };
+		const config = { workflows: allowedNames };
 		const { fn, calls } = makeFetch({}, config);
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -168,7 +168,7 @@ describe("runSyncGithub", () => {
 
 	it("reads workflow allowlist from holocron.config.ts when .json is absent", async () => {
 		const allowedNames = ["lint", "review", "stale"];
-		const configTs = `export default defineConfig({ project: { workflows: ${JSON.stringify(allowedNames)} } })`;
+		const configTs = `export default defineConfig({ workflows: ${JSON.stringify(allowedNames)} })`;
 		const { fn } = makeFetch({}, undefined, configTs);
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -183,7 +183,7 @@ describe("runSyncGithub", () => {
 	});
 
 	it("applies per-workflow with: overrides from config to thin callers", async () => {
-		const configTs = `export default defineConfig({ project: { workflows: [{ name: "release", with: { "run-build": false } }] } })`;
+		const configTs = `export default defineConfig({ workflows: [{ name: "release", with: { "run-build": false } }] })`;
 		const { fn, calls } = makeFetch({}, undefined, configTs);
 		await runSyncGithub({
 			token: "ghp_test",

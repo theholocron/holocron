@@ -35,7 +35,7 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 
 function loadedDemo() {
 	return loadedFrom({
-		project: { name: "demo" },
+		name: "demo",
 		providers: { vault: "1password", secrets: "github" },
 	});
 }
@@ -209,7 +209,7 @@ describe("runSecretSet — scope + capability wiring", () => {
 
 	it("throws when secrets capability is not loaded", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {

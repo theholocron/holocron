@@ -36,7 +36,7 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 describe("runSecretsSync", () => {
 	it("errors when the vault provider does not implement readEnvironment", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -60,7 +60,7 @@ describe("runSecretsSync", () => {
 	it("fans out vault keys to secrets (repo scope)", async () => {
 		const setSecretCalls: Array<{ name: string; value: string }> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -99,7 +99,7 @@ describe("runSecretsSync", () => {
 
 	it("skips deployment sync when projectId is missing", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -140,7 +140,7 @@ describe("runSecretsSync", () => {
 			value: string;
 		}> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -178,7 +178,7 @@ describe("runSecretsSync", () => {
 	it("dry-run reports `dry-run` rows without calling mutators", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -213,7 +213,7 @@ describe("runSecretsSync", () => {
 
 	it("soft-skips with string coercion when provider throws a non-Error", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -248,7 +248,7 @@ describe("runSecretsSync", () => {
 
 	it("soft-skips individual key failures (continues with other keys)", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
