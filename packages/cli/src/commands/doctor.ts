@@ -50,7 +50,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 	const rows: DoctorRow[] = [];
 	const config = input.loaded.resolved;
 
-	print(`Holocron doctor — ${config.project.name}`);
+	print(`Holocron doctor — ${config.name}`);
 	print(`  config: ${input.loaded.filepath}`);
 	print("");
 

@@ -68,8 +68,8 @@ export interface RepoProperties {
 }
 
 export interface RepoConfig {
-	/** "owner/name" — the GitHub repository coordinate. */
-	name: string;
+	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
+	name?: string;
 	/**
 	 * Branch protection preset applied by `holocron setup`. When omitted,
 	 * no protection is applied and no `branch_protection_level` property is set.
@@ -94,33 +94,32 @@ export interface DoctorConfig {
 }
 
 export interface HolocronConfig {
-	project: {
-		name: string;
-		description?: string;
-		/**
-		 * Repository identity and metadata. When set, `PluginLoader` injects
-		 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
-		 * need a repo (github, etc.) don't require `--repo` on every invocation.
-		 * `--repo` on the command line still overrides.
-		 */
-		repo?: RepoConfig;
-		/**
-		 * CI workflow names to install as thin wrappers during `holocron setup`.
-		 * Each name maps to a reusable workflow in `theholocron/.github`.
-		 * Use the object form to pass `with:` inputs to the reusable workflow.
-		 *
-		 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
-		 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping-pr" | "audit"
-		 *
-		 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
-		 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
-		 * Files are overwritten on each run — they are generated artifacts.
-		 *
-		 * @example
-		 * ["lint", { "name": "release", "with": { "run-build": false } }]
-		 */
-		workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
-	};
+	/** Project name. Derived from package.json when absent. */
+	name?: string;
+	description?: string;
+	/**
+	 * Repository identity and metadata. When set, `PluginLoader` injects
+	 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
+	 * need a repo (github, etc.) don't require `--repo` on every invocation.
+	 * `--repo` on the command line still overrides.
+	 */
+	repo?: RepoConfig;
+	/**
+	 * CI workflow names to install as thin wrappers during `holocron setup`.
+	 * Each name maps to a reusable workflow in `theholocron/.github`.
+	 * Use the object form to pass `with:` inputs to the reusable workflow.
+	 *
+	 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
+	 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping-pr" | "audit"
+	 *
+	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
+	 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
+	 * Files are overwritten on each run — they are generated artifacts.
+	 *
+	 * @example
+	 * ["lint", { "name": "release", "with": { "run-build": false } }]
+	 */
+	workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -144,7 +143,10 @@ export type ResolvedProviderEntry =
 export type ResolvedProvidersConfig = Partial<Record<CapabilityKey, ResolvedProviderEntry>>;
 
 export interface ResolvedHolocronConfig {
-	project: HolocronConfig["project"];
+	name: string;
+	description?: string;
+	repo?: RepoConfig;
+	workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
@@ -240,8 +242,8 @@ export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): Resolve
 }
 
 export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
-	if (!raw.project?.name) {
-		throw new ConfigError("`project.name` is required");
+	if (!raw.name) {
+		throw new ConfigError("`name` is required");
 	}
 	if (!raw.providers || typeof raw.providers !== "object") {
 		throw new ConfigError("`providers` block is required");
@@ -260,7 +262,10 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	}
 
 	return {
-		project: raw.project,
+		name: raw.name,
+		description: raw.description,
+		repo: raw.repo,
+		workflows: raw.workflows,
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},

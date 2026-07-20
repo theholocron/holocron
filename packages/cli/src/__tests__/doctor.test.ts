@@ -38,7 +38,7 @@ describe("runDoctor", () => {
 	it("reports ok for source.whoami succeeding", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -71,7 +71,7 @@ describe("runDoctor", () => {
 
 	it("reports fail when a smoke check throws", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -102,7 +102,7 @@ describe("runDoctor", () => {
 
 	it("reports skip for many-cardinality capabilities (no smoke endpoint yet)", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: {
 				vault: "1password",
 				notifications: ["slack", "discord"],
@@ -131,7 +131,7 @@ describe("runDoctor", () => {
 
 	it("issues smoke check reports resolved lifecycle slot count", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", issues: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -167,7 +167,7 @@ describe("runDoctor", () => {
 
 	it("secrets smoke check reports configured secret count", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -190,7 +190,7 @@ describe("runDoctor", () => {
 
 	it("ci smoke check reports most recent run", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { ci: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -216,7 +216,7 @@ describe("runDoctor", () => {
 
 	it("ci smoke check reports no recent runs when list is empty", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { ci: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -239,7 +239,7 @@ describe("runDoctor", () => {
 
 	it("auth smoke check reports provider and env keys", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { auth: "clerk" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -265,7 +265,7 @@ describe("runDoctor", () => {
 
 	it("single-cardinality capability without a smoke check falls through to skip", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {

@@ -10,9 +10,13 @@
  * Implements the lookup-order contract from issue #75 / #81.
  */
 
+import { execFile } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 import type { HolocronConfig, ResolvedHolocronConfig } from "./config.js";
 import { ConfigError, resolveConfig } from "./config.js";
@@ -60,21 +64,21 @@ async function loadJson(filepath: string): Promise<ResolvedHolocronConfig> {
 	} catch (err) {
 		throw new ConfigError(`${filepath} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`);
 	}
-	return resolveConfig(parsed);
+	return resolveConfig(await deriveDefaults(dirname(filepath), parsed));
 }
 
 async function loadJs(filepath: string): Promise<ResolvedHolocronConfig> {
 	const mod = await import(pathToFileURL(filepath).href);
-	return extractAndResolve(filepath, mod);
+	return resolveConfig(await deriveDefaults(dirname(filepath), extractRaw(filepath, mod)));
 }
 
 async function loadTs(filepath: string): Promise<ResolvedHolocronConfig> {
 	const { tsImport } = await import("tsx/esm/api");
 	const mod = await tsImport(pathToFileURL(filepath).href, import.meta.url);
-	return extractAndResolve(filepath, mod);
+	return resolveConfig(await deriveDefaults(dirname(filepath), extractRaw(filepath, mod)));
 }
 
-function extractAndResolve(filepath: string, mod: unknown): ResolvedHolocronConfig {
+function extractRaw(filepath: string, mod: unknown): HolocronConfig {
 	const outer = (mod as { default?: unknown }).default;
 	// tsx CJS-transforms `export default x` into `exports.default = x`, which
 	// dynamic import wraps as { default: { __esModule: true, default: x } }.
@@ -84,7 +88,46 @@ function extractAndResolve(filepath: string, mod: unknown): ResolvedHolocronConf
 	if (raw === undefined || raw === null) {
 		throw new ConfigFileError(`${filepath} must have a default export (use \`export default defineConfig({…})\`)`);
 	}
-	return resolveConfig(raw as HolocronConfig);
+	return raw as HolocronConfig;
+}
+
+async function deriveDefaults(configDir: string, raw: HolocronConfig): Promise<HolocronConfig> {
+	const result = { ...raw };
+	if (!result.name) {
+		result.name = (await readPackageJsonName(configDir)) ?? basename(configDir);
+	}
+	if (result.repo && !result.repo.name) {
+		const repoName = await readGitRemote(configDir);
+		if (repoName) result.repo = { ...result.repo, name: repoName };
+	}
+	return result;
+}
+
+async function readPackageJsonName(dir: string): Promise<string | undefined> {
+	try {
+		const content = await readFile(join(dir, "package.json"), "utf8");
+		const pkg = JSON.parse(content) as { name?: string };
+		return typeof pkg.name === "string" ? pkg.name.replace(/^@[^/]+\//, "") : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+async function readGitRemote(dir: string): Promise<string | undefined> {
+	try {
+		const { stdout } = await execFileAsync("git", ["remote", "get-url", "origin"], { cwd: dir });
+		return parseGitRemoteUrl(stdout.trim());
+	} catch {
+		return undefined;
+	}
+}
+
+function parseGitRemoteUrl(url: string): string | undefined {
+	const httpsMatch = url.match(/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/);
+	if (httpsMatch) return httpsMatch[1]!;
+	const sshMatch = url.match(/github\.com:([^/]+\/[^/]+?)(?:\.git)?$/);
+	if (sshMatch) return sshMatch[1]!;
+	return undefined;
 }
 
 async function fileExists(path: string): Promise<boolean> {

@@ -32,7 +32,7 @@ describe("PluginLoader — single cardinality", () => {
 		const sourceImpl = { key: "source", providerName: "github" };
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "1password", source: "github" },
 			},
 			{
@@ -48,7 +48,7 @@ describe("PluginLoader — single cardinality", () => {
 
 	it("throws LoaderError when accessing a non-loaded capability", async () => {
 		const { loader } = loaderWith(
-			{ project: { name: "demo" }, providers: { vault: "1password" } },
+			{ name: "demo", providers: { vault: "1password" } },
 			{ "@theholocron/holocron-plugin-1password": makePlugin("1password", { vault: {} }) }
 		);
 		await loader.load();
@@ -59,7 +59,7 @@ describe("PluginLoader — single cardinality", () => {
 	it("throws LoaderError when the package cannot be imported", async () => {
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "1password", source: "gitlab" },
 			},
 			{ "@theholocron/holocron-plugin-1password": makePlugin("1password", { vault: {} }) }
@@ -70,7 +70,7 @@ describe("PluginLoader — single cardinality", () => {
 	it("throws when the package does not export createPlugin", async () => {
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "1password", source: "broken" },
 			},
 			{
@@ -84,7 +84,7 @@ describe("PluginLoader — single cardinality", () => {
 	it("throws when the plugin does not implement the requested capability", async () => {
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "1password", source: "github" },
 			},
 			{
@@ -100,7 +100,7 @@ describe("PluginLoader — single cardinality", () => {
 		const captured: Record<string, unknown> = {};
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: {
 					vault: "1password",
 					source: ["github", { repo: "theholocron/holocron" }],
@@ -127,7 +127,7 @@ describe("PluginLoader — single cardinality", () => {
 		const capturedAtVault: Record<string, unknown> = {};
 		const capturedAtSource: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const importer = vi.fn(async (pkg: string) => {
@@ -159,11 +159,12 @@ describe("PluginLoader — single cardinality", () => {
 	});
 });
 
-describe("PluginLoader — project.repo defaults", () => {
-	it("injects config.project.repo into plugin options when context.repo is absent", async () => {
+describe("PluginLoader — repo defaults", () => {
+	it("injects config.repo into plugin options when context.repo is absent", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo", repo: { name: "acme/foo" } },
+			name: "demo",
+			repo: { name: "acme/foo" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const importer = vi.fn(async (pkg: string) => {
@@ -182,10 +183,11 @@ describe("PluginLoader — project.repo defaults", () => {
 		expect(captured.repo).toBe("acme/foo");
 	});
 
-	it("context.repo (CLI --repo flag) overrides config.project.repo", async () => {
+	it("context.repo (CLI --repo flag) overrides config.repo", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo", repo: { name: "acme/from-config" } },
+			name: "demo",
+			repo: { name: "acme/from-config" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const importer = vi.fn(async (pkg: string) => {
@@ -208,10 +210,11 @@ describe("PluginLoader — project.repo defaults", () => {
 		expect(captured.repo).toBe("override/from-flag");
 	});
 
-	it("per-plugin tuple options override both context and project defaults", async () => {
+	it("per-plugin tuple options override both context and repo defaults", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo", repo: { name: "acme/from-config" } },
+			name: "demo",
+			repo: { name: "acme/from-config" },
 			providers: {
 				vault: "1password",
 				source: ["github", { repo: "override/from-tuple" }],
@@ -241,7 +244,7 @@ describe("PluginLoader — project.repo defaults", () => {
 	it("omits repo entirely when neither config nor context sets it (non-github configs)", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
-			project: { name: "demo" }, // no repo
+			name: "demo", // no repo
 			providers: { vault: "1password" },
 		});
 		const importer = vi.fn(async () => ({
@@ -262,7 +265,7 @@ describe("PluginLoader — many cardinality", () => {
 		const discordImpl = { key: "notifications", providerName: "discord" };
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: {
 					vault: "1password",
 					notifications: ["slack", "discord"],
@@ -287,7 +290,7 @@ describe("PluginLoader.loadedKeys", () => {
 	it("returns the set of currently-loaded capability keys", async () => {
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "1password", source: "github" },
 			},
 			{
@@ -305,7 +308,7 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 		const vaultImpl = { key: "vault", providerName: "1password" };
 		const { loader, importer } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				// @acme/holocron-vault is a capability config package, not a plugin
 				providers: { vault: "@acme/holocron-vault" },
 			},
@@ -326,7 +329,7 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 		const captured: Record<string, unknown> = {};
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				// ["@acme/holocron-vault", { vault: "override" }] — project overrides preset
 				providers: { vault: ["@acme/holocron-vault", { vault: "override" }] },
 			},
@@ -354,7 +357,7 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 		const slackImpl = { key: "notifications", providerName: "slack" };
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: {
 					notifications: ["@acme/holocron-slack", "discord"],
 				},
@@ -374,7 +377,7 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 	it("errors when a config package exports an unresolvable provider", async () => {
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "@acme/holocron-vault" },
 			},
 			{
@@ -390,7 +393,7 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 	it("errors when a package exports neither createPlugin nor a capability config", async () => {
 		const { loader } = loaderWith(
 			{
-				project: { name: "demo" },
+				name: "demo",
 				providers: { vault: "broken" },
 			},
 			{

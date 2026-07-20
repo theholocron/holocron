@@ -25,7 +25,7 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 ```jsonc
 // holocron.config.json
 {
-  "project": { "name": "my-app" },
+  "name": "my-app",
   "providers": {
     "vault": ["1password", { "vault": "my-app" }],
     "source": "github",
@@ -42,7 +42,7 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
-  project: { name: "my-app" },
+  name: "my-app",
   providers: {
     vault: ["1password", { vault: "my-app" }],
     source: "github",
@@ -50,6 +50,29 @@ export default defineConfig({
 });
 
 ```
+
+### Auto-derived fields
+
+`name` and `repo.name` are optional. When absent, Holocron fills them
+in at load time:
+
+| Field | Derived from | Fallback |
+|---|---|---|
+| `name` | `package.json` → `name` field (scope stripped) | directory basename |
+| `repo.name` | `git remote get-url origin` (parsed to `owner/repo`) | not set |
+
+A minimal config — for repos with a `package.json` and a GitHub remote
+— only needs `providers`:
+
+<!-- prettier-ignore -->
+```jsonc
+{ "providers": { "source": "github" } }
+```
+
+Set `name` explicitly whenever the derived value would be wrong: content
+repos without a `package.json` (e.g. `.github`) will fall back to the
+directory basename, which may not match what your vault or deployment
+provider expects as a project identifier.
 
 ### Shareable configs
 

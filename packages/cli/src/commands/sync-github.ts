@@ -53,7 +53,7 @@ type FileBatch = Array<{ path: string; content: string }>;
 type WorkflowEntry = { name: string; with?: Record<string, unknown> };
 
 /**
- * Extracts the `project.workflows` array from a `holocron.config.ts` source string.
+ * Extracts the `workflows` array from a `holocron.config.ts` source string.
  * Handles both plain string entries and `{ name, with }` object entries.
  * Falls back to an empty array if the array cannot be found or parsed.
  */
@@ -255,9 +255,9 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			try {
 				const data = await client.git.getContents(repo, "holocron.config.json");
 				const raw = JSON.parse(Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")) as {
-					project?: { workflows?: Array<string | WorkflowEntry> };
+					workflows?: Array<string | WorkflowEntry>;
 				};
-				entries = (raw?.project?.workflows ?? []).map((w) => (typeof w === "string" ? { name: w } : w));
+				entries = (raw?.workflows ?? []).map((w) => (typeof w === "string" ? { name: w } : w));
 			} catch (err) {
 				if (!(err instanceof ProviderApiError) || err.status !== 404) throw err;
 				// Fall back to .ts config

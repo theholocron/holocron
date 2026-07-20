@@ -68,7 +68,7 @@ describe("runSetup", () => {
 			},
 		};
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -107,7 +107,7 @@ describe("runSetup", () => {
 	it("soft-skips failed steps (continues subsequent capabilities)", async () => {
 		const calls: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -164,7 +164,7 @@ describe("runSetup", () => {
 	it("dry-run reports `dry-run` status without calling mutators", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -206,7 +206,7 @@ describe("runSetup", () => {
 	it("upserts staging + production environments when the capability is loaded", async () => {
 		const created: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", environments: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -235,7 +235,7 @@ describe("runSetup", () => {
 	it("ensures the deployment project using the config project name", async () => {
 		let ensuredName: string | null = null;
 		const loaded = loadedFrom({
-			project: { name: "my-app" },
+			name: "my-app",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -264,7 +264,7 @@ describe("runSetup", () => {
 
 	it("reports already-exists for ensureWebhookApp when the provider supports it", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", auth: "clerk" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -292,7 +292,7 @@ describe("runSetup", () => {
 
 	it("skips auth setup when the provider does not implement ensureWebhookApp", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", auth: "clerk" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -321,7 +321,7 @@ describe("runSetup", () => {
 	it("runs sync() once per tooling provider (many-cardinality)", async () => {
 		const synced: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", tooling: ["postman", "storybook"] },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -360,7 +360,7 @@ describe("runSetup", () => {
 		const projectCreated: string[] = [];
 		const envsCreated: Array<[string, string]> = [];
 		const loaded = loadedFrom({
-			project: { name: "my-app" },
+			name: "my-app",
 			providers: { vault: "doppler" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -399,7 +399,7 @@ describe("runSetup", () => {
 
 	it("skips vault ensureProject + ensureEnvironment when the provider omits them (1P-shaped vaults)", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -423,7 +423,7 @@ describe("runSetup", () => {
 		let defaultSetupDisabled = false;
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint", "codeql"] },
+			name: "demo", workflows: ["lint", "codeql"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -460,7 +460,7 @@ describe("runSetup", () => {
 	it("enables default CodeQL setup when no codeql workflow is configured", async () => {
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint"] },
+			name: "demo", workflows: ["lint"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -492,7 +492,7 @@ describe("runSetup", () => {
 		let settingsApplied: Record<string, unknown> | null = null;
 		let rulesetCreated: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
-			project: { name: "demo", repo: { name: "theholocron/demo", protection: "balanced" } },
+			name: "demo", repo: { name: "theholocron/demo", protection: "balanced" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -538,11 +538,9 @@ describe("runSetup", () => {
 	it("derives required_status_checks from configured workflows when repo.protection is 'strict'", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", protection: "strict" },
-				workflows: ["lint", "test", "typecheck"],
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			workflows: ["lint", "test", "typecheck"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -585,11 +583,9 @@ describe("runSetup", () => {
 	it("appends extra requiredChecks from config to the auto-derived list", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", protection: "strict", requiredChecks: ["some-extra-check"] },
-				workflows: ["lint"],
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict", requiredChecks: ["some-extra-check"] },
+			workflows: ["lint"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -630,7 +626,7 @@ describe("runSetup", () => {
 		const created: unknown[] = [];
 		const updated: unknown[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo", repo: { name: "theholocron/demo", protection: "balanced" } },
+			name: "demo", repo: { name: "theholocron/demo", protection: "balanced" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -674,7 +670,7 @@ describe("runSetup", () => {
 	it("skips repo policy steps when repo.protection is 'none'", async () => {
 		let settingsCalled = false;
 		const loaded = loadedFrom({
-			project: { name: "demo", repo: { name: "theholocron/demo", protection: "none" } },
+			name: "demo", repo: { name: "theholocron/demo", protection: "none" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -709,7 +705,7 @@ describe("runSetup", () => {
 	it("skips repo policy steps when no protection in config", async () => {
 		let settingsCalled = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -737,7 +733,7 @@ describe("runSetup", () => {
 	it("writes thin wrapper files for each workflow listed in project.workflows", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint", "test", "typecheck"] },
+			name: "demo", workflows: ["lint", "test", "typecheck"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -775,7 +771,7 @@ describe("runSetup", () => {
 	it("skips workflow writing when project.workflows is absent", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -802,7 +798,7 @@ describe("runSetup", () => {
 
 	it("reports skip for an unknown workflow name", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint", "not-a-real-workflow"] },
+			name: "demo", workflows: ["lint", "not-a-real-workflow"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -835,7 +831,7 @@ describe("runSetup", () => {
 	it("dry-run skips workflow writes", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint", "test"] },
+			name: "demo", workflows: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -870,7 +866,7 @@ describe("runSetup", () => {
 	it("output includes a header + summary line", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -894,7 +890,7 @@ describe("runSetup", () => {
 	it("writes .alexrc.json whenever source is available", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -949,7 +945,7 @@ describe("runSetup", () => {
 	it("writes .github/labeler.yml when bookkeeping-pr workflow is configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint", "bookkeeping-pr"] },
+			name: "demo", workflows: ["lint", "bookkeeping-pr"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -984,7 +980,7 @@ describe("runSetup", () => {
 	it("does not write .github/labeler.yml when bookkeeping-pr is not configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			project: { name: "demo", workflows: ["lint", "test"] },
+			name: "demo", workflows: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1013,17 +1009,15 @@ describe("runSetup", () => {
 	it("calls syncProperties with derived and manual properties when source supports it", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: {
-					name: "theholocron/demo",
-					protection: "strict",
-					properties: {
-						lifecycle: "active",
-						open_source: true,
-						runtime_environment: "node",
-						uses_external_packages: false,
-					},
+			name: "demo",
+			repo: {
+				name: "theholocron/demo",
+				protection: "strict",
+				properties: {
+					lifecycle: "active",
+					open_source: true,
+					runtime_environment: "node",
+					uses_external_packages: false,
 				},
 			},
 			providers: { vault: "1password", source: "github" },
@@ -1069,10 +1063,8 @@ describe("runSetup", () => {
 	it("does not set branch_protection_level property when no protection is configured", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", properties: { lifecycle: "experimental" } },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", properties: { lifecycle: "experimental" } },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1104,10 +1096,8 @@ describe("runSetup", () => {
 	it("calls syncTopics with the configured topics", async () => {
 		let capturedTopics: string[] | null = null;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1140,10 +1130,8 @@ describe("runSetup", () => {
 	it("skips syncTopics when topics list is empty", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", topics: [] },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: [] },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1174,7 +1162,7 @@ describe("runSetup", () => {
 	it("skips syncTopics when repo has no topics field", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1204,10 +1192,8 @@ describe("runSetup", () => {
 	it("skips dependabot when repo.protection is 'none'", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
-			project: {
-				name: "demo",
-				repo: { name: "theholocron/demo", protection: "none" },
-			},
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "none" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1235,7 +1221,7 @@ describe("runSetup", () => {
 	it("writes dependabot when no protection is configured (effectivePreset undefined)", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1263,7 +1249,7 @@ describe("runSetup", () => {
 	it("dry-run does not write .alexrc.json", async () => {
 		let writeCalled = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
