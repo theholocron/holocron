@@ -1370,11 +1370,9 @@ describe("runSetup — 403 handling", () => {
 	it("tags a plan-restriction 403 as plan when detail is in err.details object body", async () => {
 		const loader = makeLoaderWithSource({
 			enableSecretScanning: async () => {
-				throw new ProviderApiError(
-					"Forbidden",
-					403,
-					{ message: "GitHub Advanced Security is not enabled for this repository." }
-				);
+				throw new ProviderApiError("Forbidden", 403, {
+					message: "GitHub Advanced Security is not enabled for this repository.",
+				});
 			},
 		});
 
