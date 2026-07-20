@@ -1382,6 +1382,23 @@ describe("runSetup — 403 handling", () => {
 		expect(step?.reason).toBe("plan");
 	});
 
+	it("tags a plan-restriction 403 as plan when err.details is a plain string body", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError(
+					"Forbidden",
+					403,
+					"GitHub Advanced Security is not enabled for this repository."
+				);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
 	it("does not set reason for non-403 errors", async () => {
 		const loader = makeLoaderWithSource({
 			enableVulnerabilityAlerts: async () => {
