@@ -31,7 +31,8 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "@theholocron/vitest-config": "workspace:*"
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:"
   },
   "exports": {
     ".": {

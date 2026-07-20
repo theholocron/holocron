@@ -28,7 +28,8 @@
     "@theholocron/tsconfig": "workspace:*",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
   },
   "exports": {
     ".": {
