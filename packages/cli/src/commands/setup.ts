@@ -425,11 +425,16 @@ export type SetupPrintLine = (line: string) => void;
 
 export type SetupStatus = "ok" | "fail" | "skip" | "dry-run";
 
+/** Why a step failed with HTTP 403. */
+export type FailReason = "permissions" | "plan";
+
 export interface SetupStepResult {
 	capability: string;
 	step: string;
 	status: SetupStatus;
 	message?: string;
+	/** Set when status === "fail" and the error was a 403. */
+	reason?: FailReason;
 }
 
 export interface SetupReport {
@@ -781,6 +786,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}`
 	);
 
+	if (steps.some((s) => s.reason === "permissions")) {
+		print("");
+		print("  ⚠  Some steps failed with 403 (insufficient token permissions).");
+		print("     These operations require a temporary fine-grained PAT with the");
+		print("     following repository permissions:");
+		print("");
+		print("       · Administration          — read and write");
+		print("       · Code scanning alerts    — read and write");
+		print("       · Contents                — read and write");
+		print("       · Secret scanning alerts  — read and write");
+		print("       · Workflows               — read and write");
+		print("       · Metadata                — read (added automatically)");
+		print("");
+		print("     Create one at: https://github.com/settings/personal-access-tokens/new");
+		print("     Then re-run:   holocron setup --token <your-temp-pat>");
+		print("     You can revoke it immediately after setup completes.");
+	}
+
 	return { steps, summary };
 }
 
@@ -801,6 +824,10 @@ async function runStep(
 		if (typeof note === "string") result.message = note;
 		return result;
 	} catch (err) {
+		if (err instanceof ProviderApiError && err.status === 403) {
+			const reason = classify403(err);
+			return { capability, step, status: "fail", message: err.message, reason };
+		}
 		return {
 			capability,
 			step,
@@ -810,8 +837,22 @@ async function runStep(
 	}
 }
 
+function classify403(err: ProviderApiError): FailReason {
+	const msg = `${err.message} ${String(err.details)}`.toLowerCase();
+	if (
+		msg.includes("advanced security") ||
+		msg.includes("not enabled for this repository") ||
+		msg.includes("upgrade") ||
+		msg.includes("not available on")
+	) {
+		return "plan";
+	}
+	return "permissions";
+}
+
 function formatStep(step: SetupStepResult): string {
 	const icon = step.status === "ok" ? "✓" : step.status === "fail" ? "✗" : step.status === "dry-run" ? "…" : "·";
+	const tag = step.reason === "permissions" ? " [permissions]" : step.reason === "plan" ? " [plan restriction]" : "";
 	const detail = step.message ? `  (${step.message})` : "";
-	return `    ${icon} ${step.step}${detail}`;
+	return `    ${icon} ${step.step}${tag}${detail}`;
 }
