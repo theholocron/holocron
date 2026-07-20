@@ -8,6 +8,7 @@ import { resolveConfig } from "../config.js";
 import { runSetup, codecovContent } from "../commands/setup.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type PluginImporter } from "../loader.js";
+import { ProviderApiError } from "../capabilities/index.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -1316,6 +1317,126 @@ describe("runSetup", () => {
 		const step = report.steps.find((s) => s.step === "sync labels");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("17 synced");
+	});
+});
+
+// ── 403 reason classification and hint ────────────────────────────────────────
+
+describe("runSetup — 403 handling", () => {
+	const loaded = (() => {
+		const r = resolveConfig({ name: "demo", providers: { source: "github" } });
+		return { resolved: r, filepath: "/tmp/test/holocron.config.json" };
+	})();
+
+	function makeLoaderWithSource(source: Record<string, unknown>): PluginLoader {
+		const importer = vi.fn(async () => ({
+			createPlugin: () => ({
+				name: "gh",
+				capabilities: {
+					source: () => ({ listWorkflowFiles: async () => [], ...source }),
+				},
+			}),
+		}));
+		return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter);
+	}
+
+	it("tags a generic 403 as permissions and attaches reason to the step", async () => {
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new ProviderApiError("Must have admin rights to Repository.", 403);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(step?.status).toBe("fail");
+		expect(step?.reason).toBe("permissions");
+	});
+
+	it("tags a plan-restriction 403 as plan", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("does not set reason for non-403 errors", async () => {
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new Error("network timeout");
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(step?.status).toBe("fail");
+		expect(step?.reason).toBeUndefined();
+	});
+
+	it("emits the PAT hint in output when there is a permissions 403", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new ProviderApiError("Must have admin rights.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const output = lines.join("\n");
+		expect(output).toContain("⚠");
+		expect(output).toContain("insufficient token permissions");
+		expect(output).toContain("personal-access-tokens/new");
+		expect(output).toContain("--token <your-temp-pat>");
+	});
+
+	it("does not emit the hint when all failures are plan restrictions", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		expect(lines.join("\n")).not.toContain("personal-access-tokens/new");
+	});
+
+	it("formatStep includes [permissions] tag in the printed line", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new ProviderApiError("Must have admin rights.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const stepLine = lines.find((l) => l.includes("enableVulnerabilityAlerts"));
+		expect(stepLine).toMatch(/\[permissions\]/);
+	});
+
+	it("formatStep includes [plan restriction] tag for plan 403s", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const stepLine = lines.find((l) => l.includes("enableSecretScanning"));
+		expect(stepLine).toMatch(/\[plan restriction\]/);
 	});
 });
 
