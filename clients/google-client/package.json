@@ -25,8 +25,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "google-auth-library": "^9.15.1",
-    "googleapis": "^148.0.0",
+    "google-auth-library": "^10.9.0",
+    "googleapis": "^173.0.0",
     "open": "^10.1.2",
     "server-destroy": "^1.0.1"
   },
