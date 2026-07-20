@@ -226,6 +226,10 @@ on: # yamllint disable-line rule:truthy
     types:
       - opened
       - edited
+  issues:
+    types:
+      - opened
+      - edited
 
 permissions:
   contents: read

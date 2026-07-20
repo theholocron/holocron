@@ -1354,10 +1354,27 @@ describe("runSetup — 403 handling", () => {
 		expect(step?.reason).toBe("permissions");
 	});
 
-	it("tags a plan-restriction 403 as plan", async () => {
+	it("tags a plan-restriction 403 as plan when message is in err.message", async () => {
 		const loader = makeLoaderWithSource({
 			enableSecretScanning: async () => {
 				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("tags a plan-restriction 403 as plan when detail is in err.details object body", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError(
+					"Forbidden",
+					403,
+					{ message: "GitHub Advanced Security is not enabled for this repository." }
+				);
 			},
 		});
 
