@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
+vi.mock("node:fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:fs")>();
+	return { ...actual, mkdirSync: vi.fn(), writeFileSync: vi.fn() };
+});
 
 import { PluginCreateError, runPluginCreate } from "../commands/plugin-create/index.js";
 
@@ -288,6 +292,19 @@ describe("runPluginCreate — post-scaffold verify", () => {
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/verify failed/);
 		expect(lines.join("\n")).toContain("✗ verify failed");
+	});
+
+	it("defaultWrite delegates to mkdirSync + writeFileSync when no writeFile is injected", async () => {
+		const { mkdirSync, writeFileSync } = await import("node:fs");
+		const mkdirMock = vi.mocked(mkdirSync);
+		const writeMock = vi.mocked(writeFileSync);
+		mkdirMock.mockImplementation(() => undefined);
+		writeMock.mockImplementation(() => undefined);
+		runPluginCreate({ ...BASE_INPUT, noVerify: true, print: () => {} });
+		expect(mkdirMock).toHaveBeenCalled();
+		expect(writeMock).toHaveBeenCalled();
+		mkdirMock.mockReset();
+		writeMock.mockReset();
 	});
 
 	it("defaultExec delegates to execFileSync when no exec is injected", async () => {
