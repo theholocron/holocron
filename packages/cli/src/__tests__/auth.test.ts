@@ -279,6 +279,23 @@ describe("runAuthCheck", () => {
 	});
 });
 
+describe("runAuthCheck", () => {
+	describe("showSpinner: false", () => {
+		it("skips the spinner and verifies directly", async () => {
+			store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+			const { print, lines } = collect();
+			const result = await runAuthCheck({
+				provider: "doppler",
+				importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }) }),
+				print,
+				showSpinner: false,
+			});
+			expect(result.status).toBe("ok");
+			expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
+		});
+	});
+});
+
 describe("runAuthList", () => {
 	beforeEach(reset);
 
@@ -304,5 +321,17 @@ describe("runAuthList", () => {
 		const joined = lines.join("\n");
 		expect(joined).toMatch(/✓ doppler — workplace: acme/);
 		expect(joined).toMatch(/✗ infisical — expired/);
+	});
+
+	it("renders a skip bullet for a provider whose token cannot be retrieved", async () => {
+		// Empty-string password: findCredentials includes it (listed) but
+		// !("") is true so runAuthCheck returns skip (token treated as absent).
+		store.set("com.theholocron.cli::ghost", "");
+		const { print, lines } = collect();
+		await runAuthList({
+			print,
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "x" }) }),
+		});
+		expect(lines.join("\n")).toMatch(/· ghost/);
 	});
 });
