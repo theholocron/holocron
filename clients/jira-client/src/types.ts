@@ -1,6 +1,8 @@
 export interface JiraClientOptions {
 	host: string;
 	token: string;
+	/** Override fetch for testing. Defaults to globalThis.fetch. */
+	fetch?: typeof fetch;
 }
 
 export interface JiraIssueFields {

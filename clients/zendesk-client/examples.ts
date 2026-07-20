@@ -2,10 +2,7 @@
 // @ts-nocheck
 import zendesk, { createToken } from "./src";
 
-const token = createToken(
-	"REDACTED_EMAIL",
-	"REDACTED_TOKEN",
-);
+const token = createToken("REDACTED_EMAIL", "REDACTED_TOKEN");
 
 /*
 zendesk.activities.get({ token, params: { since: "2023-06-01T00:00:00.000Z" } })

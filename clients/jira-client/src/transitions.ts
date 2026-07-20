@@ -1,45 +1,31 @@
-import { buildHeaders, buildUrl, request } from "./client.js";
+import { type RestClient } from "@theholocron/http-client";
 import type {
-	JiraClientOptions,
 	JiraIssueFields,
 	JiraResolution,
 	JiraTransition,
 } from "./types.js";
 
-export function transitions(options: JiraClientOptions) {
-	const headers = buildHeaders(options.token);
-
+export function transitions(client: RestClient) {
 	return {
 		create(
 			ticket: string,
 			statusId: string,
 			fields: JiraIssueFields = {},
 		): Promise<void> {
-			return request<void>(
-				buildUrl(options, `/issue/${ticket}/transitions`),
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({
-						transition: { id: statusId },
-						fields,
-					}),
-				},
-			);
+			return client.request<void>(`/issue/${ticket}/transitions`, {
+				method: "POST",
+				body: { transition: { id: statusId }, fields },
+			});
 		},
 
 		get(ticket: string): Promise<{ transitions: JiraTransition[] }> {
-			return request<{ transitions: JiraTransition[] }>(
-				buildUrl(options, `/issue/${ticket}/transitions`),
-				{ method: "GET", headers },
+			return client.request<{ transitions: JiraTransition[] }>(
+				`/issue/${ticket}/transitions`,
 			);
 		},
 
 		getResolutions(): Promise<JiraResolution[]> {
-			return request<JiraResolution[]>(buildUrl(options, "/resolution"), {
-				method: "GET",
-				headers,
-			});
+			return client.request<JiraResolution[]>("/resolution");
 		},
 	};
 }

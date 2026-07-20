@@ -73,6 +73,19 @@ describe("createRestClient — apikey tokenScheme", () => {
 	});
 });
 
+describe("createRestClient — basic tokenScheme", () => {
+	it("sends token as Authorization: Basic", async () => {
+		const { fetch, calls } = stubFetch([{ body: {} }]);
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: "dXNlcjpwYXNz",
+			tokenScheme: "basic",
+			fetch,
+		}).request("/ping");
+		expect(calls[0]?.headers.authorization).toBe("Basic dXNlcjpwYXNz");
+	});
+});
+
 describe("createRestClient — extraHeaders", () => {
 	it("can override default accept header", async () => {
 		const { fetch, calls } = stubFetch([{ body: {} }]);

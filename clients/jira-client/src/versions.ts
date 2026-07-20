@@ -1,24 +1,21 @@
-import { buildHeaders, buildUrl, request } from "./client.js";
-import type { JiraClientOptions, JiraVersion } from "./types.js";
+import { type RestClient } from "@theholocron/http-client";
+import type { JiraVersion } from "./types.js";
 
-export function versions(options: JiraClientOptions) {
-	const headers = buildHeaders(options.token);
-
+export function versions(client: RestClient) {
 	return {
 		create(
 			name: string,
 			project: string,
 			fields: Partial<JiraVersion> = {},
 		): Promise<JiraVersion> {
-			return request<JiraVersion>(buildUrl(options, "/version"), {
+			return client.request<JiraVersion>("/version", {
 				method: "POST",
-				headers,
-				body: JSON.stringify({
+				body: {
 					name,
 					project,
 					startDate: new Date().toISOString(),
 					...fields,
-				}),
+				},
 			});
 		},
 
@@ -26,13 +23,9 @@ export function versions(options: JiraClientOptions) {
 			version: string,
 			params?: Record<string, string>,
 		): Promise<JiraVersion> {
-			return request<JiraVersion>(
-				buildUrl(options, `/version/${version}`, params),
-				{
-					method: "GET",
-					headers,
-				},
-			);
+			return client.request<JiraVersion>(`/version/${version}`, {
+				query: params,
+			});
 		},
 
 		getMany(
@@ -46,20 +39,15 @@ export function versions(options: JiraClientOptions) {
 			version: string,
 			fields: Partial<JiraVersion>,
 		): Promise<JiraVersion> {
-			return request<JiraVersion>(
-				buildUrl(options, `/version/${version}`),
-				{
-					method: "PUT",
-					headers,
-					body: JSON.stringify(fields),
-				},
-			);
+			return client.request<JiraVersion>(`/version/${version}`, {
+				method: "PUT",
+				body: fields,
+			});
 		},
 
 		delete(version: string): Promise<void> {
-			return request<void>(buildUrl(options, `/version/${version}`), {
+			return client.request<void>(`/version/${version}`, {
 				method: "DELETE",
-				headers,
 			});
 		},
 	};

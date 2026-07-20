@@ -1,18 +1,12 @@
-import { buildHeaders, buildUrl, request } from "./client.js";
-import type { JiraClientOptions, JiraProject } from "./types.js";
+import { type RestClient } from "@theholocron/http-client";
+import type { JiraProject } from "./types.js";
 
-export function projects(options: JiraClientOptions) {
-	const headers = buildHeaders(options.token);
-
+export function projects(client: RestClient) {
 	return {
 		get(id: string): Promise<JiraProject> {
-			return request<JiraProject>(
-				buildUrl(options, `/project/${id}`, { expand: "issueTypes" }),
-				{
-					method: "GET",
-					headers,
-				},
-			);
+			return client.request<JiraProject>(`/project/${id}`, {
+				query: { expand: "issueTypes" },
+			});
 		},
 	};
 }

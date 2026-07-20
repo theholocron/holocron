@@ -8,9 +8,10 @@ export interface RestClientConfig {
 	/**
 	 * How the token is sent.
 	 * - `"bearer"` (default): `Authorization: Bearer <token>`
+	 * - `"basic"`: `Authorization: Basic <token>`
 	 * - `"apikey"`: uses `apiKeyHeader` (e.g. `x-api-key`)
 	 */
-	tokenScheme?: "bearer" | "apikey";
+	tokenScheme?: "bearer" | "basic" | "apikey";
 	/** Header name when `tokenScheme` is `"apikey"`. Defaults to `"x-api-key"`. */
 	apiKeyHeader?: string;
 	/**
@@ -55,6 +56,8 @@ export function createRestClient(config: RestClientConfig): RestClient {
 
 	if (config.tokenScheme === "apikey") {
 		staticHeaders[config.apiKeyHeader ?? "x-api-key"] = config.token;
+	} else if (config.tokenScheme === "basic") {
+		staticHeaders["authorization"] = `Basic ${config.token}`;
 	} else {
 		staticHeaders["authorization"] = `Bearer ${config.token}`;
 	}

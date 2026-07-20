@@ -1,15 +1,12 @@
-import { buildHeaders, buildUrl, request } from "./client.js";
+import { type RestClient } from "@theholocron/http-client";
 import type {
-	JiraClientOptions,
 	JiraIssue,
 	JiraIssueFields,
 	JiraSearchQuery,
 	JiraSearchResponse,
 } from "./types.js";
 
-export function issues(options: JiraClientOptions) {
-	const headers = buildHeaders(options.token);
-
+export function issues(client: RestClient) {
 	return {
 		create(
 			title: string,
@@ -17,17 +14,16 @@ export function issues(options: JiraClientOptions) {
 			project: string,
 			fields: JiraIssueFields = {},
 		): Promise<JiraIssue> {
-			return request<JiraIssue>(buildUrl(options, "/issue/"), {
+			return client.request<JiraIssue>("/issue/", {
 				method: "POST",
-				headers,
-				body: JSON.stringify({
+				body: {
 					fields: {
 						project: { key: project },
 						summary: title,
 						issuetype: { name: type },
 						...fields,
 					},
-				}),
+				},
 			});
 		},
 
@@ -35,10 +31,9 @@ export function issues(options: JiraClientOptions) {
 			ticket: string,
 			params?: Record<string, string>,
 		): Promise<JiraIssue> {
-			return request<JiraIssue>(
-				buildUrl(options, `/issue/${ticket}`, params),
-				{ method: "GET", headers },
-			);
+			return client.request<JiraIssue>(`/issue/${ticket}`, {
+				query: params,
+			});
 		},
 
 		getMany(
@@ -49,31 +44,28 @@ export function issues(options: JiraClientOptions) {
 		},
 
 		update(ticket: string, fields: JiraIssueFields): Promise<void> {
-			return request<void>(buildUrl(options, `/issue/${ticket}`), {
+			return client.request<void>(`/issue/${ticket}`, {
 				method: "PUT",
-				headers,
-				body: JSON.stringify({ fields }),
+				body: { fields },
 			});
 		},
 
 		getProperty(ticket: string, property: string): Promise<unknown> {
-			return request<unknown>(
-				buildUrl(options, `/issue/${ticket}/properties/${property}`),
-				{
-					method: "GET",
-					headers,
-				},
+			return client.request<unknown>(
+				`/issue/${ticket}/properties/${property}`,
 			);
 		},
 
-		search(query: JiraSearchQuery): Promise<JiraSearchResponse> {
-			return request<JiraSearchResponse>(
-				buildUrl(options, "/search", query as Record<string, unknown>),
-				{
-					method: "GET",
-					headers,
-				},
-			);
+		search(query: JiraSearchQuery = {}): Promise<JiraSearchResponse> {
+			const q: Record<string, string> = {};
+			if (query.jql !== undefined) q["jql"] = query.jql;
+			if (query.startAt !== undefined)
+				q["startAt"] = String(query.startAt);
+			if (query.maxResults !== undefined)
+				q["maxResults"] = String(query.maxResults);
+			if (query.fields !== undefined)
+				q["fields"] = query.fields.join(",");
+			return client.request<JiraSearchResponse>("/search", { query: q });
 		},
 	};
 }
