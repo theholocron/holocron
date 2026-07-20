@@ -286,7 +286,9 @@ describe("runAuthCheck", () => {
 			const { print, lines } = collect();
 			const result = await runAuthCheck({
 				provider: "doppler",
-				importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }) }),
+				importer: async () => ({
+					verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }),
+				}),
 				print,
 				showSpinner: false,
 			});
