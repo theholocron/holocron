@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
-import { runSetup } from "../commands/setup.js";
+import { runSetup, codecovContent } from "../commands/setup.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type PluginImporter } from "../loader.js";
 
@@ -1289,5 +1293,214 @@ describe("runSetup", () => {
 		expect(writeCalled).toBe(false);
 		const step = report.steps.find((s) => s.step === "write .alexrc.json");
 		expect(step?.status).toBe("dry-run");
+	});
+
+	it("calls source.syncLabels when the provider implements it", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called = true;
+						return "17 synced";
+					},
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(true);
+		const step = report.steps.find((s) => s.step === "sync labels");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("17 synced");
+	});
+});
+
+// ── codecovContent ────────────────────────────────────────────────────────────
+
+describe("codecovContent", () => {
+	it("includes standard coverage thresholds and comment layout", () => {
+		const out = codecovContent([]);
+		expect(out).toContain("require_ci_to_pass: true");
+		expect(out).toContain("target: auto");
+		expect(out).toContain("target: 80%");
+		expect(out).toContain('layout: "reach,diff,flags,components"');
+		expect(out).toContain("require_changes: true");
+	});
+
+	it("produces individual_components entry for each package", () => {
+		const out = codecovContent([
+			{ slug: "http-client", name: "@theholocron/http-client" },
+			{ slug: "clerk-client", name: "@theholocron/clerk-client" },
+		]);
+		expect(out).toContain("component_id: http-client");
+		expect(out).toContain('name: "@theholocron/http-client"');
+		expect(out).toContain("- packages/http-client/**");
+		expect(out).toContain("component_id: clerk-client");
+		expect(out).toContain('name: "@theholocron/clerk-client"');
+		expect(out).toContain("- packages/clerk-client/**");
+	});
+
+	it("produces empty individual_components list when no packages are given", () => {
+		const out = codecovContent([]);
+		expect(out).toContain("individual_components:");
+		expect(out).toContain("[]");
+	});
+
+	it("ends with a trailing newline", () => {
+		expect(codecovContent([])).toMatch(/\n$/);
+	});
+});
+
+// ── setup: write codecov.yml ──────────────────────────────────────────────────
+
+describe("setup: write codecov.yml", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
+
+	function makeLoaderWithSource(repoRoot: string, source: Record<string, unknown>): PluginLoader {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(repoRoot, "holocron.config.json"),
+		};
+		const importer = vi.fn(async () => ({
+			createPlugin: () => ({
+				name: "gh",
+				capabilities: { source: () => ({ listWorkflowFiles: async () => [], ...source }) },
+			}),
+		}));
+		return new PluginLoader(
+			loaded.resolved,
+			{ repoRoot, repo: "theholocron/demo" },
+			importer as unknown as PluginImporter
+		);
+	}
+
+	it("writes codecov.yml with discovered packages", async () => {
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "foo"), { recursive: true });
+		await mkdir(join(pkgsDir, "bar"), { recursive: true });
+		await writeFile(join(pkgsDir, "foo", "package.json"), JSON.stringify({ name: "@acme/foo" }));
+		await writeFile(join(pkgsDir, "bar", "package.json"), JSON.stringify({ name: "@acme/bar" }));
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toBeDefined();
+		expect(written["codecov.yml"]).toContain("component_id: bar");
+		expect(written["codecov.yml"]).toContain("component_id: foo");
+		const step = (await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} })).steps.find(
+			(s) => s.step === "write codecov.yml"
+		);
+		expect(step?.message).toBe("2 components");
+	});
+
+	it("writes codecov.yml with empty components when packages/ is absent", async () => {
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain("individual_components:");
+		const step = report.steps.find((s) => s.step === "write codecov.yml");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("no components");
+	});
+
+	it("skips package dirs without a package.json", async () => {
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "foo"), { recursive: true });
+		await mkdir(join(pkgsDir, "no-pkg"), { recursive: true });
+		await writeFile(join(pkgsDir, "foo", "package.json"), JSON.stringify({ name: "@acme/foo" }));
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain("component_id: foo");
+		expect(written["codecov.yml"]).not.toContain("no-pkg");
+	});
+
+	it("skips non-directory entries (files) inside packages/", async () => {
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "real-pkg"), { recursive: true });
+		await writeFile(join(pkgsDir, "real-pkg", "package.json"), JSON.stringify({ name: "@acme/real-pkg" }));
+		// A plain file sitting directly in packages/ — should be ignored
+		await writeFile(join(pkgsDir, "README.md"), "# packages");
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain("component_id: real-pkg");
+		expect(written["codecov.yml"]).not.toContain("README");
+	});
+
+	it("skips package dirs whose package.json has no name field", async () => {
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "named"), { recursive: true });
+		await mkdir(join(pkgsDir, "unnamed"), { recursive: true });
+		await writeFile(join(pkgsDir, "named", "package.json"), JSON.stringify({ name: "@acme/named" }));
+		await writeFile(join(pkgsDir, "unnamed", "package.json"), JSON.stringify({ version: "1.0.0" }));
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain("component_id: named");
+		expect(written["codecov.yml"]).not.toContain("unnamed");
 	});
 });
