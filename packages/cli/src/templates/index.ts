@@ -116,8 +116,8 @@ jobs:
           CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
 `,
 
-	"bookkeeping-pr": `\
-name: PR Bookkeeping
+	bookkeeping: `\
+name: Bookkeeping
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -130,7 +130,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   label:
-    name: Add Labels to PRs
+    name: Apply Labels
     permissions:
       contents: read
       issues: write
@@ -138,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
-      group: bookkeeping-pr-\${{ github.event.pull_request.number }}
+      group: bookkeeping-\${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

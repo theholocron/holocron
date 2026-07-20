@@ -955,11 +955,11 @@ describe("runSetup", () => {
 		expect(checkerStep?.status).toBe("ok");
 	});
 
-	it("writes .github/labeler.yml when bookkeeping-pr workflow is configured", async () => {
+	it("writes .github/labeler.yml when bookkeeping workflow is configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "bookkeeping-pr"],
+			workflows: ["lint", "bookkeeping"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -991,7 +991,7 @@ describe("runSetup", () => {
 		expect(step?.status).toBe("ok");
 	});
 
-	it("does not write .github/labeler.yml when bookkeeping-pr is not configured", async () => {
+	it("does not write .github/labeler.yml when bookkeeping is not configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1354,10 +1354,42 @@ describe("runSetup — 403 handling", () => {
 		expect(step?.reason).toBe("permissions");
 	});
 
-	it("tags a plan-restriction 403 as plan", async () => {
+	it("tags a plan-restriction 403 as plan when message is in err.message", async () => {
 		const loader = makeLoaderWithSource({
 			enableSecretScanning: async () => {
 				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("tags a plan-restriction 403 as plan when detail is in err.details object body", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("Forbidden", 403, {
+					message: "GitHub Advanced Security is not enabled for this repository.",
+				});
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("tags a plan-restriction 403 as plan when err.details is a plain string body", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError(
+					"Forbidden",
+					403,
+					"GitHub Advanced Security is not enabled for this repository."
+				);
 			},
 		});
 
