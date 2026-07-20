@@ -18,9 +18,12 @@ function patchPackageJson(content: string, from: number, to: number): string | n
 	let changed = false;
 
 	const engines = pkg.engines as Record<string, string> | undefined;
-	if (engines?.node === `>=${from}.0.0`) {
-		engines.node = `>=${to}.0.0`;
-		changed = true;
+	if (engines?.node && /^>=\d+(?:\.0\.0)?$/.test(engines.node)) {
+		const major = parseInt(engines.node.match(/\d+/)![0]!, 10);
+		if (major === from) {
+			engines.node = `>=${to}.0.0`;
+			changed = true;
+		}
 	}
 
 	for (const field of ["devDependencies", "dependencies"] as const) {
