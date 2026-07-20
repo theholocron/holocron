@@ -838,7 +838,7 @@ async function runStep(
 }
 
 function classify403(err: ProviderApiError): FailReason {
-	const msg = err.message.toLowerCase();
+	const msg = `${err.message} ${String(err.details)}`.toLowerCase();
 	if (
 		msg.includes("advanced security") ||
 		msg.includes("not enabled for this repository") ||
