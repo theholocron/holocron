@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "../commands/setup-workflows.js";
@@ -540,5 +540,27 @@ describe("generateThinCallerContent", () => {
 		const matches = content.match(/secondary-repos:/g);
 		expect(matches).toHaveLength(1);
 		expect(content).toContain("secondary-repos: theholocron/clients");
+	});
+
+	it("emits a console.warn and returns base unchanged when no injection pattern matches", () => {
+		const sentinel = "__test_no_pattern__";
+		WORKFLOW_TEMPLATES[sentinel] = "name: Test\n\njobs:\n  test:\n    uses: some/action@v1\n";
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const result = generateThinCallerContent(sentinel, { key: "val" });
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("could not inject"));
+			expect(result).toBe(WORKFLOW_TEMPLATES[sentinel]);
+		} finally {
+			delete WORKFLOW_TEMPLATES[sentinel];
+			warnSpy.mockRestore();
+		}
+	});
+
+	it("generates bookkeeping thin-caller with issues trigger and secrets: inherit", () => {
+		const content = generateThinCallerContent("bookkeeping");
+		expect(content).toContain("name: Bookkeeping");
+		expect(content).toContain("pull_request:");
+		expect(content).toContain("issues:");
+		expect(content).toContain("secrets: inherit");
 	});
 });
