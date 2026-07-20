@@ -11,7 +11,16 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "keywords": [
+    "google",
+    "workspace",
+    "docs",
+    "sheets",
+    "typescript",
+    "api"
+  ],
   "type": "module",
+  "sideEffects": false,
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
@@ -35,7 +44,7 @@
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",
     "@theholocron/vitest-config": "catalog:",
-    "@types/node": "^26.1.1",
+    "@types/node": "catalog:",
     "@types/server-destroy": "^1.0.4",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
