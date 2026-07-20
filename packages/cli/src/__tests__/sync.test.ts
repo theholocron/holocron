@@ -594,7 +594,13 @@ describe("runSync", () => {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
 
-			const report = await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["description"],
+				print: () => {},
+			});
 
 			const step = report.steps.find((s) => s.step === "sync description");
 			expect(step?.status).toBe("ok");
