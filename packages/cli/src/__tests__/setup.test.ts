@@ -1336,8 +1336,12 @@ describe("codecovContent", () => {
 
 describe("setup: write codecov.yml", () => {
 	let tmpDir: string;
-	beforeEach(async () => { tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-")); });
-	afterEach(async () => { await rm(tmpDir, { recursive: true }); });
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
 
 	function makeLoaderWithSource(repoRoot: string, source: Record<string, unknown>): PluginLoader {
 		const loaded: LoadedConfig = {
@@ -1350,7 +1354,11 @@ describe("setup: write codecov.yml", () => {
 				capabilities: { source: () => ({ listWorkflowFiles: async () => [], ...source }) },
 			}),
 		}));
-		return new PluginLoader(loaded.resolved, { repoRoot, repo: "theholocron/demo" }, importer as unknown as PluginImporter);
+		return new PluginLoader(
+			loaded.resolved,
+			{ repoRoot, repo: "theholocron/demo" },
+			importer as unknown as PluginImporter
+		);
 	}
 
 	it("writes codecov.yml with discovered packages", async () => {
@@ -1362,7 +1370,9 @@ describe("setup: write codecov.yml", () => {
 
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
 		});
 
 		const loaded: LoadedConfig = {
@@ -1383,7 +1393,9 @@ describe("setup: write codecov.yml", () => {
 	it("writes codecov.yml with empty components when packages/ is absent", async () => {
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
 		});
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
@@ -1406,7 +1418,9 @@ describe("setup: write codecov.yml", () => {
 
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
 		});
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
