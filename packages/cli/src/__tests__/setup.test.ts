@@ -423,7 +423,8 @@ describe("runSetup", () => {
 		let defaultSetupDisabled = false;
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint", "codeql"],
+			name: "demo",
+			workflows: ["lint", "codeql"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -460,7 +461,8 @@ describe("runSetup", () => {
 	it("enables default CodeQL setup when no codeql workflow is configured", async () => {
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint"],
+			name: "demo",
+			workflows: ["lint"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -492,7 +494,8 @@ describe("runSetup", () => {
 		let settingsApplied: Record<string, unknown> | null = null;
 		let rulesetCreated: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
-			name: "demo", repo: { name: "theholocron/demo", protection: "balanced" },
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -626,7 +629,8 @@ describe("runSetup", () => {
 		const created: unknown[] = [];
 		const updated: unknown[] = [];
 		const loaded = loadedFrom({
-			name: "demo", repo: { name: "theholocron/demo", protection: "balanced" },
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -670,7 +674,8 @@ describe("runSetup", () => {
 	it("skips repo policy steps when repo.protection is 'none'", async () => {
 		let settingsCalled = false;
 		const loaded = loadedFrom({
-			name: "demo", repo: { name: "theholocron/demo", protection: "none" },
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "none" },
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -733,7 +738,8 @@ describe("runSetup", () => {
 	it("writes thin wrapper files for each workflow listed in project.workflows", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint", "test", "typecheck"],
+			name: "demo",
+			workflows: ["lint", "test", "typecheck"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -798,7 +804,8 @@ describe("runSetup", () => {
 
 	it("reports skip for an unknown workflow name", async () => {
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint", "not-a-real-workflow"],
+			name: "demo",
+			workflows: ["lint", "not-a-real-workflow"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -831,7 +838,8 @@ describe("runSetup", () => {
 	it("dry-run skips workflow writes", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint", "test"],
+			name: "demo",
+			workflows: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -945,7 +953,8 @@ describe("runSetup", () => {
 	it("writes .github/labeler.yml when bookkeeping-pr workflow is configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint", "bookkeeping-pr"],
+			name: "demo",
+			workflows: ["lint", "bookkeeping-pr"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -980,7 +989,8 @@ describe("runSetup", () => {
 	it("does not write .github/labeler.yml when bookkeeping-pr is not configured", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
-			name: "demo", workflows: ["lint", "test"],
+			name: "demo",
+			workflows: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
