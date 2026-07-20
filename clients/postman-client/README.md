@@ -67,4 +67,4 @@ await postman.specs.updateFile(
 
 ## Status
 
-`v0.8.0` — published on npm. APIs may shift before v1.
+`v0.11.3` — published on npm. APIs may shift before v1.
