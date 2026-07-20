@@ -56,10 +56,10 @@ export default defineConfig({
 `name` and `repo.name` are optional. When absent, Holocron fills them
 in at load time:
 
-| Field | Derived from | Fallback |
-|---|---|---|
-| `name` | `package.json` → `name` field (scope stripped) | directory basename |
-| `repo.name` | `git remote get-url origin` (parsed to `owner/repo`) | not set |
+| Field       | Derived from                                         | Fallback           |
+| ----------- | ---------------------------------------------------- | ------------------ |
+| `name`      | `package.json` → `name` field (scope stripped)       | directory basename |
+| `repo.name` | `git remote get-url origin` (parsed to `owner/repo`) | not set            |
 
 A minimal config — for repos with a `package.json` and a GitHub remote
 — only needs `providers`:

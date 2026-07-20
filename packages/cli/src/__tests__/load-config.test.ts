@@ -119,29 +119,20 @@ describe("loadConfig", () => {
 
 	it("derives name from package.json when absent from config", async () => {
 		await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "my-package" }));
-		await writeFile(
-			join(cwd, "holocron.config.json"),
-			JSON.stringify({ providers: { source: "github" } })
-		);
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ providers: { source: "github" } }));
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.name).toBe("my-package");
 	});
 
 	it("strips @scope/ prefix from scoped package names", async () => {
 		await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "@theholocron/my-package" }));
-		await writeFile(
-			join(cwd, "holocron.config.json"),
-			JSON.stringify({ providers: { source: "github" } })
-		);
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ providers: { source: "github" } }));
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.name).toBe("my-package");
 	});
 
 	it("falls back to directory basename when no package.json exists", async () => {
-		await writeFile(
-			join(cwd, "holocron.config.json"),
-			JSON.stringify({ providers: { source: "github" } })
-		);
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ providers: { source: "github" } }));
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.name).toBe(basename(cwd));
 	});
@@ -203,14 +194,8 @@ describe("loadConfig", () => {
 	// ── Priority ──────────────────────────────────────────────────────────
 
 	it("prefers .json over .js when both exist", async () => {
-		await writeFile(
-			join(cwd, "holocron.config.json"),
-			JSON.stringify({ name: "json-wins", providers: {} })
-		);
-		await writeFile(
-			join(cwd, "holocron.config.js"),
-			`export default { name: "js-loses", providers: {} };`
-		);
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ name: "json-wins", providers: {} }));
+		await writeFile(join(cwd, "holocron.config.js"), `export default { name: "js-loses", providers: {} };`);
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.name).toBe("json-wins");
 	});
