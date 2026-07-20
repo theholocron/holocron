@@ -1,7 +1,9 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 
 import { PluginCreateError, runPluginCreate } from "../commands/plugin-create/index.js";
 
@@ -286,5 +288,15 @@ describe("runPluginCreate — post-scaffold verify", () => {
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/verify failed/);
 		expect(lines.join("\n")).toContain("✗ verify failed");
+	});
+
+	it("defaultExec delegates to execFileSync when no exec is injected", async () => {
+		const { execFileSync } = await import("node:child_process");
+		const mock = vi.mocked(execFileSync);
+		mock.mockReturnValue(Buffer.from(""));
+		const fs = makeFakeFs();
+		runPluginCreate({ ...BASE_INPUT, writeFile: fs.writeFile, print: () => {} });
+		expect(mock).toHaveBeenCalledWith("pnpm", ["install", "--frozen-lockfile=false"], { cwd: WORKSPACE_ROOT, stdio: "inherit" });
+		mock.mockReset();
 	});
 });

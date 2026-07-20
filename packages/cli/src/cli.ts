@@ -414,30 +414,37 @@ await yargs(hideBin(process.argv))
 				}),
 		async (argv) => {
 			try {
-				const rl = createInterface({ input: stdin, output: stdout });
-				const ask = async (question: string) => {
+				const capabilityKeys = Object.keys(CARDINALITY).join(", ");
+				const needsPrompt = !argv.capability || !argv.vendorEnv || !argv.baseUrl;
+
+				let capability: CapabilityKey;
+				let vendorEnv: string;
+				let baseUrl: string;
+
+				if (needsPrompt) {
+					const rl = createInterface({ input: stdin, output: stdout });
+					const ask = (question: string) => rl.question(`  ${question} `).then((a) => a.trim());
 					try {
-						return (await rl.question(`  ${question} `)).trim();
+						if (!argv.capability) {
+							console.log(`  Available capabilities: ${capabilityKeys}`);
+							capability = (await ask("Capability:")) as CapabilityKey;
+						} else {
+							capability = argv.capability as CapabilityKey;
+						}
+						vendorEnv = argv.vendorEnv
+							? (argv.vendorEnv as string)
+							: await ask(`Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`);
+						baseUrl = argv.baseUrl
+							? (argv.baseUrl as string)
+							: await ask(`REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`);
 					} finally {
 						rl.close();
 					}
-				};
-
-				const capabilityKeys = Object.keys(CARDINALITY).join(", ");
-				const capability: CapabilityKey = argv.capability
-					? (argv.capability as CapabilityKey)
-					: ((await (async () => {
-							console.log(`  Available capabilities: ${capabilityKeys}`);
-							return ask("Capability:");
-						})()) as CapabilityKey);
-
-				const vendorEnv: string = argv.vendorEnv
-					? (argv.vendorEnv as string)
-					: await ask(`Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`);
-
-				const baseUrl: string = argv.baseUrl
-					? (argv.baseUrl as string)
-					: await ask(`REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`);
+				} else {
+					capability = argv.capability as CapabilityKey;
+					vendorEnv = argv.vendorEnv as string;
+					baseUrl = argv.baseUrl as string;
+				}
 
 				const report = runPluginCreate({
 					slug: argv.slug as string,
