@@ -52,11 +52,14 @@ catalogs:
       specifier: ^0.10.0
       version: 0.10.0
     '@theholocron/vitest-config':
-      specifier: ^7.0.0
-      version: 7.0.0
+      specifier: ^7.2.3
+      version: 7.2.3
     '@types/node':
       specifier: ^26
       version: 26.0.1
+    '@vitest/coverage-v8':
+      specifier: ^4.1.10
+      version: 4.1.10
     '@vitest/eslint-plugin':
       specifier: ^1.6.23
       version: 1.6.23
@@ -221,13 +224,16 @@ importers:
         version: 7.0.0(typescript@5.9.3)
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
       '@types/yargs':
         specifier: ^17.0.35
         version: 17.0.35
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -301,6 +307,9 @@ importers:
       '@types/update-notifier':
         specifier: ^6.0.8
         version: 6.0.8
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -321,10 +330,13 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -369,10 +381,13 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -417,10 +432,13 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -469,13 +487,16 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/libsodium-wrappers':
         specifier: ^0.7.14
         version: 0.7.14
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -520,10 +541,13 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -568,10 +592,13 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -616,10 +643,13 @@ importers:
         version: 7.0.0(tsdown@0.22.3(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -664,10 +694,13 @@ importers:
         version: 0.10.0
       '@theholocron/vitest-config':
         specifier: 'catalog:'
-        version: 7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)
@@ -1798,8 +1831,9 @@ packages:
     resolution: {integrity: sha512-pzjPAJIa/rEzq9akE+ETX7t6MBtR1IDeAcF9iDt9LeJoIQ9mSnbgerhgmLiPEfN+3np1vLaFipcUZqWstImSrQ==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/vitest-config@7.0.0':
-    resolution: {integrity: sha512-McB30D7WyMTd5+cJZMnFZLwDNhE+KTPrjGigzwLu51uix3aSJOlGoU6Ep2951/7EirJdHQLAMpxo/8QIO7zsQg==}
+  '@theholocron/vitest-config@7.2.3':
+    resolution: {integrity: sha512-Esl4a2bpMPhYUfXq3LyuBeGUCrbuGoGz0Ol89IGFKE3Fz3kns4H6AW+cn+NmHjwSZfLHDxOy4e/aB+bkp/Fx5A==}
+    engines: {node: '>=22.0.0'}
     peerDependencies:
       '@storybook/addon-vitest': ^9
       '@testing-library/react': ^16
@@ -4499,8 +4533,8 @@ packages:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
 
-  postcss@8.5.19:
-    resolution: {integrity: sha512-Mz8SaolMd8nB+G13WkORcxQKHZ/NE4xXevtkJHVuG+guo9/wYKlIMTKAqGdEmYOXR2ijPjTYNHssizdaVSUNdQ==}
+  postcss@8.5.20:
+    resolution: {integrity: sha512-lW616l85ucIQL+FocMmL7pQFPqBmwejrCMg+iPxyImlrANNJG9NHq/RkyCZopDhd8C3LA03PHRJDjkbGu8vvug==}
     engines: {node: ^10 || ^12 || >=14}
 
   powershell-utils@0.1.0:
@@ -5627,8 +5661,7 @@ snapshots:
       '@types/jsesc': 2.5.1
       jsesc: 3.1.0
 
-  '@babel/helper-string-parser@7.29.7':
-    optional: true
+  '@babel/helper-string-parser@7.29.7': {}
 
   '@babel/helper-string-parser@8.0.0': {}
 
@@ -5639,7 +5672,6 @@ snapshots:
   '@babel/parser@7.29.7':
     dependencies:
       '@babel/types': 7.29.7
-    optional: true
 
   '@babel/parser@8.0.0':
     dependencies:
@@ -5649,15 +5681,13 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
-    optional: true
 
   '@babel/types@8.0.0':
     dependencies:
       '@babel/helper-string-parser': 8.0.0
       '@babel/helper-validator-identifier': 8.0.2
 
-  '@bcoe/v8-coverage@1.0.2':
-    optional: true
+  '@bcoe/v8-coverage@1.0.2': {}
 
   '@colors/colors@1.5.0':
     optional: true
@@ -6554,7 +6584,7 @@ snapshots:
     dependencies:
       '@theholocron/http-client': 0.7.0
 
-  '@theholocron/vitest-config@7.0.0(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)':
+  '@theholocron/vitest-config@7.2.3(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)':
     dependencies:
       vitest: 4.1.10(@types/node@26.0.1)(@vitest/coverage-v8@4.1.10)(vite@7.3.6(@types/node@26.0.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
@@ -6739,7 +6769,6 @@ snapshots:
       std-env: 4.2.0
       tinyrainbow: 3.1.0
       vitest: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(vite@7.3.6(@types/node@26.1.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0))
-    optional: true
 
   '@vitest/eslint-plugin@1.6.23(@typescript-eslint/eslint-plugin@8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.10)':
     dependencies:
@@ -6777,7 +6806,6 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 7.3.6(@types/node@26.1.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0)
-    optional: true
 
   '@vitest/pretty-format@4.1.10':
     dependencies:
@@ -6988,7 +7016,6 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       estree-walker: 3.0.3
       js-tokens: 10.0.0
-    optional: true
 
   async-function@1.0.0:
     optional: true
@@ -8524,8 +8551,7 @@ snapshots:
     dependencies:
       lru-cache: 11.5.1
 
-  html-escaper@2.0.2:
-    optional: true
+  html-escaper@2.0.2: {}
 
   http-cache-semantics@3.8.1:
     optional: true
@@ -8905,21 +8931,18 @@ snapshots:
       lodash.isstring: 4.0.1
       lodash.uniqby: 4.7.0
 
-  istanbul-lib-coverage@3.2.2:
-    optional: true
+  istanbul-lib-coverage@3.2.2: {}
 
   istanbul-lib-report@3.0.1:
     dependencies:
       istanbul-lib-coverage: 3.2.2
       make-dir: 4.0.0
       supports-color: 7.2.0
-    optional: true
 
   istanbul-reports@3.2.0:
     dependencies:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.1
-    optional: true
 
   isurl@1.0.0:
     dependencies:
@@ -8948,8 +8971,7 @@ snapshots:
       logalot: 2.1.0
     optional: true
 
-  js-tokens@10.0.0:
-    optional: true
+  js-tokens@10.0.0: {}
 
   js-tokens@4.0.0: {}
 
@@ -9180,7 +9202,6 @@ snapshots:
       '@babel/parser': 7.29.7
       '@babel/types': 7.29.7
       source-map-js: 1.2.1
-    optional: true
 
   make-asynchronous@1.1.0:
     dependencies:
@@ -9196,7 +9217,6 @@ snapshots:
   make-dir@4.0.0:
     dependencies:
       semver: 7.8.5
-    optional: true
 
   map-obj@1.0.1:
     optional: true
@@ -9430,8 +9450,7 @@ snapshots:
 
   obug@2.1.3: {}
 
-  obug@2.1.4:
-    optional: true
+  obug@2.1.4: {}
 
   once@1.4.0:
     dependencies:
@@ -9710,7 +9729,7 @@ snapshots:
   possible-typed-array-names@1.1.0:
     optional: true
 
-  postcss@8.5.19:
+  postcss@8.5.20:
     dependencies:
       nanoid: 3.3.16
       picocolors: 1.1.1
@@ -10764,7 +10783,7 @@ snapshots:
       esbuild: 0.28.1
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
-      postcss: 8.5.19
+      postcss: 8.5.20
       rollup: 4.62.2
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -10779,7 +10798,7 @@ snapshots:
       esbuild: 0.28.1
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
-      postcss: 8.5.19
+      postcss: 8.5.20
       rollup: 4.62.2
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -10788,7 +10807,6 @@ snapshots:
       jiti: 2.6.1
       tsx: 4.22.4
       yaml: 2.9.0
-    optional: true
 
   vitest@4.1.10(@types/node@26.0.1)(@vitest/coverage-v8@4.1.10)(vite@7.3.6(@types/node@26.0.1)(jiti@2.6.1)(tsx@4.22.4)(yaml@2.9.0)):
     dependencies:
@@ -10845,7 +10863,6 @@ snapshots:
       '@vitest/coverage-v8': 4.1.10(vitest@4.1.10)
     transitivePeerDependencies:
       - msw
-    optional: true
 
   web-worker@1.5.0: {}
 

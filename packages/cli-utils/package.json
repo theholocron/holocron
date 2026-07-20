@@ -42,6 +42,7 @@
     "@theholocron/tsconfig": "catalog:",
     "@types/play-sound": "^1.1.2",
     "@types/update-notifier": "^6.0.8",
+    "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:"
   },
   "publishConfig": {

@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/cli",
   "version": "2.0.0-alpha.54",
-  "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
+  "description": "The Holocron CLI \u2014 a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -47,6 +47,7 @@
     "@theholocron/vitest-config": "catalog:",
     "@types/node": "catalog:",
     "@types/yargs": "^17.0.35",
+    "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
