@@ -6,12 +6,18 @@
  * Files are overwritten on each setup run — they are generated artifacts.
  */
 
-const WORKFLOW_REPO = "theholocron/.github";
-const WORKFLOW_REF = "main";
-
-function ref(name: string): string {
-	return `${WORKFLOW_REPO}/.github/workflows/${name}.yml@${WORKFLOW_REF}`;
-}
+import auditYml from "./workflows/audit.yml";
+import bookkeepingYml from "./workflows/bookkeeping.yml";
+import codeqlYml from "./workflows/codeql.yml";
+import dependenciesYml from "./workflows/dependencies.yml";
+import greetingsYml from "./workflows/greetings.yml";
+import lintYml from "./workflows/lint.yml";
+import releaseYml from "./workflows/release.yml";
+import reviewYml from "./workflows/review.yml";
+import staleYml from "./workflows/stale.yml";
+import syncGithubYml from "./workflows/sync-github.yml";
+import testYml from "./workflows/test.yml";
+import typecheckYml from "./workflows/typecheck.yml";
 
 /** Header prepended when holocron setup writes a thin caller to a repo. */
 export function workflowHeader(): string {
@@ -26,265 +32,18 @@ export function workflowHeader(): string {
 }
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
-	lint: `\
-name: Lint
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
-  pull_request:
-
-concurrency:
-  group: lint-\${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write
-  statuses: write
-
-jobs:
-  lint:
-    name: Lint
-    uses: ${ref("lint")}
-    secrets: inherit
-    with:
-      enable-auto-commit: true
-`,
-
-	test: `\
-name: Test
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
-  pull_request:
-
-concurrency:
-  group: test-\${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
-jobs:
-  test:
-    name: Test
-    uses: ${ref("test")}
-    secrets: inherit
-`,
-
-	typecheck: `\
-name: Typecheck
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
-  pull_request:
-
-concurrency:
-  group: typecheck-\${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
-jobs:
-  typecheck:
-    name: Typecheck
-    uses: ${ref("typecheck")}
-    secrets: inherit
-`,
-
-	codeql: `\
-name: CodeQL
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  schedule:
-    - cron: "0 0 * * 1"
-
-permissions:
-  actions: read
-  contents: read
-  security-events: write
-
-jobs:
-  codeql:
-    uses: ${ref("codeql")}
-    secrets: inherit
-`,
-
-	review: `\
-name: Review
-
-on: # yamllint disable-line rule:truthy
-  pull_request:
-
-concurrency:
-  group: review-\${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-
-jobs:
-  review:
-    name: Review
-    uses: ${ref("review")}
-    secrets: inherit
-`,
-
-	release: `\
-name: Release
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches:
-      - main
-      - alpha
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  id-token: write
-  issues: write
-  pull-requests: write
-
-concurrency:
-  group: \${{ github.workflow }}-\${{ github.ref }}
-  cancel-in-progress: false
-
-jobs:
-  release:
-    uses: ${ref("release")}
-    secrets: inherit
-`,
-
-	stale: `\
-name: Stale
-
-on: # yamllint disable-line rule:truthy
-  schedule:
-    - cron: "30 1 * * *"
-
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
-jobs:
-  stale:
-    uses: ${ref("stale")}
-    secrets: inherit
-`,
-
-	greetings: `\
-name: Greetings
-
-on: # yamllint disable-line rule:truthy
-  pull_request:
-  issues:
-
-permissions:
-  issues: write
-  pull-requests: write
-
-jobs:
-  greetings:
-    uses: ${ref("greetings")}
-    secrets: inherit
-`,
-
-	dependencies: `\
-name: Dependencies
-
-on: # yamllint disable-line rule:truthy
-  pull_request:
-
-permissions:
-  contents: write
-  pull-requests: write
-
-jobs:
-  dependencies:
-    uses: ${ref("dependencies")}
-    secrets: inherit
-`,
-
-	bookkeeping: `\
-name: Bookkeeping
-
-on: # yamllint disable-line rule:truthy
-  pull_request:
-    types:
-      - opened
-      - edited
-  issues:
-    types:
-      - opened
-      - edited
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
-
-jobs:
-  bookkeeping:
-    uses: ${ref("bookkeeping")}
-    secrets: inherit
-`,
-
-	audit: `\
-name: Audit
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
-  pull_request:
-
-permissions:
-  contents: read
-
-jobs:
-  audit:
-    uses: ${ref("audit")}
-    secrets: inherit
-`,
-
-	"sync-github": `\
-name: Sync GitHub Templates
-
-on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
-    paths:
-      - packages/cli/src/templates/index.ts
-      - packages/cli/src/commands/setup-workflows.ts
-
-concurrency:
-  group: sync-github-\${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
-jobs:
-  sync:
-    name: Sync
-    uses: ${ref("sync-github")}
-    with:
-      secondary-repos: theholocron/.github-private
-    secrets:
-      SYNC_TOKEN: \${{ secrets.SYNC_TOKEN }}
-`,
+	lint: lintYml,
+	test: testYml,
+	typecheck: typecheckYml,
+	codeql: codeqlYml,
+	review: reviewYml,
+	release: releaseYml,
+	stale: staleYml,
+	greetings: greetingsYml,
+	dependencies: dependenciesYml,
+	bookkeeping: bookkeepingYml,
+	audit: auditYml,
+	"sync-github": syncGithubYml,
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));

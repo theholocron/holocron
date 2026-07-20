@@ -1,10 +1,28 @@
+import { readFileSync } from "node:fs";
+
 import { library } from "@theholocron/vitest-config/bundles/library";
 import { defineConfig } from "vitest/config";
+import type { Plugin } from "vite";
+
+/** Vite plugin: import *.yml files as default-exported strings. */
+function rawYml(): Plugin {
+	return {
+		name: "raw-yml",
+		transform(_code, id) {
+			if (!id.endsWith(".yml")) return null;
+			return {
+				code: `export default ${JSON.stringify(readFileSync(id, "utf8"))};`,
+				map: null,
+			};
+		},
+	};
+}
 
 const base = library();
 
 export default defineConfig({
 	...base,
+	plugins: [...(base.plugins ?? []), rawYml()],
 	test: {
 		...base.test,
 		coverage: {
@@ -19,6 +37,10 @@ export default defineConfig({
 				"src/capabilities/index.ts",
 				// Pure re-export shim — all logic lives in @theholocron/http-client.
 				"src/rest-client.ts",
+				// yml template files — string content only, no executable logic.
+				"src/commands/workflows/**",
+				"src/templates/actions/**",
+				"src/templates/workflows/**",
 			],
 		},
 	},

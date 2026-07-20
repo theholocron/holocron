@@ -1,0 +1,21 @@
+name: Bookkeeping
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types:
+      - opened
+      - edited
+  issues:
+    types:
+      - opened
+      - edited
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  bookkeeping:
+    uses: theholocron/.github/.github/workflows/bookkeeping.yml@main
+    secrets: inherit

@@ -1,0 +1,14 @@
+name: Audit
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    uses: theholocron/.github/.github/workflows/audit.yml@main
+    secrets: inherit

@@ -1,0 +1,111 @@
+name: Lint
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      prettier-config:
+        type: string
+        required: false
+        default: prettier.config.js
+      yaml-config:
+        type: string
+        required: false
+        default: yamllint.config.yml
+      enable-auto-commit:
+        description: Auto-commit super-linter fixes via GPG-signed commit
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      SUPER_LINTER_GPG_PRIVATE_KEY:
+        required: false
+      SUPER_LINTER_GPG_PASSPHRASE:
+        required: false
+
+jobs:
+  super-lint:
+    name: Lint entire codebase
+    permissions:
+      contents: write
+      statuses: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GPG_KEY_SET: ${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY != '' }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
+
+      - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
+        name: Run Super Linter
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+          ANNOTATE_ONLY: true
+          DISABLE_COMMENTS: false
+          IGNORE_GITIGNORED_FILES: true
+          LINTER_RULES_PATH: /
+          EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
+          FIX_ENV: true
+          FIX_GRAPHQL_PRETTIER: true
+          FIX_HTML_PRETTIER: true
+          FIX_JAVASCRIPT_PRETTIER: true
+          FIX_JSX_PRETTIER: true
+          FIX_MARKDOWN_PRETTIER: true
+          FIX_TSX: true
+          FIX_TYPESCRIPT_PRETTIER: true
+          PRETTIER_CONFIG: ${{ inputs.prettier-config }}
+          VALIDATE_DOCKERFILE: true
+          VALIDATE_EDITORCONFIG: true
+          VALIDATE_ENV: true
+          VALIDATE_GIT_COMMITLINT: true
+          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_GITLEAKS: true
+          VALIDATE_GRAPHQL_PRETTIER: true
+          VALIDATE_HTML_PRETTIER: true
+          VALIDATE_JAVASCRIPT_PRETTIER: true
+          VALIDATE_JSX_PRETTIER: true
+          VALIDATE_MARKDOWN_PRETTIER: true
+          VALIDATE_TSX: true
+          VALIDATE_TYPESCRIPT_PRETTIER: true
+          VALIDATE_YAML: true
+          YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
+
+      - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
+        name: Import GPG Key
+        # Conditions mirror auto-commit exactly — no point importing GPG if the
+        # commit step will be skipped (fork PR, default branch, or secret unset).
+        if: >
+          inputs.enable-auto-commit == true &&
+          github.event.pull_request != null &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.ref_name != github.event.repository.default_branch &&
+          env.GPG_KEY_SET == 'true'
+        with:
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          GPG_PRIVATE_KEY: ${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.SUPER_LINTER_GPG_PASSPHRASE }}
+
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        name: Commit and push linting fixes
+        if: >
+          inputs.enable-auto-commit == true &&
+          github.event.pull_request != null &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.ref_name != github.event.repository.default_branch &&
+          env.GPG_KEY_SET == 'true'
+        with:
+          branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
+          commit_message: "chore: fix linting issues\n\nSigned-off-by: super-linter <super-linter@super-linter.dev>"
+          commit_options: "--no-verify"
+          commit_user_name: super-linter
+          commit_user_email: super-linter@super-linter.dev

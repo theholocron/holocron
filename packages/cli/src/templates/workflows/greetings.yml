@@ -1,0 +1,57 @@
+name: Greetings
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+
+jobs:
+  greeting:
+    name: Greet first-time contributors
+    permissions:
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Group by the issue/PR number so duplicate events don't race each other.
+    concurrency:
+      group: greetings-${{ github.event.issue.number || github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        name: Greet on first contribution
+        with:
+          script: |
+            // Only greet on the initial open — ignore synchronize, reopened, etc.
+            if (context.payload.action !== 'opened') return;
+
+            const actor = context.actor;
+            const { owner, repo } = context.repo;
+
+            // Payload inspection is more reliable than context.eventName for detecting
+            // whether this is an issue vs. PR event — works regardless of how GitHub
+            // propagates event names through workflow_call chains.
+            const isIssue = !!context.payload.issue && !context.payload.pull_request;
+            // listForRepo returns both issues and PRs (GitHub treats PRs as issues),
+            // sorted newest-first. Filter by type to track first-issue and first-PR
+            // independently, and avoid search-index eventual-consistency lag.
+            const { data: recent } = await github.rest.issues.listForRepo({
+              owner, repo,
+              creator: actor,
+              state: 'all',
+              per_page: 100
+            });
+
+            const sameType = recent.filter(item =>
+              isIssue ? !item.pull_request : !!item.pull_request
+            );
+
+            if (sameType.length !== 1) return;
+            const body = isIssue
+              ? `Hey @${actor}!\n\nWe really appreciate you taking the time to report an issue. The collaborators on this project attempt to help as many people as possible, but we are a limited number of volunteers, so it is possible that this will not be addressed as swiftly.\n\nYour patience is much appreciated and we will get back to you as quickly as possible.`
+              : `Hey @${actor}!\n\nWe really appreciate you taking the time to help out with this PR. The collaborators on this project attempt to help as many people as possible, but we are a limited number of volunteers, so it is possible that this will not be addressed as swiftly.\n\nYour patience is much appreciated and we will get back to you as quickly as possible.`;
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              body
+            });
