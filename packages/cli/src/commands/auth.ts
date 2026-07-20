@@ -155,6 +155,8 @@ export interface RunAuthCheckInput {
 	provider: string;
 	importer?: AuthImporter;
 	print?: AuthPrint;
+	/** Set to false to suppress the ora spinner (e.g. when called from runAuthList). */
+	showSpinner?: boolean;
 }
 
 export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthCommandStatus> {
@@ -175,7 +177,10 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 			print(style.warn(`${provider}: token stored (plugin has no verifyToken; can't confirm validity)`));
 			return { status: "ok", message: "stored, unverified" };
 		}
-		const verified = await withSpinner(`Verifying ${provider} token…`, () => module.verifyToken!(token));
+		const verify = () => module.verifyToken!(token);
+		const verified = input.showSpinner !== false
+			? await withSpinner(`Verifying ${provider} token…`, verify)
+			: await verify();
 		if (verified.ok) {
 			print(style.success(`${provider}: ok — ${verified.subject}`));
 			return { status: "ok", message: verified.subject };
@@ -207,7 +212,7 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 	}
 
 	for (const provider of providers.sort()) {
-		const check = await runAuthCheck({ provider, importer, print: () => {} });
+		const check = await runAuthCheck({ provider, importer, print: () => {}, showSpinner: false });
 		const label = `${provider}${check.message ? ` — ${check.message}` : ""}`;
 		if (check.status === "ok") print(`  ${style.success(label)}`);
 		else if (check.status === "fail") print(`  ${style.fail(label)}`);
