@@ -4,7 +4,7 @@ import { join } from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { createInterface } from "node:readline/promises";
+import { createInterface } from "node:readline";
 import { stdin, stdout } from "node:process";
 
 import type { CapabilityKey } from "./capabilities/index.js";
@@ -423,7 +423,10 @@ await yargs(hideBin(process.argv))
 
 				if (needsPrompt) {
 					const rl = createInterface({ input: stdin, output: stdout });
-					const ask = (question: string) => rl.question(`  ${question} `).then((a) => a.trim());
+					const ask = (question: string) =>
+						new Promise<string>((resolve) =>
+							rl.question(`  ${question} `, (answer) => resolve(answer.trim()))
+						);
 					try {
 						if (!argv.capability) {
 							console.log(`  Available capabilities: ${capabilityKeys}`);
