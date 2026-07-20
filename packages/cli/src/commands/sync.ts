@@ -1,4 +1,4 @@
-import { access } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Source } from "../capabilities/index.js";
@@ -7,7 +7,7 @@ import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 
-export const SYNC_STEPS = ["labels", "properties", "topics"] as const;
+export const SYNC_STEPS = ["labels", "properties", "topics", "keywords", "description"] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 export interface RunSyncInput {
@@ -116,6 +116,62 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					print(formatSyncStep(steps[steps.length - 1]!));
 				}
 			}
+
+			if (stepName === "keywords") {
+				const topics = config.repo?.topics ?? [];
+				if (topics.length === 0) {
+					steps.push({
+						capability: "source",
+						step: "sync keywords",
+						status: "skip",
+						message: "no topics configured",
+					});
+					print(formatSyncStep(steps[steps.length - 1]!));
+				} else {
+					steps.push(
+						await runSyncStep("source", "sync keywords", dryRun, async () => {
+							const wrote = await writePackageJsonField(input.context.repoRoot, "keywords", topics);
+							return wrote
+								? `${topics.length} keywords written`
+								: `${topics.length} topics (no package.json)`;
+						})
+					);
+					print(formatSyncStep(steps[steps.length - 1]!));
+				}
+			}
+
+			if (stepName === "description") {
+				const description = config.description;
+				if (!description) {
+					steps.push({
+						capability: "source",
+						step: "sync description",
+						status: "skip",
+						message: "no description configured",
+					});
+					print(formatSyncStep(steps[steps.length - 1]!));
+				} else {
+					steps.push(
+						await runSyncStep("source", "sync description", dryRun, async () => {
+							const pkgWrote = await writePackageJsonField(
+								input.context.repoRoot,
+								"description",
+								description
+							);
+							const readmeWrote = await updateReadmeDescription(input.context.repoRoot, description);
+							if (source.syncDescription) {
+								await source.syncDescription(description);
+							}
+							const parts: string[] = [];
+							if (pkgWrote) parts.push("package.json");
+							if (readmeWrote) parts.push("README.md");
+							if (source.syncDescription) parts.push("GitHub");
+							return parts.length > 0 ? parts.join(", ") + " updated" : "description synced";
+						})
+					);
+					print(formatSyncStep(steps[steps.length - 1]!));
+				}
+			}
 		}
 
 		// Report unknown step names
@@ -183,4 +239,48 @@ function formatSyncStep(step: SetupStepResult): string {
 	const icon = step.status === "ok" ? "✓" : step.status === "fail" ? "✗" : step.status === "dry-run" ? "…" : "·";
 	const detail = step.message ? `  (${step.message})` : "";
 	return `    ${icon} ${step.step}${detail}`;
+}
+
+async function writePackageJsonField(repoRoot: string, field: string, value: unknown): Promise<boolean> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return false;
+	}
+	const pkg = JSON.parse(content) as Record<string, unknown>;
+	pkg[field] = value;
+	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	return true;
+}
+
+const README_DESC_START = "<!-- holocron:description -->";
+const README_DESC_END = "<!-- /holocron:description -->";
+
+async function updateReadmeDescription(repoRoot: string, description: string): Promise<boolean> {
+	const readmePath = join(repoRoot, "README.md");
+	let content: string;
+	try {
+		content = await readFile(readmePath, "utf8");
+	} catch {
+		return false;
+	}
+	const lines = content.split("\n");
+
+	const startIdx = lines.findIndex((l) => l.trim() === README_DESC_START);
+	const endIdx = lines.findIndex((l) => l.trim() === README_DESC_END);
+	if (startIdx !== -1) {
+		if (endIdx === -1 || endIdx <= startIdx) return false;
+		lines.splice(startIdx + 1, endIdx - startIdx - 1, description);
+		await writeFile(readmePath, lines.join("\n"), "utf8");
+		return true;
+	}
+
+	const h1Index = lines.findIndex((l) => /^# /.test(l));
+	if (h1Index === -1) return false;
+
+	lines.splice(h1Index + 1, 0, "", README_DESC_START, description, README_DESC_END);
+	await writeFile(readmePath, lines.join("\n"), "utf8");
+	return true;
 }

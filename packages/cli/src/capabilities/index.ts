@@ -186,6 +186,12 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers that don't support topics omit this.
 	 */
 	syncTopics?(topics: string[]): Promise<string>;
+
+	/**
+	 * Set the repository description.
+	 * Optional — providers that don't support setting descriptions omit this.
+	 */
+	syncDescription?(description: string): Promise<string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

@@ -148,6 +148,11 @@ export class GitHubSource implements Source {
 	async syncTopics(topics: string[]): Promise<string> {
 		return syncTopics(this.client, this.repo, topics);
 	}
+
+	async syncDescription(description: string): Promise<string> {
+		await this.client.repos.updateRepo(this.repo, { description });
+		return "description updated";
+	}
 }
 
 function isENOENT(err: unknown): boolean {
