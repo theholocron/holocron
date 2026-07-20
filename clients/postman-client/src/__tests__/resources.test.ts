@@ -202,4 +202,13 @@ describe("import.openapi", () => {
 		expect(calls[0]?.body).toMatchObject({ type: "string" });
 		expect(result.collections[0]?.name).toBe("Imported");
 	});
+
+	it("passes a string spec through without JSON-encoding it", async () => {
+		const { client, calls } = makeClient([
+			{ status: 200, body: { collections: [] } },
+		]);
+		const raw = '{"openapi":"3.1.0"}';
+		await client.import.openapi("ws2", raw);
+		expect(calls[0]?.body).toMatchObject({ input: raw });
+	});
 });
