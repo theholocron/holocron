@@ -222,3 +222,69 @@ describe("Rendered content sanity", () => {
 		expect(content).toMatch(/holocron auth set acme/);
 	});
 });
+
+// ── post-scaffold verify ──────────────────────────────────────────────────────
+
+describe("runPluginCreate — post-scaffold verify", () => {
+	it("skips verify when dryRun is true", () => {
+		const fs = makeFakeFs();
+		let execCalled = false;
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: () => {},
+			dryRun: true,
+			exec: () => { execCalled = true; },
+		});
+		expect(execCalled).toBe(false);
+		expect(report.status).toBe("ok");
+	});
+
+	it("skips verify when noVerify is true", () => {
+		const fs = makeFakeFs();
+		let execCalled = false;
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: () => {},
+			noVerify: true,
+			exec: () => { execCalled = true; },
+		});
+		expect(execCalled).toBe(false);
+		expect(report.status).toBe("ok");
+	});
+
+	it("runs pnpm install, typecheck, lint, test in order when verify is enabled", () => {
+		const fs = makeFakeFs();
+		const calls: string[] = [];
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: () => {},
+			exec: (cmd, args) => { calls.push(`${cmd} ${args.join(" ")}`); },
+		});
+		expect(calls).toEqual([
+			`pnpm install --frozen-lockfile=false`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug typecheck`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug lint`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug test`,
+		]);
+		expect(report.status).toBe("ok");
+	});
+
+	it("returns fail when a verify step throws", () => {
+		const fs = makeFakeFs();
+		const lines: string[] = [];
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: (l) => lines.push(l),
+			exec: (_, args) => {
+				if (args.includes("typecheck")) throw new Error("type error");
+			},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/verify failed/);
+		expect(lines.join("\n")).toContain("✗ verify failed");
+	});
+});
