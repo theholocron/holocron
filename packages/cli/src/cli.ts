@@ -436,10 +436,14 @@ await yargs(hideBin(process.argv))
 						}
 						vendorEnv = argv.vendorEnv
 							? (argv.vendorEnv as string)
-							: await ask(`Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`);
+							: await ask(
+									`Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`
+								);
 						baseUrl = argv.baseUrl
 							? (argv.baseUrl as string)
-							: await ask(`REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`);
+							: await ask(
+									`REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`
+								);
 					} finally {
 						rl.close();
 					}

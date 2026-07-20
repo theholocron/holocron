@@ -1,0 +1,27 @@
+name: Setup Node
+description: Install pnpm and Node.js with pnpm dependency caching.
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "22.x"
+
+runs:
+  using: composite
+
+  steps:
+    - name: Setup pnpm
+      if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
+      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: ${{ hashFiles('.node-version') != '' && '' || inputs.node-version }}
+        node-version-file: ${{ hashFiles('.node-version') != '' && '.node-version' || '' }}
+        cache: ${{ hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
+
+    - name: Add node_modules/.bin to PATH
+      shell: bash
+      run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> $GITHUB_PATH

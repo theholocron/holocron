@@ -1,0 +1,38 @@
+name: Audit
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      build-script:
+        description: Script to build and upload bundle stats to Codecov
+        type: string
+        required: false
+        default: pnpm build
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+jobs:
+  bundle-size:
+    name: Audit the bundle size
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: audit-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: eval "$BUILD_SCRIPT"
+        name: Build and upload bundle stats
+        env:
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

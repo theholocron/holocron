@@ -1,6 +1,9 @@
 import { defineConfig } from "tsdown";
 
+import { rawYml } from "./raw-yml.js";
+
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
+const sharedPlugins = [rawYml()];
 
 export default defineConfig([
 	{
@@ -10,6 +13,7 @@ export default defineConfig([
 		dts: true,
 		clean: true,
 		deps: sharedDeps,
+		plugins: sharedPlugins,
 	},
 	{
 		// CLI binary: compiled to plain JS — shebang must use node, not tsx.
@@ -19,5 +23,6 @@ export default defineConfig([
 		clean: false,
 		deps: sharedDeps,
 		banner: { js: "#!/usr/bin/env node" },
+		plugins: sharedPlugins,
 	},
 ]);
