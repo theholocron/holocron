@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // In-memory keyring simulator — same shape as keyring.test.ts.
 const store = new Map<string, string>();
+// Set to true in a test to make setPassword throw (simulates keyring unavailable).
+let keyringFails = false;
 
 vi.mock("@napi-rs/keyring", () => {
 	class Entry {
@@ -10,6 +12,7 @@ vi.mock("@napi-rs/keyring", () => {
 			this.key = `${service}::${username}`;
 		}
 		setPassword(pw: string): void {
+			if (keyringFails) throw new Error("keyring unavailable");
 			store.set(this.key, pw);
 		}
 		getPassword(): string | null {
@@ -168,6 +171,25 @@ describe("runAuthSet", () => {
 		});
 		expect(result.status).toBe("ok");
 	});
+
+	it("fails when the keyring is unavailable", async () => {
+		keyringFails = true;
+		const { print, lines } = collect();
+		try {
+			const result = await runAuthSet({
+				provider: "doppler",
+				positional: "dp.pt.abc",
+				env: {},
+				importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "test" }) }),
+				print,
+			});
+			expect(result.status).toBe("fail");
+			expect(result.message).toBe("keyring unavailable");
+			expect(lines.join("\n")).toMatch(/keyring unavailable/);
+		} finally {
+			keyringFails = false;
+		}
+	});
 });
 
 describe("runAuthUnset", () => {
@@ -277,24 +299,18 @@ describe("runAuthCheck", () => {
 		expect(result.message).toBe("bad string error");
 		expect(lines.join("\n")).toMatch(/cannot verify/);
 	});
-});
 
-describe("runAuthCheck", () => {
-	describe("showSpinner: false", () => {
-		it("skips the spinner and verifies directly", async () => {
-			store.set("com.theholocron.cli::doppler", "dp.pt.abc");
-			const { print, lines } = collect();
-			const result = await runAuthCheck({
-				provider: "doppler",
-				importer: async () => ({
-					verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }),
-				}),
-				print,
-				showSpinner: false,
-			});
-			expect(result.status).toBe("ok");
-			expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
+	it("skips the spinner when showSpinner is false", async () => {
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }) }),
+			print,
+			showSpinner: false,
 		});
+		expect(result.status).toBe("ok");
+		expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
 	});
 });
 
