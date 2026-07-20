@@ -96,9 +96,7 @@ async function verifySignature(input: ParseWebhookInput): Promise<void> {
 	const svixSignature = h("svix-signature");
 
 	if (!svixId || !svixTimestamp || !svixSignature) {
-		throw new WebhookVerificationError(
-			"Missing required Svix headers: svix-id, svix-timestamp, svix-signature"
-		);
+		throw new WebhookVerificationError("Missing required Svix headers: svix-id, svix-timestamp, svix-signature");
 	}
 
 	const ts = parseInt(svixTimestamp, 10);
