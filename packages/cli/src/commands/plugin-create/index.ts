@@ -10,15 +10,14 @@
  *   2. Slug collision — packages/holocron-plugin-<slug>/ must not exist.
  *   3. Capability sanity — must be one of the 14 known keys; warn for
  *      many-cardinality caps.
- *   4. Prompt — fill in any missing flags via cli-utils / inquirer
- *      (Phase B; Phase A takes fully-populated input).
- *   5. Generate — for each template, write to
+ *   4. Generate — for each template, write to
  *      packages/holocron-plugin-<slug>/<path>.
- *   6. Verify (unless --no-verify) — Phase B; runs pnpm install +
+ *   5. Verify (unless --no-verify) — runs pnpm install +
  *      pnpm --filter <pkg> typecheck lint test.
- *   7. Print next steps.
+ *   6. Print next steps.
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -69,6 +68,8 @@ export interface RunPluginCreateInput {
 	writeFile?: (filepath: string, content: string) => void;
 	/** Print fn — captures orchestrator output. Defaults to console.log. */
 	print?: (line: string) => void;
+	/** Injectable subprocess runner for testing. Defaults to execFileSync. */
+	exec?: (cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }) => void;
 }
 
 export interface PluginCreateReport {
@@ -174,6 +175,28 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 		filesWritten.push(resolvedPath);
 	}
 
+	if (!input.dryRun && !input.noVerify) {
+		const execFn = input.exec ?? defaultExec;
+		const pkg = `@theholocron/holocron-plugin-${inputs.slug}`;
+		print("");
+		print("  Verifying scaffold…");
+		try {
+			execFn("pnpm", ["install", "--frozen-lockfile=false"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "typecheck"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "lint"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "test"], { cwd, stdio: "inherit" });
+			print("  ✓ scaffold verified");
+		} catch (err) {
+			print(`  ✗ verify failed — ${err instanceof Error ? err.message : String(err)}`);
+			return {
+				status: "fail",
+				packagePath: packageDir,
+				filesWritten,
+				message: "post-scaffold verify failed; inspect output above",
+			};
+		}
+	}
+
 	if (!input.dryRun) {
 		printNextSteps(print, inputs);
 	}
@@ -250,6 +273,10 @@ function validateCapability(capability: CapabilityKey, print: (line: string) => 
 function defaultWrite(filepath: string, content: string): void {
 	mkdirSync(path.dirname(filepath), { recursive: true });
 	writeFileSync(filepath, content, "utf8");
+}
+
+function defaultExec(cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }): void {
+	execFileSync(cmd, args, { cwd: opts.cwd, stdio: opts.stdio });
 }
 
 function printNextSteps(print: (line: string) => void, inputs: TemplateInputs): void {

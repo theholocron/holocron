@@ -4,7 +4,11 @@ import { join } from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+import { createInterface } from "node:readline";
+import { stdin, stdout } from "node:process";
+
 import type { CapabilityKey } from "./capabilities/index.js";
+import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
@@ -408,20 +412,49 @@ await yargs(hideBin(process.argv))
 					describe:
 						"Run post-scaffold pnpm install + typecheck + lint + test (default true; --no-verify skips)",
 				}),
-		(argv) => {
+		async (argv) => {
 			try {
-				if (!argv.capability || !argv.vendorEnv || !argv.baseUrl) {
-					throw new PluginCreateError(
-						"Phase A: --capability, --vendor-env, and --base-url are required. " +
-							"Interactive prompts land in Phase B."
-					);
+				const capabilityKeys = Object.keys(CARDINALITY).join(", ");
+				const needsPrompt = !argv.capability || !argv.vendorEnv || !argv.baseUrl;
+
+				let capability: CapabilityKey;
+				let vendorEnv: string;
+				let baseUrl: string;
+
+				if (needsPrompt) {
+					const rl = createInterface({ input: stdin, output: stdout });
+					const ask = (question: string) =>
+						new Promise<string>((resolve) =>
+							rl.question(`  ${question} `, (answer) => resolve(answer.trim()))
+						);
+					try {
+						if (!argv.capability) {
+							console.log(`  Available capabilities: ${capabilityKeys}`);
+							capability = (await ask("Capability:")) as CapabilityKey;
+						} else {
+							capability = argv.capability as CapabilityKey;
+						}
+						vendorEnv = argv.vendorEnv
+							? (argv.vendorEnv as string)
+							: await ask(`Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`);
+						baseUrl = argv.baseUrl
+							? (argv.baseUrl as string)
+							: await ask(`REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`);
+					} finally {
+						rl.close();
+					}
+				} else {
+					capability = argv.capability as CapabilityKey;
+					vendorEnv = argv.vendorEnv as string;
+					baseUrl = argv.baseUrl as string;
 				}
+
 				const report = runPluginCreate({
 					slug: argv.slug as string,
 					vendorName: argv.vendor as string,
-					capability: argv.capability as CapabilityKey,
-					vendorEnv: argv.vendorEnv as string,
-					baseUrl: argv.baseUrl as string,
+					capability,
+					vendorEnv,
+					baseUrl,
 					...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv as string } : {}),
 					dryRun: argv.dryRun,
 					// Yargs: `--no-verify` flips `argv.verify` to false. We pass

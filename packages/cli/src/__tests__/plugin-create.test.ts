@@ -1,7 +1,13 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
+vi.mock("node:fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:fs")>();
+	return { ...actual, mkdirSync: vi.fn(), writeFileSync: vi.fn() };
+});
 
 import { PluginCreateError, runPluginCreate } from "../commands/plugin-create/index.js";
 
@@ -220,5 +226,94 @@ describe("Rendered content sanity", () => {
 		expect(content).toMatch(/export const AUTH_HINT/);
 		expect(content).toMatch(/export \{ verifyToken \}/);
 		expect(content).toMatch(/holocron auth set acme/);
+	});
+});
+
+// ── post-scaffold verify ──────────────────────────────────────────────────────
+
+describe("runPluginCreate — post-scaffold verify", () => {
+	it("skips verify when dryRun is true", () => {
+		const fs = makeFakeFs();
+		let execCalled = false;
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: () => {},
+			dryRun: true,
+			exec: () => { execCalled = true; },
+		});
+		expect(execCalled).toBe(false);
+		expect(report.status).toBe("ok");
+	});
+
+	it("skips verify when noVerify is true", () => {
+		const fs = makeFakeFs();
+		let execCalled = false;
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: () => {},
+			noVerify: true,
+			exec: () => { execCalled = true; },
+		});
+		expect(execCalled).toBe(false);
+		expect(report.status).toBe("ok");
+	});
+
+	it("runs pnpm install, typecheck, lint, test in order when verify is enabled", () => {
+		const fs = makeFakeFs();
+		const calls: string[] = [];
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: () => {},
+			exec: (cmd, args) => { calls.push(`${cmd} ${args.join(" ")}`); },
+		});
+		expect(calls).toEqual([
+			`pnpm install --frozen-lockfile=false`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug typecheck`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug lint`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug test`,
+		]);
+		expect(report.status).toBe("ok");
+	});
+
+	it("returns fail when a verify step throws", () => {
+		const fs = makeFakeFs();
+		const lines: string[] = [];
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: (l) => lines.push(l),
+			exec: (_, args) => {
+				if (args.includes("typecheck")) throw new Error("type error");
+			},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/verify failed/);
+		expect(lines.join("\n")).toContain("✗ verify failed");
+	});
+
+	it("defaultWrite delegates to mkdirSync + writeFileSync when no writeFile is injected", async () => {
+		const { mkdirSync, writeFileSync } = await import("node:fs");
+		const mkdirMock = vi.mocked(mkdirSync);
+		const writeMock = vi.mocked(writeFileSync);
+		mkdirMock.mockImplementation(() => undefined);
+		writeMock.mockImplementation(() => undefined);
+		runPluginCreate({ ...BASE_INPUT, noVerify: true, print: () => {} });
+		expect(mkdirMock).toHaveBeenCalled();
+		expect(writeMock).toHaveBeenCalled();
+		mkdirMock.mockReset();
+		writeMock.mockReset();
+	});
+
+	it("defaultExec delegates to execFileSync when no exec is injected", async () => {
+		const { execFileSync } = await import("node:child_process");
+		const mock = vi.mocked(execFileSync);
+		mock.mockReturnValue(Buffer.from(""));
+		const fs = makeFakeFs();
+		runPluginCreate({ ...BASE_INPUT, writeFile: fs.writeFile, print: () => {} });
+		expect(mock).toHaveBeenCalledWith("pnpm", ["install", "--frozen-lockfile=false"], { cwd: WORKSPACE_ROOT, stdio: "inherit" });
+		mock.mockReset();
 	});
 });
