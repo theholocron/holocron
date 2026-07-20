@@ -25,7 +25,7 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 ```jsonc
 // holocron.config.json
 {
-  "project": { "name": "my-app" },
+  "name": "my-app",
   "providers": {
     "vault": ["1password", { "vault": "my-app" }],
     "source": "github",
@@ -42,7 +42,7 @@ Holocron reads `holocron.config.{json,js,ts}` from the project root
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
-  project: { name: "my-app" },
+  name: "my-app",
   providers: {
     vault: ["1password", { vault: "my-app" }],
     source: "github",
