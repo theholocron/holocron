@@ -1294,6 +1294,29 @@ describe("runSetup", () => {
 		const step = report.steps.find((s) => s.step === "write .alexrc.json");
 		expect(step?.status).toBe("dry-run");
 	});
+
+	it("calls source.syncLabels when the provider implements it", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called = true;
+						return "17 synced";
+					},
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(true);
+		const step = report.steps.find((s) => s.step === "sync labels");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("17 synced");
+	});
 });
 
 // ── codecovContent ────────────────────────────────────────────────────────────
@@ -1431,5 +1454,49 @@ describe("setup: write codecov.yml", () => {
 
 		expect(written["codecov.yml"]).toContain("component_id: foo");
 		expect(written["codecov.yml"]).not.toContain("no-pkg");
+	});
+
+	it("skips non-directory entries (files) inside packages/", async () => {
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "real-pkg"), { recursive: true });
+		await writeFile(join(pkgsDir, "real-pkg", "package.json"), JSON.stringify({ name: "@acme/real-pkg" }));
+		// A plain file sitting directly in packages/ — should be ignored
+		await writeFile(join(pkgsDir, "README.md"), "# packages");
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain("component_id: real-pkg");
+		expect(written["codecov.yml"]).not.toContain("README");
+	});
+
+	it("skips package dirs whose package.json has no name field", async () => {
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "named"), { recursive: true });
+		await mkdir(join(pkgsDir, "unnamed"), { recursive: true });
+		await writeFile(join(pkgsDir, "named", "package.json"), JSON.stringify({ name: "@acme/named" }));
+		await writeFile(join(pkgsDir, "unnamed", "package.json"), JSON.stringify({ version: "1.0.0" }));
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain("component_id: named");
+		expect(written["codecov.yml"]).not.toContain("unnamed");
 	});
 });
