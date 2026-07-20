@@ -7,7 +7,7 @@ const REQUIRED = {
 	GOOGLE_PROJECT_ID: "my-project",
 	GOOGLE_PRIVATE_KEY_ID: "key-id-123",
 	GOOGLE_PRIVATE_KEY:
-		"-----BEGIN RSA PRIVATE KEY-----\\nMIIEowIB\\n-----END RSA PRIVATE KEY-----",
+		"-----BEGIN RSA PRIVATE KEY-----\\nMIIEowIB\\n-----END RSA PRIVATE KEY-----", // gitleaks:allow
 	GOOGLE_CLIENT_EMAIL: "svc@my-project.iam.gserviceaccount.com",
 	GOOGLE_CLIENT_ID: "123456789",
 };
