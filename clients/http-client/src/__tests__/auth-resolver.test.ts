@@ -68,4 +68,42 @@ describe("createResolveToken", () => {
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).name).toBe("AuthError");
 	});
+
+	it("falls back to process.env when env is not provided", () => {
+		process.env["HOLOCRON_TEST_TOKEN"] = "from-process-env";
+		try {
+			expect(resolveToken({ keyring: noKeyring })).toBe(
+				"from-process-env",
+			);
+		} finally {
+			delete process.env["HOLOCRON_TEST_TOKEN"];
+		}
+	});
+
+	it("falls back to defaultKeyring when keyring is not provided", () => {
+		// defaultKeyring = () => null, so it falls through to throwing
+		const err = (() => {
+			try {
+				resolveToken({ env: {} });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(AuthError);
+	});
+});
+
+describe("createResolveToken — with getKeyringToken", () => {
+	it("uses getKeyringToken from config as the default keyring", () => {
+		const configKeyring = (p: string) =>
+			p === "test" ? "from-config-kr" : null;
+		const resolver = createResolveToken({
+			envName: "HOLOCRON_TEST_TOKEN",
+			vendorEnvName: "TEST_TOKEN",
+			keyringService: "test",
+			errorMessage: "no token",
+			getKeyringToken: configKeyring,
+		});
+		expect(resolver({ env: {} })).toBe("from-config-kr");
+	});
 });

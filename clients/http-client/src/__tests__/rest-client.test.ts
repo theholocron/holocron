@@ -174,3 +174,72 @@ describe("createRestClient — error handling", () => {
 		expect(calls[0]?.url).toBe("https://api.example.com/foo");
 	});
 });
+
+describe("createRestClient — path without leading slash", () => {
+	it("prepends slash to path that doesn't start with /", async () => {
+		const { fetch, calls } = stubFetch([{ body: {} }]);
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+		}).request("no-slash");
+		expect(calls[0]?.url).toBe("https://api.example.com/no-slash");
+	});
+});
+
+describe("createRestClient — per-request query params", () => {
+	it("merges opts.query with defaultQuery", async () => {
+		const { fetch, calls } = stubFetch([{ body: {} }]);
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			defaultQuery: { global: "1" },
+			fetch,
+		}).request("/path", { query: { local: "2" } });
+		expect(calls[0]?.url).toContain("global=1");
+		expect(calls[0]?.url).toContain("local=2");
+	});
+});
+
+describe("createRestClient — empty body response", () => {
+	it("returns undefined for 200 with empty text body", async () => {
+		const { fetch } = stubFetch([{ text: "" }]);
+		const result = await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+		}).request("/empty");
+		expect(result).toBeUndefined();
+	});
+});
+
+describe("createRestClient — non-Error thrown by fetch", () => {
+	it("wraps a string thrown by fetch as ProviderApiError", async () => {
+		const fetch = vi.fn(async () => {
+			// eslint-disable-next-line @typescript-eslint/only-throw-error
+			throw "network gone";
+		}) as unknown as typeof globalThis.fetch;
+		const err = await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+		})
+			.request("/ping")
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).message).toContain("network gone");
+	});
+});
+
+describe("createRestClient — apikey with default header name", () => {
+	it("uses x-api-key when apiKeyHeader is not specified", async () => {
+		const { fetch, calls } = stubFetch([{ body: {} }]);
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			tokenScheme: "apikey",
+			fetch,
+		}).request("/ping");
+		expect(calls[0]?.headers["x-api-key"]).toBe(TOKEN);
+	});
+});
