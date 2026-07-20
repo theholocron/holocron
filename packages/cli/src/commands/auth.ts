@@ -178,9 +178,8 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 			return { status: "ok", message: "stored, unverified" };
 		}
 		const verify = () => module.verifyToken!(token);
-		const verified = input.showSpinner !== false
-			? await withSpinner(`Verifying ${provider} token…`, verify)
-			: await verify();
+		const verified =
+			input.showSpinner !== false ? await withSpinner(`Verifying ${provider} token…`, verify) : await verify();
 		if (verified.ok) {
 			print(style.success(`${provider}: ok — ${verified.subject}`));
 			return { status: "ok", message: verified.subject };
