@@ -6,7 +6,6 @@ export default defineConfig({
 	description:
 		"The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.",
 	repo: {
-		name: "theholocron/holocron",
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		...repo,
 	},
