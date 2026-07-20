@@ -14,7 +14,6 @@ jobs:
     name: Apply Labels
     permissions:
       contents: read
-      issues: write
       pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -28,7 +27,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
-        if: ${{ hashFiles(inputs.configuration-path || '.github/labeler.yml') != '' }}
+        if: ${{ github.event_name == 'pull_request' && hashFiles(inputs.configuration-path || '.github/labeler.yml') != '' }}
         # v3.4 bundles Node 20; allow it to run under Actions' current default.
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true

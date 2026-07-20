@@ -227,6 +227,8 @@ export const STALE_LABELS = [
 // Maps Conventional Commit title prefixes to standard GitHub label names.
 // Written when bookkeeping is in the workflows list; read by the
 // github/issue-labeler action inside the bookkeeping reusable workflow.
+// Only applied to pull requests (CC-style regexes don't suit free-form
+// issue titles; sync-labels would strip manually applied labels on issues).
 function labelerConfig(): string {
 	return [
 		`# AUTO-GENERATED — do not edit directly.`,

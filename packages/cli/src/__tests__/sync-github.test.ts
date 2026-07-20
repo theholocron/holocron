@@ -556,10 +556,10 @@ describe("generateThinCallerContent", () => {
 		}
 	});
 
-	it("generates bookkeeping thin-caller with both pull_request and issues triggers", () => {
+	it("generates bookkeeping thin-caller with pull_request trigger only", () => {
 		const content = generateThinCallerContent("bookkeeping");
 		expect(content).toContain("pull_request:");
-		expect(content).toContain("issues:");
+		expect(content).not.toContain("issues:");
 		expect(content).toContain("secrets: inherit");
 	});
 });
