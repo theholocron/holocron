@@ -35,6 +35,7 @@
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",
     "@theholocron/vitest-config": "catalog:",
+    "@types/node": "^26.1.1",
     "@types/server-destroy": "^1.0.4",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
