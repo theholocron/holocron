@@ -224,8 +224,8 @@ export const STALE_LABELS = [
 
 // ── labeler config template ──────────────────────────────────────────
 // Maps Conventional Commit title prefixes to standard GitHub label names.
-// Written when bookkeeping-pr is in the workflows list; read by the
-// github/issue-labeler action inside the bookkeeping-pr reusable workflow.
+// Written when bookkeeping is in the workflows list; read by the
+// github/issue-labeler action inside the bookkeeping reusable workflow.
 function labelerConfig(): string {
 	return [
 		`# AUTO-GENERATED — do not edit directly.`,
@@ -563,7 +563,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: labeler config ───────────────────────────────────────────
 	if (
 		loader.has("source") &&
-		(config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping-pr")
+		(config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping")
 	) {
 		const source = loader.get("source") as Source;
 		steps.push(
@@ -838,12 +838,18 @@ async function runStep(
 }
 
 function classify403(err: ProviderApiError): FailReason {
-	const msg = `${err.message} ${String(err.details)}`.toLowerCase();
+	const detailText =
+		typeof err.details === "string"
+			? err.details
+			: typeof err.details === "object" && err.details !== null && "message" in err.details
+				? String((err.details as { message?: unknown }).message)
+				: "";
+	const text = `${err.message} ${detailText}`.toLowerCase();
 	if (
-		msg.includes("advanced security") ||
-		msg.includes("not enabled for this repository") ||
-		msg.includes("upgrade") ||
-		msg.includes("not available on")
+		text.includes("advanced security") ||
+		text.includes("not enabled for this repository") ||
+		text.includes("upgrade") ||
+		text.includes("not available on")
 	) {
 		return "plan";
 	}
