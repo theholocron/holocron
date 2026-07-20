@@ -67,5 +67,7 @@ export async function googleAuth(scopes: string[]): Promise<JWT> {
 		scopes,
 	});
 
-	return (await auth.getClient()) as JWT;
+	// google-auth-library v10 widened getClient() to AnyAuthClient; for service
+	// account credentials it always resolves to JWT at runtime.
+	return (await auth.getClient()) as unknown as JWT;
 }
