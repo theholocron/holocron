@@ -23,6 +23,8 @@ import { join } from "node:path";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
+import { withSpinner } from "../ui/progress.js";
+import { style } from "../ui/style.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import {
@@ -427,7 +429,7 @@ export interface RunSetupInput {
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
-	await loader.load();
+	await withSpinner("Loading plugins…", () => loader.load());
 
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
@@ -435,14 +437,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
 
-	print(`Holocron setup — ${config.name}${dryRun ? " (dry-run)" : ""}`);
-	print(`  config: ${input.loaded.filepath}`);
+	print(style.header(`Holocron setup — ${config.name}${dryRun ? " (dry-run)" : ""}`));
+	print(style.dim(`  config: ${input.loaded.filepath}`));
 	print("");
 
 	// ── source: security toggles + repo policy ──────────────────────────
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
-		print("  → source");
+		print(style.step("source"));
 		for (const method of [
 			"enableVulnerabilityAlerts",
 			"enableAutomatedSecurityFixes",
@@ -508,7 +510,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const workflows = config.workflows;
 	if (loader.has("source") && workflows && workflows.length > 0) {
 		const source = loader.get("source") as Source;
-		print("  → workflows");
+		print(style.step("workflows"));
 		for (const entry of workflows) {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const withOverrides = typeof entry === "object" ? entry.with : undefined;
@@ -631,7 +633,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── environments ────────────────────────────────────────────────────
 	if (loader.has("environments")) {
 		const envs = loader.get("environments") as Environments;
-		print("  → environments");
+		print(style.step("environments"));
 		for (const envName of ["staging", "production"]) {
 			steps.push(
 				await runStep("environments", `upsert ${envName}`, dryRun, async () => {
@@ -645,7 +647,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── deployment: ensure project ──────────────────────────────────────
 	if (loader.has("deployment")) {
 		const deploy = loader.get("deployment") as Deployment;
-		print("  → deployment");
+		print(style.step("deployment"));
 		steps.push(
 			await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
 				await deploy.ensureProject({ name: config.name });
@@ -657,7 +659,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── auth: ensure webhook app (optional method) ──────────────────────
 	if (loader.has("auth")) {
 		const auth = loader.get("auth") as Auth;
-		print("  → auth");
+		print(style.step("auth"));
 		if (auth.ensureWebhookApp) {
 			steps.push(
 				await runStep("auth", "ensureWebhookApp", dryRun, async () => {
@@ -680,7 +682,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── vault: bootstrap project + configs, then read-only probe ───────
 	if (loader.has("vault")) {
 		const vault = loader.get("vault") as Vault;
-		print("  → vault");
+		print(style.step("vault"));
 
 		// ensureProject — providers that have a top-level container.
 		if (vault.ensureProject) {
@@ -731,7 +733,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── tooling: sync each (many cardinality) ───────────────────────────
 	if (loader.has("tooling")) {
 		const tools = loader.get("tooling") as Tooling[];
-		print("  → tooling");
+		print(style.step("tooling"));
 		for (const tool of tools) {
 			steps.push(
 				await runStep("tooling", `${tool.providerName}.sync`, dryRun, async () => {
@@ -754,28 +756,27 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	);
 
 	print("");
-	print(
-		`  ${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
-			dryRun ? `, ${summary.dryRun} would-do` : ""
-		}`
-	);
+	const summaryLine = `  ${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
+		dryRun ? `, ${summary.dryRun} would-do` : ""
+	}`;
+	print(summary.fail > 0 ? style.fail(summaryLine.trim()) : style.success(summaryLine.trim()));
 
 	if (steps.some((s) => s.reason === "permissions")) {
 		print("");
-		print("  ⚠  Some steps failed with 403 (insufficient token permissions).");
-		print("     These operations require a temporary fine-grained PAT with the");
-		print("     following repository permissions:");
+		print(style.warn("Some steps failed with 403 (insufficient token permissions)."));
+		print(style.hint("     These operations require a temporary fine-grained PAT with the"));
+		print(style.hint("     following repository permissions:"));
 		print("");
-		print("       · Administration          — read and write");
-		print("       · Code scanning alerts    — read and write");
-		print("       · Contents                — read and write");
-		print("       · Secret scanning alerts  — read and write");
-		print("       · Workflows               — read and write");
-		print("       · Metadata                — read (added automatically)");
+		print(style.hint("       · Administration          — read and write"));
+		print(style.hint("       · Code scanning alerts    — read and write"));
+		print(style.hint("       · Contents                — read and write"));
+		print(style.hint("       · Secret scanning alerts  — read and write"));
+		print(style.hint("       · Workflows               — read and write"));
+		print(style.hint("       · Metadata                — read (added automatically)"));
 		print("");
-		print("     Create one at: https://github.com/settings/personal-access-tokens/new");
-		print("     Then re-run:   holocron setup --token <your-temp-pat>");
-		print("     You can revoke it immediately after setup completes.");
+		print(style.hint("     Create one at: https://github.com/settings/personal-access-tokens/new"));
+		print(style.hint("     Then re-run:   holocron setup --token <your-temp-pat>"));
+		print(style.hint("     You can revoke it immediately after setup completes."));
 	}
 
 	return { steps, summary };
@@ -831,8 +832,11 @@ function classify403(err: ProviderApiError): FailReason {
 }
 
 function formatStep(step: SetupStepResult): string {
-	const icon = step.status === "ok" ? "✓" : step.status === "fail" ? "✗" : step.status === "dry-run" ? "…" : "·";
 	const tag = step.reason === "permissions" ? " [permissions]" : step.reason === "plan" ? " [plan restriction]" : "";
-	const detail = step.message ? `  (${step.message})` : "";
-	return `    ${icon} ${step.step}${tag}${detail}`;
+	const detail = step.message ? style.dim(`  (${step.message})`) : "";
+	const label = `${step.step}${tag}${detail}`;
+	if (step.status === "ok") return `    ${style.success(label)}`;
+	if (step.status === "fail") return `    ${style.fail(label)}`;
+	if (step.status === "dry-run") return `    ${style.dim(`… ${label}`)}`;
+	return `    ${style.dim(`· ${label}`)}`;
 }

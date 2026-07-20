@@ -37,6 +37,8 @@
     "@napi-rs/keyring": "^1.3.0",
     "@theholocron/github-client": "catalog:",
     "@theholocron/http-client": "catalog:",
+    "chalk": "catalog:",
+    "ora": "catalog:",
     "tsx": "catalog:",
     "yargs": "^18.0.0"
   },

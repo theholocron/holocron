@@ -19,6 +19,8 @@
 
 import { resolvePluginPackage } from "../config.js";
 import { deleteToken, getToken, listStoredProviders, setToken } from "../keyring.js";
+import { withSpinner } from "../ui/progress.js";
+import { style } from "../ui/style.js";
 
 // ── Plugin-level export shapes (mirrored on every plugin) ────────────
 
@@ -92,12 +94,12 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	const packageName = resolvePluginPackage(provider);
 
 	if (!token) {
-		print(`no token supplied for \`${provider}\`.`);
-		print(`  pass as positional arg: holocron auth set ${provider} <token>`);
-		print(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`);
+		print(style.fail(`no token supplied for \`${provider}\`.`));
+		print(style.hint(`  pass as positional arg: holocron auth set ${provider} <token>`));
+		print(style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`));
 		const hint = await tryLoadHint(importer, packageName);
 		if (hint) {
-			print(`  hint: ${hint}`);
+			print(style.hint(`  hint: ${hint}`));
 		}
 		return { status: "fail", message: "no token supplied" };
 	}
@@ -109,27 +111,27 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 		if (typeof module.verifyToken === "function") {
 			const verified = await module.verifyToken(token);
 			if (!verified.ok) {
-				print(`token rejected by ${provider}: ${verified.message}`);
-				if (module.AUTH_HINT) print(`  hint: ${module.AUTH_HINT}`);
+				print(style.fail(`token rejected by ${provider}: ${verified.message}`));
+				if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
 				return { status: "fail", message: verified.message };
 			}
 			subject = verified.subject;
 		} else {
-			print(`(${provider} plugin has no verifyToken; storing without verification)`);
+			print(style.warn(`${provider} plugin has no verifyToken; storing without verification`));
 		}
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
-		print(`cannot verify token — failed to load ${packageName}: ${msg}`);
-		print(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`);
+		print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
+		print(style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`));
 	}
 
 	const stored = setToken(provider, token);
 	if (!stored) {
-		print(`keyring unavailable — token not stored. Use env vars instead.`);
+		print(style.fail(`keyring unavailable — token not stored. Use env vars instead.`));
 		return { status: "fail", message: "keyring unavailable" };
 	}
 
-	print(`stored ${provider} token${subject ? ` (${subject})` : ""}`);
+	print(style.success(`stored ${provider} token${subject ? ` (${subject})` : ""}`));
 	return { status: "ok", ...(subject ? { message: subject } : {}) };
 }
 
@@ -142,10 +144,10 @@ export function runAuthUnset(input: RunAuthUnsetInput): AuthCommandStatus {
 	const print = input.print ?? ((l: string) => console.log(l));
 	const removed = deleteToken(input.provider);
 	if (removed) {
-		print(`removed ${input.provider} token`);
+		print(style.success(`removed ${input.provider} token`));
 		return { status: "ok" };
 	}
-	print(`no stored token for ${input.provider}`);
+	print(style.dim(`no stored token for ${input.provider}`));
 	return { status: "skip", message: "nothing to remove" };
 }
 
@@ -162,7 +164,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 
 	const token = getToken(provider);
 	if (!token) {
-		print(`no stored token for ${provider}`);
+		print(style.dim(`no stored token for ${provider}`));
 		return { status: "skip", message: "no stored token" };
 	}
 
@@ -170,20 +172,20 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	try {
 		const module = await importer(packageName);
 		if (typeof module.verifyToken !== "function") {
-			print(`${provider}: token stored (plugin has no verifyToken; can't confirm validity)`);
+			print(style.warn(`${provider}: token stored (plugin has no verifyToken; can't confirm validity)`));
 			return { status: "ok", message: "stored, unverified" };
 		}
-		const verified = await module.verifyToken(token);
+		const verified = await withSpinner(`Verifying ${provider} token…`, () => module.verifyToken!(token));
 		if (verified.ok) {
-			print(`${provider}: ok — ${verified.subject}`);
+			print(style.success(`${provider}: ok — ${verified.subject}`));
 			return { status: "ok", message: verified.subject };
 		}
-		print(`${provider}: rejected — ${verified.message}`);
-		if (module.AUTH_HINT) print(`  hint: ${module.AUTH_HINT}`);
+		print(style.fail(`${provider}: rejected — ${verified.message}`));
+		if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
 		return { status: "fail", message: verified.message };
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
-		print(`${provider}: cannot verify — ${msg}`);
+		print(style.fail(`${provider}: cannot verify — ${msg}`));
 		return { status: "fail", message: msg };
 	}
 }
@@ -199,15 +201,17 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 	const providers = listStoredProviders();
 
 	if (providers.length === 0) {
-		print("no stored tokens.");
-		print("run: holocron auth set <provider> <token>");
+		print(style.dim("no stored tokens."));
+		print(style.hint("run: holocron auth set <provider> <token>"));
 		return { status: "ok", message: "none" };
 	}
 
 	for (const provider of providers.sort()) {
 		const check = await runAuthCheck({ provider, importer, print: () => {} });
-		const icon = check.status === "ok" ? "✓" : check.status === "fail" ? "✗" : "·";
-		print(`  ${icon} ${provider}${check.message ? ` — ${check.message}` : ""}`);
+		const label = `${provider}${check.message ? ` — ${check.message}` : ""}`;
+		if (check.status === "ok") print(`  ${style.success(label)}`);
+		else if (check.status === "fail") print(`  ${style.fail(label)}`);
+		else print(`  ${style.dim(`· ${label}`)}`);
 	}
 	return { status: "ok" };
 }
