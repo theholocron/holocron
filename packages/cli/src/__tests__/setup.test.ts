@@ -1465,7 +1465,9 @@ describe("setup: write codecov.yml", () => {
 
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
 		});
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
@@ -1487,7 +1489,9 @@ describe("setup: write codecov.yml", () => {
 
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => { written[path] = content; },
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
 		});
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
