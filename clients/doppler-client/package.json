@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/doppler-client",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "A TypeScript client for the Doppler API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/doppler-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
