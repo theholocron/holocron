@@ -1,21 +1,6 @@
-import { readFileSync } from "node:fs";
-
 import { defineConfig } from "tsdown";
-import type { Plugin } from "rollup";
 
-/** Rollup plugin: import *.yml files as default-exported strings. */
-function rawYml(): Plugin {
-	return {
-		name: "raw-yml",
-		transform(_code, id) {
-			if (!id.endsWith(".yml")) return null;
-			return {
-				code: `export default ${JSON.stringify(readFileSync(id, "utf8"))};`,
-				map: null,
-			};
-		},
-	};
-}
+import { rawYml } from "./raw-yml.js";
 
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
 const sharedPlugins = [rawYml()];
