@@ -531,6 +531,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
 
       - name: Setup
         if: \${{ hashFiles('pnpm-lock.yaml') != '' }}
@@ -572,15 +574,14 @@ jobs:
         uses: reviewdog/action-gitleaks@2b7b5685e3e3eecddab5d30cfa04f18123031421 # v1
         with:
           reporter: github-pr-check
+          gitleaks_flags: --log-opts=\${{ github.event.pull_request.base.sha }}..\${{ github.event.pull_request.head.sha }}
 
       - name: YamlLint
+        if: \${{ hashFiles('yamllint.config.yml') != '' }}
         uses: reviewdog/action-yamllint@b5f7217d8c815ae374d1d55840d5e569d82f01f0 # v1
         with:
           reporter: github-pr-check
-          yamllint_flags: >-
-            \${{ hashFiles('yamllint.config.yml') != ''
-                && format('-c {0}/yamllint.config.yml {0}', github.workspace)
-                || github.workspace }}
+          yamllint_flags: -c \${{ github.workspace }}/yamllint.config.yml \${{ github.workspace }}
 
       - name: ActionLint (GitHub Actions)
         if: \${{ hashFiles('.github/workflows/*.yml', '.github/workflows/*.yaml') != '' }}
