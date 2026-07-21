@@ -20,9 +20,7 @@ export async function syncTeams(client: GitHubClient, repo: string, teams: TeamE
 		normalized.map(({ slug, permission }) => client.teams.addRepo(org, slug, org, name, permission))
 	);
 	const succeeded = results.filter((r) => r.status === "fulfilled").length;
-	const failedSlugs = normalized
-		.filter((_, i) => results[i]?.status === "rejected")
-		.map(({ slug }) => slug);
+	const failedSlugs = normalized.filter((_, i) => results[i]?.status === "rejected").map(({ slug }) => slug);
 	if (failedSlugs.length > 0) {
 		if (succeeded === 0) throw new Error(`all teams failed: ${failedSlugs.join(", ")}`);
 		return `${succeeded} synced, failed: ${failedSlugs.join(", ")}`;
