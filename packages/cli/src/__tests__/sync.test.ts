@@ -381,6 +381,59 @@ describe("runSync", () => {
 		expect(step?.message).toBe("3 topics set");
 	});
 
+	it("passes the configured teams to syncTeams", async () => {
+		let capturedTeams: unknown = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async (teams: unknown[]) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("1 team synced");
+	});
+
+	it("reports skip when provider does not implement syncTeams (teams configured)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					// syncTeams intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTeams");
+	});
+
 	it("skips sync keywords when no topics are configured", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
 		const loader = makeLoaderWith(loaded, {
