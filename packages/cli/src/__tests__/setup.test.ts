@@ -1313,6 +1313,83 @@ describe("runSetup", () => {
 		expect(written).not.toContain(".github/dependabot.yml");
 	});
 
+	it("records explicit skip when source does not implement syncTeams", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					// syncTeams intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTeams");
+	});
+
+	it("skips CODEOWNERS write when repo coord has no owner prefix", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			// bare name — no "owner/" prefix
+			repo: { name: "demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async () => "1 team synced",
+				},
+			}),
+		});
+
+		// context.repo not set either — no valid org to derive
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
+	it("records skip (not ok) when agent is unsupported", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			agent: "codex",
+			skills: ["git-safety"],
+			providers: {},
+		});
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "skills");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("codex");
+	});
+
 	it("writes dependabot when no protection is configured (effectivePreset undefined)", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({

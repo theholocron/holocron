@@ -632,21 +632,35 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 
 		const teams = repo?.teams ?? [];
-		if (teams.length > 0 && source.syncTeams) {
-			steps.push(await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
-			print(formatStep(steps[steps.length - 1]!));
+		if (teams.length > 0) {
+			if (source.syncTeams) {
+				steps.push(await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
+				print(formatStep(steps[steps.length - 1]!));
 
-			const org = ((input.context.repo ?? repo?.name) ?? "").split("/")[0] ?? "";
-			const writeableTeams = teams
-				.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
-				.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
-			if (org && writeableTeams.length > 0) {
-				steps.push(
-					await runStep("source", "write .github/CODEOWNERS", dryRun, async () => {
-						const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
-						await source.writeRepoFile(".github/CODEOWNERS", content);
-					})
-				);
+				// Only split on "/" so a bare repo name (no owner prefix) yields an
+				// empty org and silently skips the CODEOWNERS write rather than
+				// producing an invalid "* @reponame/slug" entry.
+				const repoCoord = input.context.repo ?? repo?.name ?? "";
+				const org = repoCoord.includes("/") ? repoCoord.split("/")[0]! : "";
+				const writeableTeams = teams
+					.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
+					.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
+				if (org && writeableTeams.length > 0) {
+					steps.push(
+						await runStep("source", "write .github/CODEOWNERS", dryRun, async () => {
+							const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
+							await source.writeRepoFile(".github/CODEOWNERS", content);
+						})
+					);
+					print(formatStep(steps[steps.length - 1]!));
+				}
+			} else {
+				steps.push({
+					capability: "source",
+					step: "sync teams",
+					status: "skip",
+					message: "provider does not implement syncTeams",
+				});
 				print(formatStep(steps[steps.length - 1]!));
 			}
 		}
@@ -772,15 +786,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// agent-specific location, then gitignores the installed paths.
 	if (config.skills && config.skills.length > 0 && config.agent) {
 		print(style.step("skills"));
-		steps.push(
-			await runStep("skills", "install skills", dryRun, async () => {
-				return await installSkills({
-					agent: config.agent!,
-					skills: config.skills!,
-					repoRoot: input.context.repoRoot,
-				});
-			})
-		);
+		if (!(config.agent in AGENT_SYMLINK_PATHS)) {
+			steps.push({
+				capability: "skills",
+				step: "install skills",
+				status: "skip",
+				message: `agent "${config.agent}" has no known skill install path`,
+			});
+		} else {
+			steps.push(
+				await runStep("skills", "install skills", dryRun, async () => {
+					return await installSkills({
+						agent: config.agent!,
+						skills: config.skills!,
+						repoRoot: input.context.repoRoot,
+					});
+				})
+			);
+		}
 		print(formatStep(steps[steps.length - 1]!));
 	}
 
@@ -835,6 +858,10 @@ const AGENT_SYMLINK_PATHS: Partial<Record<string, (name: string) => string>> = {
 };
 
 const GITIGNORE_BLOCK_START = "# managed by holocron setup — skills";
+// Safety invariant: GITIGNORE_BLOCK_START must NOT be a substring of
+// GITIGNORE_BLOCK_END. The "# end " prefix currently guarantees this — if
+// either string is edited, verify the invariant still holds so that
+// indexOf(GITIGNORE_BLOCK_START) cannot match inside the end marker.
 const GITIGNORE_BLOCK_END = "# end managed by holocron setup — skills";
 
 export async function installSkills({
