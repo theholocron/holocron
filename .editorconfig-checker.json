@@ -7,10 +7,8 @@
   "SpacesAfterTabs": false,
   "NoColor": false,
   "Exclude": [
-    "^LICENSE$",
-    "^public/.*",
-    "^packages/cli/src/commands/plugin-create/templates/.*",
-    "^\\.notes/.*\\.spec\\.md$"
+    "(^|.+/)LICENSE$",
+    "^public/.*"
   ],
   "AllowedContentTypes": [],
   "PassedFiles": [],
