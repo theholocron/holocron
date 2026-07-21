@@ -288,13 +288,13 @@ await yargs(hideBin(process.argv))
 	)
 	.command(
 		"sync [steps..]",
-		"Sync source-level state (labels, properties, topics) from config to the provider",
+		"Sync state from config to the provider and local files (labels, properties, topics, keywords, description)",
 		(y) =>
 			y
 				.positional("steps", {
 					type: "string",
 					array: true,
-					describe: "Steps to run: labels, properties, topics (default: all)",
+					describe: "Steps to run: labels, properties, topics, keywords, description (default: all)",
 				})
 				.option("repo", {
 					type: "string",

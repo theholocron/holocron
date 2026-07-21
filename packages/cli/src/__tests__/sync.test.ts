@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
+import { AuthError } from "../auth-resolver.js";
 import { runSync } from "../commands/sync.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type PluginImporter } from "../loader.js";
@@ -476,6 +477,59 @@ describe("runSync", () => {
 			const step = report.steps.find((s) => s.step === "sync keywords");
 			expect(step?.status).toBe("ok");
 			expect(step?.message).toContain("no package.json");
+		});
+
+		it("still writes keywords when loader.load() throws AuthError (no provider token)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli", "typescript"] },
+				providers: { source: "github" },
+			});
+			// Importer throws AuthError — simulates missing provider token.
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => {
+						throw new AuthError("no GitHub token found");
+					},
+				},
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("2 keywords written");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { keywords: string[] };
+			expect(pkg.keywords).toEqual(["cli", "typescript"]);
+		});
+
+		it("re-throws non-AuthError load failures even for local-only steps", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => {
+						throw new Error("plugin package corrupted");
+					},
+				},
+			});
+
+			await expect(
+				runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["keywords"], print: () => {} })
+			).rejects.toThrow();
 		});
 	});
 
