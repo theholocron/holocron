@@ -114,35 +114,37 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 }
 
 export function codecovContent(packages: WorkspacePackage[]): string {
-	return [
-		workflowHeader("packages/cli/src/commands/setup.ts"),
-		`codecov:`,
-		`  require_ci_to_pass: true`,
-		``,
-		`coverage:`,
-		`  precision: 2`,
-		`  round: down`,
-		`  status:`,
-		`    project:`,
-		`      default:`,
-		`        target: auto`,
-		`        threshold: 2%`,
-		`    patch:`,
-		`      default:`,
-		`        target: 80%`,
-		``,
-		`comment:`,
-		`  layout: "reach,diff,flags,components"`,
-		`  behavior: default`,
-		`  require_changes: true`,
-		``,
-		`component_management:`,
-		`  default_rules:`,
-		`    statuses:`,
-		`      - type: patch`,
-		`        target: 80%`,
-		`  individual_components:`,
-	].join("\n") + codecovComponentBlock(packages);
+	return (
+		[
+			workflowHeader("packages/cli/src/commands/setup.ts"),
+			`codecov:`,
+			`  require_ci_to_pass: true`,
+			``,
+			`coverage:`,
+			`  precision: 2`,
+			`  round: down`,
+			`  status:`,
+			`    project:`,
+			`      default:`,
+			`        target: auto`,
+			`        threshold: 2%`,
+			`    patch:`,
+			`      default:`,
+			`        target: 80%`,
+			``,
+			`comment:`,
+			`  layout: "reach,diff,flags,components"`,
+			`  behavior: default`,
+			`  require_changes: true`,
+			``,
+			`component_management:`,
+			`  default_rules:`,
+			`    statuses:`,
+			`      - type: patch`,
+			`        target: 80%`,
+			`  individual_components:`,
+		].join("\n") + codecovComponentBlock(packages)
+	);
 }
 
 async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {
