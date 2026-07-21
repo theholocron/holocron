@@ -10,6 +10,7 @@
     "(^|.+/)LICENSE$",
     "^public/.*",
     "^packages/cli/src/commands/plugin-create/templates/.*",
+    "^packages/cli/src/commands/plugin-create/templates/.*",
     "^\\.notes/.*\\.spec\\.md$"
   ],
   "AllowedContentTypes": [],
