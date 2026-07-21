@@ -16,4 +16,6 @@ export default defineConfig({
 		secrets: "github",
 		environments: "github",
 	},
+	agent: "claude",
+	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin"],
 });

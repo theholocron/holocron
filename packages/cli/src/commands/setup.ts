@@ -989,8 +989,7 @@ async function updateSkillsGitignore(
 		// Without an end marker we cannot tell where managed entries stop and user
 		// content begins, so just close the new block with a newline and discard
 		// the orphaned entries rather than risk corrupting the file.
-		const afterBlock =
-			end !== -1 ? existingContent.slice(end + GITIGNORE_BLOCK_END.length) : "\n";
+		const afterBlock = end !== -1 ? existingContent.slice(end + GITIGNORE_BLOCK_END.length) : "\n";
 		content = existingContent.slice(0, start) + block + afterBlock;
 	} else {
 		content = (existingContent.trimEnd() ? existingContent.trimEnd() + "\n\n" : "") + block + "\n";

@@ -152,6 +152,9 @@ importers:
       '@theholocron/semantic-release-config':
         specifier: 'catalog:'
         version: 7.3.0(@semantic-release/changelog@6.0.3(semantic-release@25.0.5(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.5(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.5(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.5(typescript@5.9.3)))(@semantic-release/github@12.0.8(semantic-release@25.0.5(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.5(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.2.0)(semantic-release@25.0.5(typescript@5.9.3))
+      '@theholocron/skills':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@theholocron/tsconfig':
         specifier: 'catalog:'
         version: 7.3.0(typescript@5.9.3)
@@ -1827,6 +1830,10 @@ packages:
     peerDependenciesMeta:
       '@semantic-release/exec':
         optional: true
+
+  '@theholocron/skills@1.0.0':
+    resolution: {integrity: sha512-tk+3U0eJLzDSVIEcr08j1+GbSUb/HExLZrwFrWDKoYTFWhVHnk6SID+JobqwUfGSlVn65ffK7EFiUqYBIKQmbA==}
+    engines: {node: '>=22', pnpm: '>=10'}
 
   '@theholocron/tsconfig@7.3.0':
     resolution: {integrity: sha512-Yo7J1Iq78ufBoyLVZimwhxXPeeG2jBArt28Wpm7LzoCU2pJ8m0jpCwK7KoE7f+s4VOgHVb/14CGYGU4TQd5Gzw==}
@@ -5798,6 +5805,8 @@ snapshots:
       semantic-release: 25.0.5(typescript@5.9.3)
     optionalDependencies:
       '@semantic-release/exec': 7.1.0(semantic-release@25.0.5(typescript@5.9.3))
+
+  '@theholocron/skills@1.0.0': {}
 
   '@theholocron/tsconfig@7.3.0(typescript@5.9.3)':
     dependencies:

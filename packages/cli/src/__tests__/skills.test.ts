@@ -65,9 +65,9 @@ describe("installSkills", () => {
 
 	it("throws when @theholocron/skills is not installed (step becomes fail)", async () => {
 		// No node_modules in tmpDir
-		await expect(
-			installSkills({ agent: "claude", skills: ["git-safety"], repoRoot: tmpDir })
-		).rejects.toThrow("@theholocron/skills not found");
+		await expect(installSkills({ agent: "claude", skills: ["git-safety"], repoRoot: tmpDir })).rejects.toThrow(
+			"@theholocron/skills not found"
+		);
 	});
 
 	it("reports unknown skills and continues with known ones", async () => {
