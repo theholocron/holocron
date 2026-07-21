@@ -4,7 +4,7 @@ import { node } from "@theholocron/holocron-config";
 const { repo, workflows, providers } = node();
 export default defineConfig({
 	description:
-		"The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.",
+		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
 	repo: {
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		...repo,
