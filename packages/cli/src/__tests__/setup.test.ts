@@ -1858,4 +1858,43 @@ describe("setup: skills step", () => {
 
 		expect(report.steps.find((s) => s.capability === "skills")).toBeUndefined();
 	});
+
+	it("detects monorepo=true in syncProperties when pnpm-workspace.yaml exists", async () => {
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+		let capturedProps: Record<string, string> = {};
+		const source = {
+			syncProperties: async (props: Record<string, string>) => {
+				capturedProps = props;
+				return "synced";
+			},
+		};
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source }),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(capturedProps["monorepo"]).toBe("true");
+	});
+
+	it("records vault list failure as a fail step when vault.list() throws", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					list: async () => {
+						throw new Error("vault unreachable");
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "vault" && s.step === "list");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toBe("vault unreachable");
+	});
 });
