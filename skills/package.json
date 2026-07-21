@@ -19,19 +19,28 @@
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./skills/*": "./skills/*"
+  },
   "files": [
     "skills/",
+    "skills-lock.json",
     "README.md"
   ],
   "scripts": {
     "test": "node --test test/index.mjs"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@commitlint/types": "^21.2.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.9",
     "@theholocron/cli": "catalog:holocron",
+    "@theholocron/commitlint-config": "^7.3.1",
     "@theholocron/holocron-plugin-github": "catalog:holocron",
     "@theholocron/semantic-release-config": "^7.3.1",
     "conventional-changelog-conventionalcommits": "^10.2.1",
