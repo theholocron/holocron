@@ -68,4 +68,15 @@ describe("syncTeams", () => {
 		await syncTeams(rest, "acme/my-lib", ["gatekeepers"]);
 		expect(calls[0]?.url).toContain("/orgs/acme/teams/gatekeepers/repos/acme/my-lib");
 	});
+
+	it("reports partial success when one team slug returns 404", async () => {
+		const { rest } = makeRest([{ status: 204 }, { status: 404, body: { message: "Not Found" } }]);
+		const result = await syncTeams(rest, REPO, ["gatekeepers", "bad-slug"]);
+		expect(result).toBe("1 synced, failed: bad-slug");
+	});
+
+	it("throws when all teams fail", async () => {
+		const { rest } = makeRest([{ status: 404, body: { message: "Not Found" } }]);
+		await expect(syncTeams(rest, REPO, ["bad-slug"])).rejects.toThrow("all teams failed: bad-slug");
+	});
 });
