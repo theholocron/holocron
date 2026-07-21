@@ -24,7 +24,13 @@
  *     them from env (or pull from `vault` at runtime)
  */
 
-import { CARDINALITY, type CapabilityKey, type TeamEntry, type TeamPermission, REQUIRED_CAPABILITIES } from "./capabilities/index.js";
+import {
+	CARDINALITY,
+	type CapabilityKey,
+	type TeamEntry,
+	type TeamPermission,
+	REQUIRED_CAPABILITIES,
+} from "./capabilities/index.js";
 
 // ───────────────────────────────────────────────────────────────────────
 // Raw config (what users write in holocron.config.json)

@@ -24,6 +24,8 @@ export async function syncTeams(client: GitHubClient, repo: string, teams: TeamE
 	const [org = "", name = ""] = repo.split("/", 2);
 	const normalized = teams.map(normalizeTeamEntry);
 	const teamsClient = client as unknown as TeamCapableClient;
-	await Promise.all(normalized.map(({ slug, permission }) => teamsClient.teams.addRepo(org, slug, org, name, permission)));
+	await Promise.all(
+		normalized.map(({ slug, permission }) => teamsClient.teams.addRepo(org, slug, org, name, permission))
+	);
 	return `${normalized.length} team${normalized.length === 1 ? "" : "s"} synced`;
 }
