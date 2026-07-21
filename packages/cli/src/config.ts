@@ -136,7 +136,9 @@ export interface HolocronConfig {
 	doctor?: DoctorConfig;
 	/**
 	 * Agent runtime that determines where skills are installed by `holocron setup`.
-	 * - `"claude"` → `.claude/skills/<name>/`
+	 * Skills are installed to `.agents/skills/<name>/` (canonical) with a
+	 * relative symlink at the agent-specific path:
+	 * - `"claude"` → `.claude/skills/<name>` → `../../.agents/skills/<name>`
 	 * - `"codex"` | `"gemini"` → logged as unsupported; skipped gracefully.
 	 */
 	agent?: "claude" | "codex" | "gemini";

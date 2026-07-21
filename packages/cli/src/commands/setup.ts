@@ -18,7 +18,7 @@
  * one central place.
  */
 
-import { access, copyFile, mkdir, readdir, readFile, stat, symlink, unlink, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 
@@ -635,7 +635,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			steps.push(await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
 			print(formatStep(steps[steps.length - 1]!));
 
-			const org = (input.context.repo ?? "").split("/")[0] ?? "";
+			const org = ((input.context.repo ?? repo?.name) ?? "").split("/")[0] ?? "";
 			const writeableTeams = teams
 				.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
 				.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
@@ -826,11 +826,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 // Agent symlinks:    .<agent>/skills/<name> → relative path into .agents/
 // Pattern mirrors the `npx skills add` CLI (skills.sh) for multi-agent compat.
 
-const AGENTS_SKILLS_ROOT = join(".agents", "skills");
+const AGENTS_SKILLS_ROOT = ".agents/skills";
 
 /** Relative path of the agent-specific symlink. undefined = unsupported agent. */
 const AGENT_SYMLINK_PATHS: Partial<Record<string, (name: string) => string>> = {
-	claude: (name) => join(".claude", "skills", name),
+	claude: (name) => `.claude/skills/${name}`,
 };
 
 const GITIGNORE_BLOCK_START = "# managed by holocron setup — skills";
@@ -850,13 +850,25 @@ export async function installSkills({
 		return `agent "${agent}" has no known skill install path — skipping`;
 	}
 
-	// Locate the @theholocron/skills package relative to the consumer repo.
+	// Locate @theholocron/skills relative to the consumer repo.
+	// Uses ./package.json subpath — must be declared in the package exports map.
 	const require = createRequire(new URL(`file://${repoRoot}/package.json`));
 	let skillsRoot: string;
 	try {
 		skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
 	} catch {
-		return "@theholocron/skills not found — run: pnpm add -D @theholocron/skills";
+		throw new Error("@theholocron/skills not found — run: pnpm add -D @theholocron/skills");
+	}
+
+	// Find which skills from the previous run are no longer wanted (prune stale).
+	const gitignorePath = join(repoRoot, ".gitignore");
+	const existingContent = await readFile(gitignorePath, "utf8").catch(() => "");
+	const previouslyInstalled = parsePreviousSkills(existingContent, symlinkFn);
+	const currentSet = new Set(skills);
+	const stale = previouslyInstalled.filter((n) => !currentSet.has(n));
+	for (const name of stale) {
+		await rm(join(repoRoot, symlinkFn(name)), { force: true }).catch(() => undefined);
+		await rm(join(repoRoot, AGENTS_SKILLS_ROOT, name), { recursive: true, force: true }).catch(() => undefined);
 	}
 
 	const installed: string[] = [];
@@ -872,15 +884,11 @@ export async function installSkills({
 			continue;
 		}
 
-		// 1. Copy files to .agents/skills/<name>/
+		// 1. Copy recursively to .agents/skills/<name>/ (handles nested reference dirs)
 		const agentsDir = join(repoRoot, AGENTS_SKILLS_ROOT, name);
-		await mkdir(agentsDir, { recursive: true });
-		const files = await readdir(srcDir);
-		for (const file of files) {
-			await copyFile(join(srcDir, file), join(agentsDir, file));
-		}
+		await copyDirRecursive(srcDir, agentsDir);
 
-		// 2. Create relative symlink at agent-specific path → .agents/skills/<name>
+		// 2. Relative symlink at agent-specific path → .agents/skills/<name>
 		const symlinkPath = join(repoRoot, symlinkFn(name));
 		await mkdir(dirname(symlinkPath), { recursive: true });
 		try {
@@ -888,45 +896,73 @@ export async function installSkills({
 		} catch {
 			// didn't exist — that's fine
 		}
-		await symlink(relative(dirname(symlinkPath), agentsDir), symlinkPath);
+		// Forward slashes in symlink target (posix-compatible on all platforms)
+		await symlink(relative(dirname(symlinkPath), agentsDir).replace(/\\/g, "/"), symlinkPath);
 
 		installed.push(name);
 	}
 
-	if (installed.length > 0) {
-		await updateSkillsGitignore(repoRoot, agent, installed, symlinkFn);
+	if (installed.length > 0 || stale.length > 0) {
+		await updateSkillsGitignore(gitignorePath, existingContent, installed, symlinkFn);
 	}
 
 	const parts: string[] = [`installed ${installed.length}`];
+	if (stale.length > 0) parts.push(`pruned: ${stale.join(", ")}`);
 	if (missing.length > 0) parts.push(`unknown: ${missing.join(", ")}`);
 	return parts.join("; ");
 }
 
+/** Extract skill names from the previous gitignore block so stale dirs can be pruned. */
+function parsePreviousSkills(gitignoreContent: string, symlinkFn: (n: string) => string): string[] {
+	if (!gitignoreContent.includes(GITIGNORE_BLOCK_START)) return [];
+	const startIdx = gitignoreContent.indexOf(GITIGNORE_BLOCK_START);
+	const endIdx = gitignoreContent.indexOf(GITIGNORE_BLOCK_END, startIdx);
+	const block = endIdx !== -1 ? gitignoreContent.slice(startIdx, endIdx) : gitignoreContent.slice(startIdx);
+	// Derive the symlink prefix by calling symlinkFn with a placeholder and removing it
+	const placeholder = "__placeholder__";
+	const symlinkPrefix = `/${symlinkFn(placeholder)}`.replace(placeholder, "");
+	return block
+		.split("\n")
+		.filter((line) => line.startsWith(symlinkPrefix))
+		.map((line) => line.slice(symlinkPrefix.length));
+}
+
+async function copyDirRecursive(src: string, dest: string): Promise<void> {
+	await mkdir(dest, { recursive: true });
+	const entries = await readdir(src, { withFileTypes: true });
+	for (const entry of entries) {
+		const srcPath = join(src, entry.name);
+		const destPath = join(dest, entry.name);
+		if (entry.isDirectory()) {
+			await copyDirRecursive(srcPath, destPath);
+		} else {
+			await copyFile(srcPath, destPath);
+		}
+	}
+}
+
 async function updateSkillsGitignore(
-	repoRoot: string,
-	_agent: string,
+	gitignorePath: string,
+	existingContent: string,
 	skills: string[],
 	symlinkFn: (name: string) => string
 ): Promise<void> {
-	const gitignorePath = join(repoRoot, ".gitignore");
-	let content = "";
-	try {
-		content = await readFile(gitignorePath, "utf8");
-	} catch {
-		// no .gitignore yet — will be created
-	}
-
-	// Block covers the agents root dir + each agent symlink entry
+	// Always use forward slashes in gitignore (posix paths regardless of OS)
 	const entries = [`/${AGENTS_SKILLS_ROOT}/`, ...skills.map((n) => `/${symlinkFn(n)}`)];
 	const block = [GITIGNORE_BLOCK_START, ...entries, GITIGNORE_BLOCK_END].join("\n");
 
-	if (content.includes(GITIGNORE_BLOCK_START)) {
-		const start = content.indexOf(GITIGNORE_BLOCK_START);
-		const end = content.indexOf(GITIGNORE_BLOCK_END);
-		const after = end !== -1 ? content.slice(end + GITIGNORE_BLOCK_END.length) : "";
-		content = content.slice(0, start) + block + after;
+	let content: string;
+	if (existingContent.includes(GITIGNORE_BLOCK_START)) {
+		const start = existingContent.indexOf(GITIGNORE_BLOCK_START);
+		const end = existingContent.indexOf(GITIGNORE_BLOCK_END, start);
+		// If end marker was manually removed, preserve any content between start and EOF
+		const afterBlock =
+			end !== -1
+				? existingContent.slice(end + GITIGNORE_BLOCK_END.length)
+				: existingContent.slice(existingContent.indexOf("\n", start) + 1);
+		content = existingContent.slice(0, start) + block + afterBlock;
 	} else {
-		content = (content.trimEnd() ? content.trimEnd() + "\n\n" : "") + block + "\n";
+		content = (existingContent.trimEnd() ? existingContent.trimEnd() + "\n\n" : "") + block + "\n";
 	}
 
 	await writeFile(gitignorePath, content, "utf8");

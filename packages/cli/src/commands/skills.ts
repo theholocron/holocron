@@ -26,6 +26,14 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 		return;
 	}
 
+	if (input.context.dryRun) {
+		print(`Would install ${config.skills.length} skill(s) for agent: ${config.agent}`);
+		for (const name of config.skills) {
+			print(`  → would install: ${name}`);
+		}
+		return;
+	}
+
 	print(`Installing ${config.skills.length} skill(s) for agent: ${config.agent}`);
 	const result = await installSkills({
 		agent: config.agent,
