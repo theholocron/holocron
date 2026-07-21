@@ -162,16 +162,23 @@ describe("installSkills", () => {
 		expect(gitignore).toContain("# other stuff");
 	});
 
-	it("preserves trailing content when end marker is manually deleted", async () => {
-		const before = "node_modules/\n\n# managed by holocron setup — skills\n/.agents/skills/\n";
-		const after = "# unrelated rule\n";
-		await writeFile(join(tmpDir, ".gitignore"), before + after);
+	it("produces a clean block with no duplicate entries when end marker is manually deleted", async () => {
+		const existing =
+			"node_modules/\n\n" +
+			"# managed by holocron setup — skills\n" +
+			"/.agents/skills/\n" +
+			"/.claude/skills/git-safety\n";
+		await writeFile(join(tmpDir, ".gitignore"), existing);
 		await fakeSkillsPackage(tmpDir, { "git-safety": { "SKILL.md": "# gs" } });
 		await installSkills({ agent: "claude", skills: ["git-safety"], repoRoot: tmpDir });
 		const gitignore = await readFile(join(tmpDir, ".gitignore"), "utf8");
-		// The replaced block should exist and the trailing rule should not be dropped
+		// Block must exist and end marker must be on its own line (not concatenated with entries)
 		expect(gitignore).toContain("# managed by holocron setup — skills");
-		expect(gitignore).toContain("# end managed by holocron setup — skills");
+		const endMarkerLine = gitignore.split("\n").find((l) => l.startsWith("# end managed by holocron setup"));
+		expect(endMarkerLine).toBe("# end managed by holocron setup — skills");
+		// No duplicate /.agents/skills/ entries
+		const agentsDirCount = (gitignore.match(/\/\.agents\/skills\//g) ?? []).length;
+		expect(agentsDirCount).toBe(1);
 	});
 
 	it("prunes stale skill dirs and symlinks on re-run with a shorter list", async () => {
