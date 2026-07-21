@@ -14,6 +14,8 @@
 import type { Deployment, DeploymentRecord, DeploymentTrigger } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { withSpinner } from "../ui/progress.js";
+import { style } from "../ui/style.js";
 
 export type DeployPrintLine = (line: string) => void;
 
@@ -45,9 +47,11 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 	const dryRun = input.context.dryRun ?? false;
 
 	print(
-		`Holocron deploy — branch=${input.branch}${
-			input.target ? `, target=${input.target}` : " (preview)"
-		}${dryRun ? " (dry-run)" : ""}`
+		style.header(
+			`Holocron deploy — branch=${input.branch}${
+				input.target ? `, target=${input.target}` : " (preview)"
+			}${dryRun ? " (dry-run)" : ""}`
+		)
 	);
 
 	if (!loader.has("deployment")) {
@@ -61,21 +65,23 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 		const message = `would: ${deploy.providerName}.triggerDeployment(projectId=${input.projectId}, branch=${input.branch}${
 			input.target ? `, target=${input.target}` : ""
 		})`;
-		print(`  … ${message}`);
+		print(`  ${style.dim(`… ${message}`)}`);
 		return { deployment: null, status: "dry-run", message };
 	}
 
 	try {
-		const record = await deploy.triggerDeployment({
-			projectId: input.projectId,
-			branch: input.branch,
-			...(input.target ? { target: input.target } : {}),
-		});
-		print(`  ✓ ${record.status} — ${record.url}`);
+		const record = await withSpinner(`Deploying ${input.branch}${input.target ? ` → ${input.target}` : ""}…`, () =>
+			deploy.triggerDeployment({
+				projectId: input.projectId,
+				branch: input.branch,
+				...(input.target ? { target: input.target } : {}),
+			})
+		);
+		print(`  ${style.success(`${record.status} — ${record.url}`)}`);
 		return { deployment: record, status: "ok" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		print(`  ✗ ${message}`);
+		print(`  ${style.fail(message)}`);
 		return { deployment: null, status: "fail", message };
 	}
 }

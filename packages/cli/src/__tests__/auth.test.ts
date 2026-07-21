@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // In-memory keyring simulator — same shape as keyring.test.ts.
 const store = new Map<string, string>();
+// Set to true in a test to make setPassword throw (simulates keyring unavailable).
+let keyringFails = false;
 
 vi.mock("@napi-rs/keyring", () => {
 	class Entry {
@@ -10,6 +12,7 @@ vi.mock("@napi-rs/keyring", () => {
 			this.key = `${service}::${username}`;
 		}
 		setPassword(pw: string): void {
+			if (keyringFails) throw new Error("keyring unavailable");
 			store.set(this.key, pw);
 		}
 		getPassword(): string | null {
@@ -103,6 +106,22 @@ describe("runAuthSet", () => {
 		expect(lines.join("\n")).toMatch(/doppler configure get token --plain/);
 	});
 
+	it("fails without hint when verifyToken rejects and the module exports no AUTH_HINT", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "doppler",
+			positional: "bad",
+			env: {},
+			importer: async () => ({
+				verifyToken: async () => ({ ok: false as const, message: "401 unauthorized" }),
+			}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/token rejected/);
+		expect(lines.join("\n")).not.toMatch(/hint:/);
+	});
+
 	it("prints hint + fails when no token supplied", async () => {
 		const { print, lines } = collect();
 		const result = await runAuthSet({
@@ -168,6 +187,25 @@ describe("runAuthSet", () => {
 		});
 		expect(result.status).toBe("ok");
 	});
+
+	it("fails when the keyring is unavailable", async () => {
+		keyringFails = true;
+		const { print, lines } = collect();
+		try {
+			const result = await runAuthSet({
+				provider: "doppler",
+				positional: "dp.pt.abc",
+				env: {},
+				importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "test" }) }),
+				print,
+			});
+			expect(result.status).toBe("fail");
+			expect(result.message).toBe("keyring unavailable");
+			expect(lines.join("\n")).toMatch(/keyring unavailable/);
+		} finally {
+			keyringFails = false;
+		}
+	});
 });
 
 describe("runAuthUnset", () => {
@@ -231,6 +269,21 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/doppler configure get token/);
 	});
 
+	it("reports fail without hint when the rejected module exports no AUTH_HINT", async () => {
+		store.set("com.theholocron.cli::doppler", "stale");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({
+				verifyToken: async () => ({ ok: false as const, message: "401 unauthorized" }),
+			}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/rejected/);
+		expect(lines.join("\n")).not.toMatch(/hint:/);
+	});
+
 	it("reports ok-unverified when the plugin has no verifyToken", async () => {
 		store.set("com.theholocron.cli::custom", "abc");
 		const { print, lines } = collect();
@@ -277,6 +330,19 @@ describe("runAuthCheck", () => {
 		expect(result.message).toBe("bad string error");
 		expect(lines.join("\n")).toMatch(/cannot verify/);
 	});
+
+	it("skips the spinner when showSpinner is false", async () => {
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }) }),
+			print,
+			showSpinner: false,
+		});
+		expect(result.status).toBe("ok");
+		expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
+	});
 });
 
 describe("runAuthList", () => {
@@ -304,5 +370,28 @@ describe("runAuthList", () => {
 		const joined = lines.join("\n");
 		expect(joined).toMatch(/✓ doppler — workplace: acme/);
 		expect(joined).toMatch(/✗ infisical — expired/);
+	});
+
+	it("renders a skip bullet for a provider whose token cannot be retrieved", async () => {
+		// Empty-string password: findCredentials includes it (listed) but
+		// !("") is true so runAuthCheck returns skip (token treated as absent).
+		store.set("com.theholocron.cli::ghost", "");
+		const { print, lines } = collect();
+		await runAuthList({
+			print,
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "x" }) }),
+		});
+		expect(lines.join("\n")).toMatch(/· ghost/);
+	});
+
+	it("renders a provider line without detail when the subject is empty", async () => {
+		// An empty subject is falsy, so check.message ? ` — ${msg}` : "" takes the "" branch.
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		await runAuthList({
+			print,
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "" }) }),
+		});
+		expect(lines.join("\n")).toMatch(/✓ doppler\s*$/m);
 	});
 });

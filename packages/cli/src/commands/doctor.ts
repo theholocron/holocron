@@ -17,6 +17,8 @@ import type { Auth, Ci, Issues, Secrets, Source, Vault } from "../capabilities/i
 import { CARDINALITY } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { withSpinner } from "../ui/progress.js";
+import { style } from "../ui/style.js";
 
 export type DoctorPrintLine = (line: string) => void;
 
@@ -45,13 +47,13 @@ export interface RunDoctorInput {
 export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
-	await loader.load();
+	await withSpinner("Loading plugins…", () => loader.load());
 
 	const rows: DoctorRow[] = [];
 	const config = input.loaded.resolved;
 
-	print(`Holocron doctor — ${config.name}`);
-	print(`  config: ${input.loaded.filepath}`);
+	print(style.header(`Holocron doctor — ${config.name}`));
+	print(style.dim(`  config: ${input.loaded.filepath}`));
 	print("");
 
 	for (const key of loader.loadedKeys()) {
@@ -83,8 +85,10 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 
 	// Render rows
 	for (const row of rows) {
-		const icon = row.status === "ok" ? "✓" : row.status === "fail" ? "✗" : "·";
-		print(`  ${icon} ${pad(row.capability, 14)} via ${pad(row.provider, 14)}  ${row.message}`);
+		const label = `${pad(row.capability, 14)} via ${pad(row.provider, 14)}  ${row.message}`;
+		if (row.status === "ok") print(`  ${style.success(label)}`);
+		else if (row.status === "fail") print(`  ${style.fail(label)}`);
+		else print(`  ${style.dim(`· ${label}`)}`);
 	}
 
 	const summary = rows.reduce(
@@ -95,8 +99,9 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 		{ ok: 0, fail: 0, skip: 0 }
 	);
 
+	const summaryLine = `${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped`;
 	print("");
-	print(`  ${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped`);
+	print(summary.fail > 0 ? style.fail(summaryLine) : style.success(summaryLine));
 
 	return { rows, summary };
 }

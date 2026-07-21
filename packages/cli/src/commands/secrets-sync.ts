@@ -24,6 +24,8 @@
 import type { Deployment, DeploymentTarget, Secrets, Vault } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { withSpinner } from "../ui/progress.js";
+import { style } from "../ui/style.js";
 
 export type SyncPrintLine = (line: string) => void;
 
@@ -59,13 +61,13 @@ export interface RunSecretsSyncInput {
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
-	await loader.load();
+	await withSpinner("Loading plugins…", () => loader.load());
 
 	const dryRun = input.context.dryRun ?? false;
 	const targets = input.targets ?? (["production", "preview"] as DeploymentTarget[]);
 
-	print(`Holocron secrets sync — environment ${input.environmentId}${dryRun ? " (dry-run)" : ""}`);
-	print(`  vault: ${vaultProviderName(loader)}`);
+	print(style.header(`Holocron secrets sync — environment ${input.environmentId}${dryRun ? " (dry-run)" : ""}`));
+	print(style.dim(`  vault: ${vaultProviderName(loader)}`));
 	print("");
 
 	// ── Read the vault ─────────────────────────────────────────────────
@@ -75,9 +77,11 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 			`vault provider (${vault.providerName}) does not implement readEnvironment — sync needs bulk env reads`
 		);
 	}
-	const envVars = await vault.readEnvironment(input.environmentId);
+	const envVars = await withSpinner(`Reading vault environment ${input.environmentId}…`, () =>
+		vault.readEnvironment!(input.environmentId)
+	);
 	const keys = Object.keys(envVars).sort();
-	print(`  → read ${keys.length} keys from vault`);
+	print(style.step(`read ${keys.length} keys from vault`));
 	print("");
 
 	const rows: SyncRow[] = [];
@@ -85,7 +89,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	// ── Push to `secrets` (CI/Actions secrets) ─────────────────────────
 	if (loader.has("secrets")) {
 		const secrets = loader.get("secrets") as Secrets;
-		print("  → secrets (repo scope)");
+		print(style.step("secrets (repo scope)"));
 		for (const key of keys) {
 			rows.push(
 				await runRow(`secrets:${secrets.providerName}`, "scope=repo", key, dryRun, async () => {
@@ -100,7 +104,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	if (loader.has("deployment")) {
 		const deploy = loader.get("deployment") as Deployment;
 		if (!input.projectId) {
-			print("  → deployment");
+			print(style.step("deployment"));
 			const row: SyncRow = {
 				destination: `deployment:${deploy.providerName}`,
 				scope: "no projectId",
@@ -112,7 +116,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 			print(formatRow(row));
 		} else {
 			for (const target of targets) {
-				print(`  → deployment (target=${target})`);
+				print(style.step(`deployment (target=${target})`));
 				for (const key of keys) {
 					rows.push(
 						await runRow(`deployment:${deploy.providerName}`, `target=${target}`, key, dryRun, async () => {
@@ -137,11 +141,10 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	);
 
 	print("");
-	print(
-		`  ${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
-			dryRun ? `, ${summary.dryRun} would-do` : ""
-		}`
-	);
+	const summaryLine = `${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
+		dryRun ? `, ${summary.dryRun} would-do` : ""
+	}`;
+	print(summary.fail > 0 ? style.fail(summaryLine) : style.success(summaryLine));
 
 	return { rows, summary };
 }
@@ -173,9 +176,12 @@ async function runRow(
 }
 
 function formatRow(row: SyncRow): string {
-	const icon = row.status === "ok" ? "✓" : row.status === "fail" ? "✗" : row.status === "dry-run" ? "…" : "·";
-	const detail = row.message ? `  (${row.message})` : "";
-	return `    ${icon} ${row.key}${detail}`;
+	const detail = row.message ? style.dim(`  (${row.message})`) : "";
+	const label = `${row.key}${detail}`;
+	if (row.status === "ok") return `    ${style.success(label)}`;
+	if (row.status === "fail") return `    ${style.fail(label)}`;
+	if (row.status === "dry-run") return `    ${style.dim(`… ${label}`)}`;
+	return `    ${style.dim(`· ${label}`)}`;
 }
 
 function vaultProviderName(loader: PluginLoader): string {
