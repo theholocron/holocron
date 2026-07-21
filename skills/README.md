@@ -1,7 +1,12 @@
 # `@theholocron/skills`
 
-Shared agent skill registry for theholocron projects. Each skill is a directory
-under `skills/` containing a `SKILL.md` file that Claude Code (and compatible
+<!-- holocron:description -->
+
+Shared agent skill registry.
+
+<!-- /holocron:description -->
+
+Each skill is a directory under `skills/` containing a `SKILL.md` file that Claude Code (and compatible
 agents) can load as a slash command.
 
 ## Available skills
