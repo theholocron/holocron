@@ -83,10 +83,39 @@ function editorconfigContent(): string {
 // Generates the codecov.yml for a monorepo workspace. Each package under
 // packages/ becomes an individual_component entry so Codecov shows
 // per-package coverage in PR comments and the UI.
+//
+// When a codecov.yml already exists, only the individual_components block is
+// replaced — everything else (coverage thresholds, comments, etc.) is left
+// untouched.  The name field uses the directory slug, not the npm package name,
+// so the org scope (@theholocron/) is never included.
 
 export interface WorkspacePackage {
 	slug: string;
 	name: string;
+}
+
+const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
+
+function codecovComponentBlock(packages: WorkspacePackage[]): string {
+	if (packages.length === 0) return "\n    []\n";
+	return (
+		"\n" +
+		packages
+			.flatMap(({ slug }) => [
+				`    - component_id: ${slug}`,
+				`      name: "${slug}"`,
+				`      paths:`,
+				`        - packages/${slug}/**`,
+				``,
+			])
+			.join("\n")
+	);
+}
+
+export function mergeCodecovComponents(existing: string, packages: WorkspacePackage[]): string {
+	const idx = existing.indexOf(INDIVIDUAL_COMPONENTS_MARKER);
+	if (idx === -1) return existing;
+	return existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length) + codecovComponentBlock(packages);
 }
 
 export function codecovContent(packages: WorkspacePackage[]): string {
@@ -97,13 +126,6 @@ export function codecovContent(packages: WorkspacePackage[]): string {
 		`# Tool:    holocron setup`,
 		`# Changes: run \`holocron setup\` to regenerate.`,
 	].join("\n");
-
-	const componentLines = packages.flatMap(({ slug, name }) => [
-		`    - component_id: ${slug}`,
-		`      name: "${name}"`,
-		`      paths:`,
-		`        - packages/${slug}/**`,
-	]);
 
 	return [
 		header,
@@ -134,9 +156,7 @@ export function codecovContent(packages: WorkspacePackage[]): string {
 		`      - type: patch`,
 		`        target: 80%`,
 		`  individual_components:`,
-		...(componentLines.length > 0 ? componentLines : [`    []`]),
-		``,
-	].join("\n");
+	].join("\n") + codecovComponentBlock(packages);
 }
 
 async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {
@@ -589,7 +609,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		steps.push(
 			await runStep("source", "write codecov.yml", dryRun, async () => {
 				const packages = await readWorkspacePackages(input.context.repoRoot);
-				await source.writeRepoFile("codecov.yml", codecovContent(packages));
+				const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
+				const content = existing != null ? mergeCodecovComponents(existing, packages) : codecovContent(packages);
+				await source.writeRepoFile("codecov.yml", content);
 				return packages.length > 0 ? `${packages.length} components` : "no components";
 			})
 		);
