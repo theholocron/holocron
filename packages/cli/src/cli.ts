@@ -20,7 +20,7 @@ import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/ind
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
-import { runSkillsInstall } from "./commands/skills.js";
+import { runSkillsInstall, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
 
@@ -108,20 +108,36 @@ await yargs(hideBin(process.argv))
 		}
 	)
 	.command(
-		"skills <action>",
+		"skills",
 		"Manage agent skills from the @theholocron/skills registry",
 		(y) =>
-			y.positional("action", {
-				type: "string",
-				choices: ["install"] as const,
-				describe: "install — copy skills from @theholocron/skills into .agents/ with agent symlinks",
-			}),
-		async (argv) => {
-			if (argv.action === "install") {
-				const loaded = await loadConfig(argv.cwd);
-				await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
-			}
-		}
+			y
+				.command(
+					"install",
+					"Copy skills from @theholocron/skills into .agents/ with agent symlinks",
+					() => {},
+					async (argv) => {
+						const loaded = await loadConfig(argv.cwd);
+						await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
+					}
+				)
+				.command(
+					"update [name]",
+					"Fetch external skills from upstream and update changed entries in skills-lock.json",
+					(yy) =>
+						yy.positional("name", {
+							type: "string",
+							describe: "Skill name to update (omit to update all external skills)",
+						}),
+					async (argv) => {
+						await runSkillsUpdate({
+							context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
+							...(argv.name ? { names: [argv.name as string] } : {}),
+						});
+					}
+				)
+				.demandCommand(1, "Run `holocron skills --help` to see available skills subcommands."),
+		() => {}
 	)
 	.command(
 		"secret set <name> [value]",
