@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
 import { installSkills } from "../commands/setup.js";
@@ -224,6 +224,14 @@ describe("runSkillsInstall", () => {
 		const loaded = loadedFrom({ name: "test", providers: {} });
 		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l) });
 		expect(lines.join("\n")).toContain("Nothing to install");
+	});
+
+	it("falls back to console.log when no print function is provided", async () => {
+		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const loaded = loadedFrom({ name: "test", providers: {} });
+		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir } });
+		expect(spy).toHaveBeenCalledWith(expect.stringContaining("Nothing to install"));
+		spy.mockRestore();
 	});
 
 	it("respects --dry-run: prints would-install message without touching fs", async () => {
