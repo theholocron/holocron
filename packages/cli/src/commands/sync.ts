@@ -8,7 +8,7 @@ import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 
-export const SYNC_STEPS = ["labels", "properties", "topics", "keywords", "description"] as const;
+export const SYNC_STEPS = ["labels", "properties", "teams", "topics", "keywords", "description"] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
@@ -112,6 +112,45 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						step: "sync properties",
 						status: "skip",
 						message: "provider does not implement syncProperties",
+					});
+					print(formatSyncStep(steps[steps.length - 1]!));
+				}
+			}
+
+			if (stepName === "teams") {
+				const teams = config.repo?.teams ?? [];
+				if (teams.length === 0) {
+					steps.push({
+						capability: "source",
+						step: "sync teams",
+						status: "skip",
+						message: "no teams configured",
+					});
+					print(formatSyncStep(steps[steps.length - 1]!));
+				} else if (source.syncTeams) {
+					steps.push(await runSyncStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
+					print(formatSyncStep(steps[steps.length - 1]!));
+
+					const repoCoord = input.context.repo ?? config.repo?.name ?? "";
+					const org = repoCoord.includes("/") ? repoCoord.split("/")[0]! : "";
+					const writeableTeams = teams
+						.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
+						.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
+					if (org && writeableTeams.length > 0) {
+						steps.push(
+							await runSyncStep("source", "write .github/CODEOWNERS", dryRun, async () => {
+								const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
+								await source.writeRepoFile(".github/CODEOWNERS", content);
+							})
+						);
+						print(formatSyncStep(steps[steps.length - 1]!));
+					}
+				} else {
+					steps.push({
+						capability: "source",
+						step: "sync teams",
+						status: "skip",
+						message: "provider does not implement syncTeams",
 					});
 					print(formatSyncStep(steps[steps.length - 1]!));
 				}

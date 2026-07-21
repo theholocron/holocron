@@ -64,6 +64,31 @@ in at load time:
 A minimal config — for repos with a `package.json` and a GitHub remote
 — only needs `providers`:
 
+### repo options
+
+Additional `repo` fields recognised by `holocron setup`:
+
+| Field              | Type                                      | Description |
+| ------------------ | ----------------------------------------- | ----------- |
+| `repo.teams`       | `Array<string \| { slug, permission }>`   | GitHub teams granted repo access. String shorthand defaults to `push` (Write). `holocron setup` also writes `.github/CODEOWNERS` for teams with `push`/`maintain`/`admin`. |
+| `repo.topics`      | `string[]`                                | GitHub topics set on the repository. |
+| `repo.protection`  | `"balanced" \| "strict" \| "none"`        | Branch-protection preset applied by `holocron setup`. |
+| `repo.properties`  | `RepoProperties`                          | Org-level custom property values synced to the GitHub dashboard. |
+
+### Skills installer
+
+`holocron setup` can install shared skills from `@theholocron/skills` into the local repo:
+
+```ts
+export default defineConfig({
+  agent: "claude",                          // "claude" | "codex" | "gemini"
+  skills: ["git-safety", "pr-workflow"],    // skill names from @theholocron/skills
+  providers: { source: "github" },
+});
+```
+
+Skills are copied to `.agents/skills/<name>/` and symlinked at the agent's expected path (e.g. `.claude/skills/<name>`). All installed paths are added to a managed block in `.gitignore` automatically.
+
 <!-- prettier-ignore -->
 ```jsonc
 { "providers": { "source": "github" } }

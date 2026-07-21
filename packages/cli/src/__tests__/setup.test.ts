@@ -1204,6 +1204,86 @@ describe("runSetup", () => {
 		expect(called).toBe(false);
 	});
 
+	it("calls syncTeams and writes CODEOWNERS for writeable teams", async () => {
+		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async (teams: unknown) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		const teamsStep = report.steps.find((s) => s.step === "sync teams");
+		expect(teamsStep?.status).toBe("ok");
+		expect(teamsStep?.message).toBe("1 team synced");
+		const codeownersStep = report.steps.find((s) => s.step === "write .github/CODEOWNERS");
+		expect(codeownersStep?.status).toBe("ok");
+		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
+	});
+
+	it("skips CODEOWNERS when all teams have pull/triage permission only", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "readers", permission: "pull" as const }] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async () => "1 team synced",
+				},
+			}),
+		});
+
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			print: () => {},
+		});
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
 	it("skips dependabot when repo.protection is 'none'", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
@@ -1231,6 +1311,83 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(written).not.toContain(".github/dependabot.yml");
+	});
+
+	it("records explicit skip when source does not implement syncTeams", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					// syncTeams intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTeams");
+	});
+
+	it("skips CODEOWNERS write when repo coord has no owner prefix", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			// bare name — no "owner/" prefix
+			repo: { name: "demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async () => "1 team synced",
+				},
+			}),
+		});
+
+		// context.repo not set either — no valid org to derive
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
+	it("records skip (not ok) when agent is unsupported", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			agent: "codex",
+			skills: ["git-safety"],
+			providers: {},
+		});
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "skills");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("codex");
 	});
 
 	it("writes dependabot when no protection is configured (effectivePreset undefined)", async () => {
@@ -1655,5 +1812,89 @@ describe("setup: write codecov.yml", () => {
 
 		expect(written["codecov.yml"]).toContain("component_id: named");
 		expect(written["codecov.yml"]).not.toContain("unnamed");
+	});
+});
+
+describe("setup: skills step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-skills-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
+
+	it("runs the skills step when agent and skills are configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", agent: "claude", skills: ["git-safety"], providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		// No plugins — skills step is purely local, no provider needed
+		const loader = makeLoaderWith(loaded, {});
+
+		const steps: string[] = [];
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: tmpDir },
+			loader,
+			print: () => {},
+		});
+
+		const skillsStep = report.steps.find((s) => s.capability === "skills");
+		// Step runs — may fail if @theholocron/skills is not installed, but the path is exercised
+		expect(skillsStep).toBeDefined();
+		expect(skillsStep?.step).toBe("install skills");
+		void steps;
+	});
+
+	it("skips the skills step when agent or skills is absent", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "skills")).toBeUndefined();
+	});
+
+	it("detects monorepo=true in syncProperties when pnpm-workspace.yaml exists", async () => {
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+		let capturedProps: Record<string, string> = {};
+		const source = {
+			syncProperties: async (props: Record<string, string>) => {
+				capturedProps = props;
+				return "synced";
+			},
+		};
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source }),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(capturedProps["monorepo"]).toBe("true");
+	});
+
+	it("records vault list failure as a fail step when vault.list() throws", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					list: async () => {
+						throw new Error("vault unreachable");
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "vault" && s.step === "list");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toBe("vault unreachable");
 	});
 });

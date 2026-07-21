@@ -102,6 +102,11 @@ export interface LabelDef {
 	readonly description: string;
 }
 
+export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
+
+/** Shorthand `"slug"` defaults to `push` permission. */
+export type TeamEntry = string | { slug: string; permission: TeamPermission };
+
 export interface Source extends ProviderIdentity {
 	readonly key: "source";
 
@@ -186,6 +191,12 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers that don't support topics omit this.
 	 */
 	syncTopics?(topics: string[]): Promise<string>;
+
+	/**
+	 * Sync GitHub team repository access. String shorthand defaults to `push`.
+	 * Optional — providers without a team concept omit this.
+	 */
+	syncTeams?(teams: TeamEntry[]): Promise<string>;
 
 	/**
 	 * Set the repository description.

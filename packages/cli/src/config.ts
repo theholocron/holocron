@@ -24,7 +24,13 @@
  *     them from env (or pull from `vault` at runtime)
  */
 
-import { CARDINALITY, type CapabilityKey, REQUIRED_CAPABILITIES } from "./capabilities/index.js";
+import {
+	CARDINALITY,
+	type CapabilityKey,
+	type TeamEntry,
+	type TeamPermission,
+	REQUIRED_CAPABILITIES,
+} from "./capabilities/index.js";
 
 // ───────────────────────────────────────────────────────────────────────
 // Raw config (what users write in holocron.config.json)
@@ -60,6 +66,8 @@ export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>
 
 export type RepoProtection = "balanced" | "strict" | "none";
 
+export type { TeamEntry, TeamPermission };
+
 export interface RepoProperties {
 	lifecycle?: "active" | "experimental" | "deprecated";
 	open_source?: boolean;
@@ -77,6 +85,12 @@ export interface RepoConfig {
 	protection?: RepoProtection;
 	/** CI check context names required on the default branch (only used when `protection` is "strict"). */
 	requiredChecks?: string[];
+	/**
+	 * GitHub teams granted repository access. Synced by `holocron setup`, which
+	 * also writes `.github/CODEOWNERS` for teams with write-or-higher permission.
+	 * String shorthand defaults to `push` (Write).
+	 */
+	teams?: TeamEntry[];
 	/** GitHub topics set on the repository. */
 	topics?: string[];
 	/** GitHub custom properties synced to the org dashboard. */
@@ -123,6 +137,22 @@ export interface HolocronConfig {
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
+	/**
+	 * Agent runtime that determines where skills are installed by `holocron setup`.
+	 * Skills are installed to `.agents/skills/<name>/` (canonical) with a
+	 * relative symlink at the agent-specific path:
+	 * - `"claude"` → `.claude/skills/<name>` → `../../.agents/skills/<name>`
+	 * - `"codex"` | `"gemini"` → logged as unsupported; skipped gracefully.
+	 */
+	agent?: "claude" | "codex" | "gemini";
+	/**
+	 * Skill names from `@theholocron/skills` to install during `holocron setup`.
+	 * Installed paths are gitignored and managed by setup — do not commit them.
+	 *
+	 * @example
+	 * ["git-safety", "pr-workflow", "commit-standards"]
+	 */
+	skills?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -150,6 +180,8 @@ export interface ResolvedHolocronConfig {
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
+	agent?: "claude" | "codex" | "gemini";
+	skills?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -269,5 +301,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},
+		agent: raw.agent,
+		skills: raw.skills,
 	};
 }

@@ -27,7 +27,7 @@ Three repos, one rule per concern:
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
   `createPlugin()`.
-- **Standards (codified in `.claude/skills/holocron-plugin.md`):**
+- **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
     - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
       commands branch at the orchestrator layer, not in capabilities.
     - `--token` global flag flows through `RuntimeContext.cliToken`;
@@ -71,7 +71,7 @@ not object destructuring.
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
 - **Adapter pattern for new vendors.** New plugins use the
-  `/holocron-plugin` skill at `.claude/skills/holocron-plugin.md`. The
+  `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The
   skill produces ~14 files in the right shape; only the capability
   method bodies need to be filled in (REST calls / shell-outs).
 - **REST clients (`rest.ts`):** bearer auth + `accept: application/json`
@@ -207,7 +207,7 @@ packages/
   holocron-plugin-postman/        — tooling
 holocron.config.json              — this repo's own config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved → archived)
-.claude/skills/holocron-plugin.md — scaffolding skill for new plugins
+.claude/skills/holocron-skill-plugin/ — scaffolding skill for new plugins
 .github/workflows/                — ci.yml (PR), release.yml (main), codeql.yml, etc.
 scripts/bump-versions.mjs         — lockstep version bump invoked by semantic-release
 

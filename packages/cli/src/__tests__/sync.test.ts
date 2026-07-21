@@ -69,9 +69,10 @@ describe("runSync", () => {
 		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
-		expect(report.steps).toHaveLength(5);
-		expect(report.steps.every((s) => s.status === "ok")).toBe(true);
-		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 0 });
+		expect(report.steps).toHaveLength(6);
+		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(5);
+		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
+		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 1 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -214,7 +215,7 @@ describe("runSync", () => {
 		});
 
 		expect(called).toBe(false);
-		expect(report.steps.every((s) => s.status === "dry-run")).toBe(true);
+		expect(report.steps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
 		expect(report.summary.dryRun).toBe(5);
 	});
 
@@ -378,6 +379,93 @@ describe("runSync", () => {
 		const step = report.steps.find((s) => s.step === "sync topics");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("3 topics set");
+	});
+
+	it("passes the configured teams to syncTeams", async () => {
+		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async (teams: unknown[]) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("1 team synced");
+		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
+	});
+
+	it("reports skip when provider does not implement syncTeams (teams configured)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					// syncTeams intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTeams");
+	});
+
+	it("skips CODEOWNERS in sync when all teams have read-only permission", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "readers", permission: "pull" as const }] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async () => "1 team synced",
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
 	});
 
 	it("skips sync keywords when no topics are configured", async () => {
