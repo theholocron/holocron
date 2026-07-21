@@ -903,8 +903,11 @@ export async function installSkills({
 		installed.push(name);
 	}
 
-	if (installed.length > 0 || stale.length > 0) {
-		await updateSkillsGitignore(gitignorePath, existingContent, installed, symlinkFn);
+	// Include missing skills in the gitignore so their previously-copied artifacts
+	// (from an earlier run when the skill existed) stay ignored and can't be
+	// accidentally committed while still in the config list.
+	if (installed.length > 0 || stale.length > 0 || missing.length > 0) {
+		await updateSkillsGitignore(gitignorePath, existingContent, [...installed, ...missing], symlinkFn);
 	}
 
 	const parts: string[] = [`installed ${installed.length}`];

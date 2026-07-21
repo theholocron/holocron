@@ -205,6 +205,23 @@ describe("installSkills", () => {
 		expect(gitignore).not.toContain("pr-workflow");
 		expect(gitignore).toContain("git-safety");
 	});
+
+	it("keeps gitignore entry for a skill that is configured but missing from upstream", async () => {
+		// First run installs both skills normally
+		await fakeSkillsPackage(tmpDir, {
+			"git-safety": { "SKILL.md": "# gs" },
+			"pr-workflow": { "SKILL.md": "# pr" },
+		});
+		await installSkills({ agent: "claude", skills: ["git-safety", "pr-workflow"], repoRoot: tmpDir });
+
+		// Second run: pr-workflow disappears from upstream package
+		await fakeSkillsPackage(tmpDir, { "git-safety": { "SKILL.md": "# gs" } });
+		await installSkills({ agent: "claude", skills: ["git-safety", "pr-workflow"], repoRoot: tmpDir });
+
+		// pr-workflow artifacts still on disk from first run; gitignore must keep the entry
+		const gitignore = await readFile(join(tmpDir, ".gitignore"), "utf8");
+		expect(gitignore).toContain("pr-workflow");
+	});
 });
 
 describe("runSkillsInstall", () => {
