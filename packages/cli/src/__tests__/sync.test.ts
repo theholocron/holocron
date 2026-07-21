@@ -383,6 +383,7 @@ describe("runSync", () => {
 
 	it("passes the configured teams to syncTeams", async () => {
 		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
@@ -395,13 +396,16 @@ describe("runSync", () => {
 						capturedTeams = teams;
 						return "1 team synced";
 					},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
 				},
 			}),
 		});
 
 		const report = await runSync({
 			loaded,
-			context: { repoRoot: "/tmp/test" },
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
 			loader,
 			steps: ["teams"],
 			print: () => {},
@@ -411,6 +415,7 @@ describe("runSync", () => {
 		const step = report.steps.find((s) => s.step === "sync teams");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("1 team synced");
+		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
 	});
 
 	it("reports skip when provider does not implement syncTeams (teams configured)", async () => {

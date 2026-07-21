@@ -130,6 +130,20 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				} else if (source.syncTeams) {
 					steps.push(await runSyncStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
 					print(formatSyncStep(steps[steps.length - 1]!));
+
+					const org = ((input.context.repo ?? config.repo?.name) ?? "").split("/")[0] ?? "";
+					const writeableTeams = teams
+						.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
+						.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
+					if (org && writeableTeams.length > 0 && source.writeRepoFile) {
+						steps.push(
+							await runSyncStep("source", "write .github/CODEOWNERS", dryRun, async () => {
+								const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
+								await source.writeRepoFile(".github/CODEOWNERS", content);
+							})
+						);
+						print(formatSyncStep(steps[steps.length - 1]!));
+					}
 				} else {
 					steps.push({
 						capability: "source",
