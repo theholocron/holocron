@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/postman-client",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A TypeScript client for the Postman API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/postman-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",

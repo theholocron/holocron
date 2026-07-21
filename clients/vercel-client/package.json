@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/vercel-client",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A TypeScript client for the Vercel API",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/vercel-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
