@@ -203,6 +203,12 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers that don't support setting descriptions omit this.
 	 */
 	syncDescription?(description: string): Promise<string>;
+
+	/**
+	 * Grant teams access to the repository.
+	 * Optional — providers that don't support team management omit this.
+	 */
+	syncTeams?(teams: import("../config.js").TeamEntry[]): Promise<string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

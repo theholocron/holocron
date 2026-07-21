@@ -20,6 +20,7 @@ import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/ind
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
+import { runSkillsInstall } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
 
@@ -103,6 +104,22 @@ await yargs(hideBin(process.argv))
 			});
 			if (report.summary.fail > 0) {
 				process.exitCode = 1;
+			}
+		}
+	)
+	.command(
+		"skills <action>",
+		"Manage agent skills from the @theholocron/skills registry",
+		(y) =>
+			y.positional("action", {
+				type: "string",
+				choices: ["install"] as const,
+				describe: "install — copy skills from @theholocron/skills into .agents/ with agent symlinks",
+			}),
+		async (argv) => {
+			if (argv.action === "install") {
+				const loaded = await loadConfig(argv.cwd);
+				await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
 			}
 		}
 	)
