@@ -131,11 +131,12 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					steps.push(await runSyncStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
 					print(formatSyncStep(steps[steps.length - 1]!));
 
-					const org = ((input.context.repo ?? config.repo?.name) ?? "").split("/")[0] ?? "";
+					const repoCoord = input.context.repo ?? config.repo?.name ?? "";
+					const org = repoCoord.includes("/") ? repoCoord.split("/")[0]! : "";
 					const writeableTeams = teams
 						.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
 						.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
-					if (org && writeableTeams.length > 0 && source.writeRepoFile) {
+					if (org && writeableTeams.length > 0) {
 						steps.push(
 							await runSyncStep("source", "write .github/CODEOWNERS", dryRun, async () => {
 								const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";

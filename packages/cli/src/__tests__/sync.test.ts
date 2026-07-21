@@ -439,6 +439,35 @@ describe("runSync", () => {
 		expect(step?.message).toContain("does not implement syncTeams");
 	});
 
+	it("skips CODEOWNERS in sync when all teams have read-only permission", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "readers", permission: "pull" as const }] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async () => "1 team synced",
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
 	it("skips sync keywords when no topics are configured", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
 		const loader = makeLoaderWith(loaded, {
