@@ -10,6 +10,9 @@ import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 export const SYNC_STEPS = ["labels", "properties", "topics", "keywords", "description"] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
+// Steps that write to the local filesystem only — no provider token needed.
+const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description"]);
+
 export interface RunSyncInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
@@ -21,12 +24,28 @@ export interface RunSyncInput {
 export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
-	await loader.load();
 
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
 	const requestedSteps = input.steps;
 	const steps: SetupStepResult[] = [];
+
+	// Remote steps (labels, properties, topics) always need a provider token.
+	// Local steps (keywords, description) write to disk and only optionally
+	// push to GitHub. Load plugins eagerly when remote steps are requested;
+	// for local-only runs, attempt a load for the optional GitHub sync but
+	// swallow auth errors so the command works without a token.
+	const needsProvider =
+		!requestedSteps || requestedSteps.some((s) => !LOCAL_STEPS.has(s as SyncStep));
+	if (needsProvider) {
+		await loader.load();
+	} else {
+		try {
+			await loader.load();
+		} catch {
+			// No provider token — local steps still run, GitHub sync skipped.
+		}
+	}
 
 	print(`Holocron sync — ${config.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
@@ -40,6 +59,8 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 				continue;
 			}
+			// Local steps are handled below, outside this block.
+			if (LOCAL_STEPS.has(stepName)) continue;
 
 			if (stepName === "labels") {
 				if (source.syncLabels) {
@@ -117,61 +138,6 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				}
 			}
 
-			if (stepName === "keywords") {
-				const topics = config.repo?.topics ?? [];
-				if (topics.length === 0) {
-					steps.push({
-						capability: "source",
-						step: "sync keywords",
-						status: "skip",
-						message: "no topics configured",
-					});
-					print(formatSyncStep(steps[steps.length - 1]!));
-				} else {
-					steps.push(
-						await runSyncStep("source", "sync keywords", dryRun, async () => {
-							const wrote = await writePackageJsonField(input.context.repoRoot, "keywords", topics);
-							return wrote
-								? `${topics.length} keywords written`
-								: `${topics.length} topics (no package.json)`;
-						})
-					);
-					print(formatSyncStep(steps[steps.length - 1]!));
-				}
-			}
-
-			if (stepName === "description") {
-				const description = config.description;
-				if (!description) {
-					steps.push({
-						capability: "source",
-						step: "sync description",
-						status: "skip",
-						message: "no description configured",
-					});
-					print(formatSyncStep(steps[steps.length - 1]!));
-				} else {
-					steps.push(
-						await runSyncStep("source", "sync description", dryRun, async () => {
-							const pkgWrote = await writePackageJsonField(
-								input.context.repoRoot,
-								"description",
-								description
-							);
-							const readmeWrote = await updateReadmeDescription(input.context.repoRoot, description);
-							if (source.syncDescription) {
-								await source.syncDescription(description);
-							}
-							const parts: string[] = [];
-							if (pkgWrote) parts.push("package.json");
-							if (readmeWrote) parts.push("README.md");
-							if (source.syncDescription) parts.push("GitHub");
-							return parts.length > 0 ? parts.join(", ") + " updated" : "description synced";
-						})
-					);
-					print(formatSyncStep(steps[steps.length - 1]!));
-				}
-			}
 		}
 
 		// Report unknown step names
@@ -186,6 +152,74 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					});
 					print(formatSyncStep(steps[steps.length - 1]!));
 				}
+			}
+		}
+	}
+
+	// ── local-only steps (no provider token required) ──────────────────
+	// keywords and description write to package.json / README.md and
+	// optionally push to GitHub when source is loaded. They run outside
+	// the `if (loader.has("source"))` block so they work without a token.
+
+	for (const stepName of (["keywords", "description"] as const)) {
+		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
+			continue;
+		}
+
+		if (stepName === "keywords") {
+			const topics = config.repo?.topics ?? [];
+			if (topics.length === 0) {
+				steps.push({
+					capability: "local",
+					step: "sync keywords",
+					status: "skip",
+					message: "no topics configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				steps.push(
+					await runSyncStep("local", "sync keywords", dryRun, async () => {
+						const wrote = await writePackageJsonField(input.context.repoRoot, "keywords", topics);
+						return wrote
+							? `${topics.length} keywords written`
+							: `${topics.length} topics (no package.json)`;
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "description") {
+			const description = config.description;
+			if (!description) {
+				steps.push({
+					capability: "local",
+					step: "sync description",
+					status: "skip",
+					message: "no description configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				const source = loader.has("source") ? (loader.get("source") as Source) : null;
+				steps.push(
+					await runSyncStep("local", "sync description", dryRun, async () => {
+						const pkgWrote = await writePackageJsonField(
+							input.context.repoRoot,
+							"description",
+							description
+						);
+						const readmeWrote = await updateReadmeDescription(input.context.repoRoot, description);
+						if (source?.syncDescription) {
+							await source.syncDescription(description);
+						}
+						const parts: string[] = [];
+						if (pkgWrote) parts.push("package.json");
+						if (readmeWrote) parts.push("README.md");
+						if (source?.syncDescription) parts.push("GitHub");
+						return parts.length > 0 ? parts.join(", ") + " updated" : "description synced";
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]!));
 			}
 		}
 	}
