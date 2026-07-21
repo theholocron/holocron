@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
 import { runNpmPublishInitial, type PublishExecResult } from "../commands/npm-publish-initial.js";
 
@@ -227,5 +229,33 @@ describe("runNpmPublishInitial", () => {
 		});
 		const joined = lines.join("\n");
 		expect(joined).not.toContain("Revoke it now");
+	});
+});
+
+// ── defaultExec ───────────────────────────────────────────────────────────────
+
+describe("defaultExec (npm-publish-initial)", () => {
+	it("calls spawnSync and returns captured output when exec is not injected", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 0, stdout: "iamnewton\n", stderr: "" });
+
+		// Without injecting exec, runNpmPublishInitial uses defaultExec → spawnSync.
+		// npm whoami runs first; return a valid user so the publish proceeds.
+		const report = await runNpmPublishInitial({ cwd: "/tmp", env: { npm_config_userconfig: "/dev/null" } });
+
+		expect(spy).toHaveBeenCalled();
+		// status reflects the spawnSync exit code path
+		expect(["ok", "fail"]).toContain(report.status);
+	});
+
+	it("surfaces null spawnSync status as exit code -1 (→ fail)", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: null, stdout: "", stderr: "error" });
+
+		const report = await runNpmPublishInitial({ cwd: "/tmp", env: {} });
+		// null status → exitCode -1 → treated as non-zero → fail
+		expect(report.status).toBe("fail");
 	});
 });

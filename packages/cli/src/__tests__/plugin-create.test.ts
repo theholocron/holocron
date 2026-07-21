@@ -90,6 +90,28 @@ describe("runPluginCreate — orchestrator", () => {
 		).toThrow(PluginCreateError);
 	});
 
+	it("preflight fails when packages/ directory is absent", async () => {
+		const { mkdtemp, writeFile: writeFileAsync, rm } = await import("node:fs/promises");
+		const { tmpdir } = await import("node:os");
+		const { join: pathJoin } = await import("node:path");
+
+		const tmpDir = await mkdtemp(pathJoin(tmpdir(), "holocron-plugin-create-"));
+		try {
+			await writeFileAsync(pathJoin(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+			// No packages/ directory
+			expect(() =>
+				runPluginCreate({
+					...BASE_INPUT,
+					cwd: tmpDir,
+					writeFile: () => {},
+					print: () => {},
+				})
+			).toThrow(/packages.*not found/);
+		} finally {
+			await rm(tmpDir, { recursive: true });
+		}
+	});
+
 	it("slug-collision guard fires when the target directory already exists", () => {
 		expect(() =>
 			runPluginCreate({

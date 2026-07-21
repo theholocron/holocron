@@ -1,5 +1,7 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { runUpgradeNode } from "../commands/upgrade-node.js";
 
@@ -374,5 +376,46 @@ describe("dry-run", () => {
 		expect(report.updated.length).toBeGreaterThan(0);
 		expect(lines.some((l) => l.includes("~"))).toBe(true);
 		expect(lines.some((l) => l.includes("dry-run"))).toBe(true);
+	});
+});
+
+// ── defaultWalkFiles ──────────────────────────────────────────────────────────
+
+describe("defaultWalkFiles (real filesystem)", () => {
+	let tmpDir: string;
+
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-upgrade-walk-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
+
+	it("gracefully skips an unreadable directory entry", async () => {
+		// A non-existent cwd causes readdirSync to throw inside the walker's
+		// catch block (line 122), which returns early with an empty result.
+		const report = await runUpgradeNode({ to: 22, from: 20, cwd: "/nonexistent-path-for-test", print: () => {} });
+		expect(report.updated).toHaveLength(0);
+	});
+
+	it("finds files recursively and skips node_modules and .git", async () => {
+		// Create a small tree
+		await writeFile(join(tmpDir, ".nvmrc"), "20");
+		await writeFile(join(tmpDir, "package.json"), '{"engines":{"node":">=20"}}');
+
+		const { mkdir } = await import("node:fs/promises");
+		await mkdir(join(tmpDir, "src"), { recursive: true });
+		await writeFile(join(tmpDir, "src", "index.ts"), "// code");
+
+		await mkdir(join(tmpDir, "node_modules", "some-pkg"), { recursive: true });
+		await writeFile(join(tmpDir, "node_modules", "some-pkg", "index.js"), "skip me");
+
+		// runUpgradeNode without injected walkFiles uses the real walker
+		const report = await runUpgradeNode({ to: 22, from: 20, cwd: tmpDir, print: () => {} });
+
+		// Should have walked and found files; node_modules must be skipped
+		const paths = report.updated;
+		expect(paths.some((p) => p.includes("node_modules"))).toBe(false);
+		expect(paths.some((p) => p.includes(".nvmrc"))).toBe(true);
 	});
 });

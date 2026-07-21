@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }));
+
 import { resolveConfig } from "../config.js";
 import { installSkills } from "../commands/setup.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "../commands/skills.js";
@@ -308,6 +310,39 @@ describe("runSkillsInstall", () => {
 		expect(output).toContain("Installing");
 		expect(output).toContain("@theholocron/skills not found");
 		// Must not throw — error is caught and printed
+	});
+});
+
+// ── defaultExec (skills) ─────────────────────────────────────────────────────
+
+describe("defaultExec", () => {
+	it("calls spawnSync with npx args when exec is not injected", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 0 });
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
+
+		expect(spy).toHaveBeenCalledWith("npx", ["skills", "update"], expect.objectContaining({ cwd: "/repo" }));
+		expect(report.status).toBe("ok");
+	});
+
+	it("returns fail status when spawnSync exits non-zero", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 1 });
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
+		expect(report.status).toBe("fail");
+	});
+
+	it("handles null exit status (spawnSync status ?? -1)", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: null });
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
+		expect(report.status).toBe("fail");
 	});
 });
 
