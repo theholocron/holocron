@@ -203,7 +203,7 @@ describe("runSetup", () => {
 
 		expect(called).toBe(false); // mutators never ran
 		const sourceSteps = report.steps.filter((s) => s.capability === "source");
-		expect(sourceSteps.every((s) => s.status === "dry-run")).toBe(true);
+		expect(sourceSteps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
 		// Vault list still runs (read-only) even in dry-run.
 		expect(report.steps.find((s) => s.capability === "vault")?.status).toBe("ok");
 	});
@@ -1771,7 +1771,7 @@ describe("setup: write codecov.yml", () => {
 		expect(step?.message).toBe("2 components");
 	});
 
-	it("writes codecov.yml with empty components when packages/ is absent", async () => {
+	it("skips writing codecov.yml when packages/ is absent and no existing file", async () => {
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
 			writeRepoFile: async (path: string, content: string) => {
@@ -1785,7 +1785,37 @@ describe("setup: write codecov.yml", () => {
 
 		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
-		expect(written["codecov.yml"]).toContain("individual_components:");
+		expect(written["codecov.yml"]).toBeUndefined();
+		const step = report.steps.find((s) => s.step === "write codecov.yml");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no packages and no existing codecov.yml");
+	});
+
+	it("merges existing codecov.yml even when packages/ is absent", async () => {
+		const existingCodecov = [
+			"codecov:",
+			"  require_ci_to_pass: true",
+			"",
+			"component_management:",
+			"  individual_components: []",
+			"",
+		].join("\n");
+		await writeFile(join(tmpDir, "codecov.yml"), existingCodecov);
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toBeDefined();
 		const step = report.steps.find((s) => s.step === "write codecov.yml");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("no components");
