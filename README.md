@@ -3,7 +3,9 @@
 # Holocron
 
 <!-- holocron:description -->
+
 The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.
+
 <!-- /holocron:description -->
 
 > **Status:** Published under the `alpha` dist-tag on npm. APIs, config shape,
