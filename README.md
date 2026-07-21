@@ -2,8 +2,9 @@
 
 # Holocron
 
-A pluggable, capability-based CLI for spinning up and operating
-software projects — your own infrastructure-as-tool.
+<!-- holocron:description -->
+The Holocron CLI — pluggable, capability-based infrastructure orchestrator. This file makes the repo self-hosted: holocron commands work inside it.
+<!-- /holocron:description -->
 
 > **Status:** Published under the `alpha` dist-tag on npm. APIs, config shape,
 > and CLI surface may shift before stable v2.0.0. The v1.0.0 line at
