@@ -6,8 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
 import { installSkills } from "../commands/setup.js";
-import { computeSkillHash, runSkillsInstall, runSkillsUpdate } from "../commands/skills.js";
-import type { SkillsLock } from "../commands/skills.js";
+import { runSkillsInstall, runSkillsUpdate } from "../commands/skills.js";
 import type { LoadedConfig } from "../load-config.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -315,203 +314,49 @@ describe("runSkillsInstall", () => {
 // ── runSkillsUpdate ───────────────────────────────────────────────────────────
 
 describe("runSkillsUpdate", () => {
-	let tmpDir: string;
-
-	const SKILL_CONTENT_OLD = "# old content";
-	const SKILL_CONTENT_NEW = "# new content";
-
-	function makeLock(overrides: Partial<SkillsLock["skills"]["x"]> = {}): SkillsLock {
-		return {
-			version: 1,
-			skills: {
-				"my-skill": {
-					source: "acme/skills-repo",
-					sourceType: "github",
-					skillPath: "skills/my-skill/SKILL.md",
-					computedHash: computeSkillHash(SKILL_CONTENT_OLD),
-					...overrides,
-				},
-			},
+	it("calls npx skills update with no args when no name is given", () => {
+		const calls: Array<{ cmd: string; args: string[]; cwd: string }> = [];
+		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+			calls.push({ cmd, args, cwd: opts.cwd });
+			return { exitCode: 0 };
 		};
-	}
 
-	function mockFetch(content: string, status = 200): void {
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: status >= 200 && status < 300,
-				status,
-				text: () => Promise.resolve(content),
-			})
-		);
-	}
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" }, exec });
 
-	beforeEach(async () => {
-		tmpDir = await mkdtemp(join(tmpdir(), "holocron-skills-update-"));
-		await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "test-repo" }));
+		expect(report.status).toBe("ok");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]!.cmd).toBe("npx");
+		expect(calls[0]!.args).toEqual(["skills", "update"]);
+		expect(calls[0]!.cwd).toBe("/repo");
 	});
 
-	afterEach(async () => {
-		await rm(tmpDir, { recursive: true, force: true });
-		vi.unstubAllGlobals();
-	});
-
-	it("updates a skill when upstream content has changed", async () => {
-		await writeFile(join(tmpDir, "skills-lock.json"), JSON.stringify(makeLock()) + "\n");
-		mockFetch(SKILL_CONTENT_NEW);
-
-		const lines: string[] = [];
-		const report = await runSkillsUpdate({
-			context: { repoRoot: tmpDir },
-			print: (l) => lines.push(l),
-		});
-
-		expect(report.updated).toBe(1);
-		expect(report.unchanged).toBe(0);
-		expect(report.failed).toHaveLength(0);
-
-		const written = await readFile(join(tmpDir, "skills", "my-skill", "SKILL.md"), "utf8");
-		expect(written).toBe(SKILL_CONTENT_NEW);
-
-		const lock = JSON.parse(await readFile(join(tmpDir, "skills-lock.json"), "utf8")) as SkillsLock;
-		expect(lock.skills["my-skill"]!.computedHash).toBe(computeSkillHash(SKILL_CONTENT_NEW));
-		expect(lines.some((l) => l.includes("updated"))).toBe(true);
-	});
-
-	it("skips a skill when upstream content is unchanged", async () => {
-		await writeFile(join(tmpDir, "skills-lock.json"), JSON.stringify(makeLock()) + "\n");
-		mockFetch(SKILL_CONTENT_OLD);
-
-		const lines: string[] = [];
-		const report = await runSkillsUpdate({
-			context: { repoRoot: tmpDir },
-			print: (l) => lines.push(l),
-		});
-
-		expect(report.updated).toBe(0);
-		expect(report.unchanged).toBe(1);
-		expect(report.failed).toHaveLength(0);
-		await expect(stat(join(tmpDir, "skills", "my-skill", "SKILL.md"))).rejects.toThrow();
-		expect(lines.some((l) => l.includes("unchanged"))).toBe(true);
-	});
-
-	it("records a failed skill when fetch returns non-OK status", async () => {
-		await writeFile(join(tmpDir, "skills-lock.json"), JSON.stringify(makeLock()) + "\n");
-		mockFetch("Not Found", 404);
-
-		const lines: string[] = [];
-		const report = await runSkillsUpdate({
-			context: { repoRoot: tmpDir },
-			print: (l) => lines.push(l),
-		});
-
-		expect(report.failed).toContain("my-skill");
-		expect(report.updated).toBe(0);
-		expect(lines.some((l) => l.includes("HTTP 404"))).toBe(true);
-	});
-
-	it("records a failed skill when its name is not in skills-lock.json", async () => {
-		await writeFile(join(tmpDir, "skills-lock.json"), JSON.stringify(makeLock()) + "\n");
-		mockFetch(SKILL_CONTENT_NEW);
-
-		const lines: string[] = [];
-		const report = await runSkillsUpdate({
-			context: { repoRoot: tmpDir },
-			names: ["does-not-exist"],
-			print: (l) => lines.push(l),
-		});
-
-		expect(report.failed).toContain("does-not-exist");
-		expect(lines.some((l) => l.includes("not in skills-lock.json"))).toBe(true);
-	});
-
-	it("updates only the named skill when names is given", async () => {
-		const lock: SkillsLock = {
-			version: 1,
-			skills: {
-				"skill-a": {
-					source: "acme/repo",
-					sourceType: "github",
-					skillPath: "skills/skill-a/SKILL.md",
-					computedHash: computeSkillHash(SKILL_CONTENT_OLD),
-				},
-				"skill-b": {
-					source: "acme/repo",
-					sourceType: "github",
-					skillPath: "skills/skill-b/SKILL.md",
-					computedHash: computeSkillHash(SKILL_CONTENT_OLD),
-				},
-			},
+	it("appends the skill name when name is given", () => {
+		const calls: Array<{ args: string[] }> = [];
+		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+			calls.push({ args });
+			return { exitCode: 0 };
 		};
-		await writeFile(join(tmpDir, "skills-lock.json"), JSON.stringify(lock) + "\n");
-		mockFetch(SKILL_CONTENT_NEW);
 
-		const report = await runSkillsUpdate({
-			context: { repoRoot: tmpDir },
-			names: ["skill-a"],
-			print: () => {},
-		});
+		runSkillsUpdate({ context: { repoRoot: "/repo" }, name: "vercel-cli", exec });
 
-		expect(report.updated).toBe(1);
-		const written = await readFile(join(tmpDir, "skills", "skill-a", "SKILL.md"), "utf8");
-		expect(written).toBe(SKILL_CONTENT_NEW);
-		// skill-b must not have been written
-		await expect(stat(join(tmpDir, "skills", "skill-b", "SKILL.md"))).rejects.toThrow();
+		expect(calls[0]!.args).toEqual(["skills", "update", "vercel-cli"]);
 	});
 
-	it("dry-run prints would-update without writing any files", async () => {
-		await writeFile(join(tmpDir, "skills-lock.json"), JSON.stringify(makeLock()) + "\n");
-		mockFetch(SKILL_CONTENT_NEW);
+	it("returns fail when npx exits with a non-zero code", () => {
+		const exec = () => ({ exitCode: 1 });
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" }, exec });
+		expect(report.status).toBe("fail");
+	});
 
+	it("dry-run prints would-run message and does not exec", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
 		const lines: string[] = [];
-		const report = await runSkillsUpdate({
-			context: { repoRoot: tmpDir, dryRun: true },
-			print: (l) => lines.push(l),
+		const report = runSkillsUpdate({
+			context: { repoRoot: "/repo", dryRun: true },
+			exec,
 		});
 
-		expect(report.updated).toBe(1);
-		await expect(stat(join(tmpDir, "skills", "my-skill", "SKILL.md"))).rejects.toThrow();
-
-		// skills-lock.json hash must not have been updated
-		const lock = JSON.parse(await readFile(join(tmpDir, "skills-lock.json"), "utf8")) as SkillsLock;
-		expect(lock.skills["my-skill"]!.computedHash).toBe(computeSkillHash(SKILL_CONTENT_OLD));
-		expect(lines.some((l) => l.includes("would update"))).toBe(true);
-	});
-
-	it("falls back to installed @theholocron/skills package when no local skills-lock.json", async () => {
-		const pkgDir = join(tmpDir, "node_modules", "@theholocron", "skills");
-		await mkdir(pkgDir, { recursive: true });
-		await writeFile(
-			join(pkgDir, "package.json"),
-			JSON.stringify({ name: "@theholocron/skills", exports: { "./package.json": "./package.json" } })
-		);
-		await writeFile(join(pkgDir, "skills-lock.json"), JSON.stringify(makeLock()) + "\n");
-		mockFetch(SKILL_CONTENT_NEW);
-
-		const report = await runSkillsUpdate({ context: { repoRoot: tmpDir }, print: () => {} });
-
-		expect(report.updated).toBe(1);
-		// Written into the package, not into tmpDir/skills
-		const written = await readFile(join(pkgDir, "skills", "my-skill", "SKILL.md"), "utf8");
-		expect(written).toBe(SKILL_CONTENT_NEW);
-	});
-
-	it("throws when neither local skills-lock.json nor @theholocron/skills is available", async () => {
-		mockFetch(SKILL_CONTENT_NEW);
-		await expect(runSkillsUpdate({ context: { repoRoot: tmpDir }, print: () => {} })).rejects.toThrow(
-			"skills-lock.json not found"
-		);
-	});
-
-	it("does not write skills-lock.json when no skills were updated", async () => {
-		const lockContent = JSON.stringify(makeLock()) + "\n";
-		await writeFile(join(tmpDir, "skills-lock.json"), lockContent);
-		mockFetch(SKILL_CONTENT_OLD); // same hash — nothing to update
-
-		await runSkillsUpdate({ context: { repoRoot: tmpDir }, print: () => {} });
-
-		// File should be byte-for-byte unchanged
-		const after = await readFile(join(tmpDir, "skills-lock.json"), "utf8");
-		expect(after).toBe(lockContent);
+		expect(report.status).toBe("dry-run");
+		expect(exec).not.toHaveBeenCalled();
 	});
 });

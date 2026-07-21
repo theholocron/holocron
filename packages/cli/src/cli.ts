@@ -123,17 +123,18 @@ await yargs(hideBin(process.argv))
 				)
 				.command(
 					"update [name]",
-					"Fetch external skills from upstream and update changed entries in skills-lock.json",
+					"Update installed skills to their latest upstream versions via npx skills update",
 					(yy) =>
 						yy.positional("name", {
 							type: "string",
-							describe: "Skill name to update (omit to update all external skills)",
+							describe: "Skill name to update (omit to update all installed skills)",
 						}),
-					async (argv) => {
-						await runSkillsUpdate({
+					(argv) => {
+						const report = runSkillsUpdate({
 							context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
-							...(argv.name ? { names: [argv.name as string] } : {}),
+							...(argv.name ? { name: argv.name as string } : {}),
 						});
+						if (report.status === "fail") process.exitCode = 1;
 					}
 				)
 				.demandCommand(1, "Run `holocron skills --help` to see available skills subcommands."),

@@ -6,18 +6,11 @@
  * the listed skills into `.agents/skills/<name>/` with a symlink at the
  * agent-specific path (e.g. `.claude/skills/<name>` for Claude Code).
  *
- * `holocron skills update` fetches external skills from their upstream GitHub
- * sources, compares content hashes, and overwrites changed files in the
- * skills registry. It is meant to be run from within the theholocron/skills
- * repo, but falls back to the installed @theholocron/skills package when no
- * local skills-lock.json is found.
+ * `holocron skills update [name]` delegates to `npx skills update [name]`,
+ * which fetches skills from their upstream sources and updates the local copies.
  */
 
-import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
 
 import type { LoadedConfig } from "../load-config.js";
 import type { RuntimeContext } from "../loader.js";
@@ -63,127 +56,38 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 
 // ── update ───────────────────────────────────────────────────────────────────
 
-export interface SkillLockEntry {
-	source: string;
-	sourceType: "github";
-	skillPath: string;
-	computedHash: string;
-}
-
-export interface SkillsLock {
-	version: 1;
-	skills: Record<string, SkillLockEntry>;
-}
+export type SkillsUpdateExecResult = { exitCode: number };
 
 export interface RunSkillsUpdateInput {
 	context: RuntimeContext;
-	/** When given, only update the named skills. Defaults to all entries. */
-	names?: string[];
-	print?: (line: string) => void;
+	/** When given, update only this skill. Omit to update all. */
+	name?: string;
+	/**
+	 * Injectable command runner. Defaults to spawnSync with inherited stdio
+	 * so the underlying `npx skills update` output streams to the terminal.
+	 */
+	exec?: (cmd: string, args: string[], opts: { cwd: string }) => SkillsUpdateExecResult;
 }
 
 export interface SkillsUpdateReport {
-	updated: number;
-	unchanged: number;
-	failed: string[];
+	status: "ok" | "fail" | "dry-run";
 }
 
-async function resolveLockFile(repoRoot: string): Promise<{ lockPath: string; lockDir: string }> {
-	const localLock = join(repoRoot, "skills-lock.json");
-	try {
-		await readFile(localLock);
-		return { lockPath: localLock, lockDir: repoRoot };
-	} catch {
-		// Fall back to installed @theholocron/skills package.
-		const req = createRequire(pathToFileURL(join(repoRoot, "package.json")));
-		let pkgRoot: string;
-		try {
-			pkgRoot = dirname(req.resolve("@theholocron/skills/package.json"));
-		} catch {
-			throw new Error(
-				"skills-lock.json not found in cwd and @theholocron/skills is not installed — " +
-					"run: pnpm add -D @theholocron/skills"
-			);
-		}
-		return { lockPath: join(pkgRoot, "skills-lock.json"), lockDir: pkgRoot };
-	}
-}
+const defaultExec: NonNullable<RunSkillsUpdateInput["exec"]> = (cmd, args, opts) => {
+	const result = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
+	return { exitCode: result.status ?? -1 };
+};
 
-async function fetchSkillContent(entry: SkillLockEntry): Promise<string> {
-	if (entry.sourceType !== "github") {
-		throw new Error(`unsupported sourceType "${entry.sourceType}"`);
-	}
-	const url = `https://raw.githubusercontent.com/${entry.source}/HEAD/${entry.skillPath}`;
-	const res = await fetch(url);
-	if (!res.ok) {
-		throw new Error(`HTTP ${res.status} fetching ${url}`);
-	}
-	return res.text();
-}
-
-export function computeSkillHash(content: string): string {
-	return createHash("sha256").update(content).digest("hex");
-}
-
-export async function runSkillsUpdate(input: RunSkillsUpdateInput): Promise<SkillsUpdateReport> {
-	const print = input.print ?? ((line: string) => console.log(line));
+export function runSkillsUpdate(input: RunSkillsUpdateInput): SkillsUpdateReport {
 	const { dryRun, repoRoot } = input.context;
+	const exec = input.exec ?? defaultExec;
+	const args = ["skills", "update", ...(input.name ? [input.name] : [])];
 
-	const { lockPath, lockDir } = await resolveLockFile(repoRoot);
-	const lock = JSON.parse(await readFile(lockPath, "utf8")) as SkillsLock;
-
-	const names = input.names?.length ? input.names : Object.keys(lock.skills);
-
-	let updated = 0;
-	let unchanged = 0;
-	const failed: string[] = [];
-
-	for (const name of names) {
-		const entry = lock.skills[name];
-		if (!entry) {
-			print(`  · ${name} — not in skills-lock.json`);
-			failed.push(name);
-			continue;
-		}
-
-		let content: string;
-		try {
-			content = await fetchSkillContent(entry);
-		} catch (err) {
-			print(`  ✗ ${name} — ${err instanceof Error ? err.message : String(err)}`);
-			failed.push(name);
-			continue;
-		}
-
-		const hash = computeSkillHash(content);
-		if (hash === entry.computedHash) {
-			print(`  · ${name} — unchanged`);
-			unchanged++;
-			continue;
-		}
-
-		if (dryRun) {
-			print(`  ~ ${name} — would update`);
-			updated++;
-			continue;
-		}
-
-		const skillFile = join(lockDir, "skills", name, "SKILL.md");
-		await mkdir(dirname(skillFile), { recursive: true });
-		await writeFile(skillFile, content);
-		lock.skills[name]!.computedHash = hash;
-
-		print(`  ✓ ${name} — updated`);
-		updated++;
+	if (dryRun) {
+		console.log(`Would run: npx ${args.join(" ")}`);
+		return { status: "dry-run" };
 	}
 
-	if (!dryRun && updated > 0) {
-		await writeFile(lockPath, JSON.stringify(lock, null, 2) + "\n");
-	}
-
-	print("");
-	const summary = `  ${updated} updated, ${unchanged} unchanged${failed.length > 0 ? `, ${failed.length} failed` : ""}`;
-	print(summary);
-
-	return { updated, unchanged, failed };
+	const { exitCode } = exec("npx", args, { cwd: repoRoot });
+	return { status: exitCode === 0 ? "ok" : "fail" };
 }
