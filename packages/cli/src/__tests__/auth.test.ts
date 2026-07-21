@@ -106,6 +106,22 @@ describe("runAuthSet", () => {
 		expect(lines.join("\n")).toMatch(/doppler configure get token --plain/);
 	});
 
+	it("fails without hint when verifyToken rejects and the module exports no AUTH_HINT", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "doppler",
+			positional: "bad",
+			env: {},
+			importer: async () => ({
+				verifyToken: async () => ({ ok: false as const, message: "401 unauthorized" }),
+			}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/token rejected/);
+		expect(lines.join("\n")).not.toMatch(/hint:/);
+	});
+
 	it("prints hint + fails when no token supplied", async () => {
 		const { print, lines } = collect();
 		const result = await runAuthSet({
