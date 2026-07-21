@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
 import { installSkills } from "../commands/setup.js";
-import { runSkillsInstall, runSkillsUpdate } from "../commands/skills.js";
+import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "../commands/skills.js";
 import type { LoadedConfig } from "../load-config.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -308,6 +308,48 @@ describe("runSkillsInstall", () => {
 		expect(output).toContain("Installing");
 		expect(output).toContain("@theholocron/skills not found");
 		// Must not throw — error is caught and printed
+	});
+});
+
+// ── runSkillsRemove ───────────────────────────────────────────────────────────
+
+describe("runSkillsRemove", () => {
+	it("calls npx skills remove with no args when no names are given", () => {
+		const calls: Array<{ cmd: string; args: string[] }> = [];
+		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+			calls.push({ cmd, args });
+			return { exitCode: 0 };
+		};
+
+		const report = runSkillsRemove({ context: { repoRoot: "/repo" }, exec });
+
+		expect(report.status).toBe("ok");
+		expect(calls[0]!.cmd).toBe("npx");
+		expect(calls[0]!.args).toEqual(["skills", "remove"]);
+	});
+
+	it("appends skill names when names are given", () => {
+		const calls: Array<{ args: string[] }> = [];
+		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+			calls.push({ args });
+			return { exitCode: 0 };
+		};
+
+		runSkillsRemove({ context: { repoRoot: "/repo" }, names: ["git-safety", "pr-workflow"], exec });
+
+		expect(calls[0]!.args).toEqual(["skills", "remove", "git-safety", "pr-workflow"]);
+	});
+
+	it("returns fail when npx exits with a non-zero code", () => {
+		const exec = () => ({ exitCode: 1 });
+		const report = runSkillsRemove({ context: { repoRoot: "/repo" }, exec });
+		expect(report.status).toBe("fail");
+	});
+
+	it("dry-run prints would-run message and does not exec", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		runSkillsRemove({ context: { repoRoot: "/repo", dryRun: true }, exec });
+		expect(exec).not.toHaveBeenCalled();
 	});
 });
 

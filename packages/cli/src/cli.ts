@@ -20,7 +20,7 @@ import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/ind
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
-import { runSkillsInstall, runSkillsUpdate } from "./commands/skills.js";
+import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
 
@@ -119,6 +119,23 @@ await yargs(hideBin(process.argv))
 					async (argv) => {
 						const loaded = await loadConfig(argv.cwd);
 						await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
+					}
+				)
+				.command(
+					"remove [names..]",
+					"Remove installed skills via npx skills remove",
+					(yy) =>
+						yy.positional("names", {
+							type: "string",
+							array: true,
+							describe: "Skill name(s) to remove (omit to remove all installed skills)",
+						}),
+					(argv) => {
+						const report = runSkillsRemove({
+							context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
+							...(argv.names?.length ? { names: argv.names as string[] } : {}),
+						});
+						if (report.status === "fail") process.exitCode = 1;
 					}
 				)
 				.command(
