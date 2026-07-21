@@ -123,6 +123,20 @@ export interface HolocronConfig {
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
+	/**
+	 * Agent runtime that determines where skills are installed by `holocron setup`.
+	 * - `"claude"` → `.claude/skills/<name>/`
+	 * - `"codex"` | `"gemini"` → logged as unsupported; skipped gracefully.
+	 */
+	agent?: "claude" | "codex" | "gemini";
+	/**
+	 * Skill names from `@theholocron/skills` to install during `holocron setup`.
+	 * Installed paths are gitignored and managed by setup — do not commit them.
+	 *
+	 * @example
+	 * ["git-safety", "pr-workflow", "commit-standards"]
+	 */
+	skills?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -150,6 +164,8 @@ export interface ResolvedHolocronConfig {
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
+	agent?: "claude" | "codex" | "gemini";
+	skills?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -269,5 +285,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},
+		agent: raw.agent,
+		skills: raw.skills,
 	};
 }

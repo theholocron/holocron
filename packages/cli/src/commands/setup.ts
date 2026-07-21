@@ -18,8 +18,9 @@
  * one central place.
  */
 
-import { access, readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { access, copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
@@ -744,6 +745,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 	}
 
+	// ── skills: install agent skills from registry ──────────────────────
+	// Pure local fs operation — no source plugin required. Reads skill dirs
+	// from the installed @theholocron/skills package and copies them to the
+	// agent-specific location, then gitignores the installed paths.
+	if (config.skills && config.skills.length > 0 && config.agent) {
+		print(style.step("skills"));
+		steps.push(
+			await runStep("skills", "install skills", dryRun, async () => {
+				return await installSkills({
+					agent: config.agent!,
+					skills: config.skills!,
+					repoRoot: input.context.repoRoot,
+				});
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+	}
+
 	const summary = steps.reduce(
 		(acc, s) => {
 			if (s.status === "ok") acc.ok += 1;
@@ -780,6 +799,94 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	return { steps, summary };
+}
+
+// ── skills installer ─────────────────────────────────────────────────
+
+const AGENT_SKILL_PATHS: Partial<Record<string, (name: string) => string>> = {
+	claude: (name) => join(".claude", "skills", name),
+};
+
+const GITIGNORE_BLOCK_START = "# managed by holocron setup — skills";
+const GITIGNORE_BLOCK_END = "# end managed by holocron setup — skills";
+
+async function installSkills({
+	agent,
+	skills,
+	repoRoot,
+}: {
+	agent: string;
+	skills: string[];
+	repoRoot: string;
+}): Promise<string> {
+	const pathFn = AGENT_SKILL_PATHS[agent];
+	if (!pathFn) {
+		return `agent "${agent}" has no known skill install path — skipping`;
+	}
+
+	// Locate the @theholocron/skills package relative to the consumer repo.
+	const require = createRequire(new URL(`file://${repoRoot}/package.json`));
+	let skillsRoot: string;
+	try {
+		skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
+	} catch {
+		return "@theholocron/skills not found — run: pnpm add -D @theholocron/skills";
+	}
+
+	const installed: string[] = [];
+	const missing: string[] = [];
+
+	for (const name of skills) {
+		const srcDir = join(skillsRoot, "skills", name);
+		const destDir = join(repoRoot, pathFn(name));
+
+		try {
+			await stat(srcDir);
+		} catch {
+			missing.push(name);
+			continue;
+		}
+
+		await mkdir(destDir, { recursive: true });
+		const files = await readdir(srcDir);
+		for (const file of files) {
+			await copyFile(join(srcDir, file), join(destDir, file));
+		}
+		installed.push(name);
+	}
+
+	if (installed.length > 0) {
+		await updateSkillsGitignore(repoRoot, installed.map(pathFn));
+	}
+
+	const parts: string[] = [`installed ${installed.length}`];
+	if (missing.length > 0) parts.push(`unknown: ${missing.join(", ")}`);
+	return parts.join("; ");
+}
+
+async function updateSkillsGitignore(repoRoot: string, paths: string[]): Promise<void> {
+	const gitignorePath = join(repoRoot, ".gitignore");
+	let content = "";
+	try {
+		content = await readFile(gitignorePath, "utf8");
+	} catch {
+		// no .gitignore yet — will be created
+	}
+
+	const block = [GITIGNORE_BLOCK_START, ...paths.map((p) => `/${p}/`), GITIGNORE_BLOCK_END].join(
+		"\n"
+	);
+
+	if (content.includes(GITIGNORE_BLOCK_START)) {
+		const start = content.indexOf(GITIGNORE_BLOCK_START);
+		const end = content.indexOf(GITIGNORE_BLOCK_END);
+		const after = end !== -1 ? content.slice(end + GITIGNORE_BLOCK_END.length) : "";
+		content = content.slice(0, start) + block + after;
+	} else {
+		content = (content.trimEnd() ? content.trimEnd() + "\n\n" : "") + block + "\n";
+	}
+
+	await writeFile(gitignorePath, content, "utf8");
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
