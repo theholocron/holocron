@@ -35,10 +35,14 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 	}
 
 	print(`Installing ${config.skills.length} skill(s) for agent: ${config.agent}`);
-	const result = await installSkills({
-		agent: config.agent,
-		skills: config.skills,
-		repoRoot: input.context.repoRoot,
-	});
-	print(`  → ${result}`);
+	try {
+		const result = await installSkills({
+			agent: config.agent,
+			skills: config.skills,
+			repoRoot: input.context.repoRoot,
+		});
+		print(`  → ${result}`);
+	} catch (err) {
+		print(`  ✗ ${err instanceof Error ? err.message : String(err)}`);
+	}
 }

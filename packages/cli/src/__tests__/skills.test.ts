@@ -298,4 +298,15 @@ describe("runSkillsInstall", () => {
 		expect(lines.join("\n")).toContain("Installing 1");
 		expect(lines.join("\n")).toContain("installed 1");
 	});
+
+	it("prints a graceful error message when @theholocron/skills is not installed", async () => {
+		// No node_modules/@theholocron/skills — installSkills will throw
+		const lines: string[] = [];
+		const loaded = loadedFrom({ name: "test", providers: {}, agent: "claude", skills: ["git-safety"] });
+		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l) });
+		const output = lines.join("\n");
+		expect(output).toContain("Installing");
+		expect(output).toContain("@theholocron/skills not found");
+		// Must not throw — error is caught and printed
+	});
 });
