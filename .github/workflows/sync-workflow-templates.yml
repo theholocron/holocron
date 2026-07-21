@@ -17,7 +17,8 @@ jobs:
       primary-repo: theholocron/.github
       secondary-repos: |
         theholocron/.github-private
-        theholocron/configs
         theholocron/clients
+        theholocron/configs
+        theholocron/skills
     secrets:
       SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
