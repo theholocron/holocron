@@ -873,9 +873,7 @@ async function updateSkillsGitignore(repoRoot: string, paths: string[]): Promise
 		// no .gitignore yet — will be created
 	}
 
-	const block = [GITIGNORE_BLOCK_START, ...paths.map((p) => `/${p}/`), GITIGNORE_BLOCK_END].join(
-		"\n"
-	);
+	const block = [GITIGNORE_BLOCK_START, ...paths.map((p) => `/${p}/`), GITIGNORE_BLOCK_END].join("\n");
 
 	if (content.includes(GITIGNORE_BLOCK_START)) {
 		const start = content.indexOf(GITIGNORE_BLOCK_START);
