@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/skills",
   "version": "1.0.0",
-  "description": "Shared agent skill registry for theholocron projects.",
+  "description": "Shared agent skill registry.",
   "keywords": [
     "agent",
     "claude",
