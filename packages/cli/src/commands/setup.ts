@@ -21,6 +21,7 @@
 import { access, copyFile, mkdir, readdir, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
@@ -852,7 +853,7 @@ export async function installSkills({
 
 	// Locate @theholocron/skills relative to the consumer repo.
 	// Uses ./package.json subpath — must be declared in the package exports map.
-	const require = createRequire(new URL(`file://${repoRoot}/package.json`));
+	const require = createRequire(pathToFileURL(join(repoRoot, "package.json")));
 	let skillsRoot: string;
 	try {
 		skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
