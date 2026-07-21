@@ -18,9 +18,9 @@
  * one central place.
  */
 
-import { access, copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
@@ -822,15 +822,21 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 }
 
 // ── skills installer ─────────────────────────────────────────────────
+// Canonical location: .agents/skills/<name>/
+// Agent symlinks:    .<agent>/skills/<name> → relative path into .agents/
+// Pattern mirrors the `npx skills add` CLI (skills.sh) for multi-agent compat.
 
-const AGENT_SKILL_PATHS: Partial<Record<string, (name: string) => string>> = {
+const AGENTS_SKILLS_ROOT = join(".agents", "skills");
+
+/** Relative path of the agent-specific symlink. undefined = unsupported agent. */
+const AGENT_SYMLINK_PATHS: Partial<Record<string, (name: string) => string>> = {
 	claude: (name) => join(".claude", "skills", name),
 };
 
 const GITIGNORE_BLOCK_START = "# managed by holocron setup — skills";
 const GITIGNORE_BLOCK_END = "# end managed by holocron setup — skills";
 
-async function installSkills({
+export async function installSkills({
 	agent,
 	skills,
 	repoRoot,
@@ -839,8 +845,8 @@ async function installSkills({
 	skills: string[];
 	repoRoot: string;
 }): Promise<string> {
-	const pathFn = AGENT_SKILL_PATHS[agent];
-	if (!pathFn) {
+	const symlinkFn = AGENT_SYMLINK_PATHS[agent];
+	if (!symlinkFn) {
 		return `agent "${agent}" has no known skill install path — skipping`;
 	}
 
@@ -858,7 +864,6 @@ async function installSkills({
 
 	for (const name of skills) {
 		const srcDir = join(skillsRoot, "skills", name);
-		const destDir = join(repoRoot, pathFn(name));
 
 		try {
 			await stat(srcDir);
@@ -867,16 +872,29 @@ async function installSkills({
 			continue;
 		}
 
-		await mkdir(destDir, { recursive: true });
+		// 1. Copy files to .agents/skills/<name>/
+		const agentsDir = join(repoRoot, AGENTS_SKILLS_ROOT, name);
+		await mkdir(agentsDir, { recursive: true });
 		const files = await readdir(srcDir);
 		for (const file of files) {
-			await copyFile(join(srcDir, file), join(destDir, file));
+			await copyFile(join(srcDir, file), join(agentsDir, file));
 		}
+
+		// 2. Create relative symlink at agent-specific path → .agents/skills/<name>
+		const symlinkPath = join(repoRoot, symlinkFn(name));
+		await mkdir(dirname(symlinkPath), { recursive: true });
+		try {
+			await unlink(symlinkPath);
+		} catch {
+			// didn't exist — that's fine
+		}
+		await symlink(relative(dirname(symlinkPath), agentsDir), symlinkPath);
+
 		installed.push(name);
 	}
 
 	if (installed.length > 0) {
-		await updateSkillsGitignore(repoRoot, installed.map(pathFn));
+		await updateSkillsGitignore(repoRoot, agent, installed, symlinkFn);
 	}
 
 	const parts: string[] = [`installed ${installed.length}`];
@@ -884,7 +902,12 @@ async function installSkills({
 	return parts.join("; ");
 }
 
-async function updateSkillsGitignore(repoRoot: string, paths: string[]): Promise<void> {
+async function updateSkillsGitignore(
+	repoRoot: string,
+	_agent: string,
+	skills: string[],
+	symlinkFn: (name: string) => string
+): Promise<void> {
 	const gitignorePath = join(repoRoot, ".gitignore");
 	let content = "";
 	try {
@@ -893,7 +916,9 @@ async function updateSkillsGitignore(repoRoot: string, paths: string[]): Promise
 		// no .gitignore yet — will be created
 	}
 
-	const block = [GITIGNORE_BLOCK_START, ...paths.map((p) => `/${p}/`), GITIGNORE_BLOCK_END].join("\n");
+	// Block covers the agents root dir + each agent symlink entry
+	const entries = [`/${AGENTS_SKILLS_ROOT}/`, ...skills.map((n) => `/${symlinkFn(n)}`)];
+	const block = [GITIGNORE_BLOCK_START, ...entries, GITIGNORE_BLOCK_END].join("\n");
 
 	if (content.includes(GITIGNORE_BLOCK_START)) {
 		const start = content.indexOf(GITIGNORE_BLOCK_START);
