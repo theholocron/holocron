@@ -35,8 +35,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// push to GitHub. Load plugins eagerly when remote steps are requested;
 	// for local-only runs, attempt a load for the optional GitHub sync but
 	// swallow auth errors so the command works without a token.
-	const needsProvider =
-		!requestedSteps || requestedSteps.some((s) => !LOCAL_STEPS.has(s as SyncStep));
+	const needsProvider = !requestedSteps || requestedSteps.some((s) => !LOCAL_STEPS.has(s as SyncStep));
 	if (needsProvider) {
 		await loader.load();
 	} else {
@@ -137,7 +136,6 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					print(formatSyncStep(steps[steps.length - 1]!));
 				}
 			}
-
 		}
 
 		// Report unknown step names
@@ -161,7 +159,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// optionally push to GitHub when source is loaded. They run outside
 	// the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of (["keywords", "description"] as const)) {
+	for (const stepName of ["keywords", "description"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
