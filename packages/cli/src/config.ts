@@ -60,6 +60,11 @@ export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>
 
 export type RepoProtection = "balanced" | "strict" | "none";
 
+export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
+
+/** Shorthand `"slug"` defaults to `push` permission. */
+export type TeamEntry = string | { slug: string; permission: TeamPermission };
+
 export interface RepoProperties {
 	lifecycle?: "active" | "experimental" | "deprecated";
 	open_source?: boolean;
@@ -77,6 +82,12 @@ export interface RepoConfig {
 	protection?: RepoProtection;
 	/** CI check context names required on the default branch (only used when `protection` is "strict"). */
 	requiredChecks?: string[];
+	/**
+	 * GitHub teams granted repository access. Synced by `holocron setup`, which
+	 * also writes `.github/CODEOWNERS` for teams with write-or-higher permission.
+	 * String shorthand defaults to `push` (Write).
+	 */
+	teams?: TeamEntry[];
 	/** GitHub topics set on the repository. */
 	topics?: string[];
 	/** GitHub custom properties synced to the org dashboard. */

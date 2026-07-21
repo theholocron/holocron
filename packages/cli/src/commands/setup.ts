@@ -629,6 +629,26 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
 			print(formatStep(steps[steps.length - 1]!));
 		}
+
+		const teams = repo?.teams ?? [];
+		if (teams.length > 0 && source.syncTeams) {
+			steps.push(await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
+			print(formatStep(steps[steps.length - 1]!));
+
+			const org = (input.context.repo ?? "").split("/")[0] ?? "";
+			const writeableTeams = teams
+				.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
+				.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
+			if (org && writeableTeams.length > 0) {
+				steps.push(
+					await runStep("source", "write .github/CODEOWNERS", dryRun, async () => {
+						const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
+						await source.writeRepoFile(".github/CODEOWNERS", content);
+					})
+				);
+				print(formatStep(steps[steps.length - 1]!));
+			}
+		}
 	}
 
 	// ── environments ────────────────────────────────────────────────────
