@@ -118,5 +118,7 @@ export { GitHubCi } from "./capabilities/ci.js";
 export { GitHubIssues } from "./capabilities/issues.js";
 export { syncLabels } from "./capabilities/labels.js";
 export type { CanonicalLabel } from "./capabilities/labels.js";
+export { syncTeams, normalizeTeamEntry } from "./capabilities/teams.js";
+export type { TeamEntry, TeamPermission, NormalizedTeamEntry } from "./capabilities/teams.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

@@ -24,7 +24,13 @@
  *     them from env (or pull from `vault` at runtime)
  */
 
-import { CARDINALITY, type CapabilityKey, REQUIRED_CAPABILITIES } from "./capabilities/index.js";
+import {
+	CARDINALITY,
+	type CapabilityKey,
+	type TeamEntry,
+	type TeamPermission,
+	REQUIRED_CAPABILITIES,
+} from "./capabilities/index.js";
 
 // ───────────────────────────────────────────────────────────────────────
 // Raw config (what users write in holocron.config.json)
@@ -60,10 +66,7 @@ export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>
 
 export type RepoProtection = "balanced" | "strict" | "none";
 
-export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
-
-/** Shorthand `"slug"` defaults to `push` permission. */
-export type TeamEntry = string | { slug: string; permission: TeamPermission };
+export type { TeamEntry, TeamPermission };
 
 export interface RepoProperties {
 	lifecycle?: "active" | "experimental" | "deprecated";

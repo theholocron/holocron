@@ -67,6 +67,17 @@ describe("GitHubSource — REST methods", () => {
 		expect(calls[0]?.body).toEqual({ allow_squash_merge: true });
 	});
 
+	it("syncTeams → PUT /orgs/{org}/teams/{slug}/repos/{owner}/{repo}", async () => {
+		const { source, calls } = makeSource([{ status: 204 }]);
+		const result = await source.syncTeams(["gatekeepers"]);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toBe(
+			`https://api.github.com/orgs/theholocron/teams/gatekeepers/repos/theholocron/holocron`
+		);
+		expect(calls[0]?.body).toEqual({ permission: "push" });
+		expect(result).toBe("1 team synced");
+	});
+
 	it("syncDescription → PATCH /repos/{repo} with description", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: {} }]);
 		const result = await source.syncDescription("A great tool.");
