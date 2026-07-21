@@ -9,6 +9,7 @@ import { repos } from "./repos/repos.js";
 import { rulesets } from "./rulesets/rulesets.js";
 import { secrets } from "./secrets/secrets.js";
 import { security } from "./security/security.js";
+import { teams } from "./teams/teams.js";
 import { topics } from "./topics/topics.js";
 import { user } from "./user/user.js";
 import { workflows } from "./workflows/workflows.js";
@@ -41,6 +42,7 @@ export type {
 	GitTreeItem,
 } from "./git/git.js";
 export type { GitHubUser } from "./user/user.js";
+export type { TeamPermission } from "./teams/teams.js";
 
 export function createGitHubClient(opts: GitHubClientOptions) {
 	const rest = createGitHubRestClient(opts);
@@ -55,6 +57,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		rulesets: rulesets(rest),
 		secrets: secrets(rest),
 		security: security(rest),
+		teams: teams(rest),
 		topics: topics(rest),
 		user: user(rest),
 		workflows: workflows(rest),
