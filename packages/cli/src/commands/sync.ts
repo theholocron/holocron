@@ -2,6 +2,7 @@ import { access, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Source } from "../capabilities/index.js";
+import { AuthError } from "../auth-resolver.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
@@ -41,8 +42,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	} else {
 		try {
 			await loader.load();
-		} catch {
-			// No provider token — local steps still run, GitHub sync skipped.
+		} catch (err) {
+			// Only swallow auth errors (missing token). Any other load failure
+			// (bad plugin config, unresolvable package) is re-thrown so the
+			// operator sees it rather than getting a silent GitHub-push miss.
+			if (!(err instanceof AuthError)) throw err;
 		}
 	}
 
