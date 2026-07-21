@@ -1,11 +1,12 @@
 import { readdir, readFile, rm, writeFile, mkdir, stat } from "node:fs/promises";
 import { join, dirname } from "node:path";
 
-import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source } from "@theholocron/cli";
+import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source, TeamEntry } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";
 
 import { syncLabels } from "./labels.js";
 import { syncProperties } from "./properties.js";
+import { syncTeams } from "./teams.js";
 import { syncTopics } from "./topics.js";
 
 export interface SourceOptions {
@@ -143,6 +144,10 @@ export class GitHubSource implements Source {
 
 	async syncProperties(values: Record<string, string>): Promise<string> {
 		return syncProperties(this.client, this.repo, values);
+	}
+
+	async syncTeams(teams: TeamEntry[]): Promise<string> {
+		return syncTeams(this.client, this.repo, teams);
 	}
 
 	async syncTopics(topics: string[]): Promise<string> {
