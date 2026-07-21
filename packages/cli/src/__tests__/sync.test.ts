@@ -477,6 +477,34 @@ describe("runSync", () => {
 			expect(step?.status).toBe("ok");
 			expect(step?.message).toContain("no package.json");
 		});
+
+		it("still writes keywords when loader.load() throws (no provider token)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli", "typescript"] },
+				providers: { source: "github" },
+			});
+			// Importer throws — simulates missing provider token.
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("2 keywords written");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { keywords: string[] };
+			expect(pkg.keywords).toEqual(["cli", "typescript"]);
+		});
 	});
 
 	it("skips sync description when no description is configured", async () => {
