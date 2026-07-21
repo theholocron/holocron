@@ -21,11 +21,11 @@ import syncGithubYml from "./workflows/sync-github.yml";
 import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
 
-/** Header prepended when holocron setup writes a thin caller to a repo. */
-export function workflowHeader(): string {
+/** Header prepended when holocron setup writes a generated file to a repo. */
+export function workflowHeader(source = "packages/cli/src/commands/setup-workflows.ts"): string {
 	return [
 		`# AUTO-GENERATED — do not edit directly.`,
-		`# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts`,
+		`# Source:  theholocron/holocron · ${source}`,
 		`# Synced:  ${new Date().toISOString()}`,
 		`# Tool:    holocron setup`,
 		`# Changes: run \`holocron setup\` to regenerate.`,

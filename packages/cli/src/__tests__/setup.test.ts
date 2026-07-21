@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
-import { runSetup, codecovContent } from "../commands/setup.js";
+import { runSetup, codecovContent, mergeCodecovComponents } from "../commands/setup.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type PluginImporter } from "../loader.js";
 import { ProviderApiError } from "../capabilities/index.js";
@@ -1641,16 +1641,17 @@ describe("codecovContent", () => {
 		expect(out).toContain("require_changes: true");
 	});
 
-	it("produces individual_components entry for each package", () => {
+	it("produces individual_components entry for each package using slug as name", () => {
 		const out = codecovContent([
 			{ slug: "http-client", name: "@theholocron/http-client" },
 			{ slug: "clerk-client", name: "@theholocron/clerk-client" },
 		]);
 		expect(out).toContain("component_id: http-client");
-		expect(out).toContain('name: "@theholocron/http-client"');
+		expect(out).toContain('name: "http-client"');
+		expect(out).not.toContain("@theholocron/");
 		expect(out).toContain("- packages/http-client/**");
 		expect(out).toContain("component_id: clerk-client");
-		expect(out).toContain('name: "@theholocron/clerk-client"');
+		expect(out).toContain('name: "clerk-client"');
 		expect(out).toContain("- packages/clerk-client/**");
 	});
 
@@ -1662,6 +1663,53 @@ describe("codecovContent", () => {
 
 	it("ends with a trailing newline", () => {
 		expect(codecovContent([])).toMatch(/\n$/);
+	});
+});
+
+// ── mergeCodecovComponents ────────────────────────────────────────────────────
+
+describe("mergeCodecovComponents", () => {
+	const existing = [
+		"codecov:",
+		"  require_ci_to_pass: true",
+		"",
+		"coverage:",
+		'  range: "70...100"',
+		"  status:",
+		"    patch:",
+		"      default:",
+		"        threshold: 2%",
+		"",
+		"component_management:",
+		"  default_rules:",
+		"    statuses:",
+		"      - type: patch",
+		"        target: 80%",
+		"  individual_components:",
+		"    - component_id: old-pkg",
+		'      name: "old-pkg"',
+		"      paths:",
+		"        - packages/old-pkg/**",
+		"",
+	].join("\n");
+
+	it("replaces individual_components block while preserving the rest of the file", () => {
+		const out = mergeCodecovComponents(existing, [{ slug: "new-pkg", name: "@acme/new-pkg" }]);
+		expect(out).toContain('range: "70...100"');
+		expect(out).toContain("threshold: 2%");
+		expect(out).toContain("component_id: new-pkg");
+		expect(out).not.toContain("old-pkg");
+	});
+
+	it("uses slug as the component name, not the npm package name", () => {
+		const out = mergeCodecovComponents(existing, [{ slug: "foo", name: "@acme/foo" }]);
+		expect(out).toContain('name: "foo"');
+		expect(out).not.toContain("@acme/");
+	});
+
+	it("returns the file unchanged when individual_components marker is absent", () => {
+		const noMarker = "codecov:\n  require_ci_to_pass: true\n";
+		expect(mergeCodecovComponents(noMarker, [{ slug: "foo", name: "@acme/foo" }])).toBe(noMarker);
 	});
 });
 
@@ -1812,6 +1860,56 @@ describe("setup: write codecov.yml", () => {
 
 		expect(written["codecov.yml"]).toContain("component_id: named");
 		expect(written["codecov.yml"]).not.toContain("unnamed");
+	});
+
+	it("merges components into an existing codecov.yml without overwriting custom settings", async () => {
+		const existingCodecov = [
+			"codecov:",
+			"  require_ci_to_pass: true",
+			"",
+			"coverage:",
+			'  range: "70...100"',
+			"  status:",
+			"    patch:",
+			"      default:",
+			"        threshold: 2%",
+			"",
+			"component_management:",
+			"  default_rules:",
+			"    statuses:",
+			"      - type: patch",
+			"        target: 80%",
+			"  individual_components:",
+			"    - component_id: old-pkg",
+			'      name: "old-pkg"',
+			"      paths:",
+			"        - packages/old-pkg/**",
+			"",
+		].join("\n");
+		await writeFile(join(tmpDir, "codecov.yml"), existingCodecov);
+
+		const pkgsDir = join(tmpDir, "packages");
+		await mkdir(join(pkgsDir, "new-pkg"), { recursive: true });
+		await writeFile(join(pkgsDir, "new-pkg", "package.json"), JSON.stringify({ name: "@acme/new-pkg" }));
+
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toContain('range: "70...100"');
+		expect(written["codecov.yml"]).toContain("threshold: 2%");
+		expect(written["codecov.yml"]).toContain("component_id: new-pkg");
+		expect(written["codecov.yml"]).not.toContain("old-pkg");
+		expect(written["codecov.yml"]).not.toContain("AUTO-GENERATED");
 	});
 });
 
