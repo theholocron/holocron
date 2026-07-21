@@ -13,7 +13,7 @@ catalog:
   '@theholocron/infisical-client': ^0.11.3
   '@theholocron/neon-client': ^0.11.3
   '@theholocron/github-client': ^1.1.0
-  '@theholocron/http-client': ^0.11.3
+  '@theholocron/http-client': ^1.1.0
   '@theholocron/postman-client': ^0.11.3
   '@theholocron/vercel-client': ^0.11.3
   '@theholocron/lint-staged-config': ^7.3.0
@@ -38,4 +38,4 @@ catalog:
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  '@theholocron/http-client': ^0.11.3
+  '@theholocron/http-client': ^1.1.0
