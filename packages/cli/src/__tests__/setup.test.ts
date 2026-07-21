@@ -1674,7 +1674,7 @@ describe("mergeCodecovComponents", () => {
 		"  require_ci_to_pass: true",
 		"",
 		"coverage:",
-		"  range: \"70...100\"",
+		'  range: "70...100"',
 		"  status:",
 		"    patch:",
 		"      default:",
@@ -1687,7 +1687,7 @@ describe("mergeCodecovComponents", () => {
 		"        target: 80%",
 		"  individual_components:",
 		"    - component_id: old-pkg",
-		"      name: \"old-pkg\"",
+		'      name: "old-pkg"',
 		"      paths:",
 		"        - packages/old-pkg/**",
 		"",
@@ -1695,7 +1695,7 @@ describe("mergeCodecovComponents", () => {
 
 	it("replaces individual_components block while preserving the rest of the file", () => {
 		const out = mergeCodecovComponents(existing, [{ slug: "new-pkg", name: "@acme/new-pkg" }]);
-		expect(out).toContain("range: \"70...100\"");
+		expect(out).toContain('range: "70...100"');
 		expect(out).toContain("threshold: 2%");
 		expect(out).toContain("component_id: new-pkg");
 		expect(out).not.toContain("old-pkg");
@@ -1868,7 +1868,7 @@ describe("setup: write codecov.yml", () => {
 			"  require_ci_to_pass: true",
 			"",
 			"coverage:",
-			"  range: \"70...100\"",
+			'  range: "70...100"',
 			"  status:",
 			"    patch:",
 			"      default:",
@@ -1881,7 +1881,7 @@ describe("setup: write codecov.yml", () => {
 			"        target: 80%",
 			"  individual_components:",
 			"    - component_id: old-pkg",
-			"      name: \"old-pkg\"",
+			'      name: "old-pkg"',
 			"      paths:",
 			"        - packages/old-pkg/**",
 			"",
@@ -1905,7 +1905,7 @@ describe("setup: write codecov.yml", () => {
 
 		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
-		expect(written["codecov.yml"]).toContain("range: \"70...100\"");
+		expect(written["codecov.yml"]).toContain('range: "70...100"');
 		expect(written["codecov.yml"]).toContain("threshold: 2%");
 		expect(written["codecov.yml"]).toContain("component_id: new-pkg");
 		expect(written["codecov.yml"]).not.toContain("old-pkg");

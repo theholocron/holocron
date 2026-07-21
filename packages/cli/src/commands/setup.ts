@@ -127,36 +127,38 @@ export function codecovContent(packages: WorkspacePackage[]): string {
 		`# Changes: run \`holocron setup\` to regenerate.`,
 	].join("\n");
 
-	return [
-		header,
-		``,
-		`codecov:`,
-		`  require_ci_to_pass: true`,
-		``,
-		`coverage:`,
-		`  precision: 2`,
-		`  round: down`,
-		`  status:`,
-		`    project:`,
-		`      default:`,
-		`        target: auto`,
-		`        threshold: 2%`,
-		`    patch:`,
-		`      default:`,
-		`        target: 80%`,
-		``,
-		`comment:`,
-		`  layout: "reach,diff,flags,components"`,
-		`  behavior: default`,
-		`  require_changes: true`,
-		``,
-		`component_management:`,
-		`  default_rules:`,
-		`    statuses:`,
-		`      - type: patch`,
-		`        target: 80%`,
-		`  individual_components:`,
-	].join("\n") + codecovComponentBlock(packages);
+	return (
+		[
+			header,
+			``,
+			`codecov:`,
+			`  require_ci_to_pass: true`,
+			``,
+			`coverage:`,
+			`  precision: 2`,
+			`  round: down`,
+			`  status:`,
+			`    project:`,
+			`      default:`,
+			`        target: auto`,
+			`        threshold: 2%`,
+			`    patch:`,
+			`      default:`,
+			`        target: 80%`,
+			``,
+			`comment:`,
+			`  layout: "reach,diff,flags,components"`,
+			`  behavior: default`,
+			`  require_changes: true`,
+			``,
+			`component_management:`,
+			`  default_rules:`,
+			`    statuses:`,
+			`      - type: patch`,
+			`        target: 80%`,
+			`  individual_components:`,
+		].join("\n") + codecovComponentBlock(packages)
+	);
 }
 
 async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {
@@ -610,7 +612,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			await runStep("source", "write codecov.yml", dryRun, async () => {
 				const packages = await readWorkspacePackages(input.context.repoRoot);
 				const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
-				const content = existing != null ? mergeCodecovComponents(existing, packages) : codecovContent(packages);
+				const content =
+					existing != null ? mergeCodecovComponents(existing, packages) : codecovContent(packages);
 				await source.writeRepoFile("codecov.yml", content);
 				return packages.length > 0 ? `${packages.length} components` : "no components";
 			})
