@@ -69,9 +69,10 @@ describe("runSync", () => {
 		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
-		expect(report.steps).toHaveLength(5);
-		expect(report.steps.every((s) => s.status === "ok")).toBe(true);
-		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 0 });
+		expect(report.steps).toHaveLength(6);
+		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(5);
+		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
+		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 1 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -214,7 +215,7 @@ describe("runSync", () => {
 		});
 
 		expect(called).toBe(false);
-		expect(report.steps.every((s) => s.status === "dry-run")).toBe(true);
+		expect(report.steps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
 		expect(report.summary.dryRun).toBe(5);
 	});
 
