@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "../commands/setup-workflows.js";
@@ -503,7 +503,7 @@ describe("runSyncGithub", () => {
 	});
 
 	it("returns fail when repo metadata fetch fails", async () => {
-		const fn: typeof globalThis.fetch = async (url, init) => {
+		const fn: typeof globalThis.fetch = async (url, _init) => {
 			if (url.toString().match(/\/repos\/[^/]+\/[^/]+$/)) {
 				return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
 			}

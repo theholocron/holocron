@@ -351,7 +351,7 @@ describe("defaultExec", () => {
 describe("runSkillsRemove", () => {
 	it("calls npx skills remove with no args when no names are given", () => {
 		const calls: Array<{ cmd: string; args: string[] }> = [];
-		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+		const exec = (cmd: string, args: string[], _opts: { cwd: string }) => {
 			calls.push({ cmd, args });
 			return { exitCode: 0 };
 		};
@@ -365,7 +365,7 @@ describe("runSkillsRemove", () => {
 
 	it("appends skill names when names are given", () => {
 		const calls: Array<{ args: string[] }> = [];
-		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+		const exec = (cmd: string, args: string[], _opts: { cwd: string }) => {
 			calls.push({ args });
 			return { exitCode: 0 };
 		};
@@ -409,7 +409,7 @@ describe("runSkillsUpdate", () => {
 
 	it("appends the skill name when name is given", () => {
 		const calls: Array<{ args: string[] }> = [];
-		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+		const exec = (cmd: string, args: string[], _opts: { cwd: string }) => {
 			calls.push({ args });
 			return { exitCode: 0 };
 		};
@@ -427,7 +427,6 @@ describe("runSkillsUpdate", () => {
 
 	it("dry-run prints would-run message and does not exec", () => {
 		const exec = vi.fn(() => ({ exitCode: 0 }));
-		const lines: string[] = [];
 		const report = runSkillsUpdate({
 			context: { repoRoot: "/repo", dryRun: true },
 			exec,
