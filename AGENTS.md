@@ -87,7 +87,7 @@ not object destructuring.
   `try/catch` and continue; final summary reports `ok / fail / skip`
   counts. Per-step failure does not abort the run.
 - **Idempotent capability operations.** Probe-then-act, treat
-  "already exists" / 409 / EPRECONDITION as success, never blow up
+  "already exists" / 409 / EPRECONDITION as success, never break
   on re-runs.
 - **`holocron.config.json` is the contract.** No hardcoded vendor
   lists, no hardcoded paths, no implicit assumptions. Config drives
@@ -221,7 +221,7 @@ against `.notes/*.spec.md` before starting; several already have
 design docs.
 
 - **#76** Per-plugin `transport: 'rest' | 'cli'` option. Still
-  grounded: 1P plugin remains the reference CLI-transport case
+  grounded: 1P plugin is the reference CLI-transport case
   (see #96 — plugin stays published even though this repo doesn't
   use it as default).
 - **#77** `holocron plugin create` CLI command (promote the
