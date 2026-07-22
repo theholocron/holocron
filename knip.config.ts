@@ -8,11 +8,11 @@ const config: KnipConfig = {
 			project: ["*.ts"],
 		},
 		"packages/cli": {
-			entry: ["src/cli.ts", "src/index.ts", "src/capabilities/index.ts"],
+			// entry points auto-detected from package.json exports/bin
 			project: ["src/**/*.ts", "!src/**/__tests__/**"],
 		},
 		"packages/holocron-plugin-*": {
-			entry: ["src/index.ts"],
+			// src/index.ts auto-detected from package.json exports
 			project: ["src/**/*.ts", "!src/**/__tests__/**"],
 		},
 	},
