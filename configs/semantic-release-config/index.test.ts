@@ -49,5 +49,82 @@ describe("semantic-release-config", () => {
 			};
 			expect(config.branches).toContain("alpha");
 		});
+
+		it("includes monorepo packages glob in git assets by default", () => {
+			const config = defineConfig() as { plugins: unknown[] };
+			const git = config.plugins.find(
+				(p) => Array.isArray(p) && p[0] === "@semantic-release/git",
+			) as [string, { assets: string[] }];
+			expect(git[1].assets).toContain("packages/*/package.json");
+		});
+
+		describe("npm option", () => {
+			it("inserts @semantic-release/npm with access: public when npm: true", () => {
+				const config = defineConfig({ npm: true }) as {
+					plugins: unknown[];
+				};
+				const npm = config.plugins.find(
+					(p) => Array.isArray(p) && p[0] === "@semantic-release/npm",
+				) as [string, { access: string }];
+				expect(npm).toBeDefined();
+				expect(npm[1].access).toBe("public");
+			});
+
+			it("places @semantic-release/npm after changelog and before git", () => {
+				const config = defineConfig({ npm: true }) as {
+					plugins: unknown[];
+				};
+				const plugins = config.plugins as unknown[];
+				const changelogIdx = plugins.indexOf(
+					"@semantic-release/changelog",
+				);
+				const npmIdx = plugins.findIndex(
+					(p) =>
+						Array.isArray(p) &&
+						(p as unknown[])[0] === "@semantic-release/npm",
+				);
+				const gitIdx = plugins.findIndex(
+					(p) =>
+						Array.isArray(p) &&
+						(p as unknown[])[0] === "@semantic-release/git",
+				);
+				expect(npmIdx).toBeGreaterThan(changelogIdx);
+				expect(npmIdx).toBeLessThan(gitIdx);
+			});
+
+			it("accepts npm options object", () => {
+				const config = defineConfig({
+					npm: { access: "restricted" },
+				}) as {
+					plugins: unknown[];
+				};
+				const npm = config.plugins.find(
+					(p) => Array.isArray(p) && p[0] === "@semantic-release/npm",
+				) as [string, { access: string }];
+				expect(npm[1].access).toBe("restricted");
+			});
+
+			it("uses single-package assets when npm is set", () => {
+				const config = defineConfig({ npm: true }) as {
+					plugins: unknown[];
+				};
+				const git = config.plugins.find(
+					(p) => Array.isArray(p) && p[0] === "@semantic-release/git",
+				) as [string, { assets: string[] }];
+				expect(git[1].assets).not.toContain("packages/*/package.json");
+				expect(git[1].assets).toContain("package.json");
+			});
+
+			it("allows assets override even when npm is set", () => {
+				const config = defineConfig({
+					npm: true,
+					assets: ["CHANGELOG.md", "package.json", "dist/"],
+				}) as { plugins: unknown[] };
+				const git = config.plugins.find(
+					(p) => Array.isArray(p) && p[0] === "@semantic-release/git",
+				) as [string, { assets: string[] }];
+				expect(git[1].assets).toContain("dist/");
+			});
+		});
 	});
 });

@@ -2,9 +2,15 @@ interface ExecOptions {
 	prepareCmd?: string;
 	publishCmd?: string;
 }
+interface NpmOptions {
+	access?: "public" | "restricted";
+	pkgRoot?: string;
+	tarballDir?: string;
+}
 interface Options {
 	branches?: Array<string | Record<string, unknown>>;
 	exec?: ExecOptions;
+	npm?: boolean | NpmOptions;
 	assets?: string[];
 }
 
@@ -43,6 +49,7 @@ const defaultAssets = [
 	"package.json",
 	"packages/*/package.json",
 ];
+const defaultSingleAssets = ["CHANGELOG.md", "package.json"];
 const defaultMessage =
 	"chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}\n\nSigned-off-by: Newton <5769156+iamnewton@users.noreply.github.com>";
 
@@ -52,16 +59,26 @@ const defaultMessage =
 export function defineConfig({
 	branches = ["main"],
 	exec,
-	assets = defaultAssets,
+	npm,
+	assets,
 }: Options = {}): object {
+	const npmOptions: NpmOptions =
+		npm === true ? { access: "public" } : npm || {};
+	const resolvedAssets =
+		assets ?? (npm ? defaultSingleAssets : defaultAssets);
+
 	return {
 		branches,
 		plugins: [
 			commitAnalyzer,
 			releaseNotesGenerator,
 			"@semantic-release/changelog",
+			...(npm ? [["@semantic-release/npm", npmOptions]] : []),
 			...(exec ? [["@semantic-release/exec", exec]] : []),
-			["@semantic-release/git", { assets, message: defaultMessage }],
+			[
+				"@semantic-release/git",
+				{ assets: resolvedAssets, message: defaultMessage },
+			],
 			"@semantic-release/github",
 		],
 	};
