@@ -56,10 +56,7 @@ describe("checkForUpdates", () => {
 	const originalEnv = process.env;
 
 	beforeEach(() => {
-		const env = { ...originalEnv, HOLOCRON_CACHE_DIR: `/tmp/holocron-test-${Date.now()}` };
-		delete env["CI"];
-		delete env["NO_UPDATE_NOTIFIER"];
-		process.env = env;
+		process.env = { ...originalEnv, HOLOCRON_CACHE_DIR: `/tmp/holocron-test-${Date.now()}`, CI: undefined, NO_UPDATE_NOTIFIER: undefined };
 		vi.stubGlobal("fetch", vi.fn());
 	});
 
