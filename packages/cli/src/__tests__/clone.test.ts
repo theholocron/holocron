@@ -162,7 +162,9 @@ describe("runClone", () => {
 
 		expect(report.cloned).toBe(2);
 		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[0].ssh_url, join(tmpDir, "github")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "github-private")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "github-private")], {
+			cwd: tmpDir,
+		});
 	});
 
 	it("paginates through multiple pages of repos", async () => {

@@ -129,7 +129,13 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	}
 
 	const summary = `${cloned} cloned, ${skipped} skipped, ${failed} failed`;
-	print(dryRun ? style.dim(`\n  dry-run: ${summary}`) : failed > 0 ? style.fail(`\n  ${summary}`) : style.success(`\n  ${summary}`));
+	print(
+		dryRun
+			? style.dim(`\n  dry-run: ${summary}`)
+			: failed > 0
+				? style.fail(`\n  ${summary}`)
+				: style.success(`\n  ${summary}`)
+	);
 
 	return {
 		status: dryRun ? "dry-run" : failed > 0 ? "fail" : "ok",
