@@ -433,7 +433,10 @@ await yargs(hideBin(process.argv))
 			if (!parsed) return;
 			const token = outputDir
 				? "no-token-needed"
-				: (parsed.cliTokens?.["github"] ?? parsed.cliToken ?? process.env.GITHUB_TOKEN ?? process.env.HOLOCRON_GITHUB_TOKEN);
+				: (parsed.cliTokens?.["github"] ??
+					parsed.cliToken ??
+					process.env.GITHUB_TOKEN ??
+					process.env.HOLOCRON_GITHUB_TOKEN);
 			if (!token) {
 				console.error("sync-github: GitHub token required — pass --token or set GITHUB_TOKEN");
 				process.exitCode = 1;

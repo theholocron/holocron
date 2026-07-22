@@ -37,19 +37,13 @@ export function parseTokenArgs(tokens: string[]): ParsedTokenArgs {
 		const value = raw.slice(eqIdx + 1);
 
 		if (vendor.trim() === "") {
-			throw new TokenParseError(
-				`invalid --token value "${raw}": vendor name must not be empty`,
-			);
+			throw new TokenParseError(`invalid --token value "${raw}": vendor name must not be empty`);
 		}
 		if (/\s/.test(vendor)) {
-			throw new TokenParseError(
-				`invalid --token value "${raw}": vendor name must not contain whitespace`,
-			);
+			throw new TokenParseError(`invalid --token value "${raw}": vendor name must not contain whitespace`);
 		}
 		if (value === "") {
-			throw new TokenParseError(
-				`invalid --token value "${raw}": token value must not be empty`,
-			);
+			throw new TokenParseError(`invalid --token value "${raw}": token value must not be empty`);
 		}
 
 		cliTokens[vendor] = value;
@@ -57,7 +51,7 @@ export function parseTokenArgs(tokens: string[]): ParsedTokenArgs {
 
 	if (bare.length > 1) {
 		throw new TokenParseError(
-			`only one bare --token value is allowed; got ${bare.length.toString()} — use vendor=value form for multiple tokens`,
+			`only one bare --token value is allowed; got ${bare.length.toString()} — use vendor=value form for multiple tokens`
 		);
 	}
 

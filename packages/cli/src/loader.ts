@@ -150,8 +150,7 @@ export class PluginLoader {
 		if (isPluginModule(mod)) {
 			// Resolve the effective token for this specific plugin.
 			// cliTokens[provider] wins over the bare cliToken fallback.
-			const effectiveToken =
-				this.context.cliTokens?.[tuple.provider] ?? this.context.cliToken;
+			const effectiveToken = this.context.cliTokens?.[tuple.provider] ?? this.context.cliToken;
 
 			// Precedence (later wins): project-level defaults from config →
 			// runtime context (CLI flags: --repo, --token) → per-plugin
