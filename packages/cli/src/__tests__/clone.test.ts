@@ -149,6 +149,22 @@ describe("runClone", () => {
 		expect(report.message).toMatch(/403/);
 	});
 
+	it("strips leading dot from repo name so hidden repos are visible in Finder", async () => {
+		const repos = [makeRepo(".github"), makeRepo(".github-private")];
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(report.cloned).toBe(2);
+		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[0].ssh_url, join(tmpDir, "github")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "github-private")], { cwd: tmpDir });
+	});
+
 	it("paginates through multiple pages of repos", async () => {
 		const page1 = [makeRepo("alpha")];
 		const page2 = [makeRepo("beta")];

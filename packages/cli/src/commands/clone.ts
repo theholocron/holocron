@@ -100,7 +100,9 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	let failed = 0;
 
 	for (const repo of repos) {
-		const dest = join(targetDir, repo.name);
+		// Strip leading dot so hidden repos (e.g. .github) are visible in Finder.
+		const dirName = repo.name.startsWith(".") ? repo.name.slice(1) : repo.name;
+		const dest = join(targetDir, dirName);
 
 		if (existsSync(dest)) {
 			print(style.dim(`  skip   ${repo.full_name}`));
