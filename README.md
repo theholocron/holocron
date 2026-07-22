@@ -14,6 +14,7 @@ A pluggable, capability-based CLI for spinning up and operating software project
 > archive under the `v1.0.0` git tag. Design in
 > [`.notes/archive/tech-architecture.spec.md`](./.notes/archive/tech-architecture.spec.md)
 > (tracked in [#74](https://github.com/theholocron/holocron/issues/74)).
+
 ## Quickstart
 
 <!-- prettier-ignore -->
