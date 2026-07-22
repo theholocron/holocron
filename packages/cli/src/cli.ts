@@ -50,8 +50,8 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 const updateCheckPromise = checkForUpdates(CLI_VERSION);
 
 await yargs(hideBin(process.argv))
-	.scriptName("holocron")
-	.usage("$0 <command> [options]")
+	.scriptName("")
+	.usage("holocron <command> [options]")
 	// ── global options (apply to every subcommand) ──────────────────────
 	.option("dry-run", {
 		type: "boolean",
