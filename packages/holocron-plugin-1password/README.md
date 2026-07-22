@@ -68,7 +68,7 @@ anyway, so:
 - **CI**: `OP_SERVICE_ACCOUNT_TOKEN` env var; `op` auto-detects it.
 - **Either way**: same binary, same commands, same code path.
 
-The plugin's job is just to drive the CLI; auth handling is the
+The plugin's job is to drive the CLI; auth handling is the
 CLI's.
 
 ## Prerequisite

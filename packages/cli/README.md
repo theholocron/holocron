@@ -128,7 +128,7 @@ export default {
 ```
 
 **Level 2 — whole-config presets.** Because the config file can be
-JS/TS, a shared base is just an import:
+JS/TS, a shared base is an import:
 
 <!-- prettier-ignore -->
 ```ts
