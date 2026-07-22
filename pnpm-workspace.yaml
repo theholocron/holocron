@@ -29,7 +29,7 @@ catalog:
   ora: ^8.2.0
   tsdown: ^0.22.13
   turbo: ^2.10.5
-  tsx: ^4.22.4
+  tsx: 4.22.4
   vitest: ^4.1.10
   '@vitest/coverage-v8': ^4.1.10
   typescript: ^5.9.3
@@ -40,3 +40,4 @@ catalog:
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
   '@theholocron/http-client': ^1.3.0
+  tsx: 4.22.4
