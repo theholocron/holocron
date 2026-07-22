@@ -95,7 +95,7 @@ the keyring, storing one has no runtime effect. The `AUTH_HINT`
 export makes this explicit in `holocron auth` output.
 
 `holocron auth check 1password` runs `op whoami --format=json` to
-confirm you're signed in — a useful sanity check independent of
+confirm you're signed in — a useful validation independent of
 holocron.
 
 ## Config
@@ -145,7 +145,7 @@ convention):
 `ensureProject` / `ensureEnvironment` — 1Password's data model
 doesn't have projects with sub-configs the way Doppler / Infisical
 do. The vault + item hierarchy is created via the 1P UI or `op item
-create`, not via `holocron setup`. The methods are simply omitted;
+create`, not via `holocron setup`. The methods are omitted;
 `runSetup` skips them cleanly (see the [`Vault`
 interface](../cli/src/capabilities/index.ts)).
 
