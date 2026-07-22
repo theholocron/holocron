@@ -70,6 +70,7 @@ jobs:
         uses: reviewdog/action-gitleaks@2b7b5685e3e3eecddab5d30cfa04f18123031421 # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / gitleaks"
           gitleaks_flags: --log-opts=${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
 
       - name: YamlLint
@@ -77,6 +78,7 @@ jobs:
         uses: reviewdog/action-yamllint@b5f7217d8c815ae374d1d55840d5e569d82f01f0 # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / yamllint"
           yamllint_flags: -c ${{ github.workspace }}/yamllint.config.yml ${{ github.workspace }}
 
       - name: ActionLint (GitHub Actions)
@@ -84,6 +86,7 @@ jobs:
         uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / actionlint"
 
       #
       # TypeScript / JavaScript
@@ -94,6 +97,7 @@ jobs:
         uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1.34.0
         with:
           reporter: github-pr-check
+          tool_name: "Review / eslint"
           eslint_flags: .
 
       - name: TypeScript
@@ -101,6 +105,7 @@ jobs:
         uses: EPMatt/reviewdog-action-tsc@63d923a3c5b4497671940b8874f58a404e2351b5 # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / tsc"
 
       #
       # Shell
@@ -111,6 +116,7 @@ jobs:
         uses: reviewdog/action-shellcheck@4c07458293ac342d477251099501a718ae5ef86e # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / shellcheck"
           fail_level: none
 
       #
@@ -122,6 +128,7 @@ jobs:
         uses: reviewdog/action-hadolint@1b2cfa6ba72072ad35158d7ff3aa49bbdc03506d # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / hadolint"
           fail_level: none
 
       #
@@ -143,3 +150,4 @@ jobs:
         uses: reviewdog/action-alex@347481655add010a2ae302df34b57c9bcfa0d6e4 # v1
         with:
           reporter: github-pr-check
+          tool_name: "Review / alex"
