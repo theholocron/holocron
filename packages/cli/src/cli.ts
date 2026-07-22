@@ -23,10 +23,26 @@ import { runSetup } from "./commands/setup.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
+import { TokenParseError, parseTokenArgs, type ParsedTokenArgs } from "./token-args.js";
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
 };
+
+/** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */
+function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
+	if (!rawTokens?.length) return {};
+	try {
+		return parseTokenArgs(rawTokens);
+	} catch (err) {
+		if (err instanceof TokenParseError) {
+			console.error(`--token: ${err.message}`);
+			process.exitCode = 1;
+			return null;
+		}
+		throw err;
+	}
+}
 
 await yargs(hideBin(process.argv))
 	.scriptName("holocron")
@@ -41,9 +57,12 @@ await yargs(hideBin(process.argv))
 	})
 	.option("token", {
 		type: "string",
+		array: true,
 		describe:
-			"Vendor token passed to plugins as `cliToken`, taking precedence over env vars. " +
-			"Unambiguous for single-plugin commands; for multi-plugin flows pass per-vendor env vars instead.",
+			"Vendor token override for plugins. " +
+			"Bare form: --token <value> (fallback for all plugins, single-plugin commands). " +
+			"Keyed form: --token vendor=value (targets a specific provider; repeat for each). " +
+			"Example: --token github=ghp_xxx --token vercel=v_yyy",
 	})
 	.option("cwd", {
 		type: "string",
@@ -68,6 +87,8 @@ await yargs(hideBin(process.argv))
 				describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
 			}),
 		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
 			const loaded = await loadConfig(argv.cwd);
 			const report = await runDoctor({
 				loaded,
@@ -75,7 +96,7 @@ await yargs(hideBin(process.argv))
 					repoRoot: argv.cwd,
 					dryRun: argv.dryRun,
 					...(argv.repo ? { repo: argv.repo } : {}),
-					...(argv.token ? { cliToken: argv.token } : {}),
+					...tokens,
 				},
 			});
 			if (report.summary.fail > 0) {
@@ -92,6 +113,8 @@ await yargs(hideBin(process.argv))
 				describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
 			}),
 		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
 			const loaded = await loadConfig(argv.cwd);
 			const report = await runSetup({
 				loaded,
@@ -99,7 +122,7 @@ await yargs(hideBin(process.argv))
 					repoRoot: argv.cwd,
 					dryRun: argv.dryRun,
 					...(argv.repo ? { repo: argv.repo } : {}),
-					...(argv.token ? { cliToken: argv.token } : {}),
+					...tokens,
 				},
 			});
 			if (report.summary.fail > 0) {
@@ -187,6 +210,8 @@ await yargs(hideBin(process.argv))
 					describe: 'Scope: "repo" (default), "env=<name>", or "org=<name>"',
 				}),
 		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
 			const scopeArg = argv.scope as string;
 			const scope = parseScope(scopeArg);
 			const report = await runSecretSet({
@@ -194,7 +219,7 @@ await yargs(hideBin(process.argv))
 				context: {
 					repoRoot: argv.cwd,
 					dryRun: argv.dryRun,
-					...(argv.token ? { cliToken: argv.token } : {}),
+					...tokens,
 				},
 				name: argv.name as string,
 				...(argv.value ? { value: argv.value as string } : {}),
@@ -227,13 +252,15 @@ await yargs(hideBin(process.argv))
 					describe: "Deployment targets to sync to. Defaults to production + preview.",
 				}),
 		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
 			const loaded = await loadConfig(argv.cwd);
 			const report = await runSecretsSync({
 				loaded,
 				context: {
 					repoRoot: argv.cwd,
 					dryRun: argv.dryRun,
-					...(argv.token ? { cliToken: argv.token } : {}),
+					...tokens,
 				},
 				environmentId: argv.environmentId as string,
 				...(argv.projectId ? { projectId: argv.projectId } : {}),
@@ -265,13 +292,15 @@ await yargs(hideBin(process.argv))
 					describe: "Named environment to deploy into. Omit for a branch preview.",
 				}),
 		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
 			const loaded = await loadConfig(argv.cwd);
 			const report = await runDeploy({
 				loaded,
 				context: {
 					repoRoot: argv.cwd,
 					dryRun: argv.dryRun,
-					...(argv.token ? { cliToken: argv.token } : {}),
+					...tokens,
 				},
 				projectId: argv.projectId as string,
 				branch: argv.branch as string,
@@ -352,6 +381,8 @@ await yargs(hideBin(process.argv))
 					describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
 				}),
 		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
 			const loaded = await loadConfig(argv.cwd);
 			const report = await runSync({
 				loaded,
@@ -359,7 +390,7 @@ await yargs(hideBin(process.argv))
 					repoRoot: argv.cwd,
 					dryRun: argv.dryRun,
 					...(argv.repo ? { repo: argv.repo } : {}),
-					...(argv.token ? { cliToken: argv.token } : {}),
+					...tokens,
 				},
 				...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps as string[] } : {}),
 			});
@@ -398,9 +429,14 @@ await yargs(hideBin(process.argv))
 				}),
 		async (argv) => {
 			const outputDir = argv["output-dir"] as string | undefined;
+			const parsed = tokenContext(argv.token);
+			if (!parsed) return;
 			const token = outputDir
 				? "no-token-needed"
-				: (argv.token ?? process.env.GITHUB_TOKEN ?? process.env.HOLOCRON_GITHUB_TOKEN);
+				: (parsed.cliTokens?.["github"] ??
+					parsed.cliToken ??
+					process.env.GITHUB_TOKEN ??
+					process.env.HOLOCRON_GITHUB_TOKEN);
 			if (!token) {
 				console.error("sync-github: GitHub token required — pass --token or set GITHUB_TOKEN");
 				process.exitCode = 1;

@@ -157,6 +157,96 @@ describe("PluginLoader — single cardinality", () => {
 		expect(capturedAtSource.dryRun).toBe(true);
 		expect(capturedAtSource.cliToken).toBe("cli-pat-xxx");
 	});
+
+	it("routes cliTokens[provider] to the matching plugin as cliToken", async () => {
+		const capturedAtVault: Record<string, unknown> = {};
+		const capturedAtSource: Record<string, unknown> = {};
+		const config = resolveConfig({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return {
+					createPlugin: (opts: Record<string, unknown>) => {
+						Object.assign(capturedAtVault, opts);
+						return { name: "1p", capabilities: { vault: () => ({}) } };
+					},
+				};
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					Object.assign(capturedAtSource, opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		const loader = new PluginLoader(
+			config,
+			{ repoRoot: "/tmp", cliTokens: { github: "ghp_specific", "1password": "op_specific" } },
+			importer as unknown as PluginImporter
+		);
+		await loader.load();
+		expect(capturedAtSource.cliToken).toBe("ghp_specific");
+		expect(capturedAtVault.cliToken).toBe("op_specific");
+	});
+
+	it("falls back to bare cliToken for plugins without a matching cliTokens entry", async () => {
+		const capturedAtVault: Record<string, unknown> = {};
+		const capturedAtSource: Record<string, unknown> = {};
+		const config = resolveConfig({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return {
+					createPlugin: (opts: Record<string, unknown>) => {
+						Object.assign(capturedAtVault, opts);
+						return { name: "1p", capabilities: { vault: () => ({}) } };
+					},
+				};
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					Object.assign(capturedAtSource, opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		const loader = new PluginLoader(
+			config,
+			{ repoRoot: "/tmp", cliToken: "bare-fallback", cliTokens: { github: "ghp_specific" } },
+			importer as unknown as PluginImporter
+		);
+		await loader.load();
+		// github gets its keyed token
+		expect(capturedAtSource.cliToken).toBe("ghp_specific");
+		// 1password falls back to the bare token
+		expect(capturedAtVault.cliToken).toBe("bare-fallback");
+	});
+
+	it("never forwards cliTokens map to plugins", async () => {
+		const capturedAtSource: Record<string, unknown> = {};
+		const config = resolveConfig({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const importer = vi.fn(async () => ({
+			createPlugin: (opts: Record<string, unknown>) => {
+				Object.assign(capturedAtSource, opts);
+				return { name: "gh", capabilities: { source: () => ({}) } };
+			},
+		}));
+		const loader = new PluginLoader(
+			config,
+			{ repoRoot: "/tmp", cliTokens: { github: "ghp_specific" } },
+			importer as unknown as PluginImporter
+		);
+		await loader.load();
+		expect(capturedAtSource.cliToken).toBe("ghp_specific");
+		expect(capturedAtSource.cliTokens).toBeUndefined();
+	});
 });
 
 describe("PluginLoader — repo defaults", () => {
