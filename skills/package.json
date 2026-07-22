@@ -43,6 +43,7 @@
     "@theholocron/commitlint-config": "^7.3.1",
     "@theholocron/holocron-plugin-github": "catalog:holocron",
     "@theholocron/semantic-release-config": "^7.3.1",
+    "@semantic-release/npm": "^13.0.0",
     "conventional-changelog-conventionalcommits": "^10.2.1",
     "semantic-release": "^25.0.7",
     "typescript": "^5.9.3"
