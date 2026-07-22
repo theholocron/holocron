@@ -280,7 +280,7 @@ describe("installSkills", () => {
 			expect(result).not.toContain("unknown");
 		});
 
-		it("reports fetch failed when the content hash does not match", async () => {
+		it("installs and marks stale when the content hash does not match", async () => {
 			await fakeSkillsPackage(tmpDir, {});
 			await writeFile(
 				join(tmpDir, "node_modules", "@theholocron", "skills", "skills-lock.json"),
@@ -300,7 +300,12 @@ describe("installSkills", () => {
 
 			const result = await installSkills({ agent: "claude", skills: ["turborepo"], repoRoot: tmpDir });
 
-			expect(result).toContain("fetch failed: turborepo");
+			// Installed despite mismatch, but flagged stale so the user knows to refresh the lock
+			expect(result).toContain("installed 1");
+			expect(result).toContain("stale: turborepo");
+			expect(result).not.toContain("fetch failed");
+			const content = await readFile(join(tmpDir, ".agents", "skills", "turborepo", "SKILL.md"), "utf8");
+			expect(content).toBe("# turborepo skill");
 		});
 
 		it("still reports unknown for skills absent from both skills/ dir and skills-lock.json", async () => {

@@ -884,7 +884,7 @@ interface SkillsLock {
  * Fetch a single SKILL.md from its upstream GitHub source.
  * Verifies the SHA-256 hash when `computedHash` is present in the lock entry.
  */
-async function fetchExternalSkill(entry: SkillLockEntry): Promise<string> {
+async function fetchExternalSkill(entry: SkillLockEntry): Promise<{ content: string; stale: boolean }> {
 	if (entry.sourceType !== "github") {
 		throw new Error(`unsupported sourceType: ${entry.sourceType}`);
 	}
@@ -892,15 +892,12 @@ async function fetchExternalSkill(entry: SkillLockEntry): Promise<string> {
 	const res = await fetch(url);
 	if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
 	const content = await res.text();
-	if (entry.computedHash) {
-		const actual = createHash("sha256").update(content).digest("hex");
-		if (actual !== entry.computedHash) {
-			throw new Error(
-				`hash mismatch for ${entry.source}/${entry.skillPath}: expected ${entry.computedHash}, got ${actual}`
-			);
-		}
-	}
-	return content;
+	// A hash mismatch means the upstream file changed since the lock was recorded.
+	// Install anyway and surface via "stale:" so the user knows to run
+	// `holocron skills update` to refresh the lock.
+	const stale =
+		!!entry.computedHash && createHash("sha256").update(content).digest("hex") !== entry.computedHash;
+	return { content, stale };
 }
 
 const AGENTS_SKILLS_ROOT = ".agents/skills";
@@ -985,6 +982,7 @@ export async function installSkills({
 
 	// ── external skills: fetch from upstream sources in skills-lock.json ─────
 	const externalFailed: string[] = [];
+	const externalStale: string[] = [];
 	if (missing.length > 0) {
 		let lock: SkillsLock | null = null;
 		try {
@@ -997,7 +995,7 @@ export async function installSkills({
 				const entry = lock.skills[name];
 				if (!entry) continue;
 				try {
-					const content = await fetchExternalSkill(entry);
+					const { content, stale: isStale } = await fetchExternalSkill(entry);
 					const agentsDir = join(repoRoot, AGENTS_SKILLS_ROOT, name);
 					await mkdir(agentsDir, { recursive: true });
 					await writeFile(join(agentsDir, "SKILL.md"), content);
@@ -1011,6 +1009,7 @@ export async function installSkills({
 					await symlink(relative(dirname(symlinkPath), agentsDir).replace(/\\/g, "/"), symlinkPath);
 					missing.splice(missing.indexOf(name), 1);
 					installed.push(name);
+					if (isStale) externalStale.push(name);
 				} catch {
 					missing.splice(missing.indexOf(name), 1);
 					externalFailed.push(name);
@@ -1031,6 +1030,7 @@ export async function installSkills({
 
 	const parts: string[] = [`installed ${installed.length}`];
 	if (stale.length > 0) parts.push(`pruned: ${stale.join(", ")}`);
+	if (externalStale.length > 0) parts.push(`stale: ${externalStale.join(", ")} (run \`holocron skills update\` to refresh)`);
 	if (externalFailed.length > 0) parts.push(`fetch failed: ${externalFailed.join(", ")}`);
 	if (missing.length > 0) parts.push(`unknown: ${missing.join(", ")}`);
 	return parts.join("; ");
