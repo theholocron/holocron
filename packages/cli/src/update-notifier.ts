@@ -40,10 +40,9 @@ function writeCache(entry: CacheEntry): void {
 
 async function fetchLatestVersion(channel: string): Promise<string | null> {
 	try {
-		const res = await fetch(
-			`https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}`,
-			{ signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
-		);
+		const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}`, {
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+		});
 		if (!res.ok) return null;
 		const data = (await res.json()) as { "dist-tags": Record<string, string> };
 		return data["dist-tags"][channel] ?? data["dist-tags"]["latest"] ?? null;
@@ -83,7 +82,7 @@ export function isUpdateAvailable(current: string, latest: string): boolean {
 	}
 
 	// Release parts equal — compare prerelease
-	if (!lPre && cPre) return true;  // stable > prerelease
+	if (!lPre && cPre) return true; // stable > prerelease
 	if (lPre && !cPre) return false; // prerelease < stable
 
 	// Both prerelease — compare segment by segment
@@ -110,7 +109,8 @@ function formatNotice(current: string, latest: string): string {
 	const installCmd = `npm install -g ${PACKAGE_NAME}`;
 	const line1 = `Update available: ${chalk.dim(current)} → ${chalk.green(latest)}`;
 	const line2 = `Run ${chalk.cyan(installCmd)} to update`;
-	const width = Math.max(line1.replace(/\x1b\[[0-9;]*m/g, "").length, line2.replace(/\x1b\[[0-9;]*m/g, "").length) + 4;
+	const width =
+		Math.max(line1.replace(/\x1b\[[0-9;]*m/g, "").length, line2.replace(/\x1b\[[0-9;]*m/g, "").length) + 4;
 	const bar = chalk.yellow("─".repeat(width));
 	const pad = (s: string, raw: string) => {
 		const padded = raw.padEnd(width - 2);
