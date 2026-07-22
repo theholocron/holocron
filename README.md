@@ -8,13 +8,6 @@ A pluggable, capability-based CLI for spinning up and operating software project
 
 <!-- /holocron:description -->
 
-> **Status:** Published under the `alpha` dist-tag on npm. APIs, config shape,
-> and CLI surface may shift before stable v2.0.0. The v1.0.0 line at
-> `@theholocron/cli` (a project-bootstrap CLI) is preserved as an
-> archive under the `v1.0.0` git tag. Design in
-> [`.notes/archive/tech-architecture.spec.md`](./.notes/archive/tech-architecture.spec.md)
-> (tracked in [#74](https://github.com/theholocron/holocron/issues/74)).
-
 ## Quickstart
 
 <!-- prettier-ignore -->
@@ -30,17 +23,32 @@ pnpm add -D @theholocron/holocron-plugin-doppler@alpha
 
 ```
 
-<!-- prettier-ignore -->
-```jsonc
-// 2. Drop a minimal holocron.config.json at your repo root
-{
-  "project": { "name": "my-app" },
-  "providers": {
-    "source": "github",
-    "vault": ["1password", { "vault": "my-app" }],
-  },
-}
+Create the config (e.g. `holocron.config.{ts | js | json}`
 
+<!-- prettier-ignore -->
+```typescript
+// 2. Drop a holocron.config.ts at your repo root
+import { defineConfig } from "@theholocron/cli";
+import { node } from "@theholocron/holocron-config";
+
+const { repo, workflows, providers } = node();
+export default defineConfig({
+	description: "Custom app",
+	repo: {
+		teams: [{ slug: "gatekeepers", permission: "maintain" }],
+		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
+		...repo,
+	},
+	workflows,
+	providers: {
+		...providers,
+		vault: ["doppler", { project: "holocron", config: "dev" }],
+		secrets: "github",
+		environments: "github",
+	},
+	agent: "claude",
+	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
+});
 ```
 
 <!-- prettier-ignore -->
@@ -48,7 +56,6 @@ pnpm add -D @theholocron/holocron-plugin-doppler@alpha
 # 3. Verify the wiring
 export HOLOCRON_GH_TOKEN=ghp_...          # or use --token / a fine-grained PAT
 holocron doctor
-
 ```
 
 Every additional capability (`ci`, `secrets`, `deployment`, `storage`,
