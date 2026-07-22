@@ -49,13 +49,17 @@ export interface RuntimeContext {
 	 */
 	dryRun?: boolean;
 	/**
-	 * Token passed via `--token <value>`. Plugins pick this up as
-	 * `cliToken` in their auth resolution, taking precedence over env
-	 * vars. For multi-plugin commands the same token is passed to every
-	 * plugin (acceptable when one is in play; tracked at #79 for
-	 * proper disambiguation later).
+	 * Token passed via bare `--token <value>`. Used as fallback for all
+	 * plugins when no matching entry exists in `cliTokens`.
 	 */
 	cliToken?: string;
+	/**
+	 * Per-provider tokens from `--token vendor=value` pairs. The loader
+	 * routes each entry to the matching plugin (by `tuple.provider`) as
+	 * its `cliToken`, falling back to `cliToken` for unmatched providers.
+	 * Plugins never receive this map — they always see a single `cliToken`.
+	 */
+	cliTokens?: Record<string, string>;
 }
 
 /**
@@ -144,12 +148,20 @@ export class PluginLoader {
 
 		// Plugin package: exports createPlugin(opts) → { capabilities }
 		if (isPluginModule(mod)) {
+			// Resolve the effective token for this specific plugin.
+			// cliTokens[provider] wins over the bare cliToken fallback.
+			const effectiveToken =
+				this.context.cliTokens?.[tuple.provider] ?? this.context.cliToken;
+
 			// Precedence (later wins): project-level defaults from config →
-			// runtime context (CLI flags: --repo, --token) → tuple options
-			// (per-plugin overrides in holocron.config.json).
+			// runtime context (CLI flags: --repo, --token) → per-plugin
+			// resolved token → tuple options (per-plugin overrides in config).
+			// cliTokens is explicitly cleared so the map never reaches plugins.
 			const plugin = mod.createPlugin({
 				...this.projectDefaults(),
 				...this.context,
+				...(effectiveToken !== undefined ? { cliToken: effectiveToken } : {}),
+				cliTokens: undefined,
 				...tuple.options,
 			});
 			const factory = plugin.capabilities[key];
