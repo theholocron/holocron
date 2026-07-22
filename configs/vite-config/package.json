@@ -31,7 +31,7 @@
     "vitest": "catalog:",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
-    "vite": "^7.0.0",
+    "vite": "^8.1.5",
     "@codecov/vite-plugin": "^2.0.0"
   },
   "exports": {
