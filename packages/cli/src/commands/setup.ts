@@ -895,8 +895,7 @@ async function fetchExternalSkill(entry: SkillLockEntry): Promise<{ content: str
 	// A hash mismatch means the upstream file changed since the lock was recorded.
 	// Install anyway and surface via "stale:" so the user knows to run
 	// `holocron skills update` to refresh the lock.
-	const stale =
-		!!entry.computedHash && createHash("sha256").update(content).digest("hex") !== entry.computedHash;
+	const stale = !!entry.computedHash && createHash("sha256").update(content).digest("hex") !== entry.computedHash;
 	return { content, stale };
 }
 
@@ -1030,7 +1029,8 @@ export async function installSkills({
 
 	const parts: string[] = [`installed ${installed.length}`];
 	if (stale.length > 0) parts.push(`pruned: ${stale.join(", ")}`);
-	if (externalStale.length > 0) parts.push(`stale: ${externalStale.join(", ")} (run \`holocron skills update\` to refresh)`);
+	if (externalStale.length > 0)
+		parts.push(`stale: ${externalStale.join(", ")} (run \`holocron skills update\` to refresh)`);
 	if (externalFailed.length > 0) parts.push(`fetch failed: ${externalFailed.join(", ")}`);
 	if (missing.length > 0) parts.push(`unknown: ${missing.join(", ")}`);
 	return parts.join("; ");
