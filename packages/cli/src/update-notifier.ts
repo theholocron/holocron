@@ -113,8 +113,7 @@ function formatNotice(current: string, latest: string): string {
 	const width = Math.max(raw1.length, raw2.length) + 4;
 	const bar = chalk.yellow("─".repeat(width));
 	const border = chalk.yellow("│");
-	const pad = (raw: string, styled: string) =>
-		`${border} ${styled}${" ".repeat(width - 2 - raw.length)} ${border}`;
+	const pad = (raw: string, styled: string) => `${border} ${styled}${" ".repeat(width - 2 - raw.length)} ${border}`;
 	return [
 		"",
 		chalk.yellow(`╭${bar}╮`),
