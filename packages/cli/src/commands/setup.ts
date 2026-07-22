@@ -18,6 +18,7 @@
  * one central place.
  */
 
+import { createHash } from "node:crypto";
 import { access, copyFile, mkdir, readdir, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
@@ -867,6 +868,39 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 // Agent symlinks:    .<agent>/skills/<name> → relative path into .agents/
 // Pattern mirrors the `npx skills add` CLI (skills.sh) for multi-agent compat.
 
+interface SkillLockEntry {
+	source: string;
+	sourceType: "github";
+	skillPath: string;
+	computedHash?: string;
+}
+
+interface SkillsLock {
+	version: number;
+	skills: Record<string, SkillLockEntry>;
+}
+
+/**
+ * Fetch a single SKILL.md from its upstream GitHub source.
+ * Verifies the SHA-256 hash when `computedHash` is present in the lock entry.
+ */
+async function fetchExternalSkill(entry: SkillLockEntry): Promise<string> {
+	if (entry.sourceType !== "github") {
+		throw new Error(`unsupported sourceType: ${entry.sourceType}`);
+	}
+	const url = `https://raw.githubusercontent.com/${entry.source}/HEAD/${entry.skillPath}`;
+	const res = await fetch(url);
+	if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+	const content = await res.text();
+	if (entry.computedHash) {
+		const actual = createHash("sha256").update(content).digest("hex");
+		if (actual !== entry.computedHash) {
+			throw new Error(`hash mismatch for ${entry.source}/${entry.skillPath}: expected ${entry.computedHash}, got ${actual}`);
+		}
+	}
+	return content;
+}
+
 const AGENTS_SKILLS_ROOT = ".agents/skills";
 
 /** Relative path of the agent-specific symlink. undefined = unsupported agent. */
@@ -947,15 +981,55 @@ export async function installSkills({
 		installed.push(name);
 	}
 
-	// Include missing skills in the gitignore so their previously-copied artifacts
-	// (from an earlier run when the skill existed) stay ignored and can't be
-	// accidentally committed while still in the config list.
-	if (installed.length > 0 || stale.length > 0 || missing.length > 0) {
-		await updateSkillsGitignore(gitignorePath, existingContent, [...installed, ...missing], symlinkFn);
+	// ── external skills: fetch from upstream sources in skills-lock.json ─────
+	const externalFailed: string[] = [];
+	if (missing.length > 0) {
+		let lock: SkillsLock | null = null;
+		try {
+			lock = JSON.parse(await readFile(join(skillsRoot, "skills-lock.json"), "utf8")) as SkillsLock;
+		} catch {
+			// No lock file or parse error — all missing remain unknown.
+		}
+		if (lock?.skills) {
+			for (const name of [...missing]) {
+				const entry = lock.skills[name];
+				if (!entry) continue;
+				try {
+					const content = await fetchExternalSkill(entry);
+					const agentsDir = join(repoRoot, AGENTS_SKILLS_ROOT, name);
+					await mkdir(agentsDir, { recursive: true });
+					await writeFile(join(agentsDir, "SKILL.md"), content);
+					const symlinkPath = join(repoRoot, symlinkFn(name));
+					await mkdir(dirname(symlinkPath), { recursive: true });
+					try {
+						await unlink(symlinkPath);
+					} catch {
+						// didn't exist — that's fine
+					}
+					await symlink(relative(dirname(symlinkPath), agentsDir).replace(/\\/g, "/"), symlinkPath);
+					missing.splice(missing.indexOf(name), 1);
+					installed.push(name);
+				} catch {
+					missing.splice(missing.indexOf(name), 1);
+					externalFailed.push(name);
+				}
+			}
+		}
+	}
+
+	// Include all installed + still-unknown + failed skills in the gitignore.
+	if (installed.length > 0 || stale.length > 0 || missing.length > 0 || externalFailed.length > 0) {
+		await updateSkillsGitignore(
+			gitignorePath,
+			existingContent,
+			[...installed, ...missing, ...externalFailed],
+			symlinkFn
+		);
 	}
 
 	const parts: string[] = [`installed ${installed.length}`];
 	if (stale.length > 0) parts.push(`pruned: ${stale.join(", ")}`);
+	if (externalFailed.length > 0) parts.push(`fetch failed: ${externalFailed.join(", ")}`);
 	if (missing.length > 0) parts.push(`unknown: ${missing.join(", ")}`);
 	return parts.join("; ");
 }

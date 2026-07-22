@@ -224,6 +224,116 @@ describe("installSkills", () => {
 		const gitignore = await readFile(join(tmpDir, ".gitignore"), "utf8");
 		expect(gitignore).toContain("pr-workflow");
 	});
+
+	describe("external skills (via skills-lock.json)", () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+		});
+
+		it("fetches and installs an external skill found in skills-lock.json", async () => {
+			await fakeSkillsPackage(tmpDir, {});
+			await writeFile(
+				join(tmpDir, "node_modules", "@theholocron", "skills", "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						turborepo: { source: "vercel/turbo", sourceType: "github", skillPath: "skills/turborepo/SKILL.md" },
+					},
+				})
+			);
+			vi.stubGlobal("fetch", async () => ({ ok: true, text: async () => "# turborepo skill" }));
+
+			const result = await installSkills({ agent: "claude", skills: ["turborepo"], repoRoot: tmpDir });
+
+			expect(result).toContain("installed 1");
+			expect(result).not.toContain("unknown");
+			expect(result).not.toContain("fetch failed");
+			const content = await readFile(join(tmpDir, ".agents", "skills", "turborepo", "SKILL.md"), "utf8");
+			expect(content).toBe("# turborepo skill");
+			await expect(stat(join(tmpDir, ".claude", "skills", "turborepo"))).resolves.toBeDefined();
+		});
+
+		it("reports fetch failed when the upstream request returns a non-ok status", async () => {
+			await fakeSkillsPackage(tmpDir, {});
+			await writeFile(
+				join(tmpDir, "node_modules", "@theholocron", "skills", "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						turborepo: { source: "vercel/turbo", sourceType: "github", skillPath: "skills/turborepo/SKILL.md" },
+					},
+				})
+			);
+			vi.stubGlobal("fetch", async () => ({ ok: false, status: 404 }));
+
+			const result = await installSkills({ agent: "claude", skills: ["turborepo"], repoRoot: tmpDir });
+
+			expect(result).toContain("fetch failed: turborepo");
+			expect(result).not.toContain("unknown");
+		});
+
+		it("reports fetch failed when the content hash does not match", async () => {
+			await fakeSkillsPackage(tmpDir, {});
+			await writeFile(
+				join(tmpDir, "node_modules", "@theholocron", "skills", "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						turborepo: {
+							source: "vercel/turbo",
+							sourceType: "github",
+							skillPath: "skills/turborepo/SKILL.md",
+							computedHash: "0000000000000000000000000000000000000000000000000000000000000000",
+						},
+					},
+				})
+			);
+			vi.stubGlobal("fetch", async () => ({ ok: true, text: async () => "# turborepo skill" }));
+
+			const result = await installSkills({ agent: "claude", skills: ["turborepo"], repoRoot: tmpDir });
+
+			expect(result).toContain("fetch failed: turborepo");
+		});
+
+		it("still reports unknown for skills absent from both skills/ dir and skills-lock.json", async () => {
+			await fakeSkillsPackage(tmpDir, {});
+			await writeFile(
+				join(tmpDir, "node_modules", "@theholocron", "skills", "skills-lock.json"),
+				JSON.stringify({ version: 1, skills: {} })
+			);
+
+			const result = await installSkills({ agent: "claude", skills: ["no-such-skill"], repoRoot: tmpDir });
+
+			expect(result).toContain("unknown: no-such-skill");
+		});
+
+		it("installs owned skills and fetches external skills in one pass", async () => {
+			await fakeSkillsPackage(tmpDir, { "git-safety": { "SKILL.md": "# gs" } });
+			await writeFile(
+				join(tmpDir, "node_modules", "@theholocron", "skills", "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						turborepo: { source: "vercel/turbo", sourceType: "github", skillPath: "skills/turborepo/SKILL.md" },
+					},
+				})
+			);
+			vi.stubGlobal("fetch", async () => ({ ok: true, text: async () => "# turborepo" }));
+
+			const result = await installSkills({
+				agent: "claude",
+				skills: ["git-safety", "turborepo"],
+				repoRoot: tmpDir,
+			});
+
+			expect(result).toContain("installed 2");
+			expect(result).not.toContain("unknown");
+			await expect(readFile(join(tmpDir, ".agents", "skills", "git-safety", "SKILL.md"), "utf8")).resolves.toBe("# gs");
+			await expect(readFile(join(tmpDir, ".agents", "skills", "turborepo", "SKILL.md"), "utf8")).resolves.toBe(
+				"# turborepo"
+			);
+		});
+	});
 });
 
 describe("runSkillsInstall", () => {
