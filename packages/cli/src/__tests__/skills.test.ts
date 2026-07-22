@@ -375,6 +375,16 @@ describe("runSkillsRemove", () => {
 		expect(calls[0]!.args).toEqual(["skills", "remove", "git-safety", "pr-workflow"]);
 	});
 
+	it("uses defaultExec (spawnSync) when exec is not injected", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 0 });
+
+		const report = runSkillsRemove({ context: { repoRoot: "/repo" } });
+		expect(spy).toHaveBeenCalledWith("npx", ["skills", "remove"], expect.objectContaining({ cwd: "/repo" }));
+		expect(report.status).toBe("ok");
+	});
+
 	it("returns fail when npx exits with a non-zero code", () => {
 		const exec = () => ({ exitCode: 1 });
 		const report = runSkillsRemove({ context: { repoRoot: "/repo" }, exec });
