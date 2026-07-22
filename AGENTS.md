@@ -30,8 +30,12 @@ Three repos, one rule per concern:
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
     - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
       commands branch at the orchestrator layer, not in capabilities.
-    - `--token` global flag flows through `RuntimeContext.cliToken`;
-      plugins' `auth.ts` reads it as first-precedence over env vars.
+    - `--token` global flag is repeatable. Bare form (`--token <value>`)
+      sets `RuntimeContext.cliToken` as fallback for all plugins. Keyed
+      form (`--token vendor=value`, repeated per provider) sets
+      `RuntimeContext.cliTokens`; `PluginLoader` routes each entry to
+      the matching plugin by `tuple.provider`, falling back to `cliToken`
+      for unmatched providers. Plugins always receive a single `cliToken`.
     - Cross-provider event sync uses normalized `AuthEvent` types in
       core + plugin-exported `parseWebhook(input): AuthEvent` utility
       (NOT a capability method). Swap auth providers without rewriting
@@ -229,7 +233,7 @@ design docs.
   `.notes/tool-plugin-create.spec.md` (Phase 1 unblocked).
 - **#78** CLI-transport sibling skill — still motivated (same
   reason as #76).
-- **#79** Multi-plugin `--token` disambiguation
+- **#79** ~~Multi-plugin `--token` disambiguation~~ — shipped in alpha.74
 - **#80** Real Svix HMAC verification in `parseWebhook`
 - **#82** Extend `holocron setup` with repo policy + branch
   protection — spec at `.notes/tech-setup-and-config.spec.md`
