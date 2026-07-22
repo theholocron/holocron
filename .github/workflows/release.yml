@@ -1,10 +1,7 @@
 name: Release
 
-# alpha = prereleases (v2.0.0-alpha.N) → npm `alpha` dist-tag
 # main  = stable releases (v2.0.0, v2.0.1, …) → npm `latest` dist-tag
-#
-# Keep main push-gated until stable v2.0.0 is intentionally cut —
-# see `main-channel-prerelease-gotcha` memory for why.
+# alpha = prereleases (v2.0.0-alpha.N)       → npm `alpha` dist-tag
 #
 # workflow_dispatch is kept alongside push so releases can be triggered
 # by hand for recovery / re-runs. The `dry_run` input defaults to true
@@ -12,6 +9,7 @@ name: Release
 on: # yamllint disable-line rule:truthy
   push:
     branches:
+      - main
       - alpha
   workflow_dispatch:
     inputs:
