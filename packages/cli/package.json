@@ -43,7 +43,6 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@theholocron/cli-utils": "workspace:*",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/vitest-config": "catalog:",

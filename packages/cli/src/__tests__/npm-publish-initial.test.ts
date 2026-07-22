@@ -68,7 +68,6 @@ describe("runNpmPublishInitial", () => {
 		expect(calls[1]?.args).toEqual([
 			"-r",
 			"--filter=./packages/*",
-			"--filter=!@theholocron/cli-utils",
 			"publish",
 			"--access",
 			"public",

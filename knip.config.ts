@@ -16,9 +16,6 @@ const config: KnipConfig = {
 			project: ["src/**/*.ts", "!src/**/__tests__/**"],
 		},
 	},
-	// cli-utils is a private carryover package; its exports are intentionally
-	// not wired into the module graph yet (cherry-picked into cli over time).
-	ignore: ["packages/cli-utils/**"],
 	ignoreDependencies: [
 		// Loaded at runtime by the CLI plugin loader — not statically imported
 		"@theholocron/holocron-plugin-1password",
@@ -29,8 +26,6 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-neon",
 		"@theholocron/holocron-plugin-postman",
 		"@theholocron/holocron-plugin-vercel",
-		// Private workspace dep — intentionally not wired into the module graph
-		"@theholocron/cli-utils",
 		// ESLint toolchain: per-package eslint.config.ts spreads the root config;
 		// Knip's ESLint plugin doesn't trace through the spread
 		"@theholocron/eslint-config",
