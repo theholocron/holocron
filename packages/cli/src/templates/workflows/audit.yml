@@ -8,6 +8,16 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
         default: pnpm build
+      run-knip:
+        description: Run Knip to detect unused files, exports, and dependencies
+        type: boolean
+        required: false
+        default: false
+      knip-script:
+        description: Script that invokes Knip (must exit non-zero on findings)
+        type: string
+        required: false
+        default: pnpm run audit
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -36,3 +46,24 @@ jobs:
         env:
           BUILD_SCRIPT: ${{ inputs.build-script }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  knip:
+    name: Knip
+    if: ${{ inputs.run-knip }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: eval "$KNIP_SCRIPT"
+        name: Run Knip
+        env:
+          KNIP_SCRIPT: ${{ inputs.knip-script }}
