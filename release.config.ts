@@ -5,6 +5,6 @@ export default defineConfig({
 	exec: {
 		prepareCmd: "node packages/cli/dist/cli.mjs npm bump-versions ${nextRelease.version}",
 		publishCmd:
-			"pnpm -r --filter='./packages/*' --filter='!@theholocron/cli-utils' publish --access public --no-git-checks --tag ${nextRelease.channel || 'latest'}",
+			"pnpm -r --filter='./packages/*' publish --access public --no-git-checks --tag ${nextRelease.channel || 'latest'}",
 	},
 });

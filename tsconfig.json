@@ -2,9 +2,6 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/cli-utils"
-    },
-    {
       "path": "./packages/cli"
     }
   ]

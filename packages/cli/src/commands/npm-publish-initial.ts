@@ -94,7 +94,6 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 	const publishArgs = [
 		"-r",
 		"--filter=./packages/*",
-		"--filter=!@theholocron/cli-utils",
 		"publish",
 		"--access",
 		"public",
