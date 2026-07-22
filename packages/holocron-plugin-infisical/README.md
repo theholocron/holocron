@@ -101,7 +101,7 @@ precedence still work; step 4 quietly falls through.
 
 - `workspace` (required) — Infisical workspace (project) id. Find via
   the workspace URL or the API. **Not the workspace slug** — Infisical's
-  API rejects slug in this position ([Infisical#1894](https://github.com/Infisical/infisical/issues/1894)).
+  API prevents slug in this position ([Infisical#1894](https://github.com/Infisical/infisical/issues/1894)).
 - `environment` (required) — Environment slug (usually `dev`, `stg`,
   or `prd`). `list()` reads secrets from this environment.
 
