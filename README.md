@@ -19,10 +19,14 @@ A pluggable, capability-based CLI for spinning up and operating software project
 
 <!-- prettier-ignore -->
 ```bash
-# 1. Install the CLI + the two plugins you'll always need
+# 1. Install the CLI + the source plugin and a vault plugin
 npm  i -g @theholocron/cli@alpha
-pnpm add -D @theholocron/holocron-plugin-github@alpha \
-      @theholocron/holocron-plugin-1password@alpha
+pnpm add -D @theholocron/holocron-plugin-github@alpha
+
+# Vault — pick one: 1password, doppler, or infisical
+pnpm add -D @theholocron/holocron-plugin-doppler@alpha
+# or: pnpm add -D @theholocron/holocron-plugin-1password@alpha
+# or: pnpm add -D @theholocron/holocron-plugin-infisical@alpha
 
 ```
 
@@ -138,14 +142,15 @@ vault (1Password)
 ```
 packages/
   cli/                            — @theholocron/cli                       (binary + capability runtime)
-  cli-utils/                      — @theholocron/cli-utils                 (prompts, openers, shell helpers — private; v1 carryover)
   holocron-plugin-github/         — @theholocron/holocron-plugin-github    (source, ci, secrets, environments, issues)
   holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel    (deployment)
   holocron-plugin-neon/           — @theholocron/holocron-plugin-neon      (storage)
   holocron-plugin-clerk/          — @theholocron/holocron-plugin-clerk     (auth)
-  holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault)
+  holocron-plugin-1password/      — @theholocron/holocron-plugin-1password (vault — CLI shell-out)
+  holocron-plugin-doppler/        — @theholocron/holocron-plugin-doppler   (vault — REST)
+  holocron-plugin-infisical/      — @theholocron/holocron-plugin-infisical (vault — REST)
   holocron-plugin-postman/        — @theholocron/holocron-plugin-postman   (tooling)
-holocron.config.json              — this repo's own holocron config (self-hosted)
+holocron.config.ts                — this repo's own holocron config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
 
@@ -153,7 +158,7 @@ holocron.config.json              — this repo's own holocron config (self-host
 
 ## Self-hosting
 
-This repo carries its own `holocron.config.json` so holocron commands
+This repo carries its own `holocron.config.ts` so holocron commands
 work inside it, and publishes its own packages via npm Trusted
 Publishing (OIDC — no stored `NPM_TOKEN`). Setup + new-package
 bootstrap live in [`docs/self-hosting.md`](./docs/self-hosting.md).

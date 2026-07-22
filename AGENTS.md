@@ -127,8 +127,7 @@ not object destructuring.
   `stubFetch` (REST plugins) or `stubSpawn` (CLI plugins) — both
   ported from rando-id/rando.id `__tests__/helpers.ts`. Per-plugin
   coverage floor: 90%+ lines on the auth + REST/shell + capability
-  surface. The `cli-utils` package is `private: true` (v1 carryover);
-  its typecheck is a no-op.
+  surface.
 - **Don't call `expect(...).toThrow()` twice on the same stubbed call.**
   The stub queue advances per call; second invocation gets the default
   empty response. For multi-property error checks use the `.catch` capture
@@ -184,7 +183,7 @@ not object destructuring.
   `alpha`. Docs, chore, ci, test are safe on either.
 - **semantic-release on push to main or alpha.** Walks Conventional
   Commits since the last tag on the branch's channel, computes the
-  next version, bumps all 7 public packages in lockstep via
+  next version, bumps all 9 public packages in lockstep via
   `scripts/bump-versions.mjs`, publishes via OIDC, creates a GitHub
   Release, commits `CHANGELOG.md`.
 - **npm Trusted Publishing.** OIDC token exchange at publish time —
@@ -202,14 +201,15 @@ publish-initial` (chicken-and-egg: trusted publishing needs the
 ```
 packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
-  cli-utils/                      — @theholocron/cli-utils                 (PRIVATE — v1 carryover)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
   holocron-plugin-neon/           — storage
   holocron-plugin-clerk/          — auth (+ parseWebhook utility)
   holocron-plugin-1password/      — vault (CLI shell-out — only non-REST plugin)
+  holocron-plugin-doppler/        — vault (REST)
+  holocron-plugin-infisical/      — vault (REST)
   holocron-plugin-postman/        — tooling
-holocron.config.json              — this repo's own config (self-hosted)
+holocron.config.ts                — this repo's own config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved → archived)
 .claude/skills/holocron-skill-plugin/ — scaffolding skill for new plugins
 .github/workflows/                — ci.yml (PR), release.yml (main), codeql.yml, etc.

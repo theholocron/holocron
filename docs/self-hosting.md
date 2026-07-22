@@ -74,7 +74,7 @@ In the npm web UI, for each `@theholocron/*` package:
     - **Workflow filename**: `release.yml`
     - **Environment** (optional): leave blank
 
-Currently configured (as of v2.0.0-alpha.0):
+Currently configured:
 
 - `@theholocron/cli`
 - `@theholocron/holocron-plugin-github`
@@ -82,6 +82,8 @@ Currently configured (as of v2.0.0-alpha.0):
 - `@theholocron/holocron-plugin-neon`
 - `@theholocron/holocron-plugin-clerk`
 - `@theholocron/holocron-plugin-1password`
+- `@theholocron/holocron-plugin-doppler`
+- `@theholocron/holocron-plugin-infisical`
 - `@theholocron/holocron-plugin-postman`
 
 If npm's UI exposes org-level Trusted Publishers in the future, one
