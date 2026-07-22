@@ -895,7 +895,9 @@ async function fetchExternalSkill(entry: SkillLockEntry): Promise<string> {
 	if (entry.computedHash) {
 		const actual = createHash("sha256").update(content).digest("hex");
 		if (actual !== entry.computedHash) {
-			throw new Error(`hash mismatch for ${entry.source}/${entry.skillPath}: expected ${entry.computedHash}, got ${actual}`);
+			throw new Error(
+				`hash mismatch for ${entry.source}/${entry.skillPath}: expected ${entry.computedHash}, got ${actual}`
+			);
 		}
 	}
 	return content;

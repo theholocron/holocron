@@ -237,7 +237,11 @@ describe("installSkills", () => {
 				JSON.stringify({
 					version: 1,
 					skills: {
-						turborepo: { source: "vercel/turbo", sourceType: "github", skillPath: "skills/turborepo/SKILL.md" },
+						turborepo: {
+							source: "vercel/turbo",
+							sourceType: "github",
+							skillPath: "skills/turborepo/SKILL.md",
+						},
 					},
 				})
 			);
@@ -260,7 +264,11 @@ describe("installSkills", () => {
 				JSON.stringify({
 					version: 1,
 					skills: {
-						turborepo: { source: "vercel/turbo", sourceType: "github", skillPath: "skills/turborepo/SKILL.md" },
+						turborepo: {
+							source: "vercel/turbo",
+							sourceType: "github",
+							skillPath: "skills/turborepo/SKILL.md",
+						},
 					},
 				})
 			);
@@ -314,7 +322,11 @@ describe("installSkills", () => {
 				JSON.stringify({
 					version: 1,
 					skills: {
-						turborepo: { source: "vercel/turbo", sourceType: "github", skillPath: "skills/turborepo/SKILL.md" },
+						turborepo: {
+							source: "vercel/turbo",
+							sourceType: "github",
+							skillPath: "skills/turborepo/SKILL.md",
+						},
 					},
 				})
 			);
@@ -328,7 +340,9 @@ describe("installSkills", () => {
 
 			expect(result).toContain("installed 2");
 			expect(result).not.toContain("unknown");
-			await expect(readFile(join(tmpDir, ".agents", "skills", "git-safety", "SKILL.md"), "utf8")).resolves.toBe("# gs");
+			await expect(readFile(join(tmpDir, ".agents", "skills", "git-safety", "SKILL.md"), "utf8")).resolves.toBe(
+				"# gs"
+			);
 			await expect(readFile(join(tmpDir, ".agents", "skills", "turborepo", "SKILL.md"), "utf8")).resolves.toBe(
 				"# turborepo"
 			);
