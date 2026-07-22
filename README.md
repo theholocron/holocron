@@ -33,7 +33,7 @@ import { node } from "@theholocron/holocron-config";
 
 const { repo, workflows, providers } = node();
 export default defineConfig({
-	description: "Custom app",
+	description: "Custom app that does custom things.",
 	repo: {
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
@@ -73,7 +73,7 @@ makes that work **declarative, swappable, and re-runnable**.
 ```jsonc
 // holocron.config.json
 {
-  "project": { "name": "my-app" },
+  "name": "my-app",
 
   "providers": {
     // Code + CI
