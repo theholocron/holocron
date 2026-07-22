@@ -30,7 +30,7 @@
     "@theholocron/github-client": "catalog:"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.7.15"
+    "libsodium-wrappers": "^0.8.4"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
