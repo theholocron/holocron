@@ -41,6 +41,7 @@ Not committed to this repo — fetched from upstream by `holocron skills update`
 | `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills) | Distinctive, intentional UI design guidance |
 | `vercel-cli` | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Vercel CLI: deploy, env vars, logs, domains, project linking |
 | `turbopack` | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Turbopack bundler: HMR, CSS, tree shaking, webpack migration |
+| `turborepo` | [vercel/turbo](https://github.com/vercel/turbo) | Turborepo task pipeline configuration and cache optimization |
 
 ## Installation via `holocron setup`
 

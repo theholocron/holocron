@@ -19,6 +19,12 @@
       "skillPath": "skills/turbopack/SKILL.md",
       "computedHash": "cd8c2f189adacb88854c20088ab37dfe077cdc0bc1ded3ec3aa4e40be22bcf3c"
     },
+    "turborepo": {
+      "source": "vercel/turbo",
+      "sourceType": "github",
+      "skillPath": "skills/turborepo/SKILL.md",
+      "computedHash": "4f3937d6463890e607ad015d8256e4c27766f0eacaaf87eed1c6454239746694"
+    },
     "vercel-cli": {
       "source": "vercel/vercel-plugin",
       "sourceType": "github",
