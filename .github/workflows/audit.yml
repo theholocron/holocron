@@ -37,4 +37,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit
-        run: pnpm run audit -- --reporter github-actions
+        run: pnpm exec knip --reporter github-actions
