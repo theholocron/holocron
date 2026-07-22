@@ -10,6 +10,7 @@ import { stdin, stdout } from "node:process";
 import type { CapabilityKey } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
+import { runClone } from "./commands/clone.js";
 import { NewError, runNew } from "./commands/new.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
@@ -80,6 +81,42 @@ await yargs(hideBin(process.argv))
 		() => {},
 		() => {
 			console.log(`holocron ${CLI_VERSION}`);
+		}
+	)
+	.command(
+		"clone",
+		"Clone all repos in a GitHub org as siblings under a single directory",
+		(y) =>
+			y
+				.option("org", {
+					type: "string",
+					demandOption: true,
+					describe: "GitHub org to clone (e.g., theholocron)",
+				})
+				.option("dir", {
+					type: "string",
+					describe: "Parent directory to clone into (default: ~/Code/<org>)",
+				}),
+		async (argv) => {
+			const tokens = tokenContext(argv.token);
+			if (!tokens) return;
+			const token =
+				tokens.cliTokens?.["github"] ??
+				tokens.cliToken ??
+				process.env.GITHUB_TOKEN ??
+				process.env.HOLOCRON_GITHUB_TOKEN;
+			if (!token) {
+				console.error("clone: GitHub token required — pass --token or set GITHUB_TOKEN");
+				process.exitCode = 1;
+				return;
+			}
+			const report = await runClone({
+				org: argv.org,
+				token,
+				dryRun: argv.dryRun,
+				...(argv.dir ? { dir: argv.dir } : {}),
+			});
+			if (report.status === "fail") process.exitCode = 1;
 		}
 	)
 	.command(
