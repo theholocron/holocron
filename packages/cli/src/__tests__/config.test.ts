@@ -79,32 +79,42 @@ describe("resolveEntry — many-cardinality capabilities", () => {
 	it("errors when a short string is supplied for a many-cardinality capability", () => {
 		expect(() => resolveEntry("notifications", "slack")).toThrow(ConfigError);
 	});
+
+	it("errors when entry is neither a string nor an array", () => {
+		// @ts-expect-error — deliberately passing invalid type
+		expect(() => resolveEntry("notifications", 42)).toThrow(ConfigError);
+	});
+
+	it("errors when an array element is not a string or valid options tuple", () => {
+		// @ts-expect-error — deliberately passing invalid element type
+		expect(() => resolveEntry("notifications", [{ notAProvider: true }])).toThrow(ConfigError);
+	});
 });
 
 describe("resolveConfig", () => {
 	const minimal = {
-		project: { name: "demo" },
+		name: "demo",
 		providers: {
 			vault: "1password" as const,
 		},
 	};
 
-	it("requires project.name", () => {
-		expect(() => resolveConfig({ ...minimal, project: { name: "" } })).toThrow(ConfigError);
+	it("requires name", () => {
+		expect(() => resolveConfig({ ...minimal, name: "" })).toThrow(ConfigError);
 	});
 
 	it("requires the providers block", () => {
 		// @ts-expect-error — deliberately omitting required field
-		expect(() => resolveConfig({ project: { name: "x" } })).toThrow(ConfigError);
+		expect(() => resolveConfig({ name: "x" })).toThrow(ConfigError);
 	});
 
-	it("requires the vault capability", () => {
-		expect(() => resolveConfig({ project: { name: "demo" }, providers: { source: "github" } })).toThrow(/vault/);
+	it("accepts config without vault (vault is no longer required)", () => {
+		expect(() => resolveConfig({ name: "demo", providers: { source: "github" } })).not.toThrow();
 	});
 
 	it("returns a normalized config with defaults filled in", () => {
 		const resolved = resolveConfig(minimal);
-		expect(resolved.project.name).toBe("demo");
+		expect(resolved.name).toBe("demo");
 		expect(resolved.providers.vault?.cardinality).toBe("single");
 		expect(resolved.apps).toEqual([]);
 		expect(resolved.doctor).toEqual({});

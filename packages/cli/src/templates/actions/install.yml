@@ -1,0 +1,11 @@
+name: Install dependencies
+description: Install project dependencies with pnpm frozen lockfile.
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install dependencies
+      if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
+      shell: bash
+      run: pnpm install --frozen-lockfile

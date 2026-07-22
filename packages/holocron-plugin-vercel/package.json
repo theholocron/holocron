@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-vercel",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.77",
   "description": "Holocron plugin for Vercel. Implements the deployment capability against the Vercel REST API.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-vercel#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
@@ -22,21 +22,35 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
-    "@theholocron/cli": "workspace:*"
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/vercel-client": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/vercel-client": {
+      "optional": false
+    }
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
-    "@tsconfig/node-lts": "catalog:",
+    "@theholocron/tsdown-config": "catalog:",
+    "@theholocron/vercel-client": "catalog:",
+    "@theholocron/vitest-config": "catalog:",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "tsdown": "catalog:"
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",

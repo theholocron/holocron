@@ -37,7 +37,7 @@ describe("runDeploy", () => {
 	it("triggers a deployment via the configured provider", async () => {
 		const triggerCalls: Array<{ projectId: string; branch: string; target?: string }> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -81,7 +81,7 @@ describe("runDeploy", () => {
 	it("passes named target through (production / staging)", async () => {
 		const triggerCalls: Array<{ target?: string }> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -117,7 +117,7 @@ describe("runDeploy", () => {
 
 	it("errors when deployment capability is not configured", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -139,7 +139,7 @@ describe("runDeploy", () => {
 	it("dry-run skips the actual triggerDeployment call", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -170,9 +170,38 @@ describe("runDeploy", () => {
 		expect(report.message).toContain("projectId=prj_123");
 	});
 
+	it("dry-run includes target in message when target is provided", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					triggerDeployment: async () => ({ id: "", url: "", branch: "", status: "queued" as const }),
+				},
+			}),
+		});
+
+		const report = await runDeploy({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			projectId: "prj_123",
+			branch: "main",
+			target: "production",
+			loader,
+			print: () => {},
+		});
+
+		expect(report.status).toBe("dry-run");
+		expect(report.message).toContain("target=production");
+	});
+
 	it("returns status=fail with the error message when the provider throws", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -198,5 +227,35 @@ describe("runDeploy", () => {
 
 		expect(report.status).toBe("fail");
 		expect(report.message).toContain("no linked GitHub repo");
+	});
+
+	it("returns status=fail with string coercion when a non-Error is thrown", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					triggerDeployment: async () => {
+						throw "network timeout";
+					},
+				},
+			}),
+		});
+
+		const report = await runDeploy({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			branch: "main",
+			loader,
+			print: () => {},
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("network timeout");
 	});
 });

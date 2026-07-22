@@ -9,7 +9,7 @@ import type { Storage } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { NeonStorage } from "./capabilities/storage.js";
-import { NeonRestClient } from "./rest.js";
+import { createNeonClient, type NeonClient } from "./rest.js";
 
 export interface NeonPluginOptions extends ResolveTokenInput {
 	/** Neon project id this plugin is bound to. Required. */
@@ -22,7 +22,7 @@ export interface NeonPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: NeonPluginOptions;
-	rest: NeonRestClient;
+	client: NeonClient;
 }
 
 export function createContext(options: NeonPluginOptions): PluginContext {
@@ -30,17 +30,14 @@ export function createContext(options: NeonPluginOptions): PluginContext {
 		throw new Error("@theholocron/holocron-plugin-neon requires `projectId` in options");
 	}
 	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof NeonRestClient>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
 	return {
 		options,
-		rest: new NeonRestClient(restOpts),
+		client: createNeonClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
 
 export function storage(ctx: PluginContext): Storage {
-	return new NeonStorage(ctx.rest, { projectId: ctx.options.projectId });
+	return new NeonStorage(ctx.client, { projectId: ctx.options.projectId });
 }
 
 export function createPlugin(options: NeonPluginOptions) {
@@ -53,8 +50,21 @@ export function createPlugin(options: NeonPluginOptions) {
 	};
 }
 
+/**
+ * One-line hint printed by `holocron auth set neon` when no token
+ * is supplied or the supplied token is rejected. Points operators
+ * at https://console.neon.tech/app/settings/api-keys where API keys
+ * are minted.
+ */
+export const AUTH_HINT =
+	"generate a Neon API key at https://console.neon.tech/app/settings/api-keys, " +
+	"then run: holocron auth set neon <KEY>";
+
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { NeonRestClient } from "./rest.js";
+export { createNeonClient } from "./rest.js";
+export type { NeonClient } from "./rest.js";
 export { NeonStorage } from "./capabilities/storage.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

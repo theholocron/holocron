@@ -25,7 +25,7 @@ describe("resolveToken", () => {
 	});
 
 	it("throws AuthError when nothing is set", () => {
-		expect(() => resolveToken({ env: {} })).toThrow(AuthError);
-		expect(() => resolveToken({ env: {} })).toThrow(/HOLOCRON_NEON_API_KEY/);
+		expect(() => resolveToken({ env: {}, keyring: () => null })).toThrow(AuthError);
+		expect(() => resolveToken({ env: {}, keyring: () => null })).toThrow(/HOLOCRON_NEON_API_KEY/);
 	});
 });

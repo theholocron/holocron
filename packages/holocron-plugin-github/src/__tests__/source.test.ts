@@ -6,7 +6,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { GitHubSource } from "../capabilities/source.js";
-import { GitHubRestClient } from "../rest.js";
+import { createGitHubClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -14,7 +14,7 @@ const REPO = "theholocron/holocron";
 
 function makeSource(responses: Parameters<typeof stubFetch>[0], repoRoot: string = process.cwd()) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new GitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubClient({ token: "pat", fetch });
 	const source = new GitHubSource(rest, { repo: REPO, repoRoot });
 	return { source, calls };
 }
@@ -67,6 +67,26 @@ describe("GitHubSource — REST methods", () => {
 		expect(calls[0]?.body).toEqual({ allow_squash_merge: true });
 	});
 
+	it("syncTeams → PUT /orgs/{org}/teams/{slug}/repos/{owner}/{repo}", async () => {
+		const { source, calls } = makeSource([{ status: 204 }]);
+		const result = await source.syncTeams(["gatekeepers"]);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toBe(
+			`https://api.github.com/orgs/theholocron/teams/gatekeepers/repos/theholocron/holocron`
+		);
+		expect(calls[0]?.body).toEqual({ permission: "push" });
+		expect(result).toBe("1 team synced");
+	});
+
+	it("syncDescription → PATCH /repos/{repo} with description", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: {} }]);
+		const result = await source.syncDescription("A great tool.");
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}`);
+		expect(calls[0]?.body).toEqual({ description: "A great tool." });
+		expect(result).toBe("description updated");
+	});
+
 	it("enableVulnerabilityAlerts → PUT /vulnerability-alerts", async () => {
 		const { source, calls } = makeSource([{ status: 204 }]);
 		await source.enableVulnerabilityAlerts();
@@ -88,6 +108,8 @@ describe("GitHubSource — REST methods", () => {
 			security_and_analysis: {
 				secret_scanning: { status: "enabled" },
 				secret_scanning_push_protection: { status: "enabled" },
+				secret_scanning_validity_checks: { status: "enabled" },
+				secret_scanning_non_provider_patterns: { status: "enabled" },
 			},
 		});
 	});

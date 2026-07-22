@@ -1,0 +1,26 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-07-21T22:33:24.283Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
+name: CodeQL
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 * * 1"
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    uses: theholocron/.github/.github/workflows/codeql.yml@main
+    secrets: inherit

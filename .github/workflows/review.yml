@@ -1,0 +1,24 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-07-21T22:33:24.283Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
+name: Review
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+concurrency:
+  group: review-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  review:
+    name: Review
+    uses: theholocron/.github/.github/workflows/review.yml@main
+    secrets: inherit

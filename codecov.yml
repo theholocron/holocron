@@ -1,0 +1,77 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: 80%
+        threshold: 2%
+
+comment:
+  layout: "reach,diff,flags,components"
+  behavior: default
+  require_changes: true
+
+component_management:
+  default_rules:
+    statuses:
+      - type: patch
+        target: 80%
+  individual_components:
+    - component_id: cli
+      name: "cli"
+      paths:
+        - packages/cli/**
+
+    - component_id: cli-utils
+      name: "cli-utils"
+      paths:
+        - packages/cli-utils/**
+
+    - component_id: holocron-plugin-1password
+      name: "holocron-plugin-1password"
+      paths:
+        - packages/holocron-plugin-1password/**
+
+    - component_id: holocron-plugin-clerk
+      name: "holocron-plugin-clerk"
+      paths:
+        - packages/holocron-plugin-clerk/**
+
+    - component_id: holocron-plugin-doppler
+      name: "holocron-plugin-doppler"
+      paths:
+        - packages/holocron-plugin-doppler/**
+
+    - component_id: holocron-plugin-github
+      name: "holocron-plugin-github"
+      paths:
+        - packages/holocron-plugin-github/**
+
+    - component_id: holocron-plugin-infisical
+      name: "holocron-plugin-infisical"
+      paths:
+        - packages/holocron-plugin-infisical/**
+
+    - component_id: holocron-plugin-neon
+      name: "holocron-plugin-neon"
+      paths:
+        - packages/holocron-plugin-neon/**
+
+    - component_id: holocron-plugin-postman
+      name: "holocron-plugin-postman"
+      paths:
+        - packages/holocron-plugin-postman/**
+
+    - component_id: holocron-plugin-vercel
+      name: "holocron-plugin-vercel"
+      paths:
+        - packages/holocron-plugin-vercel/**

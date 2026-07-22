@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # Self-hosting — npm publishing via Trusted Publishing
 
 This repo publishes its own `@theholocron/*` packages via **npm Trusted Publishing**
@@ -28,6 +30,7 @@ to walk through steps 1–2 for itself.
 
 ## Step 1 — one-time manual publish
 
+<!-- prettier-ignore -->
 ```bash
 # From the holocron repo root, on a clean checkout.
 # Interactive npm sign-in via the browser (no token stored locally beyond
@@ -47,6 +50,7 @@ pnpm build
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
 pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp 123456
+
 ```
 
 The bootstrap command does the publish + reminds you exactly which URLs
@@ -64,11 +68,11 @@ In the npm web UI, for each `@theholocron/*` package:
 1. Sign in at <https://www.npmjs.com>
 2. Navigate to the package → Settings → Trusted Publishers
 3. Configure:
-	- **Publisher**: GitHub Actions
-	- **Organization**: `theholocron`
-	- **Repository**: `holocron`
-	- **Workflow filename**: `release.yml`
-	- **Environment** (optional): leave blank
+    - **Publisher**: GitHub Actions
+    - **Organization**: `theholocron`
+    - **Repository**: `holocron`
+    - **Workflow filename**: `release.yml`
+    - **Environment** (optional): leave blank
 
 Currently configured (as of v2.0.0-alpha.0):
 
@@ -99,10 +103,12 @@ that produced it.
 For one-off secrets that ARE token-based (not covered by OIDC), the
 `secret set` command still helps:
 
+<!-- prettier-ignore -->
 ```bash
 # Example: set a Vercel deploy hook secret on the holocron repo
 DEPLOY_HOOK=https://api.vercel.com/.../v1 HOLOCRON_GH_TOKEN=ghp_xxx \
-	holocron secret set DEPLOY_HOOK
+  holocron secret set DEPLOY_HOOK
+
 ```
 
 Replaces clicking through GH Settings → Secrets → Actions → New for

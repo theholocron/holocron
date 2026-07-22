@@ -36,7 +36,7 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 describe("runSecretsSync", () => {
 	it("errors when the vault provider does not implement readEnvironment", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -60,7 +60,7 @@ describe("runSecretsSync", () => {
 	it("fans out vault keys to secrets (repo scope)", async () => {
 		const setSecretCalls: Array<{ name: string; value: string }> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -99,7 +99,7 @@ describe("runSecretsSync", () => {
 
 	it("skips deployment sync when projectId is missing", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -140,7 +140,7 @@ describe("runSecretsSync", () => {
 			value: string;
 		}> = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", deployment: "vercel" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -178,7 +178,7 @@ describe("runSecretsSync", () => {
 	it("dry-run reports `dry-run` rows without calling mutators", async () => {
 		let called = false;
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -211,9 +211,44 @@ describe("runSecretsSync", () => {
 		expect(report.summary.dryRun).toBe(1);
 	});
 
+	it("soft-skips with string coercion when provider throws a non-Error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ KEY: "value" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async () => {
+						throw "403 forbidden string";
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			loader,
+			print: () => {},
+		});
+
+		expect(report.summary.fail).toBe(1);
+		const failedRow = report.rows.find((r) => r.status === "fail");
+		expect(failedRow?.message).toBe("403 forbidden string");
+	});
+
 	it("soft-skips individual key failures (continues with other keys)", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", secrets: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {

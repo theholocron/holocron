@@ -1,78 +1,34 @@
-/**
- * `ci` capability for GitHub — workflow runs only.
- *
- * Reads `/repos/{owner}/{name}/actions/runs[?…]` for `listRuns` and
- * `/repos/{owner}/{name}/actions/runs/{run_id}` for `getRun`.
- * Workflow YAML files themselves live with the `source` capability
- * (see Phase 1 architectural decision).
- */
-
 import type { Ci, CiRun, CiRunFilter, CiRunStatus } from "@theholocron/cli";
-
-import { parseRepo } from "../repo.js";
-import type { GitHubRestClient } from "../rest.js";
+import type { GitHubClient, GitHubWorkflowRun } from "@theholocron/github-client";
 
 export interface CiOptions {
 	repo: string;
-}
-
-interface RawRun {
-	id: number;
-	name: string | null;
-	display_title: string;
-	head_branch: string;
-	head_sha: string;
-	status: "queued" | "in_progress" | "completed" | string;
-	conclusion: "success" | "failure" | "cancelled" | "skipped" | string | null;
-	html_url: string;
-	created_at: string;
-	updated_at: string;
-}
-
-interface RawRunsResponse {
-	total_count: number;
-	workflow_runs: RawRun[];
 }
 
 export class GitHubCi implements Ci {
 	readonly key = "ci" as const;
 	readonly providerName = "github";
 
-	private readonly base: string;
-
 	constructor(
-		private readonly rest: GitHubRestClient,
-		opts: CiOptions
-	) {
-		const { owner, name } = parseRepo(opts.repo);
-		this.base = `/repos/${owner}/${name}/actions/runs`;
-	}
+		private readonly client: GitHubClient,
+		private readonly opts: CiOptions
+	) {}
 
 	async listRuns(filter?: CiRunFilter): Promise<CiRun[]> {
-		const params = new URLSearchParams();
-		if (filter?.branch) params.set("branch", filter.branch);
-		if (filter?.limit) params.set("per_page", String(filter.limit));
-		// Note: GitHub's `status` query param accepts `queued`/`in_progress`/
-		// `completed`/`success`/`failure`/etc. — we forward our enum 1:1.
-		if (filter?.status) params.set("status", filter.status);
-		const qs = params.toString();
-		const path = qs ? `${this.base}?${qs}` : this.base;
-		const res = await this.rest.request<RawRunsResponse>(path);
-		return res.workflow_runs.map((r) => this.mapRun(r));
+		const runs = await this.client.workflows.listRuns(this.opts.repo, {
+			branch: filter?.branch,
+			limit: filter?.limit,
+			status: filter?.status,
+		});
+		return runs.map((r) => this.mapRun(r));
 	}
 
 	async getRun(id: string | number): Promise<CiRun> {
-		const raw = await this.rest.request<RawRun>(`${this.base}/${id}`);
+		const raw = await this.client.workflows.getRun(this.opts.repo, id);
 		return this.mapRun(raw);
 	}
 
-	/**
-	 * GitHub reports run state as `status` plus `conclusion` (the latter
-	 * is set once `status === 'completed'`). Holocron's `CiRunStatus`
-	 * collapses these onto one axis — when complete, the conclusion is
-	 * the meaningful value.
-	 */
-	private mapRun(raw: RawRun): CiRun {
+	private mapRun(raw: GitHubWorkflowRun): CiRun {
 		const status: CiRunStatus =
 			raw.status === "completed" && raw.conclusion
 				? this.mapConclusion(raw.conclusion)

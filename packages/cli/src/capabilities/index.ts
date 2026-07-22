@@ -46,8 +46,12 @@ export const CARDINALITY = {
 	observability: "many",
 } as const satisfies Record<CapabilityKey, Cardinality>;
 
-/** Vault is required; everything else is optional in the config. */
-export const REQUIRED_CAPABILITIES: readonly CapabilityKey[] = ["vault"] as const;
+/**
+ * No capabilities are strictly required — repos without secrets (e.g. org
+ * community health repos) legitimately omit vault. Plugins validate their
+ * own requirements at call time.
+ */
+export const REQUIRED_CAPABILITIES: readonly CapabilityKey[] = [] as const;
 
 // ───────────────────────────────────────────────────────────────────────
 // Common shapes
@@ -58,22 +62,7 @@ export interface ProviderIdentity {
 	readonly providerName: string;
 }
 
-/**
- * Surfaced from every capability call that hits a vendor API. Wraps
- * the underlying error with `status` (HTTP) and `details` so
- * orchestrators (`holocron setup`, `doctor`) can soft-skip rather
- * than abort.
- */
-export class ProviderApiError extends Error {
-	override name = "ProviderApiError";
-	constructor(
-		message: string,
-		readonly status: number | undefined,
-		readonly details?: unknown
-	) {
-		super(message);
-	}
-}
+export { ProviderApiError } from "@theholocron/http-client";
 
 // ───────────────────────────────────────────────────────────────────────
 // source — repos, branches, PRs, rulesets, settings, workflow files
@@ -91,10 +80,14 @@ export interface RepoSettings {
 	allow_merge_commit?: boolean;
 	allow_rebase_merge?: boolean;
 	allow_auto_merge?: boolean;
+	/** Always suggest updating PR branches when the base branch has new commits. */
+	allow_update_branch?: boolean;
 	delete_branch_on_merge?: boolean;
 	default_branch?: string;
 	has_issues?: boolean;
 	has_discussions?: boolean;
+	has_projects?: boolean;
+	has_wiki?: boolean;
 }
 
 export interface RepoRef {
@@ -102,6 +95,17 @@ export interface RepoRef {
 	name: string;
 	defaultBranch: string;
 }
+
+export interface LabelDef {
+	readonly name: string;
+	readonly color: string;
+	readonly description: string;
+}
+
+export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
+
+/** Shorthand `"slug"` defaults to `push` permission. */
+export type TeamEntry = string | { slug: string; permission: TeamPermission };
 
 export interface Source extends ProviderIdentity {
 	readonly key: "source";
@@ -119,11 +123,39 @@ export interface Source extends ProviderIdentity {
 	// Repo settings
 	updateRepoSettings(settings: RepoSettings): Promise<void>;
 
+	/**
+	 * Classic branch protection — fallback for private repos on free plans
+	 * where the Rulesets API (requires Team+) returns 403.
+	 */
+	protectBranch(branch: string, payload: Record<string, unknown>): Promise<void>;
+
 	// Security toggles (idempotent; flip-or-noop)
 	enableVulnerabilityAlerts(): Promise<void>;
 	enableAutomatedSecurityFixes(): Promise<void>;
 	enableSecretScanning(): Promise<void>;
 	enablePrivateVulnerabilityReporting(): Promise<void>;
+	/**
+	 * Enables the dependency graph and automatic dependency snapshot
+	 * submission. Also enables secret-scanning validity checks and
+	 * non-provider pattern detection — these require GitHub Advanced
+	 * Security at the org level; the call is accepted but may be a no-op
+	 * until that is configured.
+	 */
+	enableDependencyGraph(): Promise<void>;
+
+	/**
+	 * Enables CodeQL default setup with the extended query suite and
+	 * `threat_model: all` (scans both remote and local exploit paths).
+	 * Triggers a new analysis run; returns the run id.
+	 */
+	enableCodeScanning(): Promise<string>;
+
+	/**
+	 * Disables CodeQL default setup. Required when the repo uses an advanced
+	 * CodeQL workflow instead — GitHub rejects SARIF from advanced workflows
+	 * while default setup is active.
+	 */
+	disableDefaultCodeScanning(): Promise<void>;
 
 	// Workflow files — local YAML files in `.github/workflows/` (or
 	// equivalent). These are conceptually repo content; providers may
@@ -133,6 +165,44 @@ export interface Source extends ProviderIdentity {
 	readWorkflowFile(name: string): Promise<string | null>;
 	writeWorkflowFile(name: string, contents: string): Promise<void>;
 	removeWorkflowFile(name: string): Promise<void>;
+
+	/**
+	 * Write an arbitrary file relative to the repo root. Used for
+	 * provisioning config files that live outside `.github/workflows/`
+	 * (e.g. `.github/dependabot.yml`).
+	 */
+	writeRepoFile(path: string, contents: string): Promise<void>;
+
+	/**
+	 * Idempotently sync repo labels to a canonical set. Creates missing
+	 * labels, patches color/description drift, deletes stale labels.
+	 * Optional — providers that have no label concept omit this.
+	 */
+	syncLabels?(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string>;
+
+	/**
+	 * Set org-level custom property values on the repo.
+	 * Optional — providers that don't support custom properties omit this.
+	 */
+	syncProperties?(values: Record<string, string>): Promise<string>;
+
+	/**
+	 * Replace the repo's topic set with the supplied list.
+	 * Optional — providers that don't support topics omit this.
+	 */
+	syncTopics?(topics: string[]): Promise<string>;
+
+	/**
+	 * Sync GitHub team repository access. String shorthand defaults to `push`.
+	 * Optional — providers without a team concept omit this.
+	 */
+	syncTeams?(teams: TeamEntry[]): Promise<string>;
+
+	/**
+	 * Set the repository description.
+	 * Optional — providers that don't support setting descriptions omit this.
+	 */
+	syncDescription?(description: string): Promise<string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -532,6 +602,11 @@ export class WebhookVerificationError extends Error {
 // vault — REQUIRED source-of-truth for secrets
 // ───────────────────────────────────────────────────────────────────────
 
+export interface EnsureResult {
+	/** True when the resource already existed (idempotent no-op). */
+	alreadyExists: boolean;
+}
+
 export interface Vault extends ProviderIdentity {
 	readonly key: "vault";
 
@@ -562,6 +637,21 @@ export interface Vault extends ProviderIdentity {
 	 * destinations (CI secrets, deployment env vars, local .env).
 	 */
 	readEnvironment?(environmentId: string): Promise<Record<string, string>>;
+
+	/**
+	 * Optional — create the top-level project container in the vault
+	 * if it does not exist. Idempotent: `alreadyExists: true` when the
+	 * project was already there. Providers whose data model has no
+	 * project notion (or that gate this behind a paid tier) omit this.
+	 */
+	ensureProject?(name: string): Promise<EnsureResult>;
+
+	/**
+	 * Optional — create a named environment/config inside a project
+	 * (e.g., Doppler config `dev` / `stg` / `prd`). Idempotent.
+	 * Providers whose data model has a single flat namespace omit this.
+	 */
+	ensureEnvironment?(project: string, name: string): Promise<EnsureResult>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

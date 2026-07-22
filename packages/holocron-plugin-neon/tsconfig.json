@@ -1,6 +1,6 @@
 {
   "display": "Holocron Plugin: Neon",
-  "extends": "@tsconfig/node-lts/tsconfig.json",
+  "extends": "@theholocron/tsconfig/node-lts",
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist",

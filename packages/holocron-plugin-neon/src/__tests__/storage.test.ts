@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { NeonStorage } from "../capabilities/storage.js";
-import { NeonRestClient } from "../rest.js";
+import { createNeonClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -11,8 +11,8 @@ const BASE = `https://console.neon.tech/api/v2/projects/${PROJECT_ID}`;
 
 function makeStorage(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new NeonRestClient({ token: "pat", fetch });
-	const storage = new NeonStorage(rest, { projectId: PROJECT_ID });
+	const client = createNeonClient({ token: "neon-test-pat", fetch });
+	const storage = new NeonStorage(client, { projectId: PROJECT_ID });
 	return { storage, calls };
 }
 
@@ -142,13 +142,9 @@ describe("NeonStorage.getConnectionString", () => {
 
 	it("throws clearly when the branch has no databases", async () => {
 		const { storage } = makeStorage([{ status: 200, body: { databases: [] } }]);
-		try {
-			await storage.getConnectionString("br_uninitialized");
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).message).toMatch(/initialize/);
-		}
+		const err = await storage.getConnectionString("br_uninitialized").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).message).toMatch(/initialize/);
 	});
 });
 
@@ -184,7 +180,7 @@ describe("NeonStorage.enableExtension", () => {
 
 describe("NeonStorage construction", () => {
 	it("throws when projectId is missing", () => {
-		const rest = new NeonRestClient({ token: "t" });
-		expect(() => new NeonStorage(rest, { projectId: "" })).toThrow(/projectId/);
+		const client = createNeonClient({ token: "neon-test-pat" });
+		expect(() => new NeonStorage(client, { projectId: "" })).toThrow(/projectId/);
 	});
 });

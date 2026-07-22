@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GitHubSecrets } from "../capabilities/secrets.js";
-import { GitHubRestClient } from "../rest.js";
+import { createGitHubClient } from "../rest.js";
 import { sodium } from "../sodium.js";
 
 import { stubFetch } from "./helpers.js";
@@ -20,7 +20,7 @@ async function makeKeypair() {
 
 function makeSecrets(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new GitHubRestClient({ token: "pat", fetch });
+	const rest = createGitHubClient({ token: "pat", fetch });
 	const secrets = new GitHubSecrets(rest, { repo: REPO });
 	return { secrets, calls };
 }

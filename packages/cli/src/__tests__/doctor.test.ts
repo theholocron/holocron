@@ -38,7 +38,7 @@ describe("runDoctor", () => {
 	it("reports ok for source.whoami succeeding", async () => {
 		const lines: string[] = [];
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -71,7 +71,7 @@ describe("runDoctor", () => {
 
 	it("reports fail when a smoke check throws", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -102,7 +102,7 @@ describe("runDoctor", () => {
 
 	it("reports skip for many-cardinality capabilities (no smoke endpoint yet)", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: {
 				vault: "1password",
 				notifications: ["slack", "discord"],
@@ -131,7 +131,7 @@ describe("runDoctor", () => {
 
 	it("issues smoke check reports resolved lifecycle slot count", async () => {
 		const loaded = loadedFrom({
-			project: { name: "demo" },
+			name: "demo",
 			providers: { vault: "1password", issues: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -163,5 +163,126 @@ describe("runDoctor", () => {
 
 		const issuesRow = report.rows.find((r) => r.capability === ("issues" satisfies CapabilityKey));
 		expect(issuesRow?.message).toContain("2/3 lifecycle slots ready");
+	});
+
+	it("secrets smoke check reports configured secret count", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: { listSecrets: async () => ["SECRET_A", "SECRET_B", "SECRET_C"] },
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "secrets");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("3 configured");
+	});
+
+	it("ci smoke check reports most recent run", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { ci: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				ci: {
+					listRuns: async () => [{ workflowName: "Test", status: "completed" }],
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "ci");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("Test");
+		expect(row?.message).toContain("completed");
+	});
+
+	it("ci smoke check reports no recent runs when list is empty", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { ci: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				ci: { listRuns: async () => [] },
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "ci");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("no recent runs");
+	});
+
+	it("auth smoke check reports provider and env keys", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { auth: "clerk" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
+				auth: {
+					describe: async () => ({ provider: "clerk", envKeys: ["CLERK_SECRET_KEY"] }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "auth");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("clerk");
+		expect(row?.message).toContain("CLERK_SECRET_KEY");
+	});
+
+	it("single-cardinality capability without a smoke check falls through to skip", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.status).toBe("skip");
+		expect(row?.message).toContain("no smoke check");
 	});
 });

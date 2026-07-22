@@ -1,0 +1,18 @@
+name: Setup
+description: Prepare the environment and install project dependencies.
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "22.x"
+
+runs:
+  using: composite
+
+  steps:
+    - uses: theholocron/.github/.github/actions/setup-node@main
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - uses: theholocron/.github/.github/actions/install@main

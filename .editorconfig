@@ -1,3 +1,9 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup.ts
+# Synced:  2026-07-21T22:33:24.285Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
+
 root = true
 
 [*]
@@ -18,6 +24,8 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
 
 [.*{rc,ignore}]
 indent_style = space

@@ -12,6 +12,12 @@
  *      the registry — single-cardinality entries hold one impl,
  *      many-cardinality entries hold an array
  *
+ * A package may instead export a capability config (see
+ * `CapabilityConfigPackage` in config.ts). The loader detects the shape
+ * at import time and re-resolves to the underlying plugin, merging the
+ * preset options with any per-project overrides from the config file
+ * (project options win, mirroring ESLint's `extends` precedence).
+ *
  * Loader keeps NO knowledge of vendor tokens. Each plugin reads its
  * own env vars (`HOLOCRON_GH_TOKEN`, `HOLOCRON_VERCEL_TOKEN`, etc.)
  * inside its `createPlugin`. That keeps the loader vendor-agnostic
@@ -23,7 +29,8 @@
 
 import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
-import type { ResolvedHolocronConfig, ResolvedTuple } from "./config.js";
+import type { CapabilityConfigPackage, ResolvedHolocronConfig, ResolvedTuple } from "./config.js";
+import { resolvePluginPackage } from "./config.js";
 
 /**
  * Per-invocation context every plugin receives, on top of its own
@@ -42,13 +49,17 @@ export interface RuntimeContext {
 	 */
 	dryRun?: boolean;
 	/**
-	 * Token passed via `--token <value>`. Plugins pick this up as
-	 * `cliToken` in their auth resolution, taking precedence over env
-	 * vars. For multi-plugin commands the same token is passed to every
-	 * plugin (acceptable when one is in play; tracked at #79 for
-	 * proper disambiguation later).
+	 * Token passed via bare `--token <value>`. Used as fallback for all
+	 * plugins when no matching entry exists in `cliTokens`.
 	 */
 	cliToken?: string;
+	/**
+	 * Per-provider tokens from `--token vendor=value` pairs. The loader
+	 * routes each entry to the matching plugin (by `tuple.provider`) as
+	 * its `cliToken`, falling back to `cliToken` for unmatched providers.
+	 * Plugins never receive this map — they always see a single `cliToken`.
+	 */
+	cliTokens?: Record<string, string>;
 }
 
 /**
@@ -66,7 +77,8 @@ export interface PluginModule {
 	createPlugin: (opts: Record<string, unknown>) => LoadedPlugin;
 }
 
-export type PluginImporter = (packageName: string) => Promise<PluginModule>;
+/** Returns `unknown` — the loader type-narrows inside `loadOne`. */
+export type PluginImporter = (packageName: string) => Promise<unknown>;
 
 export class LoaderError extends Error {
 	override name = "LoaderError";
@@ -126,22 +138,64 @@ export class PluginLoader {
 
 	/** Internal — invoke a plugin's capability factory and return the impl. */
 	private async loadOne(key: CapabilityKey, tuple: ResolvedTuple): Promise<unknown> {
-		const module = await this.importer(tuple.packageName).catch((err: unknown) => {
+		const mod = await this.importer(tuple.packageName).catch((err: unknown) => {
 			throw new LoaderError(
 				`failed to import \`${tuple.packageName}\` for capability \`${key}\`: ${
 					err instanceof Error ? err.message : String(err)
 				}`
 			);
 		});
-		if (typeof module.createPlugin !== "function") {
-			throw new LoaderError(`\`${tuple.packageName}\` does not export \`createPlugin(options)\``);
+
+		// Plugin package: exports createPlugin(opts) → { capabilities }
+		if (isPluginModule(mod)) {
+			// Resolve the effective token for this specific plugin.
+			// cliTokens[provider] wins over the bare cliToken fallback.
+			const effectiveToken = this.context.cliTokens?.[tuple.provider] ?? this.context.cliToken;
+
+			// Precedence (later wins): project-level defaults from config →
+			// runtime context (CLI flags: --repo, --token) → per-plugin
+			// resolved token → tuple options (per-plugin overrides in config).
+			// cliTokens is explicitly cleared so the map never reaches plugins.
+			const plugin = mod.createPlugin({
+				...this.projectDefaults(),
+				...this.context,
+				...(effectiveToken !== undefined ? { cliToken: effectiveToken } : {}),
+				cliTokens: undefined,
+				...tuple.options,
+			});
+			const factory = plugin.capabilities[key];
+			if (typeof factory !== "function") {
+				throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
+			}
+			return factory();
 		}
-		const plugin = module.createPlugin({ ...this.context, ...tuple.options });
-		const factory = plugin.capabilities[key];
-		if (typeof factory !== "function") {
-			throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
+
+		// Capability config package: default export is { provider, options? }.
+		// Re-resolve to the underlying plugin; preset options are the base,
+		// per-project tuple options override them (ESLint extends precedence).
+		if (isCapabilityConfigModule(mod)) {
+			const cap = (mod as { default: CapabilityConfigPackage }).default;
+			return this.loadOne(key, {
+				provider: cap.provider,
+				packageName: resolvePluginPackage(cap.provider),
+				options: { ...cap.options, ...tuple.options },
+			});
 		}
-		return factory();
+
+		throw new LoaderError(
+			`\`${tuple.packageName}\` does not export \`createPlugin(options)\` or a capability config ({ provider, options? })`
+		);
+	}
+
+	/**
+	 * Project-level defaults that get merged into every plugin's options
+	 * unless overridden by the CLI context or per-plugin tuple options.
+	 * See `.notes/tech-setup-and-config.spec.md` §Design.
+	 */
+	private projectDefaults(): Partial<RuntimeContext> {
+		const defaults: Partial<RuntimeContext> = {};
+		if (this.config.repo?.name) defaults.repo = this.config.repo.name;
+		return defaults;
 	}
 }
 
@@ -149,8 +203,17 @@ export class PluginLoader {
 
 /** Default importer — native dynamic import. */
 const defaultImporter: PluginImporter = async (pkg) => {
-	return (await import(pkg)) as PluginModule;
+	return import(pkg);
 };
+
+function isPluginModule(mod: unknown): mod is PluginModule {
+	return typeof (mod as PluginModule).createPlugin === "function";
+}
+
+function isCapabilityConfigModule(mod: unknown): mod is { default: CapabilityConfigPackage } {
+	const def = (mod as { default?: unknown }).default;
+	return typeof (def as CapabilityConfigPackage)?.provider === "string";
+}
 
 /** Convenience re-export so callers can compute counts without importing CARDINALITY directly. */
 export function cardinalityOf<K extends CapabilityKey>(key: K): CardinalityFor<K> {

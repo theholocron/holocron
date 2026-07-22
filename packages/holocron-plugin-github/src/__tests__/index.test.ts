@@ -19,7 +19,7 @@ const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" 
 
 describe("createPlugin", () => {
 	it("throws AuthError when no token is found", () => {
-		expect(() => createPlugin({ repo: "theholocron/holocron", env: {} })).toThrow(AuthError);
+		expect(() => createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null })).toThrow(AuthError);
 	});
 
 	it("wires every capability with the right concrete implementation", () => {
@@ -37,12 +37,15 @@ describe("createPlugin", () => {
 		expect(plugin.capabilities.issues()).toBeInstanceOf(GitHubIssues);
 	});
 
-	it("errors when issues is requested without `labels` in options", () => {
+	it("issues capability constructs without `labels` (lazy-degrade)", () => {
 		const plugin = createPlugin({
 			repo: "theholocron/holocron",
 			cliToken: "pat-test",
 		});
-		expect(() => plugin.capabilities.issues()).toThrow(/labels/);
+		// No throw — labels are optional at construction. Methods that
+		// need labels (`transition` to inProgress/inReview) throw at
+		// call time; see the issues.test.ts suite for those paths.
+		expect(plugin.capabilities.issues()).toBeInstanceOf(GitHubIssues);
 	});
 
 	it("passes baseUrl + fetch through to the REST client", async () => {

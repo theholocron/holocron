@@ -1,0 +1,37 @@
+name: Dependencies
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      merge-token:
+        description: >
+          Optional privileged token for auto-merge. Falls back to GITHUB_TOKEN.
+          Required when branch protection enforces required reviews — GITHUB_TOKEN
+          cannot approve its own PRs.
+        required: false
+
+jobs:
+  dependabot:
+    name: Update the dependencies
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: dependencies-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        name: Fetch Dependabot metadata
+        id: metadata
+
+      - run: gh pr merge --auto --squash "$PR_URL"
+        # --squash is intentional: repo protection sets allow_merge_commit: false,
+        # so --merge would fail on any repo using the standard preset.
+        name: Enable auto-merge for Dependabot PRs
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.merge-token || github.token }}

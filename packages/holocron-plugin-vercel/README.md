@@ -1,3 +1,5 @@
+<!-- editorconfig-checker-disable-file -->
+
 # `@theholocron/holocron-plugin-vercel`
 
 Vercel plugin for [Holocron](../cli). Implements the `deployment`
@@ -5,8 +7,10 @@ capability against the [Vercel REST API](https://vercel.com/docs/rest-api).
 
 ## Install
 
+<!-- prettier-ignore -->
 ```bash
 pnpm add -D @theholocron/holocron-plugin-vercel@alpha
+
 ```
 
 ## Auth
@@ -23,17 +27,19 @@ always cover what holocron needs at the API level. Explicit token only.
 
 ## Config
 
+<!-- prettier-ignore -->
 ```jsonc
 // holocron.config.json
 {
-	"providers": {
-		"deployment": ["vercel", { "teamId": "team_xxx" }],
-	},
+  "providers": {
+    "deployment": ["vercel", { "teamId": "team_xxx" }],
+  },
 }
+
 ```
 
 - `teamId` (optional) — Vercel team id. When set, all requests are
-	scoped to that team. Leave unset for personal-account projects.
+  scoped to that team. Leave unset for personal-account projects.
 
 ## Status
 

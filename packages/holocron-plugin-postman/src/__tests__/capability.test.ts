@@ -5,9 +5,10 @@ import { join } from "node:path";
 import { ProviderApiError } from "@theholocron/cli";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { PostmanPlanLimitError } from "@theholocron/postman-client";
+
 import { PostmanTooling } from "../capabilities/tooling.js";
-import { PostmanPlanLimitError } from "../errors.js";
-import { PostmanRestClient } from "../rest.js";
+import { createPostmanClient } from "../rest.js";
 
 import { stubFetch } from "./helpers.js";
 
@@ -22,8 +23,8 @@ function makeTooling(
 	}> = {}
 ) {
 	const { fetch, calls } = stubFetch(responses);
-	const rest = new PostmanRestClient({ token: "pmak-test", fetch });
-	const tooling = new PostmanTooling(rest, { workspaceId: "ws-id", ...opts });
+	const client = createPostmanClient({ token: "pmak-test", fetch });
+	const tooling = new PostmanTooling(client, { workspaceId: "ws-id", ...opts });
 	return { tooling, calls };
 }
 
@@ -39,8 +40,8 @@ describe("PostmanTooling identity", () => {
 	});
 
 	it("throws when workspaceId is missing", () => {
-		const rest = new PostmanRestClient({ token: "t" });
-		expect(() => new PostmanTooling(rest, { workspaceId: "" })).toThrow(/workspaceId/);
+		const client = createPostmanClient({ token: "t" });
+		expect(() => new PostmanTooling(client, { workspaceId: "" })).toThrow(/workspaceId/);
 	});
 });
 
@@ -248,24 +249,16 @@ describe("PostmanRestClient — plan-limit discrimination", () => {
 				}),
 			},
 		]);
-		try {
-			await tooling.getMyself();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(PostmanPlanLimitError);
-			expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
-		}
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(PostmanPlanLimitError);
+		expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
 	});
 
 	it("throws generic ProviderApiError for non-limit 4xx", async () => {
 		const { tooling } = makeTooling([{ status: 404, text: "not found" }]);
-		try {
-			await tooling.getMyself();
-			throw new Error("expected throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
-		}
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
 	});
 });
 

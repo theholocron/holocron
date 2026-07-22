@@ -1,116 +1,27 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-07-21T22:33:24.281Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
 name: Lint
 
-# super-linter (slim) — one container, many validators. Replaces the
-# v1 lint.yml that died on `npm ci`. This is the pnpm-aware version.
-#
-# Validators we opt into:
-#   - eslint (TS + JS) — uses our flat config from `eslint.config.js`
-#   - prettier on JS / TS / JSON
-#   - commitlint — Conventional Commits on PR commits (semantic-release
-#     depends on these; bad messages break the release flow)
-#   - actionlint + shellcheck — workflow YAML correctness + bash safety
-#   - yamllint — general YAML formatting
-#   - editorconfig-checker — file format consistency
-#
-# Validators we opt OUT of:
-#   - Languages we don't use (PHP, Ruby, Java, Go, Rust, ...)
-#   - Markdown linters (annoying + don't respect config in slim)
-#   - alex — file follow-up if inclusive-language checks are wanted
-#   - Anything that needs FIX_ behavior (we run annotate-only; no
-#     auto-commits)
-#
-# Secret scanning is intentionally NOT here — GitHub's native secret
-# scanning (Settings → Security → Code security → Secret scanning) is
-# enabled on this repo and runs continuously, more thoroughly than
-# gitleaks would on a CI diff.
-
-on:
+on: # yamllint disable-line rule:truthy
   push:
-    branches-ignore:
-      - main
+    branches: [main, alpha]
   pull_request:
-    branches:
-      - main
 
 concurrency:
   group: lint-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  statuses: write # super-linter writes per-validator status checks
-  pull-requests: read # commitlint reads the PR's commit list
+  contents: write
+  statuses: write
 
 jobs:
   lint:
-    name: super-linter (slim)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          # Full history so super-linter can lint the diff + commitlint
-          # can walk the PR's commits.
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install
-        # eslint + prettier + commitlint all resolve from node_modules
-        # (our @theholocron/eslint-config, @theholocron/commitlint-config,
-        # @theholocron/prettier-config). Without this step, those checks
-        # would fail to load their configs inside the super-linter
-        # container.
-        run: pnpm install --frozen-lockfile
-
-      - name: Run super-linter (slim)
-        uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          # Annotate findings inline on the PR; don't auto-commit fixes.
-          # (Auto-fix + auto-commit was the v1 behavior that required
-          # the SUPER_LINTER_GPG_PRIVATE_KEY secret. We're going clean.)
-          ANNOTATE_ONLY: true
-          DISABLE_COMMENTS: false
-
-          IGNORE_GITIGNORED_FILES: true
-          LINTER_RULES_PATH: /
-
-          # ── Validators we want ──────────────────────────────────────
-          VALIDATE_JAVASCRIPT_ES: true
-          JAVASCRIPT_ES_CONFIG_FILE: 'eslint.config.js'
-          VALIDATE_TYPESCRIPT_ES: true
-          TYPESCRIPT_ES_CONFIG_FILE: 'eslint.config.js'
-          TYPESCRIPT_STANDARD_TSCONFIG_FILE: 'tsconfig.json'
-
-          VALIDATE_JAVASCRIPT_PRETTIER: true
-          VALIDATE_TYPESCRIPT_PRETTIER: true
-          VALIDATE_JSON_PRETTIER: true
-          PRETTIER_CONFIG: 'prettier.config.js'
-
-          VALIDATE_GIT_COMMITLINT: true
-
-          VALIDATE_GITHUB_ACTIONS: true # bundles actionlint + shellcheck
-
-          VALIDATE_YAML: true
-          YAML_CONFIG_FILE: 'yamllint.config.yml'
-
-          VALIDATE_EDITORCONFIG: true
-          EDITORCONFIG_FILE_NAME: '.editorconfig-checker.json'
-
-          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
-
-          # ── Validators we explicitly skip ───────────────────────────
-          # All other VALIDATE_* default to false; we leave them off.
-          # If a language gets added (Go, Rust, etc.) the relevant
-          # validator goes in the "want" block above.
+    name: Lint
+    uses: theholocron/.github/.github/workflows/lint.yml@main
+    secrets: inherit
+    with:
+      enable-auto-commit: true

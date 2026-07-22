@@ -1,0 +1,24 @@
+name: Sync to .github
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - alpha
+      - main
+    paths:
+      - packages/cli/src/commands/setup-workflows.ts
+      - packages/cli/src/templates/**
+  workflow_dispatch:
+
+jobs:
+  sync:
+    uses: theholocron/.github/.github/workflows/sync-github.yml@main
+    with:
+      primary-repo: theholocron/.github
+      secondary-repos: |
+        theholocron/.github-private
+        theholocron/clients
+        theholocron/configs
+        theholocron/skills
+    secrets:
+      SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}

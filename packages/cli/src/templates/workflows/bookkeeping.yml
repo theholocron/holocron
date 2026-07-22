@@ -1,0 +1,42 @@
+name: Bookkeeping
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      configuration-path:
+        description: Path to the labeler configuration file in the calling repo
+        type: string
+        required: false
+        default: .github/labeler.yml
+
+jobs:
+  label:
+    name: Apply Labels
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: bookkeeping-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: ${{ inputs.configuration-path || '.github/labeler.yml' }}
+          sparse-checkout-cone-mode: false
+
+      - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+        if: ${{ github.event_name == 'pull_request' && hashFiles(inputs.configuration-path || '.github/labeler.yml') != '' }}
+        # v3.4 bundles Node 20; allow it to run under Actions' current default.
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          # Fall back to default path when triggered directly (not via workflow_call)
+          # because inputs.* defaults only apply on workflow_call events.
+          configuration-path: ${{ inputs.configuration-path || '.github/labeler.yml' }}
+          include-title: 1
+          include-body: 0
+          sync-labels: 1
+          enable-versioned-regex: 0
+          repo-token: ${{ github.token }}

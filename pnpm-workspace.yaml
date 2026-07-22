@@ -4,17 +4,39 @@ packages:
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.
 catalog:
-  '@theholocron/eslint-config': ^4.1.0
-  '@theholocron/prettier-config': ^4.1.0
-  '@theholocron/tsconfig': ^4.1.0
-  '@tsconfig/node-lts': ^24.0.0
-  eslint: ^9.36.0
-  globals: ^16.5.0
+  '@theholocron/holocron-config': ^7.3.0
+  '@theholocron/commitlint-config': ^7.3.0
+  '@theholocron/semantic-release-config': ^7.3.0
+  '@theholocron/eslint-config': ^7.3.0
+  '@theholocron/clerk-client': ^1.1.0
+  '@theholocron/doppler-client': ^1.1.0
+  '@theholocron/infisical-client': ^1.1.0
+  '@theholocron/neon-client': ^1.1.0
+  '@theholocron/github-client': ^1.1.0
+  '@theholocron/http-client': ^1.1.0
+  '@theholocron/postman-client': ^1.1.0
+  '@theholocron/vercel-client': ^1.1.0
+  '@theholocron/lint-staged-config': ^7.3.0
+  '@theholocron/prettier-config': ^7.3.0
+  '@theholocron/tsconfig': ^7.3.0
+  '@theholocron/tsdown-config': ^7.3.0
+  '@theholocron/vitest-config': ^7.3.0
+  '@vitest/eslint-plugin': ^1.6.23
+  eslint: ^10.7.0
+  eslint-plugin-n: ^18.2.2
+  globals: ^17.7.0
+  chalk: ^5.4.1
+  ora: ^8.2.0
   tsdown: ^0.22.3
+  turbo: ^2.10.5
   tsx: ^4.22.4
-  vitest: ^3.2.6
-  '@vitest/coverage-v8': ^3.2.6
-  # TypeScript pinned to latest 5.x. @theholocron/tsconfig@4 declares
-  # `typescript@^5` as peer; bumping to 6 produces a peer warning until
-  # the org-level tsconfig publishes a 6-compatible release.
+  vitest: ^4.1.10
+  '@vitest/coverage-v8': ^4.1.10
   typescript: ^5.9.3
+  '@types/node': ^26
+
+# Force all packages (including external transitive deps) to use the
+# same http-client instance — prevents instanceof ProviderApiError
+# dual-module hazard when github-client and cli both depend on it.
+overrides:
+  '@theholocron/http-client': ^1.1.0

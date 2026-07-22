@@ -1,78 +1,20 @@
-# Config for srvaroa/labeler — applies to BOTH PRs and issues.
-#
-# Each `labels:` entry has a single matcher whose conditions are AND'd.
-# To express OR, list the same label multiple times. PR-only signals
-# (files/branch) are ignored when the event is an issue.
-#
-# Order matches Rando's labeler so the holocron repo stays familiar.
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup.ts
+# Synced:  2026-07-14T05:03:58.000Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
 
-version: 1
-labels:
-  # --- documentation --------------------------------------------------
-  # PR: changes under docs/ or any markdown file
-  - label: documentation
-    matcher:
-      files:
-        - docs/**
-        - "**/*.md"
-  # PR: conventional `docs:` / `docs(scope):` title
-  - label: documentation
-    matcher:
-      title: "^docs(\\(.+\\))?:"
-  # Issue: title mentions docs / readme / typo
-  - label: documentation
-    matcher:
-      title: "(?i)\\b(docs?|readme|typo)\\b"
+bug:
+  - '^fix'
 
-  # --- bug ------------------------------------------------------------
-  # PR: fix- branch touching src
-  - label: bug
-    matcher:
-      files:
-        - src/**
-        - packages/**/src/**
-      branch: "^fix-"
-  # PR: conventional `fix:` title
-  - label: bug
-    matcher:
-      title: "^fix(\\(.+\\))?:"
-  # Issue: natural-language bug report
-  - label: bug
-    matcher:
-      title: "(?i)\\b(bug|broken|crash|error|fails?|regression)\\b"
+dependencies:
+  - '^chore\(deps'
 
-  # --- enhancement ----------------------------------------------------
-  # PR: feat- branch touching src
-  - label: enhancement
-    matcher:
-      files:
-        - src/**
-        - packages/**/src/**
-      branch: "^feat-"
-  # PR: conventional `feat:` title
-  - label: enhancement
-    matcher:
-      title: "^feat(\\(.+\\))?:"
-  # Issue: feature request language
-  - label: enhancement
-    matcher:
-      title: "(?i)\\b(feature|enhancement|add support|would be nice)\\b"
+documentation:
+  - '^docs'
 
-  # --- ci-related (PR-only signal makes sense; keep title fallback) ---
-  - label: ci-related
-    matcher:
-      files:
-        - .github/**
-  - label: ci-related
-    matcher:
-      title: "^ci(\\(.+\\))?:"
+enhancement:
+  - '^feat'
 
-  # --- dependencies (dependabot + manual deps PRs) --------------------
-  - label: dependencies
-    matcher:
-      title: "^chore\\(deps"
-
-  # --- question (issues mostly) ---------------------------------------
-  - label: question
-    matcher:
-      title: "(?i)(\\?$|^how (do|can) i|^why does)"
+github_actions:
+  - '^ci'
