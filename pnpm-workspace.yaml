@@ -28,6 +28,7 @@ catalog:
   chalk: ^5.4.1
   ora: ^8.2.0
   tsdown: ^0.22.3
+  turbo: ^2.10.5
   tsx: ^4.22.4
   vitest: ^4.1.10
   '@vitest/coverage-v8': ^4.1.10

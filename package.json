@@ -13,14 +13,14 @@
   "author": "Newton Koumantzelis",
   "type": "module",
   "scripts": {
-    "build": "pnpm -r --filter './packages/*' build",
+    "audit": "knip",
+    "build": "turbo run build",
     "format": "prettier --write .",
     "holocron": "tsx packages/cli/src/cli.ts",
-    "audit": "knip",
-    "lint": "pnpm -r --filter './packages/*' lint",
-    "test": "pnpm -r --filter './packages/*' test",
-    "test:coverage": "pnpm -r --filter './packages/*' test:coverage",
-    "typecheck": "pnpm -r --filter './packages/*' typecheck"
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "@commitlint/types": "^19.5.0",
@@ -56,6 +56,7 @@
     "prettier": "^3.9.3",
     "semantic-release": "^25.0.5",
     "tsdown": "^0.22.3",
+    "turbo": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "^8.62.1"
