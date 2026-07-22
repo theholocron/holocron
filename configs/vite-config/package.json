@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/vite-config",
-  "version": "7.4.0",
+  "version": "7.4.1",
   "description": "Vite configuration presets for libraries, React apps, and Node tools within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/vite-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
