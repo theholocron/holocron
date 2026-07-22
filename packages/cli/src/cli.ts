@@ -10,6 +10,7 @@ import { stdin, stdout } from "node:process";
 import type { CapabilityKey } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
+import { NewError, runNew } from "./commands/new.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
@@ -467,6 +468,94 @@ await yargs(hideBin(process.argv))
 			const loaded = await loadConfig(argv.cwd);
 			console.log(JSON.stringify(loaded.resolved, null, 2));
 		}
+	)
+	.command(
+		"new [type] [name]",
+		"Scaffold a new repo from a GitHub template (e.g. cli, react, nextjs, node, monorepo, base)",
+		(y) =>
+			y
+				.positional("type", {
+					type: "string",
+					describe:
+						"Template type — maps to theholocron/<type>-template " +
+						"(e.g. cli, react, nextjs, node, monorepo, base)",
+				})
+				.positional("name", {
+					type: "string",
+					describe: "New repo name (kebab-case, e.g. my-tool)",
+				})
+				.option("description", {
+					type: "string",
+					describe: "Short description — replaces <description> placeholders in the template",
+				})
+				.option("org", {
+					type: "string",
+					default: "theholocron",
+					describe: "GitHub org that owns the template and will own the new repo",
+				})
+				.option("verify", {
+					type: "boolean",
+					default: true,
+					describe:
+						"Run pnpm install after bootstrapping (default true; --no-verify skips)",
+				}),
+		async (argv) => {
+			try {
+				let type = argv.type as string | undefined;
+				let name = argv.name as string | undefined;
+				let description = argv.description as string | undefined;
+
+				const needsPrompt = !type || !name || description === undefined;
+				if (needsPrompt) {
+					const rl = createInterface({ input: stdin, output: stdout });
+					const ask = (question: string) =>
+						new Promise<string>((resolve) =>
+							rl.question(`  ${question} `, (answer) => resolve(answer.trim())),
+						);
+					try {
+						if (!type) {
+							console.log("  Known types: base, cli, monorepo, nextjs, node, react");
+							type = await ask("Template type:");
+						}
+						if (!name) name = await ask("Repo name (kebab-case):");
+						if (description === undefined) {
+							description = await ask("Short description (Enter to skip):");
+						}
+					} finally {
+						rl.close();
+					}
+				}
+
+				if (!type) {
+					console.error("new: template type is required");
+					process.exitCode = 1;
+					return;
+				}
+				if (!name) {
+					console.error("new: repo name is required");
+					process.exitCode = 1;
+					return;
+				}
+
+				const report = await runNew({
+					type,
+					name,
+					...(description ? { description } : {}),
+					org: argv.org,
+					dryRun: argv.dryRun,
+					noVerify: !argv.verify,
+					cwd: argv.cwd,
+				});
+				if (report.status === "fail") process.exitCode = 1;
+			} catch (err) {
+				if (err instanceof NewError) {
+					console.error(`new: ${err.message}`);
+					process.exitCode = 1;
+					return;
+				}
+				throw err;
+			}
+		},
 	)
 	.command(
 		"plugin create <slug> <vendor>",
