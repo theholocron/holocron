@@ -24,6 +24,7 @@ import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/s
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
 import { TokenParseError, parseTokenArgs, type ParsedTokenArgs } from "./token-args.js";
+import { checkForUpdates } from "./update-notifier.js";
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
@@ -43,6 +44,8 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 		throw err;
 	}
 }
+
+const updateCheckPromise = checkForUpdates(CLI_VERSION);
 
 await yargs(hideBin(process.argv))
 	.scriptName("holocron")
@@ -670,6 +673,9 @@ await yargs(hideBin(process.argv))
 	.strict()
 	.help()
 	.parse();
+
+const notify = await updateCheckPromise;
+notify?.();
 
 /**
  * Parse `--scope` strings: `repo` | `env=NAME` | `org=NAME`.
