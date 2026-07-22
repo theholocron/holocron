@@ -260,7 +260,7 @@ describe("runNew — errors", () => {
 		vi.mocked(existsSync).mockReturnValueOnce(true);
 
 		await expect(
-			runNew({ ...BASE, exec: () => {}, readFile: () => "", walkFiles: () => [], print: () => {} }),
+			runNew({ ...BASE, exec: () => {}, readFile: () => "", walkFiles: () => [], print: () => {} })
 		).rejects.toThrow(NewError);
 	});
 
@@ -277,7 +277,7 @@ describe("runNew — errors", () => {
 				readFile: () => "",
 				walkFiles: () => [],
 				print: () => {},
-			}),
+			})
 		).rejects.toThrow(NewError);
 	});
 });

@@ -496,8 +496,7 @@ await yargs(hideBin(process.argv))
 				.option("verify", {
 					type: "boolean",
 					default: true,
-					describe:
-						"Run pnpm install after bootstrapping (default true; --no-verify skips)",
+					describe: "Run pnpm install after bootstrapping (default true; --no-verify skips)",
 				}),
 		async (argv) => {
 			try {
@@ -510,7 +509,7 @@ await yargs(hideBin(process.argv))
 					const rl = createInterface({ input: stdin, output: stdout });
 					const ask = (question: string) =>
 						new Promise<string>((resolve) =>
-							rl.question(`  ${question} `, (answer) => resolve(answer.trim())),
+							rl.question(`  ${question} `, (answer) => resolve(answer.trim()))
 						);
 					try {
 						if (!type) {
@@ -555,7 +554,7 @@ await yargs(hideBin(process.argv))
 				}
 				throw err;
 			}
-		},
+		}
 	)
 	.command(
 		"plugin create <slug> <vendor>",

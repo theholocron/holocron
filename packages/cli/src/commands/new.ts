@@ -121,7 +121,7 @@ function patchFiles(
 	print: (line: string) => void,
 	readFn: (p: string) => string,
 	writeFn: (p: string, c: string) => void,
-	walkFn: (d: string) => string[],
+	walkFn: (d: string) => string[]
 ): string[] {
 	const patched: string[] = [];
 	for (const filepath of walkFn(dir)) {
@@ -155,9 +155,7 @@ function patchFiles(
 function preflight(): void {
 	const result = spawnSync("gh", ["--version"], { encoding: "utf8" });
 	if (result.error != null || result.status !== 0) {
-		throw new NewError(
-			"`gh` CLI is not installed or not on PATH. Install it from https://cli.github.com",
-		);
+		throw new NewError("`gh` CLI is not installed or not on PATH. Install it from https://cli.github.com");
 	}
 }
 
@@ -202,18 +200,15 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	}
 
 	if (existsSync(repoDir)) {
-		throw new NewError(
-			`\`${repoDir}\` already exists — delete it or pick a different name.`,
-		);
+		throw new NewError(`\`${repoDir}\` already exists — delete it or pick a different name.`);
 	}
 
 	print(`  Creating ${newRepo} from template ${templateRepo}…`);
 	try {
-		execFn(
-			"gh",
-			["repo", "create", newRepo, `--template=${templateRepo}`, "--private", "--clone"],
-			{ cwd, stdio: "inherit" },
-		);
+		execFn("gh", ["repo", "create", newRepo, `--template=${templateRepo}`, "--private", "--clone"], {
+			cwd,
+			stdio: "inherit",
+		});
 	} catch (err) {
 		throw new NewError(`gh repo create failed: ${err instanceof Error ? err.message : String(err)}`);
 	}
