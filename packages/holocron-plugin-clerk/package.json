@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-clerk",
-  "version": "2.0.0-alpha.74",
+  "version": "2.0.0-alpha.75",
   "description": "Holocron plugin for Clerk. Implements the auth capability against Clerk's Backend REST API.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-clerk#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
