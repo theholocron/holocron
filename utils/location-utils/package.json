@@ -1,0 +1,52 @@
+{
+  "name": "@theholocron/location-utils",
+  "version": "0.2.2",
+  "description": "Location utilities.",
+  "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-location#readme",
+  "bugs": "https://github.com/theholocron/utils/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/utils.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/location-utils.es.js",
+      "require": "./dist/location-utils.cjs.js"
+    }
+  },
+  "main": "dist/location-utils.cjs.js",
+  "module": "dist/location-utils.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bundlewatch": {
+    "files": [
+      {
+        "path": "./dist/**/*.js",
+        "maxSize": "100 kB"
+      }
+    ]
+  },
+  "releases": "https://github.com/theholocron/utils/releases",
+  "wiki": "https://github.com/theholocron/utils/wiki"
+}

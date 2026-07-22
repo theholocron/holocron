@@ -1,0 +1,49 @@
+{
+  "name": "@theholocron/env-utils",
+  "version": "0.1.0",
+  "description": "Runtime environment detection and typed env-var parsing.",
+  "homepage": "https://github.com/theholocron/utils/tree/main/packages/env#readme",
+  "bugs": "https://github.com/theholocron/utils/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/utils.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/env-utils.es.js",
+      "require": "./dist/env-utils.cjs.js"
+    }
+  },
+  "main": "dist/env-utils.cjs.js",
+  "module": "dist/env-utils.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "dotenv": "^16.5.0"
+  },
+  "peerDependencies": {
+    "dotenv": ">=16"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/utils/releases",
+  "wiki": "https://github.com/theholocron/utils/wiki"
+}

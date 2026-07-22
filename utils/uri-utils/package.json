@@ -1,0 +1,53 @@
+{
+  "name": "@theholocron/uri-utils",
+  "version": "0.1.2",
+  "description": "Grab details from a URL.",
+  "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-uri#readme",
+  "bugs": "https://github.com/theholocron/utils/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/utils.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/uri-utils.es.js",
+      "require": "./dist/uri-utils.cjs.js"
+    }
+  },
+  "main": "dist/uri-utils.cjs.js",
+  "module": "dist/uri-utils.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "",
+    "test": "vitest run",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bundlewatch": {
+    "files": [
+      {
+        "path": "./dist/**/*.js",
+        "maxSize": "100 kB"
+      }
+    ]
+  },
+  "releases": "https://github.com/theholocron/utils/releases",
+  "wiki": "https://github.com/theholocron/utils/wiki"
+}

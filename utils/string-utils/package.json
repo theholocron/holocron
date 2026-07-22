@@ -1,0 +1,57 @@
+{
+  "name": "@theholocron/string-utils",
+  "version": "0.2.1",
+  "description": "Convert a string to any case or case to a different data type.",
+  "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-string#readme",
+  "bugs": "https://github.com/theholocron/utils/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/utils.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/string-utils.es.js",
+      "require": "./dist/string-utils.cjs.js"
+    }
+  },
+  "main": "dist/string-utils.cjs.js",
+  "module": "dist/string-utils.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "",
+    "test": "vitest run",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "dependencies": {
+    "change-case": "^5.4.4",
+    "title-case": "^4.3.1"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bundlewatch": {
+    "files": [
+      {
+        "path": "./dist/**/*.js",
+        "maxSize": "100 kB"
+      }
+    ]
+  },
+  "releases": "https://github.com/theholocron/utils/releases",
+  "wiki": "https://github.com/theholocron/utils/wiki"
+}
