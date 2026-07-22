@@ -1,7 +1,7 @@
 export function toPlural(
 	count: number,
 	singular: string,
-	plural?: string
+	plural?: string,
 ): string {
 	if (count === 1) return singular;
 

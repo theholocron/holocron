@@ -2,7 +2,10 @@ import { vi } from "vitest";
 import { konami } from "./index.ts";
 
 class MockKeyboardEvent {
-	constructor(public type: string, public options: { code?: string }) {}
+	constructor(
+		public type: string,
+		public options: { code?: string },
+	) {}
 }
 
 // Replace KeyboardEvent with MockKeyboardEvent

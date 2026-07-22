@@ -34,7 +34,7 @@ export async function getCurrentLocation(): Promise<IGeolocationCoordinates> {
 					enableHighAccuracy: true,
 					timeout: 27000,
 				});
-			}
+			},
 		);
 
 		return {

@@ -1,4 +1,4 @@
-export function getParam (url: string, param: string): string | null {
+export function getParam(url: string, param: string): string | null {
 	const { search } = new URL(url);
 	if (search) {
 		const params = new URLSearchParams(search);

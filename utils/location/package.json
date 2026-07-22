@@ -29,12 +29,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "",
-    "types": "npx tsc"
+    "typecheck": "npx tsc --noEmit"
   },
-  "packageManager": "npm@9.5.0",
+  "packageManager": "pnpm@10.34.4",
   "engines": {
     "node": ">=22",
-    "npm": ">=10"
+    "pnpm": ">=10"
   },
   "publishConfig": {
     "access": "public"
