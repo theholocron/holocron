@@ -4,9 +4,11 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }));
+
 import { resolveConfig } from "../config.js";
 import { installSkills } from "../commands/setup.js";
-import { runSkillsInstall } from "../commands/skills.js";
+import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "../commands/skills.js";
 import type { LoadedConfig } from "../load-config.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -308,5 +310,139 @@ describe("runSkillsInstall", () => {
 		expect(output).toContain("Installing");
 		expect(output).toContain("@theholocron/skills not found");
 		// Must not throw — error is caught and printed
+	});
+});
+
+// ── defaultExec (skills) ─────────────────────────────────────────────────────
+
+describe("defaultExec", () => {
+	it("calls spawnSync with npx args when exec is not injected", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 0 });
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
+
+		expect(spy).toHaveBeenCalledWith("npx", ["skills", "update"], expect.objectContaining({ cwd: "/repo" }));
+		expect(report.status).toBe("ok");
+	});
+
+	it("returns fail status when spawnSync exits non-zero", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 1 });
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
+		expect(report.status).toBe("fail");
+	});
+
+	it("handles null exit status (spawnSync status ?? -1)", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: null });
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
+		expect(report.status).toBe("fail");
+	});
+});
+
+// ── runSkillsRemove ───────────────────────────────────────────────────────────
+
+describe("runSkillsRemove", () => {
+	it("calls npx skills remove with no args when no names are given", () => {
+		const calls: Array<{ cmd: string; args: string[] }> = [];
+		const exec = (cmd: string, args: string[], _opts: { cwd: string }) => {
+			calls.push({ cmd, args });
+			return { exitCode: 0 };
+		};
+
+		const report = runSkillsRemove({ context: { repoRoot: "/repo" }, exec });
+
+		expect(report.status).toBe("ok");
+		expect(calls[0]!.cmd).toBe("npx");
+		expect(calls[0]!.args).toEqual(["skills", "remove"]);
+	});
+
+	it("appends skill names when names are given", () => {
+		const calls: Array<{ args: string[] }> = [];
+		const exec = (cmd: string, args: string[], _opts: { cwd: string }) => {
+			calls.push({ args });
+			return { exitCode: 0 };
+		};
+
+		runSkillsRemove({ context: { repoRoot: "/repo" }, names: ["git-safety", "pr-workflow"], exec });
+
+		expect(calls[0]!.args).toEqual(["skills", "remove", "git-safety", "pr-workflow"]);
+	});
+
+	it("uses defaultExec (spawnSync) when exec is not injected", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({ status: 0 });
+
+		const report = runSkillsRemove({ context: { repoRoot: "/repo" } });
+		expect(spy).toHaveBeenCalledWith("npx", ["skills", "remove"], expect.objectContaining({ cwd: "/repo" }));
+		expect(report.status).toBe("ok");
+	});
+
+	it("returns fail when npx exits with a non-zero code", () => {
+		const exec = () => ({ exitCode: 1 });
+		const report = runSkillsRemove({ context: { repoRoot: "/repo" }, exec });
+		expect(report.status).toBe("fail");
+	});
+
+	it("dry-run prints would-run message and does not exec", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		runSkillsRemove({ context: { repoRoot: "/repo", dryRun: true }, exec });
+		expect(exec).not.toHaveBeenCalled();
+	});
+});
+
+// ── runSkillsUpdate ───────────────────────────────────────────────────────────
+
+describe("runSkillsUpdate", () => {
+	it("calls npx skills update with no args when no name is given", () => {
+		const calls: Array<{ cmd: string; args: string[]; cwd: string }> = [];
+		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
+			calls.push({ cmd, args, cwd: opts.cwd });
+			return { exitCode: 0 };
+		};
+
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" }, exec });
+
+		expect(report.status).toBe("ok");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]!.cmd).toBe("npx");
+		expect(calls[0]!.args).toEqual(["skills", "update"]);
+		expect(calls[0]!.cwd).toBe("/repo");
+	});
+
+	it("appends the skill name when name is given", () => {
+		const calls: Array<{ args: string[] }> = [];
+		const exec = (cmd: string, args: string[], _opts: { cwd: string }) => {
+			calls.push({ args });
+			return { exitCode: 0 };
+		};
+
+		runSkillsUpdate({ context: { repoRoot: "/repo" }, name: "vercel-cli", exec });
+
+		expect(calls[0]!.args).toEqual(["skills", "update", "vercel-cli"]);
+	});
+
+	it("returns fail when npx exits with a non-zero code", () => {
+		const exec = () => ({ exitCode: 1 });
+		const report = runSkillsUpdate({ context: { repoRoot: "/repo" }, exec });
+		expect(report.status).toBe("fail");
+	});
+
+	it("dry-run prints would-run message and does not exec", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const report = runSkillsUpdate({
+			context: { repoRoot: "/repo", dryRun: true },
+			exec,
+		});
+
+		expect(report.status).toBe("dry-run");
+		expect(exec).not.toHaveBeenCalled();
 	});
 });

@@ -20,7 +20,7 @@ import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/ind
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
-import { runSkillsInstall } from "./commands/skills.js";
+import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
 
@@ -108,20 +108,54 @@ await yargs(hideBin(process.argv))
 		}
 	)
 	.command(
-		"skills <action>",
+		"skills",
 		"Manage agent skills from the @theholocron/skills registry",
 		(y) =>
-			y.positional("action", {
-				type: "string",
-				choices: ["install"] as const,
-				describe: "install — copy skills from @theholocron/skills into .agents/ with agent symlinks",
-			}),
-		async (argv) => {
-			if (argv.action === "install") {
-				const loaded = await loadConfig(argv.cwd);
-				await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
-			}
-		}
+			y
+				.command(
+					"install",
+					"Copy skills from @theholocron/skills into .agents/ with agent symlinks",
+					() => {},
+					async (argv) => {
+						const loaded = await loadConfig(argv.cwd);
+						await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
+					}
+				)
+				.command(
+					"remove [names..]",
+					"Remove installed skills via npx skills remove",
+					(yy) =>
+						yy.positional("names", {
+							type: "string",
+							array: true,
+							describe: "Skill name(s) to remove (omit to remove all installed skills)",
+						}),
+					(argv) => {
+						const report = runSkillsRemove({
+							context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
+							...(argv.names?.length ? { names: argv.names as string[] } : {}),
+						});
+						if (report.status === "fail") process.exitCode = 1;
+					}
+				)
+				.command(
+					"update [name]",
+					"Update installed skills to their latest upstream versions via npx skills update",
+					(yy) =>
+						yy.positional("name", {
+							type: "string",
+							describe: "Skill name to update (omit to update all installed skills)",
+						}),
+					(argv) => {
+						const report = runSkillsUpdate({
+							context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
+							...(argv.name ? { name: argv.name as string } : {}),
+						});
+						if (report.status === "fail") process.exitCode = 1;
+					}
+				)
+				.demandCommand(1, "Run `holocron skills --help` to see available skills subcommands."),
+		() => {}
 	)
 	.command(
 		"secret set <name> [value]",

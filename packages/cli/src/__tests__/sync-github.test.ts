@@ -1,3 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
@@ -483,6 +488,95 @@ describe("runSyncGithub", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(lines.join("\n")).toContain("already open");
+	});
+
+	it("writes files to outputDir without making any API calls", async () => {
+		const tmpOut = await mkdtemp(join(tmpdir(), "holocron-sync-output-"));
+		try {
+			const report = await runSyncGithub({ token: "unused", outputDir: tmpOut, print: () => {} });
+			expect(report.status).toBe("ok");
+			expect(report.created).toBe(PRIMARY_FILE_COUNT);
+			expect(existsSync(join(tmpOut, ".github/workflows/release.yml"))).toBe(true);
+		} finally {
+			await rm(tmpOut, { recursive: true });
+		}
+	});
+
+	it("returns fail when repo metadata fetch fails", async () => {
+		const fn: typeof globalThis.fetch = async (url, _init) => {
+			if (url.toString().match(/\/repos\/[^/]+\/[^/]+$/)) {
+				return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+			}
+			// fallback for anything else (shouldn't be reached)
+			return new Response("{}", { status: 200 });
+		};
+		// createPr forces a getRepo call even when branch is set
+		const report = await runSyncGithub({
+			token: "t",
+			branch: "chore/sync",
+			createPr: true,
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.status).toBe("fail");
+	});
+
+	it("treats a file as unchanged when the existing blob SHA matches", async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2024-01-01T00:00:00.000Z"));
+		const tmpOut = await mkdtemp(join(tmpdir(), "holocron-sync-unchanged-"));
+		try {
+			// Generate files to disk with frozen time to get deterministic content.
+			await runSyncGithub({ token: "unused", outputDir: tmpOut, print: () => {} });
+			const content = readFileSync(join(tmpOut, ".github/workflows/release.yml"), "utf8");
+			const sha = _gitBlobSha(content);
+
+			const { fn } = makeFetch({ ".github/workflows/release.yml": sha });
+			const report = await runSyncGithub({
+				token: "t",
+				branch: "chore/sync",
+				dryRun: false,
+				print: () => {},
+				fetch: fn,
+			});
+
+			expect(report.unchanged).toBe(1);
+			expect(report.created).toBe(PRIMARY_FILE_COUNT - 1);
+		} finally {
+			vi.useRealTimers();
+			await rm(tmpOut, { recursive: true });
+		}
+	});
+
+	it("warns on non-422 PR creation error", async () => {
+		const lines: string[] = [];
+		const { fn: baseFn } = makeFetch();
+		const fn: typeof globalThis.fetch = async (url, init) => {
+			const method = init?.method ?? "GET";
+			const urlStr = url.toString();
+			// Let branch ref creation succeed (POST /git/refs) so we reach PR creation.
+			if (method === "POST" && urlStr.includes("/git/refs") && !urlStr.includes("/git/refs/")) {
+				return new Response(JSON.stringify({ ref: "refs/heads/chore/sync", object: { sha: "c" } }), {
+					status: 201,
+				});
+			}
+			// Fail PR creation with a non-422 error so line 389 is hit.
+			if (method === "POST" && urlStr.includes("/pulls")) {
+				return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+			}
+			return baseFn(url, init);
+		};
+		await runSyncGithub({
+			token: "t",
+			repo: "theholocron/.github",
+			branch: "chore/sync",
+			createPr: true,
+			dryRun: false,
+			print: (l) => lines.push(l),
+			fetch: fn,
+		});
+		expect(lines.some((l) => l.includes("PR creation failed"))).toBe(true);
 	});
 });
 

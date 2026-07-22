@@ -676,6 +676,134 @@ describe("runSetup", () => {
 		expect(rulesetStep?.message).toBe("updated");
 	});
 
+	it("fails immediately when rulesets throw a non-403 error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("server error", 500);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("fail");
+		expect(rulesetStep?.message).toContain("server error");
+	});
+
+	it("falls back to classic protection when rulesets return 403", async () => {
+		let classicPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			workflows: ["lint", "test"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+					getRepo: async () => ({ defaultBranch: "main" }),
+					protectBranch: async (_branch: string, payload: Record<string, unknown>) => {
+						classicPayload = payload;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("ok");
+		expect(rulesetStep?.message).toBe("classic protection on main");
+		// strict + workflows → required_status_checks should be set (covers buildClassicProtectionPayload with checks)
+		expect((classicPayload as unknown as Record<string, unknown>)?.required_status_checks).not.toBeNull();
+	});
+
+	it("skips when classic protection also returns 403", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+					getRepo: async () => ({ defaultBranch: "main" }),
+					protectBranch: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("skip");
+		expect(rulesetStep?.message).toContain("GitHub Pro/Team");
+	});
+
+	it("fails when classic protection throws a non-403 error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+					getRepo: async () => ({ defaultBranch: "main" }),
+					protectBranch: async () => {
+						throw new ProviderApiError("unprocessable", 422);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("fail");
+		expect(rulesetStep?.message).toContain("unprocessable");
+	});
+
 	it("skips repo policy steps when repo.protection is 'none'", async () => {
 		let settingsCalled = false;
 		const loaded = loadedFrom({
