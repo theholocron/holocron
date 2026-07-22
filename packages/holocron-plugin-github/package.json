@@ -39,7 +39,6 @@
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",
     "@theholocron/vitest-config": "catalog:",
-    "@types/libsodium-wrappers": "^0.7.14",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
