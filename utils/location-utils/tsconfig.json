@@ -2,13 +2,11 @@
   "display": "Location Utilities",
   "extends": "@tsconfig/node-lts/tsconfig.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "outDir": "dist",
-    "declarationMap": true
+    "allowImportingTsExtensions": true
   },
-  "include": ["./src/**/*.ts"],
+  "include": [
+    "./src/**/*.ts"
+  ],
   "exclude": [
     "./node_modules",
     "**/*.test.ts"

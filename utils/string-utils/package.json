@@ -13,28 +13,28 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/string-utils.es.js",
-      "require": "./dist/string-utils.cjs.js"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
-  "main": "dist/string-utils.cjs.js",
-  "module": "dist/string-utils.es.js",
-  "types": "dist/index.d.ts",
   "files": [
-    "dist/*"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
+    "build": "tsdown",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "",
     "test": "vitest run",
     "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
     "change-case": "^5.4.4",
     "title-case": "^4.3.1"
+  },
+  "devDependencies": {
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "tsdown": "catalog:configs"
   },
   "packageManager": "pnpm@10.34.4",
   "engines": {
@@ -43,14 +43,6 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "bundlewatch": {
-    "files": [
-      {
-        "path": "./dist/**/*.js",
-        "maxSize": "100 kB"
-      }
-    ]
   },
   "releases": "https://github.com/theholocron/utils/releases",
   "wiki": "https://github.com/theholocron/utils/wiki"
