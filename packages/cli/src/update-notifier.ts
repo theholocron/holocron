@@ -107,20 +107,19 @@ export function isUpdateAvailable(current: string, latest: string): boolean {
 
 function formatNotice(current: string, latest: string): string {
 	const installCmd = `npm install -g ${PACKAGE_NAME}`;
-	const line1 = `Update available: ${chalk.dim(current)} → ${chalk.green(latest)}`;
-	const line2 = `Run ${chalk.cyan(installCmd)} to update`;
-	const width =
-		Math.max(line1.replace(/\x1b\[[0-9;]*m/g, "").length, line2.replace(/\x1b\[[0-9;]*m/g, "").length) + 4;
+	// Measure raw strings before applying chalk so we avoid control-char regexes.
+	const raw1 = `Update available: ${current} → ${latest}`;
+	const raw2 = `Run ${installCmd} to update`;
+	const width = Math.max(raw1.length, raw2.length) + 4;
 	const bar = chalk.yellow("─".repeat(width));
-	const pad = (s: string, raw: string) => {
-		const padded = raw.padEnd(width - 2);
-		return `${chalk.yellow("│")} ${s}${" ".repeat(padded.length - raw.length)} ${chalk.yellow("│")}`;
-	};
+	const border = chalk.yellow("│");
+	const pad = (raw: string, styled: string) =>
+		`${border} ${styled}${" ".repeat(width - 2 - raw.length)} ${border}`;
 	return [
 		"",
 		chalk.yellow(`╭${bar}╮`),
-		pad(line1, line1.replace(/\x1b\[[0-9;]*m/g, "")),
-		pad(line2, line2.replace(/\x1b\[[0-9;]*m/g, "")),
+		pad(raw1, `Update available: ${chalk.dim(current)} → ${chalk.green(latest)}`),
+		pad(raw2, `Run ${chalk.cyan(installCmd)} to update`),
 		chalk.yellow(`╰${bar}╯`),
 		"",
 	].join("\n");
