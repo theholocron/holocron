@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, createResolveToken } from "../auth-resolver.js";
+import { AuthError, createFeatureResolver, createResolveToken } from "../auth-resolver.js";
 
 const noKeyring = () => null;
 
@@ -64,6 +64,68 @@ describe("createResolveToken", () => {
 		const err = (() => {
 			try {
 				resolveToken({ env: {}, keyring: noKeyring });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect((err as Error).name).toBe("AuthError");
+	});
+});
+
+describe("createFeatureResolver", () => {
+	const resolveFeature = createFeatureResolver({
+		envName: "HOLOCRON_FEAT_TOKEN",
+		keyringKey: "github.feat",
+	});
+
+	it("uses the explicit CLI token first", () => {
+		expect(
+			resolveFeature({
+				cliToken: "cli-tok",
+				env: { HOLOCRON_FEAT_TOKEN: "feat-tok" },
+				keyring: () => "kr-tok",
+			})
+		).toBe("cli-tok");
+	});
+
+	it("uses the feature env var when no CLI token is given", () => {
+		expect(resolveFeature({ env: { HOLOCRON_FEAT_TOKEN: "feat-tok" }, keyring: noKeyring })).toBe("feat-tok");
+	});
+
+	it("falls back to the keyring when the env var is absent", () => {
+		expect(resolveFeature({ env: {}, keyring: (p) => (p === "github.feat" ? "kr-tok" : null) })).toBe("kr-tok");
+	});
+
+	it("does not fall back to GITHUB_TOKEN or any broad token", () => {
+		expect(() =>
+			resolveFeature({ env: { GITHUB_TOKEN: "broad", HOLOCRON_GITHUB_TOKEN: "also-broad" }, keyring: noKeyring })
+		).toThrow(AuthError);
+	});
+
+	it("ignores empty-string cliToken", () => {
+		expect(resolveFeature({ cliToken: "", env: { HOLOCRON_FEAT_TOKEN: "feat-tok" }, keyring: noKeyring })).toBe(
+			"feat-tok"
+		);
+	});
+
+	it("throws AuthError naming the feature env var and keyring command when nothing is set", () => {
+		const err = (() => {
+			try {
+				resolveFeature({ env: {}, keyring: noKeyring });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as Error).message).toMatch(/HOLOCRON_FEAT_TOKEN/);
+		expect((err as Error).message).toMatch(/--token/);
+		expect((err as Error).message).toMatch(/holocron auth set github\.feat/);
+	});
+
+	it("AuthError.name is 'AuthError'", () => {
+		const err = (() => {
+			try {
+				resolveFeature({ env: {}, keyring: noKeyring });
 			} catch (e) {
 				return e;
 			}

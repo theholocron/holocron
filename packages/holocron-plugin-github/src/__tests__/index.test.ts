@@ -18,8 +18,43 @@ import {
 const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" };
 
 describe("createPlugin", () => {
-	it("throws AuthError when no token is found", () => {
-		expect(() => createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null })).toThrow(AuthError);
+	it("does not throw at construction even when no token is set", () => {
+		expect(() => createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null })).not.toThrow();
+	});
+
+	it("throws AuthError when a capability is accessed with no token", () => {
+		const plugin = createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null });
+		expect(() => plugin.capabilities.source()).toThrow(AuthError);
+	});
+
+	it("each capability throws AuthError naming its own feature token", () => {
+		const plugin = createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null });
+		const sourceErr = (() => {
+			try {
+				plugin.capabilities.source();
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect((sourceErr as Error).message).toMatch(/HOLOCRON_ADMIN_TOKEN/);
+
+		const ciErr = (() => {
+			try {
+				plugin.capabilities.ci();
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect((ciErr as Error).message).toMatch(/HOLOCRON_READ_TOKEN/);
+
+		const issuesErr = (() => {
+			try {
+				plugin.capabilities.issues();
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect((issuesErr as Error).message).toMatch(/HOLOCRON_ISSUES_TOKEN/);
 	});
 
 	it("wires every capability with the right concrete implementation", () => {
@@ -35,6 +70,16 @@ describe("createPlugin", () => {
 		expect(plugin.capabilities.environments()).toBeInstanceOf(GitHubEnvironments);
 		expect(plugin.capabilities.ci()).toBeInstanceOf(GitHubCi);
 		expect(plugin.capabilities.issues()).toBeInstanceOf(GitHubIssues);
+	});
+
+	it("capabilities with different tokens coexist — issues token set, admin absent", () => {
+		const plugin = createPlugin({
+			repo: "theholocron/holocron",
+			env: { HOLOCRON_ISSUES_TOKEN: "iss-pat" },
+			keyring: () => null,
+		});
+		expect(plugin.capabilities.issues()).toBeInstanceOf(GitHubIssues);
+		expect(() => plugin.capabilities.source()).toThrow(AuthError);
 	});
 
 	it("issues capability constructs without `labels` (lazy-degrade)", () => {

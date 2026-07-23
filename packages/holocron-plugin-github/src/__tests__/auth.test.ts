@@ -1,52 +1,66 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, resolveToken } from "../auth.js";
+import {
+	AuthError,
+	resolveAdminToken,
+	resolveIssuesToken,
+	resolveReadToken,
+	resolveReleaseToken,
+	resolveSyncToken,
+} from "../auth.js";
 
 const noKeyring = () => null;
 
-describe("resolveToken", () => {
+describe.each([
+	{ name: "resolveReadToken", resolver: resolveReadToken, envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" },
+	{
+		name: "resolveIssuesToken",
+		resolver: resolveIssuesToken,
+		envName: "HOLOCRON_ISSUES_TOKEN",
+		keyringKey: "github.issues",
+	},
+	{ name: "resolveSyncToken", resolver: resolveSyncToken, envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" },
+	{
+		name: "resolveReleaseToken",
+		resolver: resolveReleaseToken,
+		envName: "HOLOCRON_RELEASE_TOKEN",
+		keyringKey: "github.release",
+	},
+	{
+		name: "resolveAdminToken",
+		resolver: resolveAdminToken,
+		envName: "HOLOCRON_ADMIN_TOKEN",
+		keyringKey: "github.admin",
+	},
+])("$name", ({ resolver, envName, keyringKey }) => {
 	it("uses the explicit CLI token first", () => {
-		expect(
-			resolveToken({
-				cliToken: "cli-pat",
-				env: { HOLOCRON_GH_TOKEN: "env-pat", GITHUB_TOKEN: "gha-pat" },
-				keyring: () => "kr-pat",
-			})
-		).toBe("cli-pat");
+		expect(resolver({ cliToken: "cli-pat", env: { [envName]: "env-pat" }, keyring: () => "kr-pat" })).toBe(
+			"cli-pat"
+		);
 	});
 
-	it("prefers HOLOCRON_GH_TOKEN over GITHUB_TOKEN", () => {
-		expect(
-			resolveToken({
-				env: { HOLOCRON_GH_TOKEN: "env-pat", GITHUB_TOKEN: "gha-pat" },
-				keyring: noKeyring,
-			})
-		).toBe("env-pat");
+	it("uses the feature env var when set", () => {
+		expect(resolver({ env: { [envName]: "feat-pat" }, keyring: noKeyring })).toBe("feat-pat");
 	});
 
-	it("falls back to GITHUB_TOKEN when only it is set", () => {
-		expect(resolveToken({ env: { GITHUB_TOKEN: "gha-pat" }, keyring: noKeyring })).toBe("gha-pat");
+	it("falls back to the keyring when the env var is absent", () => {
+		expect(resolver({ env: {}, keyring: (p) => (p === keyringKey ? "kr-pat" : null) })).toBe("kr-pat");
 	});
 
-	it("falls back to keyring when env vars are unset", () => {
-		expect(resolveToken({ env: {}, keyring: (p) => (p === "github" ? "kr-pat" : null) })).toBe("kr-pat");
+	it("does not fall back to GITHUB_TOKEN or any broad token", () => {
+		expect(() => resolver({ env: { GITHUB_TOKEN: "broad" }, keyring: noKeyring })).toThrow(AuthError);
 	});
 
-	it("throws AuthError with a helpful message when nothing is set", () => {
+	it("throws AuthError naming the feature env var and keyring key when nothing is set", () => {
 		const err = (() => {
 			try {
-				resolveToken({ env: {}, keyring: noKeyring });
+				resolver({ env: {}, keyring: noKeyring });
 			} catch (e) {
 				return e;
 			}
 		})();
 		expect(err).toBeInstanceOf(AuthError);
-		expect((err as Error).message).toMatch(/HOLOCRON_GH_TOKEN/);
-		expect((err as Error).message).toMatch(/--token/);
-		expect((err as Error).message).toMatch(/holocron auth set github/);
-	});
-
-	it("ignores empty-string cliToken (treats as absent)", () => {
-		expect(resolveToken({ cliToken: "", env: { GITHUB_TOKEN: "gha-pat" }, keyring: noKeyring })).toBe("gha-pat");
+		expect((err as Error).message).toMatch(new RegExp(envName));
+		expect((err as Error).message).toMatch(new RegExp(keyringKey.replace(".", "\\.")));
 	});
 });

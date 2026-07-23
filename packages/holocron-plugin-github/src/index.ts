@@ -11,7 +11,12 @@
 import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
-import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import {
+	resolveAdminToken,
+	resolveIssuesToken,
+	resolveReadToken,
+	type ResolveTokenInput,
+} from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
 import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
@@ -37,21 +42,6 @@ export interface PluginContext {
 	client: GitHubClient;
 	repo: string;
 	repoRoot: string;
-}
-
-export function createContext(options: GitHubPluginOptions): PluginContext {
-	const token = resolveToken(options);
-	const client = createGitHubClient({
-		token,
-		baseUrl: options.baseUrl,
-		fetch: options.fetch,
-	});
-	return {
-		options,
-		client,
-		repo: options.repo,
-		repoRoot: options.repoRoot ?? process.cwd(),
-	};
 }
 
 // ── Capability factories ──────────────────────────────────────────────
@@ -81,29 +71,41 @@ export function issues(ctx: PluginContext): Issues {
 // ── Plugin barrel for the core loader ─────────────────────────────────
 
 export function createPlugin(options: GitHubPluginOptions) {
-	const ctx = createContext(options);
+	function makeCtx(resolver: (input: ResolveTokenInput) => string): PluginContext {
+		const token = resolver(options);
+		const client = createGitHubClient({
+			token,
+			baseUrl: options.baseUrl,
+			fetch: options.fetch,
+		});
+		return {
+			options,
+			client,
+			repo: options.repo,
+			repoRoot: options.repoRoot ?? process.cwd(),
+		};
+	}
+
 	return {
 		name: "@theholocron/holocron-plugin-github",
 		capabilities: {
-			source: () => source(ctx),
-			ci: () => ci(ctx),
-			secrets: () => secrets(ctx),
-			environments: () => environments(ctx),
-			issues: () => issues(ctx),
+			source: () => source(makeCtx(resolveAdminToken)),
+			ci: () => ci(makeCtx(resolveReadToken)),
+			secrets: () => secrets(makeCtx(resolveAdminToken)),
+			environments: () => environments(makeCtx(resolveAdminToken)),
+			issues: () => issues(makeCtx(resolveIssuesToken)),
 		},
 	};
 }
 
 /**
  * One-line hint printed by `holocron auth set github` when no token
- * is supplied or the supplied token is rejected. Generate a PAT at
- * https://github.com/settings/tokens with `repo` + `admin:repo_hook`
- * scopes (add `admin:org` for org-level operations).
+ * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
-	"generate a Personal Access Token at https://github.com/settings/tokens " +
-	"(scopes: repo, admin:repo_hook — plus admin:org for org-level ops), " +
-	"then run: holocron auth set github <PAT>";
+	"generate fine-grained Personal Access Tokens at https://github.com/settings/tokens " +
+	"(one per feature — see docs/tokens.md for required scopes per operation), " +
+	"then run: holocron auth set github.<feature> <PAT>";
 
 // ── Public re-exports ─────────────────────────────────────────────────
 
