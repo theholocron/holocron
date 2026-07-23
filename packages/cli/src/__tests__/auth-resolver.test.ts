@@ -96,6 +96,17 @@ describe("createFeatureResolver", () => {
 		expect(resolveFeature({ env: {}, keyring: (p) => (p === "github.feat" ? "kr-tok" : null) })).toBe("kr-tok");
 	});
 
+	it("reads process.env when called with no arguments (covers default parameter branch)", () => {
+		const prev = process.env["HOLOCRON_FEAT_TOKEN"];
+		process.env["HOLOCRON_FEAT_TOKEN"] = "env-via-process";
+		try {
+			expect(resolveFeature()).toBe("env-via-process");
+		} finally {
+			if (prev === undefined) delete process.env["HOLOCRON_FEAT_TOKEN"];
+			else process.env["HOLOCRON_FEAT_TOKEN"] = prev;
+		}
+	});
+
 	it("does not fall back to GITHUB_TOKEN or any broad token", () => {
 		expect(() =>
 			resolveFeature({ env: { GITHUB_TOKEN: "broad", HOLOCRON_GITHUB_TOKEN: "also-broad" }, keyring: noKeyring })
