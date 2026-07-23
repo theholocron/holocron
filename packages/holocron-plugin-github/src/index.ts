@@ -106,7 +106,7 @@ export const AUTH_HINT =
 
 export type { Auth };
 export * from "./auth.js";
-export { createGitHubClient } from "./rest.js";
+export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
 export { GitHubSource } from "./capabilities/source.js";
 export { GitHubSecrets } from "./capabilities/secrets.js";

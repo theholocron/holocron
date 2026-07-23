@@ -58,7 +58,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createClerkClient } from "./rest.js";
+export { createClerkClient, type ClerkClientOptions } from "./rest.js";
 export { ClerkAuth } from "./capabilities/auth.js";
 export { parseWebhook } from "./parse-webhook.js";
 export { verifyToken } from "./verify-token.js";

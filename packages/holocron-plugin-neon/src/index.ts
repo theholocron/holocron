@@ -63,7 +63,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createNeonClient } from "./rest.js";
+export { createNeonClient, type NeonClientOptions } from "./rest.js";
 export type { NeonClient } from "./rest.js";
 export { NeonStorage } from "./capabilities/storage.js";
 export { verifyToken } from "./verify-token.js";

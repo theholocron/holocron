@@ -68,7 +68,7 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { PostmanPlanLimitError, detectPlanLimit, createPostmanClient } from "./rest.js";
-export type { PostmanClient } from "./rest.js";
+export type { PostmanClient, PostmanClientOptions } from "./rest.js";
 export { PostmanTooling } from "./capabilities/tooling.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
