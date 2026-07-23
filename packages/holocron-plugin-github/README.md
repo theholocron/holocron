@@ -27,13 +27,13 @@ Each capability resolves its own fine-grained token so a compromised credential 
 --token flag → HOLOCRON_<FEATURE>_TOKEN → keyring("github.<feature>")
 ```
 
-| Env var | Keyring key | Capabilities |
-|---|---|---|
-| `HOLOCRON_READ_TOKEN` | `github.read` | `clone`, `ci` |
-| `HOLOCRON_ISSUES_TOKEN` | `github.issues` | `issues` |
-| `HOLOCRON_SYNC_TOKEN` | `github.sync` | `sync-github` command |
-| `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release, GitHub releases |
-| `HOLOCRON_ADMIN_TOKEN` | `github.admin` | `source`, `secrets`, `environments` |
+| Env var                  | Keyring key      | Capabilities                        |
+| ------------------------ | ---------------- | ----------------------------------- |
+| `HOLOCRON_READ_TOKEN`    | `github.read`    | `clone`, `ci`                       |
+| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | `issues`                            |
+| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | `sync-github` command               |
+| `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release, GitHub releases   |
+| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | `source`, `secrets`, `environments` |
 
 Store tokens once via the keyring so they are picked up automatically:
 

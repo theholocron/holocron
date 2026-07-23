@@ -17,9 +17,7 @@ export type ResolveTokenConfig = Omit<_ResolveTokenConfig, "getKeyringToken">;
 
 /** Wraps `createResolveToken` from `@theholocron/http` and injects the
  *  system keyring so plugins stay at a one-liner call site. */
-export function createResolveToken(
-	config: ResolveTokenConfig
-): (input?: ResolveTokenInput) => string {
+export function createResolveToken(config: ResolveTokenConfig): (input?: ResolveTokenInput) => string {
 	return _createResolveToken({ ...config, getKeyringToken });
 }
 
@@ -37,9 +35,7 @@ export interface FeatureResolverConfig {
  * No broad-token fallback — if the feature-specific token is absent the
  * operation fails with a message naming the exact env var to set.
  */
-export function createFeatureResolver(
-	config: FeatureResolverConfig
-): (input?: ResolveTokenInput) => string {
+export function createFeatureResolver(config: FeatureResolverConfig): (input?: ResolveTokenInput) => string {
 	return function resolveFeatureToken(input: ResolveTokenInput = {}): string {
 		const env = createEnvLookup(input.env);
 		const keyring = input.keyring ?? getKeyringToken;
