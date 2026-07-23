@@ -30,7 +30,10 @@
   "devDependencies": {
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
-    "tsdown": "catalog:configs",
+    "@tsconfig/node-lts": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:",
     "vitest-localstorage-mock": "^0.1.2"
   },
   "packageManager": "pnpm@10.34.4",

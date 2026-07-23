@@ -30,9 +30,12 @@
   "devDependencies": {
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
-    "@types/node": "^22.0.0",
+    "@tsconfig/node-lts": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "dotenv": "^16.5.0",
-    "tsdown": "catalog:configs"
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "dotenv": ">=16"

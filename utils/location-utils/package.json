@@ -29,7 +29,10 @@
   "devDependencies": {
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
-    "tsdown": "catalog:configs"
+    "@tsconfig/node-lts": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@10.34.4",
   "engines": {

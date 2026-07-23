@@ -5,6 +5,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig(
 	library({
 		globals: true,
-		thresholds: { lines: 60, statements: 60 },
+		thresholds: { lines: 60, statements: 60, branches: 65 },
 	}) as never,
 );

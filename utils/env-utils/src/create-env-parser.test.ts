@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEnvParser } from "./create-env-parser.js";
 import type { EnvLoader } from "./types.js";
 
@@ -21,6 +21,12 @@ function makeLoader(vars: Record<string, string>): EnvLoader {
 describe("createEnvParser", () => {
 	beforeEach(() => {
 		vi.unstubAllEnvs();
+		isDeployedMock.mockReset();
+		isDeployedMock.mockReturnValue(false);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	it("exposes the parsed env object", () => {
