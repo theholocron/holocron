@@ -53,7 +53,11 @@ describe("verifyToken", () => {
 		const { vi } = await import("vitest");
 		const restModule = await import("../rest.js");
 		const mockFactory = vi.spyOn(restModule, "createClerkClient").mockReturnValue({
-			instance: { get: async () => { throw "non-error string"; } },
+			instance: {
+				get: async () => {
+					throw "non-error string";
+				},
+			},
 		} as unknown as ReturnType<typeof restModule.createClerkClient>);
 		try {
 			const result = await verifyToken("t", {});

@@ -101,7 +101,9 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 		print(style.fail(`no token supplied for \`${provider}\`.`));
 		print(style.hint(`  pass as positional arg: holocron auth set ${provider} <token>`));
 		if (!isFeatureKey) {
-			print(style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`));
+			print(
+				style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`)
+			);
 			const hint = await tryLoadHint(importer, packageName!);
 			if (hint) {
 				print(style.hint(`  hint: ${hint}`));
@@ -129,7 +131,9 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
-			print(style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`));
+			print(
+				style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`)
+			);
 		}
 	}
 
