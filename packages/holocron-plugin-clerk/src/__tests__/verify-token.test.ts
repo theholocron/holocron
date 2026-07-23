@@ -51,13 +51,10 @@ describe("verifyToken", () => {
 		// so the `String(err)` branch in the catch is unreachable via the network layer.
 		// Inject a mock client that throws a plain string to cover it directly.
 		const { vi } = await import("vitest");
-		const { createClerkClient } = await import("../rest.js");
-		const mockFactory = vi.spyOn(
-			await import("../rest.js") as { createClerkClient: typeof createClerkClient },
-			"createClerkClient"
-		).mockReturnValue({
+		const restModule = await import("../rest.js");
+		const mockFactory = vi.spyOn(restModule, "createClerkClient").mockReturnValue({
 			instance: { get: async () => { throw "non-error string"; } },
-		} as unknown as ReturnType<typeof createClerkClient>);
+		} as unknown as ReturnType<typeof restModule.createClerkClient>);
 		try {
 			const result = await verifyToken("t", {});
 			expect(result.ok).toBe(false);
