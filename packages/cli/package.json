@@ -35,19 +35,19 @@
   },
   "dependencies": {
     "@napi-rs/keyring": "^1.3.0",
-    "@theholocron/github-client": "catalog:",
-    "@theholocron/http-client": "catalog:",
+    "@theholocron/github-client": "catalog:clients",
+    "@theholocron/http-client": "catalog:clients",
     "chalk": "catalog:",
     "ora": "catalog:",
     "tsx": "catalog:",
-    "yargs": "^18.0.0"
+    "yargs": "catalog:"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:",
-    "@theholocron/tsconfig": "catalog:",
-    "@theholocron/vitest-config": "catalog:",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
-    "@types/yargs": "^17.0.35",
+    "@types/yargs": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",

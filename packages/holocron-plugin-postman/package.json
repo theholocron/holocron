@@ -27,7 +27,7 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/postman-client": "catalog:"
+    "@theholocron/postman-client": "catalog:clients"
   },
   "peerDependenciesMeta": {
     "@theholocron/postman-client": {
@@ -36,11 +36,11 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:",
-    "@theholocron/postman-client": "catalog:",
-    "@theholocron/tsconfig": "catalog:",
-    "@theholocron/tsdown-config": "catalog:",
-    "@theholocron/vitest-config": "catalog:",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/postman-client": "catalog:clients",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
