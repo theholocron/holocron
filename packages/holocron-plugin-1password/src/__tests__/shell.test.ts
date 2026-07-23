@@ -1,5 +1,5 @@
 import { ProviderApiError } from "@theholocron/cli";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { OpShell } from "../shell.js";
 
@@ -75,5 +75,41 @@ describe("OpShell.runOrThrow", () => {
 		expect(pae.status).toBe(0);
 		expect(pae.message).toContain("1Password read x failed");
 		expect(pae.message).toContain("item not found");
+	});
+
+	it('uses "no stderr" fallback when stderr is empty', () => {
+		const { spawn } = stubSpawn([{ status: 1, stderr: "" }]);
+		const shell = new OpShell({ spawn });
+		const err = (() => {
+			try {
+				shell.runOrThrow(["read", "op://x/y/z"], "read x");
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect((err as Error).message).toContain("no stderr");
+	});
+});
+
+describe("OpShell — null stdout/stderr handling", () => {
+	it("trims null stdout to empty string", () => {
+		const spawn = vi.fn(() => ({
+			pid: 0,
+			output: [],
+			stdout: null,
+			stderr: null,
+			status: 0,
+			signal: null,
+		})) as unknown as typeof import("node:child_process").spawnSync;
+		const shell = new OpShell({ spawn });
+		const result = shell.run(["whoami"]);
+		expect(result.stdout).toBe("");
+		expect(result.stderr).toBe("");
+	});
+
+	it("uses real spawnSync when spawn override is not provided (covers ?? spawnSync branch)", () => {
+		const shell = new OpShell({ binary: "nonexistent_binary_xyzzy_abc123" });
+		const result = shell.run(["--version"]);
+		expect(result.ok).toBe(false);
 	});
 });

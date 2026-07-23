@@ -119,6 +119,59 @@ describe("GitHubSource — REST methods", () => {
 		await source.enablePrivateVulnerabilityReporting();
 		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/private-vulnerability-reporting`);
 	});
+
+	it("protectBranch → PUT /branches/{branch}/protection", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: {} }]);
+		await source.protectBranch("main", { required_status_checks: null });
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/branches/main/protection`);
+		expect(calls[0]?.body).toEqual({ required_status_checks: null });
+	});
+
+	it("enableCodeScanning → returns run ID string", async () => {
+		const { source } = makeSource([{ status: 201, body: { run_id: 42 } }]);
+		expect(await source.enableCodeScanning()).toBe("run 42");
+	});
+
+	it("disableDefaultCodeScanning → calls the disable endpoint", async () => {
+		const { source, calls } = makeSource([{ status: 204 }]);
+		await source.disableDefaultCodeScanning();
+		expect(calls[0]?.url).toMatch(/repos\/.*\/code-scanning\/default-setup/);
+	});
+
+	it("enableDependencyGraph calls the GitHub API without throwing", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: {} }]);
+		await source.enableDependencyGraph();
+		expect(calls).toHaveLength(1);
+	});
+
+	it("syncProperties → PATCH /repos/{repo}/properties/values", async () => {
+		const { source, calls } = makeSource([{ status: 204 }]);
+		const result = await source.syncProperties({ team: "infra", env: "prod" });
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/properties/values`);
+		expect(typeof result).toBe("string");
+	});
+
+	it("syncTopics → PUT /repos/{repo}/topics", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: { names: ["cli", "tool"] } }]);
+		const result = await source.syncTopics(["cli", "tool"]);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/topics`);
+		expect(calls[0]?.body).toEqual({ names: ["cli", "tool"] });
+		expect(typeof result).toBe("string");
+	});
+
+	it("syncLabels → syncs canonical labels against the repo", async () => {
+		// GET labels, then POST a new one
+		const { source, calls } = makeSource([
+			{ status: 200, body: [] },
+			{ status: 201, body: { id: 1, name: "bug", color: "d73a4a", description: "" } },
+		]);
+		const result = await source.syncLabels([{ name: "bug", color: "d73a4a", description: "" }], []);
+		expect(calls[0]?.url).toMatch(`https://api.github.com/repos/${REPO}/labels`);
+		expect(typeof result).toBe("string");
+	});
 });
 
 describe("GitHubSource — workflow files (local fs)", () => {
@@ -182,5 +235,21 @@ describe("GitHubSource — workflow files (local fs)", () => {
 	it("removeWorkflowFile is a noop when the file is missing", async () => {
 		const { source } = makeSource([], repoRoot);
 		await expect(source.removeWorkflowFile("phantom.yml")).resolves.toBeUndefined();
+	});
+
+	it("writeRepoFile creates nested directories and writes the file", async () => {
+		const { source } = makeSource([], repoRoot);
+		await source.writeRepoFile("docs/api/README.md", "# API");
+		const written = await readFile(join(repoRoot, "docs/api/README.md"), "utf8");
+		expect(written).toBe("# API");
+	});
+
+	it("writeWorkflowFile throws when .github/workflows path is occupied by a file", async () => {
+		await mkdir(join(repoRoot, ".github"), { recursive: true });
+		await writeFile(join(repoRoot, ".github", "workflows"), "I am a file");
+		const { source } = makeSource([], repoRoot);
+		await expect(source.writeWorkflowFile("lint.yml", "name: lint")).rejects.toThrow(
+			/exists but is not a directory/
+		);
 	});
 });

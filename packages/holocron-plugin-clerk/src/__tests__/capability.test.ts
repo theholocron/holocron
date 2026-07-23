@@ -140,3 +140,12 @@ describe("ClerkAuth.createUser", () => {
 		expect(result.email).toBe("a@b.com");
 	});
 });
+
+describe("ClerkAuth.ensureWebhookApp — non-string details", () => {
+	it("rethrows when ProviderApiError details is not a string (covers isAlreadyExistsError false branch)", async () => {
+		// Use a JSON body so the HTTP client parses it as an object for `details`,
+		// rather than the raw text path that produces a string.
+		const { auth } = makeAuth([{ status: 400, body: { errors: [{ code: "unknown_error" }] } }]);
+		await expect(auth.ensureWebhookApp!()).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});

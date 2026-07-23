@@ -39,4 +39,20 @@ describe("verifyToken", () => {
 		await verifyToken("t", { fetch: stub.fetch, baseUrl: "https://ghe.example.com/api/v3" });
 		expect(stub.calls[0]?.url).toMatch(/^https:\/\/ghe\.example\.com\/api\/v3\/user/);
 	});
+
+	it("falls back to 'unknown' when both login and email are absent", async () => {
+		const stub = stubFetch([{ status: 200, body: {} }]);
+		const result = await verifyToken("pat", { fetch: stub.fetch });
+		expect(result.ok).toBe(true);
+		expect((result as { subject?: string }).subject).toBe("user @ unknown");
+	});
+
+	it("returns ok:false when the fetch layer throws a non-Error value", async () => {
+		const throwing: typeof fetch = async () => {
+			throw "network problem as string";
+		};
+		const result = await verifyToken("pat", { fetch: throwing });
+		expect(result.ok).toBe(false);
+		expect((result as { message?: string }).message).toContain("network problem as string");
+	});
 });

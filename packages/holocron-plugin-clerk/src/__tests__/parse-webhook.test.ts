@@ -271,6 +271,39 @@ describe("parseWebhook — Svix signature verification", () => {
 		expect((err as Error).message).toMatch(/verification failed/);
 	});
 
+	it("rejects a non-numeric svix-timestamp", async () => {
+		const body = clerkBody();
+		const ts = Math.floor(Date.now() / 1000);
+		const sig = sign(body, TEST_MSG_ID, ts);
+		const err = await parseWebhook({
+			body,
+			signingSecret: TEST_SECRET,
+			headers: {
+				"svix-id": TEST_MSG_ID,
+				"svix-timestamp": "not-a-number",
+				"svix-signature": `v1,${sig}`,
+			},
+		}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/Invalid svix-timestamp/);
+	});
+
+	it("skips a malformed base64 signature and throws when no valid signature remains", async () => {
+		const body = clerkBody();
+		const ts = Math.floor(Date.now() / 1000);
+		const err = await parseWebhook({
+			body,
+			signingSecret: TEST_SECRET,
+			headers: {
+				"svix-id": TEST_MSG_ID,
+				"svix-timestamp": String(ts),
+				"svix-signature": "v1,!!!not-base64!!!",
+			},
+		}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/verification failed/);
+	});
+
 	it("header lookup is case-insensitive", async () => {
 		const body = clerkBody();
 		const ts = Math.floor(Date.now() / 1000);

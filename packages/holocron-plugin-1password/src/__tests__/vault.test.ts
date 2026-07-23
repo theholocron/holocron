@@ -146,6 +146,13 @@ describe("OpVault.list", () => {
 // environments
 // ──────────────────────────────────────────────────────────────────────
 
+describe("OpVault.environments — empty output", () => {
+	it("returns [] when op environment list outputs nothing", async () => {
+		const { vault } = makeVault([{ status: 0, stdout: "" }]);
+		expect(await vault.environments!()).toEqual([]);
+	});
+});
+
 describe("OpVault.environments", () => {
 	it("runs `op environment list --format=json` and returns names", async () => {
 		const { vault, calls } = makeVault([
@@ -185,6 +192,14 @@ describe("OpVault.readEnvironment", () => {
 	it("throws ProviderApiError when op fails", async () => {
 		const { vault } = makeVault([{ status: 1, stderr: "environment not found" }]);
 		await expect(vault.readEnvironment!("missing_id")).rejects.toThrow(/environment not found/);
+	});
+
+	it("skips lines without an = sign", async () => {
+		const stdout = ["VALID=value", "NO_EQUALS_HERE", "ANOTHER=good"].join("\n");
+		const { vault } = makeVault([{ status: 0, stdout }]);
+		const result = await vault.readEnvironment!("env_x");
+		expect(result).toEqual({ VALID: "value", ANOTHER: "good" });
+		expect("NO_EQUALS_HERE" in result).toBe(false);
 	});
 });
 

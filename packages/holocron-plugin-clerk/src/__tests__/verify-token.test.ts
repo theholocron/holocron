@@ -46,6 +46,15 @@ describe("verifyToken", () => {
 		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/network down/);
 	});
 
+	it("returns ok:false when a non-Error value is thrown", async () => {
+		const throwing: typeof fetch = async () => {
+			throw "clerk network problem";
+		};
+		const result = await verifyToken("t", { fetch: throwing });
+		expect(result.ok).toBe(false);
+		expect((result as { message?: string }).message).toContain("clerk network problem");
+	});
+
 	it("hits the configured base URL", async () => {
 		const stub = stubFetch([{ status: 200, body: { id: "ins", environment_type: "staging" } }]);
 		await verifyToken("t", { fetch: stub.fetch, baseUrl: "https://api.clerk.example/v1" });
