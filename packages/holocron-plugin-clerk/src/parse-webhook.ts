@@ -125,7 +125,7 @@ async function verifySignature(input: ParseWebhookInput): Promise<void> {
 		let sigBytes: Buffer;
 		try {
 			sigBytes = Buffer.from(sig.slice(comma + 1), "base64");
-		} catch {
+		} catch /* istanbul ignore next -- Buffer.from('base64') never throws in Node.js */ {
 			return false;
 		}
 		if (sigBytes.length !== computed.length) return false;

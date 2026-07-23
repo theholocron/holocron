@@ -46,13 +46,25 @@ describe("verifyToken", () => {
 		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/network down/);
 	});
 
-	it("returns ok:false when a non-Error value is thrown", async () => {
-		const throwing: typeof fetch = async () => {
-			throw "clerk network problem";
-		};
-		const result = await verifyToken("t", { fetch: throwing });
-		expect(result.ok).toBe(false);
-		expect((result as { message?: string }).message).toContain("clerk network problem");
+	it("returns ok:false when a non-Error value is thrown (String(err) branch)", async () => {
+		// The HTTP client wraps fetch throws into ProviderApiError (always an Error),
+		// so the `String(err)` branch in the catch is unreachable via the network layer.
+		// Inject a mock client that throws a plain string to cover it directly.
+		const { vi } = await import("vitest");
+		const { createClerkClient } = await import("../rest.js");
+		const mockFactory = vi.spyOn(
+			await import("../rest.js") as { createClerkClient: typeof createClerkClient },
+			"createClerkClient"
+		).mockReturnValue({
+			instance: { get: async () => { throw "non-error string"; } },
+		} as unknown as ReturnType<typeof createClerkClient>);
+		try {
+			const result = await verifyToken("t", {});
+			expect(result.ok).toBe(false);
+			expect((result as { message?: string }).message).toBe("non-error string");
+		} finally {
+			mockFactory.mockRestore();
+		}
 	});
 
 	it("hits the configured base URL", async () => {

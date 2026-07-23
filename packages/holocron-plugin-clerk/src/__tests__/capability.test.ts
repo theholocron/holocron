@@ -142,10 +142,18 @@ describe("ClerkAuth.createUser", () => {
 });
 
 describe("ClerkAuth.ensureWebhookApp — non-string details", () => {
-	it("rethrows when ProviderApiError details is not a string (covers isAlreadyExistsError false branch)", async () => {
-		// Use a JSON body so the HTTP client parses it as an object for `details`,
-		// rather than the raw text path that produces a string.
-		const { auth } = makeAuth([{ status: 400, body: { errors: [{ code: "unknown_error" }] } }]);
+	it("rethrows when ProviderApiError.details is not a string (covers isAlreadyExistsError false branch)", async () => {
+		// The HTTP client always stores `details` as a string (raw response text).
+		// To reach the `return false` branch we bypass the HTTP layer and throw
+		// a ProviderApiError with an object in `details` directly.
+		const mockClient = {
+			webhooks: {
+				ensureSvixApp: async () => {
+					throw new ProviderApiError("Webhook error", 500, { nested: "object" });
+				},
+			},
+		};
+		const auth = new ClerkAuth(mockClient as unknown as import("../rest.js").ClerkClient);
 		await expect(auth.ensureWebhookApp!()).rejects.toBeInstanceOf(ProviderApiError);
 	});
 });
