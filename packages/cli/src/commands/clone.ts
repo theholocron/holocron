@@ -117,7 +117,13 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		}
 
 		print(style.step(`  clone  ${repo.full_name}`));
-		const authedUrl = repo.clone_url.replace("https://", `https://x-access-token:${input.token}@`);
+		const { clone_url } = repo;
+		if (!clone_url.startsWith("https://github.com/")) {
+			print(style.fail(`  failed ${repo.full_name} — unexpected clone URL: ${clone_url}`));
+			failed++;
+			continue;
+		}
+		const authedUrl = `https://x-access-token:${input.token}@github.com/${clone_url.slice("https://github.com/".length)}`;
 		const result = exec("git", ["clone", authedUrl, dest], { cwd: targetDir });
 
 		if (result.status !== 0) {

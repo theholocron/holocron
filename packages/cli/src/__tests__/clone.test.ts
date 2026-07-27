@@ -201,4 +201,21 @@ describe("runClone", () => {
 		expect(paginatedFetch).toHaveBeenCalledTimes(2);
 		expect(report.cloned).toBe(2);
 	});
+
+	it("skips repos with unexpected clone URLs and counts them as failed", async () => {
+		const badRepo = { name: "evil", full_name: "test-org/evil", clone_url: "ext::evil-cmd", archived: false };
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeFetch([badRepo]),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.failed).toBe(1);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/unexpected clone URL/);
+	});
 });
