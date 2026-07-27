@@ -5,10 +5,19 @@ import { spawnSync } from "node:child_process";
 
 import { style } from "../ui/style.js";
 
+function encodeTokenForGitHttpAuth(token: string): string {
+	const trimmed = token.trim();
+	if (!trimmed) throw new Error("empty token");
+	if (/[\u0000-\u001F\u007F\s]/.test(trimmed)) {
+		throw new Error("token contains whitespace or control characters");
+	}
+	return encodeURIComponent(trimmed);
+}
+
 interface GitHubRepo {
 	name: string;
 	full_name: string;
-	ssh_url: string;
+	clone_url: string;
 	archived: boolean;
 }
 
@@ -117,7 +126,26 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		}
 
 		print(style.step(`  clone  ${repo.full_name}`));
-		const result = exec("git", ["clone", repo.ssh_url, dest], { cwd: targetDir });
+		const { clone_url } = repo;
+		if (!clone_url.startsWith("https://github.com/")) {
+			print(style.fail(`  failed ${repo.full_name} — unexpected clone URL: ${clone_url}`));
+			failed++;
+			continue;
+		}
+		let encodedToken: string;
+		try {
+			encodedToken = encodeTokenForGitHttpAuth(input.token);
+		} catch (err) {
+			print(
+				style.fail(
+					`  failed ${repo.full_name} — invalid token format: ${err instanceof Error ? err.message : String(err)}`
+				)
+			);
+			failed++;
+			continue;
+		}
+		const authedUrl = `https://x-access-token:${encodedToken}@github.com/${clone_url.slice("https://github.com/".length)}`;
+		const result = exec("git", ["clone", "--", authedUrl, dest], { cwd: targetDir });
 
 		if (result.status !== 0) {
 			print(style.fail(`  failed ${repo.full_name}`));

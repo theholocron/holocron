@@ -89,10 +89,30 @@ describe("GitHubEnvironments", () => {
 		expect(calls[0]?.body).toEqual({});
 	});
 
+	it("upsertEnvironment sends preventSelfReview when provided", async () => {
+		const { envs, calls } = makeEnvs([{ status: 200, body: {} }]);
+		await envs.upsertEnvironment({ name: "staging", preventSelfReview: true });
+		expect(calls[0]?.body).toEqual({ prevent_self_review: true });
+	});
+
 	it("deleteEnvironment → DELETE", async () => {
 		const { envs, calls } = makeEnvs([{ status: 204 }]);
 		await envs.deleteEnvironment("staging");
 		expect(calls[0]?.method).toBe("DELETE");
 		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/environments/staging`);
+	});
+
+	it("listEnvironments returns undefined reviewers when protection_rules is absent", async () => {
+		const { envs } = makeEnvs([
+			{
+				status: 200,
+				body: {
+					total_count: 1,
+					environments: [{ name: "preview", wait_timer: 0, prevent_self_review: false }],
+				},
+			},
+		]);
+		const result = await envs.listEnvironments();
+		expect(result[0]?.reviewers).toBeUndefined();
 	});
 });

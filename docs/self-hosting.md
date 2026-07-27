@@ -107,9 +107,14 @@ For one-off secrets that ARE token-based (not covered by OIDC), the
 
 <!-- prettier-ignore -->
 ```bash
-# Example: set a Vercel deploy hook secret on the holocron repo
-DEPLOY_HOOK=https://api.vercel.com/.../v1 HOLOCRON_GH_TOKEN=ghp_xxx \
+# Example: set a Vercel deploy hook secret on the holocron repo.
+# The admin token (stored in the keyring via `holocron auth set github.admin`)
+# is picked up automatically — no env var needed if the keyring is populated.
+DEPLOY_HOOK=https://api.vercel.com/.../v1 \
   holocron secret set DEPLOY_HOOK
+
+# Org-level secrets use --scope:
+holocron secret set SOME_ORG_SECRET --scope org=theholocron
 
 ```
 

@@ -91,38 +91,50 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	const { provider } = input;
 
 	const token = resolveAuthSetToken({ provider, positional: input.positional, env: input.env });
-	const packageName = resolvePluginPackage(provider);
+
+	// Feature sub-keys (e.g. "github.read") are stored directly — there is no
+	// per-feature plugin package to load for verification.
+	const isFeatureKey = provider.includes(".");
+	const packageName = isFeatureKey ? null : resolvePluginPackage(provider);
 
 	if (!token) {
 		print(style.fail(`no token supplied for \`${provider}\`.`));
 		print(style.hint(`  pass as positional arg: holocron auth set ${provider} <token>`));
-		print(style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`));
-		const hint = await tryLoadHint(importer, packageName);
-		if (hint) {
-			print(style.hint(`  hint: ${hint}`));
+		if (!isFeatureKey) {
+			print(
+				style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`)
+			);
+			const hint = await tryLoadHint(importer, packageName!);
+			if (hint) {
+				print(style.hint(`  hint: ${hint}`));
+			}
 		}
 		return { status: "fail", message: "no token supplied" };
 	}
 
-	// Verify via the plugin if it exports verifyToken.
+	// Verify via the plugin if it exports verifyToken (skipped for feature sub-keys).
 	let subject: string | undefined;
-	try {
-		const module = await importer(packageName);
-		if (typeof module.verifyToken === "function") {
-			const verified = await module.verifyToken(token);
-			if (!verified.ok) {
-				print(style.fail(`token rejected by ${provider}: ${verified.message}`));
-				if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
-				return { status: "fail", message: verified.message };
+	if (!isFeatureKey && packageName) {
+		try {
+			const module = await importer(packageName);
+			if (typeof module.verifyToken === "function") {
+				const verified = await module.verifyToken(token);
+				if (!verified.ok) {
+					print(style.fail(`token rejected by ${provider}: ${verified.message}`));
+					if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
+					return { status: "fail", message: verified.message };
+				}
+				subject = verified.subject;
+			} else {
+				print(style.warn(`${provider} plugin has no verifyToken; storing without verification`));
 			}
-			subject = verified.subject;
-		} else {
-			print(style.warn(`${provider} plugin has no verifyToken; storing without verification`));
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
+			print(
+				style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`)
+			);
 		}
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
-		print(style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`));
 	}
 
 	const stored = setToken(provider, token);
@@ -168,6 +180,12 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	if (!token) {
 		print(style.dim(`no stored token for ${provider}`));
 		return { status: "skip", message: "no stored token" };
+	}
+
+	// Feature sub-keys have no plugin to verify against — report stored only.
+	if (provider.includes(".")) {
+		print(style.success(`${provider}: token stored (feature key — no plugin verification)`));
+		return { status: "ok", message: "stored" };
 	}
 
 	const packageName = resolvePluginPackage(provider);

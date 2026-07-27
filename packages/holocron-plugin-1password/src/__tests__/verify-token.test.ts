@@ -76,4 +76,38 @@ describe("verifyToken (1password)", () => {
 		expect(result.ok).toBe(true);
 		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/signed in/);
 	});
+
+	it("handles null stdout as empty object (falls back to generic subject)", async () => {
+		const spawn = vi.fn(() => ({
+			status: 0,
+			stdout: null,
+			stderr: null,
+			pid: 0,
+			output: [],
+			signal: null,
+		})) as unknown as typeof import("node:child_process").spawnSync;
+		const result = await verifyToken("", { spawn });
+		expect(result.ok).toBe(true);
+		expect((result as { subject?: string }).subject).toMatch(/signed in/);
+	});
+
+	it("includes '?' when status is null and stderr is null", async () => {
+		const spawn = vi.fn(() => ({
+			status: null,
+			stdout: null,
+			stderr: null,
+			pid: 0,
+			output: [],
+			signal: null,
+		})) as unknown as typeof import("node:child_process").spawnSync;
+		const result = await verifyToken("", { spawn });
+		expect(result.ok).toBe(false);
+		expect((result as { message?: string }).message).toMatch(/exit \?/);
+	});
+
+	it("uses real spawnSync when spawn is not provided (covers ?? spawnSync branch)", async () => {
+		const result = await verifyToken("", { binary: "nonexistent_binary_xyzzy_abc123" });
+		expect(result.ok).toBe(false);
+		expect((result as { message?: string }).message).toMatch(/not found on PATH/);
+	});
 });

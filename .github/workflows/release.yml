@@ -94,7 +94,7 @@ jobs:
 
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             pnpm exec semantic-release --dry-run

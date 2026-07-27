@@ -69,7 +69,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createVercelClient } from "./rest.js";
+export { createVercelClient, type VercelClientOptions } from "./rest.js";
 export type { VercelClient } from "./rest.js";
 export { VercelDeployment } from "./capabilities/deployment.js";
 export { verifyToken } from "./verify-token.js";

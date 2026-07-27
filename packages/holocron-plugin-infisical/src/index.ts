@@ -63,7 +63,7 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { createInfisicalClient } from "./rest.js";
-export type { InfisicalClient } from "./rest.js";
+export type { InfisicalClient, InfisicalClientOptions } from "./rest.js";
 export { InfisicalVault } from "./capabilities/vault.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

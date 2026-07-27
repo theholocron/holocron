@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-github",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "Holocron plugin for GitHub. Implements source, ci, secrets, environments, and issues capabilities against the GitHub REST API.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-github#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
@@ -12,9 +12,14 @@
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
   },
   "scripts": {
     "build": "tsdown",
@@ -27,18 +32,18 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/github-client": "catalog:"
+    "@theholocron/github-client": "catalog:clients"
   },
   "dependencies": {
     "libsodium-wrappers": "^0.8.4"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:",
-    "@theholocron/github-client": "catalog:",
-    "@theholocron/tsconfig": "catalog:",
-    "@theholocron/tsdown-config": "catalog:",
-    "@theholocron/vitest-config": "catalog:",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/github-client": "catalog:clients",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
@@ -51,16 +56,7 @@
     "vitest": "catalog:"
   },
   "publishConfig": {
-    "access": "public",
-    "main": "./dist/index.mjs",
-    "types": "./dist/index.d.mts",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.mts",
-        "import": "./dist/index.mjs",
-        "default": "./dist/index.mjs"
-      }
-    }
+    "access": "public"
   },
   "files": [
     "dist",

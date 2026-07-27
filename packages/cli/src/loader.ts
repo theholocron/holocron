@@ -19,7 +19,7 @@
  * (project options win, mirroring ESLint's `extends` precedence).
  *
  * Loader keeps NO knowledge of vendor tokens. Each plugin reads its
- * own env vars (`HOLOCRON_GH_TOKEN`, `HOLOCRON_VERCEL_TOKEN`, etc.)
+ * own env vars (`HOLOCRON_ADMIN_TOKEN`, `HOLOCRON_VERCEL_TOKEN`, etc.)
  * inside its `createPlugin`. That keeps the loader vendor-agnostic
  * and the auth story per-plugin explicit.
  *

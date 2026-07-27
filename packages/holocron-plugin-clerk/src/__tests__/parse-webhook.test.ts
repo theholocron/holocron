@@ -142,6 +142,25 @@ describe("parseWebhook — body parsing", () => {
 		expect(err).toBeInstanceOf(WebhookVerificationError);
 		expect((err as Error).message).toMatch(/session\.created/);
 	});
+
+	it("falls back to empty email when email_addresses is absent", async () => {
+		const body = JSON.stringify({ type: "user.created", data: { id: "user_x" }, created_at: 1735689600000 });
+		const event = await parseWebhook(signedInput(body));
+		expect(event.user.email).toBe("");
+	});
+
+	it("uses epoch timestamp when created_at is absent", async () => {
+		const body = JSON.stringify({ type: "user.created", data: { id: "user_x", email_addresses: [] } });
+		const event = await parseWebhook(signedInput(body));
+		expect(event.occurredAt).toBe(new Date(0).toISOString());
+	});
+
+	it("omits firstName/lastName from user when absent in payload", async () => {
+		const body = clerkBody({ data: { id: "user_x", email_addresses: [{ id: "e", email_address: "a@b.com" }] } });
+		const event = await parseWebhook(signedInput(body));
+		expect(event.user).not.toHaveProperty("firstName");
+		expect(event.user).not.toHaveProperty("lastName");
+	});
 });
 
 // ── Svix signature verification tests ────────────────────────────────────────
@@ -265,6 +284,74 @@ describe("parseWebhook — Svix signature verification", () => {
 				"svix-id": TEST_MSG_ID,
 				"svix-timestamp": String(ts),
 				"svix-signature": `v1,${wrongSig1} v1,${wrongSig2}`,
+			},
+		}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/verification failed/);
+	});
+
+	it("accepts a signing secret without the whsec_ prefix (raw base64)", async () => {
+		const rawSecret = TEST_SECRET_BYTES.toString("base64");
+		const body = clerkBody();
+		const ts = Math.floor(Date.now() / 1000);
+		const sig = sign(body, TEST_MSG_ID, ts);
+		await expect(
+			parseWebhook({
+				body,
+				signingSecret: rawSecret,
+				headers: {
+					"svix-id": TEST_MSG_ID,
+					"svix-timestamp": String(ts),
+					"svix-signature": `v1,${sig}`,
+				},
+			})
+		).resolves.toMatchObject({ type: "user.created" });
+	});
+
+	it("accepts headers with array values (multi-value HTTP header format)", async () => {
+		const body = clerkBody();
+		const ts = Math.floor(Date.now() / 1000);
+		const sig = sign(body, TEST_MSG_ID, ts);
+		await expect(
+			parseWebhook({
+				body,
+				signingSecret: TEST_SECRET,
+				headers: {
+					"svix-id": [TEST_MSG_ID] as unknown as string,
+					"svix-timestamp": String(ts),
+					"svix-signature": `v1,${sig}`,
+				},
+			})
+		).resolves.toMatchObject({ type: "user.created" });
+	});
+
+	it("rejects a non-numeric svix-timestamp", async () => {
+		const body = clerkBody();
+		const ts = Math.floor(Date.now() / 1000);
+		const sig = sign(body, TEST_MSG_ID, ts);
+		const err = await parseWebhook({
+			body,
+			signingSecret: TEST_SECRET,
+			headers: {
+				"svix-id": TEST_MSG_ID,
+				"svix-timestamp": "not-a-number",
+				"svix-signature": `v1,${sig}`,
+			},
+		}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WebhookVerificationError);
+		expect((err as Error).message).toMatch(/Invalid svix-timestamp/);
+	});
+
+	it("skips a malformed base64 signature and throws when no valid signature remains", async () => {
+		const body = clerkBody();
+		const ts = Math.floor(Date.now() / 1000);
+		const err = await parseWebhook({
+			body,
+			signingSecret: TEST_SECRET,
+			headers: {
+				"svix-id": TEST_MSG_ID,
+				"svix-timestamp": String(ts),
+				"svix-signature": "v1,!!!not-base64!!!",
 			},
 		}).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(WebhookVerificationError);

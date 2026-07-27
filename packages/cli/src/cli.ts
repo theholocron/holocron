@@ -25,8 +25,12 @@ import { runSetup } from "./commands/setup.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { loadConfig } from "./load-config.js";
+import { AuthError, createFeatureResolver } from "./auth-resolver.js";
 import { TokenParseError, parseTokenArgs, type ParsedTokenArgs } from "./token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
+
+const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
+const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" });
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
@@ -100,13 +104,11 @@ await yargs(hideBin(process.argv))
 		async (argv) => {
 			const tokens = tokenContext(argv.token);
 			if (!tokens) return;
-			const token =
-				tokens.cliTokens?.["github"] ??
-				tokens.cliToken ??
-				process.env.GITHUB_TOKEN ??
-				process.env.HOLOCRON_GITHUB_TOKEN;
-			if (!token) {
-				console.error("clone: GitHub token required — pass --token or set GITHUB_TOKEN");
+			let token: string;
+			try {
+				token = resolveCloneToken({ cliToken: tokens.cliTokens?.["github"] ?? tokens.cliToken });
+			} catch (err) {
+				console.error(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
 				process.exitCode = 1;
 				return;
 			}
@@ -472,16 +474,17 @@ await yargs(hideBin(process.argv))
 			const outputDir = argv["output-dir"] as string | undefined;
 			const parsed = tokenContext(argv.token);
 			if (!parsed) return;
-			const token = outputDir
-				? "no-token-needed"
-				: (parsed.cliTokens?.["github"] ??
-					parsed.cliToken ??
-					process.env.GITHUB_TOKEN ??
-					process.env.HOLOCRON_GITHUB_TOKEN);
-			if (!token) {
-				console.error("sync-github: GitHub token required — pass --token or set GITHUB_TOKEN");
-				process.exitCode = 1;
-				return;
+			let token: string;
+			if (outputDir) {
+				token = "no-token-needed";
+			} else {
+				try {
+					token = resolveSyncToken({ cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken });
+				} catch (err) {
+					console.error(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
+					process.exitCode = 1;
+					return;
+				}
 			}
 			const report = await runSyncGithub({
 				token,
@@ -752,16 +755,16 @@ await yargs(hideBin(process.argv))
 		(y) =>
 			y
 				.command(
-					"set <provider> [token]",
+					"set <provider> [value]",
 					"Verify + store a bootstrap token for a provider",
 					(yy) =>
 						yy
 							.positional("provider", { type: "string", demandOption: true })
-							.positional("token", { type: "string" }),
+							.positional("value", { type: "string" }),
 					async (argv) => {
 						const result = await runAuthSet({
 							provider: argv.provider as string,
-							...(argv.token ? { positional: argv.token as string } : {}),
+							...(argv.value ? { positional: argv.value as string } : {}),
 						});
 						if (result.status === "fail") process.exitCode = 1;
 					}

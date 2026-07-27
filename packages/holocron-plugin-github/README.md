@@ -21,17 +21,31 @@ pnpm add -D @theholocron/holocron-plugin-github@alpha
 
 ## Auth
 
-The plugin requires a GitHub token resolved in this order:
+Each capability resolves its own fine-grained token so a compromised credential can only affect that feature. The resolution chain per capability is:
 
-1. `--token <PAT>` flag on the `holocron` invocation
-2. `HOLOCRON_GH_TOKEN` env var
-3. `GITHUB_TOKEN` env var (auto-injected in GitHub Actions runners)
+```
+--token flag → HOLOCRON_<FEATURE>_TOKEN → keyring("github.<feature>")
+```
 
-If none are set, the plugin throws a clear error pointing at the
-options above. There is **no** `gh auth token` fallback because the
-scopes that local `gh` auth has are usually narrower than what
-admin-level holocron commands need (rulesets, repo settings, security
-toggles, etc.) — silent fallback would surface as mysterious 403s.
+| Env var                  | Keyring key      | Capabilities                        |
+| ------------------------ | ---------------- | ----------------------------------- |
+| `HOLOCRON_READ_TOKEN`    | `github.read`    | `clone`, `ci`                       |
+| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | `issues`                            |
+| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | `sync-github` command               |
+| `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release, GitHub releases   |
+| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | `source`, `secrets`, `environments` |
+
+Store tokens once via the keyring so they are picked up automatically:
+
+```sh
+holocron auth set github.read     ghp_xxx  # clone + CI run listing
+holocron auth set github.issues   ghp_xxx  # issue management
+holocron auth set github.sync     ghp_xxx  # sync-github workflow templates
+holocron auth set github.release  ghp_xxx  # semantic-release
+holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
+```
+
+See [docs/tokens.md](../../docs/tokens.md) for full scope requirements and CI setup.
 
 ## Config
 

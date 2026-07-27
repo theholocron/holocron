@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { AuthError, verifyOpInstalled } from "../auth.js";
 
@@ -55,5 +55,36 @@ describe("verifyOpInstalled", () => {
 		})() as AuthError;
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as AuthError).message).toMatch(/exit 2/);
+	});
+
+	it("includes '?' in error message when status is null", () => {
+		const spawn = vi.fn(() => ({
+			pid: 0,
+			output: [],
+			stdout: "",
+			stderr: "",
+			status: null,
+			signal: null,
+		})) as unknown as typeof import("node:child_process").spawnSync;
+		const err = (() => {
+			try {
+				verifyOpInstalled({ spawn });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(AuthError);
+		expect((err as AuthError).message).toMatch(/exit \?/);
+	});
+
+	it("uses real spawnSync when spawn override is not provided (covers ?? spawnSync branch)", () => {
+		const err = (() => {
+			try {
+				verifyOpInstalled({ binary: "nonexistent_binary_xyzzy_abc123" });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(AuthError);
 	});
 });

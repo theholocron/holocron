@@ -69,6 +69,17 @@ describe("resolveAuthSetToken", () => {
 	it("returns null when nothing is set", () => {
 		expect(resolveAuthSetToken({ provider: "doppler", env: {} })).toBeNull();
 	});
+
+	it("uses process.env when no env is provided", () => {
+		const original = process.env.HOLOCRON_DOPPLER_TOKEN;
+		process.env.HOLOCRON_DOPPLER_TOKEN = "from-process-env";
+		try {
+			expect(resolveAuthSetToken({ provider: "doppler" })).toBe("from-process-env");
+		} finally {
+			if (original === undefined) delete process.env.HOLOCRON_DOPPLER_TOKEN;
+			else process.env.HOLOCRON_DOPPLER_TOKEN = original;
+		}
+	});
 });
 
 describe("runAuthSet", () => {
@@ -163,6 +174,19 @@ describe("runAuthSet", () => {
 		expect(lines.join("\n")).toMatch(/failed to load/);
 	});
 
+	it("uses String(err) when importer throws a non-Error value", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "custom",
+			positional: "abc",
+			env: {},
+			importer: async () => { throw "string error"; },
+			print,
+		});
+		expect(result.status).toBe("ok");
+		expect(lines.join("\n")).toMatch(/string error/);
+	});
+
 	it("prints no hint when the plugin fails to load and no token supplied", async () => {
 		const { print, lines } = collect();
 		const result = await runAuthSet({
@@ -206,6 +230,38 @@ describe("runAuthSet", () => {
 			keyringFails = false;
 		}
 	});
+	it("uses console.log when no print function is provided", async () => {
+		const result = await runAuthSet({
+			provider: "doppler",
+			positional: "dp.pt.abc",
+			env: {},
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "test" }) }),
+		});
+		expect(result.status).toBe("ok");
+	});
+
+	it("stores a feature sub-key without plugin verification", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "github.read",
+			positional: "ghp_xxx",
+			env: {},
+			print,
+		});
+		expect(result.status).toBe("ok");
+		expect(lines.join("\n")).toMatch(/stored github\.read token/);
+	});
+
+	it("fails for a feature sub-key with no token and omits env-var hint", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "github.read",
+			env: {},
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).not.toMatch(/HOLOCRON_GITHUB/);
+	});
 });
 
 describe("runAuthUnset", () => {
@@ -225,10 +281,21 @@ describe("runAuthUnset", () => {
 		expect(result.status).toBe("skip");
 		expect(lines.join("\n")).toMatch(/no stored token/);
 	});
+
+	it("uses console.log when no print function is provided", () => {
+		store.set("com.theholocron.cli::doppler", "abc");
+		const result = runAuthUnset({ provider: "doppler" });
+		expect(result.status).toBe("ok");
+	});
 });
 
 describe("runAuthCheck", () => {
 	beforeEach(reset);
+
+	it("uses console.log when no print function is provided", async () => {
+		const result = await runAuthCheck({ provider: "doppler" });
+		expect(result.status).toBe("skip");
+	});
 
 	it("reports skip when no token is stored", async () => {
 		const { print, lines } = collect();
@@ -331,6 +398,15 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/cannot verify/);
 	});
 
+	it("reports ok for a feature sub-key when a token is stored", async () => {
+		store.set("com.theholocron.cli::github.read", "ghp_abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({ provider: "github.read", print });
+		expect(result.status).toBe("ok");
+		expect(result.message).toBe("stored");
+		expect(lines.join("\n")).toMatch(/feature key — no plugin verification/);
+	});
+
 	it("skips the spinner when showSpinner is false", async () => {
 		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
 		const { print, lines } = collect();
@@ -342,6 +418,19 @@ describe("runAuthCheck", () => {
 		});
 		expect(result.status).toBe("ok");
 		expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
+	});
+
+	it("reports fail without spinner when showSpinner is false and token is rejected", async () => {
+		store.set("com.theholocron.cli::doppler", "stale");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => ({ verifyToken: async () => ({ ok: false as const, message: "expired" }) }),
+			print,
+			showSpinner: false,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/rejected — expired/);
 	});
 });
 
@@ -384,13 +473,33 @@ describe("runAuthList", () => {
 		expect(lines.join("\n")).toMatch(/· ghost/);
 	});
 
+	it("uses console.log when no print function is provided", async () => {
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const result = await runAuthList({
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "test" }) }),
+		});
+		expect(result.status).toBe("ok");
+	});
+
+	it("shows no hint when no token and plugin has no AUTH_HINT", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "custom",
+			env: {},
+			importer: async () => ({}),
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).not.toMatch(/hint:/);
+	});
+
 	it("renders a provider line without detail when the subject is empty", async () => {
 		// An empty subject is falsy, so check.message ? ` — ${msg}` : "" takes the "" branch.
 		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
 		const { print, lines } = collect();
 		await runAuthList({
 			print,
-			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "" }) }),
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "" as const }) }),
 		});
 		expect(lines.join("\n")).toMatch(/✓ doppler\s*$/m);
 	});

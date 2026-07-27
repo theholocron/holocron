@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -11,9 +12,13 @@ function makeRepo(name: string, org = "test-org") {
 	return {
 		name,
 		full_name: `${org}/${name}`,
-		ssh_url: `git@github.com:${org}/${name}.git`,
+		clone_url: `https://github.com/${org}/${name}.git`,
 		archived: false,
 	};
+}
+
+function authed(repo: ReturnType<typeof makeRepo>, token = "tok") {
+	return `https://x-access-token:${encodeURIComponent(token)}@github.com/${repo.clone_url.slice("https://github.com/".length)}`;
 }
 
 function makeFetch(repos: ReturnType<typeof makeRepo>[]): typeof globalThis.fetch {
@@ -57,8 +62,8 @@ describe("runClone", () => {
 		expect(report.skipped).toBe(0);
 		expect(report.failed).toBe(0);
 		expect(exec).toHaveBeenCalledTimes(2);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[0].ssh_url, join(tmpDir, "alpha")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "beta")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[0]), join(tmpDir, "alpha")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
 	});
 
 	it("skips repos whose directory already exists", async () => {
@@ -76,7 +81,7 @@ describe("runClone", () => {
 		expect(report.cloned).toBe(1);
 		expect(report.skipped).toBe(1);
 		expect(exec).toHaveBeenCalledTimes(1);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "beta")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
 	});
 
 	it("counts failed clones and returns fail status", async () => {
@@ -161,8 +166,8 @@ describe("runClone", () => {
 		});
 
 		expect(report.cloned).toBe(2);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[0].ssh_url, join(tmpDir, "github")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "github-private")], {
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[0]), join(tmpDir, "github")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "github-private")], {
 			cwd: tmpDir,
 		});
 	});
@@ -197,4 +202,71 @@ describe("runClone", () => {
 		expect(paginatedFetch).toHaveBeenCalledTimes(2);
 		expect(report.cloned).toBe(2);
 	});
+
+	it("fails when the token contains control characters", async () => {
+		const repos = [makeRepo("alpha")];
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "bad\ntoken",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.failed).toBe(1);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/invalid token format/);
+	});
+
+	it("skips repos with unexpected clone URLs and counts them as failed", async () => {
+		const badRepo = { name: "evil", full_name: "test-org/evil", clone_url: "ext::evil-cmd", archived: false };
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeFetch([badRepo]),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.failed).toBe(1);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/unexpected clone URL/);
+	});
+
+	it("fails when the token is empty", async () => {
+		const repos = [makeRepo("alpha")];
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "   ",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.failed).toBe(1);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/invalid token format/);
+	});
+
+	it("creates the target directory when it does not exist", async () => {
+		const newDir = join(tmpDir, "new-org");
+		const repos = [makeRepo("alpha")];
+		await runClone({
+			org: "test-org",
+			dir: newDir,
+			token: "tok",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(existsSync(newDir)).toBe(true);
+	});
+
 });
