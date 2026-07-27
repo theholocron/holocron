@@ -12,9 +12,13 @@
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.mjs",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
   },
   "scripts": {
     "build": "tsdown",
@@ -53,19 +57,11 @@
     "vitest": "catalog:"
   },
   "publishConfig": {
-    "access": "public",
-    "main": "./dist/index.mjs",
-    "types": "./dist/index.d.mts",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.mts",
-        "import": "./dist/index.mjs",
-        "default": "./dist/index.mjs"
-      }
-    }
+    "access": "public"
   },
   "files": [
     "dist",
     "README.md"
-  ]
+  ],
+  "types": "./dist/index.d.mts"
 }
