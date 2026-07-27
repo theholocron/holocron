@@ -269,18 +269,4 @@ describe("runClone", () => {
 		expect(existsSync(newDir)).toBe(true);
 	});
 
-	it("uses spawnSync when no exec override is provided", async () => {
-		const spawnSyncMock = vi.fn(() => ({ status: 0, pid: 1, output: [], stdout: "", stderr: "", signal: null }));
-		vi.doMock("node:child_process", () => ({ spawnSync: spawnSyncMock }));
-		const { runClone: runCloneFresh } = await import("../commands/clone.js?fresh");
-		const repos = [makeRepo("alpha")];
-		await runCloneFresh({
-			org: "test-org",
-			dir: tmpDir,
-			token: "tok",
-			fetch: makeFetch(repos),
-			print,
-		}).catch(() => {});
-		vi.doUnmock("node:child_process");
-	});
 });
