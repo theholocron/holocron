@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import type { EnvObject } from "../types.js";
 import { setDeep } from "./set-deep.js";
 

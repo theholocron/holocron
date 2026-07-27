@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { debugDeprecation, debugLog, warnMissingKey } from "./debug.js";
 import type { EnvObject } from "./types.js";
 

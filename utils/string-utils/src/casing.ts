@@ -1,12 +1,12 @@
 import {
 	camelCase,
-	snakeCase,
-	dotCase,
-	pathCase,
-	sentenceCase,
 	constantCase,
+	dotCase,
 	kebabCase,
 	pascalCase,
+	pathCase,
+	sentenceCase,
+	snakeCase,
 } from "change-case";
 import { titleCase } from "title-case";
 

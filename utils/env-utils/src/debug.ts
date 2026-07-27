@@ -1,6 +1,6 @@
 import { environment } from "./environment.js";
-import { collectKeys } from "./utils/index.js";
 import type { EnvObject } from "./types.js";
+import { collectKeys } from "./utils/index.js";
 
 function isDebugEnabled(): boolean {
 	const raw = process.env["DEBUG"];

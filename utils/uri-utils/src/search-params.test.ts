@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+
 import * as uri from "./index.ts";
 
 describe("Search Parameters", () => {

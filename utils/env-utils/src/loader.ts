@@ -1,4 +1,5 @@
 import "dotenv/config";
+
 import type { EnvLoader } from "./types.js";
 
 /**

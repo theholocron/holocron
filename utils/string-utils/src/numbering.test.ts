@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+
 import * as str from "./index.ts";
 
 describe("toPlural", () => {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { DotenvLoader } from "./loader.js";
 
 // dotenv/config is a side-effect — mock it so tests never touch the filesystem

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { getByPath } from "./index.js";
 
 const env = {

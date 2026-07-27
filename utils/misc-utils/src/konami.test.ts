@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+
 import { konami } from "./index.ts";
 
 class MockKeyboardEvent {

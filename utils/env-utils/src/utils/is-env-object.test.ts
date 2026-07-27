@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { isEnvObject } from "./is-env-object.js";
 
 describe("isEnvObject", () => {

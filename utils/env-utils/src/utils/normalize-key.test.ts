@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { normalizeKey } from "./index.js";
 
 describe("normalizeKey", () => {

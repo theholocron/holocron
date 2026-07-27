@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { buildEnvObject } from "./index.js";
 
 describe("buildEnvObject", () => {
