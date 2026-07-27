@@ -36,6 +36,11 @@ on: # yamllint disable-line rule:truthy
     secrets:
       HOLOCRON_SYNC_TOKEN:
         required: true
+      HOLOCRON_READ_TOKEN:
+        description: >
+          Fine-grained PAT for read-only GitHub API calls (e.g. resolving git
+          committer identity via `gh api user`). Falls back to HOLOCRON_SYNC_TOKEN.
+        required: false
 
 jobs:
   sync:
@@ -76,7 +81,7 @@ jobs:
             --pr \
             --message "$COMMIT_MSG"
         env:
-          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN }}
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           PRIMARY_REPO: ${{ inputs.primary-repo }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
@@ -95,7 +100,7 @@ jobs:
               --message "$COMMIT_MSG"
           done
         env:
-          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN }}
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           SECONDARY_REPOS: ${{ inputs.secondary-repos }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
