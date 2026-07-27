@@ -22,4 +22,3 @@ jobs:
       secondary-repos: theholocron/.github-private
     secrets:
       HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
-      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
