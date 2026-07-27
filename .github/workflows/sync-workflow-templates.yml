@@ -7,6 +7,7 @@ on: # yamllint disable-line rule:truthy
       - main
     paths:
       - packages/cli/src/commands/setup-workflows.ts
+      - packages/cli/src/commands/workflows/**
       - packages/cli/src/templates/**
   workflow_dispatch:
 
@@ -20,5 +21,7 @@ jobs:
         theholocron/clients
         theholocron/configs
         theholocron/skills
+        theholocron/utils
     secrets:
       HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}

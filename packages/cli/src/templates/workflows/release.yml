@@ -25,6 +25,11 @@ on: # yamllint disable-line rule:truthy
           Legacy alias for HOLOCRON_RELEASE_TOKEN — kept for backward compatibility.
           Prefer HOLOCRON_RELEASE_TOKEN for new repos.
         required: false
+      HOLOCRON_READ_TOKEN:
+        description: >
+          Fine-grained PAT for read-only GitHub API calls (e.g. resolving git
+          committer identity via `gh api user`). Falls back to github.token.
+        required: false
 
 jobs:
   release:
@@ -45,7 +50,7 @@ jobs:
         name: Checkout repository
         with:
           fetch-depth: 0
-          # Use HOLOCRON_SYNC_TOKEN when available — git push (tags, release commits)
+          # Use HOLOCRON_RELEASE_TOKEN when available — git push (tags, release commits)
           # uses the checkout credential, not GITHUB_TOKEN env var. The
           # built-in github.token cannot push through branch protection rulesets.
           token: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
@@ -61,7 +66,7 @@ jobs:
           git config --global user.email "$GIT_EMAIL"
           git config --global format.signoff true
         env:
-          GH_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.GH_TOKEN || github.token }}
 
       - run: npm install -g npm@11 sigstore
         name: Upgrade npm for OIDC support
