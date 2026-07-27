@@ -21,8 +21,8 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 | `HOLOCRON_READ_TOKEN`    | `github.read`    | `clone`, `ci` capability                                  | `contents: read`, `actions: read`, `metadata: read`                                                    |
 | `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | `issues` capability                                       | `issues: read/write`, `metadata: read`                                                                 |
 | `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | `sync-github` command                                     | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                           |
-| `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release, GitHub releases                         | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`, `releases: read/write`      |
-| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | `setup`, `source`, `secrets`, `environments` capabilities | `administration: read/write`, `secrets: read/write`, `environments: read/write`, `members: read/write` |
+| `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release, GitHub releases                         | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                              |
+| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | `setup`, `source`, `secrets`, `environments` capabilities | `administration: read/write`, `secrets: read/write`, `environments: read/write`                        |
 
 > **Tip:** The `HOLOCRON_ADMIN_TOKEN` is the most privileged. Store it in the keyring rather than an env var where possible, and rotate it on a tighter schedule than the others.
 

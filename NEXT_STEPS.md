@@ -15,8 +15,8 @@ Set resource owner to the `theholocron` org and configure each token with only t
 | `github.read`    | `contents: read`, `actions: read`, `metadata: read`                                                    |
 | `github.issues`  | `issues: read/write`, `metadata: read`                                                                 |
 | `github.sync`    | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                           |
-| `github.release` | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`, `releases: read/write`      |
-| `github.admin`   | `administration: read/write`, `secrets: read/write`, `environments: read/write`, `members: read/write` |
+| `github.release` | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                              |
+| `github.admin`   | `administration: read/write`, `secrets: read/write`, `environments: read/write`                        |
 
 ## 2. Store tokens in the local keyring
 
