@@ -21,5 +21,6 @@ jobs:
         theholocron/clients
         theholocron/configs
         theholocron/skills
+        theholocron/utils
     secrets:
       HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
