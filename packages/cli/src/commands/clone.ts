@@ -8,6 +8,7 @@ import { style } from "../ui/style.js";
 function encodeTokenForGitHttpAuth(token: string): string {
 	const trimmed = token.trim();
 	if (!trimmed) throw new Error("empty token");
+	// eslint-disable-next-line no-control-regex
 	if (/[\u0000-\u001F\u007F\s]/.test(trimmed)) {
 		throw new Error("token contains whitespace or control characters");
 	}
