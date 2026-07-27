@@ -61,8 +61,8 @@ describe("runClone", () => {
 		expect(report.skipped).toBe(0);
 		expect(report.failed).toBe(0);
 		expect(exec).toHaveBeenCalledTimes(2);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[0]), join(tmpDir, "alpha")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[0]), join(tmpDir, "alpha")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
 	});
 
 	it("skips repos whose directory already exists", async () => {
@@ -80,7 +80,7 @@ describe("runClone", () => {
 		expect(report.cloned).toBe(1);
 		expect(report.skipped).toBe(1);
 		expect(exec).toHaveBeenCalledTimes(1);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
 	});
 
 	it("counts failed clones and returns fail status", async () => {
@@ -165,8 +165,8 @@ describe("runClone", () => {
 		});
 
 		expect(report.cloned).toBe(2);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[0]), join(tmpDir, "github")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[1]), join(tmpDir, "github-private")], {
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[0]), join(tmpDir, "github")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "github-private")], {
 			cwd: tmpDir,
 		});
 	});
