@@ -11,9 +11,13 @@ function makeRepo(name: string, org = "test-org") {
 	return {
 		name,
 		full_name: `${org}/${name}`,
-		ssh_url: `git@github.com:${org}/${name}.git`,
+		clone_url: `https://github.com/${org}/${name}.git`,
 		archived: false,
 	};
+}
+
+function authed(repo: ReturnType<typeof makeRepo>, token = "tok") {
+	return repo.clone_url.replace("https://", `https://x-access-token:${token}@`);
 }
 
 function makeFetch(repos: ReturnType<typeof makeRepo>[]): typeof globalThis.fetch {
@@ -57,8 +61,8 @@ describe("runClone", () => {
 		expect(report.skipped).toBe(0);
 		expect(report.failed).toBe(0);
 		expect(exec).toHaveBeenCalledTimes(2);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[0].ssh_url, join(tmpDir, "alpha")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "beta")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[0]), join(tmpDir, "alpha")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
 	});
 
 	it("skips repos whose directory already exists", async () => {
@@ -76,7 +80,7 @@ describe("runClone", () => {
 		expect(report.cloned).toBe(1);
 		expect(report.skipped).toBe(1);
 		expect(exec).toHaveBeenCalledTimes(1);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "beta")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[1]), join(tmpDir, "beta")], { cwd: tmpDir });
 	});
 
 	it("counts failed clones and returns fail status", async () => {
@@ -161,8 +165,8 @@ describe("runClone", () => {
 		});
 
 		expect(report.cloned).toBe(2);
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[0].ssh_url, join(tmpDir, "github")], { cwd: tmpDir });
-		expect(exec).toHaveBeenCalledWith("git", ["clone", repos[1].ssh_url, join(tmpDir, "github-private")], {
+		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[0]), join(tmpDir, "github")], { cwd: tmpDir });
+		expect(exec).toHaveBeenCalledWith("git", ["clone", authed(repos[1]), join(tmpDir, "github-private")], {
 			cwd: tmpDir,
 		});
 	});

@@ -8,7 +8,7 @@ import { style } from "../ui/style.js";
 interface GitHubRepo {
 	name: string;
 	full_name: string;
-	ssh_url: string;
+	clone_url: string;
 	archived: boolean;
 }
 
@@ -117,7 +117,8 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		}
 
 		print(style.step(`  clone  ${repo.full_name}`));
-		const result = exec("git", ["clone", repo.ssh_url, dest], { cwd: targetDir });
+		const authedUrl = repo.clone_url.replace("https://", `https://x-access-token:${input.token}@`);
+		const result = exec("git", ["clone", authedUrl, dest], { cwd: targetDir });
 
 		if (result.status !== 0) {
 			print(style.fail(`  failed ${repo.full_name}`));
