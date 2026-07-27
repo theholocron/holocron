@@ -45,7 +45,7 @@ jobs:
         name: Checkout repository
         with:
           fetch-depth: 0
-          # Use HOLOCRON_SYNC_TOKEN when available — git push (tags, release commits)
+          # Use HOLOCRON_RELEASE_TOKEN when available — git push (tags, release commits)
           # uses the checkout credential, not GITHUB_TOKEN env var. The
           # built-in github.token cannot push through branch protection rulesets.
           token: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}

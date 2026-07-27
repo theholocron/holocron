@@ -76,8 +76,8 @@ jobs:
             --pr \
             --message "$COMMIT_MSG"
         env:
-          GITHUB_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           PRIMARY_REPO: ${{ inputs.primary-repo }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
 
@@ -95,7 +95,7 @@ jobs:
               --message "$COMMIT_MSG"
           done
         env:
-          GITHUB_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           SECONDARY_REPOS: ${{ inputs.secondary-repos }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}

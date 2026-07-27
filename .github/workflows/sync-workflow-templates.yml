@@ -7,6 +7,7 @@ on: # yamllint disable-line rule:truthy
       - main
     paths:
       - packages/cli/src/commands/setup-workflows.ts
+      - packages/cli/src/commands/workflows/**
       - packages/cli/src/templates/**
   workflow_dispatch:
 
