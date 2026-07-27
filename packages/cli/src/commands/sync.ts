@@ -1,12 +1,12 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Source } from "../capabilities/index.js";
 import { AuthError } from "../auth-resolver.js";
+import type { Source } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
-import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
+import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 
 export const SYNC_STEPS = ["labels", "properties", "teams", "topics", "keywords", "description"] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];

@@ -1,1 +1,1 @@
-export { createClerkClient, type ClerkClient, type ClerkClientOptions } from "@theholocron/clerk-client";
+export { type ClerkClient, type ClerkClientOptions, createClerkClient } from "@theholocron/clerk-client";

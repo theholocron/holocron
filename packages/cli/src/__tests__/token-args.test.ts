@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TokenParseError, parseTokenArgs } from "../token-args.js";
+
+import { parseTokenArgs, TokenParseError } from "../token-args.js";
 
 describe("parseTokenArgs", () => {
 	it("returns empty object for empty array", () => {

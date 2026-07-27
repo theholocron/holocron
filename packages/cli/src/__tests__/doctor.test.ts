@@ -4,7 +4,7 @@ import type { CapabilityKey } from "../capabilities/index.js";
 import { runDoctor } from "../commands/doctor.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
-import { PluginLoader, type PluginImporter } from "../loader.js";
+import { type PluginImporter, PluginLoader } from "../loader.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {

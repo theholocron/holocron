@@ -6,6 +6,7 @@ vi.mock("ora", () => {
 });
 
 import ora from "ora";
+
 import { withSpinner } from "../ui/progress.js";
 
 describe("withSpinner", () => {

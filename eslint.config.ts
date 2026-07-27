@@ -1,6 +1,6 @@
-import type { Linter } from "eslint";
 import { library } from "@theholocron/eslint-config/bundles/library";
 import { vitest } from "@theholocron/eslint-config/vitest";
+import type { Linter } from "eslint";
 
 export default [
 	...library(),

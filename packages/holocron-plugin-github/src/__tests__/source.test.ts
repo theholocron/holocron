@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { GitHubSource } from "../capabilities/source.js";
 import { createGitHubClient } from "../rest.js";
-
 import { stubFetch } from "./helpers.js";
 
 const REPO = "theholocron/holocron";

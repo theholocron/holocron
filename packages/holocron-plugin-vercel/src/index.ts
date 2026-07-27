@@ -69,8 +69,8 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createVercelClient, type VercelClientOptions } from "./rest.js";
-export type { VercelClient } from "./rest.js";
 export { VercelDeployment } from "./capabilities/deployment.js";
+export type { VercelClient } from "./rest.js";
+export { createVercelClient, type VercelClientOptions } from "./rest.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
-export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

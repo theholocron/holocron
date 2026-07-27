@@ -17,8 +17,8 @@
  * via `projectId` in options.
  */
 
-import { ProviderApiError } from "@theholocron/cli";
 import type { ConnectionStringOptions, Storage, StorageBranch } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 import type { NeonBranch, NeonClient, NeonDatabase } from "@theholocron/neon-client";
 
 export interface StorageOptions {

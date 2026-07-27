@@ -1,7 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { style } from "../ui/style.js";
 

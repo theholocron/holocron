@@ -2,7 +2,6 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it, vi } from "vitest";
 
 import { createNeonClient } from "../rest.js";
-
 import { stubFetch } from "./helpers.js";
 
 const TOKEN = "neon-test-pat";

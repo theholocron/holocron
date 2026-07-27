@@ -1,7 +1,7 @@
 export {
 	createPostmanClient,
+	detectPlanLimit,
 	type PostmanClient,
 	type PostmanClientOptions,
 	PostmanPlanLimitError,
-	detectPlanLimit,
 } from "@theholocron/postman-client";

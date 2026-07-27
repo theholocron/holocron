@@ -7,7 +7,7 @@
 
 import type { Vault } from "@theholocron/cli";
 
-import { verifyOpInstalled, type VerifyInput } from "./auth.js";
+import { type VerifyInput, verifyOpInstalled } from "./auth.js";
 import { OpVault } from "./capabilities/vault.js";
 import { OpShell } from "./shell.js";
 
@@ -71,7 +71,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { OpShell } from "./shell.js";
 export { OpVault } from "./capabilities/vault.js";
+export { OpShell } from "./shell.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
-export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

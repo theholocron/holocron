@@ -9,7 +9,7 @@ import type { Auth } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ClerkAuth } from "./capabilities/auth.js";
-import { createClerkClient, type ClerkClient } from "./rest.js";
+import { type ClerkClient, createClerkClient } from "./rest.js";
 
 export interface ClerkPluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
@@ -58,8 +58,8 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { createClerkClient, type ClerkClientOptions } from "./rest.js";
 export { ClerkAuth } from "./capabilities/auth.js";
 export { parseWebhook } from "./parse-webhook.js";
+export { type ClerkClientOptions, createClerkClient } from "./rest.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
-export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

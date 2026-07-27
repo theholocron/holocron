@@ -23,8 +23,8 @@
  * ProviderApiError with `status: 409` which we catch and swallow.
  */
 
-import { ProviderApiError } from "@theholocron/cli";
 import type { EnsureResult, Vault } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 
 import type { DopplerClient } from "../rest.js";
 

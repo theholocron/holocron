@@ -13,8 +13,8 @@
 
 import type {
 	Issue,
-	IssueSearchFilter,
 	Issues,
+	IssueSearchFilter,
 	LifecycleResult,
 	LifecycleSlot,
 	StatusCategory,

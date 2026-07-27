@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { cardinalityOf, LoaderError, PluginLoader, type PluginImporter } from "../loader.js";
 import { resolveConfig } from "../config.js";
+import { cardinalityOf, LoaderError, type PluginImporter, PluginLoader } from "../loader.js";
 
 function loaderWith(rawConfig: Parameters<typeof resolveConfig>[0], modules: Record<string, unknown>) {
 	const config = resolveConfig(rawConfig);

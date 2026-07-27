@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 
-import { WebhookVerificationError, type ParseWebhookInput } from "@theholocron/cli";
+import { type ParseWebhookInput, WebhookVerificationError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { parseWebhook } from "../parse-webhook.js";

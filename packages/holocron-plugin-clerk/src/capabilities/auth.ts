@@ -24,7 +24,6 @@
  * no per-call instance switch.
  */
 
-import { ProviderApiError } from "@theholocron/cli";
 import type {
 	Auth,
 	AuthDescription,
@@ -33,6 +32,7 @@ import type {
 	CreateAuthUserInput,
 	WebhookDashboardInfo,
 } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 
 import type { ClerkClient } from "../rest.js";
 

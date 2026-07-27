@@ -25,11 +25,11 @@
  */
 
 import {
-	CARDINALITY,
 	type CapabilityKey,
+	CARDINALITY,
+	REQUIRED_CAPABILITIES,
 	type TeamEntry,
 	type TeamPermission,
-	REQUIRED_CAPABILITIES,
 } from "./capabilities/index.js";
 
 // ───────────────────────────────────────────────────────────────────────

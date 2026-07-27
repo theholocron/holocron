@@ -106,16 +106,16 @@ export const AUTH_HINT =
 
 export type { Auth };
 export * from "./auth.js";
+export { GitHubCi } from "./capabilities/ci.js";
+export { GitHubEnvironments } from "./capabilities/environments.js";
+export { GitHubIssues } from "./capabilities/issues.js";
+export type { CanonicalLabel } from "./capabilities/labels.js";
+export { syncLabels } from "./capabilities/labels.js";
+export { GitHubSecrets } from "./capabilities/secrets.js";
+export { GitHubSource } from "./capabilities/source.js";
+export type { NormalizedTeamEntry, TeamEntry, TeamPermission } from "./capabilities/teams.js";
+export { normalizeTeamEntry, syncTeams } from "./capabilities/teams.js";
 export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
-export { GitHubSource } from "./capabilities/source.js";
-export { GitHubSecrets } from "./capabilities/secrets.js";
-export { GitHubEnvironments } from "./capabilities/environments.js";
-export { GitHubCi } from "./capabilities/ci.js";
-export { GitHubIssues } from "./capabilities/issues.js";
-export { syncLabels } from "./capabilities/labels.js";
-export type { CanonicalLabel } from "./capabilities/labels.js";
-export { syncTeams, normalizeTeamEntry } from "./capabilities/teams.js";
-export type { TeamEntry, TeamPermission, NormalizedTeamEntry } from "./capabilities/teams.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
-export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
