@@ -755,16 +755,16 @@ await yargs(hideBin(process.argv))
 		(y) =>
 			y
 				.command(
-					"set <provider> [token]",
+					"set <provider> [value]",
 					"Verify + store a bootstrap token for a provider",
 					(yy) =>
 						yy
 							.positional("provider", { type: "string", demandOption: true })
-							.positional("token", { type: "string" }),
+							.positional("value", { type: "string" }),
 					async (argv) => {
 						const result = await runAuthSet({
 							provider: argv.provider as string,
-							...(argv.token ? { positional: argv.token as string } : {}),
+							...(argv.value ? { positional: argv.value as string } : {}),
 						});
 						if (result.status === "fail") process.exitCode = 1;
 					}
