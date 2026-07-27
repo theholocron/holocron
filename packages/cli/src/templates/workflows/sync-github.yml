@@ -41,6 +41,11 @@ on: # yamllint disable-line rule:truthy
           Fine-grained PAT for read-only GitHub API calls (e.g. resolving git
           committer identity via `gh api user`). Falls back to HOLOCRON_SYNC_TOKEN.
         required: false
+      GH_TOKEN:
+        description: >
+          Generic GitHub token fallback for `gh` CLI calls. Used when neither
+          HOLOCRON_READ_TOKEN nor HOLOCRON_SYNC_TOKEN is set.
+        required: false
 
 jobs:
   sync:
