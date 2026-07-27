@@ -5,14 +5,14 @@ packages:
 # plugin packages grow.
 catalog:
   '@vitest/coverage-v8': ^4.1.10
-  '@vitest/eslint-plugin': ^1.6.23
-  eslint: ^10.7.0
+  '@vitest/eslint-plugin': ^1.6.24
+  eslint: ^10.8.0
   eslint-plugin-n: ^18.2.2
   globals: ^17.7.0
   chalk: ^5.6.2
   ora: ^9.4.1
-  tsdown: ^0.22.13
-  turbo: ^2.10.6
+  tsdown: ^0.22.14
+  turbo: ^2.10.7
   tsx: 4.23.1
   vitest: ^4.1.10
   typescript: ^5.9.3
