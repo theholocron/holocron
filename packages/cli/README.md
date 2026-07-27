@@ -138,6 +138,36 @@ export default acmeConfig;
 
 ```
 
+## Auth — fine-grained tokens
+
+Each GitHub capability resolves its own fine-grained PAT so a compromised
+credential only affects that feature. Store them once in the OS keyring
+(macOS Keychain, Windows Credential Manager, libsecret on Linux):
+
+```sh
+holocron auth set github.read     ghp_xxx  # clone + CI run listing
+holocron auth set github.issues   ghp_xxx  # issue management
+holocron auth set github.sync     ghp_xxx  # sync-github workflow templates
+holocron auth set github.release  ghp_xxx  # semantic-release
+holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
+```
+
+The resolution chain per capability is:
+
+```
+--token flag → HOLOCRON_<FEATURE>_TOKEN env var → keyring("github.<feature>")
+```
+
+See [`docs/tokens.md`](../../docs/tokens.md) for required PAT scopes per feature.
+
+Additional `auth` subcommands:
+
+```sh
+holocron auth check github.read   # re-verify a stored token
+holocron auth unset github.read   # remove a stored token
+holocron auth list                # show all stored providers
+```
+
 ## What's in here
 
 - `src/capabilities/` — the 14 capability interfaces that providers

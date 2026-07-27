@@ -38,9 +38,11 @@ Each capability resolves its own fine-grained token so a compromised credential 
 Store tokens once via the keyring so they are picked up automatically:
 
 ```sh
-holocron auth set github.read     ghp_xxx
-holocron auth set github.admin    ghp_yyy
-# … one per feature
+holocron auth set github.read     ghp_xxx  # clone + CI run listing
+holocron auth set github.issues   ghp_xxx  # issue management
+holocron auth set github.sync     ghp_xxx  # sync-github workflow templates
+holocron auth set github.release  ghp_xxx  # semantic-release
+holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
 ```
 
 See [docs/tokens.md](../../docs/tokens.md) for full scope requirements and CI setup.

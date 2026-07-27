@@ -53,8 +53,12 @@ export default defineConfig({
 
 <!-- prettier-ignore -->
 ```bash
-# 3. Verify the wiring
-export HOLOCRON_GH_TOKEN=ghp_...          # or use --token / a fine-grained PAT
+# 3. Store fine-grained PATs in the OS keyring (once per machine)
+holocron auth set github.read    ghp_...  # clone + CI
+holocron auth set github.admin   ghp_...  # setup + secrets + environments
+# See docs/tokens.md for the full list of feature tokens and required scopes.
+
+# 4. Verify the wiring
 holocron doctor
 ```
 
