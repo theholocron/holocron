@@ -21,4 +21,4 @@ jobs:
     with:
       secondary-repos: theholocron/.github-private
     secrets:
-      SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
