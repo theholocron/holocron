@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createVercelClient } from "../index.js";
 import { stubFetch } from "./helpers.js";
 

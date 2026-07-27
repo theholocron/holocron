@@ -1,4 +1,5 @@
 import { ProviderApiError, type RestClient } from "@theholocron/http-client";
+
 import type { JiraIssueLinkType } from "./types.js";
 
 export interface IssueLinkResult {

@@ -4,7 +4,7 @@ import {
 	type RestClient,
 } from "@theholocron/http-client";
 
-import { PostmanPlanLimitError, detectPlanLimit } from "./errors.js";
+import { detectPlanLimit, PostmanPlanLimitError } from "./errors.js";
 
 export type { RestClient };
 

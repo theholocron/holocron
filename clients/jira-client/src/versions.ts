@@ -1,4 +1,5 @@
 import { type RestClient } from "@theholocron/http-client";
+
 import type { JiraVersion } from "./types.js";
 
 export function versions(client: RestClient) {

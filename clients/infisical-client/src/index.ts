@@ -1,26 +1,25 @@
+import { secrets } from "./secrets/secrets.js";
 import {
 	createInfisicalRestClient,
 	type InfisicalClientOptions,
 } from "./utils.js";
-import { secrets } from "./secrets/secrets.js";
 import { workspaces } from "./workspaces/workspaces.js";
 
-export type { InfisicalClientOptions } from "./utils.js";
-
 export type {
+	InfisicalCreateSecretInput,
 	InfisicalSecret,
-	InfisicalSecretsListResponse,
 	InfisicalSecretResponse,
 	InfisicalSecretScope,
-	InfisicalCreateSecretInput,
+	InfisicalSecretsListResponse,
 	InfisicalUpdateSecretInput,
 } from "./secrets/secrets.js";
+export type { InfisicalClientOptions } from "./utils.js";
 export type {
 	InfisicalWorkspace,
-	InfisicalWorkspaceEnvironment,
 	InfisicalWorkspaceDetails,
-	InfisicalWorkspaceListResponse,
 	InfisicalWorkspaceDetailsResponse,
+	InfisicalWorkspaceEnvironment,
+	InfisicalWorkspaceListResponse,
 } from "./workspaces/workspaces.js";
 
 export function createInfisicalClient(opts: InfisicalClientOptions) {

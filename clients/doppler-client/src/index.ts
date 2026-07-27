@@ -1,10 +1,8 @@
-import { createDopplerRestClient, type DopplerClientOptions } from "./utils.js";
 import { environments } from "./environments/environments.js";
 import { me } from "./me/me.js";
 import { projects } from "./projects/projects.js";
 import { secrets } from "./secrets/secrets.js";
-
-export type { DopplerClientOptions } from "./utils.js";
+import { createDopplerRestClient, type DopplerClientOptions } from "./utils.js";
 
 export type {
 	DopplerEnvironment,
@@ -17,9 +15,10 @@ export type {
 } from "./projects/projects.js";
 export type {
 	DopplerSecret,
-	DopplerSecretValue,
 	DopplerSecretsMap,
+	DopplerSecretValue,
 } from "./secrets/secrets.js";
+export type { DopplerClientOptions } from "./utils.js";
 
 export function createDopplerClient(opts: DopplerClientOptions) {
 	const rest = createDopplerRestClient(opts);

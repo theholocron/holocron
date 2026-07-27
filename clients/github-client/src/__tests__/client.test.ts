@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createGitHubClient } from "../index.js";
 import { stubFetch, TOKEN } from "./helpers.js";
 

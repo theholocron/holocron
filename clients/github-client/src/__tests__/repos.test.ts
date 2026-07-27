@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+
 import { createGitHubClient } from "../index.js";
-import { stubFetch, TOKEN, REPO } from "./helpers.js";
+import { REPO, stubFetch, TOKEN } from "./helpers.js";
 
 describe("repos", () => {
 	it("GET /repos/{owner}/{name}", async () => {

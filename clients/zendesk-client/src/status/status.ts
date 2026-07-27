@@ -2,8 +2,8 @@ import type { RestClient } from "@theholocron/http-client";
 
 import type {
 	ICustomStatus,
-	ICustomStatusResponse,
 	ICustomStatusesResponse,
+	ICustomStatusResponse,
 } from "./status.types.js";
 
 const PATH = "/api/v2/custom_statuses";

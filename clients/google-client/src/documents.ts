@@ -1,4 +1,5 @@
-import { google, type docs_v1 } from "googleapis";
+import { type docs_v1, google } from "googleapis";
+
 import { googleAuth } from "./authentication.js";
 import type { Return } from "./types.js";
 

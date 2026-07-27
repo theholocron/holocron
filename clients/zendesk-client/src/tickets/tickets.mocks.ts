@@ -1,11 +1,11 @@
+import { mockCustomFields } from "./fields.mocks.js";
 import type {
+	IMetadata,
 	ITicket,
+	IVia,
 	TTicketResponse,
 	TTicketsResponse,
-	IVia,
-	IMetadata,
 } from "./tickets.types.js";
-import { mockCustomFields } from "./fields.mocks.js";
 
 export const mockVia: IVia = {
 	channel: "web",

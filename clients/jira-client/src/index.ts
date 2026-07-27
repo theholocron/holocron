@@ -6,8 +6,8 @@ import { projects } from "./projects.js";
 import { transitions } from "./transitions.js";
 import { versions } from "./versions.js";
 
-export type * from "./types.js";
 export type { IssueLinkResult } from "./links.js";
+export type * from "./types.js";
 
 export type { issues, links, projects, transitions, versions };
 

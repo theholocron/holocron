@@ -229,7 +229,6 @@ describe("createRestClient — empty body response", () => {
 describe("createRestClient — non-Error thrown by fetch", () => {
 	it("wraps a string thrown by fetch as ProviderApiError", async () => {
 		const fetch = vi.fn(async () => {
-			// eslint-disable-next-line @typescript-eslint/only-throw-error
 			throw "network gone";
 		}) as unknown as typeof globalThis.fetch;
 		const err = await createRestClient({

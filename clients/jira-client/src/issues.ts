@@ -1,4 +1,5 @@
 import { type RestClient } from "@theholocron/http-client";
+
 import type {
 	JiraIssue,
 	JiraIssueFields,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+
 import { createGitHubClient } from "../index.js";
-import { stubFetch, TOKEN, REPO } from "./helpers.js";
+import { REPO, stubFetch, TOKEN } from "./helpers.js";
 
 const RAW_LABELS = [
 	{ name: "bug", color: "d73a4a", description: "Something isn't working" },

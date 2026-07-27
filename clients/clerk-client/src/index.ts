@@ -1,12 +1,9 @@
-import { createClerkRestClient, type ClerkClientOptions } from "./utils.js";
 import { instance } from "./instance/instance.js";
 import { users } from "./users/users.js";
+import { type ClerkClientOptions, createClerkRestClient } from "./utils.js";
 import { webhooks } from "./webhooks/webhooks.js";
 
-export type { ClerkClientOptions } from "./utils.js";
-
 export type { ClerkInstance } from "./instance/instance.js";
-
 export type {
 	ClerkDeletedObject,
 	ClerkEmailAddress,
@@ -17,7 +14,7 @@ export type {
 	CreateClerkUserInput,
 	UpdateClerkUserInput,
 } from "./users/users.js";
-
+export type { ClerkClientOptions } from "./utils.js";
 export type { ClerkSvixApp, ClerkSvixUrl } from "./webhooks/webhooks.js";
 
 export function createClerkClient(opts: ClerkClientOptions) {

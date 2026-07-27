@@ -1,10 +1,10 @@
-import { createZendeskRestClient, type ZendeskClientOptions } from "./utils.js";
 import { activities } from "./activities/activities.js";
 import { search } from "./search/search.js";
 import { status } from "./status/status.js";
 import { comments } from "./tickets/comments.js";
 import { fields } from "./tickets/fields.js";
 import { tickets } from "./tickets/tickets.js";
+import { createZendeskRestClient, type ZendeskClientOptions } from "./utils.js";
 
 export { createToken, type ZendeskClientOptions } from "./utils.js";
 
@@ -21,9 +21,9 @@ export type * from "./user/index.js";
 // ── Mocks ────────────────────────────────────────────────────────────────────
 export { mockActivity, mockActivityResponse } from "./activities/index.js";
 export {
+	mockAttachment,
 	mockImage,
 	mockThumbnail,
-	mockAttachment,
 } from "./attachments/index.js";
 export { mockGroup } from "./group/index.js";
 export {
@@ -32,10 +32,10 @@ export {
 	mockSearchResponseUsers,
 } from "./search/index.js";
 export {
-	mockDefaultStatus,
 	mockCustomStatus,
 	mockCustomStatusesResponse,
 	mockCustomStatusResponse,
+	mockDefaultStatus,
 } from "./status/index.js";
 export {
 	mockComment,
@@ -43,15 +43,15 @@ export {
 	mockCustomField1,
 	mockCustomField2,
 	mockCustomFields,
-	mockTicketMetric,
-	mockTicketField,
-	mockTicketFieldsResponse,
-	mockTicketFieldResponse,
-	mockVia,
 	mockMetadata,
 	mockTicket,
-	mockTicketsResponse,
+	mockTicketField,
+	mockTicketFieldResponse,
+	mockTicketFieldsResponse,
+	mockTicketMetric,
 	mockTicketResponse,
+	mockTicketsResponse,
+	mockVia,
 } from "./tickets/index.js";
 export { mockUser } from "./user/index.js";
 

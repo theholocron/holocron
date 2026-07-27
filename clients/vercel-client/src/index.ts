@@ -1,10 +1,8 @@
-import { createVercelRestClient, type VercelClientOptions } from "./utils.js";
 import { deployments } from "./deployments/deployments.js";
 import { env } from "./env/env.js";
 import { projects } from "./projects/projects.js";
 import { user } from "./user/user.js";
-
-export type { VercelClientOptions } from "./utils.js";
+import { createVercelRestClient, type VercelClientOptions } from "./utils.js";
 
 export type {
 	VercelDeployment,
@@ -18,13 +16,14 @@ export type {
 	VercelEnvVarsResponse,
 } from "./env/env.js";
 export type {
+	VercelCreateProjectInput,
 	VercelProject,
 	VercelProjectLink,
 	VercelProjectsResponse,
-	VercelCreateProjectInput,
 	VercelUpdateProjectInput,
 } from "./projects/projects.js";
 export type { VercelUser, VercelUserResponse } from "./user/user.js";
+export type { VercelClientOptions } from "./utils.js";
 
 export function createVercelClient(opts: VercelClientOptions) {
 	const rest = createVercelRestClient(opts);

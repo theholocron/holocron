@@ -1,9 +1,11 @@
 import http from "node:http";
 import url from "node:url";
+
 import type { JWT, OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import open from "open";
 import destroyer from "server-destroy";
+
 import { loadServiceAccountKey } from "./key.js";
 
 function buildOAuth2Client(): OAuth2Client {

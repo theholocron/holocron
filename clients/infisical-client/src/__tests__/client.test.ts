@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createInfisicalClient } from "../index.js";
 import { stubFetch } from "./helpers.js";
 

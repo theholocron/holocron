@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createNeonClient } from "../index.js";
 import { stubFetch } from "./helpers.js";
 

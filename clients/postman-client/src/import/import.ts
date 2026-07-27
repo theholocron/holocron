@@ -1,5 +1,5 @@
-import type { RestClient } from "../utils.js";
 import type { PostmanCollection } from "../collections/collections.js";
+import type { RestClient } from "../utils.js";
 
 export interface PostmanImportOpenApiResponse {
 	collections: PostmanCollection[];

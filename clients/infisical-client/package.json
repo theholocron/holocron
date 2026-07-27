@@ -46,6 +46,7 @@
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
     "globals": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
