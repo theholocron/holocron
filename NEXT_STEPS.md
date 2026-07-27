@@ -30,12 +30,12 @@ holocron auth set github.admin    ghp_<admin-token>
 
 ## 3. Update CI secrets
 
-In each theholocron repo's GitHub Actions settings, ensure these secrets exist:
+In the org-level GitHub Actions secrets, rename and update the PAT values:
 
-- `SYNC_TOKEN` — maps to `HOLOCRON_SYNC_TOKEN` via the `sync-github.yml` workflow `env:` block
-- `RELEASE_TOKEN` — maps to `HOLOCRON_RELEASE_TOKEN` via the `release.yml` workflow `env:` block
+- `SYNC_TOKEN` → rename to `HOLOCRON_SYNC_TOKEN`, update value to the `github.sync` PAT
+- `RELEASE_TOKEN` → rename to `HOLOCRON_RELEASE_TOKEN`, update value to the `github.release` PAT
 
-No secret renames are needed — the workflow templates already map these to the correct env var names.
+The workflow templates reference these names directly — no further mapping needed.
 
 ## 4. Smoke-test each feature
 

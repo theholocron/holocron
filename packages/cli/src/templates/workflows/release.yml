@@ -13,17 +13,17 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: true
     secrets:
-      RELEASE_TOKEN:
+      HOLOCRON_RELEASE_TOKEN:
         description: >
           Fine-grained PAT (Contents + Issues + Pull requests: write) owned by
           an admin. Required when the default branch is protected by a ruleset —
           github.token cannot push through rulesets, but an admin PAT can.
-          Takes priority over SYNC_TOKEN. Falls back to github.token.
+          Takes priority over HOLOCRON_SYNC_TOKEN. Falls back to github.token.
         required: false
-      SYNC_TOKEN:
+      HOLOCRON_SYNC_TOKEN:
         description: >
-          Legacy alias for RELEASE_TOKEN — kept for backward compatibility.
-          Prefer RELEASE_TOKEN for new repos.
+          Legacy alias for HOLOCRON_RELEASE_TOKEN — kept for backward compatibility.
+          Prefer HOLOCRON_RELEASE_TOKEN for new repos.
         required: false
 
 jobs:
@@ -45,10 +45,10 @@ jobs:
         name: Checkout repository
         with:
           fetch-depth: 0
-          # Use SYNC_TOKEN when available — git push (tags, release commits)
+          # Use HOLOCRON_SYNC_TOKEN when available — git push (tags, release commits)
           # uses the checkout credential, not GITHUB_TOKEN env var. The
           # built-in github.token cannot push through branch protection rulesets.
-          token: ${{ secrets.RELEASE_TOKEN || secrets.SYNC_TOKEN || github.token }}
+          token: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
@@ -61,7 +61,7 @@ jobs:
           git config --global user.email "$GIT_EMAIL"
           git config --global format.signoff true
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.SYNC_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
 
       - run: npm install -g npm@11 sigstore
         name: Upgrade npm for OIDC support
@@ -77,9 +77,9 @@ jobs:
       - run: npx semantic-release
         name: Release
         env:
-          # Prefer RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
+          # Prefer HOLOCRON_RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
           # owned by an admin with ruleset bypass) so @semantic-release/git can
           # push the version-bump commit through branch protection. Falls back to
-          # SYNC_TOKEN (legacy) then github.token for unprotected repos.
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.SYNC_TOKEN || github.token }}
+          # HOLOCRON_SYNC_TOKEN (legacy) then github.token for unprotected repos.
+          GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
           NPM_CONFIG_PROVENANCE: true

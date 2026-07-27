@@ -5,7 +5,7 @@ name: Sync GitHub Templates
 # template source files change on main or alpha.
 #
 # Secrets required:
-#   SYNC_TOKEN — fine-grained PAT (resource owner: org) with:
+#   HOLOCRON_SYNC_TOKEN — fine-grained PAT (resource owner: org) with:
 #                  Contents:      Read and write  (git trees, blobs, refs)
 #                  Pull requests: Read and write  (open sync PR)
 #                  Workflows:     Read and write  (write .github/workflows/*.yml)
@@ -34,7 +34,7 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: chore/sync-templates
     secrets:
-      SYNC_TOKEN:
+      HOLOCRON_SYNC_TOKEN:
         required: true
 
 jobs:
@@ -76,8 +76,8 @@ jobs:
             --pr \
             --message "$COMMIT_MSG"
         env:
-          GITHUB_TOKEN: ${{ secrets.SYNC_TOKEN }}
-          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           PRIMARY_REPO: ${{ inputs.primary-repo }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
 
@@ -95,7 +95,7 @@ jobs:
               --message "$COMMIT_MSG"
           done
         env:
-          GITHUB_TOKEN: ${{ secrets.SYNC_TOKEN }}
-          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           SECONDARY_REPOS: ${{ inputs.secondary-repos }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
