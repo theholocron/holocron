@@ -24,3 +24,4 @@ jobs:
         theholocron/utils
     secrets:
       HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}

@@ -180,7 +180,9 @@ describe("runAuthSet", () => {
 			provider: "custom",
 			positional: "abc",
 			env: {},
-			importer: async () => { throw "string error"; },
+			importer: async () => {
+				throw "string error";
+			},
 			print,
 		});
 		expect(result.status).toBe("ok");
