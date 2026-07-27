@@ -17,7 +17,7 @@ function makeRepo(name: string, org = "test-org") {
 }
 
 function authed(repo: ReturnType<typeof makeRepo>, token = "tok") {
-	return repo.clone_url.replace("https://", `https://x-access-token:${token}@`);
+	return `https://x-access-token:${encodeURIComponent(token)}@github.com/${repo.clone_url.slice("https://github.com/".length)}`;
 }
 
 function makeFetch(repos: ReturnType<typeof makeRepo>[]): typeof globalThis.fetch {
@@ -200,6 +200,23 @@ describe("runClone", () => {
 
 		expect(paginatedFetch).toHaveBeenCalledTimes(2);
 		expect(report.cloned).toBe(2);
+	});
+
+	it("fails when the token contains control characters", async () => {
+		const repos = [makeRepo("alpha")];
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "bad\ntoken",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.failed).toBe(1);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/invalid token format/);
 	});
 
 	it("skips repos with unexpected clone URLs and counts them as failed", async () => {
