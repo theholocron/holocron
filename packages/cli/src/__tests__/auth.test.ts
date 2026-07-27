@@ -331,6 +331,15 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/cannot verify/);
 	});
 
+	it("reports ok for a feature sub-key when a token is stored", async () => {
+		store.set("com.theholocron.cli::github.read", "ghp_abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({ provider: "github.read", print });
+		expect(result.status).toBe("ok");
+		expect(result.message).toBe("stored");
+		expect(lines.join("\n")).toMatch(/feature key — no plugin verification/);
+	});
+
 	it("skips the spinner when showSpinner is false", async () => {
 		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
 		const { print, lines } = collect();
