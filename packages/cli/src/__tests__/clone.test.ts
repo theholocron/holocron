@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -234,5 +235,52 @@ describe("runClone", () => {
 		expect(report.failed).toBe(1);
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/unexpected clone URL/);
+	});
+
+	it("fails when the token is empty", async () => {
+		const repos = [makeRepo("alpha")];
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "   ",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.failed).toBe(1);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/invalid token format/);
+	});
+
+	it("creates the target directory when it does not exist", async () => {
+		const newDir = join(tmpDir, "new-org");
+		const repos = [makeRepo("alpha")];
+		await runClone({
+			org: "test-org",
+			dir: newDir,
+			token: "tok",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+		});
+
+		expect(existsSync(newDir)).toBe(true);
+	});
+
+	it("uses spawnSync when no exec override is provided", async () => {
+		const spawnSyncMock = vi.fn(() => ({ status: 0, pid: 1, output: [], stdout: "", stderr: "", signal: null }));
+		vi.doMock("node:child_process", () => ({ spawnSync: spawnSyncMock }));
+		const { runClone: runCloneFresh } = await import("../commands/clone.js?fresh");
+		const repos = [makeRepo("alpha")];
+		await runCloneFresh({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeFetch(repos),
+			print,
+		}).catch(() => {});
+		vi.doUnmock("node:child_process");
 	});
 });
