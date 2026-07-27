@@ -27,15 +27,16 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.0",
     "@theholocron/tsconfig": "workspace:*",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
-    "@eslint/js": "^10.0.0",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
     "globals": "^17.0.0",
-    "typescript-eslint": "^8.65.0"
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "catalog:"
   },
   "exports": {
     ".": {
@@ -117,6 +118,7 @@
     "eslint-plugin-n": "^18",
     "eslint-plugin-react": "^7",
     "eslint-plugin-storybook": "^10",
+    "eslint-plugin-simple-import-sort": "^14",
     "globals": "^17",
     "typescript-eslint": "^8"
   },
