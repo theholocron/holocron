@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type CanonicalLabel,syncLabels } from "../capabilities/labels.js";
+import { type CanonicalLabel, syncLabels } from "../capabilities/labels.js";
 import { createGitHubClient } from "../rest.js";
 import { stubFetch } from "./helpers.js";
 

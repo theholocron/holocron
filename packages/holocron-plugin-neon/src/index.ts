@@ -66,5 +66,5 @@ export * from "./auth.js";
 export { NeonStorage } from "./capabilities/storage.js";
 export type { NeonClient } from "./rest.js";
 export { createNeonClient, type NeonClientOptions } from "./rest.js";
-export type { VerifyTokenFailure,VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

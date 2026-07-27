@@ -59,5 +59,5 @@ export const AUTH_HINT =
 export * from "./auth.js";
 export { DopplerVault } from "./capabilities/vault.js";
 export { createDopplerClient, type DopplerClientOptions } from "./rest.js";
-export type { VerifyTokenFailure,VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

@@ -1,5 +1,5 @@
-import { mkdir, readdir, readFile, rm, stat,writeFile } from "node:fs/promises";
-import { dirname,join } from "node:path";
+import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source, TeamEntry } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";

@@ -5,10 +5,10 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProviderApiError } from "../capabilities/index.js";
-import { codecovContent, mergeCodecovComponents,runSetup } from "../commands/setup.js";
+import { codecovContent, mergeCodecovComponents, runSetup } from "../commands/setup.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
-import { type PluginImporter,PluginLoader } from "../loader.js";
+import { type PluginImporter, PluginLoader } from "../loader.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {

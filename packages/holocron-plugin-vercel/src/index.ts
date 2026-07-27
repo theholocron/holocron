@@ -72,5 +72,5 @@ export * from "./auth.js";
 export { VercelDeployment } from "./capabilities/deployment.js";
 export type { VercelClient } from "./rest.js";
 export { createVercelClient, type VercelClientOptions } from "./rest.js";
-export type { VerifyTokenFailure,VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

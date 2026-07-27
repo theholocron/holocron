@@ -65,5 +65,5 @@ export * from "./auth.js";
 export { InfisicalVault } from "./capabilities/vault.js";
 export type { InfisicalClient, InfisicalClientOptions } from "./rest.js";
 export { createInfisicalClient } from "./rest.js";
-export type { VerifyTokenFailure,VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

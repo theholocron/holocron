@@ -25,7 +25,7 @@ import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./load-config.js";
-import { type ParsedTokenArgs,parseTokenArgs, TokenParseError } from "./token-args.js";
+import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

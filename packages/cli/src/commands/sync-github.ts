@@ -6,7 +6,7 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { generateThinCallerContent,WORKFLOW_TEMPLATES } from "./setup-workflows.js";
+import { generateThinCallerContent, WORKFLOW_TEMPLATES } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
 

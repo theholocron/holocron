@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, createPlugin,PostmanTooling } from "../index.js";
+import { AuthError, createPlugin, PostmanTooling } from "../index.js";
 
 describe("createPlugin", () => {
 	it("throws AuthError when no token is found", () => {

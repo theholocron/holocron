@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runSecretSet } from "../commands/secret-set.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
-import { type PluginImporter,PluginLoader } from "../loader.js";
+import { type PluginImporter, PluginLoader } from "../loader.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
