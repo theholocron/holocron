@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
-import { runNpmPublishInitial, type PublishExecResult } from "../commands/npm-publish-initial.js";
+import { type PublishExecResult,runNpmPublishInitial } from "../commands/npm-publish-initial.js";
 
 function makeExec(responses: Record<string, PublishExecResult>) {
 	const calls: Array<{ cmd: string; args: string[] }> = [];

@@ -24,8 +24,8 @@
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
-import { ProviderApiError } from "@theholocron/cli";
 import type { Tooling, ToolingDoctorReport } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 import type {
 	PostmanClient,
 	PostmanCollection,

@@ -5,9 +5,9 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { generateThinCallerContent,WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
+import { gitBlobSha as _gitBlobSha,runSyncGithub } from "../commands/sync-github.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { WORKFLOW_TEMPLATES, generateThinCallerContent } from "../commands/setup-workflows.js";
-import { runSyncGithub, gitBlobSha as _gitBlobSha } from "../commands/sync-github.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
 // to the primary .github repo. WORKFLOW_TEMPLATE_PROPERTIES adds one

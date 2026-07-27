@@ -14,7 +14,7 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { WebhookVerificationError, type AuthEvent, type AuthEventType, type ParseWebhookInput } from "@theholocron/cli";
+import { type AuthEvent, type AuthEventType, type ParseWebhookInput,WebhookVerificationError } from "@theholocron/cli";
 
 interface ClerkWebhookPayload {
 	type: string;

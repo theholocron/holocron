@@ -3,7 +3,6 @@ import { PostmanPlanLimitError } from "@theholocron/postman-client";
 import { describe, expect, it, vi } from "vitest";
 
 import { createPostmanClient } from "../rest.js";
-
 import { stubFetch } from "./helpers.js";
 
 const TOKEN = "PMAK-xxx";

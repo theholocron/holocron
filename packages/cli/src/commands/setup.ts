@@ -26,16 +26,16 @@ import { pathToFileURL } from "node:url";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
-import { withSpinner } from "../ui/progress.js";
-import { style } from "../ui/style.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { withSpinner } from "../ui/progress.js";
+import { style } from "../ui/style.js";
 import {
-	workflowHeader,
-	KNOWN_WORKFLOWS,
-	generateThinCallerContent,
-	WORKFLOW_CHECK_CONTEXTS,
 	DEPENDABOT_CONFIG,
+	generateThinCallerContent,
+	KNOWN_WORKFLOWS,
+	WORKFLOW_CHECK_CONTEXTS,
+	workflowHeader,
 } from "./setup-workflows.js";
 
 // ── .editorconfig ────────────────────────────────────────────────────

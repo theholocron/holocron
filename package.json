@@ -49,6 +49,7 @@
     "conventional-changelog-conventionalcommits": "^10.2.1",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
     "globals": "catalog:",
     "husky": "^9.1.7",
     "knip": "^6.29.0",

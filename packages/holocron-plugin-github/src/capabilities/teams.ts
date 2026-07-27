@@ -1,5 +1,5 @@
-import type { GitHubClient } from "@theholocron/github-client";
 import type { TeamEntry, TeamPermission } from "@theholocron/cli";
+import type { GitHubClient } from "@theholocron/github-client";
 
 export type { TeamEntry, TeamPermission };
 

@@ -9,7 +9,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, existsSync: vi.fn(() => false), mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { NewError, deriveVariants, runNew } from "../commands/new.js";
+import { deriveVariants, NewError, runNew } from "../commands/new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 

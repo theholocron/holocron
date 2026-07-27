@@ -7,10 +7,9 @@
  * inlines them as string exports at build time.
  */
 
-import setupAction from "./actions/setup.yml";
 import installAction from "./actions/install.yml";
+import setupAction from "./actions/setup.yml";
 import setupNodeAction from "./actions/setup-node.yml";
-
 import auditWorkflow from "./workflows/audit.yml";
 import bookkeepingWorkflow from "./workflows/bookkeeping.yml";
 import codeqlWorkflow from "./workflows/codeql.yml";

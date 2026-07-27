@@ -17,8 +17,8 @@
  * workspace / environment create endpoints.
  */
 
-import { ProviderApiError } from "@theholocron/cli";
 import type { EnsureResult, Vault } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 import type { InfisicalClient } from "@theholocron/infisical-client";
 
 export interface InfisicalVaultOptions {

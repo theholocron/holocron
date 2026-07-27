@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, NeonStorage, createPlugin } from "../index.js";
+import { AuthError, createPlugin,NeonStorage } from "../index.js";
 
 describe("createPlugin", () => {
 	it("throws AuthError when no token is found", () => {

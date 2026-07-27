@@ -2,7 +2,6 @@ import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it, vi } from "vitest";
 
 import { OpShell } from "../shell.js";
-
 import { stubSpawn } from "./helpers.js";
 
 describe("OpShell.run", () => {

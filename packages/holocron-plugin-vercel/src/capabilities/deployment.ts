@@ -17,7 +17,6 @@
  * sealed-box / libsodium step on the client.
  */
 
-import { ProviderApiError } from "@theholocron/cli";
 import type {
 	Deployment,
 	DeploymentProject,
@@ -26,6 +25,7 @@ import type {
 	DeploymentTarget,
 	DeploymentTrigger,
 } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
 
 export interface DeploymentOptions {

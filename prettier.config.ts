@@ -1,5 +1,5 @@
-import type { Config } from "prettier";
 import theholocron from "@theholocron/prettier-config";
+import type { Config } from "prettier";
 
 const config = {
 	...theholocron,

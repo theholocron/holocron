@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { syncProperties } from "../capabilities/properties.js";
 import { createGitHubClient } from "../rest.js";
-
 import { stubFetch } from "./helpers.js";
 
 const REPO = "theholocron/holocron";

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { NeonStorage } from "../capabilities/storage.js";
 import { createNeonClient } from "../rest.js";
-
 import { stubFetch } from "./helpers.js";
 
 const PROJECT_ID = "ancient-resonance-12345";

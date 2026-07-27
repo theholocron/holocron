@@ -11,8 +11,8 @@
  * parsing edit's stderr to detect "not found".
  */
 
-import { ProviderApiError } from "@theholocron/cli";
 import type { Vault } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
 
 import type { OpShell } from "../shell.js";
 

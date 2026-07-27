@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { AuthError, verifyOpInstalled } from "../auth.js";
-
 import { stubSpawn } from "./helpers.js";
 
 describe("verifyOpInstalled", () => {

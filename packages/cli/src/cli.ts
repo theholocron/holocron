@@ -1,22 +1,20 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { stdin, stdout } from "node:process";
+import { createInterface } from "node:readline";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { createInterface } from "node:readline";
-import { stdin, stdout } from "node:process";
-
+import { AuthError, createFeatureResolver } from "./auth-resolver.js";
 import type { CapabilityKey } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runClone } from "./commands/clone.js";
-import { NewError, runNew } from "./commands/new.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
+import { NewError, runNew } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
-import { runUpgradeNode } from "./commands/upgrade-node.js";
-import { runSyncGithub } from "./commands/sync-github.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
@@ -24,9 +22,10 @@ import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
+import { runSyncGithub } from "./commands/sync-github.js";
+import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./load-config.js";
-import { AuthError, createFeatureResolver } from "./auth-resolver.js";
-import { TokenParseError, parseTokenArgs, type ParsedTokenArgs } from "./token-args.js";
+import { type ParsedTokenArgs,parseTokenArgs, TokenParseError } from "./token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

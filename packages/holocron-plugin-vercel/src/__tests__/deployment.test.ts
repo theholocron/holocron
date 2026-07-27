@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { VercelDeployment } from "../capabilities/deployment.js";
 import { createVercelClient } from "../rest.js";
-
 import { stubFetch } from "./helpers.js";
 
 function makeDeployment(

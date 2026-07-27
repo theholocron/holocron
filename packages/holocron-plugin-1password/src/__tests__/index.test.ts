@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, OpVault, createPlugin } from "../index.js";
-
+import { AuthError, createPlugin,OpVault } from "../index.js";
 import { stubSpawn } from "./helpers.js";
 
 describe("createPlugin", () => {

@@ -8,6 +8,7 @@ catalog:
   '@vitest/eslint-plugin': ^1.6.24
   eslint: ^10.8.0
   eslint-plugin-n: ^18.2.2
+  eslint-plugin-simple-import-sort: ^14.0.0
   globals: ^17.7.0
   chalk: ^5.6.2
   ora: ^9.4.1
@@ -36,7 +37,7 @@ catalogs:
   configs:
     '@theholocron/commitlint-config': ^7.5.0
     '@theholocron/holocron-config': ^7.5.0
-    '@theholocron/eslint-config': ^7.5.0
+    '@theholocron/eslint-config': ^7.6.0
     '@theholocron/lint-staged-config': ^7.5.0
     '@theholocron/prettier-config': ^7.5.0
     '@theholocron/semantic-release-config': ^7.5.0

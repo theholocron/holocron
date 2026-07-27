@@ -7,12 +7,12 @@ import { describe, expect, it } from "vitest";
 
 import {
 	AuthError,
+	createPlugin,
 	GitHubCi,
 	GitHubEnvironments,
 	GitHubIssues,
 	GitHubSecrets,
 	GitHubSource,
-	createPlugin,
 } from "../index.js";
 
 const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" };

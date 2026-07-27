@@ -1,5 +1,6 @@
 import type { SpawnSyncReturns } from "node:child_process";
-import { vi, type Mock } from "vitest";
+
+import { type Mock,vi } from "vitest";
 
 export interface SpawnCall {
 	binary: string;

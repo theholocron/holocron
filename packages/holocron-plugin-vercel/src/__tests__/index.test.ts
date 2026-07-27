@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, VercelDeployment, createPlugin } from "../index.js";
+import { AuthError, createPlugin,VercelDeployment } from "../index.js";
 
 describe("createPlugin", () => {
 	it("throws AuthError when no token is found", () => {
