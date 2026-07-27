@@ -10,13 +10,13 @@ Go to <https://github.com/settings/tokens> → "Generate new token (fine-grained
 
 Set resource owner to the `theholocron` org and configure each token with only the scopes listed below.
 
-| Token            | Description                                                       | Required scopes                                                                 |
-| ---------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `github.read`    | `clone`, `ci` capability                                          | `contents: read`, `actions: read`, `metadata: read`                             |
-| `github.issues`  | `issues` capability                                               | `issues: read/write`, `metadata: read`                                          |
-| `github.sync`    | `sync-github` command                                             | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
-| `github.release` | semantic-release, GitHub releases                                 | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
-| `github.admin`   | `setup`, `source`, `secrets`, `environments` capabilities         | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
+| Token            | Description                                               | Required scopes                                                                 |
+| ---------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `github.read`    | `clone`, `ci` capability                                  | `contents: read`, `actions: read`, `metadata: read`                             |
+| `github.issues`  | `issues` capability                                       | `issues: read/write`, `metadata: read`                                          |
+| `github.sync`    | `sync-github` command                                     | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
+| `github.release` | semantic-release, GitHub releases                         | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
+| `github.admin`   | `setup`, `source`, `secrets`, `environments` capabilities | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
 
 ## 2. Store tokens in the local keyring
 
