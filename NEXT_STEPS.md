@@ -39,8 +39,8 @@ The workflow templates reference these names directly — no further mapping nee
 
 ## 4. Smoke-test each feature
 
-- [ ] `holocron clone theholocron` — exercises `HOLOCRON_READ_TOKEN`
-- [ ] `holocron issues list` — exercises `HOLOCRON_ISSUES_TOKEN`
+- [ ] `holocron clone --org theholocron` — exercises `HOLOCRON_READ_TOKEN`
+- [ ] `holocron doctor` — exercises `HOLOCRON_ISSUES_TOKEN` (issues capability health check)
 - [ ] `holocron sync-github --dry-run` — exercises `HOLOCRON_SYNC_TOKEN`
 - [ ] `holocron setup --dry-run` — exercises `HOLOCRON_ADMIN_TOKEN`
 - [ ] Push to a release branch and confirm CI release workflow succeeds — exercises `HOLOCRON_RELEASE_TOKEN`
