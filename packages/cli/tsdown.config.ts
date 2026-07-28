@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+
 import { sentryRollupPlugin } from "@sentry/rollup-plugin";
 import { defineConfig } from "tsdown";
 
