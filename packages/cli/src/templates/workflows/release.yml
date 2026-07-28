@@ -117,6 +117,7 @@ jobs:
           # push the version-bump commit through branch protection. Falls back to
           # HOLOCRON_SYNC_TOKEN (legacy) then github.token for unprotected repos.
           GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
+          HUSKY: "0"
           NPM_CONFIG_PROVENANCE: true
 
       - name: Get release version
