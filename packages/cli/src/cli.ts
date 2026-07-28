@@ -27,6 +27,7 @@ import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./load-config.js";
 import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
+import { captureException, flush, init, startCommand } from "./telemetry.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
 const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" });
@@ -50,9 +51,17 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 	}
 }
 
+init(CLI_VERSION);
 const updateCheckPromise = checkForUpdates(CLI_VERSION);
 
+let finishCommand: (ok: boolean) => void = () => {};
+
+try {
 await yargs(hideBin(process.argv))
+	.middleware((argv) => {
+		const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
+		finishCommand = startCommand(name);
+	})
 	.scriptName("")
 	.usage("holocron <command> [options]")
 	// ── global options (apply to every subcommand) ──────────────────────
@@ -800,9 +809,15 @@ await yargs(hideBin(process.argv))
 	.strict()
 	.help()
 	.parse();
+} catch (err) {
+	captureException(err);
+	if (!process.exitCode) process.exitCode = 1;
+}
 
+finishCommand(!process.exitCode);
 const notify = await updateCheckPromise;
 notify?.();
+await flush();
 
 /**
  * Parse `--scope` strings: `repo` | `env=NAME` | `org=NAME`.
