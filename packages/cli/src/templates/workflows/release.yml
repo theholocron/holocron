@@ -112,7 +112,7 @@ jobs:
         run: |
           TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$TAG" ]; then
-            echo "release=${{ inputs.sentry-project }}@${TAG#v}" >> $GITHUB_OUTPUT
+            echo "release=${{ inputs.sentry-project }}@${TAG#v}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Sentry release

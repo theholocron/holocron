@@ -108,7 +108,7 @@ jobs:
         run: |
           TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$TAG" ]; then
-            echo "release=holocron-cli@${TAG#v}" >> $GITHUB_OUTPUT
+            echo "release=holocron-cli@${TAG#v}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Sentry release
