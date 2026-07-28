@@ -14,7 +14,7 @@
     "test": {
       "inputs": ["src/**", "vitest.config.ts", "package.json"],
       "outputs": [],
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
     },
     "test:coverage": {
       "inputs": ["src/**", "vitest.config.ts", "package.json"],
