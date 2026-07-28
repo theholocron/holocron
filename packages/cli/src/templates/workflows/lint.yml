@@ -12,14 +12,16 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: yamllint.config.yml
       enable-auto-commit:
-        description: Auto-commit super-linter fixes via GPG-signed commit
+        description: >
+          Auto-commit super-linter fixes as a verified commit via a GitHub App.
+          Requires SUPER_LINTER_APP_ID and SUPER_LINTER_PRIVATE_KEY secrets.
         type: boolean
         required: false
         default: false
     secrets:
-      SUPER_LINTER_GPG_PRIVATE_KEY:
+      SUPER_LINTER_APP_ID:
         required: false
-      SUPER_LINTER_GPG_PASSPHRASE:
+      SUPER_LINTER_PRIVATE_KEY:
         required: false
 
 jobs:
@@ -31,13 +33,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      GPG_KEY_SET: ${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY != '' }}
+      APP_ID_SET: ${{ secrets.SUPER_LINTER_APP_ID != '' }}
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        # Runs before checkout so the token is used as the checkout credential,
+        # which makes the subsequent push go through the App and produce a
+        # Verified commit. Skipped when auto-commit is disabled or secrets unset.
+        if: >
+          inputs.enable-auto-commit == true &&
+          github.event.pull_request != null &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.ref_name != github.event.repository.default_branch &&
+          env.APP_ID_SET == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.SUPER_LINTER_APP_ID }}
+          private-key: ${{ secrets.SUPER_LINTER_PRIVATE_KEY }}
+
+      - name: Resolve App bot identity
+        id: app-bot
+        # GitHub marks commits as Verified when the author email matches the
+        # App bot's noreply address (<numeric-id>+<slug>[bot]@users.noreply.github.com).
+        # The numeric ID must be fetched via the API — it differs from the App ID.
+        if: steps.app-token.conclusion == 'success'
+        run: |
+          BOT_SLUG="${{ steps.app-token.outputs.app-slug }}[bot]"
+          BOT_ID=$(gh api "/users/${BOT_SLUG}" --jq .id)
+          echo "name=${BOT_SLUG}" >> "$GITHUB_OUTPUT"
+          echo "email=${BOT_ID}+${BOT_SLUG}@users.noreply.github.com" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
         with:
           fetch-depth: 0
-          token: ${{ github.token }}
+          # Use the App token when available so the push credential is the App
+          # bot — GitHub marks those commits as Verified automatically.
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
@@ -79,23 +113,6 @@ jobs:
           VALIDATE_YAML: true
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
 
-      - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
-        id: import-gpg
-        name: Import GPG Key
-        # Conditions mirror auto-commit exactly — no point importing GPG if the
-        # commit step will be skipped (fork PR, default branch, or secret unset).
-        if: >
-          inputs.enable-auto-commit == true &&
-          github.event.pull_request != null &&
-          github.event.pull_request.head.repo.full_name == github.repository &&
-          github.ref_name != github.event.repository.default_branch &&
-          env.GPG_KEY_SET == 'true'
-        with:
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-          GPG_PRIVATE_KEY: ${{ secrets.SUPER_LINTER_GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.SUPER_LINTER_GPG_PASSPHRASE }}
-
       - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         name: Commit and push linting fixes
         if: >
@@ -103,11 +120,11 @@ jobs:
           github.event.pull_request != null &&
           github.event.pull_request.head.repo.full_name == github.repository &&
           github.ref_name != github.event.repository.default_branch &&
-          env.GPG_KEY_SET == 'true'
+          env.APP_ID_SET == 'true'
         with:
           branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
-          commit_message: "chore: fix linting issues\n\nSigned-off-by: ${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
+          commit_message: "chore: fix linting issues\n\nSigned-off-by: ${{ steps.app-bot.outputs.name }} <${{ steps.app-bot.outputs.email }}>"
           commit_options: "--no-verify"
-          commit_user_name: ${{ steps.import-gpg.outputs.name }}
-          commit_user_email: ${{ steps.import-gpg.outputs.email }}
-          commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
+          commit_user_name: ${{ steps.app-bot.outputs.name }}
+          commit_user_email: ${{ steps.app-bot.outputs.email }}
+          commit_author: "${{ steps.app-bot.outputs.name }} <${{ steps.app-bot.outputs.email }}>"
