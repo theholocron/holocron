@@ -18,6 +18,7 @@ export function init(version: string): void {
 		tracesSampleRate: 1.0,
 		beforeSend: scrubError,
 	});
+	Sentry.startSession();
 	Sentry.setTag("os", process.platform);
 	Sentry.setTag("node", process.version);
 	Sentry.setTag("ci", String(Boolean(process.env.CI)));
@@ -36,6 +37,11 @@ export function startCommand(name: string): (ok: boolean) => void {
 export function captureException(err: unknown): void {
 	if (!isEnabled()) return;
 	Sentry.captureException(err);
+}
+
+export function endSession(): void {
+	if (!isEnabled()) return;
+	Sentry.endSession();
 }
 
 export async function flush(): Promise<void> {

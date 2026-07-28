@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@sentry/node", () => ({
 	init: vi.fn(),
 	setTag: vi.fn(),
+	startSession: vi.fn(),
+	endSession: vi.fn(),
 	startInactiveSpan: vi.fn(() => ({ setStatus: vi.fn(), end: vi.fn() })),
 	captureException: vi.fn(),
 	close: vi.fn().mockResolvedValue(undefined),
@@ -10,7 +12,7 @@ vi.mock("@sentry/node", () => ({
 
 import * as Sentry from "@sentry/node";
 
-import { captureException, flush, init, startCommand } from "../telemetry.js";
+import { captureException, endSession, flush, init, startCommand } from "../telemetry.js";
 
 type MockSpan = { setStatus: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> };
 
@@ -51,6 +53,11 @@ describe("when NO_HOLOCRON_TELEMETRY is set", () => {
 	it("captureException: skips Sentry.captureException", () => {
 		captureException(new Error("boom"));
 		expect(Sentry.captureException).not.toHaveBeenCalled();
+	});
+
+	it("endSession: skips Sentry.endSession", () => {
+		endSession();
+		expect(Sentry.endSession).not.toHaveBeenCalled();
 	});
 
 	it("flush: skips Sentry.close", async () => {
@@ -94,6 +101,11 @@ describe("init", () => {
 		process.env["CI"] = "true";
 		init("1.0.0");
 		expect(Sentry.setTag).toHaveBeenCalledWith("ci", "true");
+	});
+
+	it("calls Sentry.startSession after init", () => {
+		init("1.0.0");
+		expect(Sentry.startSession).toHaveBeenCalled();
 	});
 });
 
@@ -145,6 +157,15 @@ describe("flush", () => {
 	it("calls Sentry.close with a 2000ms timeout", async () => {
 		await flush();
 		expect(Sentry.close).toHaveBeenCalledWith(2_000);
+	});
+});
+
+// ── endSession ───────────────────────────────────────────────────────────────
+
+describe("endSession", () => {
+	it("calls Sentry.endSession", () => {
+		endSession();
+		expect(Sentry.endSession).toHaveBeenCalled();
 	});
 });
 

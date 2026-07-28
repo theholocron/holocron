@@ -25,7 +25,7 @@ import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./load-config.js";
-import { captureException, flush, init, startCommand } from "./telemetry.js";
+import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
 
@@ -815,6 +815,7 @@ try {
 }
 
 finishCommand(!process.exitCode);
+endSession();
 const notify = await updateCheckPromise;
 notify?.();
 await flush();
