@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/node";
 
 // Paste your DSN from Sentry → Settings → Client Keys once the project is created.
 // Empty string = telemetry silently disabled — safe to ship before the project exists.
-const DSN = "";
+const DSN = "https://95cbb72ad5636c94e119a5405ee8f55f@o4508238154104832.ingest.us.sentry.io/4511810950791168";
 
 function isEnabled(): boolean {
 	return !process.env.NO_HOLOCRON_TELEMETRY && DSN !== "";
