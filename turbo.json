@@ -5,7 +5,8 @@
     "build": {
       "inputs": ["src/**", "tsdown.config.ts", "tsconfig.json", "package.json"],
       "outputs": ["dist/**"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
     },
     "lint": {
       "inputs": ["src/**", "eslint.config.ts", "eslint.config.js"],
