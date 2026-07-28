@@ -53,4 +53,3 @@ function redact(raw: string): string {
 function scrubError(event: ErrorEvent, _hint: EventHint): ErrorEvent {
 	return JSON.parse(redact(JSON.stringify(event))) as ErrorEvent;
 }
-
