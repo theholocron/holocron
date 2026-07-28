@@ -1,3 +1,4 @@
+import { sentryRollupPlugin } from "@sentry/rollup-plugin";
 import { defineConfig } from "tsdown";
 
 import { rawYml } from "./raw-yml.js";
@@ -21,8 +22,16 @@ export default defineConfig([
 		format: "esm",
 		dts: false,
 		clean: false,
+		sourcemap: true,
 		deps: sharedDeps,
 		banner: { js: "#!/usr/bin/env node" },
-		plugins: sharedPlugins,
+		plugins: [
+			...sharedPlugins,
+			sentryRollupPlugin({
+				authToken: process.env.SENTRY_AUTH_TOKEN,
+				org: "theholocron",
+				project: "holocron-cli",
+			}),
+		],
 	},
 ]);
