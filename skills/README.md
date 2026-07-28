@@ -29,6 +29,8 @@ Skills authored and maintained in this repo. Published inside the npm package.
 | [`holocron-skill-config`](./skills/holocron-skill-config/SKILL.md) | Scaffold a new `@theholocron/*-config` package in `theholocron/configs` |
 | [`holocron-skill-client`](./skills/holocron-skill-client/SKILL.md) | Scaffold a new `@theholocron/*-client` package in `theholocron/clients` |
 | [`holocron-skill-plugin`](./skills/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package |
+| [`holocron-skill-util`](./skills/holocron-skill-util/SKILL.md) | Scaffold a new `@theholocron/*-utils` package in `theholocron/utils` |
+| [`holocron-skill-skill`](./skills/holocron-skill-skill/SKILL.md) | Add a new owned skill to `theholocron/skills` |
 
 ## External skills
 
