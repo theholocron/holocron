@@ -80,6 +80,7 @@ jobs:
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
 
       - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
+        id: import-gpg
         name: Import GPG Key
         # Conditions mirror auto-commit exactly — no point importing GPG if the
         # commit step will be skipped (fork PR, default branch, or secret unset).
@@ -105,7 +106,8 @@ jobs:
           env.GPG_KEY_SET == 'true'
         with:
           branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
-          commit_message: "chore: fix linting issues\n\nSigned-off-by: super-linter <super-linter@super-linter.dev>"
+          commit_message: "chore: fix linting issues\n\nSigned-off-by: ${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
           commit_options: "--no-verify"
-          commit_user_name: super-linter
-          commit_user_email: super-linter@super-linter.dev
+          commit_user_name: ${{ steps.import-gpg.outputs.name }}
+          commit_user_email: ${{ steps.import-gpg.outputs.email }}
+          commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
