@@ -1,0 +1,21 @@
+/*
+ * The Holocron — Starlight theme
+ *
+ * Overrides Starlight CSS custom properties.
+ * @see https://starlight.astro.build/guides/css-and-tailwind/
+ *
+ * Only accent colors are set here. All other values inherit Starlight defaults.
+ * Consumer sites may add their own customCss entries after this to override further.
+ */
+
+:root[data-theme="dark"] {
+  --sl-color-accent-low: #1d1204;
+  --sl-color-accent: #c89b3c;
+  --sl-color-accent-high: #f5d07a;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #f5e8c8;
+  --sl-color-accent: #9b6f2a;
+  --sl-color-accent-high: #5c3d0e;
+}

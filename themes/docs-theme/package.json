@@ -1,0 +1,82 @@
+{
+  "name": "@theholocron/docs-theme",
+  "version": "0.1.0",
+  "description": "Starlight plugin providing the shared docs theme.",
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "docs",
+    "starlight",
+    "starlight-plugin",
+    "theme",
+    "typescript"
+  ],
+  "homepage": "https://github.com/theholocron/themes/tree/main/packages/docs-theme#readme",
+  "bugs": "https://github.com/theholocron/themes/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/themes.git",
+    "directory": "packages/docs-theme"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "sideEffects": [
+    "*.css"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown && cp src/styles.css dist/",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "^0.41.5",
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@theholocron/tsdown-config": "catalog:",
+    "@theholocron/vitest-config": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "astro": "^7.1.5",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@astrojs/starlight": ">=0.30.0",
+    "astro": ">=5.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts"
+  },
+  "releases": "https://github.com/theholocron/themes/releases",
+  "wiki": "https://github.com/theholocron/themes/wiki"
+}
