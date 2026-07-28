@@ -21,6 +21,8 @@ on: # yamllint disable-line rule:truthy
     secrets:
       CODECOV_TOKEN:
         required: false
+      TURBO_TOKEN:
+        required: false
 
 jobs:
   bundle-size:
@@ -32,6 +34,9 @@ jobs:
     concurrency:
       group: audit-${{ github.ref }}
       cancel-in-progress: true
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
@@ -55,6 +60,9 @@ jobs:
     concurrency:
       group: knip-${{ github.ref }}
       cancel-in-progress: true
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
