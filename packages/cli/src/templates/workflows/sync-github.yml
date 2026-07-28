@@ -64,13 +64,24 @@ jobs:
       - run: pnpm build
         name: Build CLI
 
+      - name: Cache actionlint
+        id: cache-actionlint
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: /tmp/actionlint
+          key: actionlint-v1.7.7-linux-amd64
+
+      - name: Download actionlint
+        if: steps.cache-actionlint.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz \
+            | tar -xz -C /tmp actionlint
+
       - name: Validate generated workflows
         run: |
           node packages/cli/dist/cli.mjs sync-github \
             --repo "$PRIMARY_REPO" \
             --output-dir /tmp/sync-validate
-          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz \
-            | tar -xz -C /tmp actionlint
           /tmp/actionlint /tmp/sync-validate/.github/workflows/*.yml
         env:
           PRIMARY_REPO: ${{ inputs.primary-repo }}

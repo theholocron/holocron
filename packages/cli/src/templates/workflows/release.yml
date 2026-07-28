@@ -85,8 +85,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.GH_TOKEN || github.token }}
 
-      - run: npm install -g npm@11 sigstore
-        name: Upgrade npm for OIDC support
+      - name: Configure npm global prefix
+        run: |
+          npm config set prefix ~/.npm-global
+          echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
+
+      - name: Cache npm global packages
+        id: cache-npm-globals
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.npm-global
+          key: npm-globals-npm11-sigstore-${{ runner.os }}
+
+      - name: Upgrade npm for OIDC support
+        if: steps.cache-npm-globals.outputs.cache-hit != 'true'
+        run: npm install -g npm@11 sigstore
         # sigstore is required by libnpmpublish/provenance.js at module parse
         # time — before any config takes effect. Some npm 11.x builds stopped
         # bundling it; installing it globally into the same prefix ensures it
