@@ -32,6 +32,7 @@
     "@theholocron/vitest-config": "catalog:configs",
     "@tsconfig/node-lts": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "happy-dom": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:",
     "vitest-localstorage-mock": "^0.1.2"

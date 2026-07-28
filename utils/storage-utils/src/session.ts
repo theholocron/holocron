@@ -91,7 +91,6 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			if (!lastRegisteredApp) {
 				throw new Error(ERROR_MSG);
 			}
-			const appStorage = getAppStorage(lastRegisteredApp);
 
 			if (isSessionStorageAvailable) {
 				try {
@@ -110,6 +109,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			}
 
 			// Split key by dot notation for nested access
+			const appStorage = getAppStorage(lastRegisteredApp);
 			const keys = key.split(".");
 			let currentLevel = appStorage;
 
