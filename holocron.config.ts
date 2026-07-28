@@ -10,7 +10,7 @@ export default defineConfig({
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		...repo,
 	},
-	workflows,
+	workflows: [...workflows, { name: "release", with: { "sentry-project": "holocron-cli" } }],
 	providers: {
 		...providers,
 		vault: ["doppler", { project: "holocron", config: "dev" }],
