@@ -2,6 +2,11 @@ name: Test
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
+      TURBO_TEAM:
+        required: false
 
 jobs:
   unit:
@@ -11,6 +16,9 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository

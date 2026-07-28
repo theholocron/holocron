@@ -47,6 +47,10 @@ on: # yamllint disable-line rule:truthy
           Sentry auth token for sourcemap upload and release creation.
           Required when sentry-project is set. Use the org-level secret.
         required: false
+      TURBO_TOKEN:
+        required: false
+      TURBO_TEAM:
+        required: false
 
 jobs:
   release:
@@ -58,6 +62,9 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     # Do not cancel in-progress releases — a partial release is worse than a slow one.
     concurrency:
       group: release-${{ github.ref }}
