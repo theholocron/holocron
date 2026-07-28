@@ -109,15 +109,17 @@ jobs:
       - name: Get release version
         id: release_version
         if: ${{ inputs.sentry-project != '' }}
+        env:
+          SENTRY_PROJECT: ${{ inputs.sentry-project }}
         run: |
           TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$TAG" ]; then
-            echo "release=${{ inputs.sentry-project }}@${TAG#v}" >> "$GITHUB_OUTPUT"
+            echo "release=${SENTRY_PROJECT}@${TAG#v}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Sentry release
         if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' }}
-        uses: getsentry/action-release@v3
+        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: theholocron
