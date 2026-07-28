@@ -35,6 +35,11 @@ on: # yamllint disable-line rule:truthy
           Generic GitHub token fallback for `gh` CLI calls. Used when
           HOLOCRON_READ_TOKEN is not set.
         required: false
+      SENTRY_AUTH_TOKEN:
+        description: >
+          Sentry auth token for sourcemap upload and release creation during
+          build. Optional — build succeeds without it, Sentry upload is skipped.
+        required: false
 
 jobs:
   release:
@@ -83,6 +88,8 @@ jobs:
       - run: pnpm build
         name: Build
         if: ${{ inputs.run-build == true }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - run: npx semantic-release
         name: Release
