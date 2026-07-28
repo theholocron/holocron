@@ -99,3 +99,6 @@ test-report.junit.xml
 /.claude/skills/security-review
 /.claude/skills/holocron-skill-plugin
 # end managed by holocron setup — skills
+
+# Sentry Config File
+.env.sentry-build-plugin
