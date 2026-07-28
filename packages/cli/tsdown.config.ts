@@ -37,6 +37,7 @@ export default defineConfig([
 				release: {
 					name: `holocron@${version}`,
 					setCommits: { auto: true },
+					deploy: { env: "production" },
 				},
 			}),
 		],
