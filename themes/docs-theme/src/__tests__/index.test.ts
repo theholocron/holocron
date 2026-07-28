@@ -8,7 +8,7 @@ type SetupArgs = Parameters<ReturnType<typeof docsTheme>["hooks"]["setup"]>[0];
 
 function callSetup(existingCss: string[] = []) {
 	const plugin = docsTheme();
-	const updateConfig = vi.fn<[{ customCss: string[] }]>();
+	const updateConfig = vi.fn();
 	plugin.hooks.setup({
 		config: { customCss: existingCss },
 		updateConfig,
@@ -56,7 +56,7 @@ describe("docsTheme", () => {
 
 		it("handles undefined customCss in config", () => {
 			const plugin = docsTheme();
-			const updateConfig = vi.fn<[{ customCss: string[] }]>();
+			const updateConfig = vi.fn();
 			plugin.hooks.setup({
 				config: {},
 				updateConfig,

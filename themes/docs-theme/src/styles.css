@@ -9,13 +9,13 @@
  */
 
 :root[data-theme="dark"] {
-  --sl-color-accent-low: #1d1204;
-  --sl-color-accent: #c89b3c;
-  --sl-color-accent-high: #f5d07a;
+	--sl-color-accent-low: #1d1204;
+	--sl-color-accent: #c89b3c;
+	--sl-color-accent-high: #f5d07a;
 }
 
 :root[data-theme="light"] {
-  --sl-color-accent-low: #f5e8c8;
-  --sl-color-accent: #9b6f2a;
-  --sl-color-accent-high: #5c3d0e;
+	--sl-color-accent-low: #f5e8c8;
+	--sl-color-accent: #9b6f2a;
+	--sl-color-accent-high: #5c3d0e;
 }

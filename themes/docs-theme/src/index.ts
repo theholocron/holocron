@@ -1,8 +1,19 @@
 import { fileURLToPath } from "node:url";
 
-import type { StarlightPlugin } from "@astrojs/starlight/types";
-
 const styles = fileURLToPath(new URL("./styles.css", import.meta.url));
+
+interface SetupOptions {
+	config: { customCss?: string[] };
+	updateConfig(newConfig: { customCss: string[] }): void;
+	[key: string]: unknown;
+}
+
+interface StarlightPlugin {
+	name: string;
+	hooks: {
+		setup(options: SetupOptions): void | Promise<void>;
+	};
+}
 
 export function docsTheme(): StarlightPlugin {
 	return {

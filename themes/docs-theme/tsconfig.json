@@ -2,9 +2,12 @@
   "display": "Holocron Docs Theme",
   "extends": "@theholocron/tsconfig/node-lts",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "baseUrl": "./",
-    "rootDir": "./src",
-    "outDir": "./dist"
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
