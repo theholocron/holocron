@@ -101,3 +101,24 @@ jobs:
           else
             pnpm exec semantic-release
           fi
+
+      - name: Get release version
+        id: release_version
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$TAG" ]; then
+            echo "release=holocron-cli@${TAG#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Sentry release
+        if: ${{ inputs.dry_run != 'true' && steps.release_version.outputs.release != '' }}
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: theholocron
+          SENTRY_PROJECT: holocron-cli
+        with:
+          environment: production
+          version: ${{ steps.release_version.outputs.release }}
+          sourcemaps: "packages/cli/dist"

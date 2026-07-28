@@ -12,6 +12,13 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: true
+      sentry-project:
+        description: >
+          Sentry project slug for sourcemap upload and release creation after
+          publishing. Omit to skip the Sentry release step entirely.
+        type: string
+        required: false
+        default: ""
     secrets:
       HOLOCRON_RELEASE_TOKEN:
         description: >
@@ -34,6 +41,11 @@ on: # yamllint disable-line rule:truthy
         description: >
           Generic GitHub token fallback for `gh` CLI calls. Used when
           HOLOCRON_READ_TOKEN is not set.
+        required: false
+      SENTRY_AUTH_TOKEN:
+        description: >
+          Sentry auth token for sourcemap upload and release creation.
+          Required when sentry-project is set. Use the org-level secret.
         required: false
 
 jobs:
@@ -93,3 +105,24 @@ jobs:
           # HOLOCRON_SYNC_TOKEN (legacy) then github.token for unprotected repos.
           GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
           NPM_CONFIG_PROVENANCE: true
+
+      - name: Get release version
+        id: release_version
+        if: ${{ inputs.sentry-project != '' }}
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$TAG" ]; then
+            echo "release=${{ inputs.sentry-project }}@${TAG#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Sentry release
+        if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' }}
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: theholocron
+          SENTRY_PROJECT: ${{ inputs.sentry-project }}
+        with:
+          environment: production
+          version: ${{ steps.release_version.outputs.release }}
+          sourcemaps: "**/dist"

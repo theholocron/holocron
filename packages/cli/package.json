@@ -53,7 +53,6 @@
     "yargs": "catalog:"
   },
   "devDependencies": {
-    "@sentry/rollup-plugin": "catalog:",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
