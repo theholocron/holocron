@@ -1,11 +1,6 @@
-import { readFileSync } from "node:fs";
-
-import { sentryRollupPlugin } from "@sentry/rollup-plugin";
 import { defineConfig } from "tsdown";
 
 import { rawYml } from "./raw-yml.js";
-
-const { version } = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: string };
 
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
 const sharedPlugins = [rawYml()];
@@ -29,18 +24,6 @@ export default defineConfig([
 		sourcemap: true,
 		deps: sharedDeps,
 		banner: { js: "#!/usr/bin/env node" },
-		plugins: [
-			...sharedPlugins,
-			sentryRollupPlugin({
-				authToken: process.env.SENTRY_AUTH_TOKEN,
-				org: "theholocron",
-				project: "holocron-cli",
-				release: {
-					name: `holocron@${version}`,
-					setCommits: { auto: true },
-					deploy: { env: "production" },
-				},
-			}),
-		],
+		plugins: sharedPlugins,
 	},
 ]);
