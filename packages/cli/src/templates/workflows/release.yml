@@ -120,9 +120,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
           HUSKY: "0"
           NPM_CONFIG_PROVENANCE: true
-          # actions/setup-node writes a default NODE_AUTH_TOKEN=${{ github.token }}
-          # which shadows the OIDC Trusted Publishing exchange. Explicitly clear it.
-          NODE_AUTH_TOKEN: ""
 
       - name: Get release version
         id: release_version
