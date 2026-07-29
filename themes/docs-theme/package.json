@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/docs-theme",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Starlight plugin providing the shared docs theme.",
   "keywords": [
     "astro",
