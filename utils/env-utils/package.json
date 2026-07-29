@@ -33,7 +33,7 @@
     "@tsconfig/node-lts": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "dotenv": "^16.5.0",
+    "dotenv": "^17.4.2",
     "tsdown": "catalog:",
     "vitest": "catalog:"
   },
