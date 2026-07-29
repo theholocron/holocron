@@ -24,6 +24,8 @@
  * setup` for the ephemeral GH admin PAT.
  */
 
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 export type PublishInitialPrint = (line: string) => void;
@@ -59,6 +61,17 @@ export interface RunNpmPublishInitialInput {
 	exec?: (cmd: string, args: string[], opts: { cwd: string }) => Promise<PublishExecResult>;
 	/** Env vars; passed in for testability. Defaults to process.env. */
 	env?: NodeJS.ProcessEnv;
+	/**
+	 * Override the list of package names shown in the Trusted Publisher
+	 * next-steps output. Auto-discovered from packages/*\/package.json
+	 * when omitted.
+	 */
+	packages?: readonly string[];
+	/**
+	 * Override the repo name shown in the Trusted Publisher next-steps
+	 * output. Auto-detected from `git remote get-url origin` when omitted.
+	 */
+	repoName?: string;
 }
 
 export type PublishInitialStatus = "ok" | "fail" | "dry-run";
@@ -69,16 +82,6 @@ export interface NpmPublishInitialReport {
 	/** Packages that the publish step targeted. */
 	packageNames: readonly string[];
 }
-
-const PUBLISHABLE_PACKAGES = [
-	"@theholocron/cli",
-	"@theholocron/holocron-plugin-github",
-	"@theholocron/holocron-plugin-vercel",
-	"@theholocron/holocron-plugin-neon",
-	"@theholocron/holocron-plugin-clerk",
-	"@theholocron/holocron-plugin-1password",
-	"@theholocron/holocron-plugin-postman",
-] as const;
 
 export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}): Promise<NpmPublishInitialReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -116,22 +119,23 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 		const message =
 			"npm is not authenticated. Run `npm login --auth-type=web` (browser flow, no token stored) or `npm login`, then re-run this command.";
 		print(`  ✗ ${message}`);
-		return { status: "fail", message, packageNames: PUBLISHABLE_PACKAGES };
+		const packageNames = input.packages ?? discoverPublicPackages(cwd);
+		return { status: "fail", message, packageNames };
 	}
 	const whoamiName = whoami.stdout.trim() || "<unknown>";
 	print(`    ✓ authed as ${whoamiName}`);
 
-	// ── 2. Publish ──────────────────────────────────────────────────────
+	// ── 2. Resolve dynamic values needed for next-steps ─────────────────
+	const packageNames = input.packages ?? discoverPublicPackages(cwd);
+	const repoName = input.repoName ?? (await resolveRepoName(cwd, exec));
+
+	// ── 3. Publish ──────────────────────────────────────────────────────
 	if (dryRun) {
 		print("");
 		print("  … (dry-run) skipping actual publish");
 		print(`    would run: pnpm ${publishArgs.join(" ")}`);
-		printNextSteps(print, env);
-		return {
-			status: "dry-run",
-			message: "dry-run — no publish executed",
-			packageNames: PUBLISHABLE_PACKAGES,
-		};
+		printNextSteps(print, env, packageNames, repoName);
+		return { status: "dry-run", message: "dry-run — no publish executed", packageNames };
 	}
 
 	print("");
@@ -146,24 +150,58 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
 			print(`    pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp <6-digit-code>`);
 		}
-		return { status: "fail", message, packageNames: PUBLISHABLE_PACKAGES };
+		return { status: "fail", message, packageNames };
 	}
 	print("    ✓ publish complete");
 
-	// ── 3. Next-step reminders ──────────────────────────────────────────
-	printNextSteps(print, env);
-	return { status: "ok", packageNames: PUBLISHABLE_PACKAGES };
+	// ── 4. Next-step reminders ──────────────────────────────────────────
+	printNextSteps(print, env, packageNames, repoName);
+	return { status: "ok", packageNames };
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
 
-function printNextSteps(print: PublishInitialPrint, env: NodeJS.ProcessEnv): void {
+function discoverPublicPackages(cwd: string): readonly string[] {
+	const packagesDir = join(cwd, "packages");
+	if (!existsSync(packagesDir)) return [];
+	return readdirSync(packagesDir, { withFileTypes: true })
+		.filter((e) => e.isDirectory())
+		.flatMap((e) => {
+			const pkgPath = join(packagesDir, e.name, "package.json");
+			if (!existsSync(pkgPath)) return [];
+			try {
+				const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
+					name?: string;
+					private?: boolean;
+				};
+				return !pkg.private && pkg.name ? [pkg.name] : [];
+			} catch {
+				return [];
+			}
+		});
+}
+
+async function resolveRepoName(cwd: string, exec: NonNullable<RunNpmPublishInitialInput["exec"]>): Promise<string> {
+	const result = await exec("git", ["remote", "get-url", "origin"], { cwd });
+	if (result.exitCode !== 0) return "unknown";
+	// Matches both HTTPS (https://github.com/org/repo.git) and
+	// SSH (git@github.com:org/repo.git) remote URL formats.
+	const match = /[/:]([^/:]+?)(?:\.git)?$/.exec(result.stdout.trim());
+	return match?.[1] ?? "unknown";
+}
+
+function printNextSteps(
+	print: PublishInitialPrint,
+	env: NodeJS.ProcessEnv,
+	packageNames: readonly string[],
+	repoName: string
+): void {
 	print("");
 	print("  → next: configure Trusted Publisher for each package on npm:");
-	for (const name of PUBLISHABLE_PACKAGES) {
+	for (const name of packageNames) {
 		print(`    https://www.npmjs.com/package/${name}/access`);
 	}
-	print("    Publisher: GitHub Actions   Org: theholocron   Repo: holocron   Workflow: release.yml");
+	print(`    Publisher: GitHub Actions   Org: theholocron   Repo: ${repoName}   Workflow: release.yml`);
 
 	if (env.NPM_TOKEN) {
 		print("");
