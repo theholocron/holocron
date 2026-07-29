@@ -1,8 +1,28 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
 import { type PublishExecResult, runNpmPublishInitial } from "../commands/npm-publish-initial.js";
+
+function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {
+	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+	const pkgsDir = join(root, "packages");
+	mkdirSync(pkgsDir);
+	for (const pkg of packages) {
+		const dir = join(pkgsDir, pkg.name.replace(/\//g, "-"));
+		mkdirSync(dir);
+		const content = pkg.invalidJson
+			? "not valid json {"
+			: JSON.stringify({ name: pkg.name, ...(pkg.private ? { private: true } : {}) });
+		writeFileSync(join(dir, "package.json"), content);
+	}
+	// Directory with no package.json — should be skipped
+	mkdirSync(join(pkgsDir, "no-manifest"));
+	return root;
+}
 
 function makeExec(responses: Record<string, PublishExecResult>) {
 	const calls: Array<{ cmd: string; args: string[] }> = [];
@@ -308,6 +328,55 @@ describe("runNpmPublishInitial", () => {
 		});
 		const joined = lines.join("\n");
 		expect(joined).not.toContain("Revoke it now");
+	});
+});
+
+// ── discoverPublicPackages ────────────────────────────────────────────────────
+
+describe("discoverPublicPackages (via runNpmPublishInitial without packages injection)", () => {
+	it("discovers non-private packages and skips private, no-manifest, and invalid-JSON entries", async () => {
+		const root = makeTempMonorepo([
+			{ name: "@theholocron/public-a" },
+			{ name: "@theholocron/public-b" },
+			{ name: "@theholocron/private-c", private: true },
+			{ name: "@theholocron/broken-d", invalidJson: true },
+		]);
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		const joined = lines.join("\n");
+		expect(joined).toContain("@theholocron/public-a/access");
+		expect(joined).toContain("@theholocron/public-b/access");
+		expect(joined).not.toContain("@theholocron/private-c/access");
+		expect(joined).not.toContain("@theholocron/broken-d/access");
+		expect(joined).not.toContain("no-manifest/access");
+	});
+
+	it("returns empty list when the packages directory does not exist", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		// /tmp/test has no packages/ directory
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		// no package URLs in next-steps
+		expect(lines.join("\n")).not.toContain("npmjs.com/package/");
 	});
 });
 
