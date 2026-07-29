@@ -21,6 +21,10 @@ function makeExec(responses: Record<string, PublishExecResult>) {
 
 const baseEnv: NodeJS.ProcessEnv = {};
 
+// Fixtures injected directly to avoid touching the filesystem or git in tests.
+const TEST_PACKAGES = ["@theholocron/foo", "@theholocron/bar"] as const;
+const TEST_REPO = "test-repo";
+
 describe("runNpmPublishInitial", () => {
 	it("verifies npm auth via `npm whoami` before publishing", async () => {
 		const { exec, calls } = makeExec({
@@ -30,6 +34,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -45,6 +51,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -61,6 +69,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -86,6 +96,8 @@ describe("runNpmPublishInitial", () => {
 			cwd: "/tmp/test",
 			tag: "next",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -100,6 +112,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -116,6 +130,8 @@ describe("runNpmPublishInitial", () => {
 			cwd: "/tmp/test",
 			otp: "123456",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -136,6 +152,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -154,6 +172,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -170,6 +190,8 @@ describe("runNpmPublishInitial", () => {
 			cwd: "/tmp/test",
 			dryRun: true,
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -178,7 +200,7 @@ describe("runNpmPublishInitial", () => {
 		expect(lines.some((l) => l.includes("would run"))).toBe(true);
 	});
 
-	it("includes the trusted-publisher setup URLs in next-steps output", async () => {
+	it("includes the discovered package URLs and repo name in next-steps output", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -187,14 +209,68 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
 		const joined = lines.join("\n");
-		expect(joined).toContain("npmjs.com/package/@theholocron/cli/access");
-		expect(joined).toContain("npmjs.com/package/@theholocron/holocron-plugin-github/access");
+		expect(joined).toContain("npmjs.com/package/@theholocron/foo/access");
+		expect(joined).toContain("npmjs.com/package/@theholocron/bar/access");
+		expect(joined).toContain(`Repo: ${TEST_REPO}`);
 		expect(joined).toContain("Publisher: GitHub Actions");
 		expect(joined).toContain("Workflow: release.yml");
+	});
+
+	it("auto-detects repo name from git remote when repoName is not injected", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 0, stdout: "https://github.com/theholocron/themes.git\n", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(lines.join("\n")).toContain("Repo: themes");
+	});
+
+	it("auto-detects repo name from SSH remote URL format", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 0, stdout: "git@github.com:theholocron/clients.git\n", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(lines.join("\n")).toContain("Repo: clients");
+	});
+
+	it("falls back to 'unknown' when git remote fails", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 128, stdout: "", stderr: "not a git repo" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(lines.join("\n")).toContain("Repo: unknown");
 	});
 
 	it("prints a token-revoke reminder when NPM_TOKEN is detected in env", async () => {
@@ -206,6 +282,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: { NPM_TOKEN: "npm_xxx" },
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -223,6 +301,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
