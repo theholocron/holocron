@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron",
-  "version": "3.3.8",
+  "version": "3.3.9",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
   "homepage": "https://github.com/theholocron/holocron#readme",
