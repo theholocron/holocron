@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron",
-  "version": "3.3.8",
+  "version": "3.3.10",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
   "homepage": "https://github.com/theholocron/holocron#readme",
@@ -42,7 +42,7 @@
     "@theholocron/lint-staged-config": "catalog:configs",
     "@theholocron/prettier-config": "catalog:configs",
     "@theholocron/semantic-release-config": "catalog:configs",
-    "@theholocron/skills": "^1.1.3",
+    "@theholocron/skills": "^1.2.1",
     "@theholocron/tsconfig": "catalog:configs",
     "@vitest/eslint-plugin": "catalog:",
     "alexjs": "^1.0.0",
