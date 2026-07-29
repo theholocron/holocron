@@ -181,10 +181,7 @@ function discoverPublicPackages(cwd: string): readonly string[] {
 		});
 }
 
-async function resolveRepoName(
-	cwd: string,
-	exec: NonNullable<RunNpmPublishInitialInput["exec"]>,
-): Promise<string> {
+async function resolveRepoName(cwd: string, exec: NonNullable<RunNpmPublishInitialInput["exec"]>): Promise<string> {
 	const result = await exec("git", ["remote", "get-url", "origin"], { cwd });
 	if (result.exitCode !== 0) return "unknown";
 	// Matches both HTTPS (https://github.com/org/repo.git) and
@@ -197,7 +194,7 @@ function printNextSteps(
 	print: PublishInitialPrint,
 	env: NodeJS.ProcessEnv,
 	packageNames: readonly string[],
-	repoName: string,
+	repoName: string
 ): void {
 	print("");
 	print("  → next: configure Trusted Publisher for each package on npm:");
