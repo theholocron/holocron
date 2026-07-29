@@ -26,7 +26,6 @@ export function workflowHeader(source = "packages/cli/src/commands/setup-workflo
 	return [
 		`# AUTO-GENERATED — do not edit directly.`,
 		`# Source:  theholocron/holocron · ${source}`,
-		`# Synced:  ${new Date().toISOString()}`,
 		`# Tool:    holocron setup`,
 		`# Changes: run \`holocron setup\` to regenerate.`,
 		``,
