@@ -25,7 +25,8 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
   },
   "main": "./src/index.ts",
   "files": [
@@ -72,7 +73,8 @@
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs",
         "default": "./dist/index.mjs"
-      }
+      },
+      "./styles.css": "./dist/styles.css"
     },
     "main": "./dist/index.mjs",
     "types": "./dist/index.d.mts"
