@@ -98,6 +98,11 @@ jobs:
         run: |
           npm config set prefix ~/.npm-global
           echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
+          # Write an empty _authToken so pnpm knows this registry requires auth
+          # and triggers the OIDC exchange instead of falling through to ENEEDAUTH.
+          # A literal empty value (not ${NODE_AUTH_TOKEN}) avoids pnpm's env-var
+          # substitution warning and keeps NPM_CONFIG_USERCONFIG unset.
+          npm config set //registry.npmjs.org/:_authToken ""
 
       - name: Upgrade npm for OIDC support
         run: npm install -g npm@11 sigstore
