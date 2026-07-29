@@ -121,7 +121,6 @@ function thinCallerHeader(forPrimary = false): string {
 	return [
 		doNotEdit,
 		`# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts`,
-		`# Synced:  ${new Date().toISOString()}`,
 		`# Tool:    holocron sync-github`,
 		`# Changes: edit source in theholocron/holocron and push to alpha or main.`,
 		``,
