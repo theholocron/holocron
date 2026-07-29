@@ -1,6 +1,9 @@
 name: Release
 
-# Semantic-release with OIDC Trusted Publishing — no NPM_TOKEN required.
+# Semantic-release with OIDC Trusted Publishing.
+# actions/setup-node writes a default NODE_AUTH_TOKEN=${{ github.token }}
+# which shadows OIDC auth. We explicitly clear it so npm falls through to
+# the Trusted Publisher OIDC exchange.
 # The calling repo must have a .releaserc.json that configures branches,
 # plugins, and any publish options. npm@11+ is installed to support OIDC.
 
@@ -124,6 +127,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
           HUSKY: "0"
           NPM_CONFIG_PROVENANCE: true
+          # actions/setup-node writes a default NODE_AUTH_TOKEN=${{ github.token }}
+          # which shadows the OIDC Trusted Publishing exchange. Explicitly clear it.
+          NODE_AUTH_TOKEN: ""
 
       - name: Get release version
         id: release_version
