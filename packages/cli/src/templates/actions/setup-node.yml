@@ -6,11 +6,6 @@ inputs:
     description: Node.js version
     required: false
     default: "22.x"
-  registry-url:
-    description: npm registry URL
-    required: false
-    default: "https://registry.npmjs.org/"
-
 runs:
   using: composite
 
@@ -25,7 +20,11 @@ runs:
         node-version: ${{ hashFiles('.node-version') != '' && '' || inputs.node-version }}
         node-version-file: ${{ hashFiles('.node-version') != '' && '.node-version' || '' }}
         cache: ${{ hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
-        registry-url: ${{ inputs.registry-url }}
+        # Do NOT add registry-url here. setup-node writes .npmrc with
+        # _authToken=${NODE_AUTH_TOKEN} and sets NPM_CONFIG_USERCONFIG to it.
+        # pnpm reads that file, fails env-var substitution when the token is
+        # empty, and loses auth entirely. Without registry-url, pnpm 10.15+
+        # handles Trusted Publishing via its own native OIDC exchange.
 
     - name: Add node_modules/.bin to PATH
       shell: bash
