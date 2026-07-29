@@ -94,11 +94,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.GH_TOKEN || github.token }}
 
-      - name: Configure npm global prefix
-        run: |
-          npm config set prefix ~/.npm-global
-          echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
-
       - name: Upgrade npm for OIDC support
         run: npm install -g npm@11 sigstore
         # sigstore is required by libnpmpublish/provenance.js at module parse
