@@ -6,10 +6,6 @@ inputs:
     description: Node.js version
     required: false
     default: "22.x"
-  registry-url:
-    description: npm registry URL — set to https://registry.npmjs.org/ for OIDC publishing
-    required: false
-    default: ""
 
 runs:
   using: composite
@@ -18,7 +14,6 @@ runs:
     - uses: theholocron/.github/.github/actions/setup-node@main
       with:
         node-version: ${{ inputs.node-version }}
-        registry-url: ${{ inputs.registry-url }}
 
     - uses: theholocron/.github/.github/actions/install@main
 

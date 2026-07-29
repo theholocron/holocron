@@ -7,9 +7,9 @@ inputs:
     required: false
     default: "22.x"
   registry-url:
-    description: npm registry URL — set to https://registry.npmjs.org/ for OIDC publishing
+    description: npm registry URL
     required: false
-    default: ""
+    default: "https://registry.npmjs.org/"
 
 runs:
   using: composite

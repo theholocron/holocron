@@ -83,8 +83,6 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
-        with:
-          registry-url: https://registry.npmjs.org/
 
       - name: Configure git identity
         run: |
