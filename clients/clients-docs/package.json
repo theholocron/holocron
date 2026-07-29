@@ -1,0 +1,67 @@
+{
+  "name": "@theholocron/clients-docs",
+  "version": "1.3.4",
+  "description": "Documentation content for the @theholocron/clients monorepo",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/clients-docs#readme",
+  "bugs": "https://github.com/theholocron/clients/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/clients.git",
+    "directory": "packages/clients-docs"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "keywords": [
+    "docs",
+    "documentation",
+    "content",
+    "typescript",
+    "http-client",
+    "api"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@theholocron/tsdown-config": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "content",
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "releases": "https://github.com/theholocron/clients/releases",
+  "wiki": "https://github.com/theholocron/clients/wiki"
+}
