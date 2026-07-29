@@ -1,8 +1,28 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
 import { type PublishExecResult, runNpmPublishInitial } from "../commands/npm-publish-initial.js";
+
+function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {
+	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+	const pkgsDir = join(root, "packages");
+	mkdirSync(pkgsDir);
+	for (const pkg of packages) {
+		const dir = join(pkgsDir, pkg.name.replace(/\//g, "-"));
+		mkdirSync(dir);
+		const content = pkg.invalidJson
+			? "not valid json {"
+			: JSON.stringify({ name: pkg.name, ...(pkg.private ? { private: true } : {}) });
+		writeFileSync(join(dir, "package.json"), content);
+	}
+	// Directory with no package.json — should be skipped
+	mkdirSync(join(pkgsDir, "no-manifest"));
+	return root;
+}
 
 function makeExec(responses: Record<string, PublishExecResult>) {
 	const calls: Array<{ cmd: string; args: string[] }> = [];
@@ -21,6 +41,10 @@ function makeExec(responses: Record<string, PublishExecResult>) {
 
 const baseEnv: NodeJS.ProcessEnv = {};
 
+// Fixtures injected directly to avoid touching the filesystem or git in tests.
+const TEST_PACKAGES = ["@theholocron/foo", "@theholocron/bar"] as const;
+const TEST_REPO = "test-repo";
+
 describe("runNpmPublishInitial", () => {
 	it("verifies npm auth via `npm whoami` before publishing", async () => {
 		const { exec, calls } = makeExec({
@@ -30,6 +54,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -45,6 +71,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -61,6 +89,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -86,6 +116,8 @@ describe("runNpmPublishInitial", () => {
 			cwd: "/tmp/test",
 			tag: "next",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -100,6 +132,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -116,6 +150,8 @@ describe("runNpmPublishInitial", () => {
 			cwd: "/tmp/test",
 			otp: "123456",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: () => {},
 			exec,
 		});
@@ -136,6 +172,8 @@ describe("runNpmPublishInitial", () => {
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -154,6 +192,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -170,6 +210,8 @@ describe("runNpmPublishInitial", () => {
 			cwd: "/tmp/test",
 			dryRun: true,
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -178,7 +220,7 @@ describe("runNpmPublishInitial", () => {
 		expect(lines.some((l) => l.includes("would run"))).toBe(true);
 	});
 
-	it("includes the trusted-publisher setup URLs in next-steps output", async () => {
+	it("includes the discovered package URLs and repo name in next-steps output", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -187,14 +229,68 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
 		const joined = lines.join("\n");
-		expect(joined).toContain("npmjs.com/package/@theholocron/cli/access");
-		expect(joined).toContain("npmjs.com/package/@theholocron/holocron-plugin-github/access");
+		expect(joined).toContain("npmjs.com/package/@theholocron/foo/access");
+		expect(joined).toContain("npmjs.com/package/@theholocron/bar/access");
+		expect(joined).toContain(`Repo: ${TEST_REPO}`);
 		expect(joined).toContain("Publisher: GitHub Actions");
 		expect(joined).toContain("Workflow: release.yml");
+	});
+
+	it("auto-detects repo name from git remote when repoName is not injected", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 0, stdout: "https://github.com/theholocron/themes.git\n", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(lines.join("\n")).toContain("Repo: themes");
+	});
+
+	it("auto-detects repo name from SSH remote URL format", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 0, stdout: "git@github.com:theholocron/clients.git\n", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(lines.join("\n")).toContain("Repo: clients");
+	});
+
+	it("falls back to 'unknown' when git remote fails", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 128, stdout: "", stderr: "not a git repo" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(lines.join("\n")).toContain("Repo: unknown");
 	});
 
 	it("prints a token-revoke reminder when NPM_TOKEN is detected in env", async () => {
@@ -206,6 +302,8 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: { NPM_TOKEN: "npm_xxx" },
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -223,11 +321,62 @@ describe("runNpmPublishInitial", () => {
 		await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
 		const joined = lines.join("\n");
 		expect(joined).not.toContain("Revoke it now");
+	});
+});
+
+// ── discoverPublicPackages ────────────────────────────────────────────────────
+
+describe("discoverPublicPackages (via runNpmPublishInitial without packages injection)", () => {
+	it("discovers non-private packages and skips private, no-manifest, and invalid-JSON entries", async () => {
+		const root = makeTempMonorepo([
+			{ name: "@theholocron/public-a" },
+			{ name: "@theholocron/public-b" },
+			{ name: "@theholocron/private-c", private: true },
+			{ name: "@theholocron/broken-d", invalidJson: true },
+		]);
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runNpmPublishInitial({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		const joined = lines.join("\n");
+		expect(joined).toContain("@theholocron/public-a/access");
+		expect(joined).toContain("@theholocron/public-b/access");
+		expect(joined).not.toContain("@theholocron/private-c/access");
+		expect(joined).not.toContain("@theholocron/broken-d/access");
+		expect(joined).not.toContain("no-manifest/access");
+	});
+
+	it("returns empty list when the packages directory does not exist", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		// /tmp/test has no packages/ directory
+		await runNpmPublishInitial({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		// no package URLs in next-steps
+		expect(lines.join("\n")).not.toContain("npmjs.com/package/");
 	});
 });
 
