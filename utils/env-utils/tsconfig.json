@@ -2,7 +2,8 @@
   "display": "Env Utilities",
   "extends": "@tsconfig/node-lts/tsconfig.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
   },
   "include": [
     "./src/**/*.ts"
