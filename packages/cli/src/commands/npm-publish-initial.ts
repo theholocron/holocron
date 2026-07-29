@@ -24,9 +24,9 @@
  * setup` for the ephemeral GH admin PAT.
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 
 export type PublishInitialPrint = (line: string) => void;
 
