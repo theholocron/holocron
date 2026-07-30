@@ -885,7 +885,11 @@ describe("runSync", () => {
 		});
 
 		it("step reports ok even when package.json is absent and no syncHomepage provider", async () => {
-			const loaded = loadedFrom({ name: "demo", homepage: "https://example.com", providers: { source: "github" } });
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
