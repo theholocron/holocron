@@ -48,8 +48,8 @@ Generate an API token at **Zendesk Admin Center → Apps and integrations → AP
 | Namespace    | Methods                                     |
 | ------------ | ------------------------------------------- |
 | `activities` | `get`                                       |
-| `comments`   | (see package)                               |
-| `fields`     | (see package)                               |
+| `comments`   | `list`, `create`                            |
+| `fields`     | `list`, `get`, `create`, `update`, `delete` |
 | `search`     | `query`                                     |
 | `status`     | `list`, `get`, `create`, `update`           |
 | `tickets`    | `list`, `get`, `create`, `update`, `delete` |
