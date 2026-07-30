@@ -73,7 +73,11 @@ describe("installSkills", () => {
 		await expect(installSkills({ agent: "claude", skills: ["git-safety"], repoRoot: tmpDir })).rejects.toThrow(
 			"failed to auto-install @theholocron/skills"
 		);
-		expect(spy).toHaveBeenCalledWith("pnpm", ["add", "-D", "@theholocron/skills"], expect.objectContaining({ cwd: tmpDir }));
+		expect(spy).toHaveBeenCalledWith(
+			"pnpm",
+			["add", "-D", "@theholocron/skills"],
+			expect.objectContaining({ cwd: tmpDir })
+		);
 	});
 
 	it("throws if pnpm add succeeds but package is still unresolvable", async () => {
