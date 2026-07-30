@@ -65,10 +65,25 @@ describe("installSkills", () => {
 		await expect(stat(join(tmpDir, ".agents"))).rejects.toThrow();
 	});
 
-	it("throws when @theholocron/skills is not installed (step becomes fail)", async () => {
-		// No node_modules in tmpDir
+	it("calls pnpm add when @theholocron/skills is missing and throws if install fails", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValueOnce({ status: 1 });
+
 		await expect(installSkills({ agent: "claude", skills: ["git-safety"], repoRoot: tmpDir })).rejects.toThrow(
-			"@theholocron/skills not found"
+			"failed to auto-install @theholocron/skills"
+		);
+		expect(spy).toHaveBeenCalledWith(
+			"pnpm",
+			["add", "-D", "@theholocron/skills"],
+			expect.objectContaining({ cwd: tmpDir })
+		);
+	});
+
+	it("throws if pnpm add succeeds but package is still unresolvable", async () => {
+		// spawnSync global mock returns { status: 0 } — install "succeeds" but nothing was written
+		await expect(installSkills({ agent: "claude", skills: ["git-safety"], repoRoot: tmpDir })).rejects.toThrow(
+			"failed to auto-install @theholocron/skills"
 		);
 	});
 
@@ -430,14 +445,14 @@ describe("runSkillsInstall", () => {
 		expect(lines.join("\n")).toContain("installed 1");
 	});
 
-	it("prints a graceful error message when @theholocron/skills is not installed", async () => {
-		// No node_modules/@theholocron/skills — installSkills will throw
+	it("prints a graceful error message when @theholocron/skills cannot be installed", async () => {
+		// spawnSync global mock returns { status: 0 } but package is still unresolvable
 		const lines: string[] = [];
 		const loaded = loadedFrom({ name: "test", providers: {}, agent: "claude", skills: ["git-safety"] });
 		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l) });
 		const output = lines.join("\n");
 		expect(output).toContain("Installing");
-		expect(output).toContain("@theholocron/skills not found");
+		expect(output).toContain("failed to auto-install @theholocron/skills");
 		// Must not throw — error is caught and printed
 	});
 });
