@@ -991,7 +991,11 @@ describe("runSync", () => {
 		try {
 			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
 			let captured: Record<string, string> | null = null;
-			const loaded = loadedFrom({ name: "demo", repo: { name: "theholocron/demo" }, providers: { source: "github" } });
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github" },
+			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", {
 					source: {
