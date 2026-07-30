@@ -1,6 +1,8 @@
 ---
 title: Clients
 description: TypeScript HTTP clients for third-party APIs, built on @theholocron/http-client.
+sidebar:
+  hidden: true
 ---
 
 `@theholocron/clients` is a pnpm monorepo of typed HTTP clients for popular third-party APIs.
