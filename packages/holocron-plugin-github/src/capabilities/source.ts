@@ -158,6 +158,11 @@ export class GitHubSource implements Source {
 		await this.client.repos.updateRepo(this.repo, { description });
 		return "description updated";
 	}
+
+	async syncHomepage(homepage: string): Promise<string> {
+		await this.client.repos.updateRepo(this.repo, { homepage });
+		return "homepage updated";
+	}
 }
 
 function isENOENT(err: unknown): boolean {

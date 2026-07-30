@@ -8,11 +8,11 @@ import { PluginLoader, type RuntimeContext } from "../loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 
-export const SYNC_STEPS = ["labels", "properties", "teams", "topics", "keywords", "description"] as const;
+export const SYNC_STEPS = ["labels", "properties", "teams", "topics", "keywords", "description", "homepage"] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
-const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description"]);
+const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage"]);
 
 export interface RunSyncInput {
 	loaded: LoadedConfig;
@@ -202,7 +202,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// optionally push to GitHub when source is loaded. They run outside
 	// the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description"] as const) {
+	for (const stepName of ["keywords", "description", "homepage"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -258,6 +258,34 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						if (readmeWrote) parts.push("README.md");
 						if (source?.syncDescription) parts.push("GitHub");
 						return parts.length > 0 ? parts.join(", ") + " updated" : "description synced";
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "homepage") {
+			const homepage = config.homepage;
+			if (!homepage) {
+				steps.push({
+					capability: "local",
+					step: "sync homepage",
+					status: "skip",
+					message: "no homepage configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				const source = loader.has("source") ? (loader.get("source") as Source) : null;
+				steps.push(
+					await runSyncStep("local", "sync homepage", dryRun, async () => {
+						const pkgWrote = await writePackageJsonField(input.context.repoRoot, "homepage", homepage);
+						if (source?.syncHomepage) {
+							await source.syncHomepage(homepage);
+						}
+						const parts: string[] = [];
+						if (pkgWrote) parts.push("package.json");
+						if (source?.syncHomepage) parts.push("GitHub");
+						return parts.length > 0 ? parts.join(", ") + " updated" : "homepage synced";
 					})
 				);
 				print(formatSyncStep(steps[steps.length - 1]!));

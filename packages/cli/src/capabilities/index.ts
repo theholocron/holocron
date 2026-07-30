@@ -203,6 +203,12 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers that don't support setting descriptions omit this.
 	 */
 	syncDescription?(description: string): Promise<string>;
+
+	/**
+	 * Set the repository homepage URL (the "Website" field on the repo landing page).
+	 * Optional — providers that don't support setting a homepage omit this.
+	 */
+	syncHomepage?(homepage: string): Promise<string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

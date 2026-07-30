@@ -111,6 +111,8 @@ export interface HolocronConfig {
 	/** Project name. Derived from package.json when absent. */
 	name?: string;
 	description?: string;
+	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron sync`. */
+	homepage?: string;
 	/**
 	 * Repository identity and metadata. When set, `PluginLoader` injects
 	 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
@@ -175,6 +177,7 @@ export type ResolvedProvidersConfig = Partial<Record<CapabilityKey, ResolvedProv
 export interface ResolvedHolocronConfig {
 	name: string;
 	description?: string;
+	homepage?: string;
 	repo?: RepoConfig;
 	workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
 	providers: ResolvedProvidersConfig;
@@ -296,6 +299,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	return {
 		name: raw.name,
 		description: raw.description,
+		homepage: raw.homepage,
 		repo: raw.repo,
 		workflows: raw.workflows,
 		providers,

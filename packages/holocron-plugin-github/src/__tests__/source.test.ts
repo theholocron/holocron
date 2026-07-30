@@ -86,6 +86,15 @@ describe("GitHubSource — REST methods", () => {
 		expect(result).toBe("description updated");
 	});
 
+	it("syncHomepage → PATCH /repos/{repo} with homepage", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: {} }]);
+		const result = await source.syncHomepage("https://example.com");
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}`);
+		expect(calls[0]?.body).toEqual({ homepage: "https://example.com" });
+		expect(result).toBe("homepage updated");
+	});
+
 	it("enableVulnerabilityAlerts → PUT /vulnerability-alerts", async () => {
 		const { source, calls } = makeSource([{ status: 204 }]);
 		await source.enableVulnerabilityAlerts();

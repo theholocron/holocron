@@ -69,10 +69,10 @@ describe("runSync", () => {
 		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
-		expect(report.steps).toHaveLength(6);
+		expect(report.steps).toHaveLength(7);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(5);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 1 });
+		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 2 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -836,6 +836,109 @@ describe("runSync", () => {
 		});
 	});
 
+	it("skips sync homepage when no homepage is configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["homepage"],
+			print: () => {},
+		});
+
+		const step = report.steps.find((s) => s.step === "sync homepage");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no homepage configured");
+	});
+
+	describe("sync homepage — file writes and GitHub sync", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		it("writes homepage to package.json#homepage", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", homepage: "" }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { homepage: string };
+			expect(pkg.homepage).toBe("https://example.com");
+		});
+
+		it("step reports ok even when package.json is absent and no syncHomepage provider", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["homepage"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync homepage");
+			expect(step?.status).toBe("ok");
+		});
+
+		it("calls source.syncHomepage when provider implements it", async () => {
+			let capturedUrl: string | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncHomepage: async (url: string) => {
+							capturedUrl = url;
+							return "homepage updated";
+						},
+					},
+				}),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["homepage"],
+				print: () => {},
+			});
+
+			expect(capturedUrl).toBe("https://example.com");
+			const step = report.steps.find((s) => s.step === "sync homepage");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("GitHub");
+		});
+	});
+
 	it("passes manual and derived properties to syncProperties", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
@@ -881,6 +984,35 @@ describe("runSync", () => {
 		expect(captured!["uses_external_packages"]).toBe("false");
 		const step = report.steps.find((s) => s.step === "sync properties");
 		expect(step?.status).toBe("ok");
+	});
+
+	it("sets monorepo=true when pnpm-workspace.yaml exists in repoRoot", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+			let captured: Record<string, string> | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["properties"], print: () => {} });
+
+			expect(captured!["monorepo"]).toBe("true");
+		} finally {
+			await rm(tmpDir, { recursive: true });
+		}
 	});
 
 	it("includes branch_protection_level when repo.protection is set", async () => {
