@@ -842,7 +842,13 @@ describe("runSync", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 		});
 
-		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["homepage"], print: () => {} });
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["homepage"],
+			print: () => {},
+		});
 
 		const step = report.steps.find((s) => s.step === "sync homepage");
 		expect(step?.status).toBe("skip");
@@ -859,8 +865,15 @@ describe("runSync", () => {
 		});
 
 		it("writes homepage to package.json#homepage", async () => {
-			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo", homepage: "" }, null, 2) + "\n");
-			const loaded = loadedFrom({ name: "demo", homepage: "https://example.com", providers: { source: "github" } });
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", homepage: "" }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
 			});
@@ -873,7 +886,11 @@ describe("runSync", () => {
 
 		it("calls source.syncHomepage when provider implements it", async () => {
 			let capturedUrl: string | null = null;
-			const loaded = loadedFrom({ name: "demo", homepage: "https://example.com", providers: { source: "github" } });
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", {
 					source: {

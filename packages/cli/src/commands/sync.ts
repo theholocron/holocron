@@ -278,11 +278,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				const source = loader.has("source") ? (loader.get("source") as Source) : null;
 				steps.push(
 					await runSyncStep("local", "sync homepage", dryRun, async () => {
-						const pkgWrote = await writePackageJsonField(
-							input.context.repoRoot,
-							"homepage",
-							homepage
-						);
+						const pkgWrote = await writePackageJsonField(input.context.repoRoot, "homepage", homepage);
 						if (source?.syncHomepage) {
 							await source.syncHomepage(homepage);
 						}
