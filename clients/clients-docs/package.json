@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/clients-docs",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Documentation content for the @theholocron/clients monorepo",
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/clients-docs#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
