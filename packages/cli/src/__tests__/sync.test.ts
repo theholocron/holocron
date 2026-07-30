@@ -884,6 +884,24 @@ describe("runSync", () => {
 			expect(pkg.homepage).toBe("https://example.com");
 		});
 
+		it("step reports ok even when package.json is absent and no syncHomepage provider", async () => {
+			const loaded = loadedFrom({ name: "demo", homepage: "https://example.com", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["homepage"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync homepage");
+			expect(step?.status).toBe("ok");
+		});
+
 		it("calls source.syncHomepage when provider implements it", async () => {
 			let capturedUrl: string | null = null;
 			const loaded = loadedFrom({
