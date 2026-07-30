@@ -26,6 +26,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./loader": "./src/loader.ts",
     "./styles.css": "./src/styles.css"
   },
   "main": "./src/index.ts",
@@ -40,6 +41,9 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
   },
   "devDependencies": {
     "@astrojs/starlight": "^0.41.5",
@@ -73,6 +77,11 @@
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs",
         "default": "./dist/index.mjs"
+      },
+      "./loader": {
+        "types": "./dist/loader.d.mts",
+        "import": "./dist/loader.mjs",
+        "default": "./dist/loader.mjs"
       },
       "./styles.css": "./dist/styles.css"
     },
