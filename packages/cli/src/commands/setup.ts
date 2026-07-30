@@ -18,6 +18,7 @@
  * one central place.
  */
 
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { access, copyFile, mkdir, readdir, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -929,12 +930,24 @@ export async function installSkills({
 
 	// Locate @theholocron/skills relative to the consumer repo.
 	// Uses ./package.json subpath — must be declared in the package exports map.
+	// Auto-installs if not present rather than failing with a manual instruction.
 	const require = createRequire(pathToFileURL(join(repoRoot, "package.json")));
 	let skillsRoot: string;
 	try {
 		skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
 	} catch {
-		throw new Error("@theholocron/skills not found — run: pnpm add -D @theholocron/skills");
+		const result = spawnSync("pnpm", ["add", "-D", "@theholocron/skills"], {
+			cwd: repoRoot,
+			stdio: "inherit",
+		});
+		if (result.status !== 0) {
+			throw new Error("failed to auto-install @theholocron/skills");
+		}
+		try {
+			skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
+		} catch {
+			throw new Error("failed to auto-install @theholocron/skills");
+		}
 	}
 
 	// Find which skills from the previous run are no longer wanted (prune stale).
