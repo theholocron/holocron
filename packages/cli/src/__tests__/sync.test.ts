@@ -986,6 +986,31 @@ describe("runSync", () => {
 		expect(step?.status).toBe("ok");
 	});
 
+	it("sets monorepo=true when pnpm-workspace.yaml exists in repoRoot", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+			let captured: Record<string, string> | null = null;
+			const loaded = loadedFrom({ name: "demo", repo: { name: "theholocron/demo" }, providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["properties"], print: () => {} });
+
+			expect(captured!["monorepo"]).toBe("true");
+		} finally {
+			await rm(tmpDir, { recursive: true });
+		}
+	});
+
 	it("includes branch_protection_level when repo.protection is set", async () => {
 		let captured: Record<string, string> | null = null;
 		const loaded = loadedFrom({
