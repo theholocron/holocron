@@ -30,18 +30,18 @@ jobs:
         if: ${{ inputs.use-turbo }}
         env:
           DOCS_NAME: ${{ inputs.name }}
-        run: pnpm turbo build --filter=@theholocron/$DOCS_NAME-docs
+        run: pnpm turbo build --filter=@theholocron/"$DOCS_NAME"-docs
 
       - name: Build content packages
         if: ${{ !inputs.use-turbo }}
         env:
           DOCS_NAME: ${{ inputs.name }}
-        run: pnpm --filter @theholocron/$DOCS_NAME-docs build
+        run: pnpm --filter @theholocron/"$DOCS_NAME"-docs build
 
       - name: Build docs site
         env:
           DOCS_NAME: ${{ inputs.name }}
-        run: pnpm --filter @theholocron/$DOCS_NAME-site build
+        run: pnpm --filter @theholocron/"$DOCS_NAME"-site build
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         name: Upload pages artifact
