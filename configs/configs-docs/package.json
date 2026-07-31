@@ -1,0 +1,59 @@
+{
+  "name": "@theholocron/configs-docs",
+  "version": "7.6.0",
+  "description": "Documentation content for the @theholocron/configs monorepo",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/configs-docs#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git",
+    "directory": "packages/configs-docs"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "keywords": [
+    "docs",
+    "documentation",
+    "content",
+    "typescript",
+    "configs"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "@types/node": "^26.1.2",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "content",
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}
