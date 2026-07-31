@@ -1,0 +1,64 @@
+name: Deploy Docs
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      name:
+        description: Repo name prefix used to derive package names (<name>-docs, <name>-site)
+        required: true
+        type: string
+      use-turbo:
+        description: Build content packages with pnpm turbo build (default true)
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build content packages
+        if: ${{ inputs.use-turbo }}
+        env:
+          DOCS_NAME: ${{ inputs.name }}
+        run: pnpm turbo build --filter=@theholocron/$DOCS_NAME-docs
+
+      - name: Build content packages
+        if: ${{ !inputs.use-turbo }}
+        env:
+          DOCS_NAME: ${{ inputs.name }}
+        run: pnpm --filter @theholocron/$DOCS_NAME-docs build
+
+      - name: Build docs site
+        env:
+          DOCS_NAME: ${{ inputs.name }}
+        run: pnpm --filter @theholocron/$DOCS_NAME-site build
+
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        name: Upload pages artifact
+        with:
+          path: docs/dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        id: deployment
+        name: Deploy to GitHub Pages

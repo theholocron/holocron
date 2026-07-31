@@ -126,16 +126,21 @@ export interface HolocronConfig {
 	 * Use the object form to pass `with:` inputs to the reusable workflow.
 	 *
 	 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
-	 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit"
+	 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit" |
+	 *   "deploy-docs"
 	 *
 	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
 	 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
 	 * Files are overwritten on each run — they are generated artifacts.
 	 *
+	 * Use `paths` to append additional `on.push.paths` entries beyond the
+	 * template default (e.g. the repo-specific docs content package path).
+	 *
 	 * @example
 	 * ["lint", { "name": "release", "with": { "run-build": false } }]
+	 * { "name": "deploy-docs", "with": { "name": "configs" }, "paths": ["packages/configs-docs/**"] }
 	 */
-	workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
+	workflows?: Array<string | { name: string; with?: Record<string, unknown>; paths?: string[] }>;
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -179,7 +184,7 @@ export interface ResolvedHolocronConfig {
 	description?: string;
 	homepage?: string;
 	repo?: RepoConfig;
-	workflows?: Array<string | { name: string; with?: Record<string, unknown> }>;
+	workflows?: Array<string | { name: string; with?: Record<string, unknown>; paths?: string[] }>;
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;

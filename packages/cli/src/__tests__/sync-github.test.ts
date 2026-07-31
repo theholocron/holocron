@@ -656,4 +656,35 @@ describe("generateThinCallerContent", () => {
 		expect(content).not.toContain("issues:");
 		expect(content).toContain("secrets: inherit");
 	});
+
+	it("appends additionalPaths to the existing paths: block", () => {
+		const content = generateThinCallerContent("deploy-docs", undefined, ["packages/configs-docs/**"]);
+		expect(content).toContain("- docs/**");
+		expect(content).toContain("- packages/configs-docs/**");
+		const docsIdx = content.indexOf("- docs/**");
+		const pkgIdx = content.indexOf("- packages/configs-docs/**");
+		expect(docsIdx).toBeLessThan(pkgIdx);
+	});
+
+	it("appends multiple additionalPaths entries in order", () => {
+		const content = generateThinCallerContent("deploy-docs", undefined, [
+			"packages/configs-docs/**",
+			"packages/configs-theme/**",
+		]);
+		expect(content).toContain("- packages/configs-docs/**");
+		expect(content).toContain("- packages/configs-theme/**");
+	});
+
+	it("returns template unchanged when additionalPaths is empty", () => {
+		const base = generateThinCallerContent("deploy-docs");
+		const withEmpty = generateThinCallerContent("deploy-docs", undefined, []);
+		expect(withEmpty).toBe(base);
+	});
+
+	it("applies both additionalPaths and withOverrides together", () => {
+		const content = generateThinCallerContent("deploy-docs", { name: "configs" }, ["packages/configs-docs/**"]);
+		expect(content).toContain("- packages/configs-docs/**");
+		expect(content).toContain("name: configs");
+		expect(content).toContain("secrets: inherit");
+	});
 });

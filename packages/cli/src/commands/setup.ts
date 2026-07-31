@@ -521,6 +521,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		for (const entry of workflows) {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const withOverrides = typeof entry === "object" ? entry.with : undefined;
+			const additionalPaths = typeof entry === "object" ? entry.paths : undefined;
 			if (!KNOWN_WORKFLOWS.has(name)) {
 				steps.push({
 					capability: "source",
@@ -535,7 +536,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
 					await source.writeWorkflowFile(
 						`${name}.yml`,
-						workflowHeader() + generateThinCallerContent(name, withOverrides)
+						workflowHeader() + generateThinCallerContent(name, withOverrides, additionalPaths)
 					);
 				})
 			);
