@@ -11,7 +11,11 @@ export default defineConfig({
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		...repo,
 	},
-	workflows: [...workflows, { name: "release", with: { "sentry-project": "holocron-cli" } }],
+	workflows: [
+		...workflows,
+		{ name: "release", with: { "sentry-project": "holocron-cli" } },
+		{ name: "deploy-docs", with: { name: "holocron" }, paths: ["packages/holocron-docs/**"] },
+	],
 	providers: {
 		...providers,
 		vault: ["doppler", { project: "holocron", config: "dev" }],

@@ -78,17 +78,31 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
  * If neither pattern matches the template, a warning is emitted and the
  * base template is returned unchanged.
  */
-export function generateThinCallerContent(name: string, withOverrides?: Record<string, unknown>): string {
+export function generateThinCallerContent(
+	name: string,
+	withOverrides?: Record<string, unknown>,
+	additionalPaths?: string[]
+): string {
 	const base = WORKFLOW_TEMPLATES[name];
 	if (!base) return "";
-	if (!withOverrides || Object.keys(withOverrides).length === 0) return base;
 
 	const fmt = (k: string, v: unknown) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`;
+
+	let result = base;
+
+	// Append extra push.paths entries after the existing paths: block.
+	if (additionalPaths && additionalPaths.length > 0) {
+		const pathsBlockRe = /( {4}paths:\n)((?:[ ]{6}- [^\n]+\n)+)/;
+		const newEntries = additionalPaths.map((p) => `      - ${p}\n`).join("");
+		result = result.replace(pathsBlockRe, (_, header, existing) => header + existing + newEntries);
+	}
+
+	if (!withOverrides || Object.keys(withOverrides).length === 0) return result;
 
 	// If the template already has a with: block, merge overrides into it.
 	// Existing keys are replaced; new keys are appended.
 	const withBlockRe = /( {4}with:\n)((?:[ ]{6}[^\n]+\n)*)/;
-	const existingMatch = base.match(withBlockRe);
+	const existingMatch = result.match(withBlockRe);
 	if (existingMatch) {
 		const existingEntries = new Map(
 			existingMatch[2]
@@ -104,16 +118,16 @@ export function generateThinCallerContent(name: string, withOverrides?: Record<s
 			existingEntries.set(k, v === true ? "true" : v === false ? "false" : String(v));
 		}
 		const merged = [...existingEntries.entries()].map(([k, v]) => `      ${k}: ${v}`).join("\n");
-		return base.replace(withBlockRe, `    with:\n${merged}\n`);
+		return result.replace(withBlockRe, `    with:\n${merged}\n`);
 	}
 
 	// No existing with: block — inject before `    secrets: inherit` at end.
 	const withBlock = Object.entries(withOverrides)
 		.map(([k, v]) => fmt(k, v))
 		.join("\n");
-	const result = base.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
-	if (result === base) {
+	const injected = result.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
+	if (injected === result) {
 		console.warn(`[generateThinCallerContent] could not inject with: overrides into "${name}" template`);
 	}
-	return result;
+	return injected;
 }
