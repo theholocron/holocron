@@ -1,0 +1,71 @@
+---
+title: Vercel Plugin
+description: Implements the deployment capability against the Vercel REST API.
+---
+
+`@theholocron/holocron-plugin-vercel` implements the `deployment` capability using `@theholocron/vercel-client`.
+
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-vercel
+```
+
+## Capabilities
+
+| Capability | Token required |
+| --- | --- |
+| `deployment` | `HOLOCRON_VERCEL_TOKEN` (`vercel`) |
+
+## Config
+
+```ts
+providers: {
+  deployment: ["vercel", {
+    // Optional Vercel team id (required for team-owned projects)
+    teamId: "team_xxx",
+    // Default framework for new project creates (default: "nextjs")
+    defaultFramework: "nextjs",
+  }],
+}
+```
+
+### Options
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `teamId` | `string` | Vercel team id — required when working with team-owned projects |
+| `defaultFramework` | `string` | Framework slug for new project creation. Defaults to `"nextjs"` |
+
+## Authentication
+
+```bash
+# Store in keyring
+holocron auth set vercel v_xxx
+
+# Or via env var
+export HOLOCRON_VERCEL_TOKEN=v_xxx
+```
+
+Generate a token at [vercel.com/account/tokens](https://vercel.com/account/tokens). Use "Full Account" scope for team operations.
+
+## What `deployment` provides
+
+- List and create Vercel projects
+- Update project settings (preview deployments, git integration)
+- List and set environment variables per target (`development`, `preview`, `production`)
+- Trigger deployments from a branch (preview or named environment)
+- Poll deployment status
+
+## Example: deploy to production
+
+```bash
+holocron deploy main --project-id prj_xxx --target production
+```
+
+## Example: secrets sync to Vercel
+
+```bash
+# Pull from Doppler "production" config → push to GitHub secrets + Vercel production + preview
+holocron secrets sync production --project-id prj_xxx
+```

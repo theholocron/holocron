@@ -1,0 +1,69 @@
+---
+title: Neon Plugin
+description: Implements the storage capability against Neon's serverless Postgres REST API.
+---
+
+`@theholocron/holocron-plugin-neon` implements the `storage` capability against [Neon](https://neon.tech/)'s REST API — branch operations, connection strings, and Postgres extension management.
+
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-neon
+```
+
+## Capabilities
+
+| Capability | Token required |
+| --- | --- |
+| `storage` | `HOLOCRON_NEON_API_KEY` (`neon`) |
+
+## Config
+
+```ts
+providers: {
+  storage: ["neon", {
+    // Required: Neon project id
+    projectId: "aged-bar-12345678",
+  }],
+}
+```
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `projectId` | Yes | Neon project id (found in the Neon dashboard or API) |
+
+## Authentication
+
+```bash
+holocron auth set neon <api-key>
+```
+
+Or via env var:
+```bash
+export HOLOCRON_NEON_API_KEY=<api-key>
+```
+
+Create an API key in the Neon dashboard → Account → API Keys.
+
+## What `storage` provides
+
+- `getConnectionString(branch, options?)` — returns the `postgresql://` connection URL for a branch. Pass `{ pooled: true }` for the PgBouncer pooled URL.
+- `listBranches()` — list all branches in the Neon project
+- `createBranch(input)` — create a new branch from a parent branch
+- `destroyBranch(branch)` — delete a branch
+- `resetBranch(input)` — reset one branch to match another (e.g. reset `preview` → `main`)
+- `enableExtension(input)` — run `CREATE EXTENSION IF NOT EXISTS …` on a specific branch
+
+## Example: preview branch workflow
+
+```bash
+# Get a connection string for the "preview" branch
+NEON_URL=$(holocron storage get-connection-string preview)
+
+# Reset the preview branch to main after a deploy
+holocron storage reset-branch --branch preview --from main
+```
+
+These operations are run programmatically via the `storage` capability — commands like `secrets sync` can use the storage plugin to set `DATABASE_URL` env vars on deployment platforms.
