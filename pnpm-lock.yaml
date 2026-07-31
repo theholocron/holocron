@@ -242,9 +242,6 @@ importers:
       astro:
         specifier: ^7.1.5
         version: 7.1.6(@astrojs/markdown-remark@7.2.2)(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(rollup@4.62.3)(tsx@4.22.4)(yaml@2.9.0)
-      gray-matter:
-        specifier: ^4.0.3
-        version: 4.0.3
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
