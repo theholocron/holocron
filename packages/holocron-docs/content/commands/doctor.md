@@ -11,15 +11,15 @@ holocron doctor [--repo owner/name] [--dry-run]
 
 ## What each capability checks
 
-| Capability | Smoke check |
-| --- | --- |
-| `source` | `whoami()` — verifies the token and returns the authenticated login |
-| `issues` | `doctor()` — validates lifecycle slot mapping and lists available statuses |
-| `secrets` | `listSecrets({ kind: 'repo' })` — lists secret names at repo scope |
-| `ci` | `listRuns({ limit: 1 })` — fetches the most recent CI run |
-| `vault` | `list()` — lists available secret keys |
-| `auth` | `whoami()` — verifies the auth provider key |
-| Others | "loaded" — confirms the plugin loads without error |
+| Capability | Smoke check                                                                |
+| ---------- | -------------------------------------------------------------------------- |
+| `source`   | `whoami()` — verifies the token and returns the authenticated login        |
+| `issues`   | `doctor()` — validates lifecycle slot mapping and lists available statuses |
+| `secrets`  | `listSecrets({ kind: 'repo' })` — lists secret names at repo scope         |
+| `ci`       | `listRuns({ limit: 1 })` — fetches the most recent CI run                  |
+| `vault`    | `list()` — lists available secret keys                                     |
+| `auth`     | `whoami()` — verifies the auth provider key                                |
+| Others     | "loaded" — confirms the plugin loads without error                         |
 
 ## Output
 
@@ -40,7 +40,7 @@ Exit code is 1 if any capability reports `fail`.
 
 ## Options
 
-| Option | Description |
-| --- | --- |
+| Option              | Description                                                     |
+| ------------------- | --------------------------------------------------------------- |
 | `--repo owner/name` | Override the repo coordinate (defaults to config or git remote) |
-| `--dry-run` | No-op for doctor — read-only checks still run |
+| `--dry-run`         | No-op for doctor — read-only checks still run                   |

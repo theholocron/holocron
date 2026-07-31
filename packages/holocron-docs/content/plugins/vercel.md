@@ -13,8 +13,8 @@ pnpm add -D @theholocron/holocron-plugin-vercel
 
 ## Capabilities
 
-| Capability | Token required |
-| --- | --- |
+| Capability   | Token required                     |
+| ------------ | ---------------------------------- |
 | `deployment` | `HOLOCRON_VERCEL_TOKEN` (`vercel`) |
 
 ## Config
@@ -32,9 +32,9 @@ providers: {
 
 ### Options
 
-| Option | Type | Description |
-| --- | --- | --- |
-| `teamId` | `string` | Vercel team id — required when working with team-owned projects |
+| Option             | Type     | Description                                                     |
+| ------------------ | -------- | --------------------------------------------------------------- |
+| `teamId`           | `string` | Vercel team id — required when working with team-owned projects |
 | `defaultFramework` | `string` | Framework slug for new project creation. Defaults to `"nextjs"` |
 
 ## Authentication

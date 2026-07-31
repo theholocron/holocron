@@ -15,11 +15,11 @@ Bumps every non-private package's `version` field in `packages/*/package.json` t
 
 ### Options
 
-| Option | Description |
-| --- | --- |
-| `<version>` | Target version (e.g. `4.2.0` or `2.0.0-alpha.1`) |
+| Option      | Description                                       |
+| ----------- | ------------------------------------------------- |
+| `<version>` | Target version (e.g. `4.2.0` or `2.0.0-alpha.1`)  |
 | `--dry-run` | Print what would change without writing any files |
-| `--cwd` | Monorepo root (default: `process.cwd()`) |
+| `--cwd`     | Monorepo root (default: `process.cwd()`)          |
 
 ### Example
 
@@ -58,11 +58,11 @@ After the command runs, visit each package's npm page → Settings → Trusted P
 
 ### Options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--tag` | `alpha` | npm distribution tag |
-| `--otp` | — | TOTP code from your authenticator (if 2FA is required for writes) |
-| `--dry-run` | `false` | Print what would be published without publishing |
+| Option      | Default | Description                                                       |
+| ----------- | ------- | ----------------------------------------------------------------- |
+| `--tag`     | `alpha` | npm distribution tag                                              |
+| `--otp`     | —       | TOTP code from your authenticator (if 2FA is required for writes) |
+| `--dry-run` | `false` | Print what would be published without publishing                  |
 
 ### Notes
 

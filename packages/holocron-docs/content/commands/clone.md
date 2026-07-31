@@ -11,12 +11,12 @@ Clones every repository in a GitHub org into a common parent directory. Repos th
 
 ## Options
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `--org` | Yes | GitHub org to clone (e.g. `theholocron`) |
-| `--dir` | No | Parent directory to clone into. Defaults to `~/Code/<org>` |
-| `--dry-run` | No | Print what would be cloned without running `git clone` |
-| `--token github=<token>` | No | Override the GitHub read token for this invocation |
+| Option                   | Required | Description                                                |
+| ------------------------ | -------- | ---------------------------------------------------------- |
+| `--org`                  | Yes      | GitHub org to clone (e.g. `theholocron`)                   |
+| `--dir`                  | No       | Parent directory to clone into. Defaults to `~/Code/<org>` |
+| `--dry-run`              | No       | Print what would be cloned without running `git clone`     |
+| `--token github=<token>` | No       | Override the GitHub read token for this invocation         |
 
 ## Authentication
 

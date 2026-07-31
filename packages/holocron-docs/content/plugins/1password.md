@@ -19,9 +19,9 @@ brew install --cask 1password/tap/1password-cli
 
 ## Capabilities
 
-| Capability | Auth method |
-| --- | --- |
-| `vault` | `op` CLI session (biometric on laptop; `OP_SERVICE_ACCOUNT_TOKEN` in CI) |
+| Capability | Auth method                                                              |
+| ---------- | ------------------------------------------------------------------------ |
+| `vault`    | `op` CLI session (biometric on laptop; `OP_SERVICE_ACCOUNT_TOKEN` in CI) |
 
 ## Config
 
@@ -38,19 +38,20 @@ providers: {
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `vault` | Yes | 1Password vault name |
-| `account` | No | 1Password account UUID — useful when multiple accounts are signed in |
+| Option    | Required | Description                                                          |
+| --------- | -------- | -------------------------------------------------------------------- |
+| `vault`   | Yes      | 1Password vault name                                                 |
+| `account` | No       | 1Password account UUID — useful when multiple accounts are signed in |
 
 ## Authentication
 
 **On laptop:** Sign in via the 1Password desktop app or `op signin`. The plugin uses the active session automatically.
 
 **In CI:** Set `OP_SERVICE_ACCOUNT_TOKEN` in the workflow environment:
+
 ```yaml
 env:
-  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+    OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 ```
 
 `holocron auth set 1password` does not store a token — it prints the `AUTH_HINT` instead.

@@ -11,14 +11,14 @@ Generates workflow thin callers and composite action files from the source-of-tr
 
 ## Options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--repo` | `theholocron/.github` | Target `owner/repo` to push generated files to |
-| `--branch` | *(default branch)* | Push to this branch instead of the default branch |
-| `--pr` | `false` | Open a PR after pushing to `--branch` (no-op without `--branch`) |
-| `--message` | `chore: sync from theholocron/holocron` | Commit message |
-| `--output-dir` | — | Write generated files to a local directory instead of pushing (useful for validation) |
-| `--dry-run` | `false` | Print what would be pushed without calling the GitHub API |
+| Option         | Default                                 | Description                                                                           |
+| -------------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
+| `--repo`       | `theholocron/.github`                   | Target `owner/repo` to push generated files to                                        |
+| `--branch`     | _(default branch)_                      | Push to this branch instead of the default branch                                     |
+| `--pr`         | `false`                                 | Open a PR after pushing to `--branch` (no-op without `--branch`)                      |
+| `--message`    | `chore: sync from theholocron/holocron` | Commit message                                                                        |
+| `--output-dir` | —                                       | Write generated files to a local directory instead of pushing (useful for validation) |
+| `--dry-run`    | `false`                                 | Print what would be pushed without calling the GitHub API                             |
 
 ## Examples
 

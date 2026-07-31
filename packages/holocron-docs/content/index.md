@@ -2,24 +2,24 @@
 title: Holocron
 description: A pluggable, capability-based CLI for spinning up and operating software projects.
 sidebar:
-  hidden: true
+    hidden: true
 ---
 
 Holocron is a pluggable CLI that orchestrates infrastructure and repository operations through a capability system. Each capability (source control, secrets, deployments, etc.) is fulfilled by a plugin — configure which providers you use once in `holocron.config.ts`, then drive your entire project lifecycle through a single tool.
 
 ## Packages
 
-| Package | Description |
-| --- | --- |
+| Package                                                              | Description                                        |
+| -------------------------------------------------------------------- | -------------------------------------------------- |
 | [`@theholocron/cli`](https://www.npmjs.com/package/@theholocron/cli) | The CLI itself — install globally or via pnpm exec |
-| [`@theholocron/holocron-plugin-github`](./plugins/github) | source, ci, secrets, environments, issues |
-| [`@theholocron/holocron-plugin-vercel`](./plugins/vercel) | deployment |
-| [`@theholocron/holocron-plugin-1password`](./plugins/1password) | vault |
-| [`@theholocron/holocron-plugin-doppler`](./plugins/doppler) | vault |
-| [`@theholocron/holocron-plugin-infisical`](./plugins/infisical) | vault |
-| [`@theholocron/holocron-plugin-clerk`](./plugins/clerk) | auth |
-| [`@theholocron/holocron-plugin-neon`](./plugins/neon) | storage |
-| [`@theholocron/holocron-plugin-postman`](./plugins/postman) | tooling |
+| [`@theholocron/holocron-plugin-github`](./plugins/github)            | source, ci, secrets, environments, issues          |
+| [`@theholocron/holocron-plugin-vercel`](./plugins/vercel)            | deployment                                         |
+| [`@theholocron/holocron-plugin-1password`](./plugins/1password)      | vault                                              |
+| [`@theholocron/holocron-plugin-doppler`](./plugins/doppler)          | vault                                              |
+| [`@theholocron/holocron-plugin-infisical`](./plugins/infisical)      | vault                                              |
+| [`@theholocron/holocron-plugin-clerk`](./plugins/clerk)              | auth                                               |
+| [`@theholocron/holocron-plugin-neon`](./plugins/neon)                | storage                                            |
+| [`@theholocron/holocron-plugin-postman`](./plugins/postman)          | tooling                                            |
 
 ## Install
 

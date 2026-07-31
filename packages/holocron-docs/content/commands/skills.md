@@ -61,22 +61,22 @@ holocron skills update
 
 Skills are installed from [`@theholocron/skills`](https://github.com/theholocron/skills). Standard skills include:
 
-| Skill | Description |
-| --- | --- |
-| `git-safety` | Git safety rules — guard against destructive operations |
-| `pr-workflow` | PR workflow rules — always open a PR, never push directly to default branch |
-| `commit-standards` | Conventional Commits format + DCO sign-off |
-| `security-review` | Security review checklist (OWASP top 10, Node.js pitfalls) |
-| `holocron-skill-client` | Scaffold a new HTTP client package in theholocron/clients |
-| `holocron-skill-config` | Scaffold a new config package in theholocron/configs |
-| `turborepo` | Turborepo monorepo build system guidance |
+| Skill                   | Description                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `git-safety`            | Git safety rules — guard against destructive operations                     |
+| `pr-workflow`           | PR workflow rules — always open a PR, never push directly to default branch |
+| `commit-standards`      | Conventional Commits format + DCO sign-off                                  |
+| `security-review`       | Security review checklist (OWASP top 10, Node.js pitfalls)                  |
+| `holocron-skill-client` | Scaffold a new HTTP client package in theholocron/clients                   |
+| `holocron-skill-config` | Scaffold a new config package in theholocron/configs                        |
+| `turborepo`             | Turborepo monorepo build system guidance                                    |
 
 ## Config example
 
 ```ts
 // holocron.config.ts
 export default defineConfig({
-  agent: "claude",
-  skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
+	agent: "claude",
+	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
 });
 ```

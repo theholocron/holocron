@@ -13,9 +13,9 @@ pnpm add -D @theholocron/holocron-plugin-doppler
 
 ## Capabilities
 
-| Capability | Token required |
-| --- | --- |
-| `vault` | `HOLOCRON_DOPPLER_TOKEN` (`doppler`) |
+| Capability | Token required                       |
+| ---------- | ------------------------------------ |
+| `vault`    | `HOLOCRON_DOPPLER_TOKEN` (`doppler`) |
 
 ## Config
 
@@ -32,10 +32,10 @@ providers: {
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `project` | Yes | Doppler project name |
-| `config` | Yes | Doppler config/environment name |
+| Option    | Required | Description                     |
+| --------- | -------- | ------------------------------- |
+| `project` | Yes      | Doppler project name            |
+| `config`  | Yes      | Doppler config/environment name |
 
 ## Authentication
 
@@ -44,6 +44,7 @@ holocron auth set doppler dp.st.xxx
 ```
 
 Or via env var:
+
 ```bash
 export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 ```

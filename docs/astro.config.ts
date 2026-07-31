@@ -10,9 +10,7 @@ import { defineConfig } from "astro/config";
 // Our content lives outside docs/ so we compute the relative path so the
 // directory: value matches how the loader stores filePaths.
 const docsDir = fileURLToPath(new URL(".", import.meta.url));
-const contentDir = fileURLToPath(
-	new URL("../packages/holocron-docs/content", import.meta.url),
-);
+const contentDir = fileURLToPath(new URL("../packages/holocron-docs/content", import.meta.url));
 const contentRelDir = relative(docsDir, contentDir);
 
 export default defineConfig({

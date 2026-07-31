@@ -11,22 +11,22 @@ Sets a single secret at the specified scope using the `secrets` capability (e.g.
 
 ## Arguments and options
 
-| Argument / Option | Default | Description |
-| --- | --- | --- |
-| `<name>` | *(required)* | Secret name (e.g. `NPM_TOKEN`) |
-| `[value]` | — | Secret value as a positional argument |
-| `--from-stdin` | `false` | Read secret value from stdin |
-| `--from-env <var>` | — | Read from a named env var (falls back to env var matching `<name>`) |
-| `--scope` | `repo` | Scope: `repo`, `env=<name>`, or `org=<name>` |
-| `--dry-run` | `false` | Print what would be set without writing |
+| Argument / Option  | Default      | Description                                                         |
+| ------------------ | ------------ | ------------------------------------------------------------------- |
+| `<name>`           | _(required)_ | Secret name (e.g. `NPM_TOKEN`)                                      |
+| `[value]`          | —            | Secret value as a positional argument                               |
+| `--from-stdin`     | `false`      | Read secret value from stdin                                        |
+| `--from-env <var>` | —            | Read from a named env var (falls back to env var matching `<name>`) |
+| `--scope`          | `repo`       | Scope: `repo`, `env=<name>`, or `org=<name>`                        |
+| `--dry-run`        | `false`      | Print what would be set without writing                             |
 
 ## Scope formats
 
-| Scope | Example | Description |
-| --- | --- | --- |
-| `repo` | `--scope repo` | Repository-level secret (default) |
-| `env=<name>` | `--scope env=production` | Environment-level secret |
-| `org=<name>` | `--scope org=my-org` | Organization-level secret |
+| Scope        | Example                  | Description                       |
+| ------------ | ------------------------ | --------------------------------- |
+| `repo`       | `--scope repo`           | Repository-level secret (default) |
+| `env=<name>` | `--scope env=production` | Environment-level secret          |
+| `org=<name>` | `--scope org=my-org`     | Organization-level secret         |
 
 ## Examples
 

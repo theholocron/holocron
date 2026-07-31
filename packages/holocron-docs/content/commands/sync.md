@@ -18,25 +18,25 @@ holocron sync                               # run all steps
 holocron sync labels properties             # run only labels and properties
 ```
 
-| Step | What it syncs | Requires provider token |
-| --- | --- | --- |
-| `labels` | GitHub labels — upserts canonical set, deletes stale ones | Yes (`HOLOCRON_ADMIN_TOKEN`) |
-| `properties` | Org-level custom properties (`repo.properties`) | Yes |
-| `teams` | Team repository access (`repo.teams`) | Yes |
-| `topics` | GitHub topics (`repo.topics`) | Yes |
-| `keywords` | `package.json#keywords` — set from `repo.topics` | No |
-| `description` | `package.json#description` and GitHub repo description | No (local) / Yes (GitHub) |
-| `homepage` | `package.json#homepage` and GitHub repo website field | No (local) / Yes (GitHub) |
+| Step          | What it syncs                                             | Requires provider token      |
+| ------------- | --------------------------------------------------------- | ---------------------------- |
+| `labels`      | GitHub labels — upserts canonical set, deletes stale ones | Yes (`HOLOCRON_ADMIN_TOKEN`) |
+| `properties`  | Org-level custom properties (`repo.properties`)           | Yes                          |
+| `teams`       | Team repository access (`repo.teams`)                     | Yes                          |
+| `topics`      | GitHub topics (`repo.topics`)                             | Yes                          |
+| `keywords`    | `package.json#keywords` — set from `repo.topics`          | No                           |
+| `description` | `package.json#description` and GitHub repo description    | No (local) / Yes (GitHub)    |
+| `homepage`    | `package.json#homepage` and GitHub repo website field     | No (local) / Yes (GitHub)    |
 
 Local steps (`keywords`, `description`, `homepage`) write to the local filesystem. If a `source` plugin is also configured, they additionally push to GitHub. Running without a token skips the GitHub push but still updates local files.
 
 ## Options
 
-| Option | Description |
-| --- | --- |
-| `[steps..]` | Subset of steps to run (default: all) |
-| `--repo owner/name` | Override repo coordinate |
-| `--dry-run` | Print changes without writing |
+| Option              | Description                           |
+| ------------------- | ------------------------------------- |
+| `[steps..]`         | Subset of steps to run (default: all) |
+| `--repo owner/name` | Override repo coordinate              |
+| `--dry-run`         | Print changes without writing         |
 
 ## Examples
 

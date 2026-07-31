@@ -11,15 +11,15 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 
 ## Arguments and options
 
-| Argument / Option | Required | Description |
-| --- | --- | --- |
-| `<slug>` | Yes | Package slug in kebab-case (e.g. `stripe`) → creates `holocron-plugin-stripe` |
-| `<vendor>` | Yes | Vendor display name in PascalCase (e.g. `Stripe`) |
-| `--capability` | *(prompted)* | Capability key the plugin implements |
-| `--token-env` | No | Holocron env var name for the token (default: `HOLOCRON_<VENDOR>_TOKEN`) |
-| `--vendor-env` | *(prompted)* | Vendor-native env var name (e.g. `STRIPE_SECRET_KEY`) |
-| `--base-url` | *(prompted)* | REST base URL (e.g. `https://api.stripe.com`) |
-| `--no-verify` | `false` | Skip post-scaffold `pnpm install + typecheck + lint + test` |
+| Argument / Option | Required     | Description                                                                   |
+| ----------------- | ------------ | ----------------------------------------------------------------------------- |
+| `<slug>`          | Yes          | Package slug in kebab-case (e.g. `stripe`) → creates `holocron-plugin-stripe` |
+| `<vendor>`        | Yes          | Vendor display name in PascalCase (e.g. `Stripe`)                             |
+| `--capability`    | _(prompted)_ | Capability key the plugin implements                                          |
+| `--token-env`     | No           | Holocron env var name for the token (default: `HOLOCRON_<VENDOR>_TOKEN`)      |
+| `--vendor-env`    | _(prompted)_ | Vendor-native env var name (e.g. `STRIPE_SECRET_KEY`)                         |
+| `--base-url`      | _(prompted)_ | REST base URL (e.g. `https://api.stripe.com`)                                 |
+| `--no-verify`     | `false`      | Skip post-scaffold `pnpm install + typecheck + lint + test`                   |
 
 ## Available capability keys
 
@@ -28,13 +28,13 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 ## What gets generated
 
 - `packages/holocron-plugin-<slug>/` — fully-typed plugin package with:
-  - `src/index.ts` — `createPlugin` factory + `AUTH_HINT` + public re-exports
-  - `src/auth.ts` — token resolver using `createResolveToken`
-  - `src/verify-token.ts` — `verifyToken` called by `holocron auth set`
-  - `src/rest.ts` — thin REST client factory
-  - `src/capabilities/<capability>.ts` — capability implementation stub
-  - `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`
-  - `__tests__/` directory with a starter test
+    - `src/index.ts` — `createPlugin` factory + `AUTH_HINT` + public re-exports
+    - `src/auth.ts` — token resolver using `createResolveToken`
+    - `src/verify-token.ts` — `verifyToken` called by `holocron auth set`
+    - `src/rest.ts` — thin REST client factory
+    - `src/capabilities/<capability>.ts` — capability implementation stub
+    - `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`
+    - `__tests__/` directory with a starter test
 
 ## Example
 

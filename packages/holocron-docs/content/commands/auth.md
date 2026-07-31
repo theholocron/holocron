@@ -19,6 +19,7 @@ holocron auth set doppler       dp.st.xxx
 ```
 
 If `value` is omitted, the CLI reads from:
+
 1. `HOLOCRON_<PROVIDER>_TOKEN` env var (uppercased, dots replaced with underscores)
 2. `<PROVIDER>_TOKEN` vendor-native env var
 
@@ -59,6 +60,7 @@ holocron auth list
 ```
 
 Output example:
+
 ```
 github.admin   ✓ stored
 github.read    ✓ stored
@@ -67,18 +69,18 @@ vercel         ✓ stored
 
 ## Provider names
 
-| Provider name | Plugin |
-| --- | --- |
-| `github.admin` | `@theholocron/holocron-plugin-github` (admin token) |
-| `github.read` | `@theholocron/holocron-plugin-github` (read token) |
-| `github.issues` | `@theholocron/holocron-plugin-github` (issues token) |
-| `github.sync` | `@theholocron/holocron-plugin-github` (sync token) |
+| Provider name    | Plugin                                                |
+| ---------------- | ----------------------------------------------------- |
+| `github.admin`   | `@theholocron/holocron-plugin-github` (admin token)   |
+| `github.read`    | `@theholocron/holocron-plugin-github` (read token)    |
+| `github.issues`  | `@theholocron/holocron-plugin-github` (issues token)  |
+| `github.sync`    | `@theholocron/holocron-plugin-github` (sync token)    |
 | `github.release` | `@theholocron/holocron-plugin-github` (release token) |
-| `vercel` | `@theholocron/holocron-plugin-vercel` |
-| `doppler` | `@theholocron/holocron-plugin-doppler` |
-| `infisical` | `@theholocron/holocron-plugin-infisical` |
-| `clerk` | `@theholocron/holocron-plugin-clerk` |
-| `neon` | `@theholocron/holocron-plugin-neon` |
-| `postman` | `@theholocron/holocron-plugin-postman` |
+| `vercel`         | `@theholocron/holocron-plugin-vercel`                 |
+| `doppler`        | `@theholocron/holocron-plugin-doppler`                |
+| `infisical`      | `@theholocron/holocron-plugin-infisical`              |
+| `clerk`          | `@theholocron/holocron-plugin-clerk`                  |
+| `neon`           | `@theholocron/holocron-plugin-neon`                   |
+| `postman`        | `@theholocron/holocron-plugin-postman`                |
 
 See the [Token Reference](../tokens) for the env var names and PAT scopes each token needs.

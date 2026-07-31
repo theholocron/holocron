@@ -13,13 +13,13 @@ pnpm add -D @theholocron/holocron-plugin-github
 
 ## Capabilities
 
-| Capability | Token required |
-| --- | --- |
-| `source` | `HOLOCRON_ADMIN_TOKEN` (`github.admin`) |
-| `ci` | `HOLOCRON_READ_TOKEN` (`github.read`) |
-| `secrets` | `HOLOCRON_ADMIN_TOKEN` (`github.admin`) |
-| `environments` | `HOLOCRON_ADMIN_TOKEN` (`github.admin`) |
-| `issues` | `HOLOCRON_ISSUES_TOKEN` (`github.issues`) |
+| Capability     | Token required                            |
+| -------------- | ----------------------------------------- |
+| `source`       | `HOLOCRON_ADMIN_TOKEN` (`github.admin`)   |
+| `ci`           | `HOLOCRON_READ_TOKEN` (`github.read`)     |
+| `secrets`      | `HOLOCRON_ADMIN_TOKEN` (`github.admin`)   |
+| `environments` | `HOLOCRON_ADMIN_TOKEN` (`github.admin`)   |
+| `issues`       | `HOLOCRON_ISSUES_TOKEN` (`github.issues`) |
 
 ## Config
 
@@ -41,12 +41,12 @@ providers: {
 
 ### Options
 
-| Option | Type | Description |
-| --- | --- | --- |
-| `repo` | `string` | `"owner/name"` — derived from `repo.name` in config or git remote when absent |
-| `repoRoot` | `string` | Absolute path to repo root for workflow file operations. Defaults to `process.cwd()` |
-| `labels.inProgress` | `string` | Label name to set when transitioning an issue to `inProgress` |
-| `labels.inReview` | `string` | Label name to set when transitioning an issue to `inReview` |
+| Option              | Type     | Description                                                                          |
+| ------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `repo`              | `string` | `"owner/name"` — derived from `repo.name` in config or git remote when absent        |
+| `repoRoot`          | `string` | Absolute path to repo root for workflow file operations. Defaults to `process.cwd()` |
+| `labels.inProgress` | `string` | Label name to set when transitioning an issue to `inProgress`                        |
+| `labels.inReview`   | `string` | Label name to set when transitioning an issue to `inReview`                          |
 
 ## Authentication
 
@@ -87,9 +87,9 @@ The plugin exports a `parseWebhook` function for normalizing GitHub webhook payl
 import { parseWebhook } from "@theholocron/holocron-plugin-github";
 
 const event = await parseWebhook({
-  body: req.body,
-  headers: req.headers,
-  signingSecret: process.env.GITHUB_WEBHOOK_SECRET!,
+	body: req.body,
+	headers: req.headers,
+	signingSecret: process.env.GITHUB_WEBHOOK_SECRET!,
 });
 // event.type: "user.created" | "user.updated" | "user.deleted"
 // event.user: NormalizedAuthUser

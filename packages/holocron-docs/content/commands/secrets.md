@@ -8,6 +8,7 @@ holocron secrets sync <environmentId> [--project-id <id>] [--target production p
 ```
 
 Pulls all secrets from a vault environment and fans them out to:
+
 - **CI secrets** via the `secrets` capability (e.g. GitHub Actions secrets)
 - **Deployment env vars** via the `deployment` capability (e.g. Vercel env vars) when `--project-id` is provided
 
@@ -15,12 +16,12 @@ This is the primary way to keep CI and deployment platform secrets in sync with 
 
 ## Arguments and options
 
-| Argument / Option | Default | Description |
-| --- | --- | --- |
-| `<environmentId>` | *(required)* | Vault environment id to read (provider-specific — e.g. a 1Password Environment id, Doppler config name) |
-| `--project-id` | — | Deployment project id (e.g. Vercel `prj_xxx`). Required when syncing to the `deployment` capability |
-| `--target` | `production preview` | Deployment targets to sync to (space-separated). Options: `development`, `preview`, `production` |
-| `--dry-run` | `false` | Print what would be set without writing secrets |
+| Argument / Option | Default              | Description                                                                                             |
+| ----------------- | -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `<environmentId>` | _(required)_         | Vault environment id to read (provider-specific — e.g. a 1Password Environment id, Doppler config name) |
+| `--project-id`    | —                    | Deployment project id (e.g. Vercel `prj_xxx`). Required when syncing to the `deployment` capability     |
+| `--target`        | `production preview` | Deployment targets to sync to (space-separated). Options: `development`, `preview`, `production`        |
+| `--dry-run`       | `false`              | Print what would be set without writing secrets                                                         |
 
 ## Examples
 

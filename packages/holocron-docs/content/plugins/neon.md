@@ -13,9 +13,9 @@ pnpm add -D @theholocron/holocron-plugin-neon
 
 ## Capabilities
 
-| Capability | Token required |
-| --- | --- |
-| `storage` | `HOLOCRON_NEON_API_KEY` (`neon`) |
+| Capability | Token required                   |
+| ---------- | -------------------------------- |
+| `storage`  | `HOLOCRON_NEON_API_KEY` (`neon`) |
 
 ## Config
 
@@ -30,9 +30,9 @@ providers: {
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `projectId` | Yes | Neon project id (found in the Neon dashboard or API) |
+| Option      | Required | Description                                          |
+| ----------- | -------- | ---------------------------------------------------- |
+| `projectId` | Yes      | Neon project id (found in the Neon dashboard or API) |
 
 ## Authentication
 
@@ -41,6 +41,7 @@ holocron auth set neon <api-key>
 ```
 
 Or via env var:
+
 ```bash
 export HOLOCRON_NEON_API_KEY=<api-key>
 ```

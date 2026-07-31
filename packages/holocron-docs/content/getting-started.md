@@ -29,27 +29,27 @@ Create `holocron.config.ts` (or `.json`) in your repo root:
 import { defineConfig } from "@theholocron/holocron-config";
 
 export default defineConfig({
-  name: "my-project",
-  description: "Short project description",
-  homepage: "https://github.com/my-org/my-project",
-  repo: {
-    name: "my-org/my-project",
-    protection: "balanced",
-    topics: ["typescript", "node"],
-    properties: {
-      lifecycle: "active",
-      runtime_environment: "node",
-    },
-  },
-  workflows: ["lint", "test", "typecheck", "release"],
-  skills: ["git-safety", "pr-workflow", "commit-standards"],
-  agent: "claude",
-  providers: {
-    source: "github",
-    ci: "github",
-    secrets: "github",
-    environments: "github",
-  },
+	name: "my-project",
+	description: "Short project description",
+	homepage: "https://github.com/my-org/my-project",
+	repo: {
+		name: "my-org/my-project",
+		protection: "balanced",
+		topics: ["typescript", "node"],
+		properties: {
+			lifecycle: "active",
+			runtime_environment: "node",
+		},
+	},
+	workflows: ["lint", "test", "typecheck", "release"],
+	skills: ["git-safety", "pr-workflow", "commit-standards"],
+	agent: "claude",
+	providers: {
+		source: "github",
+		ci: "github",
+		secrets: "github",
+		environments: "github",
+	},
 });
 ```
 
@@ -81,6 +81,7 @@ holocron setup
 ```
 
 `setup` applies all infrastructure actions for the configured capabilities:
+
 - Writes `.editorconfig`, `.alexrc.json`, `codecov.yml`, and `commitlint.config.ts`
 - Installs CI workflow thin callers from `workflows[]`
 - Configures branch protection (from `repo.protection`)

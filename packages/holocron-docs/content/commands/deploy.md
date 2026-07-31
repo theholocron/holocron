@@ -11,12 +11,12 @@ Triggers a deployment of a git branch via the configured `deployment` capability
 
 ## Arguments and options
 
-| Argument / Option | Required | Description |
-| --- | --- | --- |
-| `<branch>` | Yes | Git branch to deploy |
-| `--project-id` | Yes | Deployment project id (e.g. Vercel `prj_xxx`) |
-| `--target` | No | `production` or `staging` — omit for a branch preview |
-| `--dry-run` | No | Print what would be deployed without triggering |
+| Argument / Option | Required | Description                                           |
+| ----------------- | -------- | ----------------------------------------------------- |
+| `<branch>`        | Yes      | Git branch to deploy                                  |
+| `--project-id`    | Yes      | Deployment project id (e.g. Vercel `prj_xxx`)         |
+| `--target`        | No       | `production` or `staging` — omit for a branch preview |
+| `--dry-run`       | No       | Print what would be deployed without triggering       |
 
 ## Examples
 

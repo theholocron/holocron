@@ -12,6 +12,7 @@ Plugins are the adapters between the Holocron CLI's capability interfaces and re
     ```ts
     providers: { source: "github", vault: ["doppler", { project: "my-app" }] }
     ```
+
 2. Holocron resolves `"github"` → `@theholocron/holocron-plugin-github`.
 3. At runtime, the CLI dynamically imports each plugin package and calls `createPlugin(options)`.
 4. `createPlugin` returns `{ name, capabilities }` where each capability is a factory (`() => CapabilityImpl`).
@@ -31,16 +32,16 @@ Plugins are the adapters between the Holocron CLI's capability interfaces and re
 
 ## First-party plugins
 
-| Plugin | Capability | Env var |
-| --- | --- | --- |
-| [`@theholocron/holocron-plugin-github`](./github) | source, ci, secrets, environments, issues | `HOLOCRON_*_TOKEN` (5 fine-grained PATs) |
-| [`@theholocron/holocron-plugin-vercel`](./vercel) | deployment | `HOLOCRON_VERCEL_TOKEN` |
-| [`@theholocron/holocron-plugin-1password`](./1password) | vault | `op` CLI auth (no stored token) |
-| [`@theholocron/holocron-plugin-doppler`](./doppler) | vault | `HOLOCRON_DOPPLER_TOKEN` |
-| [`@theholocron/holocron-plugin-infisical`](./infisical) | vault | `HOLOCRON_INFISICAL_TOKEN` |
-| [`@theholocron/holocron-plugin-clerk`](./clerk) | auth | `HOLOCRON_CLERK_SECRET_KEY` |
-| [`@theholocron/holocron-plugin-neon`](./neon) | storage | `HOLOCRON_NEON_API_KEY` |
-| [`@theholocron/holocron-plugin-postman`](./postman) | tooling | `HOLOCRON_POSTMAN_API_KEY` |
+| Plugin                                                  | Capability                                | Env var                                  |
+| ------------------------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| [`@theholocron/holocron-plugin-github`](./github)       | source, ci, secrets, environments, issues | `HOLOCRON_*_TOKEN` (5 fine-grained PATs) |
+| [`@theholocron/holocron-plugin-vercel`](./vercel)       | deployment                                | `HOLOCRON_VERCEL_TOKEN`                  |
+| [`@theholocron/holocron-plugin-1password`](./1password) | vault                                     | `op` CLI auth (no stored token)          |
+| [`@theholocron/holocron-plugin-doppler`](./doppler)     | vault                                     | `HOLOCRON_DOPPLER_TOKEN`                 |
+| [`@theholocron/holocron-plugin-infisical`](./infisical) | vault                                     | `HOLOCRON_INFISICAL_TOKEN`               |
+| [`@theholocron/holocron-plugin-clerk`](./clerk)         | auth                                      | `HOLOCRON_CLERK_SECRET_KEY`              |
+| [`@theholocron/holocron-plugin-neon`](./neon)           | storage                                   | `HOLOCRON_NEON_API_KEY`                  |
+| [`@theholocron/holocron-plugin-postman`](./postman)     | tooling                                   | `HOLOCRON_POSTMAN_API_KEY`               |
 
 ## Writing a community plugin
 

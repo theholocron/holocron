@@ -13,9 +13,9 @@ pnpm add -D @theholocron/holocron-plugin-postman
 
 ## Capabilities
 
-| Capability | Token required |
-| --- | --- |
-| `tooling` | `HOLOCRON_POSTMAN_API_KEY` (`postman`) |
+| Capability | Token required                         |
+| ---------- | -------------------------------------- |
+| `tooling`  | `HOLOCRON_POSTMAN_API_KEY` (`postman`) |
 
 ## Config
 
@@ -35,9 +35,9 @@ providers: {
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `workspaceId` | Yes | Postman workspace id to sync into |
+| Option        | Required | Description                       |
+| ------------- | -------- | --------------------------------- |
+| `workspaceId` | Yes      | Postman workspace id to sync into |
 
 ## Authentication
 
@@ -46,6 +46,7 @@ holocron auth set postman PMAK-xxx
 ```
 
 Or via env var:
+
 ```bash
 export HOLOCRON_POSTMAN_API_KEY=PMAK-xxx
 ```

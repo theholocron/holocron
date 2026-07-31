@@ -13,9 +13,9 @@ pnpm add -D @theholocron/holocron-plugin-infisical
 
 ## Capabilities
 
-| Capability | Token required |
-| --- | --- |
-| `vault` | `HOLOCRON_INFISICAL_TOKEN` (`infisical`) |
+| Capability | Token required                           |
+| ---------- | ---------------------------------------- |
+| `vault`    | `HOLOCRON_INFISICAL_TOKEN` (`infisical`) |
 
 ## Config
 
@@ -34,11 +34,11 @@ providers: {
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
-| `projectId` | Yes | Infisical workspace/project id |
-| `environment` | Yes | Environment slug (e.g. `"prod"`, `"dev"`) |
-| `path` | No | Secret folder path (default: `"/"`) |
+| Option        | Required | Description                               |
+| ------------- | -------- | ----------------------------------------- |
+| `projectId`   | Yes      | Infisical workspace/project id            |
+| `environment` | Yes      | Environment slug (e.g. `"prod"`, `"dev"`) |
+| `path`        | No       | Secret folder path (default: `"/"`)       |
 
 ## Authentication
 
@@ -47,6 +47,7 @@ holocron auth set infisical <universal-auth-client-secret>
 ```
 
 Or via env var:
+
 ```bash
 export HOLOCRON_INFISICAL_TOKEN=<client-secret>
 ```

@@ -11,24 +11,24 @@ Creates a new GitHub repository from a `theholocron/<type>-template` template an
 
 ## Arguments and options
 
-| Argument / Option | Default | Description |
-| --- | --- | --- |
-| `[type]` | *(prompted)* | Template type — maps to `theholocron/<type>-template` |
-| `[name]` | *(prompted)* | New repo name in kebab-case |
-| `--description` | *(prompted, skippable)* | Short description replacing `<description>` placeholders |
-| `--org` | `theholocron` | GitHub org that owns the template and will own the new repo |
-| `--no-verify` | `false` | Skip `pnpm install` after scaffolding |
+| Argument / Option | Default                 | Description                                                 |
+| ----------------- | ----------------------- | ----------------------------------------------------------- |
+| `[type]`          | _(prompted)_            | Template type — maps to `theholocron/<type>-template`       |
+| `[name]`          | _(prompted)_            | New repo name in kebab-case                                 |
+| `--description`   | _(prompted, skippable)_ | Short description replacing `<description>` placeholders    |
+| `--org`           | `theholocron`           | GitHub org that owns the template and will own the new repo |
+| `--no-verify`     | `false`                 | Skip `pnpm install` after scaffolding                       |
 
 ## Available template types
 
-| Type | Template repo |
-| --- | --- |
-| `base` | `theholocron/base-template` |
-| `cli` | `theholocron/cli-template` |
+| Type       | Template repo                   |
+| ---------- | ------------------------------- |
+| `base`     | `theholocron/base-template`     |
+| `cli`      | `theholocron/cli-template`      |
 | `monorepo` | `theholocron/monorepo-template` |
-| `nextjs` | `theholocron/nextjs-template` |
-| `node` | `theholocron/node-template` |
-| `react` | `theholocron/react-template` |
+| `nextjs`   | `theholocron/nextjs-template`   |
+| `node`     | `theholocron/node-template`     |
+| `react`    | `theholocron/react-template`    |
 
 ## Examples
 
