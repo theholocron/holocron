@@ -28,14 +28,20 @@ jobs:
 
       - name: Build content packages
         if: ${{ inputs.use-turbo }}
-        run: pnpm turbo build --filter=@theholocron/${{ inputs.name }}-docs
+        env:
+          DOCS_NAME: ${{ inputs.name }}
+        run: pnpm turbo build --filter=@theholocron/$DOCS_NAME-docs
 
       - name: Build content packages
         if: ${{ !inputs.use-turbo }}
-        run: pnpm --filter @theholocron/${{ inputs.name }}-docs build
+        env:
+          DOCS_NAME: ${{ inputs.name }}
+        run: pnpm --filter @theholocron/$DOCS_NAME-docs build
 
       - name: Build docs site
-        run: pnpm --filter @theholocron/${{ inputs.name }}-site build
+        env:
+          DOCS_NAME: ${{ inputs.name }}
+        run: pnpm --filter @theholocron/$DOCS_NAME-site build
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         name: Upload pages artifact
