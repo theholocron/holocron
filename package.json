@@ -3,7 +3,7 @@
   "version": "3.4.0",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
-  "homepage": "https://github.com/theholocron/holocron#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

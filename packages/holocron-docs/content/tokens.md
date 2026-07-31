@@ -1,0 +1,111 @@
+---
+title: Token Reference
+description: Fine-grained GitHub PATs and provider-native tokens used by the Holocron CLI.
+---
+
+Holocron uses one fine-grained Personal Access Token per capability group. Each token carries only the scopes its operations require — a leaked token's blast radius is contained to that feature alone.
+
+## Resolution chain
+
+For every feature, the token is resolved in this order:
+
+```
+--token flag
+  → HOLOCRON_<FEATURE>_TOKEN   (feature-specific env var)
+  → keyring("github.<feature>") (stored via `holocron auth set`)
+```
+
+No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure.
+
+## GitHub tokens
+
+| Env var                  | Keyring key      | Used by                                                               | Required fine-grained PAT scopes                                                |
+| ------------------------ | ---------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `HOLOCRON_READ_TOKEN`    | `github.read`    | `clone`, CI run listing                                               | `contents: read`, `actions: read`, `metadata: read`                             |
+| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | `issues` capability (create, transition, comment)                     | `issues: read/write`, `metadata: read`                                          |
+| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | `sync-github` — push workflow templates, open PRs                     | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
+| `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release: tags, releases, changelogs                          | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
+| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | `setup`, `sync` — branch protection, secrets, labels, rulesets, teams | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
+
+> **Tip:** The `HOLOCRON_ADMIN_TOKEN` is the most privileged. Store it in the keyring rather than an env var where possible, and rotate it on a tighter schedule than the others.
+
+## Provider tokens
+
+| Plugin      | Env var                       | Description                                             |
+| ----------- | ----------------------------- | ------------------------------------------------------- |
+| `vercel`    | `HOLOCRON_VERCEL_TOKEN`       | Vercel Personal Access Token                            |
+| `1password` | _(none — uses `op` CLI auth)_ | `op signin` on laptop; `OP_SERVICE_ACCOUNT_TOKEN` in CI |
+| `doppler`   | `HOLOCRON_DOPPLER_TOKEN`      | Doppler service token                                   |
+| `infisical` | `HOLOCRON_INFISICAL_TOKEN`    | Infisical Universal Auth client secret                  |
+| `clerk`     | `HOLOCRON_CLERK_SECRET_KEY`   | Clerk Backend Secret Key (`sk_live_…`)                  |
+| `neon`      | `HOLOCRON_NEON_API_KEY`       | Neon API key                                            |
+| `postman`   | `HOLOCRON_POSTMAN_API_KEY`    | Postman API key                                         |
+
+## Setting tokens via env vars
+
+```bash
+export HOLOCRON_READ_TOKEN=ghp_xxx
+export HOLOCRON_ISSUES_TOKEN=ghp_yyy
+export HOLOCRON_SYNC_TOKEN=ghp_zzz
+export HOLOCRON_RELEASE_TOKEN=ghp_aaa
+export HOLOCRON_ADMIN_TOKEN=ghp_bbb
+export HOLOCRON_VERCEL_TOKEN=v_xxx
+export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
+```
+
+## Storing tokens in the keyring
+
+Run once per machine. Tokens are stored in the OS credential store (macOS Keychain, Windows Credential Manager, libsecret on Linux) and retrieved automatically.
+
+```bash
+holocron auth set github.read    ghp_xxx
+holocron auth set github.issues  ghp_yyy
+holocron auth set github.sync    ghp_zzz
+holocron auth set github.release ghp_aaa
+holocron auth set github.admin   ghp_bbb
+holocron auth set vercel         v_xxx
+holocron auth set doppler        dp.st.xxx
+```
+
+Verify a stored token:
+
+```bash
+holocron auth check github.admin
+```
+
+Remove a stored token:
+
+```bash
+holocron auth unset github.read
+```
+
+List all stored tokens:
+
+```bash
+holocron auth list
+```
+
+## CI secrets
+
+In GitHub Actions, map secrets to the env var names each workflow needs:
+
+```yaml
+env:
+    HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+    HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+```
+
+## Explicit override
+
+Pass a token directly for a single invocation without touching env vars or the keyring:
+
+```bash
+# Bare form: fallback for all plugins
+holocron clone --token ghp_xxx --org theholocron
+
+# Keyed form: target a specific provider
+holocron sync-github --token github=ghp_zzz
+
+# Multiple providers
+holocron setup --token github=ghp_xxx --token vercel=v_yyy
+```

@@ -5,6 +5,7 @@ const { repo, workflows, providers } = node();
 export default defineConfig({
 	description:
 		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
+	homepage: "https://docs.theholocron.dev/holocron/",
 	repo: {
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],

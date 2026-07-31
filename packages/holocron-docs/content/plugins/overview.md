@@ -1,0 +1,63 @@
+---
+title: Plugin Overview
+description: How Holocron plugins work, how to configure them, and how to write your own.
+---
+
+Plugins are the adapters between the Holocron CLI's capability interfaces and real provider APIs. Each plugin is an npm package that exports a `createPlugin` factory function along with optional `verifyToken` and `AUTH_HINT` exports used by `holocron auth`.
+
+## How plugins are loaded
+
+1. `holocron.config.ts` maps capability keys to provider names:
+
+    ```ts
+    providers: { source: "github", vault: ["doppler", { project: "my-app" }] }
+    ```
+
+2. Holocron resolves `"github"` → `@theholocron/holocron-plugin-github`.
+3. At runtime, the CLI dynamically imports each plugin package and calls `createPlugin(options)`.
+4. `createPlugin` returns `{ name, capabilities }` where each capability is a factory (`() => CapabilityImpl`).
+
+## Plugin entry shapes
+
+```ts
+// Short form — shorthand, no options
+"source": "github"
+
+// Tuple form — shorthand with options
+"vault": ["doppler", { project: "my-app", config: "prd" }]
+
+// Fully-qualified name (community plugin)
+"tooling": "acme-corp/my-custom-tooling-plugin"
+```
+
+## First-party plugins
+
+| Plugin                                                  | Capability                                | Env var                                  |
+| ------------------------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| [`@theholocron/holocron-plugin-github`](./github)       | source, ci, secrets, environments, issues | `HOLOCRON_*_TOKEN` (5 fine-grained PATs) |
+| [`@theholocron/holocron-plugin-vercel`](./vercel)       | deployment                                | `HOLOCRON_VERCEL_TOKEN`                  |
+| [`@theholocron/holocron-plugin-1password`](./1password) | vault                                     | `op` CLI auth (no stored token)          |
+| [`@theholocron/holocron-plugin-doppler`](./doppler)     | vault                                     | `HOLOCRON_DOPPLER_TOKEN`                 |
+| [`@theholocron/holocron-plugin-infisical`](./infisical) | vault                                     | `HOLOCRON_INFISICAL_TOKEN`               |
+| [`@theholocron/holocron-plugin-clerk`](./clerk)         | auth                                      | `HOLOCRON_CLERK_SECRET_KEY`              |
+| [`@theholocron/holocron-plugin-neon`](./neon)           | storage                                   | `HOLOCRON_NEON_API_KEY`                  |
+| [`@theholocron/holocron-plugin-postman`](./postman)     | tooling                                   | `HOLOCRON_POSTMAN_API_KEY`               |
+
+## Writing a community plugin
+
+Use `holocron plugin create <slug> <Vendor>` to scaffold a new plugin. The generated package includes:
+
+- `createPlugin(options)` — factory function returning `{ name, capabilities }`
+- `verifyToken(token)` — called by `holocron auth set <slug>` to validate before storing
+- `AUTH_HINT` — one-line guidance printed when no token is supplied
+- A capability implementation stub for the chosen capability
+
+Community plugins are referenced by their full npm package name in config:
+
+```ts
+providers: {
+  vault: "acme-org/holocron-plugin-hashicorp-vault",
+}
+```
+
+Package names starting with `holocron-plugin-` (no scope) are resolved verbatim. Scoped packages (starting with `@`) are also passed through verbatim.

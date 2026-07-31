@@ -10,7 +10,8 @@
     "(^|.+/)LICENSE$",
     "^public/.*",
     "^packages/cli/src/commands/plugin-create/templates/.*",
-    "^\\.notes/.*\\.spec\\.md$"
+    "^\\.notes/.*\\.spec\\.md$",
+    "^packages/holocron-docs/content/.*\\.md$"
   ],
   "AllowedContentTypes": [],
   "PassedFiles": [],

@@ -1,0 +1,61 @@
+{
+  "name": "@theholocron/holocron-docs",
+  "version": "3.3.14",
+  "description": "Documentation content for the @theholocron/holocron CLI and plugin ecosystem",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-docs#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/holocron-docs"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "keywords": [
+    "docs",
+    "documentation",
+    "content",
+    "typescript",
+    "cli",
+    "holocron"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "content",
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "releases": "https://github.com/theholocron/holocron/releases",
+  "wiki": "https://github.com/theholocron/holocron/wiki"
+}
