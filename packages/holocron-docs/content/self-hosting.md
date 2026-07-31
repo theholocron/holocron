@@ -44,11 +44,11 @@ In the npm web UI, for each `@theholocron/*` package:
 1. Sign in at https://www.npmjs.com
 2. Navigate to the package → Settings → Trusted Publishers
 3. Configure:
-   - **Publisher**: GitHub Actions
-   - **Organization**: `theholocron`
-   - **Repository**: `holocron`
-   - **Workflow filename**: `release.yml`
-   - **Environment** (optional): leave blank
+    - **Publisher**: GitHub Actions
+    - **Organization**: `theholocron`
+    - **Repository**: `holocron`
+    - **Workflow filename**: `release.yml`
+    - **Environment** (optional): leave blank
 
 ## Step 3 — Subsequent releases run automatically
 
