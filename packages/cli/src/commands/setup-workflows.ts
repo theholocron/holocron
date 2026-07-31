@@ -12,6 +12,7 @@ import auditYml from "./workflows/audit.yml";
 import bookkeepingYml from "./workflows/bookkeeping.yml";
 import codeqlYml from "./workflows/codeql.yml";
 import dependenciesYml from "./workflows/dependencies.yml";
+import deployDocsYml from "./workflows/deploy-docs.yml";
 import greetingsYml from "./workflows/greetings.yml";
 import lintYml from "./workflows/lint.yml";
 import releaseYml from "./workflows/release.yml";
@@ -45,6 +46,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	bookkeeping: bookkeepingYml,
 	audit: auditYml,
 	"sync-github": syncGithubYml,
+	"deploy-docs": deployDocsYml,
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
