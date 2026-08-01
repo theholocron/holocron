@@ -565,7 +565,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
 				await source.writeRepoFile(
 					".github/dependabot.yml",
-					workflowHeader("packages/cli/src/commands/setup.ts") + DEPENDABOT_CONFIG,
+					workflowHeader("packages/cli/src/commands/setup.ts") + DEPENDABOT_CONFIG
 				);
 			})
 		);

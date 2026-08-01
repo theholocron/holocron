@@ -627,7 +627,6 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("enable-auto-commit: false");
 	});
 
-
 	it("emits a console.warn and returns base unchanged when no injection pattern matches", () => {
 		const sentinel = "__test_no_pattern__";
 		WORKFLOW_TEMPLATES[sentinel] = "name: Test\n\njobs:\n  test:\n    uses: some/action@v1\n";
