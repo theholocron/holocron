@@ -26,6 +26,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./content": "./src/content.ts",
     "./loader": "./src/loader.ts",
     "./styles.css": "./src/styles.css"
   },
@@ -77,6 +78,11 @@
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs",
         "default": "./dist/index.mjs"
+      },
+      "./content": {
+        "types": "./dist/content.d.mts",
+        "import": "./dist/content.mjs",
+        "default": "./dist/content.mjs"
       },
       "./loader": {
         "types": "./dist/loader.d.mts",
