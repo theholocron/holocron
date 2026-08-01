@@ -243,6 +243,9 @@ describe("createDocsLoader", () => {
 		expect(store.get("pkg/page")!.data).toMatchObject({
 			title: "From Package",
 		});
+		// filePath for node_modules content must be virtual (id-based) so that
+		// Starlight's autogenerate directory matching works on the slug structure.
+		expect(store.get("pkg/page")!.filePath).toBe("pkg/page.md");
 	});
 
 	it("resolves a package source without a built dist/ via node_modules fallback", async () => {
@@ -300,6 +303,19 @@ describe("createDocsLoader", () => {
 		expect(store.get("pkg/page")!.data).toMatchObject({
 			title: "Scoped No Dist",
 		});
+	});
+
+	it("throws for a Node.js built-in (resolve.paths returns null, covering ?? [] branch)", async () => {
+		// Built-in modules: require.resolve("fs") returns "fs"; dirname("fs") === "."
+		// so the while loop exits without returning, and resolve.paths("fs") is null —
+		// exercising the ?? [] fallback before reaching the throw.
+		const { ctx } = makeCtx(tmpDir);
+
+		await expect(
+			createDocsLoader([{ package: "fs", slug: "pkg" }]).load(
+				ctx as never,
+			),
+		).rejects.toThrow(/Could not resolve content directory/);
 	});
 
 	it("throws when no package.json is found in node_modules", async () => {
