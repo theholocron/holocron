@@ -24,6 +24,7 @@ const config: DocsConfig = {
 		{
 			label: "Packages",
 			items: [
+				{ label: "Astro", slug: "configs/astro-config" },
 				{ label: "Browserslist", slug: "configs/browserslist-config" },
 				{ label: "CommitLint", slug: "configs/commitlint-config" },
 				{ label: "ESLint", slug: "configs/eslint-config" },

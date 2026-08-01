@@ -1,0 +1,61 @@
+{
+  "name": "@theholocron/astro-config",
+  "version": "0.0.0",
+  "description": "Astro configuration factory for theholocron docs sites.",
+  "keywords": [
+    "astro",
+    "config",
+    "docs",
+    "starlight",
+    "theholocron"
+  ],
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/astro-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "^0.41.5",
+    "@theholocron/docs-theme": "^1.2.2",
+    "@theholocron/tsconfig": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "astro": "^7.1.5",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@astrojs/starlight": ">=0.30.0",
+    "@theholocron/docs-theme": ">=1.2.2",
+    "astro": ">=5.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}
