@@ -627,14 +627,6 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("enable-auto-commit: false");
 	});
 
-	it("merges overrides into the sync-github with: block, replacing existing keys", () => {
-		// sync-github has `with:\n      secondary-repos: ...` before an explicit secrets: block.
-		// Overriding secondary-repos should replace it, not duplicate it.
-		const content = generateThinCallerContent("sync-github", { "secondary-repos": "theholocron/clients" });
-		const matches = content.match(/secondary-repos:/g);
-		expect(matches).toHaveLength(1);
-		expect(content).toContain("secondary-repos: theholocron/clients");
-	});
 
 	it("emits a console.warn and returns base unchanged when no injection pattern matches", () => {
 		const sentinel = "__test_no_pattern__";

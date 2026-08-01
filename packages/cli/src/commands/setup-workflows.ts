@@ -18,7 +18,6 @@ import lintYml from "./workflows/lint.yml";
 import releaseYml from "./workflows/release.yml";
 import reviewYml from "./workflows/review.yml";
 import staleYml from "./workflows/stale.yml";
-import syncGithubYml from "./workflows/sync-github.yml";
 import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
 
@@ -45,7 +44,6 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	dependencies: dependenciesYml,
 	bookkeeping: bookkeepingYml,
 	audit: auditYml,
-	"sync-github": syncGithubYml,
 	"deploy-docs": deployDocsYml,
 };
 
@@ -70,7 +68,7 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
  * merging `with:` overrides into the jobs block.
  *
  * Two strategies are used depending on the template:
- * - Templates that already have a `with:` block (e.g. lint, sync-github):
+ * - Templates that already have a `with:` block (e.g. lint):
  *   the override entries are merged in, replacing existing keys and appending
  *   new ones.
  * - Templates that end with `    secrets: inherit`: a new `with:` block is

@@ -12,16 +12,32 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
 
 jobs:
+  discover-repos:
+    name: Discover consumer repos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      secondary-repos: ${{ steps.find.outputs.secondary-repos }}
+    steps:
+      - name: Find repos with holocron.config
+        id: find
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+        run: |
+          repos=$(gh api "search/code?q=filename:holocron.config+org:theholocron&per_page=100" \
+            --jq '[.items[].repository.full_name]
+                  | unique
+                  | map(select(. != "theholocron/.github" and . != "theholocron/holocron"))
+                  | join(" ")')
+          echo "secondary-repos=$repos" >> "$GITHUB_OUTPUT"
+
   sync:
+    name: Sync
+    needs: discover-repos
     uses: theholocron/.github/.github/workflows/sync-github.yml@main
     with:
       primary-repo: theholocron/.github
-      secondary-repos: |
-        theholocron/.github-private
-        theholocron/clients
-        theholocron/configs
-        theholocron/skills
-        theholocron/themes
-        theholocron/utils
+      secondary-repos: ${{ needs.discover-repos.outputs.secondary-repos }}
     secrets:
       HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}

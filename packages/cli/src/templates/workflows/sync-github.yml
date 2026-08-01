@@ -101,6 +101,8 @@ jobs:
             --branch "$SYNC_BRANCH" \
             --pr \
             --message "$COMMIT_MSG"
+          GH_TOKEN="$HOLOCRON_SYNC_TOKEN" gh pr merge --auto --squash \
+            --repo "$PRIMARY_REPO" "$SYNC_BRANCH" 2>/dev/null || true
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
@@ -119,6 +121,8 @@ jobs:
               --branch "$SYNC_BRANCH" \
               --pr \
               --message "$COMMIT_MSG"
+            GH_TOKEN="$HOLOCRON_SYNC_TOKEN" gh pr merge --auto --squash \
+              --repo "$repo" "$SYNC_BRANCH" 2>/dev/null || true
           done
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
