@@ -245,19 +245,72 @@ describe("createDocsLoader", () => {
 		});
 	});
 
-	it("throws when no package.json is found walking up from the resolved entry point", async () => {
-		// A package with no package.json causes resolvePackageContentDir to
-		// exhaust the upward walk and throw its own error (covers line 47).
-		const pkgDir = join(tmpDir, "node_modules", "no-pkg-json");
-		await mkdir(pkgDir, { recursive: true });
-		await writeFile(join(pkgDir, "index.js"), "");
+	it("resolves a package source without a built dist/ via node_modules fallback", async () => {
+		// Simulates a content-only package published without running the build step.
+		// The package.json points to a dist/ that doesn't exist, so require.resolve
+		// throws MODULE_NOT_FOUND and the fallback searches node_modules paths.
+		const pkgDir = join(tmpDir, "node_modules", "no-dist-pkg");
+		await mkdir(join(pkgDir, "content"), { recursive: true });
+		await writeFile(
+			join(pkgDir, "package.json"),
+			JSON.stringify({
+				name: "no-dist-pkg",
+				main: "./dist/index.mjs",
+			}),
+		);
+		await writeFile(
+			join(pkgDir, "content", "page.md"),
+			"---\ntitle: No Dist\n---\n\nFallback content.",
+		);
 
+		const { ctx, store } = makeCtx(tmpDir);
+
+		await createDocsLoader([{ package: "no-dist-pkg", slug: "pkg" }]).load(
+			ctx as never,
+		);
+
+		expect(store.has("pkg/page")).toBe(true);
+		expect(store.get("pkg/page")!.data).toMatchObject({ title: "No Dist" });
+	});
+
+	it("resolves a scoped package without a built dist/ via node_modules fallback", async () => {
+		// Covers the packageName.startsWith("@") branch in resolvePackageContentDir
+		// so that scoped packages split correctly into ["@scope", "name"] parts.
+		const pkgDir = join(tmpDir, "node_modules", "@scope", "no-dist-scoped");
+		await mkdir(join(pkgDir, "content"), { recursive: true });
+		await writeFile(
+			join(pkgDir, "package.json"),
+			JSON.stringify({
+				name: "@scope/no-dist-scoped",
+				main: "./dist/index.mjs",
+			}),
+		);
+		await writeFile(
+			join(pkgDir, "content", "page.md"),
+			"---\ntitle: Scoped No Dist\n---\n\nScoped fallback.",
+		);
+
+		const { ctx, store } = makeCtx(tmpDir);
+
+		await createDocsLoader([
+			{ package: "@scope/no-dist-scoped", slug: "pkg" },
+		]).load(ctx as never);
+
+		expect(store.has("pkg/page")).toBe(true);
+		expect(store.get("pkg/page")!.data).toMatchObject({
+			title: "Scoped No Dist",
+		});
+	});
+
+	it("throws when no package.json is found in node_modules", async () => {
+		// A package name that doesn't exist in node_modules at all causes both
+		// require.resolve and the node_modules search to fail.
 		const { ctx } = makeCtx(tmpDir);
 
 		await expect(
-			createDocsLoader([{ package: "no-pkg-json", slug: "pkg" }]).load(
-				ctx as never,
-			),
+			createDocsLoader([
+				{ package: "totally-missing-pkg", slug: "pkg" },
+			]).load(ctx as never),
 		).rejects.toThrow(/Could not resolve content directory/);
 	});
 
