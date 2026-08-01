@@ -245,6 +245,22 @@ describe("createDocsLoader", () => {
 		});
 	});
 
+	it("throws when no package.json is found walking up from the resolved entry point", async () => {
+		// A package with no package.json causes resolvePackageContentDir to
+		// exhaust the upward walk and throw its own error (covers line 47).
+		const pkgDir = join(tmpDir, "node_modules", "no-pkg-json");
+		await mkdir(pkgDir, { recursive: true });
+		await writeFile(join(pkgDir, "index.js"), "");
+
+		const { ctx } = makeCtx(tmpDir);
+
+		await expect(
+			createDocsLoader([{ package: "no-pkg-json", slug: "pkg" }]).load(
+				ctx as never,
+			),
+		).rejects.toThrow(/Could not resolve content directory/);
+	});
+
 	it("throws ENOENT when the resolved package has no content/ directory", async () => {
 		const pkgDir = join(tmpDir, "node_modules", "no-content-pkg");
 		await mkdir(pkgDir, { recursive: true });
