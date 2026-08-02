@@ -34,6 +34,13 @@ describe("verifyToken", () => {
 		expect((result as { ok: boolean; subject?: string; message?: string }).message).toMatch(/network down/);
 	});
 
+	it("falls back to 'unknown' when both workplace and slug are absent", async () => {
+		const stub = stubFetch([{ status: 200, body: { type: "svc" } }]);
+		const result = await verifyToken("dp.st.abc", { fetch: stub.fetch });
+		expect(result.ok).toBe(true);
+		expect((result as { ok: boolean; subject?: string }).subject).toMatch(/svc @ unknown/);
+	});
+
 	it("hits the configured base URL", async () => {
 		const stub = stubFetch([{ status: 200, body: { workplace: { name: "x" } } }]);
 		await verifyToken("t", { fetch: stub.fetch, baseUrl: "https://custom.example.com/v3" });
