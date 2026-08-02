@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/astro-config",
-  "version": "7.8.0",
+  "version": "7.8.1",
   "description": "Astro configuration factory for theholocron docs sites.",
   "keywords": [
     "astro",
@@ -46,8 +46,6 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@astrojs/starlight": ">=0.30.0",
-    "@theholocron/docs-theme": ">=1.2.2",
     "astro": ">=5.0.0"
   },
   "engines": {

@@ -6,4 +6,5 @@ export default defineConfig({
 	fixedExtension: false,
 	dts: true,
 	clean: true,
+	external: ["@astrojs/starlight", "@theholocron/docs-theme"],
 });
