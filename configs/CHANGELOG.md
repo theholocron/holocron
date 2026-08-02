@@ -2,6 +2,8 @@
 
 ## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-02)
 
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-02)
+
 ## [7.8.0](https://github.com/theholocron/configs/compare/v7.7.0...v7.8.0) (2026-08-01)
 
 ## [7.7.0](https://github.com/theholocron/configs/compare/v7.6.2...v7.7.0) (2026-07-31)
