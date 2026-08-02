@@ -1,4 +1,5 @@
 import { ProviderApiError } from "@theholocron/cli";
+import type { DopplerClient } from "@theholocron/doppler-client";
 import { describe, expect, it } from "vitest";
 
 import { DopplerVault } from "../capabilities/vault.js";
@@ -42,6 +43,12 @@ describe("DopplerVault.read", () => {
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
 		const value = await vault.read("doppler://demo/dev/API_KEY");
 		expect(value).toBe("raw-only");
+	});
+
+	it("returns empty string when both computed and raw are absent", async () => {
+		const { client } = makeClient([{ status: 200, body: { name: "X", value: {} } }]);
+		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
+		expect(await vault.read("doppler://demo/dev/X")).toBe("");
 	});
 
 	it("rejects a reference that does not start with doppler://", async () => {
@@ -125,6 +132,18 @@ describe("DopplerVault.environments", () => {
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
 		expect(await vault.environments()).toEqual([]);
 	});
+
+	it("uses name when slug is absent", async () => {
+		const { client } = makeClient([{ status: 200, body: { environments: [{ id: "dev", name: "Development" }] } }]);
+		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
+		expect(await vault.environments()).toEqual(["Development"]);
+	});
+
+	it("filters out environments with neither slug nor name", async () => {
+		const { client } = makeClient([{ status: 200, body: { environments: [{ id: "x" }] } }]);
+		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
+		expect(await vault.environments()).toEqual([]);
+	});
 });
 
 describe("DopplerVault.readEnvironment", () => {
@@ -175,6 +194,32 @@ describe("DopplerVault.ensureProject", () => {
 		const err = await vault.ensureProject("demo").catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as ProviderApiError).status).toBe(500);
+	});
+
+	it("rethrows a non-ProviderApiError thrown by the client", async () => {
+		const networkError = new Error("network down");
+		const mockClient = {
+			projects: {
+				create: async () => {
+					throw networkError;
+				},
+			},
+		} as unknown as DopplerClient;
+		const vault = new DopplerVault(mockClient, { project: "demo", config: "dev" });
+		expect(await vault.ensureProject("demo").catch((e: unknown) => e)).toBe(networkError);
+	});
+
+	it("rethrows a 400 ProviderApiError with non-string details", async () => {
+		const apiError = new ProviderApiError("bad request", 400, { code: 42 });
+		const mockClient = {
+			projects: {
+				create: async () => {
+					throw apiError;
+				},
+			},
+		} as unknown as DopplerClient;
+		const vault = new DopplerVault(mockClient, { project: "demo", config: "dev" });
+		expect(await vault.ensureProject("demo").catch((e: unknown) => e)).toBe(apiError);
 	});
 });
 
