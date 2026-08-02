@@ -2182,7 +2182,9 @@ describe("setup: Pages step", () => {
 		const called: unknown[] = [];
 		const { loaded, loader } = makePagedLoader(
 			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
-			async (...args) => { called.push(args); }
+			async (...args) => {
+				called.push(args);
+			}
 		);
 
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
@@ -2200,10 +2202,7 @@ describe("setup: Pages step", () => {
 
 	it("includes 'https: enforced' in the result message when https is true", async () => {
 		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
-		const { loaded, loader } = makePagedLoader(
-			{ build: "workflow", https: true },
-			async () => {}
-		);
+		const { loaded, loader } = makePagedLoader({ build: "workflow", https: true }, async () => {});
 
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
@@ -2213,10 +2212,9 @@ describe("setup: Pages step", () => {
 
 	it("records a skip step when HOLOCRON_DEPLOY_TOKEN is absent", async () => {
 		const called: unknown[] = [];
-		const { loaded, loader } = makePagedLoader(
-			{ build: "workflow" },
-			async (...args) => { called.push(args); }
-		);
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async (...args) => {
+			called.push(args);
+		});
 
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
