@@ -2250,7 +2250,10 @@ describe("setup: Pages step", () => {
 
 	it("omits 'https: enforced' from the result message when https is not set", async () => {
 		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
-		const { loaded, loader } = makePagedLoader({ build: "workflow", domain: "docs.theholocron.dev" }, async () => {});
+		const { loaded, loader } = makePagedLoader(
+			{ build: "workflow", domain: "docs.theholocron.dev" },
+			async () => {}
+		);
 
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
