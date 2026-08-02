@@ -8,7 +8,7 @@ description: TypeScript client for the GitHub REST API, built on @theholocron/ht
 ## Install
 
 ```bash
-npm i @theholocron/github-client
+pnpm add @theholocron/github-client
 ```
 
 ## Usage

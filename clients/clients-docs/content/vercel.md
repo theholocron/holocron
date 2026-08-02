@@ -8,7 +8,7 @@ description: TypeScript client for the Vercel REST API, built on @theholocron/ht
 ## Install
 
 ```bash
-npm i @theholocron/vercel-client
+pnpm add @theholocron/vercel-client
 ```
 
 ## Usage

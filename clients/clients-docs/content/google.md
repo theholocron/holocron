@@ -8,7 +8,7 @@ description: TypeScript client for Google Workspace APIs (Docs and Sheets), buil
 ## Install
 
 ```bash
-npm i @theholocron/google-client
+pnpm add @theholocron/google-client
 ```
 
 ## Usage

@@ -31,7 +31,7 @@ resolution, base URL construction, and normalised error responses.
 Each package is published independently to npm:
 
 ```bash
-npm i @theholocron/github-client
+pnpm add @theholocron/github-client
 ```
 
 All packages follow the same lockstep versioning — see the

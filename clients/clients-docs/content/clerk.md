@@ -8,7 +8,7 @@ description: TypeScript client for the Clerk user management API, built on @theh
 ## Install
 
 ```bash
-npm i @theholocron/clerk-client
+pnpm add @theholocron/clerk-client
 ```
 
 ## Usage

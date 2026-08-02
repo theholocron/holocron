@@ -8,7 +8,7 @@ description: TypeScript client for the Jira Cloud REST API, built on @theholocro
 ## Install
 
 ```bash
-npm i @theholocron/jira-client
+pnpm add @theholocron/jira-client
 ```
 
 ## Usage

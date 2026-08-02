@@ -8,7 +8,7 @@ description: TypeScript client for the Confluence Cloud REST API, built on @theh
 ## Install
 
 ```bash
-npm i @theholocron/confluence-client
+pnpm add @theholocron/confluence-client
 ```
 
 ## Usage

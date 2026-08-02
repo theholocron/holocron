@@ -8,7 +8,7 @@ description: TypeScript client for the Neon serverless Postgres API, built on @t
 ## Install
 
 ```bash
-npm i @theholocron/neon-client
+pnpm add @theholocron/neon-client
 ```
 
 ## Usage

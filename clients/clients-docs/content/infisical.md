@@ -8,7 +8,7 @@ description: TypeScript client for the Infisical secrets manager API, built on @
 ## Install
 
 ```bash
-npm i @theholocron/infisical-client
+pnpm add @theholocron/infisical-client
 ```
 
 ## Usage

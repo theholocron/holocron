@@ -8,7 +8,7 @@ description: TypeScript client for the Doppler secrets manager API, built on @th
 ## Install
 
 ```bash
-npm i @theholocron/doppler-client
+pnpm add @theholocron/doppler-client
 ```
 
 ## Usage

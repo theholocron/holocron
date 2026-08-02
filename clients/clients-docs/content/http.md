@@ -8,7 +8,7 @@ description: Shared HTTP primitives used by all @theholocron clients.
 ## Install
 
 ```bash
-npm i @theholocron/http-client
+pnpm add @theholocron/http-client
 ```
 
 ## Usage

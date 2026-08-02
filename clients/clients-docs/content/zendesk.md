@@ -8,7 +8,7 @@ description: TypeScript client for the Zendesk REST API, built on @theholocron/h
 ## Install
 
 ```bash
-npm i @theholocron/zendesk-client
+pnpm add @theholocron/zendesk-client
 ```
 
 ## Usage

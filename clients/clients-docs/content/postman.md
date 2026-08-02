@@ -8,7 +8,7 @@ description: TypeScript client for the Postman API, built on @theholocron/http-c
 ## Install
 
 ```bash
-npm i @theholocron/postman-client
+pnpm add @theholocron/postman-client
 ```
 
 ## Usage
