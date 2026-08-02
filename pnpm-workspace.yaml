@@ -5,6 +5,7 @@ packages:
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.
 catalog:
+  '@inquirer/prompts': ^8.5.2
   '@vitest/coverage-v8': ^4.1.10
   '@vitest/eslint-plugin': ^1.6.24
   eslint: ^10.8.0

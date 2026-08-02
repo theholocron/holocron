@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { stdin, stdout } from "node:process";
-import { createInterface } from "node:readline";
 
+import { input, select } from "@inquirer/prompts";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -536,6 +535,26 @@ try {
 						type: "string",
 						describe: "Short description — replaces <description> placeholders in the template",
 					})
+					.option("homepage", {
+						type: "string",
+						describe: "Homepage URL — replaces <homepage> placeholders and appears in holocron.config.ts",
+					})
+					.option("vault", {
+						type: "string",
+						describe: "Vault provider: none, doppler, 1password, infisical",
+					})
+					.option("deployment", {
+						type: "string",
+						describe: "Deployment provider: none, vercel",
+					})
+					.option("agent", {
+						type: "string",
+						describe: "AI agent: claude, none",
+					})
+					.option("topics", {
+						type: "string",
+						describe: "Comma-separated repo topics (e.g. typescript,nodejs)",
+					})
 					.option("org", {
 						type: "string",
 						default: "theholocron",
@@ -544,33 +563,101 @@ try {
 					.option("verify", {
 						type: "boolean",
 						default: true,
-						describe: "Run pnpm install after bootstrapping (default true; --no-verify skips)",
+						describe: "Run pnpm install + holocron setup after bootstrapping (--no-verify skips)",
 					}),
 			async (argv) => {
 				try {
 					let type = argv.type as string | undefined;
 					let name = argv.name as string | undefined;
 					let description = argv.description as string | undefined;
+					let homepage = argv.homepage as string | undefined;
+					let vaultProvider = argv.vault as string | undefined;
+					let vaultProject: string | undefined;
+					let vaultConfig: string | undefined;
+					let deploymentProvider = argv.deployment as string | undefined;
+					let agent = argv.agent as string | undefined;
+					let topics: string[] = argv.topics
+						? String(argv.topics).split(",").map((t) => t.trim()).filter(Boolean)
+						: [];
 
-					const needsPrompt = !type || !name || description === undefined;
-					if (needsPrompt) {
-						const rl = createInterface({ input: stdin, output: stdout });
-						const ask = (question: string) =>
-							new Promise<string>((resolve) =>
-								rl.question(`  ${question} `, (answer) => resolve(answer.trim()))
-							);
-						try {
-							if (!type) {
-								console.log("  Known types: base, cli, monorepo, nextjs, node, react");
-								type = await ask("Template type:");
-							}
-							if (!name) name = await ask("Repo name (kebab-case):");
-							if (description === undefined) {
-								description = await ask("Short description (Enter to skip):");
-							}
-						} finally {
-							rl.close();
-						}
+					// Interactive wizard — skip any field already supplied as a CLI arg
+					if (!type) {
+						type = await select({
+							message: "Template type:",
+							choices: [
+								{ name: "node    — Node.js library or tool", value: "node" },
+								{ name: "cli     — CLI application (inquirer, chalk, yargs)", value: "cli" },
+								{ name: "monorepo — Turbo monorepo", value: "monorepo" },
+								{ name: "react   — React component library", value: "react" },
+								{ name: "nextjs  — Next.js application", value: "nextjs" },
+								{ name: "base    — Minimal repo (no package.json)", value: "base" },
+							],
+						});
+					}
+
+					if (!name) {
+						name = await input({
+							message: "Repo name (kebab-case):",
+							validate: (v) =>
+								/^[a-z][a-z0-9-]*$/.test(v.trim()) ? true : "Must be lowercase kebab-case (e.g. my-tool)",
+						});
+						name = name.trim();
+					}
+
+					if (description === undefined) {
+						description = await input({ message: "Short description:" });
+					}
+
+					if (homepage === undefined) {
+						const raw = await input({ message: "Homepage URL (optional, Enter to skip):" });
+						homepage = raw.trim() || undefined;
+					}
+
+					if (!vaultProvider) {
+						vaultProvider = await select({
+							message: "Vault provider:",
+							choices: [
+								{ name: "None", value: "none" },
+								{ name: "Doppler", value: "doppler" },
+								{ name: "1Password", value: "1password" },
+								{ name: "Infisical", value: "infisical" },
+							],
+						});
+					}
+
+					if (vaultProvider === "doppler") {
+						vaultProject = await input({ message: "Doppler project name:", default: name });
+						vaultConfig = await input({ message: "Doppler config:", default: "dev" });
+					} else if (vaultProvider === "1password" || vaultProvider === "infisical") {
+						vaultProject = await input({
+							message: `${vaultProvider === "1password" ? "1Password vault" : "Infisical project"} name:`,
+							default: name,
+						});
+					}
+
+					if (!deploymentProvider) {
+						deploymentProvider = await select({
+							message: "Deployment provider:",
+							choices: [
+								{ name: "None", value: "none" },
+								{ name: "Vercel", value: "vercel" },
+							],
+						});
+					}
+
+					if (!agent) {
+						agent = await select({
+							message: "AI agent:",
+							choices: [
+								{ name: "Claude", value: "claude" },
+								{ name: "None", value: "none" },
+							],
+						});
+					}
+
+					if (topics.length === 0) {
+						const raw = await input({ message: "Topics (comma-separated, optional):" });
+						topics = raw ? raw.split(",").map((t) => t.trim()).filter(Boolean) : [];
 					}
 
 					if (!type) {
@@ -587,7 +674,14 @@ try {
 					const report = await runNew({
 						type,
 						name,
-						...(description ? { description } : {}),
+						description: description || undefined,
+						homepage,
+						vaultProvider: (vaultProvider as "doppler" | "1password" | "infisical" | "none") ?? "none",
+						vaultProject,
+						vaultConfig,
+						deploymentProvider: (deploymentProvider as "vercel" | "none") ?? "none",
+						agent: (agent as "claude" | "none") ?? "claude",
+						topics,
 						org: argv.org,
 						dryRun: argv.dryRun,
 						noVerify: !argv.verify,
@@ -647,37 +741,24 @@ try {
 					let vendorEnv: string;
 					let baseUrl: string;
 
-					if (needsPrompt) {
-						const rl = createInterface({ input: stdin, output: stdout });
-						const ask = (question: string) =>
-							new Promise<string>((resolve) =>
-								rl.question(`  ${question} `, (answer) => resolve(answer.trim()))
-							);
-						try {
-							if (!argv.capability) {
-								console.log(`  Available capabilities: ${capabilityKeys}`);
-								capability = (await ask("Capability:")) as CapabilityKey;
-							} else {
-								capability = argv.capability as CapabilityKey;
-							}
-							vendorEnv = argv.vendorEnv
-								? (argv.vendorEnv as string)
-								: await ask(
-										`Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`
-									);
-							baseUrl = argv.baseUrl
-								? (argv.baseUrl as string)
-								: await ask(
-										`REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`
-									);
-						} finally {
-							rl.close();
-						}
+					if (!argv.capability) {
+						capability = (await select({
+							message: "Capability:",
+							choices: Object.keys(CARDINALITY).map((k) => ({ name: k, value: k })),
+						})) as CapabilityKey;
 					} else {
 						capability = argv.capability as CapabilityKey;
-						vendorEnv = argv.vendorEnv as string;
-						baseUrl = argv.baseUrl as string;
 					}
+					vendorEnv = argv.vendorEnv
+						? (argv.vendorEnv as string)
+						: await input({
+								message: `Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`,
+							});
+					baseUrl = argv.baseUrl
+						? (argv.baseUrl as string)
+						: await input({
+								message: `REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`,
+							});
 
 					const report = runPluginCreate({
 						slug: argv.slug as string,
