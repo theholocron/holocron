@@ -1,19 +1,21 @@
 /**
  * `holocron new <type> <name>` — create a GitHub repo from a template and
  * bootstrap it by replacing all template-slug casing variants with the new
- * project name.
+ * project name, then generate a `holocron.config.ts` from the answers given
+ * during the interactive wizard.
  *
  * Flow:
  *   1. Preflight — verify `gh` CLI is available.
- *   2. Resolve type, name, description (prompt via readline if missing).
+ *   2. Resolve type, name, description, homepage, vault/deployment/agent options.
  *   3. `gh repo create <org>/<name> --template <org>/<type>-template --private --clone`
  *      → clones to `<cwd>/<name>/`
  *   4. Detect template slug from cloned package.json.
  *   5. Replace all casing variants of the slug across every text file.
- *   6. Replace `<description>` placeholder if a description was given.
- *   7. Commit the patched files (-s for DCO).
- *   8. Unless --no-verify: `pnpm install` in the new repo.
- *   9. Print next steps.
+ *   6. Replace `<description>` and `<homepage>` placeholders.
+ *   7. Generate and write `holocron.config.ts` based on wizard answers.
+ *   8. Commit the patched files (-s for DCO).
+ *   9. Unless --no-verify: `pnpm install` in the new repo.
+ *  10. Print next steps.
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
@@ -22,10 +24,21 @@ import path from "node:path";
 
 // ── Public API ────────────────────────────────────────────────────────
 
+export type VaultProvider = "doppler" | "1password" | "infisical" | "none";
+export type DeploymentProvider = "vercel" | "none";
+export type AgentChoice = "claude" | "none";
+
 export interface RunNewInput {
 	type: string;
 	name: string;
 	description?: string;
+	homepage?: string;
+	vaultProvider?: VaultProvider;
+	vaultProject?: string;
+	vaultConfig?: string;
+	deploymentProvider?: DeploymentProvider;
+	agent?: AgentChoice;
+	topics?: string[];
 	/** GitHub org that owns both the template and the new repo. Default: "theholocron". */
 	org?: string;
 	dryRun?: boolean;
@@ -89,6 +102,102 @@ export function deriveVariants(slug: string, name: string): Array<[string, strin
 	});
 }
 
+// ── Input helpers ─────────────────────────────────────────────────────
+
+/** Validate a repo name: must be lowercase kebab-case. Returns `true` on success or an error string. */
+export function validateRepoName(v: string): true | string {
+	return /^[a-z][a-z0-9-]*$/.test(v.trim()) ? true : "Must be lowercase kebab-case (e.g. my-tool)";
+}
+
+/** Parse a comma-separated topics string into a trimmed, non-empty array. */
+export function parseTopics(raw: string | undefined): string[] {
+	return raw
+		? String(raw)
+				.split(",")
+				.map((t) => t.trim())
+				.filter(Boolean)
+		: [];
+}
+
+// ── Config generation ─────────────────────────────────────────────────
+
+export interface HolocronConfigOptions {
+	name: string;
+	type: string;
+	description?: string;
+	homepage?: string;
+	vaultProvider?: VaultProvider;
+	vaultProject?: string;
+	vaultConfig?: string;
+	deploymentProvider?: DeploymentProvider;
+	agent?: AgentChoice;
+	topics?: string[];
+}
+
+/**
+ * Generate the content of `holocron.config.ts` for a newly-scaffolded repo.
+ * Uses the `node()` preset from `@theholocron/holocron-config` as the baseline
+ * and layers in the provider/agent choices made during the wizard.
+ */
+export function generateHolocronConfig(opts: HolocronConfigOptions): string {
+	const lines: string[] = [
+		`import { defineConfig } from "@theholocron/cli";`,
+		`import { node } from "@theholocron/holocron-config";`,
+		``,
+		`const { repo, workflows, providers } = node();`,
+		`export default defineConfig({`,
+	];
+
+	if (opts.description) lines.push(`\tdescription: ${JSON.stringify(opts.description)},`);
+	if (opts.homepage) lines.push(`\thomepage: ${JSON.stringify(opts.homepage)},`);
+
+	const topics = opts.topics?.length ? opts.topics : [];
+	if (topics.length > 0) {
+		lines.push(`\trepo: {`);
+		lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		lines.push(`\t\t...repo,`);
+		lines.push(`\t},`);
+	} else {
+		lines.push(`\trepo,`);
+	}
+
+	lines.push(`\tworkflows,`);
+
+	const hasVault = opts.vaultProvider && opts.vaultProvider !== "none";
+	const hasDeployment = opts.deploymentProvider && opts.deploymentProvider !== "none";
+
+	if (hasVault || hasDeployment) {
+		lines.push(`\tproviders: {`);
+		lines.push(`\t\t...providers,`);
+		if (opts.vaultProvider === "doppler") {
+			const proj = JSON.stringify(opts.vaultProject ?? opts.name);
+			const cfg = JSON.stringify(opts.vaultConfig ?? "dev");
+			lines.push(`\t\tvault: ["doppler", { project: ${proj}, config: ${cfg} }],`);
+		} else if (opts.vaultProvider === "1password") {
+			const vault = JSON.stringify(opts.vaultProject ?? opts.name);
+			lines.push(`\t\tvault: ["1password", { vault: ${vault} }],`);
+		} else if (opts.vaultProvider === "infisical") {
+			const proj = JSON.stringify(opts.vaultProject ?? opts.name);
+			lines.push(`\t\tvault: ["infisical", { project: ${proj} }],`);
+		}
+		if (opts.deploymentProvider === "vercel") {
+			lines.push(`\t\tdeployment: "vercel",`);
+		}
+		lines.push(`\t},`);
+	} else {
+		lines.push(`\tproviders,`);
+	}
+
+	if (opts.agent && opts.agent !== "none") {
+		lines.push(`\tagent: ${JSON.stringify(opts.agent)},`);
+	}
+
+	lines.push(`});`);
+	lines.push(``);
+
+	return lines.join("\n");
+}
+
 // ── File discovery ────────────────────────────────────────────────────
 
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", ".turbo"]);
@@ -118,6 +227,7 @@ function patchFiles(
 	dir: string,
 	variants: Array<[string, string]>,
 	description: string | undefined,
+	homepage: string | undefined,
 	print: (line: string) => void,
 	readFn: (p: string) => string,
 	writeFn: (p: string, c: string) => void,
@@ -139,6 +249,9 @@ function patchFiles(
 		}
 		if (description !== undefined) {
 			content = content.split("<description>").join(description);
+		}
+		if (homepage !== undefined) {
+			content = content.split("<homepage>").join(homepage);
 		}
 
 		if (content !== original) {
@@ -196,6 +309,8 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		print(`  Would clone to ${repoDir}`);
 		print(`  Would patch all casing variants of "${input.type}-template" → "${input.name}"`);
 		if (input.description) print(`  Would replace <description> → "${input.description}"`);
+		if (input.homepage) print(`  Would replace <homepage> → "${input.homepage}"`);
+		print(`  Would generate holocron.config.ts`);
 		return { status: "dry-run" };
 	}
 
@@ -220,7 +335,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		try {
 			const pkg = JSON.parse(readFn(pkgJsonPath)) as { name?: string };
 			if (typeof pkg.name === "string") {
-				templateSlug = pkg.name.split("/").pop() ?? templateSlug;
+				templateSlug = pkg.name.split("/").at(-1) || templateSlug;
 			}
 		} catch {
 			// fall back to derived slug
@@ -231,17 +346,41 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	print(`  Patching files…`);
 
 	const variants = deriveVariants(templateSlug, input.name);
-	const filesPatched = patchFiles(repoDir, variants, input.description, print, readFn, writeFn, walkFn);
+	const filesPatched = patchFiles(
+		repoDir,
+		variants,
+		input.description,
+		input.homepage,
+		print,
+		readFn,
+		writeFn,
+		walkFn
+	);
 
 	print(`  ${filesPatched.length} file${filesPatched.length === 1 ? "" : "s"} patched`);
 
-	if (filesPatched.length > 0) {
-		execFn("git", ["add", "-A"], { cwd: repoDir, stdio: "inherit" });
-		execFn("git", ["commit", "-s", "-m", `chore: bootstrap from ${templateSlug}`], {
-			cwd: repoDir,
-			stdio: "inherit",
-		});
-	}
+	// Generate and write holocron.config.ts
+	const configContent = generateHolocronConfig({
+		name: input.name,
+		type: input.type,
+		description: input.description,
+		homepage: input.homepage,
+		vaultProvider: input.vaultProvider,
+		vaultProject: input.vaultProject,
+		vaultConfig: input.vaultConfig,
+		deploymentProvider: input.deploymentProvider,
+		agent: input.agent,
+		topics: input.topics,
+	});
+	const configPath = path.join(repoDir, "holocron.config.ts");
+	writeFn(configPath, configContent);
+	print(`  Generated holocron.config.ts`);
+
+	execFn("git", ["add", "-A"], { cwd: repoDir, stdio: "inherit" });
+	execFn("git", ["commit", "-s", "-m", `chore: bootstrap from ${templateSlug}`], {
+		cwd: repoDir,
+		stdio: "inherit",
+	});
 
 	if (!input.noVerify) {
 		print("");
@@ -257,6 +396,14 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 				message: "pnpm install failed; inspect output above",
 			};
 		}
+
+		print("");
+		print("  Running holocron setup…");
+		try {
+			execFn("holocron", ["setup"], { cwd: repoDir, stdio: "inherit" });
+		} catch {
+			print("  ✗ holocron setup failed — run it manually after checking your config");
+		}
 	}
 
 	print("");
@@ -264,10 +411,13 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	print("");
 	print("  Next:");
 	print(`    1. cd ${repoDir}`);
-	if (input.noVerify) print(`    2. pnpm install`);
-	const step = input.noVerify ? 3 : 2;
-	print(`    ${step}. holocron setup  # wire up secrets, teams, labels, etc.`);
-	print(`    ${step + 1}. git push -u origin HEAD`);
+	if (input.noVerify) {
+		print(`    2. pnpm install`);
+		print(`    3. holocron setup  # wire up secrets, teams, labels, etc.`);
+		print(`    4. git push -u origin HEAD`);
+	} else {
+		print(`    2. git push -u origin HEAD`);
+	}
 
 	return { status: "ok", repoDir, filesPatched };
 }

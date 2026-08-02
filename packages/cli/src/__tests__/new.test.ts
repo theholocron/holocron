@@ -9,7 +9,14 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, existsSync: vi.fn(() => false), mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { deriveVariants, NewError, runNew } from "../commands/new.js";
+import {
+	deriveVariants,
+	generateHolocronConfig,
+	NewError,
+	parseTopics,
+	runNew,
+	validateRepoName,
+} from "../commands/new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -49,6 +56,42 @@ const BASE = {
 	name: "my-tool",
 	cwd: "/workspace",
 };
+
+// ── validateRepoName ──────────────────────────────────────────────────
+
+describe("validateRepoName", () => {
+	it("returns true for valid kebab-case names", () => {
+		expect(validateRepoName("my-tool")).toBe(true);
+		expect(validateRepoName("a")).toBe(true);
+		expect(validateRepoName("my-long-tool-name-123")).toBe(true);
+	});
+
+	it("returns an error string for names that do not match kebab-case", () => {
+		expect(validateRepoName("MyTool")).toMatch(/kebab-case/);
+		expect(validateRepoName("my_tool")).toMatch(/kebab-case/);
+		expect(validateRepoName("")).toMatch(/kebab-case/);
+		expect(validateRepoName("123-tool")).toMatch(/kebab-case/);
+	});
+});
+
+// ── parseTopics ───────────────────────────────────────────────────────
+
+describe("parseTopics", () => {
+	it("parses comma-separated topics and trims whitespace", () => {
+		expect(parseTopics("typescript,nodejs")).toEqual(["typescript", "nodejs"]);
+		expect(parseTopics("typescript , nodejs ")).toEqual(["typescript", "nodejs"]);
+	});
+
+	it("returns an empty array for undefined or empty input", () => {
+		expect(parseTopics(undefined)).toEqual([]);
+		expect(parseTopics("")).toEqual([]);
+	});
+
+	it("filters out blank segments from extra commas", () => {
+		expect(parseTopics(",,,")).toEqual([]);
+		expect(parseTopics("a,,b")).toEqual(["a", "b"]);
+	});
+});
 
 // ── deriveVariants ────────────────────────────────────────────────────
 
@@ -201,6 +244,24 @@ describe("runNew — happy path", () => {
 		expect(written["/workspace/my-tool/src/index.ts"]).not.toContain("react-template");
 	});
 
+	it("falls back to derived slug when package.json name is empty", async () => {
+		const { existsSync } = await import("node:fs");
+		// first call: repoDir doesn't exist → proceed; second call: pkgJsonPath exists → enter try block
+		vi.mocked(existsSync).mockReturnValueOnce(false).mockReturnValueOnce(true);
+
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "" }) },
+			"/workspace/my-tool/README.md": { content: "# cli-template" },
+		});
+		const lines: string[] = [];
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
+
+		// Falls back to "<type>-template" slug so "cli-template" appears in the detected slug message
+		expect(lines.some((l) => l.includes("cli-template"))).toBe(true);
+	});
+
 	it("commits patched files with -s for DCO", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
@@ -218,7 +279,34 @@ describe("runNew — happy path", () => {
 		expect(commitCall?.args.join(" ")).toContain("bootstrap from cli-template");
 	});
 
-	it("runs pnpm install unless --no-verify", async () => {
+	it("returns fail status when pnpm install throws", async () => {
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+		const exec = (cmd: string, args: string[]) => {
+			if (cmd === "pnpm" && args.includes("install")) throw new Error("disk full");
+		};
+		const lines: string[] = [];
+		const report = await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/pnpm install failed/);
+		expect(lines.some((l) => l.includes("disk full"))).toBe(true);
+	});
+
+	it("continues with ok status when holocron setup throws", async () => {
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+		const exec = (cmd: string) => {
+			if (cmd === "holocron") throw new Error("setup exploded");
+		};
+		const lines: string[] = [];
+		const report = await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
+		expect(report.status).toBe("ok");
+		expect(lines.some((l) => l.includes("holocron setup failed"))).toBe(true);
+	});
+
+	it("runs pnpm install and holocron setup unless --no-verify", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
@@ -226,9 +314,10 @@ describe("runNew — happy path", () => {
 
 		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
 		expect(calls.some((c) => c.cmd === "pnpm" && c.args.includes("install"))).toBe(true);
+		expect(calls.some((c) => c.cmd === "holocron" && c.args.includes("setup"))).toBe(true);
 	});
 
-	it("skips pnpm install when noVerify is true", async () => {
+	it("skips pnpm install and holocron setup when noVerify is true", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
@@ -236,6 +325,7 @@ describe("runNew — happy path", () => {
 
 		await runNew({ ...BASE, noVerify: true, exec, readFile, writeFile, walkFiles, print: () => {} });
 		expect(calls.some((c) => c.cmd === "pnpm" && c.args.includes("install"))).toBe(false);
+		expect(calls.some((c) => c.cmd === "holocron" && c.args.includes("setup"))).toBe(false);
 	});
 
 	it("returns ok status with repoDir and filesPatched", async () => {
@@ -279,5 +369,186 @@ describe("runNew — errors", () => {
 				print: () => {},
 			})
 		).rejects.toThrow(NewError);
+	});
+});
+
+// ── runNew — homepage ─────────────────────────────────────────────────
+
+describe("runNew — homepage placeholder", () => {
+	it("replaces <homepage> in template files", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/README.md": { content: "Homepage: <homepage>" },
+		});
+
+		await runNew({
+			...BASE,
+			homepage: "https://docs.example.com/my-tool/",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		expect(written["/workspace/my-tool/README.md"]).toContain("https://docs.example.com/my-tool/");
+		expect(written["/workspace/my-tool/README.md"]).not.toContain("<homepage>");
+	});
+
+	it("skips <homepage> substitution when homepage is not provided", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/README.md": { content: "Homepage: <homepage>" },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/README.md"]).toBeUndefined();
+	});
+});
+
+// ── runNew — holocron.config.ts generation ────────────────────────────
+
+describe("runNew — holocron.config.ts", () => {
+	it("writes a holocron.config.ts to the new repo dir", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/holocron.config.ts"]).toBeDefined();
+		expect(written["/workspace/my-tool/holocron.config.ts"]).toContain("defineConfig");
+		expect(written["/workspace/my-tool/holocron.config.ts"]).toContain("node()");
+	});
+
+	it("includes the vault provider when specified", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({
+			...BASE,
+			vaultProvider: "doppler",
+			vaultProject: "my-tool",
+			vaultConfig: "dev",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		const config = written["/workspace/my-tool/holocron.config.ts"];
+		expect(config).toContain(`"doppler"`);
+		expect(config).toContain(`"my-tool"`);
+		expect(config).toContain(`"dev"`);
+	});
+});
+
+// ── generateHolocronConfig ─────────────────────────────────────────────
+
+describe("generateHolocronConfig", () => {
+	it("produces a valid TypeScript module with the node preset", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node" });
+		expect(out).toContain(`import { defineConfig } from "@theholocron/cli"`);
+		expect(out).toContain(`import { node } from "@theholocron/holocron-config"`);
+		expect(out).toContain(`node()`);
+		expect(out).toContain(`defineConfig(`);
+	});
+
+	it("includes description and homepage when provided", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			description: "A cool tool",
+			homepage: "https://docs.example.com/my-tool/",
+		});
+		expect(out).toContain(`"A cool tool"`);
+		expect(out).toContain(`"https://docs.example.com/my-tool/"`);
+	});
+
+	it("spreads topics into the repo object", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", topics: ["typescript", "nodejs"] });
+		expect(out).toContain(`topics:`);
+		expect(out).toContain(`"typescript"`);
+		expect(out).toContain(`"nodejs"`);
+		expect(out).toContain(`...repo`);
+	});
+
+	it("omits the topics block when topics are empty", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", topics: [] });
+		expect(out).toContain(`repo,`);
+		expect(out).not.toContain(`topics:`);
+	});
+
+	it("wires in doppler vault with project + config", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			vaultProvider: "doppler",
+			vaultProject: "my-tool",
+			vaultConfig: "dev",
+		});
+		expect(out).toContain(`["doppler",`);
+		expect(out).toContain(`"my-tool"`);
+		expect(out).toContain(`"dev"`);
+		expect(out).toContain(`...providers`);
+	});
+
+	it("defaults vault project to the repo name when not specified", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", vaultProvider: "doppler" });
+		expect(out).toContain(`"my-tool"`);
+	});
+
+	it("wires in 1password vault", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			vaultProvider: "1password",
+			vaultProject: "My Vault",
+		});
+		expect(out).toContain(`["1password",`);
+		expect(out).toContain(`"My Vault"`);
+	});
+
+	it("wires in infisical vault", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			vaultProvider: "infisical",
+			vaultProject: "my-proj",
+		});
+		expect(out).toContain(`["infisical",`);
+		expect(out).toContain(`"my-proj"`);
+	});
+
+	it("wires in vercel deployment", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			deploymentProvider: "vercel",
+		});
+		expect(out).toContain(`deployment: "vercel"`);
+	});
+
+	it("sets the agent field when provided", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", agent: "claude" });
+		expect(out).toContain(`agent: "claude"`);
+	});
+
+	it("omits the agent field when none", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", agent: "none" });
+		expect(out).not.toContain(`agent:`);
+	});
+
+	it("uses plain providers when no vault or deployment is selected", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", vaultProvider: "none" });
+		expect(out).toContain(`providers,`);
+		expect(out).not.toContain(`...providers`);
 	});
 });
