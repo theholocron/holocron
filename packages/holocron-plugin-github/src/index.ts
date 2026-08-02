@@ -42,7 +42,12 @@ export interface PluginContext {
 // ── Capability factories ──────────────────────────────────────────────
 
 export function source(ctx: PluginContext): Source {
-	return new GitHubSource(ctx.client, { repo: ctx.repo, repoRoot: ctx.repoRoot });
+	return new GitHubSource(ctx.client, {
+		repo: ctx.repo,
+		repoRoot: ctx.repoRoot,
+		baseUrl: ctx.options.baseUrl,
+		fetch: ctx.options.fetch,
+	});
 }
 
 export function secrets(ctx: PluginContext): Secrets {

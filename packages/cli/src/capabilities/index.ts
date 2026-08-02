@@ -209,6 +209,32 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers that don't support setting a homepage omit this.
 	 */
 	syncHomepage?(homepage: string): Promise<string>;
+
+	/**
+	 * Enable or update GitHub Pages for the repository.
+	 * Idempotent: POST to create, PUT to update existing settings.
+	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
+	 * explicitly because it is a different PAT from the main admin token.
+	 * Optional — providers without a Pages concept omit this.
+	 */
+	configurePages?(config: PagesConfig, token: string): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Pages
+// ───────────────────────────────────────────────────────────────────────
+
+export interface PagesConfig {
+	/** GitHub Pages build source. */
+	build: "workflow" | "branch";
+	/**
+	 * Custom domain / CNAME (e.g. "docs.theholocron.dev").
+	 * When set and `homepage` is absent in holocron.config, setup derives
+	 * homepage as `https://{domain}/`.
+	 */
+	domain?: string;
+	/** Enforce HTTPS. Only effective once the custom domain is DNS-verified. */
+	https?: boolean;
 }
 
 // ───────────────────────────────────────────────────────────────────────
