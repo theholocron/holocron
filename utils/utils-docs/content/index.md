@@ -25,7 +25,7 @@ sidebar:
 Each package is published independently to npm:
 
 ```bash
-npm i @theholocron/string-utils
+pnpm add @theholocron/string-utils
 ```
 
 All packages follow the same lockstep versioning — see the

@@ -8,7 +8,7 @@ description: Namespaced session storage.
 ## Install
 
 ```bash
-npm i @theholocron/storage-utils
+pnpm add @theholocron/storage-utils
 ```
 
 ## API

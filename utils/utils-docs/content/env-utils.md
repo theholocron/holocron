@@ -8,7 +8,7 @@ description: Runtime environment detection and typed env-var parsing.
 ## Install
 
 ```bash
-npm i @theholocron/env-utils
+pnpm add @theholocron/env-utils
 ```
 
 ## Environment detection

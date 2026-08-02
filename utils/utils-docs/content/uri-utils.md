@@ -8,7 +8,7 @@ description: URL search-parameter helpers.
 ## Install
 
 ```bash
-npm i @theholocron/uri-utils
+pnpm add @theholocron/uri-utils
 ```
 
 ## API

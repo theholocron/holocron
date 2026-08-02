@@ -8,7 +8,7 @@ description: Miscellaneous browser utilities.
 ## Install
 
 ```bash
-npm i @theholocron/misc-utils
+pnpm add @theholocron/misc-utils
 ```
 
 ## API

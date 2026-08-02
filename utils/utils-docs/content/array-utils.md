@@ -8,7 +8,7 @@ description: Validate and manipulate arrays.
 ## Install
 
 ```bash
-npm i @theholocron/array-utils
+pnpm add @theholocron/array-utils
 ```
 
 ## API

@@ -8,7 +8,7 @@ description: Browser geolocation wrapper.
 ## Install
 
 ```bash
-npm i @theholocron/location-utils
+pnpm add @theholocron/location-utils
 ```
 
 ## API

@@ -8,7 +8,7 @@ description: String casing, casting, and pluralisation helpers.
 ## Install
 
 ```bash
-npm i @theholocron/string-utils
+pnpm add @theholocron/string-utils
 ```
 
 ## Casing

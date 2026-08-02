@@ -8,7 +8,7 @@ description: Date and time helpers.
 ## Install
 
 ```bash
-npm i @theholocron/date-time-utils
+pnpm add @theholocron/date-time-utils
 ```
 
 ## API
