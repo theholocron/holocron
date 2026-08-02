@@ -28,7 +28,7 @@ catalogs:
   clients:
     '@theholocron/clerk-client': ^1.3.5
     '@theholocron/doppler-client': ^1.3.5
-    '@theholocron/github-client': ^1.3.5
+    '@theholocron/github-client': ^1.6.0
     '@theholocron/http-client': ^1.3.5
     '@theholocron/infisical-client': ^1.3.5
     '@theholocron/neon-client': ^1.3.5

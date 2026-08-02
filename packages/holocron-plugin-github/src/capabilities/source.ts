@@ -2,15 +2,12 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path";
 
 import type { LabelDef, PagesConfig, RepoRef, RepoSettings, Ruleset, Source, TeamEntry } from "@theholocron/cli";
-import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
-
-// Temporary — remove once @theholocron/github-client (feat/github-pages-api) is released
-// and the catalog version in pnpm-workspace.yaml is bumped to pick up the pages module.
-interface PagesApi {
-	getPages(repo: string): Promise<{ build_type: string | null } | null>;
-	createPages(repo: string, payload: Record<string, unknown>): Promise<unknown>;
-	updatePages(repo: string, payload: Record<string, unknown>): Promise<void>;
-}
+import {
+	createGitHubClient,
+	type CreatePagesPayload,
+	type GitHubClient,
+	type UpdatePagesPayload,
+} from "@theholocron/github-client";
 
 import { syncLabels } from "./labels.js";
 import { syncProperties } from "./properties.js";
@@ -180,33 +177,29 @@ export class GitHubSource implements Source {
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {
-		const rawClient = createGitHubClient({
+		const pagesClient = createGitHubClient({
 			token,
 			baseUrl: this.baseUrl,
 			fetch: this.fetchImpl,
 		});
-		// Cast until @theholocron/github-client (feat/github-pages-api) is released.
-		const pagesApi = (rawClient as unknown as { pages: PagesApi }).pages;
 
 		const buildType = config.build === "workflow" ? "workflow" : "legacy";
 		const branchSource = config.build === "branch" ? { branch: "gh-pages", path: "/" } : undefined;
 
 		// Enable Pages if not already on.
-		const existing = await pagesApi.getPages(this.repo);
+		const existing = await pagesClient.pages.getPages(this.repo);
 		if (!existing) {
-			await pagesApi.createPages(this.repo, {
-				build_type: buildType,
-				...(branchSource ? { source: branchSource } : {}),
-			});
+			const createPayload: CreatePagesPayload = { build_type: buildType };
+			if (branchSource) createPayload.source = branchSource;
+			await pagesClient.pages.createPages(this.repo, createPayload);
 		}
 
 		// PUT the full desired state so re-runs are idempotent.
-		await pagesApi.updatePages(this.repo, {
-			build_type: buildType,
-			...(branchSource ? { source: branchSource } : {}),
-			...(config.domain !== undefined ? { cname: config.domain } : {}),
-			...(config.https !== undefined ? { https_enforced: config.https } : {}),
-		});
+		const updatePayload: UpdatePagesPayload = { build_type: buildType };
+		if (branchSource) updatePayload.source = branchSource;
+		if (config.domain !== undefined) updatePayload.cname = config.domain;
+		if (config.https !== undefined) updatePayload.https_enforced = config.https;
+		await pagesClient.pages.updatePages(this.repo, updatePayload);
 	}
 }
 
