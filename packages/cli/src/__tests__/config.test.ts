@@ -119,4 +119,51 @@ describe("resolveConfig", () => {
 		expect(resolved.apps).toEqual([]);
 		expect(resolved.doctor).toEqual({});
 	});
+
+	it("docs is undefined when not set", () => {
+		expect(resolveConfig(minimal).docs).toBeUndefined();
+	});
+
+	it("throws when docs is set but build is absent", () => {
+		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow(ConfigError);
+		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow("`docs.build` is required");
+	});
+
+	it("resolves docs: { build: 'workflow' }", () => {
+		const resolved = resolveConfig({ ...minimal, docs: { build: "workflow" } });
+		expect(resolved.docs).toEqual({ build: "workflow" });
+	});
+
+	it("resolves docs with all fields", () => {
+		const resolved = resolveConfig({
+			...minimal,
+			docs: { build: "workflow", domain: "docs.theholocron.dev", https: true },
+		});
+		expect(resolved.docs).toEqual({
+			build: "workflow",
+			domain: "docs.theholocron.dev",
+			https: true,
+		});
+	});
+
+	it("derives homepage from docs.domain when homepage is not explicitly set", () => {
+		const resolved = resolveConfig({
+			...minimal,
+			docs: { build: "workflow", domain: "docs.theholocron.dev" },
+		});
+		expect(resolved.homepage).toBe("https://docs.theholocron.dev/");
+	});
+
+	it("explicit homepage takes precedence over docs.domain derivation", () => {
+		const resolved = resolveConfig({
+			...minimal,
+			homepage: "https://theholocron.dev/",
+			docs: { build: "workflow", domain: "docs.theholocron.dev" },
+		});
+		expect(resolved.homepage).toBe("https://theholocron.dev/");
+	});
+
+	it("homepage is undefined when neither homepage nor docs.domain is set", () => {
+		expect(resolveConfig(minimal).homepage).toBeUndefined();
+	});
 });

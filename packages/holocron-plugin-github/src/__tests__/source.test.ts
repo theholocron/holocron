@@ -182,6 +182,99 @@ describe("GitHubSource — REST methods", () => {
 	});
 });
 
+describe("GitHubSource — configurePages", () => {
+	const PAGES_URL = `https://api.github.com/repos/${REPO}/pages`;
+
+	// configurePages creates its own pagesClient using this.fetchImpl.
+	// Pass the same stub fetch to SourceOptions so all calls are intercepted.
+	function makeSourceForPages(responses: Parameters<typeof stubFetch>[0]) {
+		const { fetch, calls } = stubFetch(responses);
+		const rest = createGitHubClient({ token: "admin-pat", fetch });
+		const source = new GitHubSource(rest, { repo: REPO, repoRoot: process.cwd(), fetch });
+		return { source, calls };
+	}
+
+	it("POST then PUT when Pages is not yet enabled", async () => {
+		const { source, calls } = makeSourceForPages([
+			{ status: 404, body: { message: "Not Found" } },
+			{ status: 201, body: { build_type: "workflow", status: "building", https_enforced: false, custom_domain: null } },
+			{ status: 204 },
+		]);
+		await source.configurePages!({ build: "workflow" }, "deploy-pat");
+		expect(calls[0]?.url).toBe(PAGES_URL);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[1]?.url).toBe(PAGES_URL);
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.body).toMatchObject({ build_type: "workflow" });
+		expect(calls[2]?.url).toBe(PAGES_URL);
+		expect(calls[2]?.method).toBe("PUT");
+		expect(calls[2]?.body).toMatchObject({ build_type: "workflow" });
+	});
+
+	it("skips POST when Pages already exists", async () => {
+		const { source, calls } = makeSourceForPages([
+			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{ status: 204 },
+		]);
+		await source.configurePages!({ build: "workflow" }, "deploy-pat");
+		expect(calls).toHaveLength(2);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[1]?.method).toBe("PUT");
+	});
+
+	it("includes cname and https_enforced in PUT when provided", async () => {
+		const { source, calls } = makeSourceForPages([
+			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{ status: 204 },
+		]);
+		await source.configurePages!(
+			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
+			"deploy-pat"
+		);
+		expect(calls[1]?.body).toMatchObject({
+			build_type: "workflow",
+			cname: "docs.theholocron.dev",
+			https_enforced: true,
+		});
+	});
+
+	it("omits cname and https_enforced when not provided", async () => {
+		const { source, calls } = makeSourceForPages([
+			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{ status: 204 },
+		]);
+		await source.configurePages!({ build: "workflow" }, "deploy-pat");
+		expect(calls[1]?.body).not.toHaveProperty("cname");
+		expect(calls[1]?.body).not.toHaveProperty("https_enforced");
+	});
+
+	it("uses legacy build type with gh-pages source for branch", async () => {
+		const { source, calls } = makeSourceForPages([
+			{ status: 404, body: { message: "Not Found" } },
+			{ status: 201, body: { build_type: "legacy", status: "building", https_enforced: false, custom_domain: null } },
+			{ status: 204 },
+		]);
+		await source.configurePages!({ build: "branch" }, "deploy-pat");
+		expect(calls[1]?.body).toMatchObject({
+			build_type: "legacy",
+			source: { branch: "gh-pages", path: "/" },
+		});
+		expect(calls[2]?.body).toMatchObject({
+			build_type: "legacy",
+			source: { branch: "gh-pages", path: "/" },
+		});
+	});
+
+	it("uses the deploy token (not the admin token) for Pages API calls", async () => {
+		const { source, calls } = makeSourceForPages([
+			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{ status: 204 },
+		]);
+		await source.configurePages!({ build: "workflow" }, "deploy-pat-xyz");
+		expect(calls[0]?.headers["authorization"]).toBe("Bearer deploy-pat-xyz");
+	});
+});
+
 describe("GitHubSource — workflow files (local fs)", () => {
 	let repoRoot: string;
 
@@ -259,5 +352,27 @@ describe("GitHubSource — workflow files (local fs)", () => {
 		await expect(source.writeWorkflowFile("lint.yml", "name: lint")).rejects.toThrow(
 			/exists but is not a directory/
 		);
+	});
+
+	it("listWorkflowFiles rethrows non-ENOENT errors", async () => {
+		// Putting a file at the workflows path makes readdir throw ENOTDIR, not ENOENT.
+		await mkdir(join(repoRoot, ".github"), { recursive: true });
+		await writeFile(join(repoRoot, ".github", "workflows"), "not a directory");
+		const { source } = makeSource([], repoRoot);
+		await expect(source.listWorkflowFiles()).rejects.toThrow();
+	});
+
+	it("readWorkflowFile rethrows non-ENOENT errors", async () => {
+		await mkdir(join(repoRoot, ".github"), { recursive: true });
+		await writeFile(join(repoRoot, ".github", "workflows"), "not a directory");
+		const { source } = makeSource([], repoRoot);
+		await expect(source.readWorkflowFile("lint.yml")).rejects.toThrow();
+	});
+
+	it("removeWorkflowFile rethrows non-ENOENT errors", async () => {
+		await mkdir(join(repoRoot, ".github"), { recursive: true });
+		await writeFile(join(repoRoot, ".github", "workflows"), "not a directory");
+		const { source } = makeSource([], repoRoot);
+		await expect(source.removeWorkflowFile("lint.yml")).rejects.toThrow();
 	});
 });
