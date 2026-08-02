@@ -4,7 +4,7 @@ Starlight plugin that injects the shared `@theholocron` docs CSS theme.
 
 ## Install
 
-```bash
+```sh
 pnpm add @theholocron/docs-theme
 ```
 
