@@ -102,6 +102,18 @@ export function deriveVariants(slug: string, name: string): Array<[string, strin
 	});
 }
 
+// ── Input helpers ─────────────────────────────────────────────────────
+
+/** Validate a repo name: must be lowercase kebab-case. Returns `true` on success or an error string. */
+export function validateRepoName(v: string): true | string {
+	return /^[a-z][a-z0-9-]*$/.test(v.trim()) ? true : "Must be lowercase kebab-case (e.g. my-tool)";
+}
+
+/** Parse a comma-separated topics string into a trimmed, non-empty array. */
+export function parseTopics(raw: string | undefined): string[] {
+	return raw ? String(raw).split(",").map((t) => t.trim()).filter(Boolean) : [];
+}
+
 // ── Config generation ─────────────────────────────────────────────────
 
 export interface HolocronConfigOptions {

@@ -9,7 +9,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, existsSync: vi.fn(() => false), mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { deriveVariants, generateHolocronConfig, NewError, runNew } from "../commands/new.js";
+import { deriveVariants, generateHolocronConfig, NewError, parseTopics, runNew, validateRepoName } from "../commands/new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -49,6 +49,42 @@ const BASE = {
 	name: "my-tool",
 	cwd: "/workspace",
 };
+
+// ── validateRepoName ──────────────────────────────────────────────────
+
+describe("validateRepoName", () => {
+	it("returns true for valid kebab-case names", () => {
+		expect(validateRepoName("my-tool")).toBe(true);
+		expect(validateRepoName("a")).toBe(true);
+		expect(validateRepoName("my-long-tool-name-123")).toBe(true);
+	});
+
+	it("returns an error string for names that do not match kebab-case", () => {
+		expect(validateRepoName("MyTool")).toMatch(/kebab-case/);
+		expect(validateRepoName("my_tool")).toMatch(/kebab-case/);
+		expect(validateRepoName("")).toMatch(/kebab-case/);
+		expect(validateRepoName("123-tool")).toMatch(/kebab-case/);
+	});
+});
+
+// ── parseTopics ───────────────────────────────────────────────────────
+
+describe("parseTopics", () => {
+	it("parses comma-separated topics and trims whitespace", () => {
+		expect(parseTopics("typescript,nodejs")).toEqual(["typescript", "nodejs"]);
+		expect(parseTopics("typescript , nodejs ")).toEqual(["typescript", "nodejs"]);
+	});
+
+	it("returns an empty array for undefined or empty input", () => {
+		expect(parseTopics(undefined)).toEqual([]);
+		expect(parseTopics("")).toEqual([]);
+	});
+
+	it("filters out blank segments from extra commas", () => {
+		expect(parseTopics(",,,")).toEqual([]);
+		expect(parseTopics("a,,b")).toEqual(["a", "b"]);
+	});
+});
 
 // ── deriveVariants ────────────────────────────────────────────────────
 

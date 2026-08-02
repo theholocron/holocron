@@ -12,7 +12,7 @@ import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/
 import { runClone } from "./commands/clone.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
-import { NewError, runNew } from "./commands/new.js";
+import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
@@ -576,12 +576,7 @@ try {
 					let vaultConfig: string | undefined;
 					let deploymentProvider = argv.deployment as string | undefined;
 					let agent = argv.agent as string | undefined;
-					let topics: string[] = argv.topics
-						? String(argv.topics)
-								.split(",")
-								.map((t) => t.trim())
-								.filter(Boolean)
-						: [];
+					let topics: string[] = parseTopics(argv.topics as string | undefined);
 
 					// Interactive wizard — skip any field already supplied as a CLI arg
 					if (!type) {
@@ -601,10 +596,7 @@ try {
 					if (!name) {
 						name = await input({
 							message: "Repo name (kebab-case):",
-							validate: (v) =>
-								/^[a-z][a-z0-9-]*$/.test(v.trim())
-									? true
-									: "Must be lowercase kebab-case (e.g. my-tool)",
+							validate: validateRepoName,
 						});
 						name = name.trim();
 					}
@@ -662,12 +654,7 @@ try {
 
 					if (topics.length === 0) {
 						const raw = await input({ message: "Topics (comma-separated, optional):" });
-						topics = raw
-							? raw
-									.split(",")
-									.map((t) => t.trim())
-									.filter(Boolean)
-							: [];
+						topics = parseTopics(raw);
 					}
 
 					if (!type) {
