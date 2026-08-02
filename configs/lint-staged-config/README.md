@@ -5,7 +5,7 @@ A [lint-staged configuration](https://github.com/lint-staged/lint-staged#configu
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/lint-staged-config lint-staged husky
+pnpm add -D @theholocron/lint-staged-config lint-staged husky
 ```
 
 ## Usage

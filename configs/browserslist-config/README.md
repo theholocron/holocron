@@ -5,7 +5,7 @@ A [browserslist configuration](https://github.com/browserslist/browserslist#shar
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/browserslist-config
+pnpm add -D @theholocron/browserslist-config
 ```
 
 ## Usage

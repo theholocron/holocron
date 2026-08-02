@@ -30,7 +30,7 @@ sidebar:
 Each package is published independently to npm:
 
 ```bash
-npm i -D @theholocron/eslint-config
+pnpm add -D @theholocron/eslint-config
 ```
 
 All packages follow the same lockstep versioning — see the

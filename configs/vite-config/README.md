@@ -5,7 +5,7 @@ A [Vite configuration](https://vite.dev/config/) with presets for libraries, Rea
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/vite-config
+pnpm add -D @theholocron/vite-config
 ```
 
 ## Usage
@@ -64,7 +64,7 @@ All three presets automatically include [`@codecov/vite-plugin`](https://www.npm
 Install the peer dependency:
 
 ```bash
-npm install --save-dev @codecov/vite-plugin
+pnpm add -D @codecov/vite-plugin
 ```
 
 Set `CODECOV_TOKEN` as a CI secret, then add the following to your `codecov.yml` to control when Codecov posts bundle size comments on PRs:

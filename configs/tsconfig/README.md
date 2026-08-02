@@ -5,7 +5,7 @@ A [TypeScript configuration](https://www.typescriptlang.org/docs/handbook/tsconf
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/tsconfig
+pnpm add -D @theholocron/tsconfig
 ```
 
 ## Usage

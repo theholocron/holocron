@@ -8,7 +8,7 @@ description: Lint-staged hooks configuration for theholocron projects.
 ## Install
 
 ```bash
-npm i -D @theholocron/lint-staged-config lint-staged
+pnpm add -D @theholocron/lint-staged-config lint-staged
 ```
 
 ## Usage

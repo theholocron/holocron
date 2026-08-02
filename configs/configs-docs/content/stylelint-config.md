@@ -8,7 +8,7 @@ description: Shared Stylelint CSS rules for theholocron projects.
 ## Install
 
 ```bash
-npm i -D @theholocron/stylelint-config stylelint
+pnpm add -D @theholocron/stylelint-config stylelint
 ```
 
 ## Usage

@@ -8,7 +8,7 @@ description: Vite configuration presets for libraries, React apps, and Node tool
 ## Install
 
 ```bash
-npm i -D @theholocron/vite-config vite
+pnpm add -D @theholocron/vite-config vite
 ```
 
 ## Presets

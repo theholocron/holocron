@@ -8,7 +8,7 @@ description: semantic-release configuration factory with Conventional Commits su
 ## Install
 
 ```bash
-npm i -D @theholocron/semantic-release-config semantic-release
+pnpm add -D @theholocron/semantic-release-config semantic-release
 ```
 
 ## Usage

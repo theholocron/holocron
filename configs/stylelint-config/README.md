@@ -5,7 +5,7 @@ A [StyleLint configuration](https://stylelint.io/user-guide/configure/) for writ
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/stylelint-config stylelint stylelint-config-standard stylelint-config-standard-scss
+pnpm add -D @theholocron/stylelint-config stylelint stylelint-config-standard stylelint-config-standard-scss
 ```
 
 ## Usage

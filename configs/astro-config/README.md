@@ -5,7 +5,7 @@ An [Astro configuration](https://docs.astro.build/en/reference/configuration-ref
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/astro-config
+pnpm add -D @theholocron/astro-config
 ```
 
 ## Usage

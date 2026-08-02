@@ -8,7 +8,7 @@ description: TypeScript base configurations for theholocron projects.
 ## Install
 
 ```bash
-npm i -D @theholocron/tsconfig
+pnpm add -D @theholocron/tsconfig
 ```
 
 ## Presets

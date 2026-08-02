@@ -8,7 +8,7 @@ description: Vitest configuration presets for libraries, React apps, and Storybo
 ## Install
 
 ```bash
-npm i -D @theholocron/vitest-config vitest
+pnpm add -D @theholocron/vitest-config vitest
 ```
 
 ## Presets

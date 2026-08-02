@@ -5,13 +5,13 @@ A [Storybook configuration](https://storybook.js.org/docs/configure) with addons
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/storybook-config
+pnpm add -D @theholocron/storybook-config
 ```
 
 Install the peer dependencies for the addons you use (all are optional):
 
 ```bash
-npm install --save-dev storybook @storybook/react @storybook/react-vite \
+pnpm add -D storybook @storybook/react @storybook/react-vite \
   @storybook/addon-docs @storybook/addon-a11y @storybook/addon-links \
   @storybook/addon-themes @storybook/addon-coverage @storybook/addon-vitest \
   @storybook/test-runner @chromatic-com/storybook storybook-addon-pseudo-states \

@@ -8,7 +8,7 @@ description: Shared tsdown build presets for theholocron packages.
 ## Install
 
 ```bash
-npm i -D @theholocron/tsdown-config tsdown
+pnpm add -D @theholocron/tsdown-config tsdown
 ```
 
 ## Presets

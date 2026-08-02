@@ -8,7 +8,7 @@ description: Shareable Holocron CLI configuration presets for theholocron reposi
 ## Install
 
 ```bash
-npm i -D @theholocron/holocron-config
+pnpm add -D @theholocron/holocron-config
 ```
 
 ## Usage

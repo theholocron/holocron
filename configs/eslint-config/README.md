@@ -5,35 +5,35 @@ A [ESLint configuration](https://eslint.org/docs/latest/use/configure/configurat
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/eslint-config
+pnpm add -D @theholocron/eslint-config
 ```
 
 Install only the peer dependencies for the presets you use (all are optional except the core):
 
 ```bash
 # Core (always required)
-npm install --save-dev @eslint/js eslint globals
+pnpm add -D @eslint/js eslint globals
 
 # TypeScript
-npm install --save-dev typescript-eslint
+pnpm add -D typescript-eslint
 
 # React
-npm install --save-dev eslint-plugin-react
+pnpm add -D eslint-plugin-react
 
 # Next.js
-npm install --save-dev @next/eslint-plugin-next
+pnpm add -D @next/eslint-plugin-next
 
 # Node.js
-npm install --save-dev eslint-plugin-n
+pnpm add -D eslint-plugin-n
 
 # Vitest
-npm install --save-dev @vitest/eslint-plugin
+pnpm add -D @vitest/eslint-plugin
 
 # Storybook
-npm install --save-dev eslint-plugin-storybook
+pnpm add -D eslint-plugin-storybook
 
 # Cypress
-npm install --save-dev eslint-plugin-cypress
+pnpm add -D eslint-plugin-cypress
 ```
 
 ## Usage

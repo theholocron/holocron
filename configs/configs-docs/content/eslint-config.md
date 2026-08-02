@@ -8,7 +8,7 @@ description: Composable ESLint configurations and bundles for theholocron projec
 ## Install
 
 ```bash
-npm i -D @theholocron/eslint-config eslint
+pnpm add -D @theholocron/eslint-config eslint
 ```
 
 ## Configs

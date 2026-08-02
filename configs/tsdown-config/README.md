@@ -5,7 +5,7 @@ Shared [tsdown](https://tsdown.dev) configurations for `@theholocron` packages.
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/tsdown-config tsdown
+pnpm add -D @theholocron/tsdown-config tsdown
 ```
 
 ## Usage

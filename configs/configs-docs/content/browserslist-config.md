@@ -8,7 +8,7 @@ description: Shared Browserslist target browser list for theholocron projects.
 ## Install
 
 ```bash
-npm i -D @theholocron/browserslist-config
+pnpm add -D @theholocron/browserslist-config
 ```
 
 ## Usage

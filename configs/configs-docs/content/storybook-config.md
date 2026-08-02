@@ -8,7 +8,7 @@ description: Shared Storybook main and preview configuration for theholocron com
 ## Install
 
 ```bash
-npm i -D @theholocron/storybook-config
+pnpm add -D @theholocron/storybook-config
 ```
 
 ## Usage

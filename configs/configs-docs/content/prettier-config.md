@@ -8,7 +8,7 @@ description: Shared Prettier formatting rules for theholocron projects.
 ## Install
 
 ```bash
-npm i -D @theholocron/prettier-config prettier
+pnpm add -D @theholocron/prettier-config prettier
 ```
 
 ## Usage

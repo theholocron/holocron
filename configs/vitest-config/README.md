@@ -5,7 +5,7 @@ A [Vitest configuration](https://vitest.dev/config/) with presets for Node.js li
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/vitest-config
+pnpm add -D @theholocron/vitest-config
 ```
 
 ## Usage

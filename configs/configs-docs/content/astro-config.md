@@ -8,7 +8,7 @@ description: Astro configuration factory for theholocron docs sites.
 ## Install
 
 ```bash
-npm i -D @theholocron/astro-config
+pnpm add -D @theholocron/astro-config
 ```
 
 ## Usage

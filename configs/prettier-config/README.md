@@ -5,7 +5,7 @@ A [Prettier configuration](https://prettier.io/docs/en/configuration) for consis
 ## Installation
 
 ```bash
-npm install --save-dev @theholocron/prettier-config prettier
+pnpm add -D @theholocron/prettier-config prettier
 ```
 
 ## Usage

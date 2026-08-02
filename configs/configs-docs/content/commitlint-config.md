@@ -8,7 +8,7 @@ description: CommitLint rules for Conventional Commits used across theholocron p
 ## Install
 
 ```bash
-npm i -D @theholocron/commitlint-config
+pnpm add -D @theholocron/commitlint-config
 ```
 
 ## Usage
