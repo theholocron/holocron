@@ -1,0 +1,20 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
+name: Bookkeeping
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types:
+      - opened
+      - edited
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  bookkeeping:
+    uses: theholocron/.github/.github/workflows/bookkeeping.yml@main
+    secrets: inherit
