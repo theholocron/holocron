@@ -9,7 +9,14 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, existsSync: vi.fn(() => false), mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { deriveVariants, generateHolocronConfig, NewError, parseTopics, runNew, validateRepoName } from "../commands/new.js";
+import {
+	deriveVariants,
+	generateHolocronConfig,
+	NewError,
+	parseTopics,
+	runNew,
+	validateRepoName,
+} from "../commands/new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 

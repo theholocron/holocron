@@ -111,7 +111,12 @@ export function validateRepoName(v: string): true | string {
 
 /** Parse a comma-separated topics string into a trimmed, non-empty array. */
 export function parseTopics(raw: string | undefined): string[] {
-	return raw ? String(raw).split(",").map((t) => t.trim()).filter(Boolean) : [];
+	return raw
+		? String(raw)
+				.split(",")
+				.map((t) => t.trim())
+				.filter(Boolean)
+		: [];
 }
 
 // ── Config generation ─────────────────────────────────────────────────
