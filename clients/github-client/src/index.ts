@@ -3,6 +3,7 @@ import { environments } from "./environments/environments.js";
 import { git } from "./git/git.js";
 import { issues } from "./issues/issues.js";
 import { labels } from "./labels/labels.js";
+import { pages } from "./pages/pages.js";
 import { properties } from "./properties/properties.js";
 import { repos } from "./repos/repos.js";
 import { rulesets } from "./rulesets/rulesets.js";
@@ -32,6 +33,12 @@ export type {
 } from "./issues/issues.js";
 export type { GitHubLabel } from "./labels/labels.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
+export type {
+	GitHubPages,
+	CreatePagesPayload,
+	UpdatePagesPayload,
+	PagesBuildType,
+} from "./pages/pages.js";
 export type { GitHubRuleset } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
 export type { CodeScanningSetupResult } from "./security/security.js";
@@ -51,6 +58,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		git: git(rest),
 		issues: issues(rest),
 		labels: labels(rest),
+		pages: pages(rest),
 		properties: properties(rest),
 		repos: repos(rest),
 		rulesets: rulesets(rest),
