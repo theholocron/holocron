@@ -134,9 +134,7 @@ describe("DopplerVault.environments", () => {
 	});
 
 	it("uses name when slug is absent", async () => {
-		const { client } = makeClient([
-			{ status: 200, body: { environments: [{ id: "dev", name: "Development" }] } },
-		]);
+		const { client } = makeClient([{ status: 200, body: { environments: [{ id: "dev", name: "Development" }] } }]);
 		const vault = new DopplerVault(client, { project: "demo", config: "dev" });
 		expect(await vault.environments()).toEqual(["Development"]);
 	});
@@ -201,7 +199,11 @@ describe("DopplerVault.ensureProject", () => {
 	it("rethrows a non-ProviderApiError thrown by the client", async () => {
 		const networkError = new Error("network down");
 		const mockClient = {
-			projects: { create: async () => { throw networkError; } },
+			projects: {
+				create: async () => {
+					throw networkError;
+				},
+			},
 		} as unknown as DopplerClient;
 		const vault = new DopplerVault(mockClient, { project: "demo", config: "dev" });
 		expect(await vault.ensureProject("demo").catch((e: unknown) => e)).toBe(networkError);
@@ -210,7 +212,11 @@ describe("DopplerVault.ensureProject", () => {
 	it("rethrows a 400 ProviderApiError with non-string details", async () => {
 		const apiError = new ProviderApiError("bad request", 400, { code: 42 });
 		const mockClient = {
-			projects: { create: async () => { throw apiError; } },
+			projects: {
+				create: async () => {
+					throw apiError;
+				},
+			},
 		} as unknown as DopplerClient;
 		const vault = new DopplerVault(mockClient, { project: "demo", config: "dev" });
 		expect(await vault.ensureProject("demo").catch((e: unknown) => e)).toBe(apiError);

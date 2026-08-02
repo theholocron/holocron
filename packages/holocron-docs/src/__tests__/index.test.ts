@@ -22,24 +22,16 @@ describe("DocsConfig", () => {
 	});
 
 	it("Commands group contains a setup entry", () => {
-		const commandsGroup = config.sidebar.find(
-			(e): e is SidebarGroup => "items" in e && e.label === "Commands",
-		);
+		const commandsGroup = config.sidebar.find((e): e is SidebarGroup => "items" in e && e.label === "Commands");
 		expect(commandsGroup).toBeDefined();
-		const setup = commandsGroup!.items.find(
-			(e): e is SidebarLink => "slug" in e && e.label === "setup",
-		);
+		const setup = commandsGroup!.items.find((e): e is SidebarLink => "slug" in e && e.label === "setup");
 		expect(setup?.slug).toBe("holocron/commands/setup");
 	});
 
 	it("Plugins group lists expected providers", () => {
-		const pluginsGroup = config.sidebar.find(
-			(e): e is SidebarGroup => "items" in e && e.label === "Plugins",
-		);
+		const pluginsGroup = config.sidebar.find((e): e is SidebarGroup => "items" in e && e.label === "Plugins");
 		expect(pluginsGroup).toBeDefined();
-		const labels = pluginsGroup!.items
-			.filter((e): e is SidebarLink => "slug" in e)
-			.map((e) => e.label);
+		const labels = pluginsGroup!.items.filter((e): e is SidebarLink => "slug" in e).map((e) => e.label);
 		expect(labels).toContain("Doppler");
 		expect(labels).toContain("GitHub");
 	});
