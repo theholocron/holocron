@@ -27,6 +27,7 @@
 import {
 	type CapabilityKey,
 	CARDINALITY,
+	type PagesConfig,
 	REQUIRED_CAPABILITIES,
 	type TeamEntry,
 	type TeamPermission,
@@ -66,7 +67,30 @@ export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>
 
 export type RepoProtection = "balanced" | "strict" | "none";
 
-export type { TeamEntry, TeamPermission };
+export type { PagesConfig, TeamEntry, TeamPermission };
+
+/**
+ * Raw `docs` config as written by the user. `build` is optional so the
+ * field can be declared without committing to a build type yet; setup
+ * will error if `docs` is present but `build` is absent.
+ */
+export interface DocsConfig {
+	/**
+	 * GitHub Pages build source.
+	 * "workflow" → GitHub Actions  (PUT { build_type: "workflow" })
+	 * "branch"   → classic gh-pages branch (PUT { build_type: "legacy", source: { branch: "gh-pages", path: "/" } })
+	 * When absent, Pages is not managed by `holocron setup`.
+	 */
+	build?: "workflow" | "branch";
+	/**
+	 * Custom domain / CNAME (e.g. "docs.theholocron.dev").
+	 * When set and `homepage` is not explicitly provided, setup derives
+	 * `homepage` as `https://{domain}/` for package.json and the repo website field.
+	 */
+	domain?: string;
+	/** Enforce HTTPS. Only effective once the custom domain is DNS-verified. */
+	https?: boolean;
+}
 
 export interface RepoProperties {
 	lifecycle?: "active" | "experimental" | "deprecated";
@@ -160,6 +184,15 @@ export interface HolocronConfig {
 	 * ["git-safety", "pr-workflow", "commit-standards"]
 	 */
 	skills?: string[];
+	/**
+	 * GitHub Pages configuration. When present, `holocron setup` calls the
+	 * Pages API using `HOLOCRON_DEPLOY_TOKEN` (requires `pages:write` + `repo` scope).
+	 * When absent, Pages is left as-is.
+	 *
+	 * @example
+	 * { build: "workflow", domain: "docs.theholocron.dev", https: true }
+	 */
+	docs?: DocsConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -190,6 +223,8 @@ export interface ResolvedHolocronConfig {
 	doctor: DoctorConfig;
 	agent?: "claude" | "codex" | "gemini";
 	skills?: string[];
+	/** Resolved Pages config. `build` is guaranteed present when this field exists. */
+	docs?: PagesConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -301,10 +336,22 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		}
 	}
 
+	// Validate docs and narrow build to required
+	let docs: PagesConfig | undefined;
+	if (raw.docs !== undefined) {
+		if (!raw.docs.build) {
+			throw new ConfigError("`docs.build` is required when `docs` is set");
+		}
+		docs = raw.docs as PagesConfig;
+	}
+
+	// Derive homepage from docs.domain when not explicitly set
+	const homepage = raw.homepage ?? (docs?.domain ? `https://${docs.domain}/` : undefined);
+
 	return {
 		name: raw.name,
 		description: raw.description,
-		homepage: raw.homepage,
+		homepage,
 		repo: raw.repo,
 		workflows: raw.workflows,
 		providers,
@@ -312,5 +359,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		doctor: raw.doctor ?? {},
 		agent: raw.agent,
 		skills: raw.skills,
+		docs,
 	};
 }

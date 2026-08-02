@@ -1,8 +1,13 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type { LabelDef, RepoRef, RepoSettings, Ruleset, Source, TeamEntry } from "@theholocron/cli";
-import type { GitHubClient } from "@theholocron/github-client";
+import type { LabelDef, PagesConfig, RepoRef, RepoSettings, Ruleset, Source, TeamEntry } from "@theholocron/cli";
+import {
+	createGitHubClient,
+	type CreatePagesPayload,
+	type GitHubClient,
+	type UpdatePagesPayload,
+} from "@theholocron/github-client";
 
 import { syncLabels } from "./labels.js";
 import { syncProperties } from "./properties.js";
@@ -12,6 +17,9 @@ import { syncTopics } from "./topics.js";
 export interface SourceOptions {
 	repo: string;
 	repoRoot: string;
+	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
+	baseUrl?: string;
+	fetch?: typeof fetch;
 }
 
 export class GitHubSource implements Source {
@@ -23,6 +31,8 @@ export class GitHubSource implements Source {
 	private readonly repo: string;
 	private readonly repoRoot: string;
 	private readonly workflowDir: string;
+	private readonly baseUrl?: string;
+	private readonly fetchImpl?: typeof fetch;
 
 	constructor(
 		private readonly client: GitHubClient,
@@ -34,6 +44,8 @@ export class GitHubSource implements Source {
 		this.repo = opts.repo;
 		this.repoRoot = opts.repoRoot;
 		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
+		this.baseUrl = opts.baseUrl;
+		this.fetchImpl = opts.fetch;
 	}
 
 	async whoami(): Promise<{ login: string }> {
@@ -162,6 +174,32 @@ export class GitHubSource implements Source {
 	async syncHomepage(homepage: string): Promise<string> {
 		await this.client.repos.updateRepo(this.repo, { homepage });
 		return "homepage updated";
+	}
+
+	async configurePages(config: PagesConfig, token: string): Promise<void> {
+		const pagesClient = createGitHubClient({
+			token,
+			baseUrl: this.baseUrl,
+			fetch: this.fetchImpl,
+		});
+
+		const buildType = config.build === "workflow" ? "workflow" : "legacy";
+		const branchSource = config.build === "branch" ? { branch: "gh-pages", path: "/" } : undefined;
+
+		// Enable Pages if not already on.
+		const existing = await pagesClient.pages.getPages(this.repo);
+		if (!existing) {
+			const createPayload: CreatePagesPayload = { build_type: buildType };
+			if (branchSource) createPayload.source = branchSource;
+			await pagesClient.pages.createPages(this.repo, createPayload);
+		}
+
+		// PUT the full desired state so re-runs are idempotent.
+		const updatePayload: UpdatePagesPayload = { build_type: buildType };
+		if (branchSource) updatePayload.source = branchSource;
+		if (config.domain !== undefined) updatePayload.cname = config.domain;
+		if (config.https !== undefined) updatePayload.https_enforced = config.https;
+		await pagesClient.pages.updatePages(this.repo, updatePayload);
 	}
 }
 

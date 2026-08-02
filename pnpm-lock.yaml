@@ -13,8 +13,8 @@ catalogs:
       specifier: ^1.3.5
       version: 1.3.5
     '@theholocron/github-client':
-      specifier: ^1.3.5
-      version: 1.3.5
+      specifier: ^1.6.0
+      version: 1.6.0
     '@theholocron/infisical-client':
       specifier: ^1.3.5
       version: 1.3.5
@@ -263,7 +263,7 @@ importers:
         version: 10.69.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))
       '@theholocron/github-client':
         specifier: catalog:clients
-        version: 1.3.5(vitest@4.1.10)
+        version: 1.6.0(vitest@4.1.10)
       '@theholocron/http-client':
         specifier: ^1.3.5
         version: 1.3.5(vitest@4.1.10)
@@ -502,7 +502,7 @@ importers:
         version: 7.6.1(@eslint/js@10.0.1(eslint@10.8.0(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.24(@typescript-eslint/eslint-plugin@8.65.0(@typescript-eslint/parser@8.65.0(eslint@10.8.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.0(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.2.2(eslint@10.8.0(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.0(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0))(globals@17.8.0)(typescript-eslint@8.65.0(eslint@10.8.0(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/github-client':
         specifier: catalog:clients
-        version: 1.3.5(vitest@4.1.10)
+        version: 1.6.0(vitest@4.1.10)
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 7.6.1(typescript@5.9.3)
@@ -2387,8 +2387,8 @@ packages:
       eslint-plugin-storybook:
         optional: true
 
-  '@theholocron/github-client@1.3.5':
-    resolution: {integrity: sha512-trvWxa7qvBxOzJ4shah0ZnIa7qC4v/e/PZrg2XThuMLZXVQskk9N2FuH8N404QLAcftAY6qPoJDcHf1qhlqEhQ==}
+  '@theholocron/github-client@1.6.0':
+    resolution: {integrity: sha512-h+nbOUTR+8YlObab7OMOs2MqpCrENrtHWcTySVBesoluJZoAQ4/uaqq2U7Z9WP5UT9+WN9J7R8/QrkGlxaPXtw==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/holocron-config@7.6.1':
@@ -7832,7 +7832,7 @@ snapshots:
       eslint-plugin-n: 18.2.2(eslint@10.8.0(jiti@2.7.0))(typescript@5.9.3)
       eslint-plugin-react: 7.37.5(eslint@10.8.0(jiti@2.7.0))
 
-  '@theholocron/github-client@1.3.5(vitest@4.1.10)':
+  '@theholocron/github-client@1.6.0(vitest@4.1.10)':
     dependencies:
       '@theholocron/http-client': 1.3.5(vitest@4.1.10)
     transitivePeerDependencies:

@@ -703,6 +703,33 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 	}
 
+	// ── docs: configure GitHub Pages ────────────────────────────────────
+	if (loader.has("source") && config.docs) {
+		const source = loader.get("source") as Source;
+		const deployToken = process.env.HOLOCRON_DEPLOY_TOKEN;
+		print(style.step("docs"));
+		if (!deployToken) {
+			steps.push({
+				capability: "source",
+				step: "configure GitHub Pages",
+				status: "skip",
+				message: "HOLOCRON_DEPLOY_TOKEN not set — skipping Pages setup",
+			});
+			print(formatStep(steps[steps.length - 1]!));
+		} else if (source.configurePages) {
+			steps.push(
+				await runStep("source", "configure GitHub Pages", dryRun, async () => {
+					await source.configurePages!(config.docs!, deployToken);
+					const parts: string[] = [config.docs!.build];
+					if (config.docs!.domain) parts.push(`domain: ${config.docs!.domain}`);
+					if (config.docs!.https) parts.push("https: enforced");
+					return parts.join(", ");
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+	}
+
 	// ── deployment: ensure project ──────────────────────────────────────
 	if (loader.has("deployment")) {
 		const deploy = loader.get("deployment") as Deployment;

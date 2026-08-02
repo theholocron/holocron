@@ -2154,3 +2154,88 @@ describe("setup: skills step", () => {
 		expect(step?.message).toBe("vault unreachable");
 	});
 });
+
+// ── setup: Pages step ─────────────────────────────────────────────────────────
+
+describe("setup: Pages step", () => {
+	const PAGES_STEP = "configure GitHub Pages";
+
+	afterEach(() => {
+		delete process.env.HOLOCRON_DEPLOY_TOKEN;
+	});
+
+	function makePagedLoader(docs: Parameters<typeof resolveConfig>[0]["docs"], configurePages?: () => Promise<void>) {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" }, docs }),
+			filepath: "/tmp/test/holocron.config.json",
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: { ...(configurePages ? { configurePages } : {}) },
+			}),
+		});
+		return { loaded, loader };
+	}
+
+	it("calls configurePages and records ok when HOLOCRON_DEPLOY_TOKEN is set", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat-xyz";
+		const called: unknown[] = [];
+		const { loaded, loader } = makePagedLoader(
+			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
+			async (...args) => {
+				called.push(args);
+			}
+		);
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toHaveLength(1);
+		expect(called[0]).toEqual([
+			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
+			"deploy-pat-xyz",
+		]);
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toContain("workflow");
+		expect(step?.message).toContain("docs.theholocron.dev");
+	});
+
+	it("includes 'https: enforced' in the result message when https is true", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const { loaded, loader } = makePagedLoader({ build: "workflow", https: true }, async () => {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.message).toContain("https: enforced");
+	});
+
+	it("records a skip step when HOLOCRON_DEPLOY_TOKEN is absent", async () => {
+		const called: unknown[] = [];
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async (...args) => {
+			called.push(args);
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toHaveLength(0);
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("HOLOCRON_DEPLOY_TOKEN");
+	});
+
+	it("does not add a Pages step when docs is absent from config", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: "/tmp/test/holocron.config.json",
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === PAGES_STEP)).toBeUndefined();
+	});
+});
