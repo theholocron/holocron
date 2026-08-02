@@ -201,6 +201,24 @@ describe("runNew — happy path", () => {
 		expect(written["/workspace/my-tool/src/index.ts"]).not.toContain("react-template");
 	});
 
+	it("falls back to derived slug when package.json name is empty", async () => {
+		const { existsSync } = await import("node:fs");
+		// first call: repoDir doesn't exist → proceed; second call: pkgJsonPath exists → enter try block
+		vi.mocked(existsSync).mockReturnValueOnce(false).mockReturnValueOnce(true);
+
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "" }) },
+			"/workspace/my-tool/README.md": { content: "# cli-template" },
+		});
+		const lines: string[] = [];
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
+
+		// Falls back to "<type>-template" slug so "cli-template" appears in the detected slug message
+		expect(lines.some((l) => l.includes("cli-template"))).toBe(true);
+	});
+
 	it("commits patched files with -s for DCO", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
@@ -216,6 +234,33 @@ describe("runNew — happy path", () => {
 		expect(commitCall?.args).toContain("-s");
 		expect(commitCall?.args).toContain("-m");
 		expect(commitCall?.args.join(" ")).toContain("bootstrap from cli-template");
+	});
+
+	it("returns fail status when pnpm install throws", async () => {
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+		const exec = (cmd: string, args: string[]) => {
+			if (cmd === "pnpm" && args.includes("install")) throw new Error("disk full");
+		};
+		const lines: string[] = [];
+		const report = await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/pnpm install failed/);
+		expect(lines.some((l) => l.includes("disk full"))).toBe(true);
+	});
+
+	it("continues with ok status when holocron setup throws", async () => {
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+		const exec = (cmd: string) => {
+			if (cmd === "holocron") throw new Error("setup exploded");
+		};
+		const lines: string[] = [];
+		const report = await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
+		expect(report.status).toBe("ok");
+		expect(lines.some((l) => l.includes("holocron setup failed"))).toBe(true);
 	});
 
 	it("runs pnpm install and holocron setup unless --no-verify", async () => {

@@ -318,7 +318,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		try {
 			const pkg = JSON.parse(readFn(pkgJsonPath)) as { name?: string };
 			if (typeof pkg.name === "string") {
-				templateSlug = pkg.name.split("/").pop() ?? templateSlug;
+				templateSlug = pkg.name.split("/").at(-1) || templateSlug;
 			}
 		} catch {
 			// fall back to derived slug
@@ -359,13 +359,11 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	writeFn(configPath, configContent);
 	print(`  Generated holocron.config.ts`);
 
-	if (filesPatched.length > 0 || configPath) {
-		execFn("git", ["add", "-A"], { cwd: repoDir, stdio: "inherit" });
-		execFn("git", ["commit", "-s", "-m", `chore: bootstrap from ${templateSlug}`], {
-			cwd: repoDir,
-			stdio: "inherit",
-		});
-	}
+	execFn("git", ["add", "-A"], { cwd: repoDir, stdio: "inherit" });
+	execFn("git", ["commit", "-s", "-m", `chore: bootstrap from ${templateSlug}`], {
+		cwd: repoDir,
+		stdio: "inherit",
+	});
 
 	if (!input.noVerify) {
 		print("");
