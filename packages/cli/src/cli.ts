@@ -577,7 +577,10 @@ try {
 					let deploymentProvider = argv.deployment as string | undefined;
 					let agent = argv.agent as string | undefined;
 					let topics: string[] = argv.topics
-						? String(argv.topics).split(",").map((t) => t.trim()).filter(Boolean)
+						? String(argv.topics)
+								.split(",")
+								.map((t) => t.trim())
+								.filter(Boolean)
 						: [];
 
 					// Interactive wizard — skip any field already supplied as a CLI arg
@@ -599,7 +602,9 @@ try {
 						name = await input({
 							message: "Repo name (kebab-case):",
 							validate: (v) =>
-								/^[a-z][a-z0-9-]*$/.test(v.trim()) ? true : "Must be lowercase kebab-case (e.g. my-tool)",
+								/^[a-z][a-z0-9-]*$/.test(v.trim())
+									? true
+									: "Must be lowercase kebab-case (e.g. my-tool)",
 						});
 						name = name.trim();
 					}
@@ -657,7 +662,12 @@ try {
 
 					if (topics.length === 0) {
 						const raw = await input({ message: "Topics (comma-separated, optional):" });
-						topics = raw ? raw.split(",").map((t) => t.trim()).filter(Boolean) : [];
+						topics = raw
+							? raw
+									.split(",")
+									.map((t) => t.trim())
+									.filter(Boolean)
+							: [];
 					}
 
 					if (!type) {
