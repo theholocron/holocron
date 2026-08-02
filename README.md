@@ -13,7 +13,7 @@ A pluggable, capability-based CLI for spinning up and operating software project
 <!-- prettier-ignore -->
 ```bash
 # 1. Install the CLI + the source plugin and a vault plugin
-npm  i -g @theholocron/cli@alpha
+pnpm add -g @theholocron/cli@alpha
 pnpm add -D @theholocron/holocron-plugin-github@alpha
 
 # Vault — pick one: 1password, doppler, or infisical

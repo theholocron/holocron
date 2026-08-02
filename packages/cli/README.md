@@ -9,7 +9,7 @@ spinning up and operating software projects.
 
 <!-- prettier-ignore -->
 ```bash
-npm i -g @theholocron/cli@alpha
+pnpm add -g @theholocron/cli@alpha
 holocron --help
 
 ```
