@@ -106,6 +106,6 @@ Add both to `.gitignore`:
 
 ### Registering an external skill
 
-Run `npx skills add <repo> --skill <name>` from this repo root. This records the
+Run `pnpm exec skills add <repo> --skill <name>` from this repo root. This records the
 skill in `skills-lock.json` with its source and content hash but does **not** copy
 it into `skills/` — external skill content is fetched at install time.
