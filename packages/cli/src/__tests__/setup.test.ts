@@ -2238,4 +2238,27 @@ describe("setup: Pages step", () => {
 
 		expect(report.steps.find((s) => s.step === PAGES_STEP)).toBeUndefined();
 	});
+
+	it("does not add a Pages step when token is set but source has no configurePages", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const { loaded, loader } = makePagedLoader({ build: "workflow" });
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === PAGES_STEP)).toBeUndefined();
+	});
+
+	it("omits 'https: enforced' from the result message when https is not set", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const { loaded, loader } = makePagedLoader(
+			{ build: "workflow", domain: "docs.theholocron.dev" },
+			async () => {}
+		);
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.status).toBe("ok");
+		expect(step?.message).not.toContain("https: enforced");
+	});
 });
