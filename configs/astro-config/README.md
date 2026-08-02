@@ -10,30 +10,38 @@ npm install --save-dev @theholocron/astro-config
 
 ## Usage
 
-Replace `astro/config`'s `defineConfig` with this package's `defineConfig` and pass a `docs` config object and `importMetaUrl`:
+Pass `starlight` and `docsTheme` from your own imports alongside the docs config. This keeps Astro's module loader in control of those framework imports:
 
 ```ts
 // astro.config.ts
+import starlight from "@astrojs/starlight";
+import { docsTheme } from "@theholocron/docs-theme";
 import { defineConfig } from "@theholocron/astro-config";
 import clientsConfig from "@theholocron/clients-docs";
 
 export default defineConfig({
   docs: clientsConfig,
   importMetaUrl: import.meta.url,
+  starlight,
+  docsTheme,
 });
 ```
 
 ### Custom sidebar label
 
-By default the sidebar group label is derived from `docs.sidebar[1].label`. Override it when the group label in the docs config differs from what the site should show:
+By default the sidebar group label is derived from `docs.sidebar[1].label`. Override it when the label differs:
 
 ```ts
+import starlight from "@astrojs/starlight";
+import { docsTheme } from "@theholocron/docs-theme";
 import { defineConfig } from "@theholocron/astro-config";
 import holocronConfig from "@theholocron/holocron-docs";
 
 export default defineConfig({
   docs: holocronConfig,
   importMetaUrl: import.meta.url,
+  starlight,
+  docsTheme,
   sidebarLabel: "Reference",
 });
 ```
