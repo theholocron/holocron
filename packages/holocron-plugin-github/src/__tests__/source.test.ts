@@ -197,7 +197,10 @@ describe("GitHubSource — configurePages", () => {
 	it("POST then PUT when Pages is not yet enabled", async () => {
 		const { source, calls } = makeSourceForPages([
 			{ status: 404, body: { message: "Not Found" } },
-			{ status: 201, body: { build_type: "workflow", status: "building", https_enforced: false, custom_domain: null } },
+			{
+				status: 201,
+				body: { build_type: "workflow", status: "building", https_enforced: false, custom_domain: null },
+			},
 			{ status: 204 },
 		]);
 		await source.configurePages!({ build: "workflow" }, "deploy-pat");
@@ -213,7 +216,10 @@ describe("GitHubSource — configurePages", () => {
 
 	it("skips POST when Pages already exists", async () => {
 		const { source, calls } = makeSourceForPages([
-			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{
+				status: 200,
+				body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null },
+			},
 			{ status: 204 },
 		]);
 		await source.configurePages!({ build: "workflow" }, "deploy-pat");
@@ -224,13 +230,13 @@ describe("GitHubSource — configurePages", () => {
 
 	it("includes cname and https_enforced in PUT when provided", async () => {
 		const { source, calls } = makeSourceForPages([
-			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{
+				status: 200,
+				body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null },
+			},
 			{ status: 204 },
 		]);
-		await source.configurePages!(
-			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
-			"deploy-pat"
-		);
+		await source.configurePages!({ build: "workflow", domain: "docs.theholocron.dev", https: true }, "deploy-pat");
 		expect(calls[1]?.body).toMatchObject({
 			build_type: "workflow",
 			cname: "docs.theholocron.dev",
@@ -240,7 +246,10 @@ describe("GitHubSource — configurePages", () => {
 
 	it("omits cname and https_enforced when not provided", async () => {
 		const { source, calls } = makeSourceForPages([
-			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{
+				status: 200,
+				body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null },
+			},
 			{ status: 204 },
 		]);
 		await source.configurePages!({ build: "workflow" }, "deploy-pat");
@@ -251,7 +260,10 @@ describe("GitHubSource — configurePages", () => {
 	it("uses legacy build type with gh-pages source for branch", async () => {
 		const { source, calls } = makeSourceForPages([
 			{ status: 404, body: { message: "Not Found" } },
-			{ status: 201, body: { build_type: "legacy", status: "building", https_enforced: false, custom_domain: null } },
+			{
+				status: 201,
+				body: { build_type: "legacy", status: "building", https_enforced: false, custom_domain: null },
+			},
 			{ status: 204 },
 		]);
 		await source.configurePages!({ build: "branch" }, "deploy-pat");
@@ -267,7 +279,10 @@ describe("GitHubSource — configurePages", () => {
 
 	it("uses the deploy token (not the admin token) for Pages API calls", async () => {
 		const { source, calls } = makeSourceForPages([
-			{ status: 200, body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null } },
+			{
+				status: 200,
+				body: { build_type: "workflow", status: "built", https_enforced: false, custom_domain: null },
+			},
 			{ status: 204 },
 		]);
 		await source.configurePages!({ build: "workflow" }, "deploy-pat-xyz");
