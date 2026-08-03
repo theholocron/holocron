@@ -355,6 +355,58 @@ describe("runNew — happy path", () => {
 	});
 });
 
+// ── runNew — org replacement ──────────────────────────────────────────
+
+describe("runNew — org/slug replacement", () => {
+	it("replaces theholocron/<slug> with <org>/<name> in file content", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": {
+				content: JSON.stringify({ name: "@theholocron/cli-template" }),
+			},
+			"/workspace/my-tool/README.md": {
+				content: "bugs: https://github.com/theholocron/cli-template/issues",
+			},
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/README.md"]).toContain("theholocron/my-tool");
+		expect(written["/workspace/my-tool/README.md"]).not.toContain("theholocron/cli-template");
+	});
+
+	it("replaces org in scoped package name when org differs from theholocron", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": {
+				content: JSON.stringify({ name: "@theholocron/cli-template" }),
+			},
+		});
+
+		await runNew({ ...BASE, org: "acme", exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const pkg = JSON.parse(written["/workspace/my-tool/package.json"]!);
+		expect(pkg.name).toBe("@acme/my-tool");
+	});
+
+	it("does not replace @theholocron/ in devDependency package names", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": {
+				content: JSON.stringify({
+					name: "@theholocron/cli-template",
+					devDependencies: { "@theholocron/eslint-config": "^1.0.0" },
+				}),
+			},
+		});
+
+		await runNew({ ...BASE, org: "acme", exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const pkg = JSON.parse(written["/workspace/my-tool/package.json"]!);
+		expect(pkg.devDependencies["@theholocron/eslint-config"]).toBe("^1.0.0");
+	});
+});
+
 // ── runNew — error cases ──────────────────────────────────────────────
 
 describe("runNew — errors", () => {
