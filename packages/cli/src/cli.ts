@@ -6,7 +6,6 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { AuthError, createFeatureResolver } from "./auth-resolver.js";
-import type { CapabilityKey } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runClone } from "./commands/clone.js";
@@ -750,7 +749,6 @@ try {
 					}),
 			async (argv) => {
 				try {
-					const capabilityKeys = Object.keys(CARDINALITY).join(", ");
 					const vendor = argv.vendor as string;
 					const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
 						{
