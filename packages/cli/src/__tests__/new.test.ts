@@ -153,6 +153,18 @@ describe("runNew — dry-run", () => {
 		expect(lines.some((l) => l.includes("A cool tool"))).toBe(true);
 	});
 
+	it("prints runtime_environment replacement in dry-run when provided", async () => {
+		const lines: string[] = [];
+		await runNew({
+			...BASE,
+			runtimeEnvironment: "browser",
+			dryRun: true,
+			exec: () => {},
+			print: (l) => lines.push(l),
+		});
+		expect(lines.some((l) => l.includes("<runtime_environment>") && l.includes("browser"))).toBe(true);
+	});
+
 	it("respects a custom org", async () => {
 		const lines: string[] = [];
 		await runNew({
