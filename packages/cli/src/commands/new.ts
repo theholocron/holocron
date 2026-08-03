@@ -164,7 +164,9 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 		}
 		lines.push(`\t\t...repo,`);
 		if (hasRuntimeOverride) {
-			lines.push(`\t\tproperties: { ...repo.properties, runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)} },`);
+			lines.push(
+				`\t\tproperties: { ...repo.properties, runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)} },`
+			);
 		}
 		lines.push(`\t},`);
 	} else {
