@@ -27,6 +27,7 @@ import path from "node:path";
 export type VaultProvider = "doppler" | "1password" | "infisical" | "none";
 export type DeploymentProvider = "vercel" | "none";
 export type AgentChoice = "claude" | "none";
+export type RuntimeEnvironment = "node" | "browser" | "universal" | "none";
 
 export interface RunNewInput {
 	type: string;
@@ -38,6 +39,7 @@ export interface RunNewInput {
 	vaultConfig?: string;
 	deploymentProvider?: DeploymentProvider;
 	agent?: AgentChoice;
+	runtimeEnvironment?: RuntimeEnvironment;
 	topics?: string[];
 	/** GitHub org that owns both the template and the new repo. Default: "theholocron". */
 	org?: string;
@@ -131,6 +133,7 @@ export interface HolocronConfigOptions {
 	vaultConfig?: string;
 	deploymentProvider?: DeploymentProvider;
 	agent?: AgentChoice;
+	runtimeEnvironment?: RuntimeEnvironment;
 	topics?: string[];
 }
 
@@ -152,10 +155,19 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 	if (opts.homepage) lines.push(`\thomepage: ${JSON.stringify(opts.homepage)},`);
 
 	const topics = opts.topics?.length ? opts.topics : [];
-	if (topics.length > 0) {
+	const hasRuntimeOverride = opts.runtimeEnvironment != null && opts.runtimeEnvironment !== "node";
+
+	if (topics.length > 0 || hasRuntimeOverride) {
 		lines.push(`\trepo: {`);
-		lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		if (topics.length > 0) {
+			lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		}
 		lines.push(`\t\t...repo,`);
+		if (hasRuntimeOverride) {
+			lines.push(
+				`\t\tproperties: { ...repo.properties, runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)} },`
+			);
+		}
 		lines.push(`\t},`);
 	} else {
 		lines.push(`\trepo,`);
@@ -228,6 +240,7 @@ function patchFiles(
 	variants: Array<[string, string]>,
 	description: string | undefined,
 	homepage: string | undefined,
+	runtimeEnvironment: string | undefined,
 	print: (line: string) => void,
 	readFn: (p: string) => string,
 	writeFn: (p: string, c: string) => void,
@@ -252,6 +265,9 @@ function patchFiles(
 		}
 		if (homepage !== undefined) {
 			content = content.split("<homepage>").join(homepage);
+		}
+		if (runtimeEnvironment !== undefined) {
+			content = content.split("<runtime_environment>").join(runtimeEnvironment);
 		}
 
 		if (content !== original) {
@@ -310,6 +326,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		print(`  Would patch all casing variants of "${input.type}-template" → "${input.name}"`);
 		if (input.description) print(`  Would replace <description> → "${input.description}"`);
 		if (input.homepage) print(`  Would replace <homepage> → "${input.homepage}"`);
+		if (input.runtimeEnvironment) print(`  Would replace <runtime_environment> → "${input.runtimeEnvironment}"`);
 		print(`  Would generate holocron.config.ts`);
 		return { status: "dry-run" };
 	}
@@ -351,6 +368,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		variants,
 		input.description,
 		input.homepage,
+		input.runtimeEnvironment,
 		print,
 		readFn,
 		writeFn,
@@ -370,6 +388,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		vaultConfig: input.vaultConfig,
 		deploymentProvider: input.deploymentProvider,
 		agent: input.agent,
+		runtimeEnvironment: input.runtimeEnvironment,
 		topics: input.topics,
 	});
 	const configPath = path.join(repoDir, "holocron.config.ts");

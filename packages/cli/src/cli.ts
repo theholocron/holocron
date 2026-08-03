@@ -6,7 +6,6 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { AuthError, createFeatureResolver } from "./auth-resolver.js";
-import type { CapabilityKey } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runClone } from "./commands/clone.js";
@@ -551,6 +550,10 @@ try {
 						type: "string",
 						describe: "AI agent: claude, none",
 					})
+					.option("runtime-environment", {
+						type: "string",
+						describe: "Runtime environment: node, browser, universal, none",
+					})
 					.option("topics", {
 						type: "string",
 						describe: "Comma-separated repo topics (e.g. typescript,nodejs)",
@@ -576,6 +579,7 @@ try {
 					let vaultConfig: string | undefined;
 					let deploymentProvider = argv.deployment as string | undefined;
 					let agent = argv.agent as string | undefined;
+					let runtimeEnvironment = argv.runtimeEnvironment as string | undefined;
 					let topics: string[] = parseTopics(argv.topics as string | undefined);
 
 					// Interactive wizard — skip any field already supplied as a CLI arg
@@ -608,6 +612,19 @@ try {
 					if (homepage === undefined) {
 						const raw = await input({ message: "Homepage URL (optional, Enter to skip):" });
 						homepage = raw.trim() || undefined;
+					}
+
+					if (!runtimeEnvironment) {
+						runtimeEnvironment = await select({
+							message: "Runtime environment:",
+							choices: [
+								{ name: "node      — Node.js process", value: "node" },
+								{ name: "browser   — Browser only", value: "browser" },
+								{ name: "universal — Node.js + browser", value: "universal" },
+								{ name: "none      — No runtime (docs, config, etc.)", value: "none" },
+							],
+							default: type === "base" ? "none" : "node",
+						});
 					}
 
 					if (!vaultProvider) {
@@ -678,6 +695,7 @@ try {
 						vaultConfig,
 						deploymentProvider: (deploymentProvider as "vercel" | "none") ?? "none",
 						agent: (agent as "claude" | "none") ?? "claude",
+						runtimeEnvironment: (runtimeEnvironment as "node" | "browser" | "universal" | "none") ?? "node",
 						topics,
 						org: argv.org,
 						dryRun: argv.dryRun,
@@ -731,7 +749,6 @@ try {
 					}),
 			async (argv) => {
 				try {
-					const capabilityKeys = Object.keys(CARDINALITY).join(", ");
 					const vendor = argv.vendor as string;
 					const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
 						{
