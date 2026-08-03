@@ -40,7 +40,11 @@ export interface RunNewInput {
 	deploymentProvider?: DeploymentProvider;
 	agent?: AgentChoice;
 	runtimeEnvironment?: RuntimeEnvironment;
+	protection?: string;
+	openSource?: boolean;
+	usesExternalPackages?: boolean;
 	topics?: string[];
+	skills?: string[];
 	/** GitHub org that owns both the template and the new repo. Default: "theholocron". */
 	org?: string;
 	dryRun?: boolean;
@@ -126,6 +130,7 @@ export function parseTopics(raw: string | undefined): string[] {
 export interface HolocronConfigOptions {
 	name: string;
 	type: string;
+	org?: string;
 	description?: string;
 	homepage?: string;
 	vaultProvider?: VaultProvider;
@@ -134,7 +139,11 @@ export interface HolocronConfigOptions {
 	deploymentProvider?: DeploymentProvider;
 	agent?: AgentChoice;
 	runtimeEnvironment?: RuntimeEnvironment;
+	protection?: string;
+	openSource?: boolean;
+	usesExternalPackages?: boolean;
 	topics?: string[];
+	skills?: string[];
 }
 
 /**
@@ -156,12 +165,30 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 
 	const topics = opts.topics?.length ? opts.topics : [];
 	const hasRuntimeOverride = opts.runtimeEnvironment != null && opts.runtimeEnvironment !== "node";
+	const hasFullRepo = opts.org != null;
 
-	if (topics.length > 0 || hasRuntimeOverride) {
+	if (hasFullRepo) {
+		// Full explicit repo block when org is known (always the case from the CLI).
+		const repoName = `${opts.org}/${opts.name}`;
 		lines.push(`\trepo: {`);
-		if (topics.length > 0) {
-			lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		lines.push(`\t\tname: ${JSON.stringify(repoName)},`);
+		lines.push(`\t\tteams: [{ slug: "gatekeepers", permission: "maintain" }],`);
+		lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		lines.push(`\t\t...repo,`);
+		if (opts.protection && opts.protection !== "strict") {
+			lines.push(`\t\tprotection: ${JSON.stringify(opts.protection)},`);
 		}
+		const propParts: string[] = [];
+		if (hasRuntimeOverride) propParts.push(`runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)}`);
+		if (opts.openSource === false) propParts.push(`open_source: false`);
+		if (opts.usesExternalPackages === false) propParts.push(`uses_external_packages: false`);
+		if (propParts.length > 0) {
+			lines.push(`\t\tproperties: { ...repo.properties, ${propParts.join(", ")} },`);
+		}
+		lines.push(`\t},`);
+	} else if (topics.length > 0 || hasRuntimeOverride) {
+		lines.push(`\trepo: {`);
+		if (topics.length > 0) lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
 		lines.push(`\t\t...repo,`);
 		if (hasRuntimeOverride) {
 			lines.push(
@@ -202,6 +229,10 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 
 	if (opts.agent && opts.agent !== "none") {
 		lines.push(`\tagent: ${JSON.stringify(opts.agent)},`);
+	}
+
+	if (opts.skills?.length) {
+		lines.push(`\tskills: ${JSON.stringify(opts.skills)},`);
 	}
 
 	lines.push(`});`);
@@ -381,6 +412,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	const configContent = generateHolocronConfig({
 		name: input.name,
 		type: input.type,
+		org,
 		description: input.description,
 		homepage: input.homepage,
 		vaultProvider: input.vaultProvider,
@@ -389,7 +421,11 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		deploymentProvider: input.deploymentProvider,
 		agent: input.agent,
 		runtimeEnvironment: input.runtimeEnvironment,
+		protection: input.protection,
+		openSource: input.openSource,
+		usesExternalPackages: input.usesExternalPackages,
 		topics: input.topics,
+		skills: input.skills,
 	});
 	const configPath = path.join(repoDir, "holocron.config.ts");
 	writeFn(configPath, configContent);
