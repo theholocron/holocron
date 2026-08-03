@@ -617,6 +617,54 @@ describe("generateHolocronConfig", () => {
 		expect(out).not.toContain(`...providers`);
 	});
 
+	it("generates full explicit repo block when org is provided", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", org: "theholocron" });
+		expect(out).toContain(`name: "theholocron/my-tool"`);
+		expect(out).toContain(`teams: [{ slug: "gatekeepers", permission: "maintain" }]`);
+		expect(out).toContain(`topics:`);
+		expect(out).toContain(`...repo`);
+	});
+
+	it("includes protection override when not strict", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			org: "theholocron",
+			protection: "balanced",
+		});
+		expect(out).toContain(`protection: "balanced"`);
+	});
+
+	it("omits protection override when strict (preset default)", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", org: "theholocron", protection: "strict" });
+		expect(out).not.toContain(`protection:`);
+	});
+
+	it("includes properties overrides for open_source false", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", org: "theholocron", openSource: false });
+		expect(out).toContain(`open_source: false`);
+	});
+
+	it("includes properties overrides for uses_external_packages false", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			org: "theholocron",
+			usesExternalPackages: false,
+		});
+		expect(out).toContain(`uses_external_packages: false`);
+	});
+
+	it("emits skills array when provided", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", skills: ["git-safety", "pr-workflow"] });
+		expect(out).toContain(`skills: ["git-safety","pr-workflow"]`);
+	});
+
+	it("omits skills when empty", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", skills: [] });
+		expect(out).not.toContain(`skills:`);
+	});
+
 	it("emits a properties override for non-node runtime environments", () => {
 		const cases: RuntimeEnvironment[] = ["browser", "universal", "none"];
 		for (const env of cases) {

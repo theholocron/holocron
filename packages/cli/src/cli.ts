@@ -558,6 +558,22 @@ try {
 						type: "string",
 						describe: "Comma-separated repo topics (e.g. typescript,nodejs)",
 					})
+					.option("protection", {
+						type: "string",
+						describe: "Branch protection level: strict, balanced, minimal",
+					})
+					.option("open-source", {
+						type: "boolean",
+						describe: "Whether the repo is open source (default: true)",
+					})
+					.option("uses-external-packages", {
+						type: "boolean",
+						describe: "Whether the repo calls external APIs or services (default: true)",
+					})
+					.option("skills", {
+						type: "string",
+						describe: "Comma-separated agent skill names (e.g. git-safety,pr-workflow)",
+					})
 					.option("org", {
 						type: "string",
 						default: "theholocron",
@@ -581,6 +597,10 @@ try {
 					let agent = argv.agent as string | undefined;
 					let runtimeEnvironment = argv.runtimeEnvironment as string | undefined;
 					let topics: string[] = parseTopics(argv.topics as string | undefined);
+					let protection = argv.protection as string | undefined;
+					let openSource = argv.openSource as boolean | undefined;
+					let usesExternalPackages = argv.usesExternalPackages as boolean | undefined;
+					let skills: string[] = parseTopics(argv.skills as string | undefined);
 
 					// Interactive wizard — skip any field already supplied as a CLI arg
 					if (!type) {
@@ -674,6 +694,44 @@ try {
 						topics = parseTopics(raw);
 					}
 
+					if (!protection) {
+						protection = await select({
+							message: "Branch protection:",
+							choices: [
+								{ name: "strict    — required reviews + passing checks", value: "strict" },
+								{ name: "balanced  — required reviews, flexible checks", value: "balanced" },
+								{ name: "minimal   — branch protection only", value: "minimal" },
+							],
+						});
+					}
+
+					if (openSource === undefined) {
+						const ans = await select({
+							message: "Open source?",
+							choices: [
+								{ name: "Yes", value: "yes" },
+								{ name: "No", value: "no" },
+							],
+						});
+						openSource = ans === "yes";
+					}
+
+					if (usesExternalPackages === undefined) {
+						const ans = await select({
+							message: "Uses external APIs or services?",
+							choices: [
+								{ name: "Yes", value: "yes" },
+								{ name: "No", value: "no" },
+							],
+						});
+						usesExternalPackages = ans === "yes";
+					}
+
+					if (skills.length === 0) {
+						const raw = await input({ message: "Agent skills (comma-separated, optional):" });
+						skills = parseTopics(raw);
+					}
+
 					if (!type) {
 						console.error("new: template type is required");
 						process.exitCode = 1;
@@ -696,7 +754,11 @@ try {
 						deploymentProvider: (deploymentProvider as "vercel" | "none") ?? "none",
 						agent: (agent as "claude" | "none") ?? "claude",
 						runtimeEnvironment: (runtimeEnvironment as "node" | "browser" | "universal" | "none") ?? "node",
+						protection: protection ?? "strict",
+						openSource: openSource ?? true,
+						usesExternalPackages: usesExternalPackages ?? true,
 						topics,
+						skills,
 						org: argv.org,
 						dryRun: argv.dryRun,
 						noVerify: !argv.verify,
