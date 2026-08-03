@@ -66,8 +66,6 @@ function editorconfigContent(): string {
 		``,
 		`[*.{md,mdx}]`,
 		`trim_trailing_whitespace = false`,
-		`indent_style = space`,
-		`indent_size = 2`,
 		``,
 		`[.*{rc,ignore}]`,
 		`indent_style = space`,
