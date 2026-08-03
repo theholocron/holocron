@@ -15,7 +15,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
-import { PluginCreateError, runPluginCreate } from "./commands/plugin-create/index.js";
+import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup.js";
@@ -732,34 +732,33 @@ try {
 			async (argv) => {
 				try {
 					const capabilityKeys = Object.keys(CARDINALITY).join(", ");
-					const needsPrompt = !argv.capability || !argv.vendorEnv || !argv.baseUrl;
-
-					let capability: CapabilityKey;
-					let vendorEnv: string;
-					let baseUrl: string;
-
-					if (!argv.capability) {
-						capability = (await select({
-							message: "Capability:",
-							choices: Object.keys(CARDINALITY).map((k) => ({ name: k, value: k })),
-						})) as CapabilityKey;
-					} else {
-						capability = argv.capability as CapabilityKey;
-					}
-					vendorEnv = argv.vendorEnv
-						? (argv.vendorEnv as string)
-						: await input({
-								message: `Vendor-native env var for the ${argv.vendor as string} token (e.g. MYVENDOR_API_KEY):`,
-							});
-					baseUrl = argv.baseUrl
-						? (argv.baseUrl as string)
-						: await input({
-								message: `REST base URL for the ${argv.vendor as string} API (e.g. https://api.myvendor.com):`,
-							});
+					const vendor = argv.vendor as string;
+					const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
+						{
+							capability: argv.capability as string | undefined,
+							vendorEnv: argv.vendorEnv as string | undefined,
+							baseUrl: argv.baseUrl as string | undefined,
+						},
+						{
+							selectCapability: () =>
+								select({
+									message: "Capability:",
+									choices: Object.keys(CARDINALITY).map((k) => ({ name: k, value: k })),
+								}),
+							inputVendorEnv: () =>
+								input({
+									message: `Vendor-native env var for the ${vendor} token (e.g. MYVENDOR_API_KEY):`,
+								}),
+							inputBaseUrl: () =>
+								input({
+									message: `REST base URL for the ${vendor} API (e.g. https://api.myvendor.com):`,
+								}),
+						}
+					);
 
 					const report = runPluginCreate({
 						slug: argv.slug as string,
-						vendorName: argv.vendor as string,
+						vendorName: vendor,
 						capability,
 						vendorEnv,
 						baseUrl,

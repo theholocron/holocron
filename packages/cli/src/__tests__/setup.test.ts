@@ -2088,7 +2088,6 @@ describe("setup: skills step", () => {
 		// No plugins — skills step is purely local, no provider needed
 		const loader = makeLoaderWith(loaded, {});
 
-		const steps: string[] = [];
 		const report = await runSetup({
 			loaded,
 			context: { repoRoot: tmpDir },
@@ -2100,8 +2099,7 @@ describe("setup: skills step", () => {
 		// Step runs — may fail if @theholocron/skills is not installed, but the path is exercised
 		expect(skillsStep).toBeDefined();
 		expect(skillsStep?.step).toBe("install skills");
-		void steps;
-	});
+	}, 30_000); // May trigger `pnpm add @theholocron/skills` auto-install in CI
 
 	it("skips the skills step when agent or skills is absent", async () => {
 		const loaded: LoadedConfig = {

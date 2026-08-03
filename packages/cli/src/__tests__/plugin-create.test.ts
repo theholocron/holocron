@@ -9,7 +9,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { PluginCreateError, runPluginCreate } from "../commands/plugin-create/index.js";
+import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "../commands/plugin-create/index.js";
 
 // In-memory fs so tests don't touch the real workspace.
 function makeFakeFs() {
@@ -346,5 +346,49 @@ describe("runPluginCreate — post-scaffold verify", () => {
 			stdio: "inherit",
 		});
 		mock.mockReset();
+	});
+});
+
+// ── resolvePluginCreateInputs ─────────────────────────────────────────
+
+describe("resolvePluginCreateInputs", () => {
+	const neverCall = async () => {
+		throw new Error("should not prompt");
+	};
+
+	it("uses provided argv values without calling any prompt", async () => {
+		const result = await resolvePluginCreateInputs(
+			{ capability: "vault", vendorEnv: "MY_KEY", baseUrl: "https://api.example.com" },
+			{ selectCapability: neverCall, inputVendorEnv: neverCall, inputBaseUrl: neverCall }
+		);
+		expect(result).toEqual({ capability: "vault", vendorEnv: "MY_KEY", baseUrl: "https://api.example.com" });
+	});
+
+	it("calls selectCapability when capability is absent", async () => {
+		const result = await resolvePluginCreateInputs(
+			{ vendorEnv: "MY_KEY", baseUrl: "https://api.example.com" },
+			{ selectCapability: async () => "storage", inputVendorEnv: neverCall, inputBaseUrl: neverCall }
+		);
+		expect(result.capability).toBe("storage");
+	});
+
+	it("calls inputVendorEnv when vendorEnv is absent", async () => {
+		const result = await resolvePluginCreateInputs(
+			{ capability: "vault", baseUrl: "https://api.example.com" },
+			{ selectCapability: neverCall, inputVendorEnv: async () => "PROMPTED_KEY", inputBaseUrl: neverCall }
+		);
+		expect(result.vendorEnv).toBe("PROMPTED_KEY");
+	});
+
+	it("calls inputBaseUrl when baseUrl is absent", async () => {
+		const result = await resolvePluginCreateInputs(
+			{ capability: "vault", vendorEnv: "MY_KEY" },
+			{
+				selectCapability: neverCall,
+				inputVendorEnv: neverCall,
+				inputBaseUrl: async () => "https://prompted.example.com",
+			}
+		);
+		expect(result.baseUrl).toBe("https://prompted.example.com");
 	});
 });
