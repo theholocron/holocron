@@ -352,7 +352,9 @@ describe("runPluginCreate — post-scaffold verify", () => {
 // ── resolvePluginCreateInputs ─────────────────────────────────────────
 
 describe("resolvePluginCreateInputs", () => {
-	const neverCall = async () => { throw new Error("should not prompt"); };
+	const neverCall = async () => {
+		throw new Error("should not prompt");
+	};
 
 	it("uses provided argv values without calling any prompt", async () => {
 		const result = await resolvePluginCreateInputs(
@@ -381,7 +383,11 @@ describe("resolvePluginCreateInputs", () => {
 	it("calls inputBaseUrl when baseUrl is absent", async () => {
 		const result = await resolvePluginCreateInputs(
 			{ capability: "vault", vendorEnv: "MY_KEY" },
-			{ selectCapability: neverCall, inputVendorEnv: neverCall, inputBaseUrl: async () => "https://prompted.example.com" }
+			{
+				selectCapability: neverCall,
+				inputVendorEnv: neverCall,
+				inputBaseUrl: async () => "https://prompted.example.com",
+			}
 		);
 		expect(result.baseUrl).toBe("https://prompted.example.com");
 	});

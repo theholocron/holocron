@@ -746,9 +746,13 @@ try {
 									choices: Object.keys(CARDINALITY).map((k) => ({ name: k, value: k })),
 								}),
 							inputVendorEnv: () =>
-								input({ message: `Vendor-native env var for the ${vendor} token (e.g. MYVENDOR_API_KEY):` }),
+								input({
+									message: `Vendor-native env var for the ${vendor} token (e.g. MYVENDOR_API_KEY):`,
+								}),
 							inputBaseUrl: () =>
-								input({ message: `REST base URL for the ${vendor} API (e.g. https://api.myvendor.com):` }),
+								input({
+									message: `REST base URL for the ${vendor} API (e.g. https://api.myvendor.com):`,
+								}),
 						}
 					);
 

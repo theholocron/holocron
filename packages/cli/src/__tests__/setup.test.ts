@@ -2080,31 +2080,27 @@ describe("setup: skills step", () => {
 		await rm(tmpDir, { recursive: true });
 	});
 
-	it(
-		"runs the skills step when agent and skills are configured",
-		async () => {
-			const loaded: LoadedConfig = {
-				resolved: resolveConfig({ name: "demo", agent: "claude", skills: ["git-safety"], providers: {} }),
-				filepath: join(tmpDir, "holocron.config.json"),
-			};
-			// No plugins — skills step is purely local, no provider needed
-			const loader = makeLoaderWith(loaded, {});
+	it("runs the skills step when agent and skills are configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", agent: "claude", skills: ["git-safety"], providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		// No plugins — skills step is purely local, no provider needed
+		const loader = makeLoaderWith(loaded, {});
 
-			const report = await runSetup({
-				loaded,
-				context: { repoRoot: tmpDir },
-				loader,
-				print: () => {},
-			});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: tmpDir },
+			loader,
+			print: () => {},
+		});
 
-			const skillsStep = report.steps.find((s) => s.capability === "skills");
-			// Step runs — may fail if @theholocron/skills is not installed, but the path is exercised
-			expect(skillsStep).toBeDefined();
-			expect(skillsStep?.step).toBe("install skills");
-		},
-		// May trigger `pnpm add @theholocron/skills` auto-install in CI
-		30_000
-	);
+		const skillsStep = report.steps.find((s) => s.capability === "skills");
+		// Step runs — may fail if @theholocron/skills is not installed, but the path is exercised
+		expect(skillsStep).toBeDefined();
+		expect(skillsStep?.step).toBe("install skills");
+	}, // May trigger `pnpm add @theholocron/skills` auto-install in CI
+	30_000);
 
 	it("skips the skills step when agent or skills is absent", async () => {
 		const loaded: LoadedConfig = {
