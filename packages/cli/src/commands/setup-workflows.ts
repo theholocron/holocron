@@ -93,7 +93,10 @@ export function generateThinCallerContent(
 		const pathsBlockRe = /( {4}paths:\n)((?:[ ]{6}- [^\n]+\n)+)/;
 		result = result.replace(pathsBlockRe, (_, header, existing) => {
 			const existingPaths = new Set([...existing.matchAll(/- (.+)/g)].map((m) => m[1]));
-			const newEntries = additionalPaths.filter((p) => !existingPaths.has(p)).map((p) => `      - ${p}\n`).join("");
+			const newEntries = additionalPaths
+				.filter((p) => !existingPaths.has(p))
+				.map((p) => `      - ${p}\n`)
+				.join("");
 			return header + existing + newEntries;
 		});
 	}
