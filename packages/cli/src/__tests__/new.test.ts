@@ -15,8 +15,8 @@ import {
 	NewError,
 	parseTopics,
 	runNew,
-	validateRepoName,
 	type RuntimeEnvironment,
+	validateRepoName,
 } from "../commands/new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
