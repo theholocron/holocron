@@ -574,7 +574,12 @@ describe("generateHolocronConfig", () => {
 	});
 
 	it("includes protection override when not strict", () => {
-		const out = generateHolocronConfig({ name: "my-tool", type: "node", org: "theholocron", protection: "balanced" });
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			org: "theholocron",
+			protection: "balanced",
+		});
 		expect(out).toContain(`protection: "balanced"`);
 	});
 
@@ -589,7 +594,12 @@ describe("generateHolocronConfig", () => {
 	});
 
 	it("includes properties overrides for uses_external_packages false", () => {
-		const out = generateHolocronConfig({ name: "my-tool", type: "node", org: "theholocron", usesExternalPackages: false });
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			org: "theholocron",
+			usesExternalPackages: false,
+		});
 		expect(out).toContain(`uses_external_packages: false`);
 	});
 
