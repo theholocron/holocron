@@ -25,6 +25,7 @@
     "build": "tsdown",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
