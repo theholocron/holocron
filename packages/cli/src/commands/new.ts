@@ -394,6 +394,11 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	print(`  Patching files…`);
 
 	const variants = deriveVariants(templateSlug, input.name);
+	// Prepend the full org/slug pair so GitHub URLs and scoped package names
+	// use the correct org. Must come before the slug-only pairs so it takes
+	// priority — e.g. "@theholocron/node-template" becomes "@<org>/<name>"
+	// rather than "@theholocron/<name>".
+	variants.unshift([`theholocron/${templateSlug}`, `${org}/${input.name}`]);
 	const filesPatched = patchFiles(
 		repoDir,
 		variants,
