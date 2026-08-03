@@ -88,11 +88,14 @@ export function generateThinCallerContent(
 
 	let result = base;
 
-	// Append extra push.paths entries after the existing paths: block.
+	// Append extra push.paths entries after the existing paths: block, skipping duplicates.
 	if (additionalPaths && additionalPaths.length > 0) {
 		const pathsBlockRe = /( {4}paths:\n)((?:[ ]{6}- [^\n]+\n)+)/;
-		const newEntries = additionalPaths.map((p) => `      - ${p}\n`).join("");
-		result = result.replace(pathsBlockRe, (_, header, existing) => header + existing + newEntries);
+		result = result.replace(pathsBlockRe, (_, header, existing) => {
+			const existingPaths = new Set([...existing.matchAll(/- (.+)/g)].map((m) => m[1]));
+			const newEntries = additionalPaths.filter((p) => !existingPaths.has(p)).map((p) => `      - ${p}\n`).join("");
+			return header + existing + newEntries;
+		});
 	}
 
 	if (!withOverrides || Object.keys(withOverrides).length === 0) return result;

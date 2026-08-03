@@ -678,4 +678,10 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("name: configs");
 		expect(content).toContain("secrets: inherit");
 	});
+
+	it("deduplicates additionalPaths already present in the template", () => {
+		const content = generateThinCallerContent("deploy-docs", undefined, ["docs/**"]);
+		const matches = [...content.matchAll(/- docs\/\*\*/g)];
+		expect(matches).toHaveLength(1);
+	});
 });
