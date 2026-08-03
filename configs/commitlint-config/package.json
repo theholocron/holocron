@@ -23,7 +23,8 @@
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@commitlint/types": "^21.2.0",
