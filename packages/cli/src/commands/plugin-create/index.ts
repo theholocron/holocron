@@ -45,6 +45,37 @@ import { render as renderVitestConfig } from "./templates/vitest-config.js";
 
 // ── Public API ──────────────────────────────────────────────────────
 
+// ── Wizard resolver ───────────────────────────────────────────────────
+
+export interface PluginCreateWizardArgs {
+	capability?: string;
+	vendorEnv?: string;
+	baseUrl?: string;
+}
+
+export interface PluginCreateWizardPrompts {
+	selectCapability: () => Promise<string>;
+	inputVendorEnv: () => Promise<string>;
+	inputBaseUrl: () => Promise<string>;
+}
+
+/**
+ * Resolve `capability`, `vendorEnv`, and `baseUrl` from argv or by calling
+ * the supplied prompt functions for any that are absent. Extracted from
+ * `cli.ts` so the resolution logic is unit-testable.
+ */
+export async function resolvePluginCreateInputs(
+	args: PluginCreateWizardArgs,
+	prompts: PluginCreateWizardPrompts
+): Promise<{ capability: CapabilityKey; vendorEnv: string; baseUrl: string }> {
+	const capability = (args.capability ?? (await prompts.selectCapability())) as CapabilityKey;
+	const vendorEnv = args.vendorEnv ?? (await prompts.inputVendorEnv());
+	const baseUrl = args.baseUrl ?? (await prompts.inputBaseUrl());
+	return { capability, vendorEnv, baseUrl };
+}
+
+// ── Run input / report ────────────────────────────────────────────────
+
 export interface RunPluginCreateInput {
 	/** Package slug, e.g., "clerk". Kebab-case. */
 	slug: string;
