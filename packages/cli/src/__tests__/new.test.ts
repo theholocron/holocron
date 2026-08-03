@@ -16,6 +16,7 @@ import {
 	parseTopics,
 	runNew,
 	validateRepoName,
+	type RuntimeEnvironment,
 } from "../commands/new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -550,5 +551,75 @@ describe("generateHolocronConfig", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node", vaultProvider: "none" });
 		expect(out).toContain(`providers,`);
 		expect(out).not.toContain(`...providers`);
+	});
+
+	it("emits a properties override for non-node runtime environments", () => {
+		const cases: RuntimeEnvironment[] = ["browser", "universal", "none"];
+		for (const env of cases) {
+			const out = generateHolocronConfig({ name: "my-tool", type: "node", runtimeEnvironment: env });
+			expect(out).toContain(`runtime_environment: "${env}"`);
+			expect(out).toContain(`...repo.properties`);
+			expect(out).toContain(`...repo`);
+		}
+	});
+
+	it("omits the properties override when runtimeEnvironment is node", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", runtimeEnvironment: "node" });
+		expect(out).toContain(`repo,`);
+		expect(out).not.toContain(`runtime_environment`);
+	});
+
+	it("combines topics and runtimeEnvironment in the repo block", () => {
+		const out = generateHolocronConfig({
+			name: "my-tool",
+			type: "node",
+			topics: ["typescript"],
+			runtimeEnvironment: "browser",
+		});
+		expect(out).toContain(`topics:`);
+		expect(out).toContain(`...repo`);
+		expect(out).toContain(`runtime_environment: "browser"`);
+	});
+});
+
+// ── runNew — runtime_environment placeholder ──────────────────────────
+
+describe("runNew — runtime_environment placeholder", () => {
+	it("replaces <runtime_environment> in template files", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/base-template" }) },
+			"/workspace/my-tool/holocron.config.json": {
+				content: JSON.stringify({ runtime_environment: "<runtime_environment>" }),
+			},
+		});
+
+		await runNew({
+			...BASE,
+			type: "base",
+			runtimeEnvironment: "none",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		expect(written["/workspace/my-tool/holocron.config.json"]).toContain('"none"');
+		expect(written["/workspace/my-tool/holocron.config.json"]).not.toContain("<runtime_environment>");
+	});
+
+	it("skips <runtime_environment> substitution when not provided", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/base-template" }) },
+			"/workspace/my-tool/holocron.config.json": {
+				content: JSON.stringify({ runtime_environment: "<runtime_environment>" }),
+			},
+		});
+
+		await runNew({ ...BASE, type: "base", exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/holocron.config.json"]).toBeUndefined();
 	});
 });
