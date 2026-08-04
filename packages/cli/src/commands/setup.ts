@@ -66,6 +66,8 @@ function editorconfigContent(): string {
 		``,
 		`[*.{md,mdx}]`,
 		`trim_trailing_whitespace = false`,
+		`indent_style = space`,
+		`indent_size = 2`,
 		``,
 		`[.*{rc,ignore}]`,
 		`indent_style = space`,
@@ -180,7 +182,7 @@ const EDITORCONFIG_CHECKER_CONFIG =
 			IgnoreDefaults: false,
 			SpacesAfterTabs: false,
 			NoColor: false,
-			Exclude: ["(^|.+/)LICENSE$", "^public/.*", "\\.mdx$"],
+			Exclude: ["(^|.+/)LICENSE$", "^public/.*", "\\.md$", "\\.mdx$"],
 			AllowedContentTypes: [],
 			PassedFiles: [],
 			Disable: {
