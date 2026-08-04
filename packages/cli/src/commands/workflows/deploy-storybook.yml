@@ -1,0 +1,24 @@
+name: Deploy Storybook
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - .storybook/**
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-storybook:
+    name: Deploy Storybook
+    uses: theholocron/.github/.github/workflows/deploy-storybook.yml@main
+    secrets: inherit

@@ -3,11 +3,33 @@ name: Lint
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
-      prettier-config:
+      eslint-config:
+        description: >
+          Filename for the ESLint flat config used by super-linter for
+          JavaScript, JSX, TSX, and TypeScript (ES) files. Defaults to
+          eslint.config.ts (the org standard). Note: ESLint 9 requires
+          --flag unstable_ts_config to load .ts configs; if super-linter
+          cannot load it, override with eslint.config.mjs or eslint.config.js.
         type: string
         required: false
-        default: prettier.config.js
+        default: eslint.config.ts
+      prettier-config:
+        description: >
+          Filename for the Prettier config. Defaults to prettier.config.ts
+          (the org standard). Prettier 3.x loads .ts configs natively.
+        type: string
+        required: false
+        default: prettier.config.ts
+      typescript-tsconfig:
+        description: >
+          tsconfig.json path passed to TYPESCRIPT_STANDARD_TSCONFIG_FILE.
+          Defaults to tsconfig.json (super-linter's own default).
+        type: string
+        required: false
+        default: tsconfig.json
       yaml-config:
+        description: >
+          Filename for the yamllint config. Defaults to yamllint.config.yml.
         type: string
         required: false
         default: yamllint.config.yml
@@ -98,7 +120,10 @@ jobs:
           FIX_MARKDOWN_PRETTIER: true
           FIX_TSX: true
           FIX_TYPESCRIPT_PRETTIER: true
+          JAVASCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
+          TYPESCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
+          TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
           VALIDATE_DOCKERFILE: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
