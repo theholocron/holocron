@@ -2,6 +2,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
 	entry: [
 		"index.ts",
+		"coverage.ts",
 		"presets/node.ts",
 		"presets/react.ts",
 		"presets/storybook.ts",

@@ -38,6 +38,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./coverage": {
+      "types": "./dist/coverage.d.ts",
+      "import": "./dist/coverage.js",
+      "default": "./dist/coverage.js"
+    },
     "./node": {
       "types": "./dist/presets/node.d.ts",
       "import": "./dist/presets/node.js",

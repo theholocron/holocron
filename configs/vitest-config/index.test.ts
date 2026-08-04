@@ -6,7 +6,7 @@ vi.mock("@storybook/addon-vitest/vitest-plugin", () => ({
 	storybookTest: vi.fn(() => ({ name: "storybook-vitest-plugin" })),
 }));
 
-import { node, react, storybook } from "./index.js";
+import { coverage, node, react, storybook } from "./index.js";
 import { library } from "./bundles/library.js";
 
 describe("vitest-config — presets", () => {
@@ -35,6 +35,30 @@ describe("vitest-config — presets", () => {
 	it("presets accept option overrides", () => {
 		const config = node({ reporters: ["verbose"] });
 		expect(config.test?.reporters).toContain("verbose");
+	});
+});
+
+describe("vitest-config — coverage defaults", () => {
+	it("uses v8 provider", () => {
+		expect(coverage.provider).toBe("v8");
+	});
+
+	it("includes text and lcov reporters", () => {
+		expect(coverage.reporter).toContain("text");
+		expect(coverage.reporter).toContain("lcov");
+	});
+
+	it("sets all to false", () => {
+		expect(coverage.all).toBe(false);
+	});
+
+	it("expose an array of excludes", () => {
+		expect(Array.isArray(coverage.exclude)).toBe(true);
+	});
+
+	it("exclude is extensible", () => {
+		const extended = [...coverage.exclude, "**/handlers.*"];
+		expect(extended).toContain("**/handlers.*");
 	});
 });
 
