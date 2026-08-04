@@ -5,19 +5,29 @@ on: # yamllint disable-line rule:truthy
     inputs:
       eslint-config:
         description: >
-          Filename for the ESLint configuration used by super-linter for
-          JavaScript, JSX, and TSX files. Defaults to eslint.config.mjs
-          (super-linter's own default). Set this to eslint.config.js (or
-          eslint.config.ts with --flag unstable_ts_config in your project's
-          lint script) if the repo uses a flat config under a different name.
+          Filename for the ESLint flat config used by super-linter for
+          JavaScript, JSX, TSX, and TypeScript (ES) files. Defaults to
+          eslint.config.mjs (super-linter's own default). Override when the
+          repo names the config differently (e.g. eslint.config.js).
         type: string
         required: false
         default: eslint.config.mjs
       prettier-config:
+        description: >
+          Filename for the Prettier config. Defaults to prettier.config.js.
         type: string
         required: false
         default: prettier.config.js
+      typescript-tsconfig:
+        description: >
+          tsconfig.json path passed to TYPESCRIPT_STANDARD_TSCONFIG_FILE.
+          Defaults to tsconfig.json (super-linter's own default).
+        type: string
+        required: false
+        default: tsconfig.json
       yaml-config:
+        description: >
+          Filename for the yamllint config. Defaults to yamllint.config.yml.
         type: string
         required: false
         default: yamllint.config.yml
@@ -110,6 +120,8 @@ jobs:
           FIX_TYPESCRIPT_PRETTIER: true
           JAVASCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
+          TYPESCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
+          TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
           VALIDATE_DOCKERFILE: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
