@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-docs",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "description": "Documentation content for the @theholocron/holocron CLI and plugin ecosystem",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-docs#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
