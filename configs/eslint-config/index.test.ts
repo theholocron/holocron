@@ -1,3 +1,4 @@
+import { Linter } from "eslint";
 import { describe, it, expect } from "vitest";
 import { base } from "./configs/base.js";
 import { typescript } from "./configs/typescript.js";
@@ -28,6 +29,11 @@ describe("eslint-config — individual configs", () => {
 		const config = react();
 		expect(Array.isArray(config)).toBe(true);
 		expect(config.length).toBeGreaterThan(0);
+	});
+
+	it("react() config runs without throwing on ESLint v10 context API", () => {
+		const linter = new Linter({ configType: "flat" });
+		expect(() => linter.verify("const x = 1;", react() as Parameters<Linter["verify"]>[1])).not.toThrow();
 	});
 });
 
