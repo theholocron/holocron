@@ -13,6 +13,11 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      run-performance:
+        description: Run Lighthouse CI performance audit (requires a lighthouse config file)
+        type: boolean
+        required: false
+        default: false
       knip-script:
         description: Script that invokes Knip (must exit non-zero on findings)
         type: string
@@ -81,9 +86,7 @@ jobs:
 
   performance:
     name: Audit the performance
-    # Skip when no Lighthouse config exists. Detects the org-standard
-    # lighthouse.config.{js,cjs} and legacy .lighthouserc.* names.
-    if: ${{ hashFiles('lighthouse.config.js', 'lighthouse.config.cjs', 'lighthouse.config.json', '.lighthouserc.js', '.lighthouserc.cjs', '.lighthouserc.json', '.lighthouserc.yml', '.lighthouserc.yaml') != '' }}
+    if: ${{ inputs.run-performance }}
     permissions:
       contents: read
     runs-on: ubuntu-latest
