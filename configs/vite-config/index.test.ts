@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { library, reactApp, nodeApp } from "./index.js";
+import { library, reactApp, reactLibrary, nodeApp } from "./index.js";
 
 describe("vite-config", () => {
 	describe("library preset", () => {
@@ -27,6 +27,52 @@ describe("vite-config", () => {
 		it("returns a vite config object", async () => {
 			const config = await reactApp();
 			expect(typeof config).toBe("object");
+		});
+	});
+
+	describe("reactLibrary preset", () => {
+		it("returns a vite config with build.lib", async () => {
+			const config = await reactLibrary();
+			expect(typeof config).toBe("object");
+			expect(config.build?.lib).toBeDefined();
+		});
+
+		it("outputs ESM and CJS by default", async () => {
+			const config = await reactLibrary();
+			const formats = config.build?.lib && "formats" in config.build.lib ? config.build.lib.formats : undefined;
+			expect(formats).toContain("es");
+			expect(formats).toContain("cjs");
+		});
+
+		it("externalises react and react-dom", async () => {
+			const config = await reactLibrary();
+			const external = config.build?.rollupOptions?.external;
+			const list = Array.isArray(external) ? external : [];
+			expect(list).toContain("react");
+			expect(list).toContain("react-dom");
+		});
+
+		it("accepts additional externals", async () => {
+			const config = await reactLibrary({ external: ["lodash"] });
+			const external = config.build?.rollupOptions?.external;
+			const list = Array.isArray(external) ? external : [];
+			expect(list).toContain("lodash");
+		});
+
+		it("uses resolved name in fileName", async () => {
+			const config = await reactLibrary({ name: "my-lib" });
+			const lib = config.build?.lib;
+			const fileName = lib && "fileName" in lib ? lib.fileName : undefined;
+			expect(typeof fileName).toBe("function");
+			if (typeof fileName === "function") {
+				expect(fileName("es", "index")).toBe("my-lib.es.js");
+				expect(fileName("cjs", "index")).toBe("my-lib.cjs.js");
+			}
+		});
+
+		it("merges overrides into the base config", async () => {
+			const config = await reactLibrary({ overrides: { publicDir: "public" } });
+			expect(config.publicDir).toBe("public");
 		});
 	});
 

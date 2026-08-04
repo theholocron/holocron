@@ -10,7 +10,7 @@ import { getPackageName } from "./get-package-name.js";
 export async function reactApp(overrides: UserConfig = {}): Promise<UserConfig> {
 	const { default: react } = await import("@vitejs/plugin-react");
 
-	const plugins = [react()];
+	const plugins: NonNullable<UserConfig["plugins"]> = [react()];
 	try {
 		const { codecovVitePlugin } = await import("@codecov/vite-plugin");
 		plugins.push(
@@ -18,7 +18,7 @@ export async function reactApp(overrides: UserConfig = {}): Promise<UserConfig> 
 				enableBundleAnalysis: !!process.env.CODECOV_TOKEN,
 				bundleName: getPackageName(),
 				uploadToken: process.env.CODECOV_TOKEN,
-			})
+			}) as never
 		);
 	} catch {
 		// @codecov/vite-plugin not installed — bundle analysis skipped

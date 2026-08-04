@@ -51,6 +51,11 @@
       "import": "./dist/presets/react-app.js",
       "default": "./dist/presets/react-app.js"
     },
+    "./react-library": {
+      "types": "./dist/presets/react-library.d.ts",
+      "import": "./dist/presets/react-library.js",
+      "default": "./dist/presets/react-library.js"
+    },
     "./node-app": {
       "types": "./dist/presets/node-app.d.ts",
       "import": "./dist/presets/node-app.js",
