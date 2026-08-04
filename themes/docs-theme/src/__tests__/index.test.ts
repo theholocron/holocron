@@ -67,10 +67,7 @@ describe("docsTheme", () => {
 	});
 
 	describe("styles.css", () => {
-		const css = readFileSync(
-			new URL("../styles.css", import.meta.url),
-			"utf-8",
-		);
+		const css = readFileSync(new URL("../styles.css", import.meta.url), "utf-8");
 
 		it("defines dark mode accent variables", () => {
 			expect(css).toContain('[data-theme="dark"]');

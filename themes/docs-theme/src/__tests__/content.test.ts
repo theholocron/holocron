@@ -19,20 +19,14 @@ describe("createDocsCollections", () => {
 	});
 
 	it("passes a loader with the slug-derived content path", () => {
-		const collections = createDocsCollections(
-			mockConfig,
-			import.meta.url,
-		) as {
+		const collections = createDocsCollections(mockConfig, import.meta.url) as {
 			docs: { loader: { name: string } };
 		};
 		expect(collections.docs.loader.name).toBe("docs-loader");
 	});
 
 	it("sets the loader source slug to empty string", () => {
-		const collections = createDocsCollections(
-			mockConfig,
-			import.meta.url,
-		) as {
+		const collections = createDocsCollections(mockConfig, import.meta.url) as {
 			docs: { loader: { load: (ctx: never) => Promise<void> } };
 		};
 		expect(typeof collections.docs.loader.load).toBe("function");

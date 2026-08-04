@@ -26,15 +26,7 @@ function makeCtx(rootDir: string) {
 			set: vi.fn((entry: StoreEntry) => store.set(entry.id, entry)),
 			keys: () => store.keys(),
 		},
-		parseData: vi.fn(
-			async ({
-				data,
-			}: {
-				id: string;
-				data: Record<string, unknown>;
-				filePath: string;
-			}) => data,
-		),
+		parseData: vi.fn(async ({ data }: { id: string; data: Record<string, unknown>; filePath: string }) => data),
 		renderMarkdown: vi.fn(async (body: string) => ({
 			html: `<p>${body.trim()}</p>`,
 			metadata: {},
@@ -67,10 +59,7 @@ describe("createDocsLoader", () => {
 	});
 
 	it("loads a markdown file and stores an entry", async () => {
-		await writeFile(
-			join(tmpDir, "guide.md"),
-			"---\ntitle: Guide\n---\n\nHello.",
-		);
+		await writeFile(join(tmpDir, "guide.md"), "---\ntitle: Guide\n---\n\nHello.");
 		const { ctx, store } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -82,38 +71,25 @@ describe("createDocsLoader", () => {
 	});
 
 	it("applies slug prefix to non-index entries", async () => {
-		await writeFile(
-			join(tmpDir, "api.md"),
-			"---\ntitle: API\n---\n\nDocs.",
-		);
+		await writeFile(join(tmpDir, "api.md"), "---\ntitle: API\n---\n\nDocs.");
 		const { ctx, store } = makeCtx(tmpDir);
 
-		await createDocsLoader([{ dir: tmpDir, slug: "projects/mylib" }]).load(
-			ctx as never,
-		);
+		await createDocsLoader([{ dir: tmpDir, slug: "projects/mylib" }]).load(ctx as never);
 
 		expect(store.has("projects/mylib/api")).toBe(true);
 	});
 
 	it("maps index.md to the slug prefix", async () => {
-		await writeFile(
-			join(tmpDir, "index.md"),
-			"---\ntitle: Home\n---\n\nWelcome.",
-		);
+		await writeFile(join(tmpDir, "index.md"), "---\ntitle: Home\n---\n\nWelcome.");
 		const { ctx, store } = makeCtx(tmpDir);
 
-		await createDocsLoader([{ dir: tmpDir, slug: "projects/mylib" }]).load(
-			ctx as never,
-		);
+		await createDocsLoader([{ dir: tmpDir, slug: "projects/mylib" }]).load(ctx as never);
 
 		expect(store.has("projects/mylib")).toBe(true);
 	});
 
 	it("maps root index.md to 'index' when slug is empty", async () => {
-		await writeFile(
-			join(tmpDir, "index.md"),
-			"---\ntitle: Home\n---\n\nWelcome.",
-		);
+		await writeFile(join(tmpDir, "index.md"), "---\ntitle: Home\n---\n\nWelcome.");
 		const { ctx, store } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -124,10 +100,7 @@ describe("createDocsLoader", () => {
 	it("walks subdirectories recursively", async () => {
 		const subDir = join(tmpDir, "guides");
 		await mkdir(subDir, { recursive: true });
-		await writeFile(
-			join(subDir, "start.md"),
-			"---\ntitle: Start\n---\n\nBegin.",
-		);
+		await writeFile(join(subDir, "start.md"), "---\ntitle: Start\n---\n\nBegin.");
 		const { ctx, store } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -136,14 +109,8 @@ describe("createDocsLoader", () => {
 	});
 
 	it("skips files whose names start with _", async () => {
-		await writeFile(
-			join(tmpDir, "_draft.md"),
-			"---\ntitle: Draft\n---\n\nNot ready.",
-		);
-		await writeFile(
-			join(tmpDir, "public.md"),
-			"---\ntitle: Public\n---\n\nReady.",
-		);
+		await writeFile(join(tmpDir, "_draft.md"), "---\ntitle: Draft\n---\n\nNot ready.");
+		await writeFile(join(tmpDir, "public.md"), "---\ntitle: Public\n---\n\nReady.");
 		const { ctx, store } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -154,10 +121,7 @@ describe("createDocsLoader", () => {
 
 	it("ignores non-markdown files", async () => {
 		await writeFile(join(tmpDir, "data.json"), '{"key":"value"}');
-		await writeFile(
-			join(tmpDir, "page.md"),
-			"---\ntitle: Page\n---\n\nContent.",
-		);
+		await writeFile(join(tmpDir, "page.md"), "---\ntitle: Page\n---\n\nContent.");
 		const { ctx, store } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -167,10 +131,7 @@ describe("createDocsLoader", () => {
 	});
 
 	it("calls ctx.renderMarkdown with body and fileURL for each file", async () => {
-		await writeFile(
-			join(tmpDir, "page.md"),
-			"---\ntitle: Page\n---\n\nContent here.",
-		);
+		await writeFile(join(tmpDir, "page.md"), "---\ntitle: Page\n---\n\nContent here.");
 		const { ctx } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -178,15 +139,12 @@ describe("createDocsLoader", () => {
 		expect(ctx.renderMarkdown).toHaveBeenCalledOnce();
 		expect(ctx.renderMarkdown).toHaveBeenCalledWith(
 			expect.stringContaining("Content here."),
-			expect.objectContaining({ fileURL: expect.any(URL) }),
+			expect.objectContaining({ fileURL: expect.any(URL) })
 		);
 	});
 
 	it("registers each file with the watcher", async () => {
-		await writeFile(
-			join(tmpDir, "page.md"),
-			"---\ntitle: Page\n---\n\nContent.",
-		);
+		await writeFile(join(tmpDir, "page.md"), "---\ntitle: Page\n---\n\nContent.");
 		const { ctx, watched } = makeCtx(tmpDir);
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
@@ -226,18 +184,13 @@ describe("createDocsLoader", () => {
 			JSON.stringify({
 				name: "fake-content-pkg",
 				main: "./dist/index.js",
-			}),
+			})
 		);
-		await writeFile(
-			join(pkgDir, "content", "page.md"),
-			"---\ntitle: From Package\n---\n\nPackage content.",
-		);
+		await writeFile(join(pkgDir, "content", "page.md"), "---\ntitle: From Package\n---\n\nPackage content.");
 
 		const { ctx, store } = makeCtx(tmpDir);
 
-		await createDocsLoader([
-			{ package: "fake-content-pkg", slug: "pkg" },
-		]).load(ctx as never);
+		await createDocsLoader([{ package: "fake-content-pkg", slug: "pkg" }]).load(ctx as never);
 
 		expect(store.has("pkg/page")).toBe(true);
 		expect(store.get("pkg/page")!.data).toMatchObject({
@@ -259,18 +212,13 @@ describe("createDocsLoader", () => {
 			JSON.stringify({
 				name: "no-dist-pkg",
 				main: "./dist/index.mjs",
-			}),
+			})
 		);
-		await writeFile(
-			join(pkgDir, "content", "page.md"),
-			"---\ntitle: No Dist\n---\n\nFallback content.",
-		);
+		await writeFile(join(pkgDir, "content", "page.md"), "---\ntitle: No Dist\n---\n\nFallback content.");
 
 		const { ctx, store } = makeCtx(tmpDir);
 
-		await createDocsLoader([{ package: "no-dist-pkg", slug: "pkg" }]).load(
-			ctx as never,
-		);
+		await createDocsLoader([{ package: "no-dist-pkg", slug: "pkg" }]).load(ctx as never);
 
 		expect(store.has("pkg/page")).toBe(true);
 		expect(store.get("pkg/page")!.data).toMatchObject({ title: "No Dist" });
@@ -286,18 +234,13 @@ describe("createDocsLoader", () => {
 			JSON.stringify({
 				name: "@scope/no-dist-scoped",
 				main: "./dist/index.mjs",
-			}),
+			})
 		);
-		await writeFile(
-			join(pkgDir, "content", "page.md"),
-			"---\ntitle: Scoped No Dist\n---\n\nScoped fallback.",
-		);
+		await writeFile(join(pkgDir, "content", "page.md"), "---\ntitle: Scoped No Dist\n---\n\nScoped fallback.");
 
 		const { ctx, store } = makeCtx(tmpDir);
 
-		await createDocsLoader([
-			{ package: "@scope/no-dist-scoped", slug: "pkg" },
-		]).load(ctx as never);
+		await createDocsLoader([{ package: "@scope/no-dist-scoped", slug: "pkg" }]).load(ctx as never);
 
 		expect(store.has("pkg/page")).toBe(true);
 		expect(store.get("pkg/page")!.data).toMatchObject({
@@ -311,11 +254,9 @@ describe("createDocsLoader", () => {
 		// exercising the ?? [] fallback before reaching the throw.
 		const { ctx } = makeCtx(tmpDir);
 
-		await expect(
-			createDocsLoader([{ package: "fs", slug: "pkg" }]).load(
-				ctx as never,
-			),
-		).rejects.toThrow(/Could not resolve content directory/);
+		await expect(createDocsLoader([{ package: "fs", slug: "pkg" }]).load(ctx as never)).rejects.toThrow(
+			/Could not resolve content directory/
+		);
 	});
 
 	it("throws when no package.json is found in node_modules", async () => {
@@ -324,9 +265,7 @@ describe("createDocsLoader", () => {
 		const { ctx } = makeCtx(tmpDir);
 
 		await expect(
-			createDocsLoader([
-				{ package: "totally-missing-pkg", slug: "pkg" },
-			]).load(ctx as never),
+			createDocsLoader([{ package: "totally-missing-pkg", slug: "pkg" }]).load(ctx as never)
 		).rejects.toThrow(/Could not resolve content directory/);
 	});
 
@@ -334,19 +273,14 @@ describe("createDocsLoader", () => {
 		const pkgDir = join(tmpDir, "node_modules", "no-content-pkg");
 		await mkdir(pkgDir, { recursive: true });
 		await writeFile(join(pkgDir, "index.js"), "");
-		await writeFile(
-			join(pkgDir, "package.json"),
-			JSON.stringify({ name: "no-content-pkg", main: "./index.js" }),
-		);
+		await writeFile(join(pkgDir, "package.json"), JSON.stringify({ name: "no-content-pkg", main: "./index.js" }));
 
 		const { ctx } = makeCtx(tmpDir);
 
 		// resolvePackageContentDir finds the package root and returns <root>/content;
 		// walk() then throws ENOENT because that directory doesn't exist.
-		await expect(
-			createDocsLoader([{ package: "no-content-pkg", slug: "pkg" }]).load(
-				ctx as never,
-			),
-		).rejects.toThrow(/ENOENT/);
+		await expect(createDocsLoader([{ package: "no-content-pkg", slug: "pkg" }]).load(ctx as never)).rejects.toThrow(
+			/ENOENT/
+		);
 	});
 });

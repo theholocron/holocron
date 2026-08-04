@@ -10,20 +10,12 @@ export interface DocsConfig {
 	name: string;
 }
 
-export function createDocsCollections(
-	docsConfig: DocsConfig,
-	importMetaUrl: string,
-) {
+export function createDocsCollections(docsConfig: DocsConfig, importMetaUrl: string) {
 	return {
 		docs: defineCollection({
 			loader: createDocsLoader([
 				{
-					dir: fileURLToPath(
-						new URL(
-							`../../packages/${docsConfig.slug}-docs/content`,
-							importMetaUrl,
-						),
-					),
+					dir: fileURLToPath(new URL(`../../packages/${docsConfig.slug}-docs/content`, importMetaUrl)),
 					slug: "",
 				},
 			]),

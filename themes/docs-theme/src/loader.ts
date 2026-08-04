@@ -7,9 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Loader, LoaderContext } from "astro/loaders";
 import matter from "gray-matter";
 
-export type DocsSource =
-	| { dir: string; slug: string }
-	| { package: string; slug: string };
+export type DocsSource = { dir: string; slug: string } | { package: string; slug: string };
 
 const EXTENSIONS = new Set([".md", ".mdx"]);
 
@@ -22,11 +20,7 @@ async function* walk(dir: string): AsyncGenerator<string> {
 	}
 }
 
-function computeId(
-	filePath: string,
-	baseDir: string,
-	slugPrefix: string,
-): string {
+function computeId(filePath: string, baseDir: string, slugPrefix: string): string {
 	const rel = relative(baseDir, filePath).replace(/\\/g, "/");
 	const noExt = rel.replace(/\.(mdx?)$/, "");
 	const noIndex = noExt.replace(/\/index$/, "").replace(/^index$/, "");
@@ -45,8 +39,7 @@ function resolvePackageContentDir(packageName: string, root: URL): string {
 		const main = req.resolve(packageName);
 		let dir = dirname(main);
 		while (dir !== dirname(dir)) {
-			if (existsSync(join(dir, "package.json")))
-				return join(dir, "content");
+			if (existsSync(join(dir, "package.json"))) return join(dir, "content");
 			dir = dirname(dir);
 		}
 	} catch {
@@ -56,9 +49,7 @@ function resolvePackageContentDir(packageName: string, root: URL): string {
 	// Fallback: search each node_modules directory on the resolution path.
 	// This handles packages published without a built dist/ (e.g. content-only
 	// packages whose main entry is listed in package.json but never compiled).
-	const parts = packageName.startsWith("@")
-		? packageName.split("/", 2)
-		: [packageName];
+	const parts = packageName.startsWith("@") ? packageName.split("/", 2) : [packageName];
 	for (const searchPath of req.resolve.paths(packageName) ?? []) {
 		const candidate = join(searchPath, ...parts);
 		if (existsSync(join(candidate, "package.json"))) {
@@ -101,13 +92,10 @@ export function createDocsLoader(sources: DocsSource[]): Loader {
 			const resolved = sources.map((s) =>
 				"package" in s
 					? {
-							dir: resolvePackageContentDir(
-								s.package,
-								ctx.config.root,
-							),
+							dir: resolvePackageContentDir(s.package, ctx.config.root),
 							slug: s.slug,
 						}
-					: s,
+					: s
 			);
 
 			for (const { dir, slug: slugPrefix } of resolved) {
