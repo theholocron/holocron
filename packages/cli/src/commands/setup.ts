@@ -180,7 +180,7 @@ const EDITORCONFIG_CHECKER_CONFIG =
 			IgnoreDefaults: false,
 			SpacesAfterTabs: false,
 			NoColor: false,
-			Exclude: ["(^|.+/)LICENSE$", "^public/.*", "\\.mdx$"],
+			Exclude: ["(^|.+/)LICENSE$", "^public/.*", "\\.md$", "\\.mdx$"],
 			AllowedContentTypes: [],
 			PassedFiles: [],
 			Disable: {
