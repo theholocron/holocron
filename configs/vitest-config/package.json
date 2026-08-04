@@ -63,6 +63,16 @@
       "import": "./dist/bundles/react-app.js",
       "default": "./dist/bundles/react-app.js"
     },
+    "./setup/jest-dom": {
+      "types": "./dist/setup/jest-dom.d.ts",
+      "import": "./dist/setup/jest-dom.js",
+      "default": "./dist/setup/jest-dom.js"
+    },
+    "./setup/msw": {
+      "types": "./dist/setup/msw.d.ts",
+      "import": "./dist/setup/msw.js",
+      "default": "./dist/setup/msw.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -70,6 +80,7 @@
   ],
   "peerDependencies": {
     "vitest": "^4",
+    "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
     "@testing-library/user-event": "^14",
     "@vitest/browser": "^4",
@@ -79,6 +90,9 @@
     "playwright": "^1"
   },
   "peerDependenciesMeta": {
+    "@testing-library/jest-dom": {
+      "optional": true
+    },
     "@testing-library/react": {
       "optional": true
     },

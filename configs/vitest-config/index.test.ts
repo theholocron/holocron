@@ -21,6 +21,11 @@ describe("vitest-config — presets", () => {
 		expect(config.test?.environment).toBe("jsdom");
 	});
 
+	it("react() includes jest-dom setup file", () => {
+		const config = react();
+		expect(config.test?.setupFiles).toContain("@theholocron/vitest-config/setup/jest-dom");
+	});
+
 	it("storybook() returns a config object", async () => {
 		const config = await storybook();
 		expect(typeof config).toBe("object");

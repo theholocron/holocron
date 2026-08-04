@@ -10,6 +10,7 @@ export function react(options = {}) {
 		test: {
 			environment: "jsdom",
 			globals: true,
+			setupFiles: ["@theholocron/vitest-config/setup/jest-dom"],
 			include: ["**/*.{test,spec}.{js,jsx,ts,tsx}"],
 			exclude: ["**/node_modules/**", "**/dist/**", "**/*.{story,stories}.{js,jsx,ts,tsx}"],
 			reporters: ["default", "junit"],

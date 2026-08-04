@@ -7,6 +7,8 @@ export default defineConfig({
 		"presets/storybook.ts",
 		"bundles/library.ts",
 		"bundles/react-app.ts",
+		"setup/jest-dom.ts",
+		"setup/msw.ts",
 	],
 	format: "esm",
 	fixedExtension: false,
