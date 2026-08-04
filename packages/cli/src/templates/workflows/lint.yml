@@ -7,17 +7,19 @@ on: # yamllint disable-line rule:truthy
         description: >
           Filename for the ESLint flat config used by super-linter for
           JavaScript, JSX, TSX, and TypeScript (ES) files. Defaults to
-          eslint.config.mjs (super-linter's own default). Override when the
-          repo names the config differently (e.g. eslint.config.js).
+          eslint.config.ts (the org standard). Note: ESLint 9 requires
+          --flag unstable_ts_config to load .ts configs; if super-linter
+          cannot load it, override with eslint.config.mjs or eslint.config.js.
         type: string
         required: false
-        default: eslint.config.mjs
+        default: eslint.config.ts
       prettier-config:
         description: >
-          Filename for the Prettier config. Defaults to prettier.config.js.
+          Filename for the Prettier config. Defaults to prettier.config.ts
+          (the org standard). Prettier 3.x loads .ts configs natively.
         type: string
         required: false
-        default: prettier.config.js
+        default: prettier.config.ts
       typescript-tsconfig:
         description: >
           tsconfig.json path passed to TYPESCRIPT_STANDARD_TSCONFIG_FILE.
