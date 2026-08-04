@@ -108,8 +108,8 @@ jobs:
         run: |
           CONFIG_FLAG=""
           for f in lighthouse.config.js lighthouse.config.cjs lighthouse.config.json \
-                   .lighthouserc.js .lighthouserc.cjs .lighthouserc.json \
-                   .lighthouserc.yml .lighthouserc.yaml; do
+            .lighthouserc.js .lighthouserc.cjs .lighthouserc.json \
+            .lighthouserc.yml .lighthouserc.yaml; do
             if [ -f "$f" ]; then
               CONFIG_FLAG="--config=$f"
               break
