@@ -84,6 +84,29 @@ jobs:
           use_oidc: true
           files: '**/test-report.junit.xml'
 
+  visual-and-composition:
+    name: Test Visual and Composition
+    # Skip when no Chromatic config exists.
+    if: ${{ hashFiles('chromatic.config.json', 'chromatic.config.ts', 'chromatic.config.js') != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: chromaui/action@v13
+        name: Publish to Chromatic
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          buildScriptName: build:storybook
+
   interaction-and-accessibility:
     name: Test Interactions and Accessibility
     # Skip when no Storybook config exists.
@@ -141,26 +164,3 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  visual-and-composition:
-    name: Test Visual and Composition
-    # Skip when no Chromatic config exists.
-    if: ${{ hashFiles('chromatic.config.json', 'chromatic.config.ts', 'chromatic.config.js') != '' }}
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        name: Checkout repository
-        with:
-          fetch-depth: 0
-
-      - uses: theholocron/.github/.github/actions/setup@main
-        name: Setup
-
-      - uses: chromaui/action@v13
-        name: Publish to Chromatic
-        with:
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          buildScriptName: build:storybook
