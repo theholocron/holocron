@@ -43,8 +43,5 @@ Pre-composed sets for common project types:
 import { library } from "@theholocron/eslint-config/bundles/library";
 import type { Linter } from "eslint";
 
-export default [
-  ...library(),
-  { ignores: ["dist/**"] },
-] satisfies Linter.Config[];
+export default [...library(), { ignores: ["dist/**"] }] satisfies Linter.Config[];
 ```

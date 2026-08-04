@@ -19,7 +19,7 @@ For Node.js libraries and tools. Targets the current Node.js LTS release.
 
 ```json
 {
-  "extends": "@theholocron/tsconfig/node-lts"
+	"extends": "@theholocron/tsconfig/node-lts"
 }
 ```
 
@@ -29,6 +29,6 @@ For Next.js apps. Extends the Next.js recommended TypeScript configuration.
 
 ```json
 {
-  "extends": "@theholocron/tsconfig/nextjs"
+	"extends": "@theholocron/tsconfig/nextjs"
 }
 ```

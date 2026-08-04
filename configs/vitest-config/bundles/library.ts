@@ -2,10 +2,7 @@ import { defineConfig } from "vitest/config";
 import { node } from "../presets/node.js";
 
 // Thresholds accept global numbers and per-file overrides (nested objects).
-type Thresholds = Record<
-	string,
-	number | Record<string, number | undefined> | undefined
->;
+type Thresholds = Record<string, number | Record<string, number | undefined> | undefined>;
 
 /**
  * Vitest bundle for published Node.js libraries.

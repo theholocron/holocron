@@ -20,9 +20,7 @@ Outputs ESM only; externalises `react` and `react-dom` by default. Returns a `Pr
 import { defineConfig } from "vite";
 import { library } from "@theholocron/vite-config/library";
 
-export default defineConfig(
-  await library({ entry: "src/index.ts", name: "MyLib" }),
-);
+export default defineConfig(await library({ entry: "src/index.ts", name: "MyLib" }));
 ```
 
 ### React single-page application
@@ -71,8 +69,8 @@ Set `CODECOV_TOKEN` as a CI secret, then add the following to your `codecov.yml`
 
 ```yaml
 comment:
-  require_bundle_changes: true
-  bundle_change_threshold: "1Kb"
+    require_bundle_changes: true
+    bundle_change_threshold: "1Kb"
 ```
 
 This posts a comment only when bundle size changes by more than 1 KB — enough to flag meaningful regressions without noise from routine fluctuations. See the [Codecov bundle analysis docs](https://docs.codecov.com/docs/javascript-bundle-analysis) for more threshold options.

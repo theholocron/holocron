@@ -58,9 +58,7 @@ describe("defineConfig", () => {
 				config: { sidebar: Array<{ label: string }> };
 			}>;
 		};
-		expect(config.integrations[0].config.sidebar[1].label).toBe(
-			"Reference",
-		);
+		expect(config.integrations[0].config.sidebar[1].label).toBe("Reference");
 	});
 
 	it("falls back to 'Contents' when sidebar[1] is a link not a group", () => {

@@ -5,11 +5,5 @@ import { typescript } from "../configs/typescript.js";
 import { vitest } from "../configs/vitest.js";
 
 export function reactApp() {
-	return [
-		...base(),
-		...typescript(),
-		...react(),
-		...storybook(),
-		...vitest(),
-	];
+	return [...base(), ...typescript(), ...react(), ...storybook(), ...vitest()];
 }

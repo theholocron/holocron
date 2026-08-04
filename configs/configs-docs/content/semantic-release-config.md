@@ -19,11 +19,11 @@ In `release.config.ts`:
 import { defineConfig } from "@theholocron/semantic-release-config";
 
 export default defineConfig({
-  branches: ["main", { name: "alpha", prerelease: true }],
-  exec: {
-    prepareCmd: "...",
-    publishCmd: "...",
-  },
+	branches: ["main", { name: "alpha", prerelease: true }],
+	exec: {
+		prepareCmd: "...",
+		publishCmd: "...",
+	},
 });
 ```
 

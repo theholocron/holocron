@@ -11,11 +11,7 @@ export function react(options = {}) {
 			environment: "jsdom",
 			globals: true,
 			include: ["**/*.{test,spec}.{js,jsx,ts,tsx}"],
-			exclude: [
-				"**/node_modules/**",
-				"**/dist/**",
-				"**/*.{story,stories}.{js,jsx,ts,tsx}",
-			],
+			exclude: ["**/node_modules/**", "**/dist/**", "**/*.{story,stories}.{js,jsx,ts,tsx}"],
 			reporters: ["default", "junit"],
 			outputFile: {
 				junit: "./test-report.junit.xml",

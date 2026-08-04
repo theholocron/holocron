@@ -19,12 +19,7 @@ export function reactApp(options = {}) {
 				provider: "v8",
 				reporter: ["lcov", "text"],
 				include: ["src/**"],
-				exclude: [
-					"**/*.{test,spec}.*",
-					"**/*.{story,stories}.*",
-					"**/node_modules/**",
-					"**/dist/**",
-				],
+				exclude: ["**/*.{test,spec}.*", "**/*.{story,stories}.*", "**/node_modules/**", "**/dist/**"],
 				thresholds: {
 					lines: 80,
 					branches: 80,

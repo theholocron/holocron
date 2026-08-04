@@ -34,21 +34,14 @@ const types = [
 	{ type: "test", section: "Tests", hidden: true },
 ];
 
-export const commitAnalyzer = [
-	"@semantic-release/commit-analyzer",
-	{ preset: "conventionalcommits", releaseRules },
-];
+export const commitAnalyzer = ["@semantic-release/commit-analyzer", { preset: "conventionalcommits", releaseRules }];
 
 export const releaseNotesGenerator = [
 	"@semantic-release/release-notes-generator",
 	{ preset: "conventionalcommits", presetConfig: { types } },
 ];
 
-const defaultAssets = [
-	"CHANGELOG.md",
-	"package.json",
-	"packages/*/package.json",
-];
+const defaultAssets = ["CHANGELOG.md", "package.json", "packages/*/package.json"];
 const defaultSingleAssets = ["CHANGELOG.md", "package.json"];
 const defaultMessage =
 	"chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}\n\nSigned-off-by: Newton <5769156+iamnewton@users.noreply.github.com>";
@@ -56,16 +49,9 @@ const defaultMessage =
 /**
  * @see https://semantic-release.gitbook.io/semantic-release/usage/configuration
  */
-export function defineConfig({
-	branches = ["main"],
-	exec,
-	npm,
-	assets,
-}: Options = {}): object {
-	const npmOptions: NpmOptions =
-		npm === true ? { access: "public" } : npm || {};
-	const resolvedAssets =
-		assets ?? (npm ? defaultSingleAssets : defaultAssets);
+export function defineConfig({ branches = ["main"], exec, npm, assets }: Options = {}): object {
+	const npmOptions: NpmOptions = npm === true ? { access: "public" } : npm || {};
+	const resolvedAssets = assets ?? (npm ? defaultSingleAssets : defaultAssets);
 
 	return {
 		branches,
@@ -75,10 +61,7 @@ export function defineConfig({
 			"@semantic-release/changelog",
 			...(npm ? [["@semantic-release/npm", npmOptions]] : []),
 			...(exec ? [["@semantic-release/exec", exec]] : []),
-			[
-				"@semantic-release/git",
-				{ assets: resolvedAssets, message: defaultMessage },
-			],
+			["@semantic-release/git", { assets: resolvedAssets, message: defaultMessage }],
 			"@semantic-release/github",
 		],
 	};

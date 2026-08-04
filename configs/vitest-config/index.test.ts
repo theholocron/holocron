@@ -53,8 +53,6 @@ describe("vitest-config — bundles", () => {
 				},
 			},
 		});
-		expect(
-			config.test?.coverage?.thresholds?.["src/generated.ts"],
-		).toBeDefined();
+		expect(config.test?.coverage?.thresholds?.["src/generated.ts"]).toBeDefined();
 	});
 });

@@ -17,9 +17,7 @@ describe("lint-staged-config", () => {
 	it("every value is a command string or array of commands", () => {
 		for (const value of Object.values(config)) {
 			const isString = typeof value === "string";
-			const isArray =
-				Array.isArray(value) &&
-				value.every((v) => typeof v === "string");
+			const isArray = Array.isArray(value) && value.every((v) => typeof v === "string");
 			expect(isString || isArray).toBe(true);
 		}
 	});

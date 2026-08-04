@@ -11,10 +11,7 @@ describe("vite-config", () => {
 
 		it("outputs ESM only", async () => {
 			const config = await library();
-			const formats =
-				config.build?.lib && "formats" in config.build.lib
-					? config.build.lib.formats
-					: undefined;
+			const formats = config.build?.lib && "formats" in config.build.lib ? config.build.lib.formats : undefined;
 			expect(formats).toContain("es");
 		});
 

@@ -2,7 +2,7 @@
 title: Configs
 description: Shareable tool configurations for ESLint, Prettier, TypeScript, Vitest, and more — used across all theholocron projects.
 sidebar:
-  hidden: true
+    hidden: true
 ---
 
 `@theholocron/configs` is a pnpm monorepo of shareable tool configurations used across every `theholocron` project. Install only what you need — each package is published independently.

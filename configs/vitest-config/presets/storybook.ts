@@ -7,8 +7,7 @@
  * @returns {import('vitest/config').UserProjectConfig}
  */
 export async function storybook(configDir = ".storybook", options = {}) {
-	const { storybookTest } =
-		await import("@storybook/addon-vitest/vitest-plugin");
+	const { storybookTest } = await import("@storybook/addon-vitest/vitest-plugin");
 
 	return {
 		plugins: [storybookTest({ configDir })],

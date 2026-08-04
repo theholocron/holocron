@@ -20,9 +20,5 @@ declare module "playwright" {
 
 declare module "axe-playwright" {
 	export function injectAxe(page: unknown): Promise<void>;
-	export function checkA11y(
-		page: unknown,
-		context?: unknown,
-		options?: unknown,
-	): Promise<void>;
+	export function checkA11y(page: unknown, context?: unknown, options?: unknown): Promise<void>;
 }

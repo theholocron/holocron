@@ -21,8 +21,5 @@ export const storybookConfig: StorybookConfig = {
 		options: {},
 	},
 	staticDirs: ["../../../public"],
-	stories: [
-		"../../../src/**/*.mdx",
-		"../../../src/**/*.story.@(js|jsx|mjs|ts|tsx)",
-	],
+	stories: ["../../../src/**/*.mdx", "../../../src/**/*.story.@(js|jsx|mjs|ts|tsx)"],
 };

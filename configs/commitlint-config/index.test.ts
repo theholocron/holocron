@@ -11,9 +11,7 @@ describe("commitlint-config", () => {
 		expect(Array.isArray(config.ignores)).toBe(true);
 		expect(config.ignores?.length).toBeGreaterThan(0);
 		expect(typeof config.ignores?.[0]).toBe("function");
-		expect(config.ignores?.[0]?.("chore(deps): Bump foo from 1 to 2")).toBe(
-			true,
-		);
+		expect(config.ignores?.[0]?.("chore(deps): Bump foo from 1 to 2")).toBe(true);
 		expect(config.ignores?.[0]?.("feat: add new thing")).toBe(false);
 	});
 

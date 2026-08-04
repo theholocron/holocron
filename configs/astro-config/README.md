@@ -20,10 +20,10 @@ import { defineConfig } from "@theholocron/astro-config";
 import clientsConfig from "@theholocron/clients-docs";
 
 export default defineConfig({
-  docs: clientsConfig,
-  importMetaUrl: import.meta.url,
-  starlight,
-  docsTheme,
+	docs: clientsConfig,
+	importMetaUrl: import.meta.url,
+	starlight,
+	docsTheme,
 });
 ```
 
@@ -38,11 +38,11 @@ import { defineConfig } from "@theholocron/astro-config";
 import holocronConfig from "@theholocron/holocron-docs";
 
 export default defineConfig({
-  docs: holocronConfig,
-  importMetaUrl: import.meta.url,
-  starlight,
-  docsTheme,
-  sidebarLabel: "Reference",
+	docs: holocronConfig,
+	importMetaUrl: import.meta.url,
+	starlight,
+	docsTheme,
+	sidebarLabel: "Reference",
 });
 ```
 

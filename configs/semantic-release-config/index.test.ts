@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-	commitAnalyzer,
-	releaseNotesGenerator,
-	defineConfig,
-} from "./index.js";
+import { commitAnalyzer, releaseNotesGenerator, defineConfig } from "./index.js";
 
 describe("semantic-release-config", () => {
 	describe("commitAnalyzer", () => {
@@ -22,9 +18,7 @@ describe("semantic-release-config", () => {
 	describe("releaseNotesGenerator", () => {
 		it("is a two-element tuple [plugin-name, options]", () => {
 			expect(Array.isArray(releaseNotesGenerator)).toBe(true);
-			expect(releaseNotesGenerator[0]).toBe(
-				"@semantic-release/release-notes-generator",
-			);
+			expect(releaseNotesGenerator[0]).toBe("@semantic-release/release-notes-generator");
 		});
 	});
 
@@ -52,9 +46,10 @@ describe("semantic-release-config", () => {
 
 		it("includes monorepo packages glob in git assets by default", () => {
 			const config = defineConfig() as { plugins: unknown[] };
-			const git = config.plugins.find(
-				(p) => Array.isArray(p) && p[0] === "@semantic-release/git",
-			) as [string, { assets: string[] }];
+			const git = config.plugins.find((p) => Array.isArray(p) && p[0] === "@semantic-release/git") as [
+				string,
+				{ assets: string[] },
+			];
 			expect(git[1].assets).toContain("packages/*/package.json");
 		});
 
@@ -63,9 +58,10 @@ describe("semantic-release-config", () => {
 				const config = defineConfig({ npm: true }) as {
 					plugins: unknown[];
 				};
-				const npm = config.plugins.find(
-					(p) => Array.isArray(p) && p[0] === "@semantic-release/npm",
-				) as [string, { access: string }];
+				const npm = config.plugins.find((p) => Array.isArray(p) && p[0] === "@semantic-release/npm") as [
+					string,
+					{ access: string },
+				];
 				expect(npm).toBeDefined();
 				expect(npm[1].access).toBe("public");
 			});
@@ -75,18 +71,12 @@ describe("semantic-release-config", () => {
 					plugins: unknown[];
 				};
 				const plugins = config.plugins as unknown[];
-				const changelogIdx = plugins.indexOf(
-					"@semantic-release/changelog",
-				);
+				const changelogIdx = plugins.indexOf("@semantic-release/changelog");
 				const npmIdx = plugins.findIndex(
-					(p) =>
-						Array.isArray(p) &&
-						(p as unknown[])[0] === "@semantic-release/npm",
+					(p) => Array.isArray(p) && (p as unknown[])[0] === "@semantic-release/npm"
 				);
 				const gitIdx = plugins.findIndex(
-					(p) =>
-						Array.isArray(p) &&
-						(p as unknown[])[0] === "@semantic-release/git",
+					(p) => Array.isArray(p) && (p as unknown[])[0] === "@semantic-release/git"
 				);
 				expect(npmIdx).toBeGreaterThan(changelogIdx);
 				expect(npmIdx).toBeLessThan(gitIdx);
@@ -98,9 +88,10 @@ describe("semantic-release-config", () => {
 				}) as {
 					plugins: unknown[];
 				};
-				const npm = config.plugins.find(
-					(p) => Array.isArray(p) && p[0] === "@semantic-release/npm",
-				) as [string, { access: string }];
+				const npm = config.plugins.find((p) => Array.isArray(p) && p[0] === "@semantic-release/npm") as [
+					string,
+					{ access: string },
+				];
 				expect(npm[1].access).toBe("restricted");
 			});
 
@@ -108,9 +99,10 @@ describe("semantic-release-config", () => {
 				const config = defineConfig({ npm: true }) as {
 					plugins: unknown[];
 				};
-				const git = config.plugins.find(
-					(p) => Array.isArray(p) && p[0] === "@semantic-release/git",
-				) as [string, { assets: string[] }];
+				const git = config.plugins.find((p) => Array.isArray(p) && p[0] === "@semantic-release/git") as [
+					string,
+					{ assets: string[] },
+				];
 				expect(git[1].assets).not.toContain("packages/*/package.json");
 				expect(git[1].assets).toContain("package.json");
 			});
@@ -120,9 +112,10 @@ describe("semantic-release-config", () => {
 					npm: true,
 					assets: ["CHANGELOG.md", "package.json", "dist/"],
 				}) as { plugins: unknown[] };
-				const git = config.plugins.find(
-					(p) => Array.isArray(p) && p[0] === "@semantic-release/git",
-				) as [string, { assets: string[] }];
+				const git = config.plugins.find((p) => Array.isArray(p) && p[0] === "@semantic-release/git") as [
+					string,
+					{ assets: string[] },
+				];
 				expect(git[1].assets).toContain("dist/");
 			});
 		});

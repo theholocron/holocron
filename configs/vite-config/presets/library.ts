@@ -25,7 +25,7 @@ export async function library({
 				enableBundleAnalysis: !!process.env.CODECOV_TOKEN,
 				bundleName: getPackageName(),
 				uploadToken: process.env.CODECOV_TOKEN,
-			}),
+			})
 		);
 	} catch {
 		// @codecov/vite-plugin not installed — bundle analysis skipped
@@ -53,6 +53,6 @@ export async function library({
 				sourcemap: true,
 			},
 		},
-		overrides,
+		overrides
 	);
 }
