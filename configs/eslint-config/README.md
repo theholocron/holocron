@@ -67,19 +67,32 @@ import { cypress } from "@theholocron/eslint-config/cypress";
 Bundles combine presets and peer plugins into a single import for common project types. Use these when you want a ready-made config with no manual composition:
 
 ```javascript
-// React app (base + typescript + react + vitest)
-import reactApp from "@theholocron/eslint-config/bundles/react-app";
-export default reactApp();
+// React app (base + typescript + react + storybook + vitest)
+import { reactApp } from "@theholocron/eslint-config/bundles/react-app";
+export default [...reactApp()];
 
 // Next.js app (base + typescript + react + next + vitest)
-import nextApp from "@theholocron/eslint-config/bundles/next-app";
-export default nextApp();
+import { nextApp } from "@theholocron/eslint-config/bundles/next-app";
+export default [...nextApp()];
 
 // Node.js app or CLI (base + typescript + node + vitest)
-import nodeApp from "@theholocron/eslint-config/bundles/node-app";
-export default nodeApp();
+import { nodeApp } from "@theholocron/eslint-config/bundles/node-app";
+export default [...nodeApp()];
 
 // Publishable library (base + typescript + vitest)
-import library from "@theholocron/eslint-config/bundles/library";
-export default library();
+import { library } from "@theholocron/eslint-config/bundles/library";
+export default [...library()];
 ```
+
+Add project-specific configs after the bundle — they are merged in order:
+
+```javascript
+import { reactApp } from "@theholocron/eslint-config/bundles/react-app";
+import { cypress } from "@theholocron/eslint-config/cypress";
+
+export default [...reactApp(), ...cypress(), { settings: { react: { version: "detect" } } }];
+```
+
+## ESLint version
+
+Requires ESLint v10. The `react` preset wraps `eslint-plugin-react` with `@eslint/compat`'s `fixupConfigRules` to patch APIs removed in ESLint v10 — no extra config needed.

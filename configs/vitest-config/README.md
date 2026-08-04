@@ -10,37 +10,93 @@ pnpm add -D @theholocron/vitest-config
 
 ## Usage
 
-Pick the preset that matches your project type. Presets return a `UserProjectConfig` object for use in `vitest.config.js`.
+Presets are designed for use with Vitest's `projects` array, which runs unit and component tests in separate environments. Coverage is configured at the root `test` level and applies across all projects.
+
+```typescript
+import { coverage, react, storybook } from "@theholocron/vitest-config";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig(async () => ({
+	test: {
+		coverage: {
+			...coverage,
+			exclude: [...coverage.exclude, "**/mocks/**"],
+		},
+		projects: [react({ name: "unit" }), await storybook(".storybook", { setupFiles: ["./vitest.setup.ts"] })],
+	},
+}));
+```
 
 ### Node.js library or CLI tool
 
-```javascript
+```typescript
+import { node } from "@theholocron/vitest-config";
 import { defineConfig } from "vitest/config";
-import { node } from "@theholocron/vitest-config/node";
 
-export default defineConfig({ test: node().test });
+export default defineConfig(node());
 ```
 
 ### React component library or app
 
-Requires `jsdom` and `@testing-library/react` as peer dependencies.
+Requires `jsdom`, `@testing-library/react`, and `@testing-library/jest-dom` as peer dependencies. The `react` preset automatically adds `@testing-library/jest-dom` to `setupFiles` — no manual import needed.
 
-```javascript
+```typescript
+import { react } from "@theholocron/vitest-config";
 import { defineConfig } from "vitest/config";
-import { react } from "@theholocron/vitest-config/react";
 
-export default defineConfig({ test: react().test });
+export default defineConfig(react());
 ```
 
 ### Storybook component tests
 
 Requires `@storybook/addon-vitest` and `playwright` as peer dependencies.
 
-```javascript
+```typescript
+import { storybook } from "@theholocron/vitest-config";
 import { defineConfig } from "vitest/config";
-import { storybook } from "@theholocron/vitest-config/storybook";
 
 export default defineConfig(await storybook(".storybook"));
+```
+
+## Coverage defaults
+
+The `coverage` export provides standard coverage configuration (v8 provider, `text` + `lcov` reporters, vitest's default excludes). Extend it with project-specific excludes:
+
+```typescript
+import { coverage } from "@theholocron/vitest-config";
+
+// in vitest.config.ts
+coverage: {
+  ...coverage,
+  exclude: [...coverage.exclude, "**/handlers.*", "**/*.mock.*"],
+}
+```
+
+## MSW setup helpers
+
+Use `setupMSWBrowser` and `setupMSWNode` from `@theholocron/vitest-config/setup/msw` to wire MSW lifecycle hooks. Pass optional Storybook annotations to ensure `annotations.beforeAll` runs before the worker starts.
+
+### Browser (Storybook / Playwright)
+
+```typescript
+// vitest.setup.ts
+import { setProjectAnnotations } from "@storybook/react";
+import { setupMSWBrowser } from "@theholocron/vitest-config/setup/msw";
+import * as preview from "./.storybook/preview";
+import { worker } from "./src/mocks/browser";
+
+const annotations = setProjectAnnotations([preview]);
+setupMSWBrowser(worker, annotations);
+```
+
+### Node (unit tests)
+
+```typescript
+// vitest.setup.ts
+import { setupMSWNode } from "@theholocron/vitest-config/setup/msw";
+import { server } from "./src/mocks/node";
+
+setupMSWNode(server);
 ```
 
 ## Bundles
@@ -49,20 +105,20 @@ Bundles combine a preset with opinionated coverage settings (80% threshold on al
 
 ### Library bundle
 
-```javascript
-import { defineConfig } from "vitest/config";
+```typescript
 import { library } from "@theholocron/vitest-config/bundles/library";
+import { defineConfig } from "vitest/config";
 
-export default defineConfig({ test: library().test });
+export default defineConfig(library());
 ```
 
 ### React app bundle
 
-```javascript
-import { defineConfig } from "vitest/config";
+```typescript
 import { reactApp } from "@theholocron/vitest-config/bundles/react-app";
+import { defineConfig } from "vitest/config";
 
-export default defineConfig({ test: reactApp().test });
+export default defineConfig(reactApp());
 ```
 
 ## How We Test
