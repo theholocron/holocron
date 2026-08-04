@@ -26,6 +26,7 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 | `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | `sync-github` — push workflow templates, open PRs                     | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
 | `HOLOCRON_RELEASE_TOKEN` | `github.release` | semantic-release: tags, releases, changelogs                          | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
 | `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | `setup`, `sync` — branch protection, secrets, labels, rulesets, teams | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
+| `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | `setup` — GitHub Pages (build type, custom domain, HTTPS)             | `pages: read/write`, `metadata: read`                                           |
 
 > **Tip:** The `HOLOCRON_ADMIN_TOKEN` is the most privileged. Store it in the keyring rather than an env var where possible, and rotate it on a tighter schedule than the others.
 
@@ -49,6 +50,7 @@ export HOLOCRON_ISSUES_TOKEN=ghp_yyy
 export HOLOCRON_SYNC_TOKEN=ghp_zzz
 export HOLOCRON_RELEASE_TOKEN=ghp_aaa
 export HOLOCRON_ADMIN_TOKEN=ghp_bbb
+export HOLOCRON_DEPLOY_TOKEN=ghp_ccc
 export HOLOCRON_VERCEL_TOKEN=v_xxx
 export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 ```
@@ -63,6 +65,7 @@ holocron auth set github.issues  ghp_yyy
 holocron auth set github.sync    ghp_zzz
 holocron auth set github.release ghp_aaa
 holocron auth set github.admin   ghp_bbb
+holocron auth set github.deploy  ghp_ccc
 holocron auth set vercel         v_xxx
 holocron auth set doppler        dp.st.xxx
 ```
