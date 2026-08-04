@@ -70,6 +70,15 @@ describe("vite-config", () => {
 			}
 		});
 
+		it("sets @ alias to <cwd>/src by default", async () => {
+			const config = await reactLibrary();
+			const alias = config.resolve?.alias;
+			const atAlias = Array.isArray(alias)
+				? alias.find((a) => a.find === "@")?.replacement
+				: (alias as Record<string, string>)?.["@"];
+			expect(atAlias).toContain("src");
+		});
+
 		it("merges overrides into the base config", async () => {
 			const config = await reactLibrary({ overrides: { publicDir: "public" } });
 			expect(config.publicDir).toBe("public");

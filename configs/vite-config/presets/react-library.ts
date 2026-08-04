@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { mergeConfig, type UserConfig } from "vite";
 import { getPackageName } from "./get-package-name.js";
 
@@ -57,6 +58,11 @@ export async function reactLibrary({
 					},
 				},
 				sourcemap: true,
+			},
+			resolve: {
+				alias: {
+					"@": resolve(process.cwd(), "src"),
+				},
 			},
 		},
 		overrides
