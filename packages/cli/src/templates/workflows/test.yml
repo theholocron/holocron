@@ -3,6 +3,8 @@ name: Test
 on: # yamllint disable-line rule:truthy
   workflow_call:
     secrets:
+      CHROMATIC_PROJECT_TOKEN:
+        required: false
       TURBO_TOKEN:
         required: false
 
@@ -38,3 +40,26 @@ jobs:
         with:
           use_oidc: true
           files: '**/test-report.junit.xml'
+
+  chromatic:
+    name: Publish Storybook to Chromatic
+    # Skip when no Chromatic config exists.
+    if: ${{ hashFiles('chromatic.config.json', 'chromatic.config.ts', 'chromatic.config.js') != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: chromaui/action@v13
+        name: Publish to Chromatic
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          buildScriptName: build:storybook
