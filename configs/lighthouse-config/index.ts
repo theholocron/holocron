@@ -33,6 +33,7 @@ export interface LighthouseConfigOptions {
 	url: string | string[];
 	startServerCommand?: string;
 	assertions?: LighthouseAssertion;
+	/** @default "temporary-public-storage" */
 	uploadTarget?: string;
 }
 
