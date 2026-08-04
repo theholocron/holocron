@@ -7,7 +7,7 @@ export class PostmanPlanLimitError extends Error {
 
 	constructor(
 		readonly limitMessage: string,
-		readonly body: string,
+		readonly body: string
 	) {
 		super(limitMessage);
 	}
@@ -18,10 +18,7 @@ export function detectPlanLimit(body: string): string | null {
 		const parsed = JSON.parse(body) as {
 			error?: { name?: string; message?: string };
 		};
-		if (
-			parsed.error?.name === "limitReachedError" &&
-			parsed.error.message
-		) {
+		if (parsed.error?.name === "limitReachedError" && parsed.error.message) {
 			return parsed.error.message;
 		}
 	} catch {

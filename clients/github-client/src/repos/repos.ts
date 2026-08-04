@@ -13,13 +13,9 @@ export interface GitHubContents {
 
 export function repos(rest: RestClient) {
 	return {
-		getRepo: (repo: string): Promise<GitHubRepo> =>
-			rest.request<GitHubRepo>(repoBase(repo)),
+		getRepo: (repo: string): Promise<GitHubRepo> => rest.request<GitHubRepo>(repoBase(repo)),
 
-		updateRepo: (
-			repo: string,
-			settings: Record<string, unknown>,
-		): Promise<void> =>
+		updateRepo: (repo: string, settings: Record<string, unknown>): Promise<void> =>
 			rest.request<void>(repoBase(repo), {
 				method: "PATCH",
 				body: settings,

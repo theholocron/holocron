@@ -15,9 +15,7 @@ describe("workspaces.list", () => {
 		const { client, calls } = makeClient([
 			{
 				body: {
-					workspaces: [
-						{ id: "ws1", name: "my-project", slug: "my-project" },
-					],
+					workspaces: [{ id: "ws1", name: "my-project", slug: "my-project" }],
 				},
 			},
 		]);

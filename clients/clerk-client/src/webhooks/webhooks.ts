@@ -14,10 +14,8 @@ const PATH = "/webhooks";
 
 export function webhooks(rest: RestClient) {
 	return {
-		ensureSvixApp: (): Promise<ClerkSvixApp> =>
-			rest.request<ClerkSvixApp>(`${PATH}/svix`, { method: "POST" }),
+		ensureSvixApp: (): Promise<ClerkSvixApp> => rest.request<ClerkSvixApp>(`${PATH}/svix`, { method: "POST" }),
 
-		getSvixUrl: (): Promise<ClerkSvixUrl> =>
-			rest.request<ClerkSvixUrl>(`${PATH}/svix_url`, { method: "POST" }),
+		getSvixUrl: (): Promise<ClerkSvixUrl> => rest.request<ClerkSvixUrl>(`${PATH}/svix_url`, { method: "POST" }),
 	};
 }

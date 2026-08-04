@@ -33,9 +33,7 @@ describe("environments.list", () => {
 
 describe("environments.create", () => {
 	it("POST /environments with project, name, slug", async () => {
-		const { client, calls } = makeClient([
-			{ body: { environments: [{ name: "Staging", slug: "stg" }] } },
-		]);
+		const { client, calls } = makeClient([{ body: { environments: [{ name: "Staging", slug: "stg" }] } }]);
 		await client.environments.create("my-project", "Staging", "stg");
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/environments");

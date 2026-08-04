@@ -97,9 +97,7 @@ describe("branches.destroy", () => {
 		const { client, calls } = makeClient([{ status: 204 }]);
 		await client.branches.destroy(PROJECT_ID, "br_feat");
 		expect(calls[0]?.method).toBe("DELETE");
-		expect(calls[0]?.url).toContain(
-			`/projects/${PROJECT_ID}/branches/br_feat`,
-		);
+		expect(calls[0]?.url).toContain(`/projects/${PROJECT_ID}/branches/br_feat`);
 	});
 
 	it("URL-encodes branch names with slashes", async () => {
@@ -114,9 +112,7 @@ describe("branches.restore", () => {
 		const { client, calls } = makeClient([{ status: 200, body: {} }]);
 		await client.branches.restore(PROJECT_ID, "br_feat", "br_main");
 		expect(calls[0]?.method).toBe("POST");
-		expect(calls[0]?.url).toContain(
-			`/projects/${PROJECT_ID}/branches/br_feat/restore`,
-		);
+		expect(calls[0]?.url).toContain(`/projects/${PROJECT_ID}/branches/br_feat/restore`);
 		expect(calls[0]?.body).toEqual({ source_branch_id: "br_main" });
 	});
 });

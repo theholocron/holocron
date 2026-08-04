@@ -14,8 +14,8 @@ pnpm add @theholocron/vercel-client
 import { createVercelClient } from "@theholocron/vercel-client";
 
 const vercel = createVercelClient({
-  token: process.env.VERCEL_TOKEN!,
-  teamId: process.env.VERCEL_TEAM_ID, // optional; appended to every request
+	token: process.env.VERCEL_TOKEN!,
+	teamId: process.env.VERCEL_TEAM_ID, // optional; appended to every request
 });
 
 // Get the authenticated user
@@ -29,33 +29,28 @@ const project = await vercel.projects.get("my-app");
 
 // Create a project
 const created = await vercel.projects.create({
-  name: "my-app",
-  framework: "nextjs",
-  repo: "org/repo",
+	name: "my-app",
+	framework: "nextjs",
+	repo: "org/repo",
 });
 
 // Update project settings
 await vercel.projects.update("project-id", {
-  previewDeploymentsDisabled: true,
+	previewDeploymentsDisabled: true,
 });
 
 // List env vars
 const { envs } = await vercel.env.list("project-id");
 
 // Set (upsert) an env var
-await vercel.env.set(
-  "project-id",
-  "production",
-  "API_URL",
-  "https://api.example.com",
-);
+await vercel.env.set("project-id", "production", "API_URL", "https://api.example.com");
 
 // Trigger a deployment
 const deployment = await vercel.deployments.trigger({
-  projectName: "my-app",
-  branch: "main",
-  repoId: project.link?.repoId!,
-  target: "production",
+	projectName: "my-app",
+	branch: "main",
+	repoId: project.link?.repoId!,
+	target: "production",
 });
 
 // Poll deployment status

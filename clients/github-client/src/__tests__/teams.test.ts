@@ -11,9 +11,7 @@ describe("teams", () => {
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.teams.addRepo(ORG, "gatekeepers", ORG, REPO_NAME, "push");
 		expect(calls[0]?.method).toBe("PUT");
-		expect(calls[0]?.url).toContain(
-			`/orgs/${ORG}/teams/gatekeepers/repos/${ORG}/${REPO_NAME}`,
-		);
+		expect(calls[0]?.url).toContain(`/orgs/${ORG}/teams/gatekeepers/repos/${ORG}/${REPO_NAME}`);
 		expect(calls[0]?.body).toEqual({ permission: "push" });
 	});
 

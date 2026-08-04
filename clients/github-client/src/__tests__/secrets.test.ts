@@ -5,9 +5,7 @@ import { REPO, stubFetch, TOKEN } from "./helpers.js";
 
 describe("secrets", () => {
 	it("lists repo secrets", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { total_count: 1, secrets: [{ name: "NPM_TOKEN" }] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { total_count: 1, secrets: [{ name: "NPM_TOKEN" }] } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		const result = await client.secrets.listSecrets(REPO, { kind: "repo" });
 		expect(calls[0]?.url).toContain("/actions/secrets");
@@ -15,9 +13,7 @@ describe("secrets", () => {
 	});
 
 	it("lists environment secrets", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { total_count: 1, secrets: [{ name: "DB_URL" }] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { total_count: 1, secrets: [{ name: "DB_URL" }] } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.secrets.listSecrets(REPO, {
 			kind: "environment",
@@ -27,9 +23,7 @@ describe("secrets", () => {
 	});
 
 	it("lists org secrets", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { total_count: 1, secrets: [{ name: "ORG_SECRET" }] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { total_count: 1, secrets: [{ name: "ORG_SECRET" }] } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.secrets.listSecrets(REPO, {
 			kind: "organization",
@@ -39,9 +33,7 @@ describe("secrets", () => {
 	});
 
 	it("GET public key", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { key_id: "1", key: "abc" } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { key_id: "1", key: "abc" } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		const result = await client.secrets.getPublicKey(REPO, {
 			kind: "repo",

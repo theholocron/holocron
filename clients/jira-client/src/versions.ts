@@ -4,11 +4,7 @@ import type { JiraVersion } from "./types.js";
 
 export function versions(client: RestClient) {
 	return {
-		create(
-			name: string,
-			project: string,
-			fields: Partial<JiraVersion> = {},
-		): Promise<JiraVersion> {
+		create(name: string, project: string, fields: Partial<JiraVersion> = {}): Promise<JiraVersion> {
 			return client.request<JiraVersion>("/version", {
 				method: "POST",
 				body: {
@@ -20,26 +16,17 @@ export function versions(client: RestClient) {
 			});
 		},
 
-		get(
-			version: string,
-			params?: Record<string, string>,
-		): Promise<JiraVersion> {
+		get(version: string, params?: Record<string, string>): Promise<JiraVersion> {
 			return client.request<JiraVersion>(`/version/${version}`, {
 				query: params,
 			});
 		},
 
-		getMany(
-			versionIds: string[],
-			params?: Record<string, string>,
-		): Promise<JiraVersion[]> {
+		getMany(versionIds: string[], params?: Record<string, string>): Promise<JiraVersion[]> {
 			return Promise.all(versionIds.map((v) => this.get(v, params)));
 		},
 
-		update(
-			version: string,
-			fields: Partial<JiraVersion>,
-		): Promise<JiraVersion> {
+		update(version: string, fields: Partial<JiraVersion>): Promise<JiraVersion> {
 			return client.request<JiraVersion>(`/version/${version}`, {
 				method: "PUT",
 				body: fields,

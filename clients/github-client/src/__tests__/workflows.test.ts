@@ -18,23 +18,17 @@ const RAW_RUN = {
 
 describe("workflows", () => {
 	it("GET /repos/{owner}/{name}/actions/runs — no filter", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { total_count: 1, workflow_runs: [RAW_RUN] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { total_count: 1, workflow_runs: [RAW_RUN] } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		const result = await client.workflows.listRuns(REPO);
 		expect(calls[0]?.method).toBe("GET");
-		expect(calls[0]?.url).toContain(
-			"/repos/theholocron/test-repo/actions/runs",
-		);
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/actions/runs");
 		expect(calls[0]?.url).not.toContain("?");
 		expect(result).toEqual([RAW_RUN]);
 	});
 
 	it("GET /repos/{owner}/{name}/actions/runs — with filter", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { total_count: 1, workflow_runs: [RAW_RUN] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { total_count: 1, workflow_runs: [RAW_RUN] } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.workflows.listRuns(REPO, {
 			branch: "main",

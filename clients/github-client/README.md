@@ -21,9 +21,9 @@ const repo = await client.repos.getRepo("owner/name");
 // Labels
 const labels = await client.labels.listLabels("owner/name");
 await client.labels.createLabel("owner/name", {
-  name: "bug",
-  color: "d73a4a",
-  description: "Something isn't working",
+	name: "bug",
+	color: "d73a4a",
+	description: "Something isn't working",
 });
 
 // Topics

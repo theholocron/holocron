@@ -12,23 +12,15 @@ export interface NeonDatabasesResponse {
 
 export function databases(rest: RestClient) {
 	return {
-		list: (
-			projectId: string,
-			branchId: string,
-		): Promise<NeonDatabasesResponse> =>
+		list: (projectId: string, branchId: string): Promise<NeonDatabasesResponse> =>
 			rest.request<NeonDatabasesResponse>(
-				`/projects/${projectId}/branches/${encodeURIComponent(branchId)}/databases`,
+				`/projects/${projectId}/branches/${encodeURIComponent(branchId)}/databases`
 			),
 
-		runSql: (
-			projectId: string,
-			branchId: string,
-			dbName: string,
-			query: string,
-		): Promise<void> =>
+		runSql: (projectId: string, branchId: string, dbName: string, query: string): Promise<void> =>
 			rest.request<void>(
 				`/projects/${projectId}/branches/${encodeURIComponent(branchId)}/databases/${encodeURIComponent(dbName)}/run_sql`,
-				{ method: "POST", body: { query } },
+				{ method: "POST", body: { query } }
 			),
 	};
 }

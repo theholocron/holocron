@@ -1,12 +1,6 @@
 import type { RestClient } from "../utils.js";
 
-export type VercelDeploymentState =
-	| "INITIALIZING"
-	| "QUEUED"
-	| "BUILDING"
-	| "READY"
-	| "ERROR"
-	| "CANCELED";
+export type VercelDeploymentState = "INITIALIZING" | "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CANCELED";
 
 export type VercelDeploymentTarget = "production" | "staging";
 
@@ -27,9 +21,7 @@ export interface VercelTriggerDeploymentInput {
 
 export function deployments(rest: RestClient) {
 	return {
-		trigger: (
-			input: VercelTriggerDeploymentInput,
-		): Promise<VercelDeployment> =>
+		trigger: (input: VercelTriggerDeploymentInput): Promise<VercelDeployment> =>
 			rest.request<VercelDeployment>("/v13/deployments", {
 				method: "POST",
 				body: {
@@ -44,8 +36,6 @@ export function deployments(rest: RestClient) {
 			}),
 
 		get: (deploymentId: string): Promise<VercelDeployment> =>
-			rest.request<VercelDeployment>(
-				`/v13/deployments/${encodeURIComponent(deploymentId)}`,
-			),
+			rest.request<VercelDeployment>(`/v13/deployments/${encodeURIComponent(deploymentId)}`),
 	};
 }

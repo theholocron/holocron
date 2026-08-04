@@ -69,13 +69,9 @@ export function createRestClient(config: RestClientConfig): RestClient {
 		baseUrl,
 
 		async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-			const url = new URL(
-				`${baseUrl}${path.startsWith("/") ? path : "/" + path}`,
-			);
-			for (const [k, v] of Object.entries(config.defaultQuery ?? {}))
-				url.searchParams.set(k, v);
-			for (const [k, v] of Object.entries(opts.query ?? {}))
-				url.searchParams.set(k, v);
+			const url = new URL(`${baseUrl}${path.startsWith("/") ? path : "/" + path}`);
+			for (const [k, v] of Object.entries(config.defaultQuery ?? {})) url.searchParams.set(k, v);
+			for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v);
 
 			const headers = { ...staticHeaders };
 			const init: RequestInit = { method: opts.method ?? "GET", headers };
@@ -84,36 +80,22 @@ export function createRestClient(config: RestClientConfig): RestClient {
 				init.body = JSON.stringify(opts.body);
 			}
 
-			const tag = vendor
-				? `${vendor} ${init.method} ${path}`
-				: `${init.method} ${path}`;
+			const tag = vendor ? `${vendor} ${init.method} ${path}` : `${init.method} ${path}`;
 
 			let res: Response;
 			try {
 				res = await fetchImpl(url.toString(), init);
 			} catch (err) {
-				const detail =
-					err instanceof Error
-						? `${err.name}: ${err.message}`
-						: String(err);
-				throw new ProviderApiError(
-					`${tag} failed: ${detail}`,
-					0,
-					undefined,
-				);
+				const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+				throw new ProviderApiError(`${tag} failed: ${detail}`, 0, undefined);
 			}
 
 			if (!res.ok) {
 				const body = await res.text().catch(() => "");
-				throw new ProviderApiError(
-					`${tag} → ${res.status}`,
-					res.status,
-					body,
-				);
+				throw new ProviderApiError(`${tag} → ${res.status}`, res.status, body);
 			}
 
-			if (opts.expectNoContent || res.status === 204)
-				return undefined as T;
+			if (opts.expectNoContent || res.status === 204) return undefined as T;
 			const text = await res.text();
 			if (!text) return undefined as T;
 			return JSON.parse(text) as T;

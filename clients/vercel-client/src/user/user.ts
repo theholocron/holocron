@@ -13,7 +13,6 @@ export interface VercelUserResponse {
 
 export function user(rest: RestClient) {
 	return {
-		get: (): Promise<VercelUserResponse> =>
-			rest.request<VercelUserResponse>("/v2/user"),
+		get: (): Promise<VercelUserResponse> => rest.request<VercelUserResponse>("/v2/user"),
 	};
 }

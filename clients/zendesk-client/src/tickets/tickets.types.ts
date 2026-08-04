@@ -2,13 +2,7 @@ import type { IAPIResponse } from "../types.js";
 import type { IComment } from "./comments.types.js";
 import type { ICustomField } from "./fields.types.js";
 
-export type TTicketStatus =
-	| "new"
-	| "open"
-	| "pending"
-	| "hold"
-	| "solved"
-	| "closed";
+export type TTicketStatus = "new" | "open" | "pending" | "hold" | "solved" | "closed";
 export type TTicketPriority = "urgent" | "high" | "normal" | "low";
 export type TTicketType = "problem" | "incident" | "question" | "task";
 

@@ -10,11 +10,7 @@ export type {
 	VercelDeploymentTarget,
 	VercelTriggerDeploymentInput,
 } from "./deployments/deployments.js";
-export type {
-	VercelEnvTarget,
-	VercelEnvVar,
-	VercelEnvVarsResponse,
-} from "./env/env.js";
+export type { VercelEnvTarget, VercelEnvVar, VercelEnvVarsResponse } from "./env/env.js";
 export type {
 	VercelCreateProjectInput,
 	VercelProject,

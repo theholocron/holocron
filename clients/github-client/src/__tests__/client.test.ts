@@ -16,18 +16,14 @@ describe("createGitHubClient", () => {
 		expect(typeof client.repos.getRepo).toBe("function");
 		expect(typeof client.rulesets.listRulesets).toBe("function");
 		expect(typeof client.secrets.listSecrets).toBe("function");
-		expect(typeof client.security.enableVulnerabilityAlerts).toBe(
-			"function",
-		);
+		expect(typeof client.security.enableVulnerabilityAlerts).toBe("function");
 		expect(typeof client.topics.setTopics).toBe("function");
 		expect(typeof client.user.getCurrentUser).toBe("function");
 		expect(typeof client.workflows.listRuns).toBe("function");
 	});
 
 	it("sends Bearer token and GitHub headers on every request", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { login: "newton", name: null, email: null } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { login: "newton", name: null, email: null } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.user.getCurrentUser();
 		expect(calls[0]?.headers.authorization).toBe(`Bearer ${TOKEN}`);
@@ -36,9 +32,7 @@ describe("createGitHubClient", () => {
 	});
 
 	it("uses a custom baseUrl when provided", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { login: "gh-emu", name: null, email: null } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { login: "gh-emu", name: null, email: null } }]);
 		const client = createGitHubClient({
 			token: TOKEN,
 			baseUrl: "https://ghes.example.com",

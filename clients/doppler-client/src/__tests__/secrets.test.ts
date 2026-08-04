@@ -76,9 +76,7 @@ describe("secrets.update", () => {
 
 describe("secrets.download", () => {
 	it("GET /configs/config/secrets/download always uses format=json", async () => {
-		const { client, calls } = makeClient([
-			{ body: { DB_URL: "postgres://...", API_KEY: "key123" } },
-		]);
+		const { client, calls } = makeClient([{ body: { DB_URL: "postgres://...", API_KEY: "key123" } }]);
 		const result = await client.secrets.download("my-project", "dev");
 		expect(calls[0]?.method).toBe("GET");
 		expect(calls[0]?.url).toContain("/configs/config/secrets/download");

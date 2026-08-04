@@ -127,8 +127,7 @@ function buildUsersQuery(params: ClerkUsersListParams): string {
 	if (params.offset !== undefined) qs.set("offset", String(params.offset));
 	if (params.query) qs.set("query", params.query);
 	if (params.order_by) qs.set("order_by", params.order_by);
-	if (params.last_active_at_since !== undefined)
-		qs.set("last_active_at_since", String(params.last_active_at_since));
+	if (params.last_active_at_since !== undefined) qs.set("last_active_at_since", String(params.last_active_at_since));
 	for (const v of params.email_address ?? []) qs.append("email_address", v);
 	for (const v of params.phone_number ?? []) qs.append("phone_number", v);
 	for (const v of params.username ?? []) qs.append("username", v);
@@ -147,22 +146,14 @@ export function users(rest: RestClient) {
 		count: (
 			params: Pick<
 				ClerkUsersListParams,
-				| "email_address"
-				| "phone_number"
-				| "username"
-				| "external_id"
-				| "user_id"
-				| "query"
-			> = {},
+				"email_address" | "phone_number" | "username" | "external_id" | "user_id" | "query"
+			> = {}
 		): Promise<ClerkUserCount> => {
 			const q = buildUsersQuery(params);
-			return rest.request<ClerkUserCount>(
-				q ? `${PATH}/count?${q}` : `${PATH}/count`,
-			);
+			return rest.request<ClerkUserCount>(q ? `${PATH}/count?${q}` : `${PATH}/count`);
 		},
 
-		get: (id: string): Promise<ClerkUser> =>
-			rest.request<ClerkUser>(`${PATH}/${id}`),
+		get: (id: string): Promise<ClerkUser> => rest.request<ClerkUser>(`${PATH}/${id}`),
 
 		create: (data: CreateClerkUserInput): Promise<ClerkUser> =>
 			rest.request<ClerkUser>(PATH, { method: "POST", body: data }),
@@ -178,16 +169,12 @@ export function users(rest: RestClient) {
 				method: "DELETE",
 			}),
 
-		ban: (id: string): Promise<ClerkUser> =>
-			rest.request<ClerkUser>(`${PATH}/${id}/ban`, { method: "POST" }),
+		ban: (id: string): Promise<ClerkUser> => rest.request<ClerkUser>(`${PATH}/${id}/ban`, { method: "POST" }),
 
-		unban: (id: string): Promise<ClerkUser> =>
-			rest.request<ClerkUser>(`${PATH}/${id}/unban`, { method: "POST" }),
+		unban: (id: string): Promise<ClerkUser> => rest.request<ClerkUser>(`${PATH}/${id}/unban`, { method: "POST" }),
 
-		lock: (id: string): Promise<ClerkUser> =>
-			rest.request<ClerkUser>(`${PATH}/${id}/lock`, { method: "POST" }),
+		lock: (id: string): Promise<ClerkUser> => rest.request<ClerkUser>(`${PATH}/${id}/lock`, { method: "POST" }),
 
-		unlock: (id: string): Promise<ClerkUser> =>
-			rest.request<ClerkUser>(`${PATH}/${id}/unlock`, { method: "POST" }),
+		unlock: (id: string): Promise<ClerkUser> => rest.request<ClerkUser>(`${PATH}/${id}/unlock`, { method: "POST" }),
 	};
 }

@@ -27,29 +27,17 @@ interface WorkflowRunsResponse {
 
 export function workflows(rest: RestClient) {
 	return {
-		listRuns: (
-			repo: string,
-			filter?: WorkflowRunFilter,
-		): Promise<GitHubWorkflowRun[]> => {
+		listRuns: (repo: string, filter?: WorkflowRunFilter): Promise<GitHubWorkflowRun[]> => {
 			const params = new URLSearchParams();
 			if (filter?.branch) params.set("branch", filter.branch);
 			if (filter?.limit) params.set("per_page", String(filter.limit));
 			if (filter?.status) params.set("status", filter.status);
 			const qs = params.toString();
-			const path = qs
-				? `${repoBase(repo)}/actions/runs?${qs}`
-				: `${repoBase(repo)}/actions/runs`;
-			return rest
-				.request<WorkflowRunsResponse>(path)
-				.then((r: WorkflowRunsResponse) => r.workflow_runs);
+			const path = qs ? `${repoBase(repo)}/actions/runs?${qs}` : `${repoBase(repo)}/actions/runs`;
+			return rest.request<WorkflowRunsResponse>(path).then((r: WorkflowRunsResponse) => r.workflow_runs);
 		},
 
-		getRun: (
-			repo: string,
-			id: string | number,
-		): Promise<GitHubWorkflowRun> =>
-			rest.request<GitHubWorkflowRun>(
-				`${repoBase(repo)}/actions/runs/${id}`,
-			),
+		getRun: (repo: string, id: string | number): Promise<GitHubWorkflowRun> =>
+			rest.request<GitHubWorkflowRun>(`${repoBase(repo)}/actions/runs/${id}`),
 	};
 }

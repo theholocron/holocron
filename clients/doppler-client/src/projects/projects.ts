@@ -13,10 +13,7 @@ export interface DopplerProjectResponse {
 
 export function projects(rest: RestClient) {
 	return {
-		create: (
-			name: string,
-			description?: string,
-		): Promise<DopplerProjectResponse> =>
+		create: (name: string, description?: string): Promise<DopplerProjectResponse> =>
 			rest.request<DopplerProjectResponse>("/projects", {
 				method: "POST",
 				body: {

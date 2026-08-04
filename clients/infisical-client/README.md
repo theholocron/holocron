@@ -14,7 +14,7 @@ pnpm add @theholocron/infisical-client
 import { createInfisicalClient } from "@theholocron/infisical-client";
 
 const infisical = createInfisicalClient({
-  token: process.env.INFISICAL_TOKEN!,
+	token: process.env.INFISICAL_TOKEN!,
 });
 
 // List workspaces
@@ -31,28 +31,28 @@ await infisical.workspaces.createEnvironment("workspace-id", "Staging", "stg");
 
 // List secrets
 const { secrets } = await infisical.secrets.list({
-  workspaceId: "workspace-id",
-  environment: "dev",
+	workspaceId: "workspace-id",
+	environment: "dev",
 });
 
 // Read a secret
 const { secret } = await infisical.secrets.get("DB_URL", {
-  workspaceId: "workspace-id",
-  environment: "dev",
+	workspaceId: "workspace-id",
+	environment: "dev",
 });
 
 // Create a secret
 await infisical.secrets.create("DB_URL", {
-  workspaceId: "workspace-id",
-  environment: "dev",
-  secretValue: "postgres://...",
+	workspaceId: "workspace-id",
+	environment: "dev",
+	secretValue: "postgres://...",
 });
 
 // Update a secret
 await infisical.secrets.update("DB_URL", {
-  workspaceId: "workspace-id",
-  environment: "dev",
-  secretValue: "postgres://new-host/db",
+	workspaceId: "workspace-id",
+	environment: "dev",
+	secretValue: "postgres://new-host/db",
 });
 ```
 

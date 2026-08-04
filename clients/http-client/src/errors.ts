@@ -8,7 +8,7 @@ export class ProviderApiError extends Error {
 	constructor(
 		message: string,
 		readonly status: number | undefined,
-		readonly details?: unknown,
+		readonly details?: unknown
 	) {
 		super(message);
 	}

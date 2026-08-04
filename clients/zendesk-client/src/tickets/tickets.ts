@@ -1,10 +1,6 @@
 import type { RestClient } from "@theholocron/http-client";
 
-import type {
-	ITicket,
-	TTicketResponse,
-	TTicketsResponse,
-} from "./tickets.types.js";
+import type { ITicket, TTicketResponse, TTicketsResponse } from "./tickets.types.js";
 
 const PATH = "/api/v2/tickets";
 
@@ -15,8 +11,7 @@ export function tickets(rest: RestClient) {
 				query: { include: "custom_statuses", ...params },
 			}),
 
-		get: (id: number): Promise<TTicketResponse> =>
-			rest.request<TTicketResponse>(`${PATH}/${id}`),
+		get: (id: number): Promise<TTicketResponse> => rest.request<TTicketResponse>(`${PATH}/${id}`),
 
 		create: (data: ITicket): Promise<TTicketResponse> =>
 			rest.request<TTicketResponse>(PATH, {
@@ -24,10 +19,7 @@ export function tickets(rest: RestClient) {
 				body: { ticket: data },
 			}),
 
-		update: (
-			id: number,
-			data: Partial<ITicket>,
-		): Promise<TTicketResponse> =>
+		update: (id: number, data: Partial<ITicket>): Promise<TTicketResponse> =>
 			rest.request<TTicketResponse>(`${PATH}/${id}`, {
 				method: "PUT",
 				body: { ticket: data },

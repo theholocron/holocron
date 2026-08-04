@@ -14,11 +14,7 @@ export function links(client: RestClient) {
 		// responds with 201 Created on success (per the REST API v2 spec), so
 		// that value is returned for the happy path; error statuses from
 		// ProviderApiError are surfaced verbatim.
-		async create(
-			ticket: string,
-			link: string,
-			type: string,
-		): Promise<number> {
+		async create(ticket: string, link: string, type: string): Promise<number> {
 			try {
 				await client.request<undefined>("/issueLink", {
 					method: "POST",
@@ -33,36 +29,22 @@ export function links(client: RestClient) {
 				// Only swallow real HTTP error statuses so createMany can record
 				// partial failures. status 0 means a transport/network failure
 				// (fetch itself rejected) — rethrow so the batch rejects too.
-				if (
-					err instanceof ProviderApiError &&
-					err.status !== undefined &&
-					err.status > 0
-				)
-					return err.status;
+				if (err instanceof ProviderApiError && err.status !== undefined && err.status > 0) return err.status;
 				throw err;
 			}
 		},
 
-		createMany(
-			tickets: string[],
-			link: string,
-			type: string,
-		): Promise<IssueLinkResult[]> {
+		createMany(tickets: string[], link: string, type: string): Promise<IssueLinkResult[]> {
 			return Promise.all(
 				tickets.map(async (ticket) => ({
 					ticket,
 					status: await this.create(ticket, link, type),
-				})),
+				}))
 			);
 		},
 
-		getLinkTypes(
-			params?: Record<string, string>,
-		): Promise<{ issueLinkTypes: JiraIssueLinkType[] }> {
-			return client.request<{ issueLinkTypes: JiraIssueLinkType[] }>(
-				"/issueLinkType",
-				{ query: params },
-			);
+		getLinkTypes(params?: Record<string, string>): Promise<{ issueLinkTypes: JiraIssueLinkType[] }> {
+			return client.request<{ issueLinkTypes: JiraIssueLinkType[] }>("/issueLinkType", { query: params });
 		},
 	};
 }

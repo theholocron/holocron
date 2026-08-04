@@ -8,9 +8,7 @@ const TOKEN = Buffer.from("user@example.com:api-token").toString("base64");
 
 describe("issues", () => {
 	it("creates a ticket via POST /issue/", async () => {
-		const { fetch, calls } = stubFetch([
-			{ status: 201, body: { id: "1", key: "PROJ-1" } },
-		]);
+		const { fetch, calls } = stubFetch([{ status: 201, body: { id: "1", key: "PROJ-1" } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.issues.create("Bug title", "Bug", "PROJ");
 		expect(calls[0]?.method).toBe("POST");
@@ -21,9 +19,7 @@ describe("issues", () => {
 	});
 
 	it("gets a ticket via GET /issue/:key", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { id: "1", key: "PROJ-1", fields: {} } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { id: "1", key: "PROJ-1", fields: {} } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.issues.get("PROJ-1");
 		expect(calls[0]?.method).toBe("GET");
@@ -31,9 +27,7 @@ describe("issues", () => {
 	});
 
 	it("sends authorization: Basic header", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { id: "1", key: "PROJ-1", fields: {} } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { id: "1", key: "PROJ-1", fields: {} } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.issues.get("PROJ-1");
 		expect(calls[0]?.headers["authorization"]).toBe(`Basic ${TOKEN}`);
@@ -42,9 +36,7 @@ describe("issues", () => {
 
 describe("versions", () => {
 	it("creates a version via POST /version", async () => {
-		const { fetch, calls } = stubFetch([
-			{ status: 201, body: { id: "10001" } },
-		]);
+		const { fetch, calls } = stubFetch([{ status: 201, body: { id: "10001" } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.versions.create("v1.0.0", "PROJ");
 		expect(calls[0]?.method).toBe("POST");
@@ -66,9 +58,7 @@ describe("versions", () => {
 
 describe("projects", () => {
 	it("gets a project with issueTypes expanded", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { id: "10000", key: "PROJ" } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { id: "10000", key: "PROJ" } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.projects.get("PROJ");
 		expect(calls[0]?.url).toContain("/project/PROJ");
@@ -101,9 +91,7 @@ describe("issues (extended)", () => {
 	});
 
 	it("gets a ticket property via GET /issue/:key/properties/:property", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { key: "my-prop", value: { foo: "bar" } } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { key: "my-prop", value: { foo: "bar" } } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.issues.getProperty("PROJ-1", "my-prop");
 		expect(calls[0]?.method).toBe("GET");
@@ -111,9 +99,7 @@ describe("issues (extended)", () => {
 	});
 
 	it("searches via GET /search with query params", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { issues: [], total: 0 } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { issues: [], total: 0 } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.issues.search({
 			jql: "project = PROJ AND status = Open",
@@ -125,9 +111,7 @@ describe("issues (extended)", () => {
 	});
 
 	it("passes startAt and fields in search query params", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { issues: [], total: 0 } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { issues: [], total: 0 } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.issues.search({
 			startAt: 10,
@@ -140,9 +124,7 @@ describe("issues (extended)", () => {
 
 describe("versions (extended)", () => {
 	it("gets a version via GET /version/:id", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { id: "10001", name: "v1.0.0" } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { id: "10001", name: "v1.0.0" } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.versions.get("10001");
 		expect(calls[0]?.method).toBe("GET");
@@ -160,9 +142,7 @@ describe("versions (extended)", () => {
 	});
 
 	it("updates a version via PUT /version/:id", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { id: "10001", name: "v1.0.1" } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { id: "10001", name: "v1.0.1" } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.versions.update("10001", {
 			name: "v1.0.1",
@@ -188,9 +168,7 @@ describe("transitions", () => {
 	});
 
 	it("gets available transitions via GET /issue/:key/transitions", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { transitions: [{ id: "31", name: "Done" }] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { transitions: [{ id: "31", name: "Done" }] } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		const result = await client.transitions.get("PROJ-1");
 		expect(calls[0]?.method).toBe("GET");
@@ -199,9 +177,7 @@ describe("transitions", () => {
 	});
 
 	it("gets resolutions via GET /resolution", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: [{ id: "1", name: "Fixed" }] },
-		]);
+		const { fetch, calls } = stubFetch([{ body: [{ id: "1", name: "Fixed" }] }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		await client.transitions.getResolutions();
 		expect(calls[0]?.method).toBe("GET");
@@ -230,20 +206,14 @@ describe("links", () => {
 			{ status: 201, body: {} },
 		]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
-		const results = await client.links.createMany(
-			["PROJ-1", "PROJ-2"],
-			"PROJ-3",
-			"Blocks",
-		);
+		const results = await client.links.createMany(["PROJ-1", "PROJ-2"], "PROJ-3", "Blocks");
 		expect(results).toHaveLength(2);
 		expect(results[0]).toMatchObject({ ticket: "PROJ-1", status: 201 });
 		expect(results[1]).toMatchObject({ ticket: "PROJ-2", status: 201 });
 	});
 
 	it("gets link types via GET /issueLinkType", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { issueLinkTypes: [{ id: "10001", name: "Blocks" }] } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { issueLinkTypes: [{ id: "10001", name: "Blocks" }] } }]);
 		const client = createJiraClient({ host: HOST, token: TOKEN, fetch });
 		const result = await client.links.getLinkTypes();
 		expect(calls[0]?.method).toBe("GET");
@@ -267,8 +237,9 @@ describe("links", () => {
 			token: TOKEN,
 			fetch: fetch as unknown as typeof globalThis.fetch,
 		});
-		await expect(
-			client.links.create("PROJ-1", "PROJ-2", "Blocks"),
-		).rejects.toMatchObject({ name: "ProviderApiError", status: 0 });
+		await expect(client.links.create("PROJ-1", "PROJ-2", "Blocks")).rejects.toMatchObject({
+			name: "ProviderApiError",
+			status: 0,
+		});
 	});
 });

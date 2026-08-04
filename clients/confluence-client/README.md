@@ -14,19 +14,19 @@ pnpm add @theholocron/confluence-client
 import { createConfluenceClient } from "@theholocron/confluence-client";
 
 const confluence = createConfluenceClient({
-  baseUrl: "https://myorg.atlassian.net/wiki/rest/api",
-  token: Buffer.from("agent@example.com:your-api-token").toString("base64"),
+	baseUrl: "https://myorg.atlassian.net/wiki/rest/api",
+	token: Buffer.from("agent@example.com:your-api-token").toString("base64"),
 });
 
 // Pages
 const page = await confluence.page.get("123456");
 
 await confluence.page.update("123456", {
-  version: { number: 2 },
-  title: "Updated page title",
-  body: {
-    storage: { value: "<p>New content</p>", representation: "storage" },
-  },
+	version: { number: 2 },
+	title: "Updated page title",
+	body: {
+		storage: { value: "<p>New content</p>", representation: "storage" },
+	},
 });
 ```
 
@@ -35,9 +35,7 @@ await confluence.page.update("123456", {
 Confluence Cloud uses HTTP Basic auth with a base64-encoded `email:apiToken` string. Generate an API token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens).
 
 ```ts
-const token = Buffer.from("agent@example.com:your-api-token").toString(
-  "base64",
-);
+const token = Buffer.from("agent@example.com:your-api-token").toString("base64");
 ```
 
 ## API

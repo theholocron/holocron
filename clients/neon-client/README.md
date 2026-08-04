@@ -23,28 +23,23 @@ const { branches } = await neon.branches.list("my-project-id");
 
 // Create a branch with a read/write endpoint
 const { branch } = await neon.branches.create("my-project-id", {
-  name: "feat/my-feature",
-  parent_id: "br_main",
-  endpoints: [{ type: "read_write" }],
+	name: "feat/my-feature",
+	parent_id: "br_main",
+	endpoints: [{ type: "read_write" }],
 });
 
 // Get a connection URI
 const { uri } = await neon.connection.uri("my-project-id", {
-  branch_id: branch.id,
-  database_name: "neondb",
-  role_name: "neondb_owner",
+	branch_id: branch.id,
+	database_name: "neondb",
+	role_name: "neondb_owner",
 });
 
 // List databases on a branch
 const { databases } = await neon.databases.list("my-project-id", branch.id);
 
 // Run SQL against a branch database
-await neon.databases.runSql(
-  "my-project-id",
-  branch.id,
-  "neondb",
-  'CREATE EXTENSION IF NOT EXISTS "pgvector"',
-);
+await neon.databases.runSql("my-project-id", branch.id, "neondb", 'CREATE EXTENSION IF NOT EXISTS "pgvector"');
 
 // Restore a branch to another branch's state
 await neon.branches.restore("my-project-id", branch.id, "br_main");

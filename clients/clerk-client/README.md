@@ -23,9 +23,9 @@ const user = await clerk.users.get("user_abc123");
 
 // Create a user
 const newUser = await clerk.users.create({
-  first_name: "Jane",
-  last_name: "Doe",
-  email_address: ["jane@example.com"],
+	first_name: "Jane",
+	last_name: "Doe",
+	email_address: ["jane@example.com"],
 });
 
 // Update a user

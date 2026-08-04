@@ -20,11 +20,11 @@ const client = createNeonClient({ token: process.env.NEON_API_KEY });
 
 const branches = await client.branches.list("project-id");
 const branch = await client.branches.create("project-id", {
-  name: "feature/my-branch",
+	name: "feature/my-branch",
 });
 const uri = await client.connection.uri({
-  projectId: "project-id",
-  branchId: branch.id,
+	projectId: "project-id",
+	branchId: branch.id,
 });
 ```
 

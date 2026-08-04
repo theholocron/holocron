@@ -5,9 +5,7 @@ import { REPO, stubFetch, TOKEN } from "./helpers.js";
 
 describe("repos", () => {
 	it("GET /repos/{owner}/{name}", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { default_branch: "main", full_name: REPO } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { default_branch: "main", full_name: REPO } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		const result = await client.repos.getRepo(REPO);
 		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo");
@@ -24,9 +22,7 @@ describe("repos", () => {
 	});
 
 	it("GET /repos/{owner}/{name}/contents/{path}", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { content: "e30K", encoding: "base64" } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { content: "e30K", encoding: "base64" } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await client.repos.getContents(REPO, "holocron.config.json");
 		expect(calls[0]?.url).toContain("/contents/holocron.config.json");

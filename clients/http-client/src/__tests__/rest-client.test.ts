@@ -3,9 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ProviderApiError } from "../errors.js";
 import { createRestClient } from "../rest-client.js";
 
-function stubFetch(
-	responses: Array<{ status?: number; body?: unknown; text?: string }>,
-) {
+function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: string }>) {
 	const calls: Array<{
 		url: string;
 		method: string;
@@ -15,10 +13,7 @@ function stubFetch(
 	let i = 0;
 	const mock = vi.fn(async (input: string | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input.toString();
-		const body =
-			typeof init?.body === "string"
-				? JSON.parse(init.body)
-				: (init?.body ?? null);
+		const body = typeof init?.body === "string" ? JSON.parse(init.body) : (init?.body ?? null);
 		calls.push({
 			url,
 			method: (init?.method ?? "GET").toUpperCase(),
@@ -112,9 +107,7 @@ describe("createRestClient — defaultQuery", () => {
 			defaultQuery: { teamId: "team_abc" },
 			fetch,
 		}).request("/projects");
-		expect(calls[0]?.url).toBe(
-			"https://api.vercel.com/projects?teamId=team_abc",
-		);
+		expect(calls[0]?.url).toBe("https://api.vercel.com/projects?teamId=team_abc");
 	});
 });
 
@@ -153,9 +146,7 @@ describe("createRestClient — error handling", () => {
 			.catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as ProviderApiError).status).toBe(401);
-		expect((err as ProviderApiError).message).toContain(
-			"Example GET /user → 401",
-		);
+		expect((err as ProviderApiError).message).toContain("Example GET /user → 401");
 	});
 
 	it("wraps transport failure as ProviderApiError with status 0", async () => {
@@ -172,9 +163,7 @@ describe("createRestClient — error handling", () => {
 			.catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as ProviderApiError).status).toBe(0);
-		expect((err as ProviderApiError).message).toContain(
-			"Example GET /ping failed",
-		);
+		expect((err as ProviderApiError).message).toContain("Example GET /ping failed");
 	});
 
 	it("trims trailing slashes from baseUrl", async () => {

@@ -31,9 +31,7 @@ describe("workspaces.list", () => {
 		const { client, calls } = makeClient([
 			{
 				body: {
-					workspaces: [
-						{ id: "ws1", name: "My Workspace", type: "personal" },
-					],
+					workspaces: [{ id: "ws1", name: "My Workspace", type: "personal" }],
 				},
 			},
 		]);
@@ -75,9 +73,7 @@ describe("environments.list", () => {
 		const { client, calls } = makeClient([
 			{
 				body: {
-					environments: [
-						{ id: "e1", uid: "e1-uid", name: "Production" },
-					],
+					environments: [{ id: "e1", uid: "e1-uid", name: "Production" }],
 				},
 			},
 		]);
@@ -137,9 +133,7 @@ describe("specs.list", () => {
 		const { client, calls } = makeClient([
 			{
 				body: {
-					specs: [
-						{ id: "s1", name: "My API Spec", type: "OPENAPI:3.0" },
-					],
+					specs: [{ id: "s1", name: "My API Spec", type: "OPENAPI:3.0" }],
 				},
 			},
 		]);
@@ -189,9 +183,7 @@ describe("import.openapi", () => {
 			{
 				status: 200,
 				body: {
-					collections: [
-						{ id: "c2", uid: "c2-uid", name: "Imported" },
-					],
+					collections: [{ id: "c2", uid: "c2-uid", name: "Imported" }],
 				},
 			},
 		]);
@@ -205,9 +197,7 @@ describe("import.openapi", () => {
 	});
 
 	it("passes a string spec through without JSON-encoding it", async () => {
-		const { client, calls } = makeClient([
-			{ status: 200, body: { collections: [] } },
-		]);
+		const { client, calls } = makeClient([{ status: 200, body: { collections: [] } }]);
 		const raw = '{"openapi":"3.1.0"}';
 		await client.import.openapi("ws2", raw);
 		expect(calls[0]?.body).toMatchObject({ input: raw });

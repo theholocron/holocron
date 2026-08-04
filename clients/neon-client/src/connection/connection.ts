@@ -13,20 +13,14 @@ export interface NeonConnectionUriResponse {
 
 export function connection(rest: RestClient) {
 	return {
-		uri: (
-			projectId: string,
-			params: NeonConnectionUriParams,
-		): Promise<NeonConnectionUriResponse> => {
+		uri: (projectId: string, params: NeonConnectionUriParams): Promise<NeonConnectionUriResponse> => {
 			const query: Record<string, string> = {
 				branch_id: params.branch_id,
 				database_name: params.database_name,
 				role_name: params.role_name,
 			};
 			if (params.pooled !== undefined) query["pooled"] = params.pooled;
-			return rest.request<NeonConnectionUriResponse>(
-				`/projects/${projectId}/connection_uri`,
-				{ query },
-			);
+			return rest.request<NeonConnectionUriResponse>(`/projects/${projectId}/connection_uri`, { query });
 		},
 	};
 }

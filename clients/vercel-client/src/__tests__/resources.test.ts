@@ -32,9 +32,7 @@ describe("user.get", () => {
 
 describe("projects.list", () => {
 	it("GET /v10/projects", async () => {
-		const { client, calls } = makeClient([
-			{ body: { projects: [{ id: "p1", name: "my-app" }] } },
-		]);
+		const { client, calls } = makeClient([{ body: { projects: [{ id: "p1", name: "my-app" }] } }]);
 		const result = await client.projects.list();
 		expect(calls[0]?.method).toBe("GET");
 		expect(calls[0]?.url).toContain("/v10/projects");
@@ -44,9 +42,7 @@ describe("projects.list", () => {
 
 describe("projects.get", () => {
 	it("GET /v10/projects/{nameOrId}", async () => {
-		const { client, calls } = makeClient([
-			{ body: { id: "p1", name: "my-app", framework: "nextjs" } },
-		]);
+		const { client, calls } = makeClient([{ body: { id: "p1", name: "my-app", framework: "nextjs" } }]);
 		const result = await client.projects.get("my-app");
 		expect(calls[0]?.url).toContain("/v10/projects/my-app");
 		expect(result.framework).toBe("nextjs");
@@ -71,9 +67,7 @@ describe("projects.create", () => {
 	});
 
 	it("includes gitRepository when repo is provided", async () => {
-		const { client, calls } = makeClient([
-			{ body: { id: "p2", name: "new-app" } },
-		]);
+		const { client, calls } = makeClient([{ body: { id: "p2", name: "new-app" } }]);
 		await client.projects.create({ name: "new-app", repo: "org/repo" });
 		expect(calls[0]?.body).toMatchObject({
 			gitRepository: { type: "github", repo: "org/repo" },
@@ -83,9 +77,7 @@ describe("projects.create", () => {
 
 describe("projects.update", () => {
 	it("PATCH /v9/projects/{id}", async () => {
-		const { client, calls } = makeClient([
-			{ body: { id: "p1", name: "my-app" } },
-		]);
+		const { client, calls } = makeClient([{ body: { id: "p1", name: "my-app" } }]);
 		await client.projects.update("p1", {
 			previewDeploymentsDisabled: true,
 		});
@@ -97,9 +89,7 @@ describe("projects.update", () => {
 	});
 
 	it("includes gitProviderOptions when provided", async () => {
-		const { client, calls } = makeClient([
-			{ body: { id: "p1", name: "my-app" } },
-		]);
+		const { client, calls } = makeClient([{ body: { id: "p1", name: "my-app" } }]);
 		await client.projects.update("p1", {
 			gitProviderOptions: { createDeployments: true },
 		});
@@ -114,9 +104,7 @@ describe("env.list", () => {
 		const { client, calls } = makeClient([
 			{
 				body: {
-					envs: [
-						{ id: "e1", key: "API_URL", target: ["production"] },
-					],
+					envs: [{ id: "e1", key: "API_URL", target: ["production"] }],
 				},
 			},
 		]);
@@ -128,9 +116,7 @@ describe("env.list", () => {
 
 describe("env.set", () => {
 	it("POST /v10/projects/{id}/env?upsert=true", async () => {
-		const { client, calls } = makeClient([
-			{ body: { id: "e2", key: "DB_URL", target: ["production"] } },
-		]);
+		const { client, calls } = makeClient([{ body: { id: "e2", key: "DB_URL", target: ["production"] } }]);
 		await client.env.set("p1", "production", "DB_URL", "postgres://...");
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/v10/projects/p1/env");

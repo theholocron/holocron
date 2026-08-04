@@ -8,8 +8,7 @@ const resolveToken = createResolveToken({
 	envName: "HOLOCRON_TEST_TOKEN",
 	vendorEnvName: "TEST_TOKEN",
 	keyringService: "test",
-	errorMessage:
-		"no test token. Pass --token or set HOLOCRON_TEST_TOKEN / TEST_TOKEN",
+	errorMessage: "no test token. Pass --token or set HOLOCRON_TEST_TOKEN / TEST_TOKEN",
 });
 
 describe("createResolveToken", () => {
@@ -19,7 +18,7 @@ describe("createResolveToken", () => {
 				cliToken: "cli",
 				env: { HOLOCRON_TEST_TOKEN: "env" },
 				keyring: noKeyring,
-			}),
+			})
 		).toBe("cli");
 	});
 
@@ -28,14 +27,12 @@ describe("createResolveToken", () => {
 			resolveToken({
 				env: { HOLOCRON_TEST_TOKEN: "env", TEST_TOKEN: "vendor" },
 				keyring: noKeyring,
-			}),
+			})
 		).toBe("env");
 	});
 
 	it("falls back to vendorEnvName", () => {
-		expect(
-			resolveToken({ env: { TEST_TOKEN: "vendor" }, keyring: noKeyring }),
-		).toBe("vendor");
+		expect(resolveToken({ env: { TEST_TOKEN: "vendor" }, keyring: noKeyring })).toBe("vendor");
 	});
 
 	it("falls back to keyring", () => {
@@ -43,7 +40,7 @@ describe("createResolveToken", () => {
 			resolveToken({
 				env: {},
 				keyring: (p) => (p === "test" ? "kr" : null),
-			}),
+			})
 		).toBe("kr");
 	});
 
@@ -53,7 +50,7 @@ describe("createResolveToken", () => {
 				cliToken: "",
 				env: { TEST_TOKEN: "vendor" },
 				keyring: noKeyring,
-			}),
+			})
 		).toBe("vendor");
 	});
 
@@ -72,9 +69,7 @@ describe("createResolveToken", () => {
 	it("falls back to process.env when env is not provided", () => {
 		process.env["HOLOCRON_TEST_TOKEN"] = "from-process-env";
 		try {
-			expect(resolveToken({ keyring: noKeyring })).toBe(
-				"from-process-env",
-			);
+			expect(resolveToken({ keyring: noKeyring })).toBe("from-process-env");
 		} finally {
 			delete process.env["HOLOCRON_TEST_TOKEN"];
 		}
@@ -95,8 +90,7 @@ describe("createResolveToken", () => {
 
 describe("createResolveToken — with getKeyringToken", () => {
 	it("uses getKeyringToken from config as the default keyring", () => {
-		const configKeyring = (p: string) =>
-			p === "test" ? "from-config-kr" : null;
+		const configKeyring = (p: string) => (p === "test" ? "from-config-kr" : null);
 		const resolver = createResolveToken({
 			envName: "HOLOCRON_TEST_TOKEN",
 			vendorEnvName: "TEST_TOKEN",

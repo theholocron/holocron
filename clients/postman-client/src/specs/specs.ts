@@ -24,10 +24,7 @@ export function specs(rest: RestClient) {
 				query: { workspaceId },
 			}),
 
-		create: (
-			workspaceId: string,
-			input: PostmanCreateSpecInput,
-		): Promise<PostmanSpec> =>
+		create: (workspaceId: string, input: PostmanCreateSpecInput): Promise<PostmanSpec> =>
 			rest.request<PostmanSpec>("/specs", {
 				method: "POST",
 				query: { workspaceId },
@@ -43,14 +40,10 @@ export function specs(rest: RestClient) {
 				},
 			}),
 
-		updateFile: (
-			specId: string,
-			filePath: string,
-			content: string,
-		): Promise<void> =>
-			rest.request<void>(
-				`/specs/${encodeURIComponent(specId)}/files/${encodeURIComponent(filePath)}`,
-				{ method: "PATCH", body: { content } },
-			),
+		updateFile: (specId: string, filePath: string, content: string): Promise<void> =>
+			rest.request<void>(`/specs/${encodeURIComponent(specId)}/files/${encodeURIComponent(filePath)}`, {
+				method: "PATCH",
+				body: { content },
+			}),
 	};
 }

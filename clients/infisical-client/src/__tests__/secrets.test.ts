@@ -16,9 +16,7 @@ describe("secrets.list", () => {
 		const { client, calls } = makeClient([
 			{
 				body: {
-					secrets: [
-						{ secretKey: "DB_URL", secretValue: "postgres://..." },
-					],
+					secrets: [{ secretKey: "DB_URL", secretValue: "postgres://..." }],
 				},
 			},
 		]);
@@ -89,9 +87,7 @@ describe("secrets.create", () => {
 			secretValue: "val",
 			type: "personal",
 		});
-		expect((calls[0]?.body as Record<string, unknown>).type).toBe(
-			"personal",
-		);
+		expect((calls[0]?.body as Record<string, unknown>).type).toBe("personal");
 	});
 });
 

@@ -17,8 +17,8 @@ pnpm add @theholocron/google-client
 import { google, googleAuth } from "@theholocron/google-client";
 
 const auth = await googleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-  scopes: ["https://www.googleapis.com/auth/documents.readonly"],
+	credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+	scopes: ["https://www.googleapis.com/auth/documents.readonly"],
 });
 
 const doc = await google.documents.getDocument(auth, "document-id");
@@ -38,11 +38,11 @@ This client does not use a `token` option. Instead it authenticates via a **Goog
 
 ```ts
 const auth = await googleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-  scopes: [
-    "https://www.googleapis.com/auth/documents.readonly",
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-  ],
+	credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+	scopes: [
+		"https://www.googleapis.com/auth/documents.readonly",
+		"https://www.googleapis.com/auth/spreadsheets.readonly",
+	],
 });
 ```
 

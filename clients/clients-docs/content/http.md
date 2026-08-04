@@ -17,17 +17,17 @@ pnpm add @theholocron/http-client
 import { createRestClient, ProviderApiError } from "@theholocron/http-client";
 
 const rest = createRestClient({
-  baseUrl: "https://api.example.com/v1",
-  token: process.env.API_TOKEN,
-  vendor: "ExampleAPI",
+	baseUrl: "https://api.example.com/v1",
+	token: process.env.API_TOKEN,
+	vendor: "ExampleAPI",
 });
 
 try {
-  const data = await rest.get<MyResponse>("/resource");
+	const data = await rest.get<MyResponse>("/resource");
 } catch (err) {
-  if (err instanceof ProviderApiError) {
-    console.error(err.status, err.message);
-  }
+	if (err instanceof ProviderApiError) {
+		console.error(err.status, err.message);
+	}
 }
 ```
 

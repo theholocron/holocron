@@ -23,31 +23,19 @@ export function environments(rest: RestClient) {
 	return {
 		listEnvironments: (repo: string): Promise<GitHubEnvironment[]> =>
 			rest
-				.request<EnvironmentsListResponse>(
-					`${repoBase(repo)}/environments`,
-				)
+				.request<EnvironmentsListResponse>(`${repoBase(repo)}/environments`)
 				.then((r: EnvironmentsListResponse) => r.environments),
 
-		upsertEnvironment: (
-			repo: string,
-			name: string,
-			body: Record<string, unknown>,
-		): Promise<void> =>
-			rest.request<void>(
-				`${repoBase(repo)}/environments/${encodeURIComponent(name)}`,
-				{
-					method: "PUT",
-					body,
-				},
-			),
+		upsertEnvironment: (repo: string, name: string, body: Record<string, unknown>): Promise<void> =>
+			rest.request<void>(`${repoBase(repo)}/environments/${encodeURIComponent(name)}`, {
+				method: "PUT",
+				body,
+			}),
 
 		deleteEnvironment: (repo: string, name: string): Promise<void> =>
-			rest.request<void>(
-				`${repoBase(repo)}/environments/${encodeURIComponent(name)}`,
-				{
-					method: "DELETE",
-					expectNoContent: true,
-				},
-			),
+			rest.request<void>(`${repoBase(repo)}/environments/${encodeURIComponent(name)}`, {
+				method: "DELETE",
+				expectNoContent: true,
+			}),
 	};
 }

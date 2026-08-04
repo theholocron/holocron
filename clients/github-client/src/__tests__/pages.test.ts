@@ -28,18 +28,14 @@ describe("pages", () => {
 		});
 
 		it("GET /repos/{owner}/{name}/pages returns null when Pages is not enabled (404)", async () => {
-			const { fetch } = stubFetch([
-				{ status: 404, body: { message: "Not Found" } },
-			]);
+			const { fetch } = stubFetch([{ status: 404, body: { message: "Not Found" } }]);
 			const client = createGitHubClient({ token: TOKEN, fetch });
 			const result = await client.pages.getPages(REPO);
 			expect(result).toBeNull();
 		});
 
 		it("GET /repos/{owner}/{name}/pages re-throws non-404 errors", async () => {
-			const { fetch } = stubFetch([
-				{ status: 403, body: { message: "Forbidden" } },
-			]);
+			const { fetch } = stubFetch([{ status: 403, body: { message: "Forbidden" } }]);
 			const client = createGitHubClient({ token: TOKEN, fetch });
 			await expect(client.pages.getPages(REPO)).rejects.toThrow();
 		});

@@ -17,8 +17,8 @@ pnpm add @theholocron/vercel-client
 import { createVercelClient } from "@theholocron/vercel-client";
 
 const client = createVercelClient({
-  token: process.env.VERCEL_TOKEN,
-  teamId: process.env.VERCEL_TEAM_ID,
+	token: process.env.VERCEL_TOKEN,
+	teamId: process.env.VERCEL_TEAM_ID,
 });
 
 const projects = await client.projects.list();

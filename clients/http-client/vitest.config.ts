@@ -6,5 +6,5 @@ export default mergeConfig(
 	base,
 	defineConfig({
 		test: { coverage: { exclude: ["src/testing.ts"] } },
-	}),
+	})
 );

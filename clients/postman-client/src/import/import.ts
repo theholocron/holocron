@@ -7,17 +7,13 @@ export interface PostmanImportOpenApiResponse {
 
 export function importApi(rest: RestClient) {
 	return {
-		openapi: (
-			workspaceId: string,
-			spec: unknown,
-		): Promise<PostmanImportOpenApiResponse> =>
+		openapi: (workspaceId: string, spec: unknown): Promise<PostmanImportOpenApiResponse> =>
 			rest.request<PostmanImportOpenApiResponse>("/import/openapi", {
 				method: "POST",
 				query: { workspace: workspaceId },
 				body: {
 					type: "string",
-					input:
-						typeof spec === "string" ? spec : JSON.stringify(spec),
+					input: typeof spec === "string" ? spec : JSON.stringify(spec),
 				},
 			}),
 	};

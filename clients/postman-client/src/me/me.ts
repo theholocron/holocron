@@ -13,7 +13,6 @@ export interface PostmanMeResponse {
 
 export function me(rest: RestClient) {
 	return {
-		get: (): Promise<PostmanMeResponse> =>
-			rest.request<PostmanMeResponse>("/me"),
+		get: (): Promise<PostmanMeResponse> => rest.request<PostmanMeResponse>("/me"),
 	};
 }

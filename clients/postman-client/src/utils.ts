@@ -1,8 +1,4 @@
-import {
-	createRestClient,
-	type RequestOptions,
-	type RestClient,
-} from "@theholocron/http-client";
+import { createRestClient, type RequestOptions, type RestClient } from "@theholocron/http-client";
 
 import { detectPlanLimit, PostmanPlanLimitError } from "./errors.js";
 
@@ -17,9 +13,7 @@ export interface PostmanClientOptions {
 	fetch?: typeof fetch;
 }
 
-export function createPostmanRestClient(
-	opts: PostmanClientOptions,
-): RestClient {
+export function createPostmanRestClient(opts: PostmanClientOptions): RestClient {
 	const base = createRestClient({
 		baseUrl: opts.baseUrl ?? "https://api.getpostman.com",
 		token: opts.token,

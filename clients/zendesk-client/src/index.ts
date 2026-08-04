@@ -20,17 +20,9 @@ export type * from "./user/index.js";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 export { mockActivity, mockActivityResponse } from "./activities/index.js";
-export {
-	mockAttachment,
-	mockImage,
-	mockThumbnail,
-} from "./attachments/index.js";
+export { mockAttachment, mockImage, mockThumbnail } from "./attachments/index.js";
 export { mockGroup } from "./group/index.js";
-export {
-	mockSearchResponseGroups,
-	mockSearchResponseTickets,
-	mockSearchResponseUsers,
-} from "./search/index.js";
+export { mockSearchResponseGroups, mockSearchResponseTickets, mockSearchResponseUsers } from "./search/index.js";
 export {
 	mockCustomStatus,
 	mockCustomStatusesResponse,

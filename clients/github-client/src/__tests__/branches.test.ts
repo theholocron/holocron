@@ -10,9 +10,7 @@ describe("branches", () => {
 		const payload = { required_status_checks: null, enforce_admins: true };
 		await client.branches.protectBranch(REPO, "main", payload);
 		expect(calls[0]?.method).toBe("PUT");
-		expect(calls[0]?.url).toContain(
-			"/repos/theholocron/test-repo/branches/main/protection",
-		);
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/branches/main/protection");
 		expect(calls[0]?.body).toMatchObject(payload);
 	});
 

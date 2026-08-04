@@ -3,9 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ── googleapis mock ──────────────────────────────────────────────────────────
 
 const mockGetToken = vi.fn();
-const mockGenerateAuthUrl = vi
-	.fn()
-	.mockReturnValue("https://accounts.google.com/o/oauth2/auth");
+const mockGenerateAuthUrl = vi.fn().mockReturnValue("https://accounts.google.com/o/oauth2/auth");
 const mockGetClient = vi.fn().mockResolvedValue({ type: "JWT" });
 
 class MockOAuth2 {
@@ -30,10 +28,7 @@ vi.mock("../key.js", () => ({
 
 // ── node:http mock ────────────────────────────────────────────────────────────
 
-type Handler = (
-	req: { url: string },
-	res: { end: (s: string) => void },
-) => void;
+type Handler = (req: { url: string }, res: { end: (s: string) => void }) => void;
 
 let capturedHandler: Handler | null = null;
 const mockServer = {
@@ -69,9 +64,7 @@ const { googleAuth, oauth } = await import("../authentication.js");
 
 describe("googleAuth", () => {
 	it("returns a client from GoogleAuth.getClient", async () => {
-		const client = await googleAuth([
-			"https://www.googleapis.com/auth/spreadsheets.readonly",
-		]);
+		const client = await googleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"]);
 		expect(client).toMatchObject({ type: "JWT" });
 	});
 
@@ -87,16 +80,12 @@ describe("googleAuth", () => {
 describe("oauth", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockGenerateAuthUrl.mockReturnValue(
-			"https://accounts.google.com/o/oauth2/auth",
-		);
+		mockGenerateAuthUrl.mockReturnValue("https://accounts.google.com/o/oauth2/auth");
 		mockGetClient.mockResolvedValue({ type: "JWT" });
-		mockServer.listen.mockImplementation(
-			(_port: number, cb?: () => void) => {
-				cb?.();
-				return mockServer;
-			},
-		);
+		mockServer.listen.mockImplementation((_port: number, cb?: () => void) => {
+			cb?.();
+			return mockServer;
+		});
 		capturedHandler = null;
 	});
 
@@ -125,10 +114,7 @@ describe("oauth", () => {
 		// Simulate the browser redirecting back to /oauth2callback
 		await new Promise<void>((r) => setImmediate(r));
 		expect(capturedHandler).not.toBeNull();
-		await capturedHandler!(
-			{ url: "/oauth2callback?code=test-code" },
-			{ end: vi.fn() },
-		);
+		await capturedHandler!({ url: "/oauth2callback?code=test-code" }, { end: vi.fn() });
 
 		const result = await promise;
 		expect(result).toBeDefined();
@@ -143,10 +129,7 @@ describe("oauth", () => {
 
 		await new Promise<void>((r) => setImmediate(r));
 		expect(capturedHandler).not.toBeNull();
-		await capturedHandler!(
-			{ url: "/oauth2callback?code=bad-code" },
-			{ end: vi.fn() },
-		);
+		await capturedHandler!({ url: "/oauth2callback?code=bad-code" }, { end: vi.fn() });
 
 		await expect(promise).rejects.toThrow("token exchange failed");
 	});
@@ -162,10 +145,7 @@ describe("oauth", () => {
 		// Unrelated path — should be ignored
 		await capturedHandler!({ url: "/healthz" }, { end: vi.fn() });
 		// Now send the real callback
-		await capturedHandler!(
-			{ url: "/oauth2callback?code=abc" },
-			{ end: vi.fn() },
-		);
+		await capturedHandler!({ url: "/oauth2callback?code=abc" }, { end: vi.fn() });
 
 		await expect(promise).resolves.toBeDefined();
 	});

@@ -79,9 +79,7 @@ describe("spreadsheets.get", () => {
 		});
 		const [err, data] = await spreadsheets.get("sheet-1");
 		expect(err).toBeNull();
-		expect((data as { spreadsheetId: string }).spreadsheetId).toBe(
-			"sheet-1",
-		);
+		expect((data as { spreadsheetId: string }).spreadsheetId).toBe("sheet-1");
 	});
 
 	it("returns [error, null, timing] when the API call throws", async () => {

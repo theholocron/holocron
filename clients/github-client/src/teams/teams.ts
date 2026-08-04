@@ -9,14 +9,11 @@ export function teams(rest: RestClient) {
 			teamSlug: string,
 			owner: string,
 			repo: string,
-			permission: TeamPermission,
+			permission: TeamPermission
 		): Promise<void> =>
-			rest.request<void>(
-				`/orgs/${org}/teams/${teamSlug}/repos/${owner}/${repo}`,
-				{
-					method: "PUT",
-					body: { permission },
-				},
-			),
+			rest.request<void>(`/orgs/${org}/teams/${teamSlug}/repos/${owner}/${repo}`, {
+				method: "PUT",
+				body: { permission },
+			}),
 	};
 }

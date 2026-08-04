@@ -21,26 +21,17 @@ export function environments(rest: RestClient) {
 				query: { workspace: workspaceId },
 			}),
 
-		create: (
-			workspaceId: string,
-			environment: unknown,
-		): Promise<PostmanEnvironmentResponse> =>
+		create: (workspaceId: string, environment: unknown): Promise<PostmanEnvironmentResponse> =>
 			rest.request<PostmanEnvironmentResponse>("/environments", {
 				method: "POST",
 				query: { workspace: workspaceId },
 				body: { environment },
 			}),
 
-		update: (
-			uid: string,
-			environment: unknown,
-		): Promise<PostmanEnvironmentResponse> =>
-			rest.request<PostmanEnvironmentResponse>(
-				`/environments/${encodeURIComponent(uid)}`,
-				{
-					method: "PUT",
-					body: { environment },
-				},
-			),
+		update: (uid: string, environment: unknown): Promise<PostmanEnvironmentResponse> =>
+			rest.request<PostmanEnvironmentResponse>(`/environments/${encodeURIComponent(uid)}`, {
+				method: "PUT",
+				body: { environment },
+			}),
 	};
 }

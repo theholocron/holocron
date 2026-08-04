@@ -16,18 +16,16 @@ pnpm add @theholocron/jira-client
 ```ts
 import { createJiraClient } from "@theholocron/jira-client";
 
-const token = Buffer.from(
-  `${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_TOKEN}`,
-).toString("base64");
+const token = Buffer.from(`${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_TOKEN}`).toString("base64");
 
 const client = createJiraClient({
-  host: "https://myorg.atlassian.net",
-  token,
+	host: "https://myorg.atlassian.net",
+	token,
 });
 
 const issue = await client.issues.get("PROJ-123");
 const issues = await client.issues.search({
-  jql: 'project = PROJ AND status = "In Progress"',
+	jql: 'project = PROJ AND status = "In Progress"',
 });
 await client.transitions.create("PROJ-123", { transitionId: "31" });
 ```

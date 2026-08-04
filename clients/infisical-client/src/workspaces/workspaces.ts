@@ -30,12 +30,8 @@ export function workspaces(rest: RestClient) {
 		list: (): Promise<InfisicalWorkspaceListResponse> =>
 			rest.request<InfisicalWorkspaceListResponse>("/v1/workspace"),
 
-		get: (
-			workspaceId: string,
-		): Promise<InfisicalWorkspaceDetailsResponse> =>
-			rest.request<InfisicalWorkspaceDetailsResponse>(
-				`/v1/workspace/${encodeURIComponent(workspaceId)}`,
-			),
+		get: (workspaceId: string): Promise<InfisicalWorkspaceDetailsResponse> =>
+			rest.request<InfisicalWorkspaceDetailsResponse>(`/v1/workspace/${encodeURIComponent(workspaceId)}`),
 
 		create: (name: string, slug: string): Promise<unknown> =>
 			rest.request<unknown>("/v2/workspace", {
@@ -43,17 +39,10 @@ export function workspaces(rest: RestClient) {
 				body: { projectName: name, slug },
 			}),
 
-		createEnvironment: (
-			workspaceId: string,
-			name: string,
-			slug: string,
-		): Promise<unknown> =>
-			rest.request<unknown>(
-				`/v1/workspace/${encodeURIComponent(workspaceId)}/environments`,
-				{
-					method: "POST",
-					body: { environmentName: name, environmentSlug: slug },
-				},
-			),
+		createEnvironment: (workspaceId: string, name: string, slug: string): Promise<unknown> =>
+			rest.request<unknown>(`/v1/workspace/${encodeURIComponent(workspaceId)}/environments`, {
+				method: "POST",
+				body: { environmentName: name, environmentSlug: slug },
+			}),
 	};
 }

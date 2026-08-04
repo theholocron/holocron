@@ -6,9 +6,7 @@ import { REPO, stubFetch, TOKEN } from "./helpers.js";
 describe("environments", () => {
 	it("GET /repos/{owner}/{name}/environments", async () => {
 		const envs = [{ name: "staging" }, { name: "production" }];
-		const { fetch, calls } = stubFetch([
-			{ body: { total_count: 2, environments: envs } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { total_count: 2, environments: envs } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		const result = await client.environments.listEnvironments(REPO);
 		expect(calls[0]?.url).toContain("/environments");

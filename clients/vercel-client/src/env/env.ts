@@ -15,28 +15,18 @@ export interface VercelEnvVarsResponse {
 export function env(rest: RestClient) {
 	return {
 		list: (projectId: string): Promise<VercelEnvVarsResponse> =>
-			rest.request<VercelEnvVarsResponse>(
-				`/v9/projects/${encodeURIComponent(projectId)}/env`,
-			),
+			rest.request<VercelEnvVarsResponse>(`/v9/projects/${encodeURIComponent(projectId)}/env`),
 
-		set: (
-			projectId: string,
-			target: VercelEnvTarget,
-			name: string,
-			value: string,
-		): Promise<VercelEnvVar> =>
-			rest.request<VercelEnvVar>(
-				`/v10/projects/${encodeURIComponent(projectId)}/env`,
-				{
-					method: "POST",
-					query: { upsert: "true" },
-					body: {
-						key: name,
-						value,
-						target: [target],
-						type: "encrypted",
-					},
+		set: (projectId: string, target: VercelEnvTarget, name: string, value: string): Promise<VercelEnvVar> =>
+			rest.request<VercelEnvVar>(`/v10/projects/${encodeURIComponent(projectId)}/env`, {
+				method: "POST",
+				query: { upsert: "true" },
+				body: {
+					key: name,
+					value,
+					target: [target],
+					type: "encrypted",
 				},
-			),
+			}),
 	};
 }

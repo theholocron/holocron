@@ -15,9 +15,7 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 describe("createToken", () => {
 	it("base64-encodes user/token:password", () => {
 		const tok = createToken("user@example.com", "abc123");
-		expect(tok).toBe(
-			Buffer.from("user@example.com/token:abc123").toString("base64"),
-		);
+		expect(tok).toBe(Buffer.from("user@example.com/token:abc123").toString("base64"));
 	});
 });
 
@@ -49,9 +47,7 @@ describe("search", () => {
 
 describe("status", () => {
 	it("GET /api/v2/custom_statuses (list)", async () => {
-		const { client, calls } = makeClient([
-			{ body: { custom_statuses: [] } },
-		]);
+		const { client, calls } = makeClient([{ body: { custom_statuses: [] } }]);
 		await client.status.list();
 		expect(calls[0]?.url).toContain("/api/v2/custom_statuses");
 		expect(calls[0]?.method).toBe("GET");
@@ -64,9 +60,7 @@ describe("status", () => {
 	});
 
 	it("POST /api/v2/custom_statuses on create", async () => {
-		const { client, calls } = makeClient([
-			{ status: 201, body: { custom_status: {} } },
-		]);
+		const { client, calls } = makeClient([{ status: 201, body: { custom_status: {} } }]);
 		await client.status.create({
 			agent_label: "Escalated",
 			status_category: "open",
@@ -102,9 +96,7 @@ describe("tickets", () => {
 	});
 
 	it("POST /api/v2/tickets on create", async () => {
-		const { client, calls } = makeClient([
-			{ status: 201, body: { ticket: { id: 1 } } },
-		]);
+		const { client, calls } = makeClient([{ status: 201, body: { ticket: { id: 1 } } }]);
 		await client.tickets.create({
 			subject: "Help",
 			comment: { body: "Issue" },
@@ -162,9 +154,7 @@ describe("fields", () => {
 	});
 
 	it("POST /api/v2/ticket_fields on create", async () => {
-		const { client, calls } = makeClient([
-			{ status: 201, body: { ticket_field: { id: 7 } } },
-		]);
+		const { client, calls } = makeClient([{ status: 201, body: { ticket_field: { id: 7 } } }]);
 		await client.fields.create({
 			title: "Account ID",
 			type: "text",
@@ -193,9 +183,7 @@ describe("fields", () => {
 
 describe("error handling", () => {
 	it("throws ProviderApiError on non-2xx response", async () => {
-		const { fetch } = stubFetch([
-			{ status: 422, body: { error: "invalid" } },
-		]);
+		const { fetch } = stubFetch([{ status: 422, body: { error: "invalid" } }]);
 		const client = createZendeskClient({
 			baseUrl: BASE,
 			token: TOKEN,

@@ -46,9 +46,7 @@ describe("security", () => {
 	});
 
 	it("PATCH code-scanning/default-setup to enable", async () => {
-		const { fetch, calls } = stubFetch([
-			{ body: { run_id: 42, run_url: "https://github.com/run/42" } },
-		]);
+		const { fetch, calls } = stubFetch([{ body: { run_id: 42, run_url: "https://github.com/run/42" } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		const result = await client.security.enableCodeScanning(REPO);
 		expect(calls[0]?.url).toContain("/code-scanning/default-setup");

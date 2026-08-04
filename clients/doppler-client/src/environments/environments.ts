@@ -17,11 +17,7 @@ export function environments(rest: RestClient) {
 				query: { project },
 			}),
 
-		create: (
-			project: string,
-			name: string,
-			slug: string,
-		): Promise<DopplerEnvironmentsResponse> =>
+		create: (project: string, name: string, slug: string): Promise<DopplerEnvironmentsResponse> =>
 			rest.request<DopplerEnvironmentsResponse>("/environments", {
 				method: "POST",
 				body: { project, name, slug },

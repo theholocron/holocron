@@ -12,20 +12,13 @@ export function rulesets(rest: RestClient) {
 		listRulesets: (repo: string): Promise<GitHubRuleset[]> =>
 			rest.request<GitHubRuleset[]>(`${repoBase(repo)}/rulesets`),
 
-		createRuleset: (
-			repo: string,
-			payload: Record<string, unknown>,
-		): Promise<GitHubRuleset> =>
+		createRuleset: (repo: string, payload: Record<string, unknown>): Promise<GitHubRuleset> =>
 			rest.request<GitHubRuleset>(`${repoBase(repo)}/rulesets`, {
 				method: "POST",
 				body: payload,
 			}),
 
-		updateRuleset: (
-			repo: string,
-			id: number,
-			payload: Record<string, unknown>,
-		): Promise<GitHubRuleset> =>
+		updateRuleset: (repo: string, id: number, payload: Record<string, unknown>): Promise<GitHubRuleset> =>
 			rest.request<GitHubRuleset>(`${repoBase(repo)}/rulesets/${id}`, {
 				method: "PUT",
 				body: payload,

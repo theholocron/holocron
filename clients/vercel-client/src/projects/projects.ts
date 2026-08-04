@@ -33,26 +33,17 @@ export interface VercelUpdateProjectInput {
 
 export function projects(rest: RestClient) {
 	return {
-		list: (): Promise<VercelProjectsResponse> =>
-			rest.request<VercelProjectsResponse>("/v10/projects"),
+		list: (): Promise<VercelProjectsResponse> => rest.request<VercelProjectsResponse>("/v10/projects"),
 
 		get: (nameOrId: string): Promise<VercelProject> =>
-			rest.request<VercelProject>(
-				`/v10/projects/${encodeURIComponent(nameOrId)}`,
-			),
+			rest.request<VercelProject>(`/v10/projects/${encodeURIComponent(nameOrId)}`),
 
 		create: (input: VercelCreateProjectInput): Promise<VercelProject> => {
 			const body: Record<string, unknown> = {
 				name: input.name,
-				...(input.framework !== undefined
-					? { framework: input.framework }
-					: {}),
-				...(input.repo
-					? { gitRepository: { type: "github", repo: input.repo } }
-					: {}),
-				...(input.rootDirectory
-					? { rootDirectory: input.rootDirectory }
-					: {}),
+				...(input.framework !== undefined ? { framework: input.framework } : {}),
+				...(input.repo ? { gitRepository: { type: "github", repo: input.repo } } : {}),
+				...(input.rootDirectory ? { rootDirectory: input.rootDirectory } : {}),
 			};
 			return rest.request<VercelProject>("/v11/projects", {
 				method: "POST",
@@ -60,22 +51,18 @@ export function projects(rest: RestClient) {
 			});
 		},
 
-		update: (
-			projectId: string,
-			input: VercelUpdateProjectInput,
-		): Promise<VercelProject> => {
+		update: (projectId: string, input: VercelUpdateProjectInput): Promise<VercelProject> => {
 			const body: Record<string, unknown> = {};
 			if (input.previewDeploymentsDisabled !== undefined) {
-				body.previewDeploymentsDisabled =
-					input.previewDeploymentsDisabled;
+				body.previewDeploymentsDisabled = input.previewDeploymentsDisabled;
 			}
 			if (input.gitProviderOptions !== undefined) {
 				body.gitProviderOptions = input.gitProviderOptions;
 			}
-			return rest.request<VercelProject>(
-				`/v9/projects/${encodeURIComponent(projectId)}`,
-				{ method: "PATCH", body },
-			);
+			return rest.request<VercelProject>(`/v9/projects/${encodeURIComponent(projectId)}`, {
+				method: "PATCH",
+				body,
+			});
 		},
 	};
 }

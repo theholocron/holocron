@@ -12,9 +12,7 @@ export interface ZendeskClientOptions {
 	fetch?: typeof fetch;
 }
 
-export function createZendeskRestClient(
-	opts: ZendeskClientOptions,
-): RestClient {
+export function createZendeskRestClient(opts: ZendeskClientOptions): RestClient {
 	return createRestClient({
 		baseUrl: opts.baseUrl,
 		token: opts.token,

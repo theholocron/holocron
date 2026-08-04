@@ -26,12 +26,8 @@ describe("createConfluenceClient", () => {
 
 describe("page.get", () => {
 	it("GET /<id>", async () => {
-		const { client, calls } = makeClient([
-			{ body: { id: "123", title: "My Page" } },
-		]);
-		const result = await client.page.get<{ id: string; title: string }>(
-			"123",
-		);
+		const { client, calls } = makeClient([{ body: { id: "123", title: "My Page" } }]);
+		const result = await client.page.get<{ id: string; title: string }>("123");
 		expect(result.title).toBe("My Page");
 		expect(calls[0]?.url).toBe(`${BASE}/123`);
 		expect(calls[0]?.method).toBe("GET");

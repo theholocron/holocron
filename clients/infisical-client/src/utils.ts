@@ -11,9 +11,7 @@ export interface InfisicalClientOptions {
 	fetch?: typeof fetch;
 }
 
-export function createInfisicalRestClient(
-	opts: InfisicalClientOptions,
-): RestClient {
+export function createInfisicalRestClient(opts: InfisicalClientOptions): RestClient {
 	return createRestClient({
 		baseUrl: opts.baseUrl ?? "https://app.infisical.com/api",
 		token: opts.token,

@@ -12,7 +12,6 @@ export interface PostmanWorkspacesResponse {
 
 export function workspaces(rest: RestClient) {
 	return {
-		list: (): Promise<PostmanWorkspacesResponse> =>
-			rest.request<PostmanWorkspacesResponse>("/workspaces"),
+		list: (): Promise<PostmanWorkspacesResponse> => rest.request<PostmanWorkspacesResponse>("/workspaces"),
 	};
 }

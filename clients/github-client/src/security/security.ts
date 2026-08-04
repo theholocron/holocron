@@ -36,13 +36,10 @@ export function security(rest: RestClient) {
 			}),
 
 		enablePrivateVulnerabilityReporting: (repo: string): Promise<void> =>
-			rest.request<void>(
-				`${repoBase(repo)}/private-vulnerability-reporting`,
-				{
-					method: "PUT",
-					expectNoContent: true,
-				},
-			),
+			rest.request<void>(`${repoBase(repo)}/private-vulnerability-reporting`, {
+				method: "PUT",
+				expectNoContent: true,
+			}),
 
 		enableDependencyGraph: (repo: string): Promise<void> =>
 			rest.request<void>(repoBase(repo), {
@@ -58,25 +55,19 @@ export function security(rest: RestClient) {
 			}),
 
 		enableCodeScanning: (repo: string): Promise<CodeScanningSetupResult> =>
-			rest.request<CodeScanningSetupResult>(
-				`${repoBase(repo)}/code-scanning/default-setup`,
-				{
-					method: "PATCH",
-					body: {
-						state: "configured",
-						query_suite: "extended",
-						threat_model: "remote_and_local",
-					},
+			rest.request<CodeScanningSetupResult>(`${repoBase(repo)}/code-scanning/default-setup`, {
+				method: "PATCH",
+				body: {
+					state: "configured",
+					query_suite: "extended",
+					threat_model: "remote_and_local",
 				},
-			),
+			}),
 
 		disableDefaultCodeScanning: (repo: string): Promise<void> =>
-			rest.request<void>(
-				`${repoBase(repo)}/code-scanning/default-setup`,
-				{
-					method: "PATCH",
-					body: { state: "not-configured" },
-				},
-			),
+			rest.request<void>(`${repoBase(repo)}/code-scanning/default-setup`, {
+				method: "PATCH",
+				body: { state: "not-configured" },
+			}),
 	};
 }

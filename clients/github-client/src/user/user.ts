@@ -8,7 +8,6 @@ export interface GitHubUser {
 
 export function user(rest: RestClient) {
 	return {
-		getCurrentUser: (): Promise<GitHubUser> =>
-			rest.request<GitHubUser>("/user"),
+		getCurrentUser: (): Promise<GitHubUser> => rest.request<GitHubUser>("/user"),
 	};
 }

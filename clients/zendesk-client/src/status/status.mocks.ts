@@ -1,9 +1,4 @@
-import type {
-	ICustomStatus,
-	ICustomStatusesResponse,
-	ICustomStatusResponse,
-	IDefaultStatus,
-} from "./status.types.js";
+import type { ICustomStatus, ICustomStatusesResponse, ICustomStatusResponse, IDefaultStatus } from "./status.types.js";
 
 export const mockDefaultStatus: IDefaultStatus = {
 	active: true,

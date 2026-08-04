@@ -62,17 +62,13 @@ describe("users.list", () => {
 		await client.users.list({
 			email_address: ["a@example.com", "b@example.com"],
 		});
-		expect(calls[0]?.url).toContain(
-			"email_address=a%40example.com&email_address=b%40example.com",
-		);
+		expect(calls[0]?.url).toContain("email_address=a%40example.com&email_address=b%40example.com");
 	});
 });
 
 describe("users.count", () => {
 	it("GET /users/count", async () => {
-		const { client, calls } = makeClient([
-			{ body: { object: "total_count", total_count: 42 } },
-		]);
+		const { client, calls } = makeClient([{ body: { object: "total_count", total_count: 42 } }]);
 		const result = await client.users.count();
 		expect(calls[0]?.method).toBe("GET");
 		expect(calls[0]?.url).toContain("/users/count");
@@ -91,9 +87,7 @@ describe("users.get", () => {
 
 describe("users.create", () => {
 	it("POST /users", async () => {
-		const { client, calls } = makeClient([
-			{ status: 200, body: { ...mockUser, first_name: "New" } },
-		]);
+		const { client, calls } = makeClient([{ status: 200, body: { ...mockUser, first_name: "New" } }]);
 		await client.users.create({ first_name: "New", last_name: "User" });
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/users");
@@ -106,9 +100,7 @@ describe("users.create", () => {
 
 describe("users.update", () => {
 	it("PATCH /users/:id", async () => {
-		const { client, calls } = makeClient([
-			{ body: { ...mockUser, first_name: "Updated" } },
-		]);
+		const { client, calls } = makeClient([{ body: { ...mockUser, first_name: "Updated" } }]);
 		await client.users.update("user_1", { first_name: "Updated" });
 		expect(calls[0]?.method).toBe("PATCH");
 		expect(calls[0]?.url).toContain("/users/user_1");
@@ -118,9 +110,7 @@ describe("users.update", () => {
 
 describe("users.delete", () => {
 	it("DELETE /users/:id returns deleted object", async () => {
-		const { client, calls } = makeClient([
-			{ body: { object: "user", id: "user_1", deleted: true } },
-		]);
+		const { client, calls } = makeClient([{ body: { object: "user", id: "user_1", deleted: true } }]);
 		const result = await client.users.delete("user_1");
 		expect(calls[0]?.method).toBe("DELETE");
 		expect(calls[0]?.url).toContain("/users/user_1");
@@ -130,9 +120,7 @@ describe("users.delete", () => {
 
 describe("users.ban / unban / lock / unlock", () => {
 	it("POST /users/:id/ban", async () => {
-		const { client, calls } = makeClient([
-			{ body: { ...mockUser, banned: true } },
-		]);
+		const { client, calls } = makeClient([{ body: { ...mockUser, banned: true } }]);
 		const result = await client.users.ban("user_1");
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/users/user_1/ban");
@@ -146,9 +134,7 @@ describe("users.ban / unban / lock / unlock", () => {
 	});
 
 	it("POST /users/:id/lock", async () => {
-		const { client, calls } = makeClient([
-			{ body: { ...mockUser, locked: true } },
-		]);
+		const { client, calls } = makeClient([{ body: { ...mockUser, locked: true } }]);
 		const result = await client.users.lock("user_1");
 		expect(calls[0]?.url).toContain("/users/user_1/lock");
 		expect(result.locked).toBe(true);
