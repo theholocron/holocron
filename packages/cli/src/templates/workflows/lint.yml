@@ -3,6 +3,16 @@ name: Lint
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
+      eslint-config:
+        description: >
+          Filename for the ESLint configuration used by super-linter for
+          JavaScript, JSX, and TSX files. Defaults to eslint.config.mjs
+          (super-linter's own default). Set this to eslint.config.js (or
+          eslint.config.ts with --flag unstable_ts_config in your project's
+          lint script) if the repo uses a flat config under a different name.
+        type: string
+        required: false
+        default: eslint.config.mjs
       prettier-config:
         type: string
         required: false
@@ -98,6 +108,7 @@ jobs:
           FIX_MARKDOWN_PRETTIER: true
           FIX_TSX: true
           FIX_TYPESCRIPT_PRETTIER: true
+          JAVASCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
           VALIDATE_DOCKERFILE: true
           VALIDATE_EDITORCONFIG: true
