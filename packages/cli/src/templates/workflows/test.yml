@@ -142,8 +142,8 @@ jobs:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  chromatic:
-    name: Publish Storybook to Chromatic
+  visual-and-composition:
+    name: Test Visual and Composition
     # Skip when no Chromatic config exists.
     if: ${{ hashFiles('chromatic.config.json', 'chromatic.config.ts', 'chromatic.config.js') != '' }}
     permissions:
