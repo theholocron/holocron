@@ -5,6 +5,8 @@ on: # yamllint disable-line rule:truthy
     secrets:
       CHROMATIC_PROJECT_TOKEN:
         required: false
+      CYPRESS_RECORD_KEY:
+        required: false
       TURBO_TOKEN:
         required: false
 
@@ -40,6 +42,105 @@ jobs:
         with:
           use_oidc: true
           files: '**/test-report.junit.xml'
+
+  storybook:
+    name: Run Storybook interaction tests
+    # Skip when no Storybook config exists.
+    if: ${{ hashFiles('.storybook/main.ts', '.storybook/main.js', '.storybook/main.cjs') != '' }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # container:
+    #   # Use the Playwright image if you need cross-browser testing beyond chromium.
+    #   # https://playwright.dev/docs/docker#pull-the-image
+    #   image: mcr.microsoft.com/playwright:v1.54.1-noble
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: pnpm exec playwright install chromium --with-deps
+        name: Install Playwright
+
+      - run: pnpm test:storybook
+        name: Run Storybook tests
+
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        name: Upload coverage to Codecov
+        with:
+          use_oidc: true
+
+      - uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
+        name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        with:
+          use_oidc: true
+          files: '**/test-report.junit.xml'
+
+  interaction-and-accessibility:
+    name: Test Interactions and Accessibility
+    # Skip when no Storybook config exists.
+    if: ${{ hashFiles('.storybook/main.ts', '.storybook/main.js', '.storybook/main.cjs') != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      # Make sure to grab the latest version of the Playwright image.
+      # https://playwright.dev/docs/docker#pull-the-image
+      image: mcr.microsoft.com/playwright:v1.54.1-noble
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: pnpm test:storybook
+        name: Run interaction and accessibility tests
+
+  user-flow:
+    name: Test User Flow
+    # Skip when no Cypress config exists.
+    if: ${{ hashFiles('cypress.config.ts', 'cypress.config.js', 'cypress.config.cjs') != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false # https://github.com/cypress-io/github-action/issues/48
+      matrix:
+        containers: [1, 2]
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: cypress-io/github-action@1052aa98bbbe4f55210f844878213c07d9c8c399 # v6.7.13
+        name: Cypress run
+        with:
+          start: pnpm dev
+          wait-on: "http://localhost:5173"
+          record: true
+          parallel: true
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   chromatic:
     name: Publish Storybook to Chromatic
