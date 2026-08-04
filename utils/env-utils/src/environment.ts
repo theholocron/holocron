@@ -29,16 +29,10 @@ function normalizeEnvironment(value: string): Environment | undefined {
  * Resolve the current environment from input or process.env.
  */
 function getEnvironment(): Environment {
-	const raw =
-		process.env["ENVIRONMENT"] ||
-		process.env["ENV"] ||
-		process.env["NODE_ENV"] ||
-		DEFAULT_ENVIRONMENT;
+	const raw = process.env["ENVIRONMENT"] || process.env["ENV"] || process.env["NODE_ENV"] || DEFAULT_ENVIRONMENT;
 	const normalized = normalizeEnvironment(String(raw));
 	if (!normalized) {
-		console.warn(
-			`[@theholocron/utils-env] Unknown environment "${raw}", falling back to "${DEFAULT_ENVIRONMENT}"`,
-		);
+		console.warn(`[@theholocron/utils-env] Unknown environment "${raw}", falling back to "${DEFAULT_ENVIRONMENT}"`);
 		return DEFAULT_ENVIRONMENT;
 	}
 	return normalized;

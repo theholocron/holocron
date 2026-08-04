@@ -41,11 +41,5 @@ document.addEventListener("keydown", (event) => {
 ### Types
 
 ```ts
-type TKonamiCode =
-  | "ArrowDown"
-  | "ArrowLeft"
-  | "ArrowRight"
-  | "ArrowUp"
-  | "KeyA"
-  | "KeyB";
+type TKonamiCode = "ArrowDown" | "ArrowLeft" | "ArrowRight" | "ArrowUp" | "KeyA" | "KeyB";
 ```

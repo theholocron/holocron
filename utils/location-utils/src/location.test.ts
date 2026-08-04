@@ -35,14 +35,10 @@ describe("getCurrentLocation", () => {
 		beforeEach(() => mockPermissions("denied"));
 
 		test("returns fallback coordinates", async () => {
-			const warnSpy = vi
-				.spyOn(console, "warn")
-				.mockImplementation(() => {});
+			const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 			const result = await getCurrentLocation();
 			expect(result).toEqual(fallback);
-			expect(warnSpy).toHaveBeenCalledWith(
-				"Location permission denied, using fallback",
-			);
+			expect(warnSpy).toHaveBeenCalledWith("Location permission denied, using fallback");
 		});
 	});
 
@@ -60,8 +56,7 @@ describe("getCurrentLocation", () => {
 				speed: 0,
 			};
 			mockGeolocation({
-				getCurrentPosition: (success) =>
-					success({ coords } as GeolocationPosition),
+				getCurrentPosition: (success) => success({ coords } as GeolocationPosition),
 			});
 
 			const result = await getCurrentLocation();
@@ -69,21 +64,15 @@ describe("getCurrentLocation", () => {
 		});
 
 		test("returns fallback with warning when geolocation throws", async () => {
-			const warnSpy = vi
-				.spyOn(console, "warn")
-				.mockImplementation(() => {});
+			const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 			const error = new Error("position unavailable");
 			mockGeolocation({
-				getCurrentPosition: (_success, reject) =>
-					reject!(error as GeolocationPositionError),
+				getCurrentPosition: (_success, reject) => reject!(error as GeolocationPositionError),
 			});
 
 			const result = await getCurrentLocation();
 			expect(result).toEqual(fallback);
-			expect(warnSpy).toHaveBeenCalledWith(
-				"Error fetching fresh location:",
-				error,
-			);
+			expect(warnSpy).toHaveBeenCalledWith("Error fetching fresh location:", error);
 		});
 	});
 
@@ -101,8 +90,7 @@ describe("getCurrentLocation", () => {
 				speed: null,
 			};
 			mockGeolocation({
-				getCurrentPosition: (success) =>
-					success({ coords } as GeolocationPosition),
+				getCurrentPosition: (success) => success({ coords } as GeolocationPosition),
 			});
 
 			const result = await getCurrentLocation();

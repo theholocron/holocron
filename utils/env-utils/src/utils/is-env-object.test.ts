@@ -10,15 +10,11 @@ describe("isEnvObject", () => {
 	});
 
 	it("returns true for a flat EnvObject", () => {
-		expect(
-			isEnvObject({ port: 3000, database_url: "postgres://localhost" }),
-		).toBe(true);
+		expect(isEnvObject({ port: 3000, database_url: "postgres://localhost" })).toBe(true);
 	});
 
 	it("returns true for a nested EnvObject", () => {
-		expect(isEnvObject({ db: { host: "localhost", port: 5432 } })).toBe(
-			true,
-		);
+		expect(isEnvObject({ db: { host: "localhost", port: 5432 } })).toBe(true);
 	});
 
 	// --- returns false for each Primitive member ---

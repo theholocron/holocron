@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	DEFAULT_ENVIRONMENT,
-	DEPLOYED_ENVIRONMENTS,
-	environment,
-} from "./index.js";
+import { DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS, environment } from "./index.js";
 
 describe("environment", () => {
 	describe("normalize", () => {
@@ -98,9 +94,7 @@ describe("environment", () => {
 
 		it("falls back to default environment when env is invalid", () => {
 			vi.stubEnv("ENVIRONMENT", "totally-wrong");
-			expect(environment.isDeployed()).toBe(
-				DEPLOYED_ENVIRONMENTS.has(DEFAULT_ENVIRONMENT),
-			);
+			expect(environment.isDeployed()).toBe(DEPLOYED_ENVIRONMENTS.has(DEFAULT_ENVIRONMENT));
 		});
 	});
 });

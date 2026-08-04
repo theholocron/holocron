@@ -3,10 +3,7 @@ import { coerceValue } from "./coerce-value.js";
 import { parseKey } from "./parse-key.js";
 import { setDeep } from "./set-deep.js";
 
-export function buildEnvObject(
-	raw: Record<string, string | undefined>,
-	parseValues: boolean,
-): EnvObject {
+export function buildEnvObject(raw: Record<string, string | undefined>, parseValues: boolean): EnvObject {
 	const result: EnvObject = {};
 
 	for (const [key, rawValue] of Object.entries(raw)) {

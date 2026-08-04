@@ -225,9 +225,7 @@ describe("Session Storage", () => {
 		});
 
 		test("sendTo logs error when sessionStorage.setItem throws", () => {
-			const errorSpy = vi
-				.spyOn(console, "error")
-				.mockImplementation(() => {});
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 			vi.spyOn(sessionStorage, "setItem").mockImplementation(() => {
 				throw new DOMException("QuotaExceededError");
 			});
@@ -236,16 +234,11 @@ describe("Session Storage", () => {
 			vault.registerApp("app");
 			vault.sendTo("k", "v");
 
-			expect(errorSpy).toHaveBeenCalledWith(
-				"Failed to store data in sessionStorage",
-				expect.any(DOMException),
-			);
+			expect(errorSpy).toHaveBeenCalledWith("Failed to store data in sessionStorage", expect.any(DOMException));
 		});
 
 		test("getFrom logs error when sessionStorage.getItem throws", () => {
-			const errorSpy = vi
-				.spyOn(console, "error")
-				.mockImplementation(() => {});
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 			vi.spyOn(sessionStorage, "getItem").mockImplementation(() => {
 				throw new DOMException("SecurityError");
 			});
@@ -256,10 +249,7 @@ describe("Session Storage", () => {
 			errorSpy.mockClear();
 
 			vault.getFrom("k");
-			expect(errorSpy).toHaveBeenCalledWith(
-				"Failed to read data in sessionStorage",
-				expect.any(DOMException),
-			);
+			expect(errorSpy).toHaveBeenCalledWith("Failed to read data in sessionStorage", expect.any(DOMException));
 		});
 
 		test("removeFrom logs error when sessionStorage.setItem throws", () => {
@@ -267,9 +257,7 @@ describe("Session Storage", () => {
 			vault.registerApp("app");
 			vault.sendTo("k", "v");
 
-			const errorSpy = vi
-				.spyOn(console, "error")
-				.mockImplementation(() => {});
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 			vi.spyOn(sessionStorage, "setItem").mockImplementation(() => {
 				throw new DOMException("QuotaExceededError");
 			});
@@ -277,7 +265,7 @@ describe("Session Storage", () => {
 			vault.removeFrom("k");
 			expect(errorSpy).toHaveBeenCalledWith(
 				"Failed to remove data from sessionStorage",
-				expect.any(DOMException),
+				expect.any(DOMException)
 			);
 		});
 
@@ -286,18 +274,13 @@ describe("Session Storage", () => {
 			vault.registerApp("app");
 			vault.sendTo("k", "v");
 
-			const errorSpy = vi
-				.spyOn(console, "error")
-				.mockImplementation(() => {});
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 			vi.spyOn(sessionStorage, "removeItem").mockImplementation(() => {
 				throw new DOMException("SecurityError");
 			});
 
 			vault.clear();
-			expect(errorSpy).toHaveBeenCalledWith(
-				"Failed to clear sessionStorage",
-				expect.any(DOMException),
-			);
+			expect(errorSpy).toHaveBeenCalledWith("Failed to clear sessionStorage", expect.any(DOMException));
 		});
 
 		test("removeFrom does nothing when nested key path does not exist", () => {

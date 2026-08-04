@@ -55,15 +55,10 @@ describe("debug", () => {
 			debugLog(APP, flatEnv);
 
 			expect(info).toHaveBeenCalledOnce();
-			const [message, meta] = info.mock.calls[0] as [
-				string,
-				{ keys: string[] },
-			];
+			const [message, meta] = info.mock.calls[0] as [string, { keys: string[] }];
 			expect(message).toContain("test-app");
 			expect(message).toContain("2 key(s)");
-			expect(meta.keys).toEqual(
-				expect.arrayContaining(["port", "database_url"]),
-			);
+			expect(meta.keys).toEqual(expect.arrayContaining(["port", "database_url"]));
 		});
 
 		it("never logs values — only key names", () => {
@@ -88,13 +83,7 @@ describe("debug", () => {
 
 			const [, meta] = info.mock.calls[0] as [string, { keys: string[] }];
 			expect(meta.keys).toEqual(
-				expect.arrayContaining([
-					"db.host",
-					"db.port",
-					"auth0.domain",
-					"auth0.config.audience",
-					"flat_key",
-				]),
+				expect.arrayContaining(["db.host", "db.port", "auth0.domain", "auth0.config.audience", "flat_key"])
 			);
 		});
 
@@ -154,10 +143,7 @@ describe("debug", () => {
 			vi.stubEnv("DEBUG", "true");
 			debugLog(APP, {});
 			expect(info).toHaveBeenCalledOnce();
-			const [message, meta] = info.mock.calls[0] as [
-				string,
-				{ keys: string[] },
-			];
+			const [message, meta] = info.mock.calls[0] as [string, { keys: string[] }];
 			expect(message).toContain("0 key(s)");
 			expect(meta.keys).toEqual([]);
 		});

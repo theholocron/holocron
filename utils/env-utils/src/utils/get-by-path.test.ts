@@ -12,9 +12,7 @@ const env = {
 
 describe("getByPath", () => {
 	it("returns a primitive at a leaf path", () => {
-		expect(getByPath(env, ["service", "db", "url"])).toBe(
-			"postgres://localhost",
-		);
+		expect(getByPath(env, ["service", "db", "url"])).toBe("postgres://localhost");
 	});
 
 	it("returns a nested object at an intermediate path", () => {

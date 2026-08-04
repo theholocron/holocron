@@ -19,8 +19,7 @@ export type TSessionStorage = {
 
 const ERROR_MSG = "Nothing is currently registered!";
 
-const isSessionStorageAvailable: boolean =
-	typeof window !== "undefined" && "sessionStorage" in window;
+const isSessionStorageAvailable: boolean = typeof window !== "undefined" && "sessionStorage" in window;
 
 function createStorage(namespace = "theholocron"): TSessionStorage {
 	const prefixedNamespace = `@${namespace}`;
@@ -69,15 +68,9 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 
 			if (isSessionStorageAvailable) {
 				try {
-					sessionStorage.setItem(
-						prefixedNamespace,
-						JSON.stringify(storage),
-					);
+					sessionStorage.setItem(prefixedNamespace, JSON.stringify(storage));
 				} catch (error) {
-					console.error(
-						"Failed to store data in sessionStorage",
-						error,
-					);
+					console.error("Failed to store data in sessionStorage", error);
 				}
 			}
 		},
@@ -94,17 +87,13 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 
 			if (isSessionStorageAvailable) {
 				try {
-					const storedData =
-						sessionStorage.getItem(prefixedNamespace);
+					const storedData = sessionStorage.getItem(prefixedNamespace);
 					if (storedData) {
 						const parsedData = JSON.parse(storedData);
 						Object.assign(storage, parsedData); // Merge stored data into current storage
 					}
 				} catch (error) {
-					console.error(
-						"Failed to read data in sessionStorage",
-						error,
-					);
+					console.error("Failed to read data in sessionStorage", error);
 				}
 			}
 
@@ -117,9 +106,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 				const subKey = keys[i];
 
 				if (subKey in currentLevel) {
-					currentLevel = currentLevel[
-						subKey
-					] as NamespacedStorageData; // Go deeper into the nested object
+					currentLevel = currentLevel[subKey] as NamespacedStorageData; // Go deeper into the nested object
 				} else {
 					return null; // Return null if any part of the key is missing
 				}
@@ -141,9 +128,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 			for (let i = 0; i < keys.length - 1; i++) {
 				const subKey = keys[i];
 				if (subKey in currentLevel) {
-					currentLevel = currentLevel[
-						subKey
-					] as NamespacedStorageData; // Go deeper into the nested object
+					currentLevel = currentLevel[subKey] as NamespacedStorageData; // Go deeper into the nested object
 				} else {
 					return; // Key doesn't exist, so nothing to remove
 				}
@@ -155,15 +140,9 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 
 				if (isSessionStorageAvailable) {
 					try {
-						sessionStorage.setItem(
-							prefixedNamespace,
-							JSON.stringify(storage),
-						);
+						sessionStorage.setItem(prefixedNamespace, JSON.stringify(storage));
 					} catch (error) {
-						console.error(
-							"Failed to remove data from sessionStorage",
-							error,
-						);
+						console.error("Failed to remove data from sessionStorage", error);
 					}
 				}
 			}

@@ -28,11 +28,7 @@ environment.normalize("production"); // "prod"
 ### Constants
 
 ```ts
-import {
-  ENVIRONMENTS,
-  DEFAULT_ENVIRONMENT,
-  DEPLOYED_ENVIRONMENTS,
-} from "@theholocron/env-utils";
+import { ENVIRONMENTS, DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS } from "@theholocron/env-utils";
 
 ENVIRONMENTS; // ["local", "dev", "qa", "prod"]
 DEFAULT_ENVIRONMENT; // "prod"

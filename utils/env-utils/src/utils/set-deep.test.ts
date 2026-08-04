@@ -65,16 +65,12 @@ describe("setDeep", () => {
 
 	it("throws when an intermediate key already holds a scalar value", () => {
 		const target: EnvObject = { db: "scalar" };
-		expect(() =>
-			setDeep(target, ["db", "url"], "postgres://localhost"),
-		).toThrow(/Key collision/);
+		expect(() => setDeep(target, ["db", "url"], "postgres://localhost")).toThrow(/Key collision/);
 	});
 
 	it("includes the colliding key path in the scalar-to-namespace error message", () => {
 		const target: EnvObject = { allm: { service: "scalar" } };
-		expect(() =>
-			setDeep(target, ["allm", "service", "url"], "http://allm"),
-		).toThrow("allm.service");
+		expect(() => setDeep(target, ["allm", "service", "url"], "http://allm")).toThrow("allm.service");
 	});
 
 	it("throws at the first colliding segment, not the full path", () => {
@@ -84,16 +80,12 @@ describe("setDeep", () => {
 
 	it("throws when the leaf key already holds a namespace object", () => {
 		const target: EnvObject = { db: { url: "postgres://localhost" } };
-		expect(() => setDeep(target, ["db"], "scalar")).toThrow(
-			/Key collision/,
-		);
+		expect(() => setDeep(target, ["db"], "scalar")).toThrow(/Key collision/);
 	});
 
 	it("includes the full path in the namespace-to-scalar error message", () => {
 		const target: EnvObject = { allm: { service: { url: "http://allm" } } };
-		expect(() => setDeep(target, ["allm", "service"], "scalar")).toThrow(
-			"allm.service",
-		);
+		expect(() => setDeep(target, ["allm", "service"], "scalar")).toThrow("allm.service");
 	});
 
 	it("mutates the target in place rather than returning a new object", () => {

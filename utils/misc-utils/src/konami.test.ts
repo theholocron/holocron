@@ -5,7 +5,7 @@ import { konami } from "./index.ts";
 class MockKeyboardEvent {
 	constructor(
 		public type: string,
-		public options: { code?: string },
+		public options: { code?: string }
 	) {}
 }
 

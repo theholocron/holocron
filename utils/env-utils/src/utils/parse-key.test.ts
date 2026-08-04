@@ -8,18 +8,11 @@ describe("parseKey", () => {
 	});
 
 	it("splits on double underscores into a nested path", () => {
-		expect(parseKey("ALLM__SERVICE__URL")).toEqual([
-			"allm",
-			"service",
-			"url",
-		]);
+		expect(parseKey("ALLM__SERVICE__URL")).toEqual(["allm", "service", "url"]);
 	});
 
 	it("handles mixed single and double underscores", () => {
-		expect(parseKey("ALLM__SERVICE_NAME")).toEqual([
-			"allm",
-			"service_name",
-		]);
+		expect(parseKey("ALLM__SERVICE_NAME")).toEqual(["allm", "service_name"]);
 	});
 
 	it("lowercases all segments", () => {

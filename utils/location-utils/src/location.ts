@@ -28,14 +28,12 @@ export async function getCurrentLocation(): Promise<IGeolocationCoordinates> {
 	}
 
 	try {
-		const position = await new Promise<GeolocationPosition>(
-			(resolve, reject) => {
-				navigator.geolocation.getCurrentPosition(resolve, reject, {
-					enableHighAccuracy: true,
-					timeout: 27000,
-				});
-			},
-		);
+		const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+			navigator.geolocation.getCurrentPosition(resolve, reject, {
+				enableHighAccuracy: true,
+				timeout: 27000,
+			});
+		});
 
 		return {
 			accuracy: position.coords.accuracy,

@@ -8,11 +8,7 @@ describe("collectKeys", () => {
 	});
 
 	it("returns flat keys for a flat object", () => {
-		expect(collectKeys({ a: "1", b: "2", c: "3" })).toEqual([
-			"a",
-			"b",
-			"c",
-		]);
+		expect(collectKeys({ a: "1", b: "2", c: "3" })).toEqual(["a", "b", "c"]);
 	});
 
 	it("returns dot-path keys for a nested object", () => {
@@ -24,24 +20,14 @@ describe("collectKeys", () => {
 	});
 
 	it("handles mixed flat and nested keys", () => {
-		expect(collectKeys({ a: "1", b: { c: "2", d: "3" } })).toEqual([
-			"a",
-			"b.c",
-			"b.d",
-		]);
+		expect(collectKeys({ a: "1", b: { c: "2", d: "3" } })).toEqual(["a", "b.c", "b.d"]);
 	});
 
 	it("handles multiple nested branches", () => {
-		expect(collectKeys({ a: { b: "1" }, c: { d: "2" } })).toEqual([
-			"a.b",
-			"c.d",
-		]);
+		expect(collectKeys({ a: { b: "1" }, c: { d: "2" } })).toEqual(["a.b", "c.d"]);
 	});
 
 	it("respects a custom prefix", () => {
-		expect(collectKeys({ a: "1", b: { c: "2" } }, "root")).toEqual([
-			"root.a",
-			"root.b.c",
-		]);
+		expect(collectKeys({ a: "1", b: { c: "2" } }, "root")).toEqual(["root.a", "root.b.c"]);
 	});
 });

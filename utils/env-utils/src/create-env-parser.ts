@@ -26,14 +26,8 @@ import { buildEnvObject, getByPath, normalizeKey } from "./utils/index.js";
  *   auth: get("auth0"), // returns the whole auth0 namespace object
  * }));
  */
-export function createEnvParser<T extends EnvObject = EnvObject>(
-	options: EnvParserOptions,
-): EnvParser<T> {
-	const {
-		appName,
-		loader = new DotenvLoader(),
-		parseValues = true,
-	} = options;
+export function createEnvParser<T extends EnvObject = EnvObject>(options: EnvParserOptions): EnvParser<T> {
+	const { appName, loader = new DotenvLoader(), parseValues = true } = options;
 
 	const raw = loader.load();
 
