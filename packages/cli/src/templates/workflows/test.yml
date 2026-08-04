@@ -2,6 +2,27 @@ name: Test
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
+    inputs:
+      run-storybook:
+        description: Run Storybook vitest interaction tests (requires .storybook/ setup)
+        type: boolean
+        required: false
+        default: false
+      run-interaction:
+        description: Run Storybook interaction tests in a full Playwright container
+        type: boolean
+        required: false
+        default: false
+      run-user-flow:
+        description: Run Cypress E2E user-flow tests (requires cypress.config.*)
+        type: boolean
+        required: false
+        default: false
+      run-chromatic:
+        description: Publish Storybook to Chromatic for visual regression testing
+        type: boolean
+        required: false
+        default: false
     secrets:
       CHROMATIC_PROJECT_TOKEN:
         required: false
@@ -45,8 +66,7 @@ jobs:
 
   storybook:
     name: Run Storybook interaction tests
-    # Skip when no Storybook config exists.
-    if: ${{ hashFiles('.storybook/main.ts', '.storybook/main.js', '.storybook/main.cjs') != '' }}
+    if: ${{ inputs.run-storybook }}
     permissions:
       contents: read
       id-token: write
@@ -86,8 +106,7 @@ jobs:
 
   visual-and-composition:
     name: Test Visual and Composition
-    # Skip when no Chromatic config exists.
-    if: ${{ hashFiles('chromatic.config.json', 'chromatic.config.ts', 'chromatic.config.js') != '' }}
+    if: ${{ inputs.run-chromatic }}
     permissions:
       contents: read
       statuses: write # Chromatic posts a commit status check back to the PR
@@ -110,8 +129,7 @@ jobs:
 
   interaction-and-accessibility:
     name: Test Interactions and Accessibility
-    # Skip when no Storybook config exists.
-    if: ${{ hashFiles('.storybook/main.ts', '.storybook/main.js', '.storybook/main.cjs') != '' }}
+    if: ${{ inputs.run-interaction }}
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -135,8 +153,7 @@ jobs:
 
   user-flow:
     name: Test User Flow
-    # Skip when no Cypress config exists.
-    if: ${{ hashFiles('cypress.config.ts', 'cypress.config.js', 'cypress.config.cjs') != '' }}
+    if: ${{ inputs.run-user-flow }}
     permissions:
       contents: read
     runs-on: ubuntu-latest
