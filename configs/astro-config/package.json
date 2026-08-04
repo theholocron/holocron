@@ -37,7 +37,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@astrojs/starlight": "^0.41.5",
+    "@astrojs/starlight": "^0.41.6",
     "@theholocron/docs-theme": "^1.2.2",
     "@theholocron/tsconfig": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
