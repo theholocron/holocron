@@ -1,3 +1,5 @@
+## [3.9.4](https://github.com/theholocron/holocron/compare/v3.9.3...v3.9.4) (2026-08-05)
+
 ## [3.9.3](https://github.com/theholocron/holocron/compare/v3.9.2...v3.9.3) (2026-08-05)
 
 ## [3.9.2](https://github.com/theholocron/holocron/compare/v3.9.1...v3.9.2) (2026-08-04)
