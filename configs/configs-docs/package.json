@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/configs-docs",
-  "version": "7.14.2",
+  "version": "7.14.3",
   "description": "Documentation content for the @theholocron/configs monorepo",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/configs-docs#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
