@@ -415,7 +415,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 
 	// Always overwrite description and homepage in package.json directly,
 	// regardless of whether the template used placeholders or real values.
-	if ((input.description !== undefined || input.homepage !== undefined) && existsSync(pkgJsonPath)) {
+	if (input.description !== undefined || input.homepage !== undefined) {
 		try {
 			const pkg = JSON.parse(readFn(pkgJsonPath)) as Record<string, unknown>;
 			if (input.description !== undefined) pkg["description"] = input.description;
