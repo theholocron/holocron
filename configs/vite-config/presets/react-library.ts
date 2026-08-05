@@ -22,7 +22,7 @@ export async function reactLibrary({
 } = {}): Promise<UserConfig> {
 	const resolvedName = name ?? getPackageName();
 
-	const { default: react } = await import("@vitejs/plugin-react");
+	const { default: react } = await import("@vitejs/plugin-react-oxc");
 
 	const plugins: NonNullable<UserConfig["plugins"]> = [react()];
 	try {
