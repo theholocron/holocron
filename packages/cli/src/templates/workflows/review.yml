@@ -10,10 +10,6 @@ name: Review
 on: # yamllint disable-line rule:truthy
   workflow_call:
 
-concurrency:
-  group: review-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   reviewdog:
     name: Review PRs

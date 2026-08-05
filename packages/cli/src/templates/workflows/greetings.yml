@@ -12,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Group by the issue/PR number so duplicate events don't race each other.
-    concurrency:
-      group: greetings-${{ github.event.issue.number || github.event.pull_request.number }}
-      cancel-in-progress: false
     steps:
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         name: Greet on first contribution
