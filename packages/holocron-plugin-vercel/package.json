@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-vercel",
-  "version": "3.9.5",
+  "version": "3.9.6",
   "description": "Holocron plugin for Vercel. Implements the deployment capability against the Vercel REST API.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-vercel#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
