@@ -8,7 +8,7 @@ import { getPackageName } from "./get-package-name.js";
  * Uploads bundle stats to Codecov when CODECOV_TOKEN is set.
  */
 export async function reactApp(overrides: UserConfig = {}): Promise<UserConfig> {
-	const { default: react } = await import("@vitejs/plugin-react-oxc");
+	const { default: react } = await import("@vitejs/plugin-react");
 
 	const plugins: NonNullable<UserConfig["plugins"]> = [react()];
 	try {
