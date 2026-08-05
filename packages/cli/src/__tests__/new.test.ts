@@ -735,3 +735,108 @@ describe("runNew — runtime_environment placeholder", () => {
 		expect(written["/workspace/my-tool/holocron.config.json"]).toBeUndefined();
 	});
 });
+
+// ── runNew — package.json direct field write ──────────────────────────
+
+describe("runNew — package.json direct field write", () => {
+	it("writes description directly to package.json even when template has no placeholder", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": {
+				content: JSON.stringify({ name: "@theholocron/cli-template", description: "Original description" }),
+			},
+		});
+
+		await runNew({
+			...BASE,
+			description: "My new description",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		const pkg = JSON.parse(written["/workspace/my-tool/package.json"]!);
+		expect(pkg.description).toBe("My new description");
+	});
+
+	it("writes homepage directly to package.json even when template has no placeholder", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": {
+				content: JSON.stringify({ name: "@theholocron/cli-template", homepage: "https://old.example.com/" }),
+			},
+		});
+
+		await runNew({
+			...BASE,
+			homepage: "https://docs.example.com/my-tool/",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		const pkg = JSON.parse(written["/workspace/my-tool/package.json"]!);
+		expect(pkg.homepage).toBe("https://docs.example.com/my-tool/");
+	});
+
+	it("writes both description and homepage in a single package.json update", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": {
+				content: JSON.stringify({ name: "@theholocron/cli-template" }),
+			},
+		});
+
+		await runNew({
+			...BASE,
+			description: "My tool",
+			homepage: "https://docs.example.com/my-tool/",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		const pkg = JSON.parse(written["/workspace/my-tool/package.json"]!);
+		expect(pkg.description).toBe("My tool");
+		expect(pkg.homepage).toBe("https://docs.example.com/my-tool/");
+	});
+
+	it("skips the direct write when neither description nor homepage is provided", async () => {
+		const { exec } = makeExec();
+		const original = JSON.stringify({ name: "@theholocron/cli-template", description: "Untouched" });
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: original },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		// package.json may have been written by slug patching, but description must be untouched
+		const pkg = JSON.parse(written["/workspace/my-tool/package.json"] ?? original);
+		expect(pkg.description).toBe("Untouched");
+	});
+
+	it("does not throw when package.json contains invalid JSON", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: "not valid json {{{" },
+		});
+
+		await expect(
+			runNew({
+				...BASE,
+				description: "My tool",
+				exec,
+				readFile,
+				writeFile,
+				walkFiles,
+				print: () => {},
+			})
+		).resolves.not.toThrow();
+	});
+});

@@ -413,6 +413,20 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 
 	print(`  ${filesPatched.length} file${filesPatched.length === 1 ? "" : "s"} patched`);
 
+	// Always overwrite description and homepage in package.json directly,
+	// regardless of whether the template used placeholders or real values.
+	if (input.description !== undefined || input.homepage !== undefined) {
+		try {
+			const pkg = JSON.parse(readFn(pkgJsonPath)) as Record<string, unknown>;
+			if (input.description !== undefined) pkg["description"] = input.description;
+			if (input.homepage !== undefined) pkg["homepage"] = input.homepage;
+			writeFn(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n");
+			print(`  ✓ package.json (description/homepage)`);
+		} catch {
+			// non-fatal — placeholder replacement already covered it
+		}
+	}
+
 	// Generate and write holocron.config.ts
 	const configContent = generateHolocronConfig({
 		name: input.name,

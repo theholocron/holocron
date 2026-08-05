@@ -3,6 +3,11 @@ name: Test
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
+      run-unit:
+        description: Run unit tests with coverage (disable for UI-only repos that use Storybook testing exclusively)
+        type: boolean
+        required: false
+        default: true
       run-storybook:
         description: Run Storybook vitest interaction tests (requires .storybook/ setup)
         type: boolean
@@ -32,8 +37,19 @@ on: # yamllint disable-line rule:truthy
         required: false
 
 jobs:
+  validate:
+    name: Validate — at least one test type must be enabled
+    if: ${{ !inputs.run-unit && !inputs.run-storybook }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail — set run-unit or run-storybook to true
+        run: |
+          echo "::error::At least one of run-unit or run-storybook must be true. Library repos use run-unit: true; UI/Storybook repos use run-storybook: true."
+          exit 1
+
   unit:
     name: Run tests and collect coverage
+    if: ${{ inputs.run-unit }}
     permissions:
       contents: read
       id-token: write

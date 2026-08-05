@@ -45,9 +45,6 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency:
-      group: audit-${{ github.ref }}
-      cancel-in-progress: true
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -71,9 +68,6 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    concurrency:
-      group: knip-${{ github.ref }}
-      cancel-in-progress: true
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -98,9 +92,6 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency:
-      group: performance-${{ github.ref }}
-      cancel-in-progress: true
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
