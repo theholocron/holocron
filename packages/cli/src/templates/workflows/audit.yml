@@ -18,6 +18,13 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      lighthouse-config:
+        description: >
+          Path to the Lighthouse CI config file passed as --config to lhci autorun.
+          Defaults to lighthouse.config.js (the org standard).
+        type: string
+        required: false
+        default: lighthouse.config.js
       knip-script:
         description: Script that invokes Knip (must exit non-zero on findings)
         type: string
@@ -107,17 +114,8 @@ jobs:
       - run: npm install -g @lhci/cli@0.14.x
         name: Install Lighthouse CLI
 
-      - name: Run Lighthouse CI
-        run: |
-          CONFIG_FLAG=""
-          for f in lighthouse.config.js lighthouse.config.cjs lighthouse.config.json \
-            .lighthouserc.js .lighthouserc.cjs .lighthouserc.json \
-            .lighthouserc.yml .lighthouserc.yaml; do
-            if [ -f "$f" ]; then
-              CONFIG_FLAG="--config=$f"
-              break
-            fi
-          done
-          lhci autorun $CONFIG_FLAG
+      - run: lhci autorun --config="$LIGHTHOUSE_CONFIG"
+        name: Run Lighthouse CI
         env:
+          LIGHTHOUSE_CONFIG: ${{ inputs.lighthouse-config }}
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
