@@ -105,7 +105,12 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 	const { repoRoot, dryRun = false } = context;
 	const { description = "" } = loaded.resolved;
 
+	const namespaces = loaded.resolved.env?.namespaces ?? [];
+
 	print(style.header(`Syncing README installation block${dryRun ? " (dry-run)" : ""}…`));
+	if (namespaces.length > 0) {
+		print(style.hint(`  namespaces: ${namespaces.join(", ")}`));
+	}
 
 	// Read package.json
 	let pkg: PackageJson = {};
