@@ -875,8 +875,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (steps.some((s) => s.reason === "permissions")) {
 		print("");
 		print(style.warn("Some steps failed with 403 (insufficient token permissions)."));
-		print(style.hint("     These operations require a temporary fine-grained PAT with the"));
-		print(style.hint("     following repository permissions:"));
+		print(style.hint("     Repo-scoped operations (rulesets, settings, workflows) require a"));
+		print(style.hint("     fine-grained PAT passed via --token or HOLOCRON_ADMIN_TOKEN:"));
 		print("");
 		print(style.hint("       · Administration          — read and write"));
 		print(style.hint("       · Code scanning alerts    — read and write"));
@@ -885,9 +885,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(style.hint("       · Workflows               — read and write"));
 		print(style.hint("       · Metadata                — read (added automatically)"));
 		print("");
-		print(style.hint("     Create one at: https://github.com/settings/personal-access-tokens/new"));
-		print(style.hint("     Then re-run:   holocron setup --token <your-temp-pat>"));
-		print(style.hint("     You can revoke it immediately after setup completes."));
+		print(style.hint("     Org-scoped operations (teams, custom properties) additionally require"));
+		print(style.hint("     HOLOCRON_ORG_TOKEN — a PAT scoped to the org with:"));
+		print("");
+		print(style.hint("       · Members                     — read and write"));
+		print(style.hint("       · Organization custom properties — read and write"));
+		print("");
+		print(style.hint("     Create tokens at: https://github.com/settings/personal-access-tokens/new"));
+		print(style.hint("     Then re-run:      holocron setup --token <your-admin-pat>"));
+		print(style.hint("     Store org token:  HOLOCRON_ORG_TOKEN env var or keyring key github.org"));
 	}
 
 	return { steps, summary };
