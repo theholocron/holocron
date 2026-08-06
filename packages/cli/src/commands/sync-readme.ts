@@ -45,23 +45,14 @@ function generateInstallBlock(pkg: PackageJson, description: string): string {
 	lines.push("", "## Usage", "");
 
 	if (isCli) {
-		const commands =
-			typeof bin === "string" || !bin ? [name.split("/").pop() ?? name] : Object.keys(bin);
+		const commands = typeof bin === "string" || !bin ? [name.split("/").pop() ?? name] : Object.keys(bin);
 		lines.push("```bash");
 		for (const cmd of commands) {
 			lines.push(`${cmd} --help`);
 		}
 		lines.push("```");
 	} else if (isReact) {
-		lines.push(
-			"```tsx",
-			`import { } from "${name}";`,
-			"",
-			"function App() {",
-			`  return <></>;`,
-			"}",
-			"```"
-		);
+		lines.push("```tsx", `import { } from "${name}";`, "", "function App() {", `  return <></>;`, "}", "```");
 	} else {
 		lines.push("```typescript", `import { } from "${name}";`, "```");
 	}
@@ -103,28 +94,13 @@ async function updateReadmeInstallation(
 	if (insertAfter === -1) return false;
 
 	if (dryRun) return true;
-	lines.splice(
-		insertAfter + 1,
-		0,
-		"",
-		README_INSTALL_START,
-		"",
-		...blockLines,
-		"",
-		README_INSTALL_END
-	);
+	lines.splice(insertAfter + 1, 0, "", README_INSTALL_START, "", ...blockLines, "", README_INSTALL_END);
 	await writeFileFn(readmePath, lines.join("\n"), "utf8");
 	return true;
 }
 
 export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncReadmeReport> {
-	const {
-		loaded,
-		context,
-		print = console.log,
-		readFileFn = readFile,
-		writeFileFn = writeFile,
-	} = input;
+	const { loaded, context, print = console.log, readFileFn = readFile, writeFileFn = writeFile } = input;
 
 	const { repoRoot, dryRun = false } = context;
 	const { description = "" } = loaded.resolved;
