@@ -16,16 +16,16 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 
 ## Feature tokens
 
-| Env var                    | Keyring key       | Type              | Used by                                                                           | Required scopes                                                                 |
-| -------------------------- | ----------------- | ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `HOLOCRON_READ_TOKEN`      | `github.read`     | Fine-grained      | holocron CLI — read-only access for clone and CI run listing                      | `contents: read`, `actions: read`, `metadata: read`                             |
-| `HOLOCRON_ISSUES_TOKEN`    | `github.issues`   | Fine-grained      | holocron CLI — issue management (create, transition, comment)                     | `issues: read/write`, `metadata: read`                                          |
-| `HOLOCRON_SYNC_TOKEN`      | `github.sync`     | Fine-grained      | holocron CLI — sync workflow templates and open sync PRs across repos             | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
-| `HOLOCRON_RELEASE_TOKEN`   | `github.release`  | Fine-grained      | holocron CLI — semantic-release: create tags, releases, and changelogs            | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
-| `HOLOCRON_ADMIN_TOKEN`     | `github.admin`    | Fine-grained      | `setup` — branch protection, rulesets, secrets, environments, labels, properties | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
-| `HOLOCRON_DEPLOY_TOKEN`    | `github.deploy`   | Fine-grained      | `setup` — GitHub Pages (build type, custom domain, HTTPS)                        | `pages: read/write`, `metadata: read`                                           |
-| `HOLOCRON_ORG_TOKEN`       | `github.org`      | Fine-grained (org)| `setup` — org-level custom property values on repos                              | Resource owner: org · `organization_custom_properties: read/write`              |
-| `HOLOCRON_CLASSIC_TOKEN`   | `github.classic`  | Classic PAT       | `setup` — team management (fallback when fine-grained PAT gets 403)              | `admin:org`                                                                     |
+| Env var                  | Keyring key      | Type               | Used by                                                                          | Required scopes                                                                 |
+| ------------------------ | ---------------- | ------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `HOLOCRON_READ_TOKEN`    | `github.read`    | Fine-grained       | holocron CLI — read-only access for clone and CI run listing                     | `contents: read`, `actions: read`, `metadata: read`                             |
+| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | Fine-grained       | holocron CLI — issue management (create, transition, comment)                    | `issues: read/write`, `metadata: read`                                          |
+| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | Fine-grained       | holocron CLI — sync workflow templates and open sync PRs across repos            | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
+| `HOLOCRON_RELEASE_TOKEN` | `github.release` | Fine-grained       | holocron CLI — semantic-release: create tags, releases, and changelogs           | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
+| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
+| `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                        | `pages: read/write`, `metadata: read`                                           |
+| `HOLOCRON_ORG_TOKEN`     | `github.org`     | Fine-grained (org) | `setup` — org-level custom property values on repos                              | Resource owner: org · `organization_custom_properties: read/write`              |
+| `HOLOCRON_CLASSIC_TOKEN` | `github.classic` | Classic PAT        | `setup` — team management (fallback when fine-grained PAT gets 403)              | `admin:org`                                                                     |
 
 ### Why a classic PAT for team sync?
 
