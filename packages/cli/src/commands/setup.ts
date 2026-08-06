@@ -885,15 +885,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(style.hint("       · Workflows               — read and write"));
 		print(style.hint("       · Metadata                — read (added automatically)"));
 		print("");
-		print(style.hint("     Org-scoped operations (teams, custom properties) additionally require"));
-		print(style.hint("     HOLOCRON_ORG_TOKEN — a PAT scoped to the org with:"));
+		print(style.hint("     Custom properties require HOLOCRON_ORG_TOKEN — a fine-grained PAT"));
+		print(style.hint("     scoped to the org (resource owner: org) with:"));
 		print("");
-		print(style.hint("       · Members                     — read and write"));
 		print(style.hint("       · Organization custom properties — read and write"));
+		print("");
+		print(style.hint("     Team sync requires HOLOCRON_CLASSIC_TOKEN — a classic PAT with:"));
+		print("");
+		print(style.hint("       · admin:org scope"));
 		print("");
 		print(style.hint("     Create tokens at: https://github.com/settings/personal-access-tokens/new"));
 		print(style.hint("     Then re-run:      holocron setup --token <your-admin-pat>"));
 		print(style.hint("     Store org token:  HOLOCRON_ORG_TOKEN env var or keyring key github.org"));
+		print(style.hint("     Store classic:    HOLOCRON_CLASSIC_TOKEN env var or keyring key github.classic"));
 	}
 
 	return { steps, summary };

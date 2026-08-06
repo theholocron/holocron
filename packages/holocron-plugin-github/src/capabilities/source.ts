@@ -19,6 +19,8 @@ export interface SourceOptions {
 	repoRoot: string;
 	/** Secondary client authenticated with HOLOCRON_ORG_TOKEN for org-scoped operations (teams, custom properties). */
 	orgClient?: GitHubClient;
+	/** Classic PAT (HOLOCRON_CLASSIC_TOKEN) used as fallback for syncTeams when fine-grained PAT gets 403. */
+	classicToken?: string;
 	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
 	baseUrl?: string;
 	fetch?: typeof fetch;
@@ -34,6 +36,7 @@ export class GitHubSource implements Source {
 	private readonly repoRoot: string;
 	private readonly workflowDir: string;
 	private readonly orgClient?: GitHubClient;
+	private readonly classicToken?: string;
 	private readonly baseUrl?: string;
 	private readonly fetchImpl?: typeof fetch;
 
@@ -48,6 +51,7 @@ export class GitHubSource implements Source {
 		this.repoRoot = opts.repoRoot;
 		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
 		this.orgClient = opts.orgClient;
+		this.classicToken = opts.classicToken;
 		this.baseUrl = opts.baseUrl;
 		this.fetchImpl = opts.fetch;
 	}
@@ -163,7 +167,7 @@ export class GitHubSource implements Source {
 	}
 
 	async syncTeams(teams: TeamEntry[]): Promise<string> {
-		return syncTeams(this.orgClient ?? this.client, this.repo, teams);
+		return syncTeams(this.orgClient ?? this.client, this.repo, teams, this.classicToken);
 	}
 
 	async syncTopics(topics: string[]): Promise<string> {

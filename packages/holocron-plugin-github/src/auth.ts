@@ -37,3 +37,8 @@ export const resolveOrgToken = createFeatureResolver({
 	envName: "HOLOCRON_ORG_TOKEN",
 	keyringKey: "github.org",
 });
+
+export const resolveClassicToken = createFeatureResolver({
+	envName: "HOLOCRON_CLASSIC_TOKEN",
+	keyringKey: "github.classic",
+});
