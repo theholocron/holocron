@@ -67,7 +67,9 @@ export async function syncTeams(
 	const [org = "", name = ""] = repo.split("/", 2);
 	const normalized = teams.map(normalizeTeamEntry);
 	const results = await Promise.allSettled(
-		normalized.map(({ slug, permission }) => addRepoWithFallback(client, org, slug, org, name, permission, classicToken))
+		normalized.map(({ slug, permission }) =>
+			addRepoWithFallback(client, org, slug, org, name, permission, classicToken)
+		)
 	);
 	const succeeded = results.filter((r) => r.status === "fulfilled").length;
 	const failedSlugs = normalized.filter((_, i) => results[i]?.status === "rejected").map(({ slug }) => slug);
