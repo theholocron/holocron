@@ -11,7 +11,13 @@
 import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
-import { resolveAdminToken, resolveIssuesToken, resolveOrgToken, resolveReadToken, type ResolveTokenInput } from "./auth.js";
+import {
+	resolveAdminToken,
+	resolveIssuesToken,
+	resolveOrgToken,
+	resolveReadToken,
+	type ResolveTokenInput,
+} from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
 import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
