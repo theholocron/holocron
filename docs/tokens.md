@@ -24,16 +24,11 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 | `HOLOCRON_RELEASE_TOKEN` | `github.release` | Fine-grained       | holocron CLI — semantic-release: create tags, releases, and changelogs           | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
 | `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
 | `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                        | `pages: read/write`, `metadata: read`                                           |
-| `HOLOCRON_ORG_TOKEN`     | `github.org`     | Fine-grained (org) | `setup` — org-level custom property values on repos                              | Resource owner: org · `organization_custom_properties: read/write`              |
-| `HOLOCRON_CLASSIC_TOKEN` | `github.classic` | Classic PAT        | `setup` — team management (fallback when fine-grained PAT gets 403)              | `admin:org`                                                                     |
-
-### Why a classic PAT for team sync?
-
-`PUT /orgs/{org}/teams/{slug}/repos/{owner}/{repo}` — the GitHub endpoint for adding a team to a repository — does not accept fine-grained PATs regardless of what permissions you grant. This is a GitHub platform limitation; the endpoint predates fine-grained PATs and has not been migrated. `HOLOCRON_CLASSIC_TOKEN` is only used as a fallback when the fine-grained token gets a 403 on this specific call. All other `setup` operations use fine-grained tokens.
+| `HOLOCRON_ORG_TOKEN`     | `github.org`     | Fine-grained (org) | `setup` — team sync and org-level custom property values                         | Resource owner: org · `administration: write` · `members: read` · `organization_custom_properties: read/write` |
 
 ### Why a separate org token?
 
-Fine-grained PATs have two resource owner modes: **personal** (scoped to repos you own) and **organization** (scoped to repos within the org). Org-level operations like setting custom property values require a PAT whose resource owner is the org, not your personal account. `HOLOCRON_ORG_TOKEN` fills this role while `HOLOCRON_ADMIN_TOKEN` covers repo-scoped operations.
+Fine-grained PATs have two resource owner modes: **personal** (scoped to repos you own) and **organization** (scoped to repos within the org). Team management and org-level custom properties both require a PAT whose resource owner is the org. `HOLOCRON_ORG_TOKEN` covers these; `HOLOCRON_ADMIN_TOKEN` covers all repo-scoped operations.
 
 ## Setting tokens via env vars
 
@@ -45,7 +40,6 @@ export HOLOCRON_RELEASE_TOKEN=ghp_aaa
 export HOLOCRON_ADMIN_TOKEN=ghp_bbb
 export HOLOCRON_DEPLOY_TOKEN=ghp_ccc
 export HOLOCRON_ORG_TOKEN=github_pat_xxx
-export HOLOCRON_CLASSIC_TOKEN=ghp_zzz
 ```
 
 ## Storing tokens in the keyring
@@ -60,7 +54,6 @@ holocron auth set github.release  ghp_aaa
 holocron auth set github.admin    ghp_bbb
 holocron auth set github.deploy   ghp_ccc
 holocron auth set github.org      github_pat_xxx
-holocron auth set github.classic  ghp_zzz
 ```
 
 All tokens are stored under keychain service `com.theholocron.cli` with the keyring key as the account name. To retrieve a token manually on macOS:

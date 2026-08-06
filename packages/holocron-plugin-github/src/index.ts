@@ -13,7 +13,6 @@ import { createGitHubClient, type GitHubClient } from "@theholocron/github-clien
 
 import {
 	resolveAdminToken,
-	resolveClassicToken,
 	resolveIssuesToken,
 	resolveOrgToken,
 	resolveReadToken,
@@ -48,12 +47,11 @@ export interface PluginContext {
 
 // ── Capability factories ──────────────────────────────────────────────
 
-export function source(ctx: PluginContext, orgClient?: GitHubClient, classicToken?: string): Source {
+export function source(ctx: PluginContext, orgClient?: GitHubClient): Source {
 	return new GitHubSource(ctx.client, {
 		repo: ctx.repo,
 		repoRoot: ctx.repoRoot,
 		orgClient,
-		classicToken,
 		baseUrl: ctx.options.baseUrl,
 		fetch: ctx.options.fetch,
 	});
@@ -104,18 +102,10 @@ export function createPlugin(options: GitHubPluginOptions) {
 		}
 	}
 
-	function tryClassicToken(): string | undefined {
-		try {
-			return resolveClassicToken(options);
-		} catch {
-			return undefined;
-		}
-	}
-
 	return {
 		name: "@theholocron/holocron-plugin-github",
 		capabilities: {
-			source: () => source(makeCtx(resolveAdminToken), makeOrgClient(), tryClassicToken()),
+			source: () => source(makeCtx(resolveAdminToken), makeOrgClient()),
 			ci: () => ci(makeCtx(resolveReadToken)),
 			secrets: () => secrets(makeCtx(resolveAdminToken)),
 			environments: () => environments(makeCtx(resolveAdminToken)),

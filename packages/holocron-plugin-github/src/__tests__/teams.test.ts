@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { syncTeams } from "../capabilities/teams.js";
 import { createGitHubClient } from "../rest.js";
@@ -77,47 +77,5 @@ describe("syncTeams", () => {
 	it("throws when all teams fail", async () => {
 		const { rest } = makeRest([{ status: 404, body: { message: "Not Found" } }]);
 		await expect(syncTeams(rest, REPO, ["bad-slug"])).rejects.toThrow("all teams failed: bad-slug");
-	});
-
-	describe("classic token fallback", () => {
-		afterEach(() => {
-			vi.unstubAllGlobals();
-		});
-
-		it("falls back to classic token fetch on 403 and succeeds", async () => {
-			const { rest } = makeRest([{ status: 403, body: { message: "Resource not accessible by personal access token" } }]);
-			const globalFetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-			vi.stubGlobal("fetch", globalFetch);
-
-			const result = await syncTeams(rest, REPO, ["gatekeepers"], "classic_pat");
-
-			expect(result).toBe("1 team synced");
-			expect(globalFetch).toHaveBeenCalledOnce();
-			const [url, init] = globalFetch.mock.calls[0] as [string, RequestInit];
-			expect(url).toContain("/orgs/theholocron/teams/gatekeepers/repos/theholocron/holocron");
-			expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer classic_pat");
-		});
-
-		it("propagates classic token fetch failure when fallback also fails", async () => {
-			const { rest } = makeRest([{ status: 403, body: { message: "Resource not accessible by personal access token" } }]);
-			vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "Forbidden" }), { status: 403 })));
-
-			await expect(syncTeams(rest, REPO, ["gatekeepers"], "classic_pat")).rejects.toThrow("all teams failed: gatekeepers");
-		});
-
-		it("propagates the original 403 when no classic token is provided", async () => {
-			const { rest } = makeRest([{ status: 403, body: { message: "Resource not accessible by personal access token" } }]);
-
-			await expect(syncTeams(rest, REPO, ["gatekeepers"])).rejects.toThrow("all teams failed: gatekeepers");
-		});
-
-		it("propagates non-403 errors without attempting fallback", async () => {
-			const { rest } = makeRest([{ status: 422, body: { message: "Validation Failed" } }]);
-			const globalFetch = vi.fn();
-			vi.stubGlobal("fetch", globalFetch);
-
-			await expect(syncTeams(rest, REPO, ["gatekeepers"], "classic_pat")).rejects.toThrow();
-			expect(globalFetch).not.toHaveBeenCalled();
-		});
 	});
 });
