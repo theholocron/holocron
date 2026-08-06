@@ -8,6 +8,7 @@
  */
 export async function storybook(configDir = ".storybook", options = {}) {
 	const { storybookTest } = await import("@storybook/addon-vitest/vitest-plugin");
+	const { playwright } = await import("@vitest/browser-playwright");
 
 	return {
 		plugins: [storybookTest({ configDir })],
@@ -16,7 +17,7 @@ export async function storybook(configDir = ".storybook", options = {}) {
 			browser: {
 				enabled: true,
 				headless: true,
-				provider: "playwright",
+				provider: playwright({}),
 				instances: [{ browser: "chromium" }],
 			},
 			...options,

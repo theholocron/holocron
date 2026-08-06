@@ -91,6 +91,7 @@
     "@vitest/browser": "^4",
     "@vitest/coverage-v8": "^4",
     "@storybook/addon-vitest": "^9",
+    "@vitest/browser-playwright": "^4",
     "jsdom": "^26",
     "playwright": "^1"
   },
@@ -111,6 +112,9 @@
       "optional": true
     },
     "@storybook/addon-vitest": {
+      "optional": true
+    },
+    "@vitest/browser-playwright": {
       "optional": true
     },
     "jsdom": {
