@@ -21,6 +21,7 @@ import { runSetup } from "./commands/setup.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
+import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./load-config.js";
 import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
@@ -504,6 +505,24 @@ try {
 				if (report.status === "fail") {
 					process.exitCode = 1;
 				}
+			}
+		)
+		.command(
+			"sync-readme",
+			"Sync the Installation + Usage block in README.md from package.json",
+			(y) =>
+				y.option("dry-run", {
+					type: "boolean",
+					describe: "Print what would change without writing",
+					default: false,
+				}),
+			async (argv) => {
+				const loaded = await loadConfig(argv.cwd);
+				const report = await runSyncReadme({
+					loaded,
+					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
+				});
+				if (report.status === "fail") process.exitCode = 1;
 			}
 		)
 		.command(
