@@ -1712,7 +1712,7 @@ describe("runSetup — 403 handling", () => {
 		expect(output).toContain("⚠");
 		expect(output).toContain("insufficient token permissions");
 		expect(output).toContain("personal-access-tokens/new");
-		expect(output).toContain("--token <your-temp-pat>");
+		expect(output).toContain("--token <your-admin-pat>");
 	});
 
 	it("does not emit the hint when all failures are plan restrictions", async () => {

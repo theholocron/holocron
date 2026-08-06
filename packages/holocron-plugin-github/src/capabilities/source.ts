@@ -17,6 +17,8 @@ import { syncTopics } from "./topics.js";
 export interface SourceOptions {
 	repo: string;
 	repoRoot: string;
+	/** Secondary client authenticated with HOLOCRON_ORG_TOKEN for org-scoped operations (teams, custom properties). */
+	orgClient?: GitHubClient;
 	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
 	baseUrl?: string;
 	fetch?: typeof fetch;
@@ -31,6 +33,7 @@ export class GitHubSource implements Source {
 	private readonly repo: string;
 	private readonly repoRoot: string;
 	private readonly workflowDir: string;
+	private readonly orgClient?: GitHubClient;
 	private readonly baseUrl?: string;
 	private readonly fetchImpl?: typeof fetch;
 
@@ -44,6 +47,7 @@ export class GitHubSource implements Source {
 		this.repo = opts.repo;
 		this.repoRoot = opts.repoRoot;
 		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
+		this.orgClient = opts.orgClient;
 		this.baseUrl = opts.baseUrl;
 		this.fetchImpl = opts.fetch;
 	}
@@ -155,11 +159,11 @@ export class GitHubSource implements Source {
 	}
 
 	async syncProperties(values: Record<string, string>): Promise<string> {
-		return syncProperties(this.client, this.repo, values);
+		return syncProperties(this.orgClient ?? this.client, this.repo, values);
 	}
 
 	async syncTeams(teams: TeamEntry[]): Promise<string> {
-		return syncTeams(this.client, this.repo, teams);
+		return syncTeams(this.orgClient ?? this.client, this.repo, teams);
 	}
 
 	async syncTopics(topics: string[]): Promise<string> {

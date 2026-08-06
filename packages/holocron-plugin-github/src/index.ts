@@ -11,7 +11,13 @@
 import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
-import { resolveAdminToken, resolveIssuesToken, resolveReadToken, type ResolveTokenInput } from "./auth.js";
+import {
+	resolveAdminToken,
+	resolveIssuesToken,
+	resolveOrgToken,
+	resolveReadToken,
+	type ResolveTokenInput,
+} from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
 import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
@@ -41,10 +47,11 @@ export interface PluginContext {
 
 // ── Capability factories ──────────────────────────────────────────────
 
-export function source(ctx: PluginContext): Source {
+export function source(ctx: PluginContext, orgClient?: GitHubClient): Source {
 	return new GitHubSource(ctx.client, {
 		repo: ctx.repo,
 		repoRoot: ctx.repoRoot,
+		orgClient,
 		baseUrl: ctx.options.baseUrl,
 		fetch: ctx.options.fetch,
 	});
@@ -86,10 +93,19 @@ export function createPlugin(options: GitHubPluginOptions) {
 		};
 	}
 
+	function makeOrgClient(): GitHubClient | undefined {
+		try {
+			const token = resolveOrgToken(options);
+			return createGitHubClient({ token, baseUrl: options.baseUrl, fetch: options.fetch });
+		} catch {
+			return undefined;
+		}
+	}
+
 	return {
 		name: "@theholocron/holocron-plugin-github",
 		capabilities: {
-			source: () => source(makeCtx(resolveAdminToken)),
+			source: () => source(makeCtx(resolveAdminToken), makeOrgClient()),
 			ci: () => ci(makeCtx(resolveReadToken)),
 			secrets: () => secrets(makeCtx(resolveAdminToken)),
 			environments: () => environments(makeCtx(resolveAdminToken)),
