@@ -40,14 +40,6 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
-      enable-stylelint:
-        description: >
-          Run stylelint on CSS, SCSS, and Sass files. Opt-in for repos that
-          have CSS and a stylelint config. Requires pnpm and stylelint to be
-          installed as dev dependencies.
-        type: boolean
-        required: false
-        default: false
     secrets:
       SUPER_LINTER_APP_ID:
         required: false
@@ -145,13 +137,11 @@ jobs:
           VALIDATE_JSX_PRETTIER: true
           VALIDATE_MARKDOWN_PRETTIER: true
           VALIDATE_TSX: true
+          VALIDATE_CSS: true
           VALIDATE_TYPESCRIPT_PRETTIER: true
           VALIDATE_YAML: true
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
-
-      - name: Run Stylelint
-        if: inputs.enable-stylelint == true && hashFiles('pnpm-lock.yaml') != ''
-        run: pnpm exec stylelint "**/*.{css,scss,sass}" --ignore-path .gitignore
+          STYLELINT_CONFIG_FILE: stylelint.config.ts
 
       - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         name: Commit and push linting fixes
