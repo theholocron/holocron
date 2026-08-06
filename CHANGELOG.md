@@ -1,3 +1,5 @@
+## [3.12.3](https://github.com/theholocron/holocron/compare/v3.12.2...v3.12.3) (2026-08-06)
+
 ## [3.12.2](https://github.com/theholocron/holocron/compare/v3.12.1...v3.12.2) (2026-08-06)
 
 ## [3.12.1](https://github.com/theholocron/holocron/compare/v3.12.0...v3.12.1) (2026-08-06)
