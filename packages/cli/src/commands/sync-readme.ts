@@ -45,7 +45,7 @@ function generateInstallBlock(pkg: PackageJson): string {
 	lines.push("", "## Usage", "");
 
 	if (isCli) {
-		const commands = typeof bin === "string" ? [name.split("/").at(-1)!] : Object.keys(bin);
+		const commands = typeof bin === "string" ? [name.split("/").at(-1)!] : Object.keys(bin ?? {});
 		lines.push("```bash");
 		for (const cmd of commands) {
 			lines.push(`${cmd} --help`);
