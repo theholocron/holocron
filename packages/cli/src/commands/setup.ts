@@ -25,6 +25,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import { ConfigError } from "../config.js";
@@ -430,6 +431,8 @@ export interface RunSetupInput {
 	/** Lets tests inject a pre-loaded loader; defaults to native dynamic import. */
 	loader?: PluginLoader;
 	print?: SetupPrintLine;
+	/** Injectable keyring backend. Tests pass `() => null` to skip real OS keychain lookups. */
+	keyring?: (key: string) => string | null;
 }
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
@@ -723,14 +726,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── docs: configure GitHub Pages ────────────────────────────────────
 	if (loader.has("source") && config.docs) {
 		const source = loader.get("source") as Source;
-		const deployToken = process.env.HOLOCRON_DEPLOY_TOKEN;
+		const resolveDeployToken = createFeatureResolver({
+			envName: "HOLOCRON_DEPLOY_TOKEN",
+			keyringKey: "github.deploy",
+		});
+		let deployToken: string | undefined;
+		try {
+			deployToken = resolveDeployToken({ keyring: input.keyring });
+		} catch (err) {
+			if (!(err instanceof AuthError)) throw err;
+		}
 		print(style.step("docs"));
 		if (!deployToken) {
 			steps.push({
 				capability: "source",
 				step: "configure GitHub Pages",
 				status: "skip",
-				message: "HOLOCRON_DEPLOY_TOKEN not set — skipping Pages setup",
+				message:
+					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron auth set github.deploy <PAT>",
 			});
 			print(formatStep(steps[steps.length - 1]!));
 		} else if (source.configurePages) {
@@ -890,6 +903,16 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		dryRun ? `, ${summary.dryRun} would-do` : ""
 	}`;
 	print(summary.fail > 0 ? style.fail(summaryLine.trim()) : style.success(summaryLine.trim()));
+
+	const skippedSteps = steps.filter((s) => s.status === "skip");
+	if (skippedSteps.length > 0) {
+		print("");
+		print(style.hint("  Skipped:"));
+		for (const s of skippedSteps) {
+			/* v8 ignore next -- all skip steps set message; empty fallback is defensive */
+			print(style.hint(`    · ${s.step}${s.message ? `  (${s.message})` : ""}`));
+		}
+	}
 
 	if (steps.some((s) => s.reason === "permissions")) {
 		print("");
