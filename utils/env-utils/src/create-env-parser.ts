@@ -1,7 +1,7 @@
 import { debug } from "./debug.js";
 import { DotenvLoader } from "./loader.js";
 import type { EnvObject, EnvParser, EnvParserOptions } from "./types.js";
-import { buildEnvObject, getByPath, normalizeKey } from "./utils/index.js";
+import { buildEnvObject, getByPath, mergeNamespaces, normalizeKey } from "./utils/index.js";
 
 /**
  * Create an env parser for your app.
@@ -27,9 +27,10 @@ import { buildEnvObject, getByPath, normalizeKey } from "./utils/index.js";
  * }));
  */
 export function createEnvParser<T extends EnvObject = EnvObject>(options: EnvParserOptions): EnvParser<T> {
-	const { appName, loader = new DotenvLoader(), parseValues = true } = options;
+	const { appName, loader = new DotenvLoader(), parseValues = true, namespaces } = options;
 
-	const raw = loader.load();
+	const loaded = loader.load();
+	const raw = namespaces && namespaces.length > 0 ? mergeNamespaces(loaded, namespaces) : loaded;
 
 	// buildEnvObject returns EnvObject; T extends EnvObject and is caller-supplied,
 	// so this cast is the correct and minimal assertion needed here.

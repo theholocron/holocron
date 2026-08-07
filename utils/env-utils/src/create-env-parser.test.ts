@@ -236,4 +236,63 @@ describe("createEnvParser", () => {
 		deprecate("new_db_url", "database_url");
 		expect(warn).not.toHaveBeenCalled();
 	});
+
+	// --- namespaces ---
+
+	it("namespaces: only exposes vars matching the given prefix", () => {
+		const { env } = createEnvParser({
+			appName: "test-app",
+			namespaces: ["HOLOCRON"],
+			loader: makeLoader({ HOLOCRON_DEBUG: "true", PORT: "3000" }),
+		});
+		expect(env).toEqual({ debug: true });
+	});
+
+	it("namespaces: strips the prefix from keys", () => {
+		const { get } = createEnvParser({
+			appName: "test-app",
+			namespaces: ["CLI_TEMPLATE"],
+			loader: makeLoader({ CLI_TEMPLATE_SOUND: "true", CLI_TEMPLATE_DEBUG: "false" }),
+		});
+		expect(get("sound")).toBe(true);
+		expect(get("debug")).toBe(false);
+	});
+
+	it("namespaces: last namespace wins over earlier ones for the same key", () => {
+		const { get } = createEnvParser({
+			appName: "test-app",
+			// HOLOCRON is the global base; CLI_TEMPLATE is the local override (last = wins)
+			namespaces: ["HOLOCRON", "CLI_TEMPLATE"],
+			loader: makeLoader({ HOLOCRON_DEBUG: "true", CLI_TEMPLATE_DEBUG: "false" }),
+		});
+		expect(get("debug")).toBe(false);
+	});
+
+	it("namespaces: earlier namespace acts as base when the key is absent from later ones", () => {
+		const { get } = createEnvParser({
+			appName: "test-app",
+			namespaces: ["HOLOCRON", "CLI_TEMPLATE"],
+			loader: makeLoader({ HOLOCRON_VERBOSE: "true" }),
+		});
+		expect(get("verbose")).toBe(true);
+	});
+
+	it("namespaces: ignores unrelated vars entirely", () => {
+		const { get } = createEnvParser({
+			appName: "test-app",
+			namespaces: ["HOLOCRON"],
+			loader: makeLoader({ HOLOCRON_DEBUG: "true", PORT: "3000", OTHER_VAR: "x" }),
+		});
+		expect(get("port")).toBeUndefined();
+		expect(get("other_var")).toBeUndefined();
+	});
+
+	it("namespaces: behaves as unfiltered when not provided", () => {
+		const { get } = createEnvParser({
+			appName: "test-app",
+			loader: makeLoader({ PORT: "3000", HOLOCRON_DEBUG: "true" }),
+		});
+		expect(get("port")).toBe(3000);
+		expect(get("holocron_debug")).toBe(true);
+	});
 });
