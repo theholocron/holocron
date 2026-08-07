@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/astro-config",
-  "version": "7.14.4",
+  "version": "7.15.0",
   "description": "Astro configuration factory for theholocron docs sites.",
   "keywords": [
     "astro",
