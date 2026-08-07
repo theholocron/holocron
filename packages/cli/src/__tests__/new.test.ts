@@ -474,6 +474,52 @@ describe("runNew — homepage placeholder", () => {
 	});
 });
 
+// ── runNew — template-only block stripping ───────────────────────────
+
+describe("runNew — template-only block stripping", () => {
+	it("removes holocron:template-only blocks from all files", async () => {
+		const { exec } = makeExec();
+		const readme = [
+			"# My CLI",
+			"",
+			"<!-- holocron:template-only -->",
+			"## Getting Started",
+			"",
+			"Clone this template to get started.",
+			"<!-- /holocron:template-only -->",
+			"",
+			"## Installation",
+			"",
+			"```bash",
+			"npm install -g my-cli",
+			"```",
+		].join("\n");
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/README.md": { content: readme },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/README.md"]).not.toContain("holocron:template-only");
+		expect(written["/workspace/my-tool/README.md"]).not.toContain("Getting Started");
+		expect(written["/workspace/my-tool/README.md"]).toContain("## Installation");
+	});
+
+	it("leaves files without template-only blocks unchanged", async () => {
+		const { exec } = makeExec();
+		const readme = "# My CLI\n\n## Installation\n\nnpm install -g my-cli\n";
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/README.md": { content: readme },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/README.md"]).toBeUndefined();
+	});
+});
+
 // ── runNew — holocron.config.ts generation ────────────────────────────
 
 describe("runNew — holocron.config.ts", () => {
