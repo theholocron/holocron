@@ -674,6 +674,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
+		if (config.description && source.syncDescription) {
+			steps.push(
+				await runStep("source", "sync description", dryRun, () =>
+					source.syncDescription!(config.description!)
+				)
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		if (config.homepage && source.syncHomepage) {
+			steps.push(
+				await runStep("source", "sync homepage", dryRun, () =>
+					source.syncHomepage!(config.homepage!)
+				)
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
 		const teams = repo?.teams ?? [];
 		if (teams.length > 0) {
 			if (source.syncTeams) {

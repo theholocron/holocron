@@ -1382,6 +1382,114 @@ describe("runSetup", () => {
 		expect(called).toBe(false);
 	});
 
+	it("calls syncDescription when description is set in config", async () => {
+		let captured: string | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			description: "A great CLI tool",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncDescription: async (desc: string) => {
+						captured = desc;
+						return "description updated";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).toBe("A great CLI tool");
+		const step = report.steps.find((s) => s.step === "sync description");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("skips syncDescription when description is absent from config", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncDescription: async () => {
+						called = true;
+						return "description updated";
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+	});
+
+	it("calls syncHomepage when homepage is set in config", async () => {
+		let captured: string | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			homepage: "https://docs.example.com",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncHomepage: async (url: string) => {
+						captured = url;
+						return "homepage updated";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).toBe("https://docs.example.com");
+		const step = report.steps.find((s) => s.step === "sync homepage");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("skips syncHomepage when homepage is absent from config", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncHomepage: async () => {
+						called = true;
+						return "homepage updated";
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+	});
+
 	it("calls syncTeams and writes CODEOWNERS for writeable teams", async () => {
 		let capturedTeams: unknown = null;
 		const written: Record<string, string> = {};
