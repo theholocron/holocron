@@ -891,6 +891,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}`;
 	print(summary.fail > 0 ? style.fail(summaryLine.trim()) : style.success(summaryLine.trim()));
 
+	const skippedSteps = steps.filter((s) => s.status === "skip");
+	if (skippedSteps.length > 0) {
+		print("");
+		print(style.hint("  Skipped:"));
+		for (const s of skippedSteps) {
+			print(style.hint(`    · ${s.step}${s.message ? `  (${s.message})` : ""}`));
+		}
+	}
+
 	if (steps.some((s) => s.reason === "permissions")) {
 		print("");
 		print(style.warn("Some steps failed with 403 (insufficient token permissions)."));
