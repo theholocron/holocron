@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../config.js";
 import { runSyncReadme } from "../commands/sync-readme.js";
+import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 
 function makeLoaded(overrides: Partial<Parameters<typeof resolveConfig>[0]> = {}): LoadedConfig {

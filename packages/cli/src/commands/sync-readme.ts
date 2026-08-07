@@ -103,7 +103,6 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 	const { loaded, context, print = console.log, readFileFn = readFile, writeFileFn = writeFile } = input;
 
 	const { repoRoot, dryRun = false } = context;
-	const { description = "" } = loaded.resolved;
 
 	const namespaces = loaded.resolved.env?.namespaces ?? [];
 
