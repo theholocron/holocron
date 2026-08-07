@@ -28,7 +28,7 @@ export interface SyncReadmeReport {
 	message?: string;
 }
 
-function generateInstallBlock(pkg: PackageJson, description: string): string {
+function generateInstallBlock(pkg: PackageJson): string {
 	const { name = "", bin, peerDependencies = {} } = pkg;
 	const isCli = Boolean(bin);
 	const isReact = Boolean(peerDependencies["react"]);
@@ -121,7 +121,7 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 		return { status: "fail", updated: false, message: "Could not read package.json" };
 	}
 
-	const block = generateInstallBlock(pkg, description);
+	const block = generateInstallBlock(pkg);
 	const updated = await updateReadmeInstallation(repoRoot, block, dryRun, readFileFn, writeFileFn);
 
 	if (!updated) {
