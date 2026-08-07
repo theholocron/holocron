@@ -742,7 +742,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				capability: "source",
 				step: "configure GitHub Pages",
 				status: "skip",
-				message: "no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron auth set github.deploy <PAT>",
+				message:
+					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron auth set github.deploy <PAT>",
 			});
 			print(formatStep(steps[steps.length - 1]!));
 		} else if (source.configurePages) {
