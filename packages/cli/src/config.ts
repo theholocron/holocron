@@ -131,6 +131,24 @@ export interface DoctorConfig {
 	checks?: string[];
 }
 
+export interface EnvConfig {
+	/**
+	 * Namespace prefixes used by this project's env vars.
+	 * Listed from least- to most-specific (cascade model — last wins).
+	 * Tooling reads this to generate `.env.example`, validate required
+	 * vars, and produce documentation. Runtime code passes the same
+	 * value to `createEnvParser({ namespaces })` from `@theholocron/env-utils`.
+	 *
+	 * @example
+	 * // Project-only prefix
+	 * namespaces: ["CLI_TEMPLATE"]
+	 *
+	 * // Org-wide defaults + project-specific overrides
+	 * namespaces: ["HOLOCRON", "MY_CLI"]
+	 */
+	namespaces?: string[];
+}
+
 export interface HolocronConfig {
 	/** Project name. Derived from package.json when absent. */
 	name?: string;
@@ -193,6 +211,16 @@ export interface HolocronConfig {
 	 * { build: "workflow", domain: "docs.theholocron.dev", https: true }
 	 */
 	docs?: DocsConfig;
+	/**
+	 * Environment variable namespace configuration.
+	 * Declares the prefix(es) this project uses for its env vars so that
+	 * tooling can generate `.env.example`, validate required vars, and
+	 * produce accurate documentation without hard-coding prefix strings.
+	 *
+	 * @example
+	 * { namespaces: ["HOLOCRON", "MY_CLI"] }
+	 */
+	env?: EnvConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -225,6 +253,7 @@ export interface ResolvedHolocronConfig {
 	skills?: string[];
 	/** Resolved Pages config. `build` is guaranteed present when this field exists. */
 	docs?: PagesConfig;
+	env?: EnvConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -360,5 +389,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		agent: raw.agent,
 		skills: raw.skills,
 		docs,
+		env: raw.env,
 	};
 }
