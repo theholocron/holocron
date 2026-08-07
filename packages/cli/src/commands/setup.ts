@@ -676,19 +676,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		if (config.description && source.syncDescription) {
 			steps.push(
-				await runStep("source", "sync description", dryRun, () =>
-					source.syncDescription!(config.description!)
-				)
+				await runStep("source", "sync description", dryRun, () => source.syncDescription!(config.description!))
 			);
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
 		if (config.homepage && source.syncHomepage) {
-			steps.push(
-				await runStep("source", "sync homepage", dryRun, () =>
-					source.syncHomepage!(config.homepage!)
-				)
-			);
+			steps.push(await runStep("source", "sync homepage", dryRun, () => source.syncHomepage!(config.homepage!)));
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
