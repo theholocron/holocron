@@ -986,9 +986,9 @@ describe("runSetup", () => {
 			}),
 		});
 
-		await expect(
-			runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} })
-		).rejects.toThrow("at least one of");
+		await expect(runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} })).rejects.toThrow(
+			"at least one of"
+		);
 	});
 
 	it("does not throw when test workflow has run-unit: true and run-storybook: false", async () => {
