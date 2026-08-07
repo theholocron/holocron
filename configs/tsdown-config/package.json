@@ -39,6 +39,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./presets/cli": {
+      "types": "./dist/presets/cli.d.ts",
+      "import": "./dist/presets/cli.js",
+      "default": "./dist/presets/cli.js"
+    },
     "./presets/library": {
       "types": "./dist/presets/library.d.ts",
       "import": "./dist/presets/library.js",
