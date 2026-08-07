@@ -2264,7 +2264,13 @@ describe("setup: Pages step", () => {
 			called.push(args);
 		});
 
-		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+			keyring: () => undefined,
+		});
 
 		expect(called).toHaveLength(0);
 		const step = report.steps.find((s) => s.step === PAGES_STEP);

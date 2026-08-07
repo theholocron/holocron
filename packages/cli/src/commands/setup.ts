@@ -27,6 +27,7 @@ import { pathToFileURL } from "node:url";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
+import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import { ConfigError } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
@@ -430,6 +431,8 @@ export interface RunSetupInput {
 	/** Lets tests inject a pre-loaded loader; defaults to native dynamic import. */
 	loader?: PluginLoader;
 	print?: SetupPrintLine;
+	/** Injectable keyring backend. Tests pass `() => undefined` to skip real OS keychain lookups. */
+	keyring?: (key: string) => string | null | undefined;
 }
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
@@ -723,14 +726,23 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── docs: configure GitHub Pages ────────────────────────────────────
 	if (loader.has("source") && config.docs) {
 		const source = loader.get("source") as Source;
-		const deployToken = process.env.HOLOCRON_DEPLOY_TOKEN;
+		const resolveDeployToken = createFeatureResolver({
+			envName: "HOLOCRON_DEPLOY_TOKEN",
+			keyringKey: "github.deploy",
+		});
+		let deployToken: string | undefined;
+		try {
+			deployToken = resolveDeployToken({ keyring: input.keyring });
+		} catch (err) {
+			if (!(err instanceof AuthError)) throw err;
+		}
 		print(style.step("docs"));
 		if (!deployToken) {
 			steps.push({
 				capability: "source",
 				step: "configure GitHub Pages",
 				status: "skip",
-				message: "HOLOCRON_DEPLOY_TOKEN not set — skipping Pages setup",
+				message: "no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron auth set github.deploy <PAT>",
 			});
 			print(formatStep(steps[steps.length - 1]!));
 		} else if (source.configurePages) {
