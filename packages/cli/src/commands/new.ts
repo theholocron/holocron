@@ -300,6 +300,13 @@ function patchFiles(
 		if (runtimeEnvironment !== undefined) {
 			content = content.split("<runtime_environment>").join(runtimeEnvironment);
 		}
+		// Strip template-only blocks — sections relevant only to the template
+		// repo itself (e.g. "Getting Started" scaffolding instructions) that
+		// should not appear in projects generated from the template.
+		content = content.replace(
+			/\n?<!-- holocron:template-only -->[\s\S]*?<!-- \/holocron:template-only -->\n?/g,
+			""
+		);
 
 		if (content !== original) {
 			writeFn(filepath, content);
