@@ -968,6 +968,56 @@ describe("runSetup", () => {
 		expect(unknownStep?.message).toContain("unknown workflow");
 	});
 
+	it("throws ConfigError when test workflow has both run-unit and run-storybook set to false", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [{ name: "test", with: { "run-unit": false, "run-storybook": false } }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await expect(runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} })).rejects.toThrow(
+			"at least one of"
+		);
+	});
+
+	it("does not throw when test workflow has run-unit: true and run-storybook: false", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [{ name: "test", with: { "run-unit": true, "run-storybook": false } }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await expect(
+			runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} })
+		).resolves.not.toThrow();
+		expect(written.some((c) => c.includes("run-unit: true"))).toBe(true);
+	});
+
 	it("dry-run skips workflow writes", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({

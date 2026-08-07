@@ -27,6 +27,7 @@ import { pathToFileURL } from "node:url";
 
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
+import { ConfigError } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { withSpinner } from "../ui/progress.js";
@@ -520,6 +521,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const withOverrides = typeof entry === "object" ? entry.with : undefined;
 			const additionalPaths = typeof entry === "object" ? entry.paths : undefined;
+
+			// Enforce that the test workflow has at least one test type enabled.
+			// This check lives here so it fails at setup time rather than silently
+			// producing a CI job that never runs any tests.
+			if (name === "test" && withOverrides) {
+				const runUnit = withOverrides["run-unit"];
+				const runStorybook = withOverrides["run-storybook"];
+				const unitDisabled = runUnit === false;
+				const storybookDisabled = runStorybook === false;
+				const neitherEnabled = unitDisabled && storybookDisabled;
+				if (neitherEnabled) {
+					throw new ConfigError(
+						'test workflow: at least one of "run-unit" or "run-storybook" must be true. ' +
+							"Library repos use run-unit: true; UI/Storybook repos use run-storybook: true."
+					);
+				}
+			}
+
 			if (!KNOWN_WORKFLOWS.has(name)) {
 				steps.push({
 					capability: "source",

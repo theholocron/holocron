@@ -37,16 +37,6 @@ on: # yamllint disable-line rule:truthy
         required: false
 
 jobs:
-  validate:
-    name: Validate — at least one test type must be enabled
-    if: ${{ !inputs.run-unit && !inputs.run-storybook }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fail — set run-unit or run-storybook to true
-        run: |
-          echo "::error::At least one of run-unit or run-storybook must be true. Library repos use run-unit: true; UI/Storybook repos use run-storybook: true."
-          exit 1
-
   unit:
     name: Run tests and collect coverage
     if: ${{ inputs.run-unit }}
