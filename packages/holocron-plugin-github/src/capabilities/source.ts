@@ -159,7 +159,7 @@ export class GitHubSource implements Source {
 	}
 
 	async syncProperties(values: Record<string, string>): Promise<string> {
-		return syncProperties(this.orgClient ?? this.client, this.repo, values);
+		return syncProperties(this.client, this.repo, values);
 	}
 
 	async syncTeams(teams: TeamEntry[]): Promise<string> {
