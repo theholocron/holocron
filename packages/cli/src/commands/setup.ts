@@ -25,9 +25,9 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
-import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import { ConfigError } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
@@ -909,6 +909,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print("");
 		print(style.hint("  Skipped:"));
 		for (const s of skippedSteps) {
+			/* v8 ignore next -- all skip steps set message; empty fallback is defensive */
 			print(style.hint(`    · ${s.step}${s.message ? `  (${s.message})` : ""}`));
 		}
 	}
