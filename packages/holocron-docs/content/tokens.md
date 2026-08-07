@@ -19,14 +19,14 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 
 ## GitHub tokens
 
-| Env var                  | Keyring key      | Type               | Used by                                                                          | Required scopes                                                                 |
-| ------------------------ | ---------------- | ------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `HOLOCRON_READ_TOKEN`    | `github.read`    | Fine-grained       | `clone`, CI run listing                                                          | `contents: read`, `actions: read`, `metadata: read`                             |
-| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | Fine-grained       | `issues` capability (create, transition, comment)                                | `issues: read/write`, `metadata: read`                                          |
-| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | Fine-grained       | `sync-github` — push workflow templates, open PRs                                | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`    |
-| `HOLOCRON_RELEASE_TOKEN` | `github.release` | Fine-grained       | semantic-release: tags, releases, changelogs                                     | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`       |
-| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties | `administration: read/write`, `secrets: read/write`, `environments: read/write` |
-| `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                        | `pages: read/write`, `metadata: read`                                           |
+| Env var                  | Keyring key      | Type               | Used by                                                                          | Required scopes                                                                                                |
+| ------------------------ | ---------------- | ------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_READ_TOKEN`    | `github.read`    | Fine-grained       | `clone`, CI run listing                                                          | `contents: read`, `actions: read`, `metadata: read`                                                            |
+| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | Fine-grained       | `issues` capability (create, transition, comment)                                | `issues: read/write`, `metadata: read`                                                                         |
+| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | Fine-grained       | `sync-github` — push workflow templates, open PRs                                | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                                   |
+| `HOLOCRON_RELEASE_TOKEN` | `github.release` | Fine-grained       | semantic-release: tags, releases, changelogs                                     | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                      |
+| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties | `administration: read/write`, `secrets: read/write`, `environments: read/write`                                |
+| `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                        | `pages: read/write`, `metadata: read`                                                                          |
 | `HOLOCRON_ORG_TOKEN`     | `github.org`     | Fine-grained (org) | `setup` — team sync and org-level custom property values                         | Resource owner: org · `administration: write` · `members: read` · `organization_custom_properties: read/write` |
 
 ### Why a separate org token?
