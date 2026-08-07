@@ -431,8 +431,8 @@ export interface RunSetupInput {
 	/** Lets tests inject a pre-loaded loader; defaults to native dynamic import. */
 	loader?: PluginLoader;
 	print?: SetupPrintLine;
-	/** Injectable keyring backend. Tests pass `() => undefined` to skip real OS keychain lookups. */
-	keyring?: (key: string) => string | null | undefined;
+	/** Injectable keyring backend. Tests pass `() => null` to skip real OS keychain lookups. */
+	keyring?: (key: string) => string | null;
 }
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {

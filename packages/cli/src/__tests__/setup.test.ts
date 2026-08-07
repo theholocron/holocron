@@ -2269,13 +2269,30 @@ describe("setup: Pages step", () => {
 			context: { repoRoot: "/tmp/test" },
 			loader,
 			print: () => {},
-			keyring: () => undefined,
+			keyring: () => null,
 		});
 
 		expect(called).toHaveLength(0);
 		const step = report.steps.find((s) => s.step === PAGES_STEP);
 		expect(step?.status).toBe("skip");
 		expect(step?.message).toContain("HOLOCRON_DEPLOY_TOKEN");
+	});
+
+	it("re-throws non-AuthError exceptions from deploy token resolution", async () => {
+		const boom = new Error("keyring exploded");
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async () => {});
+
+		await expect(
+			runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+				keyring: () => {
+					throw boom;
+				},
+			})
+		).rejects.toThrow("keyring exploded");
 	});
 
 	it("does not add a Pages step when docs is absent from config", async () => {
