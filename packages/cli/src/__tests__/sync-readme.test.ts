@@ -127,7 +127,7 @@ describe("runSyncReadme", () => {
 		expect(written["/tmp/test/README.md"]).toContain("<!-- holocron:installation -->");
 	});
 
-	it("does not write in dry-run mode", async () => {
+	it("does not write in dry-run mode (existing markers)", async () => {
 		const { readFileFn, writeFileFn } = makeFs({
 			"/tmp/test/package.json": CLI_PKG,
 			"/tmp/test/README.md": README_WITH_MARKERS,
@@ -141,6 +141,37 @@ describe("runSyncReadme", () => {
 		});
 		expect(report).toMatchObject({ status: "dry-run", updated: true });
 		expect(writeFileFn).not.toHaveBeenCalled();
+	});
+
+	it("does not write in dry-run mode (no markers, inserts after h1)", async () => {
+		const { readFileFn, writeFileFn } = makeFs({
+			"/tmp/test/package.json": CLI_PKG,
+			"/tmp/test/README.md": README_BARE,
+		});
+		const report = await runSyncReadme({
+			loaded: makeLoaded(),
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			print: () => {},
+			readFileFn,
+			writeFileFn,
+		});
+		expect(report).toMatchObject({ status: "dry-run", updated: true });
+		expect(writeFileFn).not.toHaveBeenCalled();
+	});
+
+	it("returns fail when README has no h1 and no markers", async () => {
+		const { readFileFn, writeFileFn } = makeFs({
+			"/tmp/test/package.json": CLI_PKG,
+			"/tmp/test/README.md": "No heading here at all.",
+		});
+		const report = await runSyncReadme({
+			loaded: makeLoaded(),
+			context: { repoRoot: "/tmp/test" },
+			print: () => {},
+			readFileFn,
+			writeFileFn,
+		});
+		expect(report).toMatchObject({ status: "fail", updated: false });
 	});
 
 	it("prints namespaces when env.namespaces is configured", async () => {
