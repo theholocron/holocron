@@ -1,4 +1,13 @@
+import { coverage, node } from "@theholocron/vitest-config";
 import { defineConfig } from "vitest/config";
-import { node } from "@theholocron/vitest-config";
 
-export default defineConfig(node());
+export default defineConfig({
+	...node(),
+	test: {
+		...node().test,
+		coverage: {
+			...coverage,
+			include: ["index.ts"],
+		},
+	},
+});

@@ -32,6 +32,10 @@ export const defaultAssertions: LighthouseAssertion = {
 export interface LighthouseConfigOptions {
 	url: string | string[];
 	startServerCommand?: string;
+	/** Pattern lhci waits for in server stdout before running audits. Defaults to lhci's built-in /(listen|ready)/i. */
+	startServerReadyPattern?: string;
+	/** Milliseconds to wait for startServerReadyPattern before timing out. */
+	startServerReadyTimeout?: number;
 	assertions?: LighthouseAssertion;
 	/** @default "temporary-public-storage" */
 	uploadTarget?: string;
@@ -40,6 +44,8 @@ export interface LighthouseConfigOptions {
 export function defineConfig({
 	url,
 	startServerCommand,
+	startServerReadyPattern,
+	startServerReadyTimeout,
 	assertions = defaultAssertions,
 	uploadTarget = "temporary-public-storage",
 }: LighthouseConfigOptions) {
@@ -48,6 +54,8 @@ export function defineConfig({
 			collect: {
 				url: Array.isArray(url) ? url : [url],
 				...(startServerCommand ? { startServerCommand } : {}),
+				...(startServerReadyPattern !== undefined ? { startServerReadyPattern } : {}),
+				...(startServerReadyTimeout !== undefined ? { startServerReadyTimeout } : {}),
 			},
 			assert: { assertions },
 			upload: { target: uploadTarget },
