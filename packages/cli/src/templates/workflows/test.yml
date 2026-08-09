@@ -28,6 +28,11 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      wait-on-url:
+        description: URL to wait for before running Cypress tests (default is Vite dev server; override for non-Vite stacks e.g. http://localhost:3000 for Next.js)
+        type: string
+        required: false
+        default: "http://localhost:5173"
     secrets:
       CHROMATIC_PROJECT_TOKEN:
         required: false
@@ -177,7 +182,7 @@ jobs:
         name: Cypress run
         with:
           start: pnpm dev
-          wait-on: "http://localhost:5173"
+          wait-on: ${{ inputs.wait-on-url }}
           record: true
           parallel: true
         env:
