@@ -495,6 +495,93 @@ describe("runSetup", () => {
 		expect(defaultSetupEnabled).toBe(true);
 	});
 
+	it("skips enableSecretScanning when the API returns 422 (public repo)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {
+						throw new ProviderApiError("already enabled", 422);
+					},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.status).toBe("skip");
+		expect(report.summary.fail).toBe(0);
+	});
+
+	it("skips enablePrivateVulnerabilityReporting when the API returns 404 (public repo)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {
+						throw new ProviderApiError("not found", 404);
+					},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "enablePrivateVulnerabilityReporting");
+		expect(step?.status).toBe("skip");
+		expect(report.summary.fail).toBe(0);
+	});
+
+	it("skips disableDefaultCodeScanning when the API returns 403 plan restriction", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: ["codeql"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					disableDefaultCodeScanning: async () => {
+						throw new ProviderApiError("GitHub Advanced Security is not enabled", 403);
+					},
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "disableDefaultCodeScanning");
+		expect(step?.status).toBe("skip");
+		expect(step?.reason).toBe("plan");
+		expect(report.summary.fail).toBe(0);
+	});
+
 	it("applies balanced repo settings + creates a ruleset when repo.protection is 'balanced'", async () => {
 		let settingsApplied: Record<string, unknown> | null = null;
 		let rulesetCreated: Record<string, unknown> | null = null;
@@ -1533,6 +1620,41 @@ describe("runSetup", () => {
 		const codeownersStep = report.steps.find((s) => s.step === "write .github/CODEOWNERS");
 		expect(codeownersStep?.status).toBe("ok");
 		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
+	});
+
+	it("skips sync teams when the API returns 422 (team already assigned)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "gatekeepers", permission: "maintain" as const }] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+					syncTeams: async () => {
+						throw new ProviderApiError("team already has access", 422);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			print: () => {},
+		});
+		const teamsStep = report.steps.find((s) => s.step === "sync teams");
+		expect(teamsStep?.status).toBe("skip");
+		expect(report.summary.fail).toBe(0);
 	});
 
 	it("skips CODEOWNERS when all teams have pull/triage permission only", async () => {

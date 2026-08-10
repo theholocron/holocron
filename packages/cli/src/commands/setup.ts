@@ -454,6 +454,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
 		print(style.step("source"));
+		// Secret scanning on public repos is always on (422); private vuln
+		// reporting doesn't exist on public repos (404). Treat both as skip so
+		// a public-repo setup doesn't report spurious failures.
+		const SECURITY_SKIP_CODES: Partial<Record<string, number[]>> = {
+			enableSecretScanning: [422],
+			enablePrivateVulnerabilityReporting: [404],
+		};
 		for (const method of [
 			"enableVulnerabilityAlerts",
 			"enableAutomatedSecurityFixes",
@@ -462,9 +469,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			"enableDependencyGraph",
 		] as const) {
 			steps.push(
-				await runStep("source", method, dryRun, async () => {
-					await source[method]();
-				})
+				await runStep(
+					"source",
+					method,
+					dryRun,
+					async () => {
+						await source[method]();
+					},
+					{ skipCodes: SECURITY_SKIP_CODES[method] }
+				)
 			);
 			print(formatStep(steps[steps.length - 1]!));
 		}
@@ -689,7 +702,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const teams = repo?.teams ?? [];
 		if (teams.length > 0) {
 			if (source.syncTeams) {
-				steps.push(await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
+				// 422 means the team is already assigned — desired state is in place,
+				// so treat it as an idempotent success (skip) rather than a failure.
+				steps.push(
+					await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams), { skipCodes: [422] })
+				);
 				print(formatStep(steps[steps.length - 1]!));
 
 				// Only split on "/" so a bare repo name (no owner prefix) yields an
@@ -1201,7 +1218,8 @@ async function runStep(
 	capability: string,
 	step: string,
 	dryRun: boolean,
-	body: () => Promise<string | void>
+	body: () => Promise<string | void>,
+	opts: { skipCodes?: number[] } = {}
 ): Promise<SetupStepResult> {
 	if (dryRun) {
 		return { capability, step, status: "dry-run" };
@@ -1212,9 +1230,16 @@ async function runStep(
 		if (typeof note === "string") result.message = note;
 		return result;
 	} catch (err) {
-		if (err instanceof ProviderApiError && err.status === 403) {
-			const reason = classify403(err);
-			return { capability, step, status: "fail", message: err.message, reason };
+		if (err instanceof ProviderApiError) {
+			if (err.status !== undefined && opts.skipCodes?.includes(err.status)) {
+				return { capability, step, status: "skip", message: err.message };
+			}
+			if (err.status === 403) {
+				const reason = classify403(err);
+				// Plan-restriction 403s mean the feature is unavailable on the current
+				// plan — not a setup failure, just a capability gap. Report as skip.
+				return { capability, step, status: reason === "plan" ? "skip" : "fail", message: err.message, reason };
+			}
 		}
 		return {
 			capability,
