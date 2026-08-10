@@ -495,6 +495,34 @@ describe("runSetup", () => {
 		expect(defaultSetupEnabled).toBe(true);
 	});
 
+	it("reports fail (not skip) when a step throws a 403 permissions error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {
+						throw new ProviderApiError("Forbidden", 403);
+					},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(step?.status).toBe("fail");
+		expect(step?.reason).toBe("permissions");
+	});
+
 	it("skips enableSecretScanning when the API returns 422 (public repo)", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
