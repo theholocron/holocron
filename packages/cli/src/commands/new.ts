@@ -352,11 +352,9 @@ function defaultExec(
 }
 
 function keychainLookup(key: string): string | undefined {
-	const result = spawnSync(
-		"security",
-		["find-generic-password", "-s", "com.theholocron.cli", "-a", key, "-w"],
-		{ encoding: "utf8" }
-	);
+	const result = spawnSync("security", ["find-generic-password", "-s", "com.theholocron.cli", "-a", key, "-w"], {
+		encoding: "utf8",
+	});
 	return result.status === 0 ? result.stdout?.trim() || undefined : undefined;
 }
 
@@ -423,11 +421,10 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	// gh repo create --template does not reliably honor --public/--private on all
 	// plan/org combinations, so set visibility explicitly after creation.
 	try {
-		execFn(
-			"gh",
-			["repo", "edit", newRepo, `--visibility=${input.openSource ? "public" : "private"}`],
-			{ cwd, stdio: "inherit" }
-		);
+		execFn("gh", ["repo", "edit", newRepo, `--visibility=${input.openSource ? "public" : "private"}`], {
+			cwd,
+			stdio: "inherit",
+		});
 	} catch {
 		// non-fatal — visibility can be changed manually in repo settings
 	}
