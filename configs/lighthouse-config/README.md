@@ -22,8 +22,8 @@ Create a `lighthouse.config.js` at the project root and pass it to `lhci` with `
 import { defineConfig } from "@theholocron/lighthouse-config";
 
 export default defineConfig({
-	url: "http://localhost:5173/",
-	startServerCommand: "pnpm dev",
+  url: "http://localhost:5173/",
+  startServerCommand: "pnpm dev",
 });
 ```
 
@@ -59,11 +59,11 @@ Override individual thresholds by spreading and replacing:
 import { defineConfig, defaultAssertions } from "@theholocron/lighthouse-config";
 
 export default defineConfig({
-	url: "http://localhost:5173/",
-	startServerCommand: "pnpm dev",
-	assertions: {
-		...defaultAssertions,
-		"largest-contentful-paint": ["error", { minScore: 0.95 }],
-	},
+  url: "http://localhost:5173/",
+  startServerCommand: "pnpm dev",
+  assertions: {
+    ...defaultAssertions,
+    "largest-contentful-paint": ["error", { minScore: 0.95 }],
+  },
 });
 ```

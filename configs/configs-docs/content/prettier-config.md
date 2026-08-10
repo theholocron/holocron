@@ -17,7 +17,7 @@ In `package.json`:
 
 ```json
 {
-	"prettier": "@theholocron/prettier-config"
+  "prettier": "@theholocron/prettier-config"
 }
 ```
 

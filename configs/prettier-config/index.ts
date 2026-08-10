@@ -18,6 +18,13 @@ const config = {
 	useTabs: true,
 	overrides: [
 		{
+			files: ["*.md", "*.mdx"],
+			options: {
+				tabWidth: 2,
+				useTabs: false,
+			},
+		},
+		{
 			files: ["*.json", "*.yml", "*.yaml"],
 			options: {
 				tabWidth: 2,

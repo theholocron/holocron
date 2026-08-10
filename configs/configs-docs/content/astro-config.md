@@ -19,8 +19,8 @@ import { defineConfig } from "@theholocron/astro-config";
 import clientsConfig from "@theholocron/clients-docs";
 
 export default defineConfig({
-	docs: clientsConfig,
-	importMetaUrl: import.meta.url,
+  docs: clientsConfig,
+  importMetaUrl: import.meta.url,
 });
 ```
 
@@ -31,8 +31,8 @@ import { defineConfig } from "@theholocron/astro-config";
 import holocronConfig from "@theholocron/holocron-docs";
 
 export default defineConfig({
-	docs: holocronConfig,
-	importMetaUrl: import.meta.url,
-	sidebarLabel: "Reference",
+  docs: holocronConfig,
+  importMetaUrl: import.meta.url,
+  sidebarLabel: "Reference",
 });
 ```

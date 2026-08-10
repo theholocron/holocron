@@ -22,4 +22,13 @@ describe("prettier-config", () => {
 		expect(Array.isArray(config.overrides)).toBe(true);
 		expect(config.overrides!.length).toBeGreaterThan(0);
 	});
+
+	it("uses spaces (not tabs) for markdown files", () => {
+		const mdOverride = config.overrides!.find((o) =>
+			Array.isArray(o.files) ? o.files.includes("*.md") : o.files === "*.md"
+		);
+		expect(mdOverride).toBeDefined();
+		expect(mdOverride!.options?.useTabs).toBe(false);
+		expect(mdOverride!.options?.tabWidth).toBe(2);
+	});
 });

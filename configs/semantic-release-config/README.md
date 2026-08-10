@@ -26,12 +26,12 @@ Create a `release.config.js` at your repo root:
 import { defineConfig } from "@theholocron/semantic-release-config";
 
 export default defineConfig({
-	branches: ["main", { name: "alpha", prerelease: true }],
-	exec: {
-		prepareCmd: "pnpm exec holocron npm bump-versions ${nextRelease.version}",
-		publishCmd:
-			"pnpm -r --filter='./packages/*' publish --access public --no-git-checks --tag ${nextRelease.channel || 'latest'}",
-	},
+  branches: ["main", { name: "alpha", prerelease: true }],
+  exec: {
+    prepareCmd: "pnpm exec holocron npm bump-versions ${nextRelease.version}",
+    publishCmd:
+      "pnpm -r --filter='./packages/*' publish --access public --no-git-checks --tag ${nextRelease.channel || 'latest'}",
+  },
 });
 ```
 

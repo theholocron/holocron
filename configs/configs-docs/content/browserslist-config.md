@@ -17,7 +17,7 @@ Add to your `package.json`:
 
 ```json
 {
-	"browserslist": ["extends @theholocron/browserslist-config"]
+  "browserslist": ["extends @theholocron/browserslist-config"]
 }
 ```
 

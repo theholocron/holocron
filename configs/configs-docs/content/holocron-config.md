@@ -19,7 +19,7 @@ In `holocron.config.ts`:
 import { defineConfig } from "@theholocron/holocron-config";
 
 export default defineConfig({
-	// your overrides
+  // your overrides
 });
 ```
 

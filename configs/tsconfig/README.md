@@ -16,7 +16,7 @@ In your project `tsconfig.json`, extend one of the two base configurations:
 
 ```json
 {
-	"extends": "@theholocron/tsconfig/nextjs"
+  "extends": "@theholocron/tsconfig/nextjs"
 }
 ```
 
@@ -26,6 +26,6 @@ Targets the current Node LTS feature set. All theholocron projects use this:
 
 ```json
 {
-	"extends": "@theholocron/tsconfig/node-lts"
+  "extends": "@theholocron/tsconfig/node-lts"
 }
 ```

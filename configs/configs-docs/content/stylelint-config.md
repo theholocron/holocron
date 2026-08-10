@@ -17,6 +17,6 @@ In `.stylelintrc.cjs`:
 
 ```js
 module.exports = {
-	extends: ["@theholocron/stylelint-config"],
+  extends: ["@theholocron/stylelint-config"],
 };
 ```

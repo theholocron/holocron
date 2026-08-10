@@ -29,10 +29,10 @@ import { reactLibrary } from "@theholocron/vite-config/react-library";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 
 export default reactLibrary({
-	name: "my-lib",
-	overrides: {
-		plugins: [storybookTest()],
-	},
+  name: "my-lib",
+  overrides: {
+    plugins: [storybookTest()],
+  },
 });
 ```
 
@@ -89,8 +89,8 @@ Set `CODECOV_TOKEN` as a CI secret, then add the following to your `codecov.yml`
 
 ```yaml
 comment:
-    require_bundle_changes: true
-    bundle_change_threshold: "1Kb"
+  require_bundle_changes: true
+  bundle_change_threshold: "1Kb"
 ```
 
 This posts a comment only when bundle size changes by more than 1 KB — enough to flag meaningful regressions without noise from routine fluctuations. See the [Codecov bundle analysis docs](https://docs.codecov.com/docs/javascript-bundle-analysis) for more threshold options.
