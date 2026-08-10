@@ -45,15 +45,19 @@ export interface RunNewInput {
 	usesExternalPackages?: boolean;
 	topics?: string[];
 	skills?: string[];
+	/** Mark the new repo as a GitHub template repository. */
+	isTemplate?: boolean;
 	/** GitHub org that owns both the template and the new repo. Default: "theholocron". */
 	org?: string;
+	/** GitHub admin token forwarded to `holocron setup` during verify. */
+	token?: string;
 	dryRun?: boolean;
 	noVerify?: boolean;
 	/** Parent directory where the repo will be cloned. Default: process.cwd(). */
 	cwd?: string;
 	print?: (line: string) => void;
 	/** Injectable subprocess runner for testing. */
-	exec?: (cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }) => void;
+	exec?: (cmd: string, args: string[], opts: { cwd: string; stdio: "inherit"; env?: Record<string, string> }) => void;
 	/** Injectable file writer for testing. */
 	writeFile?: (filepath: string, content: string) => void;
 	/** Injectable file reader for testing (returns utf-8 string). */
@@ -293,6 +297,13 @@ function patchFiles(
 		}
 		if (description !== undefined) {
 			content = content.split("<description>").join(description);
+			// Also replace the content of <!-- holocron:description --> blocks so
+			// the README description marker is updated even when the template has
+			// real prose rather than a bare <description> placeholder.
+			content = content.replace(
+				/(<!-- holocron:description -->)[\s\S]*?(<!-- \/holocron:description -->)/g,
+				`$1\n${description}\n$2`
+			);
 		}
 		if (homepage !== undefined) {
 			content = content.split("<homepage>").join(homepage);
@@ -328,8 +339,23 @@ function preflight(): void {
 
 // ── Defaults ──────────────────────────────────────────────────────────
 
-function defaultExec(cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }): void {
-	execFileSync(cmd, args, { cwd: opts.cwd, stdio: opts.stdio });
+function defaultExec(
+	cmd: string,
+	args: string[],
+	opts: { cwd: string; stdio: "inherit"; env?: Record<string, string> }
+): void {
+	execFileSync(cmd, args, {
+		cwd: opts.cwd,
+		stdio: opts.stdio,
+		...(opts.env && Object.keys(opts.env).length > 0 ? { env: { ...process.env, ...opts.env } } : {}),
+	});
+}
+
+function keychainLookup(key: string): string | undefined {
+	const result = spawnSync("security", ["find-generic-password", "-s", "com.theholocron.cli", "-a", key, "-w"], {
+		encoding: "utf8",
+	});
+	return result.status === 0 ? result.stdout?.trim() || undefined : undefined;
 }
 
 function defaultReadFile(filepath: string): string {
@@ -374,13 +400,33 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	}
 
 	print(`  Creating ${newRepo} from template ${templateRepo}…`);
+	const visibility = input.openSource ? "--public" : "--private";
 	try {
-		execFn("gh", ["repo", "create", newRepo, `--template=${templateRepo}`, "--private", "--clone"], {
+		execFn("gh", ["repo", "create", newRepo, `--template=${templateRepo}`, visibility, "--clone"], {
 			cwd,
 			stdio: "inherit",
 		});
 	} catch (err) {
 		throw new NewError(`gh repo create failed: ${err instanceof Error ? err.message : String(err)}`);
+	}
+
+	if (input.isTemplate) {
+		try {
+			execFn("gh", ["repo", "edit", newRepo, "--template=true"], { cwd, stdio: "inherit" });
+		} catch {
+			// non-fatal — template flag can be set manually in repo settings
+		}
+	}
+
+	// gh repo create --template does not reliably honor --public/--private on all
+	// plan/org combinations, so set visibility explicitly after creation.
+	try {
+		execFn("gh", ["repo", "edit", newRepo, `--visibility=${input.openSource ? "public" : "private"}`], {
+			cwd,
+			stdio: "inherit",
+		});
+	} catch {
+		// non-fatal — visibility can be changed manually in repo settings
 	}
 
 	// Detect template slug from cloned package.json
@@ -406,6 +452,10 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	// priority — e.g. "@theholocron/node-template" becomes "@<org>/<name>"
 	// rather than "@theholocron/<name>".
 	variants.unshift([`theholocron/${templateSlug}`, `${org}/${input.name}`]);
+	// Add <display_name> placeholder → title-case of the new repo name, so
+	// tsconfig.json "display" fields and similar use the correct human label.
+	const displayName = input.name.split("-").map(cap).join(" ");
+	variants.push(["<display_name>", displayName]);
 	const filesPatched = patchFiles(
 		repoDir,
 		variants,
@@ -481,7 +531,28 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		print("");
 		print("  Running holocron setup…");
 		try {
-			execFn("holocron", ["setup"], { cwd: repoDir, stdio: "inherit" });
+			const setupArgs: string[] = ["setup"];
+			const setupEnv: Record<string, string> = {};
+
+			// Admin token: drives rulesets, repo settings, workflows, Pages.
+			// Prefer the value forwarded via --token; fall back to keychain.
+			const adminToken = input.token ?? keychainLookup("github.admin");
+			if (adminToken) setupArgs.push("--token", adminToken);
+
+			// Org token: drives team assignments and custom properties.
+			// Skip keychain if already in env (subprocess inherits it anyway).
+			if (!process.env["HOLOCRON_ORG_TOKEN"]) {
+				const orgToken = keychainLookup("github.org");
+				if (orgToken) setupEnv["HOLOCRON_ORG_TOKEN"] = orgToken;
+			}
+
+			// Deploy token: drives GitHub Pages configuration.
+			if (!process.env["HOLOCRON_DEPLOY_TOKEN"]) {
+				const deployToken = keychainLookup("github.deploy");
+				if (deployToken) setupEnv["HOLOCRON_DEPLOY_TOKEN"] = deployToken;
+			}
+
+			execFn("holocron", setupArgs, { cwd: repoDir, stdio: "inherit", env: setupEnv });
 		} catch {
 			print("  ✗ holocron setup failed — run it manually after checking your config");
 		}

@@ -45,9 +45,9 @@ function makeFs(files: Record<string, FakeFile> = {}) {
 }
 
 function makeExec() {
-	const calls: Array<{ cmd: string; args: string[] }> = [];
-	const exec = (cmd: string, args: string[]) => {
-		calls.push({ cmd, args });
+	const calls: Array<{ cmd: string; args: string[]; env?: Record<string, string> }> = [];
+	const exec = (cmd: string, args: string[], opts?: { env?: Record<string, string> }) => {
+		calls.push({ cmd, args, env: opts?.env });
 	};
 	return { exec, calls };
 }
@@ -517,6 +517,319 @@ describe("runNew — template-only block stripping", () => {
 		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
 
 		expect(written["/workspace/my-tool/README.md"]).toBeUndefined();
+	});
+});
+
+// ── runNew — display_name placeholder ────────────────────────────────
+
+describe("runNew — <display_name> placeholder", () => {
+	it("replaces <display_name> with title-case of the new repo name", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/tsconfig.json": { content: '{"display": "<display_name>"}' },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/tsconfig.json"]).toContain("My Tool");
+		expect(written["/workspace/my-tool/tsconfig.json"]).not.toContain("<display_name>");
+	});
+
+	it("derives title-case from multi-word repo names", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/monorepo-react-template/package.json": {
+				content: JSON.stringify({ name: "@theholocron/monorepo-template" }),
+			},
+			"/workspace/monorepo-react-template/tsconfig.json": {
+				content: '{"display": "<display_name>"}',
+			},
+		});
+
+		await runNew({
+			...BASE,
+			type: "monorepo",
+			name: "monorepo-react-template",
+			cwd: "/workspace",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		expect(written["/workspace/monorepo-react-template/tsconfig.json"]).toContain("Monorepo React Template");
+	});
+});
+
+// ── runNew — description block replacement ────────────────────────────
+
+describe("runNew — description block replacement", () => {
+	it("replaces content inside <!-- holocron:description --> markers", async () => {
+		const { exec } = makeExec();
+		const readme = [
+			"# my-tool",
+			"",
+			"<!-- holocron:description -->",
+			"Old template description from the source repo.",
+			"<!-- /holocron:description -->",
+			"",
+			"## Installation",
+		].join("\n");
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/README.md": { content: readme },
+		});
+
+		await runNew({
+			...BASE,
+			description: "A fast CLI tool for X",
+			exec,
+			readFile,
+			writeFile,
+			walkFiles,
+			print: () => {},
+		});
+
+		expect(written["/workspace/my-tool/README.md"]).toContain("A fast CLI tool for X");
+		expect(written["/workspace/my-tool/README.md"]).not.toContain("Old template description");
+		expect(written["/workspace/my-tool/README.md"]).toContain("<!-- holocron:description -->");
+		expect(written["/workspace/my-tool/README.md"]).toContain("<!-- /holocron:description -->");
+	});
+
+	it("leaves the markers intact when description is undefined", async () => {
+		const { exec } = makeExec();
+		const readme = "<!-- holocron:description -->\nOld.\n<!-- /holocron:description -->\n";
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/README.md": { content: readme },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		// No description → no change → file not written
+		expect(written["/workspace/my-tool/README.md"]).toBeUndefined();
+	});
+});
+
+// ── runNew — visibility update ────────────────────────────────────────
+
+describe("runNew — explicit visibility update", () => {
+	it("calls gh repo edit --visibility=public when openSource is true", async () => {
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, openSource: true, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const visibilityCall = calls.find(
+			(c) => c.cmd === "gh" && c.args.includes("edit") && c.args.some((a) => a.includes("visibility"))
+		);
+		expect(visibilityCall).toBeDefined();
+		expect(visibilityCall?.args).toContain("--visibility=public");
+	});
+
+	it("calls gh repo edit --visibility=private when openSource is false", async () => {
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, openSource: false, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const visibilityCall = calls.find(
+			(c) => c.cmd === "gh" && c.args.includes("edit") && c.args.some((a) => a.includes("visibility"))
+		);
+		expect(visibilityCall?.args).toContain("--visibility=private");
+	});
+});
+
+// ── runNew — isTemplate flag ──────────────────────────────────────────
+
+describe("runNew — isTemplate flag", () => {
+	it("calls gh repo edit --template=true when isTemplate is true", async () => {
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, isTemplate: true, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const templateCall = calls.find(
+			(c) => c.cmd === "gh" && c.args.includes("edit") && c.args.includes("--template=true")
+		);
+		expect(templateCall).toBeDefined();
+	});
+
+	it("does not call gh repo edit --template when isTemplate is not set", async () => {
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const templateCall = calls.find(
+			(c) => c.cmd === "gh" && c.args.includes("edit") && c.args.includes("--template=true")
+		);
+		expect(templateCall).toBeUndefined();
+	});
+});
+
+// ── runNew — token forwarding to setup ───────────────────────────────
+
+type SpawnResult = ReturnType<typeof import("node:child_process").spawnSync>;
+
+/** Build a spawnSync mock result. */
+function keychainResult(token: string | null): SpawnResult {
+	return {
+		status: token !== null ? 0 : 1,
+		stdout: token ?? "",
+		stderr: "",
+		output: [],
+		pid: 0,
+		signal: null,
+		error: undefined,
+	} as SpawnResult;
+}
+
+describe("runNew — token forwarding to holocron setup", () => {
+	it("passes --token (admin) to holocron setup when token is provided as input", async () => {
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, token: "ghp_admin", exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const setupCall = calls.find((c) => c.cmd === "holocron" && c.args.includes("setup"));
+		expect(setupCall?.args).toContain("--token");
+		expect(setupCall?.args).toContain("ghp_admin");
+	});
+
+	it("looks up all three keychain tokens and injects them when none are in env/input", async () => {
+		const { spawnSync } = await import("node:child_process");
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce(keychainResult("ghp_adminToken")) // github.admin
+			.mockReturnValueOnce(keychainResult("ghp_orgToken")) // github.org
+			.mockReturnValueOnce(keychainResult("ghp_deployToken")); // github.deploy
+
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const setupCall = calls.find((c) => c.cmd === "holocron" && c.args.includes("setup"));
+		expect(setupCall?.args).toContain("--token");
+		expect(setupCall?.args).toContain("ghp_adminToken");
+		expect(setupCall?.env?.["HOLOCRON_ORG_TOKEN"]).toBe("ghp_orgToken");
+		expect(setupCall?.env?.["HOLOCRON_DEPLOY_TOKEN"]).toBe("ghp_deployToken");
+	});
+
+	it("skips keychain lookup for org/deploy tokens when already in process.env", async () => {
+		const { spawnSync } = await import("node:child_process");
+		// Only admin lookup should be called; org + deploy are in env
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce(keychainResult("ghp_adminToken")); // github.admin only
+
+		const origOrg = process.env["HOLOCRON_ORG_TOKEN"];
+		const origDeploy = process.env["HOLOCRON_DEPLOY_TOKEN"];
+		process.env["HOLOCRON_ORG_TOKEN"] = "env_org";
+		process.env["HOLOCRON_DEPLOY_TOKEN"] = "env_deploy";
+
+		try {
+			const { exec, calls } = makeExec();
+			const { readFile, writeFile, walkFiles } = makeFs({
+				"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			});
+
+			await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+			const setupCall = calls.find((c) => c.cmd === "holocron" && c.args.includes("setup"));
+			// Org + deploy are already in env, so should NOT appear in the injected env override
+			expect(setupCall?.env?.["HOLOCRON_ORG_TOKEN"]).toBeUndefined();
+			expect(setupCall?.env?.["HOLOCRON_DEPLOY_TOKEN"]).toBeUndefined();
+		} finally {
+			if (origOrg === undefined) delete process.env["HOLOCRON_ORG_TOKEN"];
+			else process.env["HOLOCRON_ORG_TOKEN"] = origOrg;
+			if (origDeploy === undefined) delete process.env["HOLOCRON_DEPLOY_TOKEN"];
+			else process.env["HOLOCRON_DEPLOY_TOKEN"] = origDeploy;
+		}
+	});
+
+	it("calls holocron setup without --token when all keychain lookups fail", async () => {
+		const { spawnSync } = await import("node:child_process");
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce(keychainResult(null)) // github.admin not found
+			.mockReturnValueOnce(keychainResult(null)) // github.org not found
+			.mockReturnValueOnce(keychainResult(null)); // github.deploy not found
+
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const setupCall = calls.find((c) => c.cmd === "holocron" && c.args.includes("setup"));
+		expect(setupCall).toBeDefined();
+		expect(setupCall?.args).not.toContain("--token");
+		expect(setupCall?.env).toEqual({});
+	});
+
+	it("passes env vars through defaultExec when no exec is injected", async () => {
+		// This test intentionally omits the `exec` injection so that defaultExec
+		// (and therefore execFileSync) is exercised with a non-empty env map.
+		const { execFileSync, spawnSync } = await import("node:child_process");
+		const { existsSync } = await import("node:fs");
+		vi.mocked(existsSync)
+			.mockReturnValueOnce(false) // repoDir does not exist → proceed
+			.mockReturnValueOnce(true); // pkgJsonPath exists → read it
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce(keychainResult("ghp_adminToken")) // github.admin
+			.mockReturnValueOnce(keychainResult("ghp_orgToken")) // github.org
+			.mockReturnValueOnce(keychainResult("ghp_deployToken")); // github.deploy
+
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, readFile, writeFile, walkFiles, print: () => {} });
+
+		const allCalls = vi.mocked(execFileSync).mock.calls;
+		const setupCall = allCalls.find((c) => c[0] === "holocron");
+		expect(setupCall).toBeDefined();
+		const opts = setupCall?.[2] as { env?: Record<string, string> };
+		expect(opts?.env?.["HOLOCRON_ORG_TOKEN"]).toBe("ghp_orgToken");
+		expect(opts?.env?.["HOLOCRON_DEPLOY_TOKEN"]).toBe("ghp_deployToken");
+	});
+
+	it("treats empty-stdout keychain result as no token", async () => {
+		const { spawnSync } = await import("node:child_process");
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce({ status: 0, stdout: "" } as SpawnResult) // github.admin → empty
+			.mockReturnValueOnce({ status: 0, stdout: "" } as SpawnResult) // github.org → empty
+			.mockReturnValueOnce({ status: 0, stdout: "" } as SpawnResult); // github.deploy → empty
+
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const setupCall = calls.find((c) => c.cmd === "holocron" && c.args.includes("setup"));
+		expect(setupCall?.args).not.toContain("--token");
+		expect(setupCall?.env).toEqual({});
 	});
 });
 
