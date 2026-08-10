@@ -783,6 +783,54 @@ describe("runNew — token forwarding to holocron setup", () => {
 		expect(setupCall?.args).not.toContain("--token");
 		expect(setupCall?.env).toEqual({});
 	});
+
+	it("passes env vars through defaultExec when no exec is injected", async () => {
+		// This test intentionally omits the `exec` injection so that defaultExec
+		// (and therefore execFileSync) is exercised with a non-empty env map.
+		const { execFileSync, spawnSync } = await import("node:child_process");
+		const { existsSync } = await import("node:fs");
+		vi.mocked(existsSync)
+			.mockReturnValueOnce(false) // repoDir does not exist → proceed
+			.mockReturnValueOnce(true); // pkgJsonPath exists → read it
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce(keychainResult("ghp_adminToken")) // github.admin
+			.mockReturnValueOnce(keychainResult("ghp_orgToken")) // github.org
+			.mockReturnValueOnce(keychainResult("ghp_deployToken")); // github.deploy
+
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, readFile, writeFile, walkFiles, print: () => {} });
+
+		const allCalls = vi.mocked(execFileSync).mock.calls;
+		const setupCall = allCalls.find((c) => c[0] === "holocron");
+		expect(setupCall).toBeDefined();
+		const opts = setupCall?.[2] as { env?: Record<string, string> };
+		expect(opts?.env?.["HOLOCRON_ORG_TOKEN"]).toBe("ghp_orgToken");
+		expect(opts?.env?.["HOLOCRON_DEPLOY_TOKEN"]).toBe("ghp_deployToken");
+	});
+
+	it("treats empty-stdout keychain result as no token", async () => {
+		const { spawnSync } = await import("node:child_process");
+		vi.mocked(spawnSync)
+			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight
+			.mockReturnValueOnce({ status: 0, stdout: "" } as SpawnResult) // github.admin → empty
+			.mockReturnValueOnce({ status: 0, stdout: "" } as SpawnResult) // github.org → empty
+			.mockReturnValueOnce({ status: 0, stdout: "" } as SpawnResult); // github.deploy → empty
+
+		const { exec, calls } = makeExec();
+		const { readFile, writeFile, walkFiles } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		const setupCall = calls.find((c) => c.cmd === "holocron" && c.args.includes("setup"));
+		expect(setupCall?.args).not.toContain("--token");
+		expect(setupCall?.env).toEqual({});
+	});
 });
 
 // ── runNew — holocron.config.ts generation ────────────────────────────
