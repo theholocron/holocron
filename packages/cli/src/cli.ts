@@ -593,6 +593,10 @@ try {
 						type: "string",
 						describe: "Comma-separated agent skill names (e.g. git-safety,pr-workflow)",
 					})
+					.option("is-template", {
+						type: "boolean",
+						describe: "Mark the new repo as a GitHub template repository",
+					})
 					.option("org", {
 						type: "string",
 						default: "theholocron",
@@ -605,6 +609,10 @@ try {
 					}),
 			async (argv) => {
 				try {
+					const tokens = tokenContext(argv.token);
+					if (!tokens) return;
+					const adminToken = tokens.cliTokens?.["github"] ?? tokens.cliToken;
+
 					let type = argv.type as string | undefined;
 					let name = argv.name as string | undefined;
 					let description = argv.description as string | undefined;
@@ -620,6 +628,7 @@ try {
 					let openSource = argv.openSource as boolean | undefined;
 					let usesExternalPackages = argv.usesExternalPackages as boolean | undefined;
 					let skills: string[] = parseTopics(argv.skills as string | undefined);
+					const isTemplate = argv.isTemplate as boolean | undefined;
 
 					// Interactive wizard — skip any field already supplied as a CLI arg
 					if (!type) {
@@ -778,7 +787,9 @@ try {
 						usesExternalPackages: usesExternalPackages ?? true,
 						topics,
 						skills,
+						isTemplate,
 						org: argv.org,
+						token: adminToken,
 						dryRun: argv.dryRun,
 						noVerify: !argv.verify,
 						cwd: argv.cwd,
