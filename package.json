@@ -66,5 +66,10 @@
   "engines": {
     "node": ">=22",
     "pnpm": ">=10"
+  },
+  "pnpm": {
+    "overrides": {
+      "cookie": "^2.0.1"
+    }
   }
 }
