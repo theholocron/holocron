@@ -12,6 +12,11 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: boolean
         default: true
+      skip-content:
+        description: Skip the content package build step (for repos with no <name>-docs package)
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -27,13 +32,13 @@ jobs:
         name: Setup
 
       - name: Build content packages
-        if: ${{ inputs.use-turbo }}
+        if: ${{ !inputs.skip-content && inputs.use-turbo }}
         env:
           DOCS_NAME: ${{ inputs.name }}
         run: pnpm turbo build --filter=@theholocron/"$DOCS_NAME"-docs
 
       - name: Build content packages
-        if: ${{ !inputs.use-turbo }}
+        if: ${{ !inputs.skip-content && !inputs.use-turbo }}
         env:
           DOCS_NAME: ${{ inputs.name }}
         run: pnpm --filter @theholocron/"$DOCS_NAME"-docs build
