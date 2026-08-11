@@ -134,11 +134,9 @@ jobs:
           IGNORE_GITIGNORED_FILES: true
           LINTER_RULES_PATH: /
           EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
-          # When eslint=false the config falls back to the empty string, which
-          # makes super-linter use its built-in default (eslint.config.mjs) that
-          # ships with the container — the file is always present, so no crash.
-          # VALIDATE_JAVASCRIPT_ES/TYPESCRIPT_ES must be explicitly true/false so
-          # super-linter doesn't infer from allowlist mode whether to load ESLint.
+          # When eslint=false the config falls back to '', which makes super-linter
+          # use its built-in default (eslint.config.mjs) that ships in the container.
+          # VALIDATE_JAVASCRIPT_ES/TYPESCRIPT_ES must be explicitly true/false.
           JAVASCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
           TYPESCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
           VALIDATE_JAVASCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' }}
