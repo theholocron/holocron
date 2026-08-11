@@ -2193,7 +2193,7 @@ describe("setup: write codecov.yml", () => {
 		});
 
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
@@ -2207,7 +2207,7 @@ describe("setup: write codecov.yml", () => {
 		expect(step?.message).toBe("2 components");
 	});
 
-	it("writes base codecov.yml when packages/ is absent and no existing file", async () => {
+	it("skips writing codecov.yml when no test workflow and no existing file", async () => {
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {
 			writeRepoFile: async (path: string, content: string) => {
@@ -2216,6 +2216,26 @@ describe("setup: write codecov.yml", () => {
 		});
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toBeUndefined();
+		const step = report.steps.find((s) => s.step === "write codecov.yml");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no test workflow configured");
+	});
+
+	it("writes base codecov.yml when test workflow is configured and no packages/ exists", async () => {
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -2270,7 +2290,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -2294,7 +2314,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -2318,7 +2338,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
