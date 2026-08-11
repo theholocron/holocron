@@ -1,5 +1,5 @@
-import { defineConfig } from "vitest/config";
 import { node } from "@theholocron/vitest-config/node";
+import { defineConfig } from "vitest/config";
 
 const base = node();
 
