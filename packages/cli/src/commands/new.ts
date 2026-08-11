@@ -452,10 +452,6 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	// priority — e.g. "@theholocron/node-template" becomes "@<org>/<name>"
 	// rather than "@theholocron/<name>".
 	variants.unshift([`theholocron/${templateSlug}`, `${org}/${input.name}`]);
-	// Add <display_name> placeholder → title-case of the new repo name, so
-	// tsconfig.json "display" fields and similar use the correct human label.
-	const displayName = input.name.split("-").map(cap).join(" ");
-	variants.push(["<display_name>", displayName]);
 	const filesPatched = patchFiles(
 		repoDir,
 		variants,
@@ -482,6 +478,23 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		} catch {
 			// non-fatal — placeholder replacement already covered it
 		}
+	}
+
+	// Update the root tsconfig.json "display" field by parsing the JSON directly
+	// rather than relying on a <display_name> placeholder. Templates can use their
+	// real human-readable display name; we always overwrite it with the title-case
+	// of the new repo name on scaffolding.
+	const displayName = input.name.split("-").map(cap).join(" ");
+	const rootTsconfigPath = path.join(repoDir, "tsconfig.json");
+	try {
+		const tsconfig = JSON.parse(readFn(rootTsconfigPath)) as Record<string, unknown>;
+		if (typeof tsconfig["display"] === "string") {
+			tsconfig["display"] = displayName;
+			writeFn(rootTsconfigPath, JSON.stringify(tsconfig, null, 2) + "\n");
+			print(`  ✓ tsconfig.json (display)`);
+		}
+	} catch {
+		// non-fatal — no tsconfig or no display field
 	}
 
 	// Generate and write holocron.config.ts
