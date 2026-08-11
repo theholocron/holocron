@@ -559,9 +559,9 @@ describe("runNew — tsconfig.json display update", () => {
 			print: () => {},
 		});
 
-		const tsconfig = JSON.parse(
-			written["/workspace/monorepo-react-template/tsconfig.json"]!
-		) as { display: string };
+		const tsconfig = JSON.parse(written["/workspace/monorepo-react-template/tsconfig.json"]!) as {
+			display: string;
+		};
 		expect(tsconfig.display).toBe("Monorepo React Template");
 	});
 
