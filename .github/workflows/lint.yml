@@ -25,4 +25,4 @@ jobs:
     secrets: inherit
     with:
       enable-auto-commit: true
-      eslint-config: eslint.config.mjs
+      eslint-config: eslint.config.ts

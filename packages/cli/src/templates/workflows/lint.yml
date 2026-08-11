@@ -104,6 +104,8 @@ jobs:
 
       - name: Detect project features
         # Writes VALIDATE_*/FIX_* to GITHUB_ENV only when the feature exists.
+        # Also writes step outputs for values referenced in expression context
+        # (GITHUB_ENV is not readable via steps.*.outputs — they need GITHUB_OUTPUT).
         # All values written are hardcoded 'true' — no user input in the script.
         # Config file paths (inputs.*) stay in GH Actions expression context in
         # the super-linter env: block below, never shell-evaluated (CWE-78).
@@ -114,6 +116,7 @@ jobs:
           if { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; }; then
             echo "VALIDATE_JAVASCRIPT_ES=true" >> "$GITHUB_ENV"
             echo "VALIDATE_TYPESCRIPT_ES=true" >> "$GITHUB_ENV"
+            echo "eslint=true" >> "$GITHUB_OUTPUT"
           fi
 
           if { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; }; then
