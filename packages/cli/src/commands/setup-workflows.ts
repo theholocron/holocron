@@ -33,6 +33,14 @@ export function workflowHeader(source = "packages/cli/src/commands/setup-workflo
 	].join("\n");
 }
 
+export function scaffoldHeader(source = "packages/cli/src/commands/setup.ts"): string {
+	return [
+		`# Scaffolded by holocron setup — edit this file freely.`,
+		`# Source:  theholocron/holocron · ${source}`,
+		``,
+	].join("\n");
+}
+
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	lint: lintYml,
 	test: testYml,
