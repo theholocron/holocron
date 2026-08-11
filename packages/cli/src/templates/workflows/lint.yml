@@ -102,6 +102,11 @@ jobs:
         name: Setup
         if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
 
+      - name: Configure linter rules
+        run: |
+          [ -f "${{ inputs.eslint-config }}" ] && echo "JAVASCRIPT_ES_CONFIG_FILE=${{ inputs.eslint-config }}" >> "$GITHUB_ENV" || true
+          [ -f "${{ inputs.eslint-config }}" ] && echo "TYPESCRIPT_ES_CONFIG_FILE=${{ inputs.eslint-config }}" >> "$GITHUB_ENV" || true
+
       - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
         env:
@@ -120,12 +125,8 @@ jobs:
           FIX_MARKDOWN_PRETTIER: true
           FIX_TSX: true
           FIX_TYPESCRIPT_PRETTIER: true
-          JAVASCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
-          TYPESCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
           TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
-          VALIDATE_JAVASCRIPT_ES: ${{ hashFiles(inputs.eslint-config) != '' }}
-          VALIDATE_TYPESCRIPT_ES: ${{ hashFiles(inputs.eslint-config) != '' }}
           VALIDATE_DOCKERFILE: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
