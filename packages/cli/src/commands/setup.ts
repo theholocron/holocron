@@ -541,13 +541,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const runChromatic = raw["run-chromatic"];
 		if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
 			result["run-chromatic"] = true;
-			const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map(
-				(p) => ({
-					...p,
-					// chromaui/action expects untraced as newline-separated string
-					...(Array.isArray(p.untraced) ? { untraced: p.untraced.join("\n") } : {}),
-				})
-			);
+			const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map((p) => ({
+				...p,
+				// chromaui/action expects untraced as newline-separated string
+				...(Array.isArray(p.untraced) ? { untraced: p.untraced.join("\n") } : {}),
+			}));
 			result["chromatic-projects"] = JSON.stringify(projects);
 		}
 		return result;
