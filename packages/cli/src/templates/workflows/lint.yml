@@ -109,6 +109,8 @@ jobs:
         id: detect
         run: |
           has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
+          { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; } \
+            && echo "eslint=true" >> "$GITHUB_OUTPUT" || echo "eslint=false" >> "$GITHUB_OUTPUT"
           { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; } \
             && echo "js=true" >> "$GITHUB_OUTPUT" || echo "js=false" >> "$GITHUB_OUTPUT"
           { has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; } \
@@ -132,11 +134,15 @@ jobs:
           IGNORE_GITIGNORED_FILES: true
           LINTER_RULES_PATH: /
           EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
-          # Config paths: inputs stay in expression context, never in run: scripts.
-          # hashFiles() returns '' when the file is absent so super-linter falls
-          # back to its own built-in default rather than terminating.
-          JAVASCRIPT_ES_CONFIG_FILE: ${{ hashFiles(inputs.eslint-config) != '' && inputs.eslint-config || '' }}
-          TYPESCRIPT_ES_CONFIG_FILE: ${{ hashFiles(inputs.eslint-config) != '' && inputs.eslint-config || '' }}
+          # When eslint=false the config falls back to the empty string, which
+          # makes super-linter use its built-in default (eslint.config.mjs) that
+          # ships with the container — the file is always present, so no crash.
+          # VALIDATE_JAVASCRIPT_ES/TYPESCRIPT_ES must be explicitly true/false so
+          # super-linter doesn't infer from allowlist mode whether to load ESLint.
+          JAVASCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
+          TYPESCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
+          VALIDATE_JAVASCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' }}
+          VALIDATE_TYPESCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
           TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
