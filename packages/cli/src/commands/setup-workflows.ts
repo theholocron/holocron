@@ -94,7 +94,15 @@ export function generateThinCallerContent(
 	const base = WORKFLOW_TEMPLATES[name];
 	if (!base) return "";
 
-	const fmt = (k: string, v: unknown) => `      ${k}: ${v === true ? "true" : v === false ? "false" : String(v)}`;
+	// YAML treats bare [ and { as sequence/mapping nodes; single-quote them so
+	// values like JSON arrays are kept as strings.
+	const yamlScalar = (v: unknown): string => {
+		if (v === true) return "true";
+		if (v === false) return "false";
+		const s = String(v);
+		return s.startsWith("[") || s.startsWith("{") ? `'${s}'` : s;
+	};
+	const fmt = (k: string, v: unknown) => `      ${k}: ${yamlScalar(v)}`;
 
 	let result = base;
 
@@ -129,7 +137,7 @@ export function generateThinCallerContent(
 				.filter((e): e is [string, string] => e !== null)
 		);
 		for (const [k, v] of Object.entries(withOverrides)) {
-			existingEntries.set(k, v === true ? "true" : v === false ? "false" : String(v));
+			existingEntries.set(k, yamlScalar(v));
 		}
 		const merged = [...existingEntries.entries()].map(([k, v]) => `      ${k}: ${v}`).join("\n");
 		return result.replace(withBlockRe, `    with:\n${merged}\n`);
