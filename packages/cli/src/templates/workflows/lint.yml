@@ -124,6 +124,8 @@ jobs:
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
           TYPESCRIPT_ES_CONFIG_FILE: ${{ inputs.eslint-config }}
           TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
+          VALIDATE_JAVASCRIPT_ES: ${{ hashFiles(inputs.eslint-config) != '' }}
+          VALIDATE_TYPESCRIPT_ES: ${{ hashFiles(inputs.eslint-config) != '' }}
           VALIDATE_DOCKERFILE: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
