@@ -37,8 +37,8 @@ import {
 	DEPENDABOT_CONFIG,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
-	WORKFLOW_CHECK_CONTEXTS,
 	scaffoldHeader,
+	WORKFLOW_CHECK_CONTEXTS,
 	workflowHeader,
 } from "./setup-workflows.js";
 
