@@ -114,40 +114,52 @@ jobs:
           has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
 
           if { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; }; then
-            echo "VALIDATE_JAVASCRIPT_ES=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_TYPESCRIPT_ES=true" >> "$GITHUB_ENV"
+            {
+              echo "VALIDATE_JAVASCRIPT_ES=true"
+              echo "VALIDATE_TYPESCRIPT_ES=true"
+            } >> "$GITHUB_ENV"
             echo "eslint=true" >> "$GITHUB_OUTPUT"
           fi
 
           if { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; }; then
-            echo "VALIDATE_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_JSX_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_TSX=true" >> "$GITHUB_ENV"
-            echo "FIX_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_JSX_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_TSX=true" >> "$GITHUB_ENV"
+            {
+              echo "VALIDATE_JAVASCRIPT_PRETTIER=true"
+              echo "VALIDATE_JSX_PRETTIER=true"
+              echo "VALIDATE_TYPESCRIPT_PRETTIER=true"
+              echo "VALIDATE_TSX=true"
+              echo "FIX_JAVASCRIPT_PRETTIER=true"
+              echo "FIX_JSX_PRETTIER=true"
+              echo "FIX_TYPESCRIPT_PRETTIER=true"
+              echo "FIX_TSX=true"
+            } >> "$GITHUB_ENV"
           fi
 
           if { has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; }; then
-            echo "VALIDATE_CSS=true" >> "$GITHUB_ENV"
-            echo "STYLELINT_CONFIG_FILE=stylelint.config.ts" >> "$GITHUB_ENV"
+            {
+              echo "VALIDATE_CSS=true"
+              echo "STYLELINT_CONFIG_FILE=stylelint.config.ts"
+            } >> "$GITHUB_ENV"
           fi
 
           if { has '*.graphql' || has '*.gql'; }; then
-            echo "VALIDATE_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
+            {
+              echo "VALIDATE_GRAPHQL_PRETTIER=true"
+              echo "FIX_GRAPHQL_PRETTIER=true"
+            } >> "$GITHUB_ENV"
           fi
 
           if { has '*.html' || has '*.htm'; }; then
-            echo "VALIDATE_HTML_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_HTML_PRETTIER=true" >> "$GITHUB_ENV"
+            {
+              echo "VALIDATE_HTML_PRETTIER=true"
+              echo "FIX_HTML_PRETTIER=true"
+            } >> "$GITHUB_ENV"
           fi
 
           if { has '.env' || has '.env.example' || has '.env.local'; }; then
-            echo "VALIDATE_ENV=true" >> "$GITHUB_ENV"
-            echo "FIX_ENV=true" >> "$GITHUB_ENV"
+            {
+              echo "VALIDATE_ENV=true"
+              echo "FIX_ENV=true"
+            } >> "$GITHUB_ENV"
           fi
 
           if { has 'Dockerfile' || has '*.Dockerfile'; }; then
