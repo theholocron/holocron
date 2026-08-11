@@ -103,26 +103,53 @@ jobs:
         if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
 
       - name: Detect project features
-        # Only hardcoded patterns here — no user input in the run: script.
-        # Inputs flow into super-linter solely via GH Actions expressions in
-        # the env: block below, which are never shell-evaluated (CWE-78).
+        # Writes VALIDATE_*/FIX_* to GITHUB_ENV only when the feature exists.
+        # All values written are hardcoded 'true' — no user input in the script.
+        # Config file paths (inputs.*) stay in GH Actions expression context in
+        # the super-linter env: block below, never shell-evaluated (CWE-78).
         id: detect
         run: |
           has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
-          { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; } \
-            && echo "eslint=true" >> "$GITHUB_OUTPUT" || echo "eslint=false" >> "$GITHUB_OUTPUT"
-          { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; } \
-            && echo "js=true" >> "$GITHUB_OUTPUT" || echo "js=false" >> "$GITHUB_OUTPUT"
-          { has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; } \
-            && echo "css=true" >> "$GITHUB_OUTPUT" || echo "css=false" >> "$GITHUB_OUTPUT"
-          { has '*.graphql' || has '*.gql'; } \
-            && echo "graphql=true" >> "$GITHUB_OUTPUT" || echo "graphql=false" >> "$GITHUB_OUTPUT"
-          { has '*.html' || has '*.htm'; } \
-            && echo "html=true" >> "$GITHUB_OUTPUT" || echo "html=false" >> "$GITHUB_OUTPUT"
-          { has '.env' || has '.env.example' || has '.env.local'; } \
-            && echo "dotenv=true" >> "$GITHUB_OUTPUT" || echo "dotenv=false" >> "$GITHUB_OUTPUT"
-          { has 'Dockerfile' || has '*.Dockerfile'; } \
-            && echo "docker=true" >> "$GITHUB_OUTPUT" || echo "docker=false" >> "$GITHUB_OUTPUT"
+
+          if { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; }; then
+            echo "VALIDATE_JAVASCRIPT_ES=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_TYPESCRIPT_ES=true" >> "$GITHUB_ENV"
+          fi
+
+          if { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; }; then
+            echo "VALIDATE_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_JSX_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_TSX=true" >> "$GITHUB_ENV"
+            echo "FIX_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_JSX_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_TSX=true" >> "$GITHUB_ENV"
+          fi
+
+          if { has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; }; then
+            echo "VALIDATE_CSS=true" >> "$GITHUB_ENV"
+            echo "STYLELINT_CONFIG_FILE=stylelint.config.ts" >> "$GITHUB_ENV"
+          fi
+
+          if { has '*.graphql' || has '*.gql'; }; then
+            echo "VALIDATE_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
+          fi
+
+          if { has '*.html' || has '*.htm'; }; then
+            echo "VALIDATE_HTML_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_HTML_PRETTIER=true" >> "$GITHUB_ENV"
+          fi
+
+          if { has '.env' || has '.env.example' || has '.env.local'; }; then
+            echo "VALIDATE_ENV=true" >> "$GITHUB_ENV"
+            echo "FIX_ENV=true" >> "$GITHUB_ENV"
+          fi
+
+          if { has 'Dockerfile' || has '*.Dockerfile'; }; then
+            echo "VALIDATE_DOCKERFILE=true" >> "$GITHUB_ENV"
+          fi
 
       - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
@@ -134,35 +161,14 @@ jobs:
           IGNORE_GITIGNORED_FILES: true
           LINTER_RULES_PATH: /
           EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
-          # When eslint=false the config falls back to '', which makes super-linter
-          # use its built-in default (eslint.config.mjs) that ships in the container.
-          # VALIDATE_JAVASCRIPT_ES/TYPESCRIPT_ES must be explicitly true/false.
+          # Config file paths — inputs stay in expression context, never shell-evaluated.
+          # When VALIDATE_JAVASCRIPT_ES is not set by detect, ESLint doesn't run so
+          # the empty-string fallback (→ eslint.config.mjs in container) is safe.
           JAVASCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
           TYPESCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
-          VALIDATE_JAVASCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' && 'true' || '' }}
-          VALIDATE_TYPESCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' && 'true' || '' }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
           TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
-          # Dynamic linters — empty string when off; super-linter only counts
-          # non-empty VALIDATE_* values toward the allowlist/blocklist decision.
-          FIX_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          FIX_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          FIX_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          FIX_TSX: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          VALIDATE_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          VALIDATE_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          VALIDATE_TSX: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          VALIDATE_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
-          STYLELINT_CONFIG_FILE: ${{ steps.detect.outputs.css == 'true' && 'stylelint.config.ts' || '' }}
-          VALIDATE_CSS: ${{ steps.detect.outputs.css == 'true' && 'true' || '' }}
-          FIX_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' && 'true' || '' }}
-          VALIDATE_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' && 'true' || '' }}
-          FIX_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' && 'true' || '' }}
-          VALIDATE_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' && 'true' || '' }}
-          FIX_ENV: ${{ steps.detect.outputs.dotenv == 'true' && 'true' || '' }}
-          VALIDATE_ENV: ${{ steps.detect.outputs.dotenv == 'true' && 'true' || '' }}
-          VALIDATE_DOCKERFILE: ${{ steps.detect.outputs.docker == 'true' && 'true' || '' }}
           # Always-on linters
           FIX_MARKDOWN_PRETTIER: true
           VALIDATE_EDITORCONFIG: true
