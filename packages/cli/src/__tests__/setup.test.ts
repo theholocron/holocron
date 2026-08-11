@@ -2242,6 +2242,8 @@ describe("setup: write codecov.yml", () => {
 		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
 		expect(written["codecov.yml"]).toBeDefined();
+		expect(written["codecov.yml"]).toContain("Scaffolded by holocron setup");
+		expect(written["codecov.yml"]).not.toContain("AUTO-GENERATED");
 		const step = report.steps.find((s) => s.step === "write codecov.yml");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("no components");

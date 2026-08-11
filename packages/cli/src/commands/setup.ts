@@ -38,6 +38,7 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	WORKFLOW_CHECK_CONTEXTS,
+	scaffoldHeader,
 	workflowHeader,
 } from "./setup-workflows.js";
 
@@ -118,7 +119,7 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 export function codecovContent(packages: WorkspacePackage[]): string {
 	return (
 		[
-			workflowHeader("packages/cli/src/commands/setup.ts"),
+			scaffoldHeader(),
 			`codecov:`,
 			`  require_ci_to_pass: true`,
 			``,
