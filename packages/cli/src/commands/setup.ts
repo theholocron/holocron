@@ -629,14 +629,16 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		);
 		print(formatStep(steps[steps.length - 1]!));
 		{
+			const configuredWorkflowNames = (config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name));
+			const hasTestWorkflow = configuredWorkflowNames.includes("test");
 			const packages = await readWorkspacePackages(input.context.repoRoot);
 			const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
-			if (packages.length === 0 && existing == null) {
+			if (!hasTestWorkflow && existing == null) {
 				steps.push({
 					capability: "source",
 					step: "write codecov.yml",
 					status: "skip",
-					message: "no packages and no existing codecov.yml",
+					message: "no test workflow configured",
 				});
 			} else {
 				steps.push(
