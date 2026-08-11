@@ -539,9 +539,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const runChromatic = raw["run-chromatic"];
 		if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
 			result["run-chromatic"] = true;
-			result["chromatic-projects"] = JSON.stringify(
-				(runChromatic as { projects: unknown[] }).projects
-			);
+			result["chromatic-projects"] = JSON.stringify((runChromatic as { projects: unknown[] }).projects);
 		}
 		return result;
 	}
