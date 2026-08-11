@@ -102,68 +102,25 @@ jobs:
         name: Setup
         if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
 
-      - name: Configure linter rules
-        # Inputs are passed via env to avoid interpolating them directly into
-        # the shell script (CWE-78 / expression injection).
-        env:
-          ESLINT_CONFIG: ${{ inputs.eslint-config }}
-          PRETTIER_CONFIG_INPUT: ${{ inputs.prettier-config }}
-          TSCONFIG_INPUT: ${{ inputs.typescript-tsconfig }}
-          YAML_CONFIG_INPUT: ${{ inputs.yaml-config }}
+      - name: Detect project features
+        # Only hardcoded patterns here — no user input in the run: script.
+        # Inputs flow into super-linter solely via GH Actions expressions in
+        # the env: block below, which are never shell-evaluated (CWE-78).
+        id: detect
         run: |
           has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
-
-          # Always-written config paths (super-linter handles missing files gracefully for these)
-          echo "PRETTIER_CONFIG=${PRETTIER_CONFIG_INPUT}" >> "$GITHUB_ENV"
-          echo "TYPESCRIPT_STANDARD_TSCONFIG_FILE=${TSCONFIG_INPUT}" >> "$GITHUB_ENV"
-          echo "YAML_CONFIG_FILE=${YAML_CONFIG_INPUT}" >> "$GITHUB_ENV"
-
-          # ESLint — terminates at startup when config file is missing; only set when present
-          if [ -f "${ESLINT_CONFIG}" ]; then
-            echo "JAVASCRIPT_ES_CONFIG_FILE=${ESLINT_CONFIG}" >> "$GITHUB_ENV"
-            echo "TYPESCRIPT_ES_CONFIG_FILE=${ESLINT_CONFIG}" >> "$GITHUB_ENV"
-          fi
-
-          # JavaScript / TypeScript — Prettier + TSX
-          if has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; then
-            echo "VALIDATE_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_JSX_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "VALIDATE_TSX=true" >> "$GITHUB_ENV"
-            echo "FIX_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_JSX_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_TSX=true" >> "$GITHUB_ENV"
-          fi
-
-          # CSS / Stylelint — only when CSS/SCSS files or a stylelint config are present
-          if has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; then
-            echo "VALIDATE_CSS=true" >> "$GITHUB_ENV"
-            echo "STYLELINT_CONFIG_FILE=stylelint.config.ts" >> "$GITHUB_ENV"
-          fi
-
-          # GraphQL
-          if has '*.graphql' || has '*.gql'; then
-            echo "VALIDATE_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
-          fi
-
-          # HTML
-          if has '*.html' || has '*.htm'; then
-            echo "VALIDATE_HTML_PRETTIER=true" >> "$GITHUB_ENV"
-            echo "FIX_HTML_PRETTIER=true" >> "$GITHUB_ENV"
-          fi
-
-          # ENV files
-          if has '.env' || has '.env.example' || has '.env.local'; then
-            echo "VALIDATE_ENV=true" >> "$GITHUB_ENV"
-            echo "FIX_ENV=true" >> "$GITHUB_ENV"
-          fi
-
-          # Dockerfile
-          if has 'Dockerfile' || has '*.Dockerfile'; then
-            echo "VALIDATE_DOCKERFILE=true" >> "$GITHUB_ENV"
-          fi
+          { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; } \
+            && echo "js=true" >> "$GITHUB_OUTPUT" || echo "js=false" >> "$GITHUB_OUTPUT"
+          { has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; } \
+            && echo "css=true" >> "$GITHUB_OUTPUT" || echo "css=false" >> "$GITHUB_OUTPUT"
+          { has '*.graphql' || has '*.gql'; } \
+            && echo "graphql=true" >> "$GITHUB_OUTPUT" || echo "graphql=false" >> "$GITHUB_OUTPUT"
+          { has '*.html' || has '*.htm'; } \
+            && echo "html=true" >> "$GITHUB_OUTPUT" || echo "html=false" >> "$GITHUB_OUTPUT"
+          { has '.env' || has '.env.example' || has '.env.local'; } \
+            && echo "dotenv=true" >> "$GITHUB_OUTPUT" || echo "dotenv=false" >> "$GITHUB_OUTPUT"
+          { has 'Dockerfile' || has '*.Dockerfile'; } \
+            && echo "docker=true" >> "$GITHUB_OUTPUT" || echo "docker=false" >> "$GITHUB_OUTPUT"
 
       - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
@@ -175,6 +132,33 @@ jobs:
           IGNORE_GITIGNORED_FILES: true
           LINTER_RULES_PATH: /
           EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
+          # Config paths: inputs stay in expression context, never in run: scripts.
+          # hashFiles() returns '' when the file is absent so super-linter falls
+          # back to its own built-in default rather than terminating.
+          JAVASCRIPT_ES_CONFIG_FILE: ${{ hashFiles(inputs.eslint-config) != '' && inputs.eslint-config || '' }}
+          TYPESCRIPT_ES_CONFIG_FILE: ${{ hashFiles(inputs.eslint-config) != '' && inputs.eslint-config || '' }}
+          PRETTIER_CONFIG: ${{ inputs.prettier-config }}
+          TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
+          YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
+          # Dynamic linters — driven by detect step outputs
+          FIX_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          FIX_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          FIX_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          FIX_TSX: ${{ steps.detect.outputs.js == 'true' }}
+          VALIDATE_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          VALIDATE_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          VALIDATE_TSX: ${{ steps.detect.outputs.js == 'true' }}
+          VALIDATE_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          STYLELINT_CONFIG_FILE: ${{ steps.detect.outputs.css == 'true' && 'stylelint.config.ts' || '' }}
+          VALIDATE_CSS: ${{ steps.detect.outputs.css == 'true' }}
+          FIX_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' }}
+          VALIDATE_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' }}
+          FIX_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' }}
+          VALIDATE_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' }}
+          FIX_ENV: ${{ steps.detect.outputs.dotenv == 'true' }}
+          VALIDATE_ENV: ${{ steps.detect.outputs.dotenv == 'true' }}
+          VALIDATE_DOCKERFILE: ${{ steps.detect.outputs.docker == 'true' }}
+          # Always-on linters
           FIX_MARKDOWN_PRETTIER: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_GIT_COMMITLINT: true
