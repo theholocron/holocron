@@ -17,12 +17,12 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
-	integrations: [
-		starlight({
-			plugins: [docsTheme()],
-			title: "My Docs",
-		}),
-	],
+  integrations: [
+    starlight({
+      plugins: [docsTheme()],
+      title: "My Docs",
+    }),
+  ],
 });
 ```
 
