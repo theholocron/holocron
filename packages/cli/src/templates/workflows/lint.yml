@@ -103,9 +103,67 @@ jobs:
         if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
 
       - name: Configure linter rules
+        # Inputs are passed via env to avoid interpolating them directly into
+        # the shell script (CWE-78 / expression injection).
+        env:
+          ESLINT_CONFIG: ${{ inputs.eslint-config }}
+          PRETTIER_CONFIG_INPUT: ${{ inputs.prettier-config }}
+          TSCONFIG_INPUT: ${{ inputs.typescript-tsconfig }}
+          YAML_CONFIG_INPUT: ${{ inputs.yaml-config }}
         run: |
-          [ -f "${{ inputs.eslint-config }}" ] && echo "JAVASCRIPT_ES_CONFIG_FILE=${{ inputs.eslint-config }}" >> "$GITHUB_ENV" || true
-          [ -f "${{ inputs.eslint-config }}" ] && echo "TYPESCRIPT_ES_CONFIG_FILE=${{ inputs.eslint-config }}" >> "$GITHUB_ENV" || true
+          has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
+
+          # Always-written config paths (super-linter handles missing files gracefully for these)
+          echo "PRETTIER_CONFIG=${PRETTIER_CONFIG_INPUT}" >> "$GITHUB_ENV"
+          echo "TYPESCRIPT_STANDARD_TSCONFIG_FILE=${TSCONFIG_INPUT}" >> "$GITHUB_ENV"
+          echo "YAML_CONFIG_FILE=${YAML_CONFIG_INPUT}" >> "$GITHUB_ENV"
+
+          # ESLint — terminates at startup when config file is missing; only set when present
+          if [ -f "${ESLINT_CONFIG}" ]; then
+            echo "JAVASCRIPT_ES_CONFIG_FILE=${ESLINT_CONFIG}" >> "$GITHUB_ENV"
+            echo "TYPESCRIPT_ES_CONFIG_FILE=${ESLINT_CONFIG}" >> "$GITHUB_ENV"
+          fi
+
+          # JavaScript / TypeScript — Prettier + TSX
+          if has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; then
+            echo "VALIDATE_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_JSX_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_TSX=true" >> "$GITHUB_ENV"
+            echo "FIX_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_JSX_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_TYPESCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_TSX=true" >> "$GITHUB_ENV"
+          fi
+
+          # CSS / Stylelint — only when CSS/SCSS files or a stylelint config are present
+          if has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; then
+            echo "VALIDATE_CSS=true" >> "$GITHUB_ENV"
+            echo "STYLELINT_CONFIG_FILE=stylelint.config.ts" >> "$GITHUB_ENV"
+          fi
+
+          # GraphQL
+          if has '*.graphql' || has '*.gql'; then
+            echo "VALIDATE_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_GRAPHQL_PRETTIER=true" >> "$GITHUB_ENV"
+          fi
+
+          # HTML
+          if has '*.html' || has '*.htm'; then
+            echo "VALIDATE_HTML_PRETTIER=true" >> "$GITHUB_ENV"
+            echo "FIX_HTML_PRETTIER=true" >> "$GITHUB_ENV"
+          fi
+
+          # ENV files
+          if has '.env' || has '.env.example' || has '.env.local'; then
+            echo "VALIDATE_ENV=true" >> "$GITHUB_ENV"
+            echo "FIX_ENV=true" >> "$GITHUB_ENV"
+          fi
+
+          # Dockerfile
+          if has 'Dockerfile' || has '*.Dockerfile'; then
+            echo "VALIDATE_DOCKERFILE=true" >> "$GITHUB_ENV"
+          fi
 
       - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
@@ -117,34 +175,14 @@ jobs:
           IGNORE_GITIGNORED_FILES: true
           LINTER_RULES_PATH: /
           EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
-          FIX_ENV: true
-          FIX_GRAPHQL_PRETTIER: true
-          FIX_HTML_PRETTIER: true
-          FIX_JAVASCRIPT_PRETTIER: true
-          FIX_JSX_PRETTIER: true
           FIX_MARKDOWN_PRETTIER: true
-          FIX_TSX: true
-          FIX_TYPESCRIPT_PRETTIER: true
-          PRETTIER_CONFIG: ${{ inputs.prettier-config }}
-          TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
-          VALIDATE_DOCKERFILE: true
           VALIDATE_EDITORCONFIG: true
-          VALIDATE_ENV: true
           VALIDATE_GIT_COMMITLINT: true
           VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_GITLEAKS: true
-          VALIDATE_GRAPHQL_PRETTIER: true
-          VALIDATE_HTML_PRETTIER: true
-          VALIDATE_JAVASCRIPT_PRETTIER: true
-          VALIDATE_JSX_PRETTIER: true
           VALIDATE_MARKDOWN_PRETTIER: true
-          VALIDATE_TSX: true
-          VALIDATE_CSS: true
-          VALIDATE_TYPESCRIPT_PRETTIER: true
           VALIDATE_YAML: true
-          YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
-          STYLELINT_CONFIG_FILE: stylelint.config.ts
 
       - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         name: Commit and push linting fixes
