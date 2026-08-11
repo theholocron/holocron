@@ -139,29 +139,30 @@ jobs:
           # VALIDATE_JAVASCRIPT_ES/TYPESCRIPT_ES must be explicitly true/false.
           JAVASCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
           TYPESCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
-          VALIDATE_JAVASCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' }}
-          VALIDATE_TYPESCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' }}
+          VALIDATE_JAVASCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' && 'true' || '' }}
+          VALIDATE_TYPESCRIPT_ES: ${{ steps.detect.outputs.eslint == 'true' && 'true' || '' }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
           TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ inputs.typescript-tsconfig }}
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
-          # Dynamic linters — driven by detect step outputs
-          FIX_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
-          FIX_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
-          FIX_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
-          FIX_TSX: ${{ steps.detect.outputs.js == 'true' }}
-          VALIDATE_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
-          VALIDATE_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
-          VALIDATE_TSX: ${{ steps.detect.outputs.js == 'true' }}
-          VALIDATE_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' }}
+          # Dynamic linters — empty string when off; super-linter only counts
+          # non-empty VALIDATE_* values toward the allowlist/blocklist decision.
+          FIX_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          FIX_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          FIX_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          FIX_TSX: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          VALIDATE_JAVASCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          VALIDATE_JSX_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          VALIDATE_TSX: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
+          VALIDATE_TYPESCRIPT_PRETTIER: ${{ steps.detect.outputs.js == 'true' && 'true' || '' }}
           STYLELINT_CONFIG_FILE: ${{ steps.detect.outputs.css == 'true' && 'stylelint.config.ts' || '' }}
-          VALIDATE_CSS: ${{ steps.detect.outputs.css == 'true' }}
-          FIX_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' }}
-          VALIDATE_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' }}
-          FIX_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' }}
-          VALIDATE_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' }}
-          FIX_ENV: ${{ steps.detect.outputs.dotenv == 'true' }}
-          VALIDATE_ENV: ${{ steps.detect.outputs.dotenv == 'true' }}
-          VALIDATE_DOCKERFILE: ${{ steps.detect.outputs.docker == 'true' }}
+          VALIDATE_CSS: ${{ steps.detect.outputs.css == 'true' && 'true' || '' }}
+          FIX_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' && 'true' || '' }}
+          VALIDATE_GRAPHQL_PRETTIER: ${{ steps.detect.outputs.graphql == 'true' && 'true' || '' }}
+          FIX_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' && 'true' || '' }}
+          VALIDATE_HTML_PRETTIER: ${{ steps.detect.outputs.html == 'true' && 'true' || '' }}
+          FIX_ENV: ${{ steps.detect.outputs.dotenv == 'true' && 'true' || '' }}
+          VALIDATE_ENV: ${{ steps.detect.outputs.dotenv == 'true' && 'true' || '' }}
+          VALIDATE_DOCKERFILE: ${{ steps.detect.outputs.docker == 'true' && 'true' || '' }}
           # Always-on linters
           FIX_MARKDOWN_PRETTIER: true
           VALIDATE_EDITORCONFIG: true
