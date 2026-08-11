@@ -111,6 +111,11 @@ jobs:
         run: |
           has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
 
+          if { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; }; then
+            echo "VALIDATE_JAVASCRIPT_ES=true" >> "$GITHUB_ENV"
+            echo "VALIDATE_TYPESCRIPT_ES=true" >> "$GITHUB_ENV"
+          fi
+
           if { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; }; then
             echo "VALIDATE_JAVASCRIPT_PRETTIER=true" >> "$GITHUB_ENV"
             echo "VALIDATE_JSX_PRETTIER=true" >> "$GITHUB_ENV"
