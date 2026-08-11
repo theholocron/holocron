@@ -149,6 +149,10 @@ jobs:
           token: ${{ github.token }}
           buildScriptName: ${{ matrix.project.buildScript || 'build:storybook' }}
           workingDir: ${{ matrix.project.workingDir || '.' }}
+          storybookBaseDir: ${{ matrix.project.storybookBaseDir || '' }}
+          untraced: ${{ matrix.project.untraced || '' }}
+          onlyStoryFiles: ${{ matrix.project.onlyStoryFiles || '' }}
+          exitZeroOnChanges: ${{ matrix.project.exitZeroOnChanges || false }}
 
   interaction-and-accessibility:
     name: Test Interactions and Accessibility

@@ -534,12 +534,21 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// generating the thin caller. Currently handles:
 	//   run-chromatic: { projects: [...] }
 	//   → run-chromatic: true, chromatic-projects: JSON.stringify(projects)
+	// Within each project, arrays (e.g. untraced) are joined to newline-
+	// separated strings as expected by the chromaui/action input schema.
 	function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
 		const result = { ...raw };
 		const runChromatic = raw["run-chromatic"];
 		if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
 			result["run-chromatic"] = true;
-			result["chromatic-projects"] = JSON.stringify((runChromatic as { projects: unknown[] }).projects);
+			const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map(
+				(p) => ({
+					...p,
+					// chromaui/action expects untraced as newline-separated string
+					...(Array.isArray(p.untraced) ? { untraced: p.untraced.join("\n") } : {}),
+				})
+			);
+			result["chromatic-projects"] = JSON.stringify(projects);
 		}
 		return result;
 	}

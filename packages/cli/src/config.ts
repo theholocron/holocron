@@ -149,6 +149,67 @@ export interface EnvConfig {
 	namespaces?: string[];
 }
 
+/**
+ * A single Chromatic project entry in a monorepo `run-chromatic` config.
+ * Each entry produces one matrix job in CI, publishing to a separate Chromatic project.
+ *
+ * The `tokenName` maps to a repository secret named `CHROMATIC_PROJECT_TOKEN_<TOKENNAME>`.
+ * Additional fields correspond to chromaui/action inputs and are passed through directly.
+ *
+ * @see https://www.chromatic.com/docs/monorepos/
+ */
+export interface ChromaticProjectConfig {
+	/**
+	 * Secret suffix. The CI job reads `CHROMATIC_PROJECT_TOKEN_<tokenName>`.
+	 * Must be uppercase (e.g. `"WEB"`, `"UI"`).
+	 */
+	tokenName: string;
+	/**
+	 * Path to run the Chromatic build from, relative to the repo root.
+	 * Typically the package directory (e.g. `"apps/web"`, `"packages/ui"`).
+	 */
+	workingDir: string;
+	/**
+	 * Script name to build Storybook. Defaults to `"build:storybook"`.
+	 * Must accept `--output-dir` pass-through (use `turbo run … --` at root).
+	 */
+	buildScript?: string;
+	/**
+	 * Path to the Storybook folder relative to `workingDir`, for TurboSnap.
+	 * Tells Chromatic where to find `.storybook/` when the Storybook config
+	 * is in a subdirectory. Corresponds to `--storybook-base-dir`.
+	 */
+	storybookBaseDir?: string;
+	/**
+	 * Glob patterns of files/dirs that should NOT trigger a TurboSnap bailout
+	 * when changed. Useful for ignoring non-UI changes in a monorepo
+	 * (e.g. `"./packages/!(ui)/**"` to focus TurboSnap on the UI package).
+	 * Corresponds to `--untraced`. Accepts a single glob string or array.
+	 */
+	untraced?: string | string[];
+	/**
+	 * Glob patterns matching story files to snapshot. When set, only matching
+	 * stories are captured. Corresponds to `--only-story-files`.
+	 * Cannot be combined with `onlyStoryNames`.
+	 */
+	onlyStoryFiles?: string;
+	/**
+	 * Exit with code 0 even when visual changes are detected.
+	 * Useful during initial setup before baselines are approved.
+	 * Corresponds to `--exit-zero-on-changes`.
+	 */
+	exitZeroOnChanges?: boolean;
+}
+
+/**
+ * Typed `with:` inputs for the `test` reusable workflow.
+ * `run-chromatic` accepts either a plain boolean (single-project) or a
+ * `ChromaticProjectConfig[]` object (multi-project monorepo).
+ */
+export type WorkflowWithConfig = Record<string, unknown> & {
+	"run-chromatic"?: boolean | { projects: ChromaticProjectConfig[] };
+};
+
 export interface HolocronConfig {
 	/** Project name. Derived from package.json when absent. */
 	name?: string;
@@ -178,11 +239,29 @@ export interface HolocronConfig {
 	 * Use `paths` to append additional `on.push.paths` entries beyond the
 	 * template default (e.g. the repo-specific docs content package path).
 	 *
+	 * ### run-chromatic
+	 * For a single-project repo, use `"run-chromatic": true` with a
+	 * `CHROMATIC_PROJECT_TOKEN` repository secret.
+	 *
+	 * For monorepos with multiple Storybooks, use the object form:
+	 * ```ts
+	 * "run-chromatic": {
+	 *   projects: [
+	 *     { tokenName: "WEB", workingDir: "apps/web" },
+	 *     { tokenName: "UI",  workingDir: "packages/ui" },
+	 *   ]
+	 * }
+	 * ```
+	 * Each `tokenName` maps to a repository secret named
+	 * `CHROMATIC_PROJECT_TOKEN_<TOKENNAME>`. `holocron setup` expands this
+	 * to the flat `run-chromatic: true` + `chromatic-projects: <json>` inputs
+	 * that the reusable workflow accepts.
+	 *
 	 * @example
 	 * ["lint", { "name": "release", "with": { "run-build": false } }]
 	 * { "name": "deploy-docs", "with": { "name": "configs" }, "paths": ["packages/configs-docs/**"] }
 	 */
-	workflows?: Array<string | { name: string; with?: Record<string, unknown>; paths?: string[] }>;
+	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -245,7 +324,7 @@ export interface ResolvedHolocronConfig {
 	description?: string;
 	homepage?: string;
 	repo?: RepoConfig;
-	workflows?: Array<string | { name: string; with?: Record<string, unknown>; paths?: string[] }>;
+	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
