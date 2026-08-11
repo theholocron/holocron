@@ -1133,6 +1133,50 @@ describe("runSetup", () => {
 		expect(written.some((c) => c.includes("run-unit: true"))).toBe(true);
 	});
 
+	it("expands run-chromatic object to run-chromatic: true + chromatic-projects", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "test",
+					with: {
+						"run-unit": false,
+						"run-storybook": true,
+						"run-chromatic": {
+							projects: [
+								{ tokenName: "WEB", workingDir: "apps/web" },
+								{ tokenName: "UI", workingDir: "packages/ui" },
+							],
+						},
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const testWorkflow = written.find((c) => c.includes("run-chromatic"));
+		expect(testWorkflow).toBeDefined();
+		expect(testWorkflow).toContain("run-chromatic: true");
+		expect(testWorkflow).toContain("chromatic-projects:");
+		expect(testWorkflow).toContain("WEB");
+		expect(testWorkflow).toContain("UI");
+	});
+
 	it("dry-run skips workflow writes", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({

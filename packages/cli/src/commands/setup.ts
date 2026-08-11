@@ -530,13 +530,35 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: workflow thin wrappers ──────────────────────────────────
+	// Expand structured with-values to flat GitHub Actions inputs before
+	// generating the thin caller. Currently handles:
+	//   run-chromatic: { projects: [...] }
+	//   → run-chromatic: true, chromatic-projects: JSON.stringify(projects)
+	// Within each project, arrays (e.g. untraced) are joined to newline-
+	// separated strings as expected by the chromaui/action input schema.
+	function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
+		const result = { ...raw };
+		const runChromatic = raw["run-chromatic"];
+		if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
+			result["run-chromatic"] = true;
+			const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map((p) => ({
+				...p,
+				// chromaui/action expects untraced as newline-separated string
+				...(Array.isArray(p.untraced) ? { untraced: p.untraced.join("\n") } : {}),
+			}));
+			result["chromatic-projects"] = JSON.stringify(projects);
+		}
+		return result;
+	}
+
 	const workflows = config.workflows;
 	if (loader.has("source") && workflows && workflows.length > 0) {
 		const source = loader.get("source") as Source;
 		print(style.step("workflows"));
 		for (const entry of workflows) {
 			const name = typeof entry === "string" ? entry : entry.name;
-			const withOverrides = typeof entry === "object" ? entry.with : undefined;
+			const rawWith = typeof entry === "object" ? entry.with : undefined;
+			const withOverrides = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
 			const additionalPaths = typeof entry === "object" ? entry.paths : undefined;
 
 			// Enforce that the test workflow has at least one test type enabled.
