@@ -520,30 +520,30 @@ describe("runNew — template-only block stripping", () => {
 	});
 });
 
-// ── runNew — display_name placeholder ────────────────────────────────
+// ── runNew — tsconfig.json display update ────────────────────────────
 
-describe("runNew — <display_name> placeholder", () => {
-	it("replaces <display_name> with title-case of the new repo name", async () => {
+describe("runNew — tsconfig.json display update", () => {
+	it("sets root tsconfig display to title-case of the new repo name", async () => {
 		const { exec } = makeExec();
 		const { readFile, writeFile, walkFiles, written } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
-			"/workspace/my-tool/tsconfig.json": { content: '{"display": "<display_name>"}' },
+			"/workspace/my-tool/tsconfig.json": { content: '{"display": "CLI Template"}' },
 		});
 
 		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
 
-		expect(written["/workspace/my-tool/tsconfig.json"]).toContain("My Tool");
-		expect(written["/workspace/my-tool/tsconfig.json"]).not.toContain("<display_name>");
+		const tsconfig = JSON.parse(written["/workspace/my-tool/tsconfig.json"]!) as { display: string };
+		expect(tsconfig.display).toBe("My Tool");
 	});
 
-	it("derives title-case from multi-word repo names", async () => {
+	it("overwrites any existing display value — no placeholder required in templates", async () => {
 		const { exec } = makeExec();
 		const { readFile, writeFile, walkFiles, written } = makeFs({
 			"/workspace/monorepo-react-template/package.json": {
 				content: JSON.stringify({ name: "@theholocron/monorepo-template" }),
 			},
 			"/workspace/monorepo-react-template/tsconfig.json": {
-				content: '{"display": "<display_name>"}',
+				content: '{"display": "Monorepo Template"}',
 			},
 		});
 
@@ -559,7 +559,22 @@ describe("runNew — <display_name> placeholder", () => {
 			print: () => {},
 		});
 
-		expect(written["/workspace/monorepo-react-template/tsconfig.json"]).toContain("Monorepo React Template");
+		const tsconfig = JSON.parse(written["/workspace/monorepo-react-template/tsconfig.json"]!) as {
+			display: string;
+		};
+		expect(tsconfig.display).toBe("Monorepo React Template");
+	});
+
+	it("leaves tsconfig files without a display field unchanged", async () => {
+		const { exec } = makeExec();
+		const { readFile, writeFile, walkFiles, written } = makeFs({
+			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
+			"/workspace/my-tool/tsconfig.json": { content: '{"extends": "@theholocron/tsconfig/node-lts"}' },
+		});
+
+		await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: () => {} });
+
+		expect(written["/workspace/my-tool/tsconfig.json"]).toBeUndefined();
 	});
 });
 
