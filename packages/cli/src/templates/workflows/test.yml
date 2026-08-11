@@ -23,6 +23,17 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      chromatic-projects:
+        description: >
+          JSON array of Chromatic projects to build, one matrix job per entry.
+          Each entry: { "tokenName": "WEB", "workingDir": "apps/web", "buildScript": "build:storybook" }.
+          tokenName maps to secret CHROMATIC_PROJECT_TOKEN_<TOKENNAME>; omit or
+          leave empty to use the bare CHROMATIC_PROJECT_TOKEN secret (single-project default).
+          buildScript defaults to "build:storybook" when omitted.
+          Default runs a single job from the repo root using CHROMATIC_PROJECT_TOKEN.
+        type: string
+        required: false
+        default: '[{"tokenName":"","workingDir":".","buildScript":"build:storybook"}]'
       run-user-flow:
         description: Run Cypress E2E user-flow tests (requires cypress.config.*)
         type: boolean
@@ -112,8 +123,12 @@ jobs:
           files: '**/test-report.junit.xml'
 
   visual-and-composition:
-    name: Test Visual and Composition
+    name: Test Visual and Composition (${{ matrix.project.tokenName || 'default' }})
     if: ${{ inputs.run-chromatic }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(inputs.chromatic-projects) }}
     permissions:
       contents: read
       statuses: write
@@ -130,9 +145,10 @@ jobs:
       - uses: chromaui/action@14cfaef73576e69f95f47f60058063f46ca38719 # v18
         name: Publish to Chromatic
         with:
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          projectToken: ${{ matrix.project.tokenName == '' && secrets.CHROMATIC_PROJECT_TOKEN || secrets[format('CHROMATIC_PROJECT_TOKEN_{0}', matrix.project.tokenName)] }}
           token: ${{ github.token }}
-          buildScriptName: build:storybook
+          buildScriptName: ${{ matrix.project.buildScript || 'build:storybook' }}
+          workingDir: ${{ matrix.project.workingDir || '.' }}
 
   interaction-and-accessibility:
     name: Test Interactions and Accessibility
