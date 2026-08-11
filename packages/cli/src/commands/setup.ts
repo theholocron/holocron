@@ -631,23 +631,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		{
 			const packages = await readWorkspacePackages(input.context.repoRoot);
 			const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
-			if (packages.length === 0 && existing == null) {
-				steps.push({
-					capability: "source",
-					step: "write codecov.yml",
-					status: "skip",
-					message: "no packages and no existing codecov.yml",
-				});
-			} else {
-				steps.push(
-					await runStep("source", "write codecov.yml", dryRun, async () => {
-						const content =
-							existing != null ? mergeCodecovComponents(existing, packages) : codecovContent(packages);
-						await source.writeRepoFile("codecov.yml", content);
-						return packages.length > 0 ? `${packages.length} components` : "no components";
-					})
-				);
-			}
+			steps.push(
+				await runStep("source", "write codecov.yml", dryRun, async () => {
+					const content =
+						existing != null ? mergeCodecovComponents(existing, packages) : codecovContent(packages);
+					await source.writeRepoFile("codecov.yml", content);
+					return packages.length > 0 ? `${packages.length} components` : "no components";
+				})
+			);
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
