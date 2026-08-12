@@ -648,40 +648,58 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("secrets: inherit");
 	});
 
-	it("appends additionalPaths to the existing paths: block", () => {
-		const content = generateThinCallerContent("deploy-docs", undefined, ["packages/configs-docs/**"]);
-		expect(content).toContain("- docs/**");
-		expect(content).toContain("- packages/configs-docs/**");
-		const docsIdx = content.indexOf("- docs/**");
-		const pkgIdx = content.indexOf("- packages/configs-docs/**");
-		expect(docsIdx).toBeLessThan(pkgIdx);
+	it("inserts a paths block when the template has none", () => {
+		const content = generateThinCallerContent("deploy", undefined, ["docs/**"]);
+		expect(content).toContain("    paths:");
+		expect(content).toContain("      - docs/**");
 	});
 
-	it("appends multiple additionalPaths entries in order", () => {
-		const content = generateThinCallerContent("deploy-docs", undefined, [
-			"packages/configs-docs/**",
-			"packages/configs-theme/**",
-		]);
-		expect(content).toContain("- packages/configs-docs/**");
-		expect(content).toContain("- packages/configs-theme/**");
+	it("inserts multiple paths in order when the template has none", () => {
+		const content = generateThinCallerContent("deploy", undefined, ["src/**", ".storybook/**"]);
+		expect(content).toContain("- src/**");
+		expect(content).toContain("- .storybook/**");
+		const srcIdx = content.indexOf("- src/**");
+		const sbIdx = content.indexOf("- .storybook/**");
+		expect(srcIdx).toBeLessThan(sbIdx);
 	});
 
 	it("returns template unchanged when additionalPaths is empty", () => {
-		const base = generateThinCallerContent("deploy-docs");
-		const withEmpty = generateThinCallerContent("deploy-docs", undefined, []);
+		const base = generateThinCallerContent("deploy");
+		const withEmpty = generateThinCallerContent("deploy", undefined, []);
 		expect(withEmpty).toBe(base);
 	});
 
 	it("applies both additionalPaths and withOverrides together", () => {
-		const content = generateThinCallerContent("deploy-docs", { name: "configs" }, ["packages/configs-docs/**"]);
-		expect(content).toContain("- packages/configs-docs/**");
+		const content = generateThinCallerContent("deploy", { type: "docs", name: "configs" }, ["docs/**"]);
+		expect(content).toContain("- docs/**");
+		expect(content).toContain("type: docs");
 		expect(content).toContain("name: configs");
 		expect(content).toContain("secrets: inherit");
 	});
 
-	it("deduplicates additionalPaths already present in the template", () => {
-		const content = generateThinCallerContent("deploy-docs", undefined, ["docs/**"]);
-		const matches = [...content.matchAll(/- docs\/\*\*/g)];
-		expect(matches).toHaveLength(1);
+	it("appends additionalPaths to an existing paths block", () => {
+		const sentinel = "__test_with_paths__";
+		WORKFLOW_TEMPLATES[sentinel] =
+			`name: Test\n\non: # yamllint disable-line rule:truthy\n  push:\n    branches: [main]\n    paths:\n      - docs/**\n  workflow_dispatch:\n\njobs:\n  test:\n    uses: some/action@v1\n    secrets: inherit\n`;
+		try {
+			const content = generateThinCallerContent(sentinel, undefined, ["extra/**"]);
+			expect(content).toContain("- docs/**");
+			expect(content).toContain("- extra/**");
+		} finally {
+			delete WORKFLOW_TEMPLATES[sentinel];
+		}
+	});
+
+	it("deduplicates additionalPaths already present in an existing paths block", () => {
+		const sentinel = "__test_with_paths_dedup__";
+		WORKFLOW_TEMPLATES[sentinel] =
+			`name: Test\n\non: # yamllint disable-line rule:truthy\n  push:\n    branches: [main]\n    paths:\n      - docs/**\n  workflow_dispatch:\n\njobs:\n  test:\n    uses: some/action@v1\n    secrets: inherit\n`;
+		try {
+			const content = generateThinCallerContent(sentinel, undefined, ["docs/**"]);
+			const matches = [...content.matchAll(/- docs\/\*\*/g)];
+			expect(matches).toHaveLength(1);
+		} finally {
+			delete WORKFLOW_TEMPLATES[sentinel];
+		}
 	});
 });

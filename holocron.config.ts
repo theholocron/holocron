@@ -14,7 +14,7 @@ export default defineConfig({
 	workflows: [
 		...workflows,
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
-		{ name: "deploy-docs", with: { name: "holocron" }, paths: ["packages/holocron-docs/**"] },
+		{ name: "deploy", with: { type: "docs", name: "holocron" }, paths: ["docs/**"] },
 	],
 	providers: {
 		...providers,

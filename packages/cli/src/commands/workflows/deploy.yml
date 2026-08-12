@@ -1,10 +1,8 @@
-name: Deploy Docs
+name: Deploy
 
 on: # yamllint disable-line rule:truthy
   push:
     branches: [main]
-    paths:
-      - docs/**
   workflow_dispatch:
 
 concurrency:
@@ -17,7 +15,7 @@ permissions:
   id-token: write
 
 jobs:
-  deploy-docs:
-    name: Deploy Docs
-    uses: theholocron/.github/.github/workflows/deploy-docs.yml@main
+  deploy:
+    name: Deploy
+    uses: theholocron/.github/.github/workflows/deploy.yml@main
     secrets: inherit
