@@ -29,3 +29,13 @@ Targets the current Node LTS feature set. All theholocron projects use this:
   "extends": "@theholocron/tsconfig/node-lts"
 }
 ```
+
+### React
+
+Targets browser environments for React component libraries and apps. Sets `DOM` lib, `ESNext` module with `bundler` resolution, and `react-jsx` transform — no manual overrides needed for Vite-based projects:
+
+```json
+{
+  "extends": "@theholocron/tsconfig/react"
+}
+```

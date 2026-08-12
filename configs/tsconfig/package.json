@@ -18,11 +18,13 @@
   ],
   "exports": {
     "./nextjs": "./nextjs/tsconfig.json",
-    "./node-lts": "./node-lts/tsconfig.json"
+    "./node-lts": "./node-lts/tsconfig.json",
+    "./react": "./react/tsconfig.json"
   },
   "files": [
     "nextjs/tsconfig.json",
-    "node-lts/tsconfig.json"
+    "node-lts/tsconfig.json",
+    "react/tsconfig.json"
   ],
   "peerDependencies": {
     "typescript": "^5"

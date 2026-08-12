@@ -32,3 +32,13 @@ For Next.js apps. Extends the Next.js recommended TypeScript configuration.
   "extends": "@theholocron/tsconfig/nextjs"
 }
 ```
+
+### `react`
+
+For browser-targeted React component libraries and Vite apps. Includes DOM lib, `ESNext` module with `bundler` resolution, and the `react-jsx` transform.
+
+```json
+{
+  "extends": "@theholocron/tsconfig/react"
+}
+```
