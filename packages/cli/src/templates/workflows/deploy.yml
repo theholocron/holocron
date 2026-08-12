@@ -31,10 +31,14 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
         default: storybook-static
+    secrets:
+      DEPLOY_TOKEN:
+        required: true
+        description: PAT with contents:write on theholocron/theholocron.github.io
 
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,8 +75,7 @@ jobs:
           BUILD_SCRIPT: ${{ inputs.build-script }}
         run: pnpm run "$BUILD_SCRIPT"
 
-      - name: Assemble Pages artifact
-        id: artifact
+      - name: Assemble site
         env:
           DEPLOY_TYPE: ${{ inputs.type }}
           PROJECTS: ${{ inputs.storybook-projects }}
@@ -93,24 +96,25 @@ jobs:
           elif [ "$DEPLOY_TYPE" = "storybook" ]; then
             cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/
           fi
-          echo "path=_site" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        name: Upload pages artifact
-        with:
-          path: ${{ steps.artifact.outputs.path }}
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
-        id: deployment
-        name: Deploy to GitHub Pages
+      - name: Push to theholocron.github.io
+        env:
+          TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git clone --depth 1 \
+            "https://x-access-token:${TOKEN}@github.com/theholocron/theholocron.github.io.git" \
+            hub
+          rm -rf "hub/projects/${REPO_NAME:?}"
+          mkdir -p "hub/projects/${REPO_NAME}"
+          cp -r _site/. "hub/projects/${REPO_NAME}/"
+          cd hub
+          git add -A
+          git diff --staged --quiet && exit 0
+          git commit -m "chore(pages): deploy ${REPO_NAME}"
+          for i in 1 2 3; do
+            git pull --rebase && git push && break
+            sleep $((i * 5))
+          done
