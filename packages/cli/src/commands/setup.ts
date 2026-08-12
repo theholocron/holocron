@@ -548,6 +548,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			}));
 			result["chromatic-projects"] = JSON.stringify(projects);
 		}
+		// Stringify any plain array values (e.g. storybook-projects) so yamlScalar
+		// can single-quote them as JSON strings in the generated YAML with: block.
+		for (const [k, v] of Object.entries(result)) {
+			if (Array.isArray(v)) {
+				result[k] = JSON.stringify(v);
+			}
+		}
 		return result;
 	}
 

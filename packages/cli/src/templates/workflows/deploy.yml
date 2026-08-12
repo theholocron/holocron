@@ -12,13 +12,22 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: ""
+      storybook-projects:
+        description: >
+          JSON array of { "name", "workingDir", "outputDir"? } objects for monorepo multi-storybook
+          deploys. Each is built via `pnpm -C <workingDir> build:storybook` and assembled under
+          `sandbox/<name>/` in the Pages artifact. When provided alongside type:docs, docs and all
+          storybooks are combined into a single deployment.
+        type: string
+        required: false
+        default: "[]"
       build-script:
-        description: pnpm script that builds the Storybook static output (storybook type only)
+        description: pnpm script that builds the Storybook static output (single storybook, type:storybook only)
         type: string
         required: false
         default: build:storybook
       output-dir:
-        description: Directory where Storybook writes its static output (storybook type only)
+        description: Directory where Storybook writes its static output (single storybook, type:storybook only)
         type: string
         required: false
         default: storybook-static
@@ -46,23 +55,45 @@ jobs:
         if: ${{ inputs.type == 'docs' && inputs.name == '' }}
         run: pnpm -C docs build
 
+      - name: Build Storybook projects
+        if: ${{ inputs.storybook-projects != '[]' }}
+        env:
+          PROJECTS: ${{ inputs.storybook-projects }}
+        run: |
+          echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+            workingDir=$(echo "$project" | jq -r '.workingDir')
+            pnpm -C "$workingDir" build:storybook
+          done
+
       - name: Build Storybook
-        if: ${{ inputs.type == 'storybook' }}
+        if: ${{ inputs.type == 'storybook' && inputs.storybook-projects == '[]' }}
         env:
           BUILD_SCRIPT: ${{ inputs.build-script }}
         run: pnpm run "$BUILD_SCRIPT"
 
-      - name: Resolve artifact path
+      - name: Assemble Pages artifact
         id: artifact
         env:
           DEPLOY_TYPE: ${{ inputs.type }}
+          PROJECTS: ${{ inputs.storybook-projects }}
           STORYBOOK_OUTPUT_DIR: ${{ inputs.output-dir }}
         run: |
+          mkdir -p _site
           if [ "$DEPLOY_TYPE" = "docs" ]; then
-            echo "path=docs/dist" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=$STORYBOOK_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+            cp -r docs/dist/. _site/
           fi
+          if [ "$PROJECTS" != "[]" ]; then
+            echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+              name=$(echo "$project" | jq -r '.name')
+              workingDir=$(echo "$project" | jq -r '.workingDir')
+              outputDir=$(echo "$project" | jq -r '.outputDir // "storybook-static"')
+              mkdir -p "_site/sandbox/${name}"
+              cp -r "${workingDir}/${outputDir}/." "_site/sandbox/${name}/"
+            done
+          elif [ "$DEPLOY_TYPE" = "storybook" ]; then
+            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/
+          fi
+          echo "path=_site" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         name: Upload pages artifact
