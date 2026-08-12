@@ -35,14 +35,14 @@ const { environments } = await postman.environments.list("workspace-id");
 
 // Create an environment
 await postman.environments.create("workspace-id", {
-	name: "Production",
-	values: [],
+  name: "Production",
+  values: [],
 });
 
 // Update an environment
 await postman.environments.update("environment-uid", {
-	name: "Production",
-	values: [],
+  name: "Production",
+  values: [],
 });
 
 // List Spec Hub specs
@@ -50,8 +50,8 @@ const { specs } = await postman.specs.list("workspace-id");
 
 // Create a spec
 await postman.specs.create("workspace-id", {
-	name: "My API",
-	fileContent: JSON.stringify(openApiSpec),
+  name: "My API",
+  fileContent: JSON.stringify(openApiSpec),
 });
 
 // Update a spec file

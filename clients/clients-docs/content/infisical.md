@@ -19,8 +19,8 @@ import { createInfisicalClient } from "@theholocron/infisical-client";
 const client = createInfisicalClient({ token: process.env.INFISICAL_TOKEN });
 
 const secrets = await client.secrets.list({
-	workspaceId: "ws-123",
-	environment: "production",
+  workspaceId: "ws-123",
+  environment: "production",
 });
 
 const workspaces = await client.workspaces.list();

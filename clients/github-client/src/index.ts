@@ -28,8 +28,8 @@ export type {
 } from "./git/git.js";
 export type { GitHubIssue, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
 export type { GitHubLabel } from "./labels/labels.js";
+export type { CreatePagesPayload, GitHubPages, PagesBuildType, UpdatePagesPayload } from "./pages/pages.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
-export type { GitHubPages, CreatePagesPayload, UpdatePagesPayload, PagesBuildType } from "./pages/pages.js";
 export type { GitHubRuleset } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
 export type { CodeScanningSetupResult } from "./security/security.js";

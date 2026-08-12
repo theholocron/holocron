@@ -2,7 +2,7 @@
 title: Clients
 description: TypeScript HTTP clients for third-party APIs, built on @theholocron/http-client.
 sidebar:
-    hidden: true
+  hidden: true
 ---
 
 `@theholocron/clients` is a pnpm monorepo of typed HTTP clients for popular third-party APIs.
@@ -65,11 +65,11 @@ All clients throw `ProviderApiError` (from `@theholocron/http-client`) on non-2x
 import { ProviderApiError } from "@theholocron/http-client";
 
 try {
-	const issue = await client.issues.get("PROJ-1");
+  const issue = await client.issues.get("PROJ-1");
 } catch (err) {
-	if (err instanceof ProviderApiError) {
-		console.error(err.status, err.message);
-	}
+  if (err instanceof ProviderApiError) {
+    console.error(err.status, err.message);
+  }
 }
 ```
 
@@ -82,8 +82,8 @@ import { createGitHubClient } from "@theholocron/github-client";
 
 const calls: Request[] = [];
 const fetch = async (req: Request) => {
-	calls.push(req);
-	return new Response(JSON.stringify({ id: 1 }), { status: 200 });
+  calls.push(req);
+  return new Response(JSON.stringify({ id: 1 }), { status: 200 });
 };
 
 const client = createGitHubClient({ token: "test", fetch });

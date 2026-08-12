@@ -14,8 +14,8 @@ pnpm add @theholocron/jira-client
 import { createJiraClient } from "@theholocron/jira-client";
 
 const jira = createJiraClient({
-	host: "https://your-org.atlassian.net/rest/api/2",
-	token: Buffer.from(`${email}:${apiToken}`).toString("base64"),
+  host: "https://your-org.atlassian.net/rest/api/2",
+  token: Buffer.from(`${email}:${apiToken}`).toString("base64"),
 });
 
 // Create a ticket
@@ -26,7 +26,7 @@ const issues = await jira.issues.getMany(["PROJ-1", "PROJ-2"]);
 
 // Search with JQL
 const results = await jira.issues.search({
-	jql: "project = PROJ AND status = Open",
+  jql: "project = PROJ AND status = Open",
 });
 
 // Manage versions

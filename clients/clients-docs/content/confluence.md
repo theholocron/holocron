@@ -19,14 +19,14 @@ import { createConfluenceClient } from "@theholocron/confluence-client";
 const token = Buffer.from(`${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_TOKEN}`).toString("base64");
 
 const client = createConfluenceClient({
-	baseUrl: "https://myorg.atlassian.net/wiki/rest/api",
-	token,
+  baseUrl: "https://myorg.atlassian.net/wiki/rest/api",
+  token,
 });
 
 const page = await client.page.get("123456789");
 await client.page.update("123456789", {
-	title: "Updated title",
-	body: "<p>New content</p>",
+  title: "Updated title",
+  body: "<p>New content</p>",
 });
 ```
 

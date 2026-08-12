@@ -23,16 +23,16 @@ const { branches } = await neon.branches.list("my-project-id");
 
 // Create a branch with a read/write endpoint
 const { branch } = await neon.branches.create("my-project-id", {
-	name: "feat/my-feature",
-	parent_id: "br_main",
-	endpoints: [{ type: "read_write" }],
+  name: "feat/my-feature",
+  parent_id: "br_main",
+  endpoints: [{ type: "read_write" }],
 });
 
 // Get a connection URI
 const { uri } = await neon.connection.uri("my-project-id", {
-	branch_id: branch.id,
-	database_name: "neondb",
-	role_name: "neondb_owner",
+  branch_id: branch.id,
+  database_name: "neondb",
+  role_name: "neondb_owner",
 });
 
 // List databases on a branch
