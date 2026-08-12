@@ -12,8 +12,7 @@ import auditYml from "./workflows/audit.yml";
 import bookkeepingYml from "./workflows/bookkeeping.yml";
 import codeqlYml from "./workflows/codeql.yml";
 import dependenciesYml from "./workflows/dependencies.yml";
-import deployDocsYml from "./workflows/deploy-docs.yml";
-import deployStorybookYml from "./workflows/deploy-storybook.yml";
+import deployYml from "./workflows/deploy.yml";
 import greetingsYml from "./workflows/greetings.yml";
 import lintYml from "./workflows/lint.yml";
 import releaseYml from "./workflows/release.yml";
@@ -53,8 +52,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	dependencies: dependenciesYml,
 	bookkeeping: bookkeepingYml,
 	audit: auditYml,
-	"deploy-docs": deployDocsYml,
-	"deploy-storybook": deployStorybookYml,
+	deploy: deployYml,
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
@@ -106,17 +104,23 @@ export function generateThinCallerContent(
 
 	let result = base;
 
-	// Append extra push.paths entries after the existing paths: block, skipping duplicates.
+	// Append extra push.paths entries after an existing paths: block (deduplicating), or
+	// insert a fresh paths: block after `branches: [main]` when the template has none.
 	if (additionalPaths && additionalPaths.length > 0) {
 		const pathsBlockRe = /( {4}paths:\n)((?:[ ]{6}- [^\n]+\n)+)/;
-		result = result.replace(pathsBlockRe, (_, header, existing) => {
-			const existingPaths = new Set([...existing.matchAll(/- (.+)/g)].map((m) => m[1]));
-			const newEntries = additionalPaths
-				.filter((p) => !existingPaths.has(p))
-				.map((p) => `      - ${p}\n`)
-				.join("");
-			return header + existing + newEntries;
-		});
+		if (pathsBlockRe.test(result)) {
+			result = result.replace(pathsBlockRe, (_, header, existing) => {
+				const existingPaths = new Set([...existing.matchAll(/- (.+)/g)].map((m) => m[1]));
+				const newEntries = additionalPaths
+					.filter((p) => !existingPaths.has(p))
+					.map((p) => `      - ${p}\n`)
+					.join("");
+				return header + existing + newEntries;
+			});
+		} else {
+			const pathsBlock = `    paths:\n${additionalPaths.map((p) => `      - ${p}\n`).join("")}`;
+			result = result.replace(/( {4}branches: \[main\]\n)/, `$1${pathsBlock}`);
+		}
 	}
 
 	if (!withOverrides || Object.keys(withOverrides).length === 0) return result;
