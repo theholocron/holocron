@@ -29,7 +29,7 @@
     "@theholocron/holocron-plugin-github": "catalog:holocron",
     "@theholocron/semantic-release-config": "catalog:configs",
     "conventional-changelog-conventionalcommits": "^10.2.1",
-    "semantic-release": "^25.0.7",
+    "semantic-release": "^25.0.9",
     "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@10.34.4",
