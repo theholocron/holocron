@@ -18,7 +18,9 @@ permissions:
   id-token: write
 
 jobs:
-  deploy-storybook:
+  deploy:
     name: Deploy Storybook
-    uses: theholocron/.github/.github/workflows/deploy-storybook.yml@main
+    uses: theholocron/.github/.github/workflows/deploy.yml@main
+    with:
+      type: storybook
     secrets: inherit
