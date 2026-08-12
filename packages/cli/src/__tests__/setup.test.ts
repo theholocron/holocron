@@ -1177,6 +1177,46 @@ describe("runSetup", () => {
 		expect(testWorkflow).toContain("UI");
 	});
 
+	it("JSON-stringifies plain array values in workflow with: blocks (e.g. storybook-projects)", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: {
+						type: "docs",
+						name: "demo",
+						"storybook-projects": [
+							{ name: "web", workingDir: "apps/web" },
+							{ name: "ui", workingDir: "packages/ui" },
+						],
+					},
+					paths: ["docs/**"],
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const deployWorkflow = written.find((c) => c.includes("storybook-projects"));
+		expect(deployWorkflow).toBeDefined();
+		expect(deployWorkflow).toContain("storybook-projects: '[{");
+	});
+
 	it("dry-run skips workflow writes", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
