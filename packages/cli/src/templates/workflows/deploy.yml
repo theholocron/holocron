@@ -16,8 +16,7 @@ on: # yamllint disable-line rule:truthy
         description: >
           JSON array of { "name", "workingDir", "outputDir"? } objects for monorepo multi-storybook
           deploys. Each is built via `pnpm -C <workingDir> build:storybook` and assembled under
-          `sandbox/<name>/` in the Pages artifact. When provided alongside type:docs, docs and all
-          storybooks are combined into a single deployment.
+          `sandbox/<name>/` alongside docs in a single deployment.
         type: string
         required: false
         default: "[]"
@@ -31,17 +30,18 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
         default: storybook-static
-    secrets:
-      HOLOCRON_DEPLOY_TOKEN:
-        required: true
-        description: PAT with contents:write on theholocron/theholocron.github.io
 
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
@@ -94,27 +94,15 @@ jobs:
               cp -r "${workingDir}/${outputDir}/." "_site/sandbox/${name}/"
             done
           elif [ "$DEPLOY_TYPE" = "storybook" ]; then
-            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/
+            mkdir -p _site/sandbox
+            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
           fi
 
-      - name: Push to theholocron.github.io
-        env:
-          TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git clone --depth 1 \
-            "https://x-access-token:${TOKEN}@github.com/theholocron/theholocron.github.io.git" \
-            hub
-          rm -rf "hub/projects/${REPO_NAME:?}"
-          mkdir -p "hub/projects/${REPO_NAME}"
-          cp -r _site/. "hub/projects/${REPO_NAME}/"
-          cd hub
-          git add -A
-          git diff --staged --quiet && exit 0
-          git commit -m "chore(pages): deploy ${REPO_NAME}"
-          for i in 1 2 3; do
-            git pull --rebase && git push && break
-            sleep $((i * 5))
-          done
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        name: Upload pages artifact
+        with:
+          path: _site
+
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        id: deployment
+        name: Deploy to GitHub Pages
