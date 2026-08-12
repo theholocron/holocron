@@ -32,7 +32,7 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: storybook-static
     secrets:
-      DEPLOY_TOKEN:
+      HOLOCRON_DEPLOY_TOKEN:
         required: true
         description: PAT with contents:write on theholocron/theholocron.github.io
 
@@ -99,7 +99,7 @@ jobs:
 
       - name: Push to theholocron.github.io
         env:
-          TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
