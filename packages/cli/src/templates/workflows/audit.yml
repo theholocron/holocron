@@ -21,10 +21,10 @@ on: # yamllint disable-line rule:truthy
       lighthouse-config:
         description: >
           Path to the Lighthouse CI config file passed as --config to lhci autorun.
-          Defaults to lighthouse.config.js (the org standard).
+          Defaults to lighthouse.config.cjs (the org standard).
         type: string
         required: false
-        default: lighthouse.config.js
+        default: lighthouse.config.cjs
       knip-script:
         description: Script that invokes Knip (must exit non-zero on findings)
         type: string

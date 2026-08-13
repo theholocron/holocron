@@ -76,7 +76,8 @@ function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	const objSpans: Array<[number, number]> = [];
 
 	// Pass 1: object entries — { name: "foo", with: { ... } }
-	const objRe = /\{\s*name\s*:\s*"([^"]+)"(?:\s*,\s*with\s*:\s*(\{[^}]*\}))?\s*\}/g;
+	// The trailing ,? handles TS trailing commas: with: { ... },  }
+	const objRe = /\{\s*name\s*:\s*"([^"]+)"(?:\s*,\s*with\s*:\s*(\{[^}]*\}))?\s*,?\s*\}/g;
 	let m: RegExpExecArray | null;
 	while ((m = objRe.exec(body)) !== null) {
 		objSpans.push([m.index, m.index + m[0].length]);
