@@ -1177,6 +1177,84 @@ describe("runSetup", () => {
 		expect(testWorkflow).toContain("UI");
 	});
 
+	it("joins untraced array to newline-separated string in chromatic-projects", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "test",
+					with: {
+						"run-unit": false,
+						"run-storybook": true,
+						"run-chromatic": {
+							projects: [
+								{
+									tokenName: "UI",
+									workingDir: "packages/ui",
+									untraced: ["./packages/!(ui)/**", "./apps/**"],
+								},
+							],
+						},
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const testWorkflow = written.find((c) => c.includes("chromatic-projects"));
+		expect(testWorkflow).toBeDefined();
+		// untraced array should be joined with \n, not left as JSON array
+		expect(testWorkflow).toContain("packages/!(ui)");
+		expect(testWorkflow).not.toContain('["./packages');
+	});
+
+	it("JSON-stringifies unrecognised array values passed directly in with:", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "release",
+					with: { "run-build": true, "extra-tags": ["v1", "latest"] as unknown as boolean },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const releaseWorkflow = written.find((c) => c.includes("run-build"));
+		expect(releaseWorkflow).toBeDefined();
+		expect(releaseWorkflow).toContain("extra-tags: '[\"v1\"");
+	});
+
 	it("translates deploy storybook: shorthand to storybook-projects and sets type: docs", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
