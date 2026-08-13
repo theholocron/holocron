@@ -16,8 +16,8 @@ catalogs:
       specifier: ^1.6.2
       version: 1.6.6
     '@theholocron/http-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.6.6
+      version: 1.6.6
     '@theholocron/infisical-client':
       specifier: ^1.6.0
       version: 1.6.2
@@ -277,7 +277,7 @@ importers:
         version: 1.6.6(vitest@4.1.10)
       '@theholocron/http-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.6.6(vitest@4.1.10)
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
@@ -2608,15 +2608,6 @@ packages:
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@theholocron/cli': '>=2.0.0-alpha.1'
-
-  '@theholocron/http-client@1.6.2':
-    resolution: {integrity: sha512-QTUz8XlxunzO47jTM2OCNd6aBuhryltXKA//MRxkcQrePPdiCH6BHyUZ3CWPhsHOmPQN1a1Z23/Gcq7VEhReeg==}
-    engines: {node: '>=22.0.0'}
-    peerDependencies:
-      vitest: '>=4.0.0'
-    peerDependenciesMeta:
-      vitest:
-        optional: true
 
   '@theholocron/http-client@1.6.6':
     resolution: {integrity: sha512-RcO3VmtRb9ds0beMeQI37T+Yy7gLI3RwRd7uB0NMT9ucMhmLRHa1tKkmk974rrBOg/Y1nms0hyMow9sccH6UXw==}
@@ -8311,7 +8302,7 @@ snapshots:
 
   '@theholocron/clerk-client@1.6.2(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.2(vitest@4.1.10)
+      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
@@ -8328,7 +8319,7 @@ snapshots:
 
   '@theholocron/doppler-client@1.6.2(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.2(vitest@4.1.10)
+      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
@@ -8368,17 +8359,13 @@ snapshots:
     dependencies:
       '@theholocron/cli': link:packages/cli
 
-  '@theholocron/http-client@1.6.2(vitest@4.1.10)':
-    optionalDependencies:
-      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-
   '@theholocron/http-client@1.6.6(vitest@4.1.10)':
     optionalDependencies:
       vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   '@theholocron/infisical-client@1.6.2(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.2(vitest@4.1.10)
+      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
@@ -8389,13 +8376,13 @@ snapshots:
 
   '@theholocron/neon-client@1.6.2(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.2(vitest@4.1.10)
+      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
   '@theholocron/postman-client@1.6.2(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.2(vitest@4.1.10)
+      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
@@ -8431,7 +8418,7 @@ snapshots:
 
   '@theholocron/vercel-client@1.6.2(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.2(vitest@4.1.10)
+      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
