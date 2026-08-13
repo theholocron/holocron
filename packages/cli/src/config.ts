@@ -203,12 +203,12 @@ export interface ChromaticProjectConfig {
 
 /**
  * A single Storybook app in a deploy workflow config.
- * `name` becomes the sandbox sub-path (`_site/sandbox/<name>/`);
- * `path` is the working directory relative to the repo root.
+ * `name` becomes the sandbox sub-path (`_site/sandbox/<name>/`).
+ * `path` is the working directory relative to the repo root; defaults to `"."` (repo root) when omitted.
  */
 export interface StorybookDeployProject {
 	name: string;
-	path: string;
+	path?: string;
 }
 
 /**
