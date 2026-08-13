@@ -231,6 +231,30 @@ describe("runSyncGithub", () => {
 		expect(auditBlob?.body?.content).toContain("lighthouse-config: lighthouse.config.cjs");
 	});
 
+	it("parses unquoted TS keys in with: blocks (e.g. docs: true)", async () => {
+		const configTs = `export default defineConfig({
+	workflows: [
+		{ name: "deploy", with: { docs: true } },
+	],
+})`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		const deployBlob = blobs.find(
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
+		);
+		// docs: true is normalised → type: docs and paths: - docs/**
+		expect(deployBlob?.body?.content).toContain("type: docs");
+		expect(deployBlob?.body?.content).toContain("- docs/**");
+	});
+
 	it("parses name-only object entry with trailing comma", async () => {
 		const configTs = `export default defineConfig({
 	workflows: [

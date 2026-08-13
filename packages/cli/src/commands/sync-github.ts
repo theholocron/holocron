@@ -6,7 +6,12 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { generateThinCallerContent, WORKFLOW_TEMPLATES } from "./setup-workflows.js";
+import {
+	deriveDeployPaths,
+	generateThinCallerContent,
+	normalizeWorkflowWith,
+	WORKFLOW_TEMPLATES,
+} from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
 
@@ -84,7 +89,10 @@ function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 		let withObj: Record<string, unknown> | undefined;
 		if (m[2]) {
 			try {
-				withObj = JSON.parse(m[2]);
+				// TS object literals use unquoted keys (docs: true); JSON requires quoted keys.
+				// Normalise before parsing so both forms work.
+				const jsonSafe = m[2].replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
+				withObj = JSON.parse(jsonSafe) as Record<string, unknown>;
 			} catch {
 				/* ignore malformed with: value */
 			}
@@ -169,7 +177,10 @@ function buildBatch(
 	} else {
 		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
-			const content = generateThinCallerContent(name, withOverrides?.get(name));
+			const rawWith = withOverrides?.get(name);
+			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
+			const additionalPaths = name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
+			const content = generateThinCallerContent(name, normalizedWith, additionalPaths);
 			if (!content) continue;
 			files.push({
 				path: `.github/workflows/${name}.yml`,
