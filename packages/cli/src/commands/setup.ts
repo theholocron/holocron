@@ -595,8 +595,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const storybookProjects = raw["storybook"];
 		if (Array.isArray(storybookProjects)) {
 			for (const s of storybookProjects as Array<{ path?: string }>) {
-				if (typeof s.path === "string" && s.path !== "." && s.path !== "") {
-					paths.push(`${s.path}/**`);
+				if (typeof s.path === "string" && s.path !== "") {
+					if (s.path === ".") {
+						paths.push("src/**");
+						paths.push(".storybook/**");
+					} else {
+						paths.push(`${s.path}/**`);
+					}
 				}
 			}
 		}

@@ -1327,7 +1327,7 @@ describe("runSetup", () => {
 		expect(deployWorkflow).toContain("- packages/ui/**");
 	});
 
-	it("skips path derivation for storybook root (path: '.')", async () => {
+	it("derives src/** and .storybook/** for root storybook (path: '.')", async () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1358,7 +1358,8 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
-		expect(deployContent).not.toContain("paths:");
+		expect(deployContent).toContain("- src/**");
+		expect(deployContent).toContain("- .storybook/**");
 	});
 
 	it("explicit paths: overrides auto-derived deploy paths", async () => {
