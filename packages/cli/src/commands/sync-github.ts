@@ -179,8 +179,7 @@ function buildBatch(
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
 			const rawWith = withOverrides?.get(name);
 			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
-			const additionalPaths =
-				name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
+			const additionalPaths = name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
 			const content = generateThinCallerContent(name, normalizedWith, additionalPaths);
 			if (!content) continue;
 			files.push({
