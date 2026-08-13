@@ -1,25 +1,9 @@
-import { fileURLToPath } from "node:url";
-
+import { docsLoader } from "@astrojs/starlight/loaders";
 import { docsSchema } from "@astrojs/starlight/schema";
 import { defineCollection } from "astro:content";
 
-import { createDocsLoader } from "./loader.ts";
-
-export interface DocsConfig {
-	slug: string;
-	name: string;
-}
-
-export function createDocsCollections(docsConfig: DocsConfig, importMetaUrl: string) {
+export function createDocsCollections() {
 	return {
-		docs: defineCollection({
-			loader: createDocsLoader([
-				{
-					dir: fileURLToPath(new URL(`../../packages/${docsConfig.slug}-docs/content`, importMetaUrl)),
-					slug: "",
-				},
-			]),
-			schema: docsSchema(),
-		}),
+		docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
 	};
 }

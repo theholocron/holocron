@@ -8,27 +8,22 @@ vi.mock("@astrojs/starlight/schema", () => ({
 	docsSchema: vi.fn(() => ({ type: "object" })),
 }));
 
-import { createDocsCollections } from "../content.ts";
+vi.mock("@astrojs/starlight/loaders", () => ({
+	docsLoader: vi.fn(() => ({ name: "starlight-docs-loader" })),
+}));
 
-const mockConfig = { slug: "clients", name: "Clients" };
+import { createDocsCollections } from "../content.ts";
 
 describe("createDocsCollections", () => {
 	it("returns a docs collection", () => {
-		const collections = createDocsCollections(mockConfig, import.meta.url);
+		const collections = createDocsCollections();
 		expect(collections).toHaveProperty("docs");
 	});
 
-	it("passes a loader with the slug-derived content path", () => {
-		const collections = createDocsCollections(mockConfig, import.meta.url) as {
+	it("passes the starlight docs loader to the collection", () => {
+		const collections = createDocsCollections() as {
 			docs: { loader: { name: string } };
 		};
-		expect(collections.docs.loader.name).toBe("docs-loader");
-	});
-
-	it("sets the loader source slug to empty string", () => {
-		const collections = createDocsCollections(mockConfig, import.meta.url) as {
-			docs: { loader: { load: (ctx: never) => Promise<void> } };
-		};
-		expect(typeof collections.docs.loader.load).toBe("function");
+		expect(collections.docs.loader.name).toBe("starlight-docs-loader");
 	});
 });
