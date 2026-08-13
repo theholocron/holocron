@@ -1428,6 +1428,38 @@ describe("runSetup", () => {
 		expect(deployContent).not.toContain("- docs/**");
 	});
 
+	it("skips path derivation for docs: { path: '.' }", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: { path: "." } },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).not.toContain("paths:");
+	});
+
 	it("dry-run skips workflow writes", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
