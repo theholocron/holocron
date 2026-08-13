@@ -553,7 +553,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (Array.isArray(storybookProjects)) {
 			if (!hasDocs) result["type"] = "storybook";
 			result["storybook-projects"] = JSON.stringify(
-				(storybookProjects as Array<{ name: string; path: string }>).map(({ name, path }) => ({
+				(storybookProjects as Array<{ name: string; path?: string }>).map(({ name, path = "." }) => ({
 					name,
 					workingDir: path,
 				}))
@@ -595,13 +595,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const storybookProjects = raw["storybook"];
 		if (Array.isArray(storybookProjects)) {
 			for (const s of storybookProjects as Array<{ path?: string }>) {
-				if (typeof s.path === "string" && s.path !== "") {
-					if (s.path === ".") {
-						paths.push("src/**");
-						paths.push(".storybook/**");
-					} else {
-						paths.push(`${s.path}/**`);
-					}
+				const p = s.path || ".";
+				if (p === ".") {
+					paths.push("src/**");
+					paths.push(".storybook/**");
+				} else {
+					paths.push(`${p}/**`);
 				}
 			}
 		}

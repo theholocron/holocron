@@ -1362,7 +1362,41 @@ describe("runSetup", () => {
 		expect(deployContent).toContain("- .storybook/**");
 	});
 
-	it("skips path derivation for storybook with empty path", async () => {
+	it("defaults path to root when path is omitted from storybook entry", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: { storybook: [{ name: "app" }] },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- src/**");
+		expect(deployContent).toContain("- .storybook/**");
+		expect(deployContent).toContain('"workingDir":"."');
+	});
+
+	it("treats empty string path as root in storybook entry", async () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1391,7 +1425,8 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
-		expect(deployContent).not.toContain("paths:");
+		expect(deployContent).toContain("- src/**");
+		expect(deployContent).toContain("- .storybook/**");
 	});
 
 	it("explicit paths: overrides auto-derived deploy paths", async () => {
