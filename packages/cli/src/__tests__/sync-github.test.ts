@@ -205,6 +205,32 @@ describe("runSyncGithub", () => {
 		expect(releaseBlob?.body?.content).toContain("run-build: false");
 	});
 
+	it("applies per-workflow with: overrides when TS config has trailing commas", async () => {
+		const configTs = `export default defineConfig({
+	workflows: [
+		{
+			name: "audit",
+			with: { "run-performance": true, "lighthouse-config": "lighthouse.config.cjs" },
+		},
+	],
+})`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		const auditBlob = blobs.find(
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Audit")
+		);
+		expect(auditBlob?.body?.content).toContain("run-performance: true");
+		expect(auditBlob?.body?.content).toContain("lighthouse-config: lighthouse.config.cjs");
+	});
+
 	it("skips unchanged files and omits them from the commit tree", async () => {
 		// Pre-populate the tree with the actual git blob SHA for release.yml
 		// so sync treats it as unchanged.
