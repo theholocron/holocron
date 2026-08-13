@@ -12,23 +12,36 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: ""
+      storybook-projects:
+        description: >
+          JSON array of { "name", "workingDir", "outputDir"? } objects for monorepo multi-storybook
+          deploys. Each is built via `pnpm -C <workingDir> build:storybook` and assembled under
+          `sandbox/<name>/` alongside docs in a single deployment.
+        type: string
+        required: false
+        default: "[]"
       build-script:
-        description: pnpm script that builds the Storybook static output (storybook type only)
+        description: pnpm script that builds the Storybook static output (single storybook, type:storybook only)
         type: string
         required: false
         default: build:storybook
       output-dir:
-        description: Directory where Storybook writes its static output (storybook type only)
+        description: Directory where Storybook writes its static output (single storybook, type:storybook only)
         type: string
         required: false
         default: storybook-static
 
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
@@ -46,40 +59,50 @@ jobs:
         if: ${{ inputs.type == 'docs' && inputs.name == '' }}
         run: pnpm -C docs build
 
+      - name: Build Storybook projects
+        if: ${{ inputs.storybook-projects != '[]' }}
+        env:
+          PROJECTS: ${{ inputs.storybook-projects }}
+        run: |
+          echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+            workingDir=$(echo "$project" | jq -r '.workingDir')
+            pnpm -C "$workingDir" build:storybook
+          done
+
       - name: Build Storybook
-        if: ${{ inputs.type == 'storybook' }}
+        if: ${{ inputs.type == 'storybook' && inputs.storybook-projects == '[]' }}
         env:
           BUILD_SCRIPT: ${{ inputs.build-script }}
         run: pnpm run "$BUILD_SCRIPT"
 
-      - name: Resolve artifact path
-        id: artifact
+      - name: Assemble site
         env:
           DEPLOY_TYPE: ${{ inputs.type }}
+          PROJECTS: ${{ inputs.storybook-projects }}
           STORYBOOK_OUTPUT_DIR: ${{ inputs.output-dir }}
         run: |
+          mkdir -p _site
           if [ "$DEPLOY_TYPE" = "docs" ]; then
-            echo "path=docs/dist" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=$STORYBOOK_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+            cp -r docs/dist/. _site/
+          fi
+          if [ "$PROJECTS" != "[]" ]; then
+            echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+              name=$(echo "$project" | jq -r '.name')
+              workingDir=$(echo "$project" | jq -r '.workingDir')
+              outputDir=$(echo "$project" | jq -r '.outputDir // "storybook-static"')
+              mkdir -p "_site/sandbox/${name}"
+              cp -r "${workingDir}/${outputDir}/." "_site/sandbox/${name}/"
+            done
+          elif [ "$DEPLOY_TYPE" = "storybook" ]; then
+            mkdir -p _site/sandbox
+            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
           fi
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         name: Upload pages artifact
         with:
-          path: ${{ steps.artifact.outputs.path }}
+          path: _site
 
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
         id: deployment
         name: Deploy to GitHub Pages
