@@ -202,12 +202,35 @@ export interface ChromaticProjectConfig {
 }
 
 /**
- * Typed `with:` inputs for the `test` reusable workflow.
+ * A single Storybook app in a deploy workflow config.
+ * `name` becomes the sandbox sub-path (`_site/sandbox/<name>/`);
+ * `path` is the working directory relative to the repo root.
+ */
+export interface StorybookDeployProject {
+	name: string;
+	path: string;
+}
+
+/**
+ * Typed `with:` inputs for reusable workflows.
+ *
  * `run-chromatic` accepts either a plain boolean (single-project) or a
  * `ChromaticProjectConfig[]` object (multi-project monorepo).
+ *
+ * `docs` / `storybook` are high-level deploy shorthand that `holocron setup`
+ * translates to `type` / `storybook-projects` before writing the thin caller.
+ * They also drive automatic `paths:` derivation so you never need to write
+ * `paths:` manually for deploy entries.
  */
 export type WorkflowWithConfig = Record<string, unknown> & {
 	"run-chromatic"?: boolean | { projects: ChromaticProjectConfig[] };
+	/**
+	 * Docs deployment shorthand. `true` uses the org-standard `docs/` directory;
+	 * `{ path: "custom" }` uses a custom directory. Both derive a `paths:` entry automatically.
+	 */
+	docs?: true | { path: string };
+	/** Storybook apps to deploy alongside docs. Each entry's `path` is appended to `paths:`. */
+	storybook?: StorybookDeployProject[];
 };
 
 export interface HolocronConfig {
@@ -230,14 +253,35 @@ export interface HolocronConfig {
 	 *
 	 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
 	 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit" |
-	 *   "deploy-docs"
+	 *   "deploy"
 	 *
 	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
-	 * calling the corresponding `ci-<name>.yml@main` reusable workflow.
+	 * calling the corresponding reusable workflow in `theholocron/.github`.
 	 * Files are overwritten on each run — they are generated artifacts.
 	 *
-	 * Use `paths` to append additional `on.push.paths` entries beyond the
-	 * template default (e.g. the repo-specific docs content package path).
+	 * ### deploy workflow
+	 * Use `docs` and/or `storybook` in `with:` — setup derives `paths:` automatically.
+	 * `docs: true` uses the org-standard `docs/` directory; `docs: { path: "custom" }` overrides it.
+	 *
+	 * ```ts
+	 * // Docs only (standard layout)
+	 * { name: "deploy", with: { docs: true } }
+	 *
+	 * // Docs + monorepo storybooks
+	 * {
+	 *   name: "deploy",
+	 *   with: {
+	 *     docs: true,
+	 *     storybook: [
+	 *       { name: "web", path: "apps/web" },
+	 *       { name: "ui", path: "packages/ui" },
+	 *     ],
+	 *   },
+	 * }
+	 *
+	 * // Non-standard docs location
+	 * { name: "deploy", with: { docs: { path: "packages/site" } } }
+	 * ```
 	 *
 	 * ### run-chromatic
 	 * For a single-project repo, use `"run-chromatic": true` with a
@@ -259,7 +303,7 @@ export interface HolocronConfig {
 	 *
 	 * @example
 	 * ["lint", { "name": "release", "with": { "run-build": false } }]
-	 * { "name": "deploy-docs", "with": { "name": "configs" }, "paths": ["packages/configs-docs/**"] }
+	 * { "name": "deploy", "with": { "docs": true } }
 	 */
 	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: RawProvidersConfig;
