@@ -1177,7 +1177,7 @@ describe("runSetup", () => {
 		expect(testWorkflow).toContain("UI");
 	});
 
-	it("JSON-stringifies plain array values in workflow with: blocks (e.g. storybook-projects)", async () => {
+	it("translates deploy storybook: shorthand to storybook-projects and sets type: docs", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1185,14 +1185,122 @@ describe("runSetup", () => {
 				{
 					name: "deploy",
 					with: {
-						type: "docs",
-						name: "demo",
-						"storybook-projects": [
-							{ name: "web", workingDir: "apps/web" },
-							{ name: "ui", workingDir: "packages/ui" },
+						docs: true,
+						storybook: [
+							{ name: "web", path: "apps/web" },
+							{ name: "ui", path: "packages/ui" },
 						],
 					},
-					paths: ["docs/**"],
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const deployWorkflow = written.find((c) => c.includes("deploy"));
+		expect(deployWorkflow).toBeDefined();
+		expect(deployWorkflow).toContain("type: docs");
+		expect(deployWorkflow).toContain("storybook-projects: '[{");
+		expect(deployWorkflow).toContain('"workingDir":"apps/web"');
+		expect(deployWorkflow).toContain('"workingDir":"packages/ui"');
+	});
+
+	it("auto-derives paths for deploy docs + storybook shorthand", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: {
+						docs: true,
+						storybook: [
+							{ name: "web", path: "apps/web" },
+							{ name: "ui", path: "packages/ui" },
+						],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- apps/web/**");
+		expect(deployContent).toContain("- packages/ui/**");
+	});
+
+	it("auto-derives paths for deploy docs-only shorthand", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).not.toContain("apps/");
+	});
+
+	it("sets type: storybook for storybook-only deploy shorthand", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: {
+						storybook: [{ name: "ui", path: "packages/ui" }],
+					},
 				},
 			],
 			providers: { source: "github" },
@@ -1214,7 +1322,142 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 		const deployWorkflow = written.find((c) => c.includes("storybook-projects"));
 		expect(deployWorkflow).toBeDefined();
-		expect(deployWorkflow).toContain("storybook-projects: '[{");
+		expect(deployWorkflow).toContain("type: storybook");
+		expect(deployWorkflow).not.toContain("type: docs");
+		expect(deployWorkflow).toContain("- packages/ui/**");
+	});
+
+	it("skips path derivation for storybook root (path: '.')", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: {
+						storybook: [{ name: "ui", path: "." }],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).not.toContain("paths:");
+	});
+
+	it("explicit paths: overrides auto-derived deploy paths", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true },
+					paths: ["packages/my-docs/**"],
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- packages/my-docs/**");
+		expect(deployContent).not.toContain("- docs/**");
+	});
+
+	it("derives paths from docs: { path } custom location", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: { path: "packages/site" } },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- packages/site/**");
+		expect(deployContent).not.toContain("- docs/**");
+	});
+
+	it("skips path derivation for docs: { path: '.' }", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: { path: "." } },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).not.toContain("paths:");
 	});
 
 	it("dry-run skips workflow writes", async () => {

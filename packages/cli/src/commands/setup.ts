@@ -536,8 +536,31 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	//   → run-chromatic: true, chromatic-projects: JSON.stringify(projects)
 	// Within each project, arrays (e.g. untraced) are joined to newline-
 	// separated strings as expected by the chromaui/action input schema.
+	//
+	// Also handles the high-level deploy shorthand:
+	//   docs: "docs"  → type: "docs"
+	//   storybook: [{ name, path }]  → type: "storybook" (if no docs), storybook-projects: JSON
 	function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
 		const result = { ...raw };
+
+		// Deploy shorthand: docs + storybook → type + storybook-projects
+		const hasDocs = raw["docs"] === true || (raw["docs"] !== null && typeof raw["docs"] === "object");
+		const storybookProjects = raw["storybook"];
+		if (hasDocs) {
+			result["type"] = "docs";
+			delete result["docs"];
+		}
+		if (Array.isArray(storybookProjects)) {
+			if (!hasDocs) result["type"] = "storybook";
+			result["storybook-projects"] = JSON.stringify(
+				(storybookProjects as Array<{ name: string; path: string }>).map(({ name, path }) => ({
+					name,
+					workingDir: path,
+				}))
+			);
+			delete result["storybook"];
+		}
+
 		const runChromatic = raw["run-chromatic"];
 		if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
 			result["run-chromatic"] = true;
@@ -558,6 +581,28 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		return result;
 	}
 
+	// Derive on.push.paths entries from the deploy with: shorthand so the user
+	// never needs to write paths: manually for deploy entries.
+	function deriveDeployPaths(raw: Record<string, unknown>): string[] {
+		const paths: string[] = [];
+		const docs = raw["docs"];
+		if (docs === true) {
+			paths.push("docs/**");
+		} else if (docs !== null && typeof docs === "object" && "path" in docs) {
+			const p = (docs as { path: string }).path;
+			if (p && p !== ".") paths.push(`${p}/**`);
+		}
+		const storybookProjects = raw["storybook"];
+		if (Array.isArray(storybookProjects)) {
+			for (const s of storybookProjects as Array<{ path?: string }>) {
+				if (typeof s.path === "string" && s.path !== "." && s.path !== "") {
+					paths.push(`${s.path}/**`);
+				}
+			}
+		}
+		return paths;
+	}
+
 	const workflows = config.workflows;
 	if (loader.has("source") && workflows && workflows.length > 0) {
 		const source = loader.get("source") as Source;
@@ -566,7 +611,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const rawWith = typeof entry === "object" ? entry.with : undefined;
 			const withOverrides = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
-			const additionalPaths = typeof entry === "object" ? entry.paths : undefined;
+			const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
+			const additionalPaths =
+				explicitPaths ??
+				(name === "deploy" && rawWith ? deriveDeployPaths(rawWith as Record<string, unknown>) : undefined);
 
 			// Enforce that the test workflow has at least one test type enabled.
 			// This check lives here so it fails at setup time rather than silently
