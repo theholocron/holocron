@@ -19,63 +19,59 @@ const mockDocsTheme = vi.fn(() => ({
 })) as unknown as typeof docsTheme;
 
 const mockDocs = {
-	slug: "clients",
 	name: "Clients",
+	github: "clients",
 	sidebar: [
-		{ label: "Overview", slug: "clients" },
-		{ label: "Packages", items: [] },
+		{ label: "Overview", slug: "" },
+		{ label: "Packages", items: [{ label: "GitHub", slug: "github" }] },
 	],
 };
 
 const baseInput = {
 	docs: mockDocs,
-	importMetaUrl: import.meta.url,
 	starlight: mockStarlight,
 	docsTheme: mockDocsTheme,
 };
 
 describe("defineConfig", () => {
-	it("sets base from the docs slug", () => {
-		const config = defineConfig(baseInput) as { base: string };
-		expect(config.base).toBe("/clients");
-	});
-
-	it("derives sidebar label from sidebar[1].label when it is a group", () => {
+	it("uses docs.name as the starlight title", () => {
 		const config = defineConfig(baseInput) as unknown as {
-			integrations: Array<{
-				config: { sidebar: Array<{ label: string }> };
-			}>;
+			integrations: Array<{ config: { title: string } }>;
 		};
-		expect(config.integrations[0].config.sidebar[1].label).toBe("Packages");
+		expect(config.integrations[0].config.title).toBe("Clients");
 	});
 
-	it("accepts a sidebarLabel override", () => {
-		const config = defineConfig({
-			...baseInput,
-			sidebarLabel: "Reference",
-		}) as unknown as {
-			integrations: Array<{
-				config: { sidebar: Array<{ label: string }> };
-			}>;
+	it("uses docs.github for the GitHub social link", () => {
+		const config = defineConfig(baseInput) as unknown as {
+			integrations: Array<{ config: { social: Array<{ href: string }> } }>;
 		};
-		expect(config.integrations[0].config.sidebar[1].label).toBe("Reference");
+		expect(config.integrations[0].config.social[0].href).toBe("https://github.com/theholocron/clients");
 	});
 
-	it("falls back to 'Contents' when sidebar[1] is a link not a group", () => {
-		const config = defineConfig({
-			...baseInput,
-			docs: {
-				...mockDocs,
-				sidebar: [
-					{ label: "Overview", slug: "clients" },
-					{ label: "Getting Started", slug: "clients/start" },
-				],
-			},
-		}) as unknown as {
-			integrations: Array<{
-				config: { sidebar: Array<{ label: string }> };
-			}>;
+	it("passes docs.sidebar directly to starlight", () => {
+		const config = defineConfig(baseInput) as unknown as {
+			integrations: Array<{ config: { sidebar: unknown } }>;
 		};
-		expect(config.integrations[0].config.sidebar[1].label).toBe("Contents");
+		expect(config.integrations[0].config.sidebar).toBe(mockDocs.sidebar);
+	});
+
+	it("does not include srcDir when omitted", () => {
+		const config = defineConfig(baseInput) as { srcDir?: string };
+		expect(config.srcDir).toBeUndefined();
+	});
+
+	it("passes srcDir through when provided", () => {
+		const config = defineConfig({ ...baseInput, srcDir: "./docs/src" }) as { srcDir: string };
+		expect(config.srcDir).toBe("./docs/src");
+	});
+
+	it("passes outDir through when provided", () => {
+		const config = defineConfig({ ...baseInput, outDir: "./docs/dist" }) as { outDir: string };
+		expect(config.outDir).toBe("./docs/dist");
+	});
+
+	it("passes publicDir through when provided", () => {
+		const config = defineConfig({ ...baseInput, publicDir: "./docs/public" }) as { publicDir: string };
+		expect(config.publicDir).toBe("./docs/public");
 	});
 });

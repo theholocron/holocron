@@ -1,41 +1,29 @@
-import { relative } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import type starlight from "@astrojs/starlight";
 import type { docsTheme } from "@theholocron/docs-theme";
 import { defineConfig as astroDefineConfig } from "astro/config";
 
-interface SidebarGroup {
-	label: string;
-	items: unknown[];
-}
+type StarlightSidebar = NonNullable<Parameters<typeof starlight>[0]["sidebar"]>;
 
 export interface DocsConfig {
-	slug: string;
 	name: string;
-	sidebar: Array<{ label: string } & ({ slug: string } | { items: unknown[] })>;
+	github: string;
+	sidebar: StarlightSidebar;
 }
 
 export interface DocsConfigInput {
 	docs: DocsConfig;
-	importMetaUrl: string;
 	starlight: typeof starlight;
 	docsTheme: typeof docsTheme;
-	sidebarLabel?: string;
+	srcDir?: string;
+	outDir?: string;
+	publicDir?: string;
 }
 
-export function defineConfig({ docs, importMetaUrl, starlight, docsTheme, sidebarLabel }: DocsConfigInput) {
-	const docsDir = fileURLToPath(new URL(".", importMetaUrl));
-	const contentDir = fileURLToPath(new URL(`../packages/${docs.slug}-docs/content`, importMetaUrl));
-	const contentRelDir = relative(docsDir, contentDir);
-
-	const secondItem = docs.sidebar[1] as SidebarGroup | undefined;
-	const defaultLabel = secondItem !== undefined && "items" in secondItem ? secondItem.label : "Contents";
-	const label = sidebarLabel ?? defaultLabel;
-
+export function defineConfig({ docs, starlight, docsTheme, srcDir, outDir, publicDir }: DocsConfigInput) {
 	return astroDefineConfig({
-		site: "https://theholocron.github.io",
-		base: `/${docs.slug}`,
+		...(srcDir && { srcDir }),
+		...(outDir && { outDir }),
+		...(publicDir && { publicDir }),
 		integrations: [
 			starlight({
 				title: docs.name,
@@ -44,16 +32,10 @@ export function defineConfig({ docs, importMetaUrl, starlight, docsTheme, sideba
 					{
 						icon: "github",
 						label: "GitHub",
-						href: `https://github.com/theholocron/${docs.slug}`,
+						href: `https://github.com/theholocron/${docs.github}`,
 					},
 				],
-				sidebar: [
-					{ label: "Overview", slug: "" },
-					{
-						label,
-						items: [{ autogenerate: { directory: contentRelDir } }],
-					},
-				],
+				sidebar: docs.sidebar,
 			}),
 		],
 	});
