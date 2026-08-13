@@ -202,9 +202,9 @@ Nothing to close speculatively.
 ## Open questions
 
 1. **Timing relative to v2.0.0 stable.** Options:
-    - **(a)** Ship Phases 1–4 as part of v2.0.0 stable — clean cutover,
-      v2 launches on Doppler, no 1Password baggage.
-    - **(b)** Ship v2.0.0 stable on 1Password (current alpha state),
-      do Phases 1–4 as v2.1.
-    - Leaning **(a)** if Doppler plugin comes together fast; **(b)**
-      if it drags. Decide after Phase 1's PR lands.
+   - **(a)** Ship Phases 1–4 as part of v2.0.0 stable — clean cutover,
+     v2 launches on Doppler, no 1Password baggage.
+   - **(b)** Ship v2.0.0 stable on 1Password (current alpha state),
+     do Phases 1–4 as v2.1.
+   - Leaning **(a)** if Doppler plugin comes together fast; **(b)**
+     if it drags. Decide after Phase 1's PR lands.

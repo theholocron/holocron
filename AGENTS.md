@@ -28,18 +28,18 @@ Three repos, one rule per concern:
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
   `createPlugin()`.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
-    - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
-      commands branch at the orchestrator layer, not in capabilities.
-    - `--token` global flag is repeatable. Bare form (`--token <value>`)
-      sets `RuntimeContext.cliToken` as fallback for all plugins. Keyed
-      form (`--token vendor=value`, repeated per provider) sets
-      `RuntimeContext.cliTokens`; `PluginLoader` routes each entry to
-      the matching plugin by `tuple.provider`, falling back to `cliToken`
-      for unmatched providers. Plugins always receive a single `cliToken`.
-    - Cross-provider event sync uses normalized `AuthEvent` types in
-      core + plugin-exported `parseWebhook(input): AuthEvent` utility
-      (NOT a capability method). Swap auth providers without rewriting
-      handlers.
+  - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
+    commands branch at the orchestrator layer, not in capabilities.
+  - `--token` global flag is repeatable. Bare form (`--token <value>`)
+    sets `RuntimeContext.cliToken` as fallback for all plugins. Keyed
+    form (`--token vendor=value`, repeated per provider) sets
+    `RuntimeContext.cliTokens`; `PluginLoader` routes each entry to
+    the matching plugin by `tuple.provider`, falling back to `cliToken`
+    for unmatched providers. Plugins always receive a single `cliToken`.
+  - Cross-provider event sync uses normalized `AuthEvent` types in
+    core + plugin-exported `parseWebhook(input): AuthEvent` utility
+    (NOT a capability method). Swap auth providers without rewriting
+    handlers.
 
 ## Consuming packages from `theholocron/clients`
 
@@ -47,9 +47,9 @@ When a plugin or the CLI gains a dependency on a `@theholocron/*`
 package published from the clients repo:
 
 1. **Add to catalog** in `pnpm-workspace.yaml` under `catalog:`, e.g.:
-    ```yaml
-    "@theholocron/github-client": ^0.3.2
-    ```
+   ```yaml
+   "@theholocron/github-client": ^0.3.2
+   ```
 2. **Reference via `catalog:`** in the consuming `package.json`
    instead of hardcoding a version.
 3. **The `overrides:` block** in `pnpm-workspace.yaml` already forces
@@ -111,18 +111,18 @@ not object destructuring.
 
 - **Definition of done: code + tests + docs + green checks.** A change
   is not done until all four are true:
-    1. `pnpm typecheck && pnpm lint && pnpm test` pass (same set CI runs
-       plus `pnpm build` — finding failures after pushing wastes a round
-       trip).
-    2. Tests cover the new behavior (new path → new test; bug fix → test
-       that would have caught it).
-    3. Docs are updated: `packages/cli/README.md` for any public API or
-       config shape change; `AGENTS.md` for any architectural or workflow
-       change; the relevant `.notes/*.spec.md` spec for any design
-       decision or roadmap item resolved. Stale docs that contradict the
-       code are bugs.
-    4. Commit message follows Conventional Commits and references the
-       issue (`Closes #N` / `Refs #N`).
+  1. `pnpm typecheck && pnpm lint && pnpm test` pass (same set CI runs
+     plus `pnpm build` — finding failures after pushing wastes a round
+     trip).
+  2. Tests cover the new behavior (new path → new test; bug fix → test
+     that would have caught it).
+  3. Docs are updated: `packages/cli/README.md` for any public API or
+     config shape change; `AGENTS.md` for any architectural or workflow
+     change; the relevant `.notes/*.spec.md` spec for any design
+     decision or roadmap item resolved. Stale docs that contradict the
+     code are bugs.
+  4. Commit message follows Conventional Commits and references the
+     issue (`Closes #N` / `Refs #N`).
 - **Test patterns:** vitest across all packages. Plugins use
   `stubFetch` (REST plugins) or `stubSpawn` (CLI plugins) — both
   ported from rando-id/rando.id `__tests__/helpers.ts`. Per-plugin
@@ -133,31 +133,31 @@ not object destructuring.
   empty response. For multi-property error checks use the `.catch` capture
   pattern instead — it avoids both the double-call and `vitest/no-conditional-expect`:
 
-    ```ts
-    // async
-    const err = await fn().catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(SomeError);
-    expect((err as SomeError).message).toMatch(/pattern/);
+  ```ts
+  // async
+  const err = await fn().catch((e: unknown) => e);
+  expect(err).toBeInstanceOf(SomeError);
+  expect((err as SomeError).message).toMatch(/pattern/);
 
-    // sync
-    const err = (() => {
-    	try {
-    		fn();
-    	} catch (e) {
-    		return e;
-    	}
-    })();
-    expect(err).toBeInstanceOf(SomeError);
-    ```
+  // sync
+  const err = (() => {
+    try {
+      fn();
+    } catch (e) {
+      return e;
+    }
+  })();
+  expect(err).toBeInstanceOf(SomeError);
+  ```
 
 - **Discriminated union results** (`{ ok: true; subject } | { ok: false; message }`):
   assert the branch with `expect(result.ok).toBe(true)` then access the
   narrowed field via a cast — never use `if (result.ok)` with `expect`
   inside, as `vitest/no-conditional-expect` correctly flags that:
-    ```ts
-    expect(result.ok).toBe(true);
-    expect((result as { ok: boolean; subject?: string }).subject).toMatch(/pattern/);
-    ```
+  ```ts
+  expect(result.ok).toBe(true);
+  expect((result as { ok: boolean; subject?: string }).subject).toMatch(/pattern/);
+  ```
 - **`holocron upgrade node` pattern registry.** When you introduce a
   new file type that pins the Node.js version (e.g., a new CI platform's
   config, an `.engines` file, a custom script), add a `Pattern` entry to

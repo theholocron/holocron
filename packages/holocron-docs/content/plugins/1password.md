@@ -51,7 +51,7 @@ providers: {
 
 ```yaml
 env:
-    OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 ```
 
 `holocron auth set 1password` does not store a token — it prints the `AUTH_HINT` instead.

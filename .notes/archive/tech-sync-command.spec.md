@@ -93,11 +93,11 @@ Mirror the structure of `runSetup`:
 
 ```typescript
 export interface RunSyncInput {
-	loaded: LoadedConfig;
-	context: RuntimeContext;
-	steps?: string[]; // undefined = all; [] = none; ["topics"] = topics only
-	loader?: PluginLoader;
-	print?: SetupPrintLine;
+  loaded: LoadedConfig;
+  context: RuntimeContext;
+  steps?: string[]; // undefined = all; [] = none; ["topics"] = topics only
+  loader?: PluginLoader;
+  print?: SetupPrintLine;
 }
 ```
 

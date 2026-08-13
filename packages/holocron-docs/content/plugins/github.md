@@ -87,9 +87,9 @@ The plugin exports a `parseWebhook` function for normalizing GitHub webhook payl
 import { parseWebhook } from "@theholocron/holocron-plugin-github";
 
 const event = await parseWebhook({
-	body: req.body,
-	headers: req.headers,
-	signingSecret: process.env.GITHUB_WEBHOOK_SECRET!,
+  body: req.body,
+  headers: req.headers,
+  signingSecret: process.env.GITHUB_WEBHOOK_SECRET!,
 });
 // event.type: "user.created" | "user.updated" | "user.deleted"
 // event.user: NormalizedAuthUser

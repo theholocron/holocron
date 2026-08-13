@@ -9,9 +9,9 @@ Plugins are the adapters between the Holocron CLI's capability interfaces and re
 
 1. `holocron.config.ts` maps capability keys to provider names:
 
-    ```ts
-    providers: { source: "github", vault: ["doppler", { project: "my-app" }] }
-    ```
+   ```ts
+   providers: { source: "github", vault: ["doppler", { project: "my-app" }] }
+   ```
 
 2. Holocron resolves `"github"` → `@theholocron/holocron-plugin-github`.
 3. At runtime, the CLI dynamically imports each plugin package and calls `createPlugin(options)`.

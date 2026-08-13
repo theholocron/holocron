@@ -28,13 +28,13 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 ## What gets generated
 
 - `packages/holocron-plugin-<slug>/` — fully-typed plugin package with:
-    - `src/index.ts` — `createPlugin` factory + `AUTH_HINT` + public re-exports
-    - `src/auth.ts` — token resolver using `createResolveToken`
-    - `src/verify-token.ts` — `verifyToken` called by `holocron auth set`
-    - `src/rest.ts` — thin REST client factory
-    - `src/capabilities/<capability>.ts` — capability implementation stub
-    - `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`
-    - `__tests__/` directory with a starter test
+  - `src/index.ts` — `createPlugin` factory + `AUTH_HINT` + public re-exports
+  - `src/auth.ts` — token resolver using `createResolveToken`
+  - `src/verify-token.ts` — `verifyToken` called by `holocron auth set`
+  - `src/rest.ts` — thin REST client factory
+  - `src/capabilities/<capability>.ts` — capability implementation stub
+  - `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`
+  - `__tests__/` directory with a starter test
 
 ## Example
 

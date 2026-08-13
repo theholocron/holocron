@@ -7,15 +7,15 @@ packages:
 catalog:
   '@inquirer/prompts': ^8.5.2
   '@vitest/coverage-v8': ^4.1.10
-  '@vitest/eslint-plugin': ^1.6.25
-  eslint: ^10.8.0
-  eslint-plugin-n: ^18.2.2
+  '@vitest/eslint-plugin': ^1.6.27
+  eslint: ^10.8.1
+  eslint-plugin-n: ^18.3.0
   eslint-plugin-simple-import-sort: ^14.0.0
   globals: ^17.9.0
   chalk: ^6.0.0
   ora: ^9.4.1
   tsdown: ^0.22.14
-  turbo: ^2.10.8
+  turbo: ^2.10.9
   tsx: 4.22.4
   vitest: ^4.1.10
   typescript: ^5.9.3
@@ -29,8 +29,8 @@ catalogs:
   clients:
     '@theholocron/clerk-client': ^1.6.0
     '@theholocron/doppler-client': ^1.6.0
-    '@theholocron/github-client': ^1.6.0
-    '@theholocron/http-client': ^1.6.0
+    '@theholocron/github-client': ^1.6.2
+    '@theholocron/http-client': ^1.6.6
     '@theholocron/infisical-client': ^1.6.0
     '@theholocron/neon-client': ^1.6.0
     '@theholocron/postman-client': ^1.6.0
@@ -38,19 +38,19 @@ catalogs:
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
-    '@theholocron/commitlint-config': ^7.8.1
-    '@theholocron/holocron-config': ^7.8.1
-    '@theholocron/eslint-config': ^7.8.1
-    '@theholocron/lint-staged-config': ^7.8.1
-    '@theholocron/prettier-config': ^7.8.1
-    '@theholocron/semantic-release-config': ^7.8.1
-    '@theholocron/tsconfig': ^7.8.1
-    '@theholocron/tsdown-config': ^7.8.1
-    '@theholocron/vitest-config': ^7.8.1
+    '@theholocron/commitlint-config': ^7.16.0
+    '@theholocron/holocron-config': ^7.16.0
+    '@theholocron/eslint-config': ^7.16.0
+    '@theholocron/lint-staged-config': ^7.16.0
+    '@theholocron/prettier-config': ^7.16.0
+    '@theholocron/semantic-release-config': ^7.16.0
+    '@theholocron/tsconfig': ^7.16.0
+    '@theholocron/tsdown-config': ^7.16.0
+    '@theholocron/vitest-config': ^7.16.0
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  '@theholocron/http-client': ^1.6.0
+  '@theholocron/http-client': ^1.6.6
   tsx: 4.22.4

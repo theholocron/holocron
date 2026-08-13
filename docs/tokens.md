@@ -80,8 +80,8 @@ In GitHub Actions, map your repository or org secrets to the expected env var na
 
 ```yaml
 env:
-    HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
-    HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+  HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+  HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 ```
 
 ## Explicit override

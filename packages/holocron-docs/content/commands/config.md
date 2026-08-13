@@ -21,26 +21,26 @@ Example output:
 
 ```json
 {
-	"name": "my-project",
-	"description": "Short description",
-	"repo": {
-		"name": "my-org/my-project",
-		"protection": "balanced",
-		"topics": ["typescript"]
-	},
-	"providers": {
-		"source": {
-			"cardinality": "single",
-			"tuple": {
-				"provider": "github",
-				"packageName": "@theholocron/holocron-plugin-github",
-				"options": {}
-			}
-		}
-	},
-	"apps": [],
-	"doctor": {},
-	"workflows": ["lint", "test"]
+  "name": "my-project",
+  "description": "Short description",
+  "repo": {
+    "name": "my-org/my-project",
+    "protection": "balanced",
+    "topics": ["typescript"]
+  },
+  "providers": {
+    "source": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {}
+      }
+    }
+  },
+  "apps": [],
+  "doctor": {},
+  "workflows": ["lint", "test"]
 }
 ```
 
