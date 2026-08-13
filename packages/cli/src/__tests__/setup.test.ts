@@ -1252,7 +1252,7 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 		const releaseWorkflow = written.find((c) => c.includes("run-build"));
 		expect(releaseWorkflow).toBeDefined();
-		expect(releaseWorkflow).toContain("extra-tags: '[\"v1\"");
+		expect(releaseWorkflow).toContain('extra-tags: \'["v1"');
 	});
 
 	it("translates deploy storybook: shorthand to storybook-projects and sets type: docs", async () => {
