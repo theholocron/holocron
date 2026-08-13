@@ -35,8 +35,10 @@ import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 import {
 	DEPENDABOT_CONFIG,
+	deriveDeployPaths,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
+	normalizeWorkflowWith,
 	scaffoldHeader,
 	WORKFLOW_CHECK_CONTEXTS,
 	workflowHeader,
@@ -530,82 +532,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: workflow thin wrappers ──────────────────────────────────
-	// Expand structured with-values to flat GitHub Actions inputs before
-	// generating the thin caller. Currently handles:
-	//   run-chromatic: { projects: [...] }
-	//   → run-chromatic: true, chromatic-projects: JSON.stringify(projects)
-	// Within each project, arrays (e.g. untraced) are joined to newline-
-	// separated strings as expected by the chromaui/action input schema.
-	//
-	// Also handles the high-level deploy shorthand:
-	//   docs: "docs"  → type: "docs"
-	//   storybook: [{ name, path }]  → type: "storybook" (if no docs), storybook-projects: JSON
-	function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
-		const result = { ...raw };
-
-		// Deploy shorthand: docs + storybook → type + storybook-projects
-		const hasDocs = raw["docs"] === true || (raw["docs"] !== null && typeof raw["docs"] === "object");
-		const storybookProjects = raw["storybook"];
-		if (hasDocs) {
-			result["type"] = "docs";
-			delete result["docs"];
-		}
-		if (Array.isArray(storybookProjects)) {
-			if (!hasDocs) result["type"] = "storybook";
-			result["storybook-projects"] = JSON.stringify(
-				(storybookProjects as Array<{ name: string; path?: string }>).map(({ name, path = "." }) => ({
-					name,
-					workingDir: path,
-				}))
-			);
-			delete result["storybook"];
-		}
-
-		const runChromatic = raw["run-chromatic"];
-		if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
-			result["run-chromatic"] = true;
-			const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map((p) => ({
-				...p,
-				// chromaui/action expects untraced as newline-separated string
-				...(Array.isArray(p.untraced) ? { untraced: p.untraced.join("\n") } : {}),
-			}));
-			result["chromatic-projects"] = JSON.stringify(projects);
-		}
-		// Stringify any plain array values (e.g. storybook-projects) so yamlScalar
-		// can single-quote them as JSON strings in the generated YAML with: block.
-		for (const [k, v] of Object.entries(result)) {
-			if (Array.isArray(v)) {
-				result[k] = JSON.stringify(v);
-			}
-		}
-		return result;
-	}
-
-	// Derive on.push.paths entries from the deploy with: shorthand so the user
-	// never needs to write paths: manually for deploy entries.
-	function deriveDeployPaths(raw: Record<string, unknown>): string[] {
-		const paths: string[] = [];
-		const docs = raw["docs"];
-		if (docs === true) {
-			paths.push("docs/**");
-		} else if (docs !== null && typeof docs === "object" && "path" in docs) {
-			const p = (docs as { path: string }).path;
-			if (p && p !== ".") paths.push(`${p}/**`);
-		}
-		const storybookProjects = raw["storybook"];
-		if (Array.isArray(storybookProjects)) {
-			for (const s of storybookProjects as Array<{ path?: string }>) {
-				const p = s.path || ".";
-				if (p === ".") {
-					paths.push("src/**");
-					paths.push(".storybook/**");
-				} else {
-					paths.push(`${p}/**`);
-				}
-			}
-		}
-		return paths;
-	}
+	// normalizeWorkflowWith and deriveDeployPaths are imported from setup-workflows.ts
+	// so they're shared with sync-github.ts.
 
 	const workflows = config.workflows;
 	if (loader.has("source") && workflows && workflows.length > 0) {

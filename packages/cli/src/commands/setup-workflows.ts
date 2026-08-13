@@ -157,3 +157,75 @@ export function generateThinCallerContent(
 	}
 	return injected;
 }
+
+/**
+ * Expand structured with-values to flat GitHub Actions inputs before
+ * generating the thin caller. Handles:
+ *   - deploy shorthand: docs/storybook → type + storybook-projects
+ *   - run-chromatic object → run-chromatic: true + chromatic-projects
+ *   - plain arrays → JSON-stringified for YAML scalar quoting
+ *
+ * Used by both `holocron setup` and `sync-workflow-templates`.
+ */
+export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
+	const result = { ...raw };
+
+	const hasDocs = raw["docs"] === true || (raw["docs"] !== null && typeof raw["docs"] === "object");
+	const storybookProjects = raw["storybook"];
+	if (hasDocs) {
+		result["type"] = "docs";
+		delete result["docs"];
+	}
+	if (Array.isArray(storybookProjects)) {
+		if (!hasDocs) result["type"] = "storybook";
+		result["storybook-projects"] = JSON.stringify(
+			(storybookProjects as Array<{ name: string; path?: string }>).map(({ name, path = "." }) => ({
+				name,
+				workingDir: path,
+			}))
+		);
+		delete result["storybook"];
+	}
+
+	const runChromatic = raw["run-chromatic"];
+	if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
+		result["run-chromatic"] = true;
+		const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map((p) => ({
+			...p,
+			...(Array.isArray(p.untraced) ? { untraced: (p.untraced as string[]).join("\n") } : {}),
+		}));
+		result["chromatic-projects"] = JSON.stringify(projects);
+	}
+	for (const [k, v] of Object.entries(result)) {
+		if (Array.isArray(v)) result[k] = JSON.stringify(v);
+	}
+	return result;
+}
+
+/**
+ * Derive on.push.paths entries from the deploy with: shorthand.
+ * Used by both `holocron setup` and `sync-workflow-templates`.
+ */
+export function deriveDeployPaths(raw: Record<string, unknown>): string[] {
+	const paths: string[] = [];
+	const docs = raw["docs"];
+	if (docs === true) {
+		paths.push("docs/**");
+	} else if (docs !== null && typeof docs === "object" && "path" in docs) {
+		const p = (docs as { path: string }).path;
+		if (p && p !== ".") paths.push(`${p}/**`);
+	}
+	const storybookProjects = raw["storybook"];
+	if (Array.isArray(storybookProjects)) {
+		for (const s of storybookProjects as Array<{ path?: string }>) {
+			const p = s.path || ".";
+			if (p === ".") {
+				paths.push("src/**");
+				paths.push(".storybook/**");
+			} else {
+				paths.push(`${p}/**`);
+			}
+		}
+	}
+	return paths;
+}
