@@ -38,11 +38,11 @@ Additional file patterns to patch can be registered in `holocron.config.json`:
 
 ```json
 {
-	"upgrade": {
-		"node": {
-			"extra": ["infra/k8s/deployment.yaml", "scripts/ci-build.sh"]
-		}
-	}
+  "upgrade": {
+    "node": {
+      "extra": ["infra/k8s/deployment.yaml", "scripts/ci-build.sh"]
+    }
+  }
 }
 ```
 

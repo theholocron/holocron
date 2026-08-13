@@ -77,8 +77,8 @@ holocron auth list
 
 ```yaml
 env:
-    HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
-    HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+  HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+  HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 ```
 
 ## Explicit override

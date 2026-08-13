@@ -2,7 +2,7 @@
 title: Holocron
 description: A pluggable, capability-based CLI for spinning up and operating software projects.
 sidebar:
-    hidden: true
+  hidden: true
 ---
 
 Holocron is a pluggable CLI that orchestrates infrastructure and repository operations through a capability system. Each capability (source control, secrets, deployments, etc.) is fulfilled by a plugin — configure which providers you use once in `holocron.config.ts`, then drive your entire project lifecycle through a single tool.

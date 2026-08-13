@@ -81,9 +81,9 @@ Additional `repo` fields recognised by `holocron setup`:
 
 ```ts
 export default defineConfig({
-	agent: "claude", // "claude" | "codex" | "gemini"
-	skills: ["git-safety", "pr-workflow"], // skill names from @theholocron/skills
-	providers: { source: "github" },
+  agent: "claude", // "claude" | "codex" | "gemini"
+  skills: ["git-safety", "pr-workflow"], // skill names from @theholocron/skills
+  providers: { source: "github" },
 });
 ```
 

@@ -76,7 +76,7 @@ Skills are installed from [`@theholocron/skills`](https://github.com/theholocron
 ```ts
 // holocron.config.ts
 export default defineConfig({
-	agent: "claude",
-	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
+  agent: "claude",
+  skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
 });
 ```

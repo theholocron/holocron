@@ -58,14 +58,14 @@ Use `parseWebhook` to normalize Clerk's webhook payload into the canonical `Auth
 import { parseWebhook } from "@theholocron/holocron-plugin-clerk";
 
 app.post("/webhooks/clerk", async (req) => {
-	const event = await parseWebhook({
-		body: req.body,
-		headers: req.headers,
-		signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
-	});
-	// event.type: "user.created" | "user.updated" | "user.deleted"
-	// event.user: { id, email, firstName, lastName }
-	await db.users.upsert(event.user);
+  const event = await parseWebhook({
+    body: req.body,
+    headers: req.headers,
+    signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
+  });
+  // event.type: "user.created" | "user.updated" | "user.deleted"
+  // event.user: { id, email, firstName, lastName }
+  await db.users.upsert(event.user);
 });
 ```
 
