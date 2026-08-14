@@ -17,11 +17,13 @@
     "theholocron"
   ],
   "exports": {
+    "./astro": "./astro/tsconfig.json",
     "./nextjs": "./nextjs/tsconfig.json",
     "./node-lts": "./node-lts/tsconfig.json",
     "./react": "./react/tsconfig.json"
   },
   "files": [
+    "astro/tsconfig.json",
     "nextjs/tsconfig.json",
     "node-lts/tsconfig.json",
     "react/tsconfig.json"
