@@ -12,6 +12,7 @@
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "scripts": {
+    "build": "pnpm --filter @theholocron/skills-site build",
     "test": "pnpm --filter @theholocron/skills test",
     "test:coverage": "pnpm --filter @theholocron/skills test:coverage"
   },
