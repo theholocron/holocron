@@ -111,12 +111,12 @@ describe("runNpmBumpVersions", () => {
 		expect(JSON.parse(written[join(CWD, "package.json")]!).version).toBe("4.2.0");
 	});
 
-	it("returns fail when packages/ directory does not exist", async () => {
-		const { readFile, writeFile, isDir } = makeFs({
-			"package.json": { name: "root", version: "0.0.0", private: true },
+	it("succeeds with only root when packages/ directory does not exist", async () => {
+		const { readFile, writeFile, isDir, written } = makeFs({
+			"package.json": { name: "root", version: "1.3.2" },
 		});
 		const report = await runNpmBumpVersions({
-			version: "4.2.0",
+			version: "1.4.0",
 			cwd: CWD,
 			print: () => {},
 			readFile,
@@ -126,8 +126,30 @@ describe("runNpmBumpVersions", () => {
 			},
 			isDir,
 		});
-		expect(report.status).toBe("fail");
-		expect(report.message).toContain("packages/ directory not found");
+		expect(report.status).toBe("ok");
+		expect(report.bumped).toEqual(["root"]);
+		expect(JSON.parse(written[join(CWD, "package.json")]!).version).toBe("1.4.0");
+	});
+
+	it("returns dry-run status when packages/ does not exist and dryRun is true", async () => {
+		const { readFile, writeFile, isDir, written } = makeFs({
+			"package.json": { name: "root", version: "1.3.2" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "1.4.0",
+			cwd: CWD,
+			dryRun: true,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir: () => {
+				throw new Error("ENOENT");
+			},
+			isDir,
+		});
+		expect(report.status).toBe("dry-run");
+		expect(report.bumped).toEqual(["root"]);
+		expect(Object.keys(written)).toHaveLength(0);
 	});
 
 	it("dry-run prints changes but does not write files", async () => {
