@@ -8,7 +8,7 @@ const config: KnipConfig = {
 			entry: ["commitlint.config.ts", "holocron.config.ts"],
 			project: ["*.ts"],
 		},
-		"docs": {
+		docs: {
 			project: ["src/**/*.ts", "src/**/*.astro", "src/**/*.mdx"],
 		},
 		"packages/cli": {
