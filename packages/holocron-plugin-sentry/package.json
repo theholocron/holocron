@@ -1,0 +1,68 @@
+{
+  "name": "@theholocron/holocron-plugin-sentry",
+  "version": "3.24.3",
+  "description": "Holocron plugin for Sentry. Implements the observability capability against Sentry's management API — project provisioning and DSN retrieval.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-sentry#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/holocron-plugin-sentry"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "validate": "tsx scripts/validate.mjs"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/sentry-client": "catalog:clients"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/sentry-client": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/sentry-client": "catalog:clients",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "chalk": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "types": "./dist/index.d.mts"
+}

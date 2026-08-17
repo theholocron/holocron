@@ -7,57 +7,63 @@ settings:
 catalogs:
   clients:
     '@theholocron/clerk-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.7.0
+      version: 1.7.0
+    '@theholocron/cloudflare-client':
+      specifier: ^1.7.1
+      version: 1.7.1
     '@theholocron/doppler-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.7.0
+      version: 1.7.0
     '@theholocron/github-client':
-      specifier: ^1.6.2
-      version: 1.6.6
+      specifier: ^1.7.1
+      version: 1.7.1
     '@theholocron/http-client':
-      specifier: ^1.6.6
-      version: 1.6.6
+      specifier: ^1.7.1
+      version: 1.7.1
     '@theholocron/infisical-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.7.0
+      version: 1.7.0
     '@theholocron/neon-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.7.0
+      version: 1.7.0
     '@theholocron/postman-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.7.0
+      version: 1.7.0
+    '@theholocron/sentry-client':
+      specifier: ^1.7.1
+      version: 1.7.1
     '@theholocron/vercel-client':
-      specifier: ^1.6.0
-      version: 1.6.2
+      specifier: ^1.7.0
+      version: 1.7.0
   configs:
     '@theholocron/commitlint-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/eslint-config':
-      specifier: ^7.16.0
-      version: 7.16.0
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/holocron-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/lint-staged-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/prettier-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/semantic-release-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/tsconfig':
-      specifier: ^7.16.0
-      version: 7.16.0
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/tsdown-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
     '@theholocron/vitest-config':
-      specifier: ^7.16.0
-      version: 7.18.1
+      specifier: ^7.19.1
+      version: 7.19.1
   default:
     '@inquirer/prompts':
       specifier: ^8.5.2
@@ -138,13 +144,13 @@ importers:
         version: link:packages/cli
       '@theholocron/commitlint-config':
         specifier: catalog:configs
-        version: 7.18.1(@commitlint/cli@19.8.1(@types/node@26.2.0)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)
+        version: 7.19.1(@commitlint/cli@19.8.1(@types/node@26.2.0)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/holocron-config':
         specifier: catalog:configs
-        version: 7.18.1(@theholocron/cli@packages+cli)
+        version: 7.19.1(@theholocron/cli@packages+cli)
       '@theholocron/holocron-plugin-1password':
         specifier: workspace:*
         version: link:packages/holocron-plugin-1password
@@ -171,19 +177,19 @@ importers:
         version: link:packages/holocron-plugin-vercel
       '@theholocron/lint-staged-config':
         specifier: catalog:configs
-        version: 7.18.1(husky@9.1.7)(lint-staged@16.4.0)
+        version: 7.19.1(husky@9.1.7)(lint-staged@16.4.0)
       '@theholocron/prettier-config':
         specifier: catalog:configs
-        version: 7.18.1(prettier@3.9.6)
+        version: 7.19.1(prettier@3.9.6)
       '@theholocron/semantic-release-config':
         specifier: catalog:configs
-        version: 7.18.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.2.1)(semantic-release@25.0.9(typescript@5.9.3))
+        version: 7.19.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.2.1)(semantic-release@25.0.9(typescript@5.9.3))
       '@theholocron/skills':
         specifier: ^1.3.2
         version: 1.3.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10)
@@ -274,10 +280,10 @@ importers:
         version: 10.69.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))
       '@theholocron/github-client':
         specifier: catalog:clients
-        version: 1.6.6(vitest@4.1.10)
+        version: 1.7.1(vitest@4.1.10)
       '@theholocron/http-client':
         specifier: catalog:clients
-        version: 1.6.6(vitest@4.1.10)
+        version: 1.7.1(vitest@4.1.10)
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
@@ -293,13 +299,13 @@ importers:
     devDependencies:
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -335,13 +341,13 @@ importers:
     devDependencies:
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.23.11)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.23.11)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -365,16 +371,16 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -410,22 +416,22 @@ importers:
     devDependencies:
       '@theholocron/clerk-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.7.0(vitest@4.1.10)
       '@theholocron/cli':
         specifier: workspace:*
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -457,6 +463,60 @@ importers:
         specifier: 'catalog:'
         version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
+  packages/holocron-plugin-cloudflare:
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@theholocron/cloudflare-client':
+        specifier: catalog:clients
+        version: 1.7.1(vitest@4.1.10)
+      '@theholocron/eslint-config':
+        specifier: catalog:configs
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+      '@theholocron/tsconfig':
+        specifier: catalog:configs
+        version: 7.19.1(typescript@5.9.3)
+      '@theholocron/tsdown-config':
+        specifier: catalog:configs
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+      '@theholocron/vitest-config':
+        specifier: catalog:configs
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.1.2
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10)
+      chalk:
+        specifier: 'catalog:'
+        version: 6.0.0
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.9.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.22.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
   packages/holocron-plugin-doppler:
     devDependencies:
       '@theholocron/cli':
@@ -464,19 +524,19 @@ importers:
         version: link:../cli
       '@theholocron/doppler-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.7.0(vitest@4.1.10)
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -519,19 +579,19 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/github-client':
         specifier: catalog:clients
-        version: 1.6.6(vitest@4.1.10)
+        version: 1.7.1(vitest@4.1.10)
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -570,19 +630,19 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/infisical-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.7.0(vitest@4.1.10)
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -621,19 +681,19 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/neon-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.7.0(vitest@4.1.10)
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -672,19 +732,19 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/postman-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.7.0(vitest@4.1.10)
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -716,6 +776,60 @@ importers:
         specifier: 'catalog:'
         version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
+  packages/holocron-plugin-sentry:
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@theholocron/eslint-config':
+        specifier: catalog:configs
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+      '@theholocron/sentry-client':
+        specifier: catalog:clients
+        version: 1.7.1(vitest@4.1.10)
+      '@theholocron/tsconfig':
+        specifier: catalog:configs
+        version: 7.19.1(typescript@5.9.3)
+      '@theholocron/tsdown-config':
+        specifier: catalog:configs
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+      '@theholocron/vitest-config':
+        specifier: catalog:configs
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.1.2
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10)
+      chalk:
+        specifier: 'catalog:'
+        version: 6.0.0
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.9.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.22.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
   packages/holocron-plugin-vercel:
     devDependencies:
       '@theholocron/cli':
@@ -723,19 +837,19 @@ importers:
         version: link:../cli
       '@theholocron/eslint-config':
         specifier: catalog:configs
-        version: 7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: catalog:configs
-        version: 7.16.0(typescript@5.9.3)
+        version: 7.19.1(typescript@5.9.3)
       '@theholocron/tsdown-config':
         specifier: catalog:configs
-        version: 7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
       '@theholocron/vercel-client':
         specifier: catalog:clients
-        version: 1.6.2(vitest@4.1.10)
+        version: 1.7.0(vitest@4.1.10)
       '@theholocron/vitest-config':
         specifier: catalog:configs
-        version: 7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.2
@@ -2548,12 +2662,16 @@ packages:
     peerDependencies:
       astro: '>=5.0.0'
 
-  '@theholocron/clerk-client@1.6.2':
-    resolution: {integrity: sha512-jtOPX7KpA3mcGpsNLeMzqbX4zw5cg/TdfqhA0cUf6RA528y24eAsEGAdVvaCKFWe7M4oJ1ssThZRgyNRmroKNg==}
+  '@theholocron/clerk-client@1.7.0':
+    resolution: {integrity: sha512-m3xvhFeJEIpjbP2XWku2ylP0yQLV7Ecms4ghj2OQQVKVqa0q16XoK8HcJfpag2eDVGeSdkrH8H+iUF+GzVDT4Q==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/commitlint-config@7.18.1':
-    resolution: {integrity: sha512-nc9bBf/AxT/SNLlihtJgjrhG60LZ2eUJ6PvkNx0xqB6YNRyrOfjP54bIPpuoZKNi94q+WkSEo0ILeL3iMz3jiQ==}
+  '@theholocron/cloudflare-client@1.7.1':
+    resolution: {integrity: sha512-1NYX8x21S+JdpVYVoARRPOcBV5YauBNBVisansbDThKGlV89FsLxWCpd+wV868xn2qxL65gexCgGs7DIQtMnhA==}
+    engines: {node: '>=22.0.0'}
+
+  '@theholocron/commitlint-config@7.19.1':
+    resolution: {integrity: sha512-3jbOnaRMJDdLSa9AjxE3gdtVkF6FrLaVePwHuzhb/xekZHWx7ORFPahYbW4CEg16EZgLs7lg9PkZ7esmHOsnDA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@commitlint/cli': ^21
@@ -2566,12 +2684,12 @@ packages:
       '@astrojs/starlight': '>=0.30.0'
       astro: '>=5.0.0'
 
-  '@theholocron/doppler-client@1.6.2':
-    resolution: {integrity: sha512-67WJbYEsd6OqbTOVzXrVJBls+fIMAZ17UXw/arifcwNFqk25oNwfN2seYCmixsBGvL/uOwJRUW41G2AXXe5gLA==}
+  '@theholocron/doppler-client@1.7.0':
+    resolution: {integrity: sha512-suYwBLQUjJynXoixyAwZiuvZs2X5R9A/GdbwD1JYipmisyDijnkXnJpAgtFarX6LELApugOPcGsiLFIWGuBvjA==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/eslint-config@7.16.0':
-    resolution: {integrity: sha512-6mctYbiUbo3gC50HyeJTxRvXn+2+7RXvTvvP/10aAfnNPh5HXxL0Jq5mrkkiCQsVF+Gi3xnHl/fsLE83JP3rCA==}
+  '@theholocron/eslint-config@7.19.1':
+    resolution: {integrity: sha512-/tkJGE4Hy+gxUHzAo+ewnUI49c2aeLE3xXo/dM8X9s7Dl6I2lTyaS3/IJUs8cTMSuPQcXxDxnXt0VOP30YVYhQ==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@eslint/js': ^10
@@ -2599,18 +2717,18 @@ packages:
       eslint-plugin-storybook:
         optional: true
 
-  '@theholocron/github-client@1.6.6':
-    resolution: {integrity: sha512-I9T+tadfVIph38IlN8N5GIY5giQ1tKK5TanYYHHQvmeqVJJI3hLBOh/fO3L7kY4ym0KdtOkEktTXA9/valr90g==}
+  '@theholocron/github-client@1.7.1':
+    resolution: {integrity: sha512-cTLKi6rVw3yBt7zn12WiM1jjU9ZGM0Jrm77sQerACCH4R7S9DSdAKwCAbpunsKQv8wr4WDxTZC3yRxUUmaBasA==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/holocron-config@7.18.1':
-    resolution: {integrity: sha512-uyj+e3lknRn6ijS2gohwXrzHizltaa891KwrnT6Xcif0wJa/khnceig5O2ZgtNhW20FtmrZhikTbh7H4V1hHIQ==}
+  '@theholocron/holocron-config@7.19.1':
+    resolution: {integrity: sha512-BDp2umeCi9Ti9NdNFLt6p/cI2FCzciZfIZ+mJbZFc4adJs93KDDFS14sWqWly6cggiSHvrseMP20VkMWTbgFHg==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@theholocron/cli': '>=2.0.0-alpha.1'
 
-  '@theholocron/http-client@1.6.6':
-    resolution: {integrity: sha512-RcO3VmtRb9ds0beMeQI37T+Yy7gLI3RwRd7uB0NMT9ucMhmLRHa1tKkmk974rrBOg/Y1nms0hyMow9sccH6UXw==}
+  '@theholocron/http-client@1.7.1':
+    resolution: {integrity: sha512-MbI9JniWcSpYaCaUel05lZRlYpiXJYKm81w4hFATExi+lNELmclnKiIYrVAgDj/5BhMjjjdYkf/OHJOTZe5OLg==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       vitest: '>=4.0.0'
@@ -2618,12 +2736,12 @@ packages:
       vitest:
         optional: true
 
-  '@theholocron/infisical-client@1.6.2':
-    resolution: {integrity: sha512-ovfKse4DyiIodACxZi2qIP0vQsHxVU0ll7qlIT44nQvB+W9xmf9MySYj3lQs8CimpAoDFuFm27cQUlNsd5+trA==}
+  '@theholocron/infisical-client@1.7.0':
+    resolution: {integrity: sha512-TjlmJjzloqEE/bVJpyDYy22e2zJ3iEEuSco+2lKXgS07NV8fiS02ISHPxt8J4SluhEZjsfpFhT6l2YpJDBYz2w==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/lint-staged-config@7.18.1':
-    resolution: {integrity: sha512-nkvdmGD4tANniJsJw/ccJuZs7URHbVlTw7JSXKsrjFW07FOLIMdNsdqd38AeD8qobvYPxcSIcZGsK+YyCV8Stg==}
+  '@theholocron/lint-staged-config@7.19.1':
+    resolution: {integrity: sha512-SpLRN5wCxCdiVlkTPqbc5DNm3s0aLth+8HQDTW18T06Zh+y6Xn85uYyUahgv0Ct2bEzegvmvW1tdkOoxM0+HUQ==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       husky: ^9
@@ -2633,22 +2751,22 @@ packages:
       sort-package-json:
         optional: true
 
-  '@theholocron/neon-client@1.6.2':
-    resolution: {integrity: sha512-wsHCsdhDTvdSlDz/gnI5UW5LiJE4gAvKbIsCepJ9GfkQOJLTCWz3dMwRoaHEfsJ5tDPtVmJHNZsilR+UrzE8Nw==}
+  '@theholocron/neon-client@1.7.0':
+    resolution: {integrity: sha512-qybSjXnxbbG7cwAcNosOEjzjH9GuHomYolrBbnTNkHh6nulFkrayZlEe4f1u3vUiMDo2ZtEbttpJpfpwjF7jDQ==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/postman-client@1.6.2':
-    resolution: {integrity: sha512-pCqCPTtTHJ1/YcSwPYDAzbkhQyt6pvmOw0gsM98qwD/z5shiLjqw27q4OlRAjRy05pDa6UvAKCU0WBt3kHKmWw==}
+  '@theholocron/postman-client@1.7.0':
+    resolution: {integrity: sha512-368udhps3R0YrOF4Nw+yNPcdm9gmYRODJhWNLZYn0+Z3g+ud6Bqt73MUvBw3r7eWyE5rGuZ+cKaf3NkmtivfoQ==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/prettier-config@7.18.1':
-    resolution: {integrity: sha512-QAINSLxNodQK7eFp7/mq49wtmm9JGiRptIotXFf7S/vyhO0iU3z/evVk9to7oegb42v3+h2KIYxax3mmrCjfxg==}
+  '@theholocron/prettier-config@7.19.1':
+    resolution: {integrity: sha512-IU+gxQrmjvLls3P5avBiMCOjI6GBXtCvUx9vsE9cb7g6bmVmlz8zh3mkSBq4JnjwRvYxGM3HIOjzp+ERP5PdQA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       prettier: ^3
 
-  '@theholocron/semantic-release-config@7.18.1':
-    resolution: {integrity: sha512-FBOMCCpVcHBf/9//NiQCegmuA9A0ClAUrIq9iYhflOBK93H68XtyTkA+ppE3VlAPgJtRSP0TyI03gDHlsAQnFA==}
+  '@theholocron/semantic-release-config@7.19.1':
+    resolution: {integrity: sha512-nN6/hcrAgLDJUWkl+shJ/+Rz1bXenmaXL6KWkZ2HM2/gXWSNnuJ6+P881gl1nTYfVo/G0QQWo7rX0UFJZdrRBQ==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@semantic-release/changelog': ^6
@@ -2663,28 +2781,32 @@ packages:
       '@semantic-release/exec':
         optional: true
 
+  '@theholocron/sentry-client@1.7.1':
+    resolution: {integrity: sha512-i/mFTs6uRBEPNdoBJ3GIWQEpYV9MMSL1eAMpWqueCSiLgucb/zbRPti+FfXNNLLkqrcu5DlxHpbPTbeTMsmGPg==}
+    engines: {node: '>=22.0.0'}
+
   '@theholocron/skills@1.3.2':
     resolution: {integrity: sha512-jjnezEdoMUraGe4vmffm51KHTefXFNaHr2XNzweQSGjuzpj+F+iaBu741zXpZDtG5VCsyo5gF/sUIhEtUcw5pg==}
     engines: {node: '>=22', pnpm: '>=10'}
 
-  '@theholocron/tsconfig@7.16.0':
-    resolution: {integrity: sha512-ADcaojCPvQE9G1qnmdLw7fERP/p4at/4n2tZELNpmDwDSjQpmBSDqjfUmcxzkxKtlBcVi06BYXRFlHQ2JLWKfA==}
+  '@theholocron/tsconfig@7.19.1':
+    resolution: {integrity: sha512-8nSd3UOsmpV3MdHw4zDbBkj4QbF70LCO/vj1MIDFuRv/K7PqA+tGAuTB4YGjodWLwdQBC6wjRMQo0lK9zI92sg==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       typescript: ^5
 
-  '@theholocron/tsdown-config@7.18.1':
-    resolution: {integrity: sha512-q+nmL6Ue2yVMT8FOgrjxwXcQ3fmVPz7wtbdEUUU01erbN03GzGBgM7UYDgSesIZuCZjGq8o62Z6GE78ilsTR3Q==}
+  '@theholocron/tsdown-config@7.19.1':
+    resolution: {integrity: sha512-tHLJVM/YDyt0PWNQNMwbmOS9BJpI3ZdWdCmh1g/2UOhZMnYUuqs5YhkANnRSaoIVOkwKtL23BKd3k+6TpMlZ3g==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       tsdown: ^0
 
-  '@theholocron/vercel-client@1.6.2':
-    resolution: {integrity: sha512-QwEPM8SS4KxCBa9LIFrMBSELJSy7T0hVuIXhvMjifszYuMwHnwV7EjsnUGwDmA//YeTfmqHWtcLaTMghLsYTQQ==}
+  '@theholocron/vercel-client@1.7.0':
+    resolution: {integrity: sha512-xH6qTyzCV3pSIJJgTB4Nlppo4jazZzBg7oVO7gOISaa938c0BMAKvpcxFtBIjJ447Hyk1w+RYZLVSuMC1k+zFA==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/vitest-config@7.18.1':
-    resolution: {integrity: sha512-h5rdIWpS8NXiqkQMdGoIFkBks8lTu9NTpyAAPuaMNCyHX4kaxOo5TH6Wch8EqpuLdiDXkpMMTBaTNZE0MWx2jA==}
+  '@theholocron/vitest-config@7.19.1':
+    resolution: {integrity: sha512-vP7EUuqFhFizQdRsbzWmJfFUPAzIFfB4kqE2Jj40P0uIfAY3jGyJWQ/7kJ84y6P3XEeBozrpeyGKMvjpSu5tAw==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@storybook/addon-vitest': ^9
@@ -8300,13 +8422,19 @@ snapshots:
     dependencies:
       astro: 7.2.0(@astrojs/markdown-remark@7.2.2)(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.23.11)(yaml@2.9.0)
 
-  '@theholocron/clerk-client@1.6.2(vitest@4.1.10)':
+  '@theholocron/clerk-client@1.7.0(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/commitlint-config@7.18.1(@commitlint/cli@19.8.1(@types/node@26.2.0)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)':
+  '@theholocron/cloudflare-client@1.7.1(vitest@4.1.10)':
+    dependencies:
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
+    transitivePeerDependencies:
+      - vitest
+
+  '@theholocron/commitlint-config@7.19.1(@commitlint/cli@19.8.1(@types/node@26.2.0)(typescript@5.9.3))(@commitlint/config-conventional@19.8.1)':
     dependencies:
       '@commitlint/cli': 19.8.1(@types/node@26.2.0)(typescript@5.9.3)
       '@commitlint/config-conventional': 19.8.1
@@ -8317,13 +8445,13 @@ snapshots:
       astro: 7.2.0(@astrojs/markdown-remark@7.2.2)(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.23.11)(yaml@2.9.0)
       gray-matter: 4.0.3
 
-  '@theholocron/doppler-client@1.6.2(vitest@4.1.10)':
+  '@theholocron/doppler-client@1.7.0(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/eslint-config@7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))':
+  '@theholocron/eslint-config@7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))':
     dependencies:
       '@eslint/compat': 2.1.0(eslint@10.8.1(jiti@2.7.0))
       '@eslint/js': 10.0.1(eslint@10.8.1(jiti@2.7.0))
@@ -8336,7 +8464,7 @@ snapshots:
       eslint-plugin-n: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
       eslint-plugin-react: 7.37.5(eslint@10.8.1(jiti@2.7.0))
 
-  '@theholocron/eslint-config@7.16.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))':
+  '@theholocron/eslint-config@7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))':
     dependencies:
       '@eslint/compat': 2.1.0(eslint@10.8.1(jiti@2.7.0))
       '@eslint/js': 10.0.1(eslint@10.8.1(jiti@2.7.0))
@@ -8349,48 +8477,48 @@ snapshots:
       eslint-plugin-n: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
       eslint-plugin-react: 7.37.5(eslint@10.8.1(jiti@2.7.0))
 
-  '@theholocron/github-client@1.6.6(vitest@4.1.10)':
+  '@theholocron/github-client@1.7.1(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/holocron-config@7.18.1(@theholocron/cli@packages+cli)':
+  '@theholocron/holocron-config@7.19.1(@theholocron/cli@packages+cli)':
     dependencies:
       '@theholocron/cli': link:packages/cli
 
-  '@theholocron/http-client@1.6.6(vitest@4.1.10)':
+  '@theholocron/http-client@1.7.1(vitest@4.1.10)':
     optionalDependencies:
       vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
-  '@theholocron/infisical-client@1.6.2(vitest@4.1.10)':
+  '@theholocron/infisical-client@1.7.0(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/lint-staged-config@7.18.1(husky@9.1.7)(lint-staged@16.4.0)':
+  '@theholocron/lint-staged-config@7.19.1(husky@9.1.7)(lint-staged@16.4.0)':
     dependencies:
       husky: 9.1.7
       lint-staged: 16.4.0
 
-  '@theholocron/neon-client@1.6.2(vitest@4.1.10)':
+  '@theholocron/neon-client@1.7.0(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/postman-client@1.6.2(vitest@4.1.10)':
+  '@theholocron/postman-client@1.7.0(vitest@4.1.10)':
     dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/prettier-config@7.18.1(prettier@3.9.6)':
+  '@theholocron/prettier-config@7.19.1(prettier@3.9.6)':
     dependencies:
       prettier: 3.9.6
 
-  '@theholocron/semantic-release-config@7.18.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.2.1)(semantic-release@25.0.9(typescript@5.9.3))':
+  '@theholocron/semantic-release-config@7.19.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.2.1)(semantic-release@25.0.9(typescript@5.9.3))':
     dependencies:
       '@semantic-release/changelog': 6.0.3(semantic-release@25.0.9(typescript@5.9.3))
       '@semantic-release/commit-analyzer': 13.0.1(semantic-release@25.0.9(typescript@5.9.3))
@@ -8402,27 +8530,33 @@ snapshots:
     optionalDependencies:
       '@semantic-release/exec': 7.1.0(semantic-release@25.0.9(typescript@5.9.3))
 
-  '@theholocron/skills@1.3.2': {}
-
-  '@theholocron/tsconfig@7.16.0(typescript@5.9.3)':
+  '@theholocron/sentry-client@1.7.1(vitest@4.1.10)':
     dependencies:
-      typescript: 5.9.3
-
-  '@theholocron/tsdown-config@7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))':
-    dependencies:
-      tsdown: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
-
-  '@theholocron/tsdown-config@7.18.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.23.11)(typescript@5.9.3))':
-    dependencies:
-      tsdown: 0.22.14(oxc-resolver@11.24.2)(tsx@4.23.11)(typescript@5.9.3)
-
-  '@theholocron/vercel-client@1.6.2(vitest@4.1.10)':
-    dependencies:
-      '@theholocron/http-client': 1.6.6(vitest@4.1.10)
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
     transitivePeerDependencies:
       - vitest
 
-  '@theholocron/vitest-config@7.18.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)':
+  '@theholocron/skills@1.3.2': {}
+
+  '@theholocron/tsconfig@7.19.1(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
+  '@theholocron/tsdown-config@7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))':
+    dependencies:
+      tsdown: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
+
+  '@theholocron/tsdown-config@7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.23.11)(typescript@5.9.3))':
+    dependencies:
+      tsdown: 0.22.14(oxc-resolver@11.24.2)(tsx@4.23.11)(typescript@5.9.3)
+
+  '@theholocron/vercel-client@1.7.0(vitest@4.1.10)':
+    dependencies:
+      '@theholocron/http-client': 1.7.1(vitest@4.1.10)
+    transitivePeerDependencies:
+      - vitest
+
+  '@theholocron/vitest-config@7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)':
     dependencies:
       vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
