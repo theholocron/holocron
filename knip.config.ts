@@ -3,9 +3,13 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
 	workspaces: {
 		".": {
-			// prettier.config.ts, eslint.config.ts, release.config.ts auto-detected by Knip plugins
-			entry: ["commitlint.config.ts", "holocron.config.ts", "astro.config.ts"],
-			project: ["*.ts", "docs/src/**/*.ts"],
+			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts
+			// auto-detected by Knip plugins
+			entry: ["commitlint.config.ts", "holocron.config.ts"],
+			project: ["*.ts"],
+		},
+		"docs": {
+			project: ["src/**/*.ts", "src/**/*.astro", "src/**/*.mdx"],
 		},
 		"packages/cli": {
 			// entry points auto-detected from package.json exports/bin
