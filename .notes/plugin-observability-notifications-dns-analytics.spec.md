@@ -23,27 +23,27 @@ them. Update `packages/cli/src/capabilities/index.ts`:
 
 ```typescript
 export interface Observability extends ProviderIdentity {
-	readonly key: "observability";
-	// envKeys replaces dsnEnvKey — providers push more than one env var
-	describe(): Promise<{ provider: string; envKeys: string[] }>;
-	// new — optional so existing code compiles unchanged
-	whoami?(): Promise<{ org: string }>;
-	ensureProject?(input: { name: string; platform?: string }): Promise<{
-		dsn: string;
-		alreadyExists: boolean;
-	}>;
+  readonly key: "observability";
+  // envKeys replaces dsnEnvKey — providers push more than one env var
+  describe(): Promise<{ provider: string; envKeys: string[] }>;
+  // new — optional so existing code compiles unchanged
+  whoami?(): Promise<{ org: string }>;
+  ensureProject?(input: { name: string; platform?: string }): Promise<{
+    dsn: string;
+    alreadyExists: boolean;
+  }>;
 }
 
 export interface Analytics extends ProviderIdentity {
-	readonly key: "analytics";
-	// envKeys replaces dsnEnvKey
-	describe(): Promise<{ provider: string; envKeys: string[] }>;
-	// new — optional so existing code compiles unchanged
-	whoami?(): Promise<{ org: string }>;
-	ensureProject?(name: string): Promise<{
-		token: string;
-		alreadyExists: boolean;
-	}>;
+  readonly key: "analytics";
+  // envKeys replaces dsnEnvKey
+  describe(): Promise<{ provider: string; envKeys: string[] }>;
+  // new — optional so existing code compiles unchanged
+  whoami?(): Promise<{ org: string }>;
+  ensureProject?(name: string): Promise<{
+    token: string;
+    alreadyExists: boolean;
+  }>;
 }
 ```
 
@@ -74,16 +74,16 @@ receiving `holocron setup` calls independently.
 
 ```typescript
 export interface SentryPluginOptions extends ResolveTokenInput {
-	/** Sentry organization slug. Required. */
-	org: string;
-	/**
-	 * Default team slug for project creation. Defaults to the org slug
-	 * when omitted (Sentry auto-assigns to the first available team).
-	 */
-	team?: string;
-	/** Override base URL for tests. Default: https://sentry.io */
-	baseUrl?: string;
-	fetch?: typeof fetch;
+  /** Sentry organization slug. Required. */
+  org: string;
+  /**
+   * Default team slug for project creation. Defaults to the org slug
+   * when omitted (Sentry auto-assigns to the first available team).
+   */
+  team?: string;
+  /** Override base URL for tests. Default: https://sentry.io */
+  baseUrl?: string;
+  fetch?: typeof fetch;
 }
 ```
 
@@ -100,21 +100,21 @@ export interface SentryPluginOptions extends ResolveTokenInput {
 
 ```typescript
 export const AUTH_HINT =
-	"generate an auth token at https://sentry.io/settings/account/api/auth-tokens/ " +
-	"with project:read, project:write, and org:read scopes, " +
-	"then run: holocron auth set sentry <TOKEN>";
+  "generate an auth token at https://sentry.io/settings/account/api/auth-tokens/ " +
+  "with project:read, project:write, and org:read scopes, " +
+  "then run: holocron auth set sentry <TOKEN>";
 ```
 
 ### Key API calls
 
 Base URL: `https://sentry.io/api/0`
 
-| Method | Purpose |
-|---|---|
-| `GET /auth/` | `whoami()` — verify token; returns `{ user: { username } }` |
-| `GET /organizations/{org}/projects/` | List projects for existence check |
-| `POST /teams/{org}/{team}/projects/` | Create project; body `{ name, platform }` |
-| `GET /projects/{org}/{slug}/keys/` | Get DSN; returns `[{ dsn: { public } }]` |
+| Method                               | Purpose                                                     |
+| ------------------------------------ | ----------------------------------------------------------- |
+| `GET /auth/`                         | `whoami()` — verify token; returns `{ user: { username } }` |
+| `GET /organizations/{org}/projects/` | List projects for existence check                           |
+| `POST /teams/{org}/{team}/projects/` | Create project; body `{ name, platform }`                   |
+| `GET /projects/{org}/{slug}/keys/`   | Get DSN; returns `[{ dsn: { public } }]`                    |
 
 ### Implementation sketch
 
@@ -171,15 +171,15 @@ readonly providerName = "slack";
 
 ```typescript
 export interface SlackPluginOptions extends ResolveTokenInput {
-	/**
-	 * Fallback channel id when `send()` is called without an explicit
-	 * channel. Accepts a channel id (C…) or name (#general).
-	 * Channel IDs are stable; prefer them over names.
-	 */
-	defaultChannel?: string;
-	/** Override base URL for tests. Default: https://slack.com/api */
-	baseUrl?: string;
-	fetch?: typeof fetch;
+  /**
+   * Fallback channel id when `send()` is called without an explicit
+   * channel. Accepts a channel id (C…) or name (#general).
+   * Channel IDs are stable; prefer them over names.
+   */
+  defaultChannel?: string;
+  /** Override base URL for tests. Default: https://slack.com/api */
+  baseUrl?: string;
+  fetch?: typeof fetch;
 }
 ```
 
@@ -193,18 +193,18 @@ export interface SlackPluginOptions extends ResolveTokenInput {
 
 ```typescript
 export const AUTH_HINT =
-	"create a Slack app at https://api.slack.com/apps, add the chat:write bot scope, " +
-	"install it to your workspace, then run: holocron auth set slack <xoxb-TOKEN>";
+  "create a Slack app at https://api.slack.com/apps, add the chat:write bot scope, " +
+  "install it to your workspace, then run: holocron auth set slack <xoxb-TOKEN>";
 ```
 
 ### Key API calls
 
 Base URL: `https://slack.com/api`
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `POST` | `/auth.test` | `verifyToken` — returns `{ team, user }` |
-| `POST` | `/chat.postMessage` | `send(channel, message)` |
+| Method | Endpoint            | Purpose                                  |
+| ------ | ------------------- | ---------------------------------------- |
+| `POST` | `/auth.test`        | `verifyToken` — returns `{ team, user }` |
+| `POST` | `/chat.postMessage` | `send(channel, message)`                 |
 
 ### Implementation sketch
 
@@ -257,21 +257,21 @@ notification use case.
 
 ```typescript
 export interface DiscordPluginOptions extends ResolveTokenInput {
-	/**
-	 * Named webhook aliases — map a logical channel name to its webhook URL.
-	 * Allows `send("deploys", msg)` instead of passing the full URL.
-	 *
-	 * Example: { deploys: "https://discord.com/api/webhooks/123/abc" }
-	 */
-	webhooks?: Record<string, string>;
-	/**
-	 * Default webhook URL (or alias key) used when `send()` is called
-	 * without an explicit channel.
-	 */
-	defaultChannel?: string;
-	/** Override base URL for tests. Default: https://discord.com/api/v10 */
-	baseUrl?: string;
-	fetch?: typeof fetch;
+  /**
+   * Named webhook aliases — map a logical channel name to its webhook URL.
+   * Allows `send("deploys", msg)` instead of passing the full URL.
+   *
+   * Example: { deploys: "https://discord.com/api/webhooks/123/abc" }
+   */
+  webhooks?: Record<string, string>;
+  /**
+   * Default webhook URL (or alias key) used when `send()` is called
+   * without an explicit channel.
+   */
+  defaultChannel?: string;
+  /** Override base URL for tests. Default: https://discord.com/api/v10 */
+  baseUrl?: string;
+  fetch?: typeof fetch;
 }
 ```
 
@@ -289,18 +289,18 @@ to confirm it is reachable and valid.
 
 ```typescript
 export const AUTH_HINT =
-	"create a webhook in Discord → channel settings → Integrations → Webhooks, " +
-	"copy the URL, then run: holocron auth set discord <WEBHOOK_URL>";
+  "create a webhook in Discord → channel settings → Integrations → Webhooks, " +
+  "copy the URL, then run: holocron auth set discord <WEBHOOK_URL>";
 ```
 
 ### Key API calls
 
 Base URL: `https://discord.com/api/v10`
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/webhooks/{id}/{token}` | `verifyToken` — confirm webhook is valid |
-| `POST` | `/webhooks/{id}/{token}` | `send()` — body `{ content: message }` |
+| Method | Endpoint                 | Purpose                                  |
+| ------ | ------------------------ | ---------------------------------------- |
+| `GET`  | `/webhooks/{id}/{token}` | `verifyToken` — confirm webhook is valid |
+| `POST` | `/webhooks/{id}/{token}` | `send()` — body `{ content: message }`   |
 
 ### Implementation sketch
 
@@ -355,16 +355,16 @@ readonly providerName = "cloudflare";
 
 ```typescript
 export interface CloudflarePluginOptions extends ResolveTokenInput {
-	/**
-	 * Cloudflare account id. Optional for standard DNS operations;
-	 * required only for account-scoped endpoints (e.g., custom nameservers).
-	 * Callers that need account-scoped ops receive a clear error at call
-	 * time if this is absent — no startup-time throw.
-	 */
-	accountId?: string;
-	/** Override base URL for tests. Default: https://api.cloudflare.com/client/v4 */
-	baseUrl?: string;
-	fetch?: typeof fetch;
+  /**
+   * Cloudflare account id. Optional for standard DNS operations;
+   * required only for account-scoped endpoints (e.g., custom nameservers).
+   * Callers that need account-scoped ops receive a clear error at call
+   * time if this is absent — no startup-time throw.
+   */
+  accountId?: string;
+  /** Override base URL for tests. Default: https://api.cloudflare.com/client/v4 */
+  baseUrl?: string;
+  fetch?: typeof fetch;
 }
 ```
 
@@ -379,23 +379,23 @@ export interface CloudflarePluginOptions extends ResolveTokenInput {
 
 ```typescript
 export const AUTH_HINT =
-	"create an API token at https://dash.cloudflare.com/profile/api-tokens " +
-	"with Zone:Read and DNS:Edit permissions, " +
-	"then run: holocron auth set cloudflare <TOKEN>";
+  "create an API token at https://dash.cloudflare.com/profile/api-tokens " +
+  "with Zone:Read and DNS:Edit permissions, " +
+  "then run: holocron auth set cloudflare <TOKEN>";
 ```
 
 ### Key API calls
 
 Base URL: `https://api.cloudflare.com/client/v4`
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/user/tokens/verify` | `verifyToken` |
-| `GET` | `/zones?name={domain}` | Resolve domain → zone id |
-| `GET` | `/zones/{zoneId}/dns_records` | `listRecords()` |
-| `POST` | `/zones/{zoneId}/dns_records` | Create record |
-| `PATCH` | `/zones/{zoneId}/dns_records/{id}` | Update record |
-| `DELETE` | `/zones/{zoneId}/dns_records/{id}` | `deleteRecord()` |
+| Method   | Endpoint                           | Purpose                  |
+| -------- | ---------------------------------- | ------------------------ |
+| `GET`    | `/user/tokens/verify`              | `verifyToken`            |
+| `GET`    | `/zones?name={domain}`             | Resolve domain → zone id |
+| `GET`    | `/zones/{zoneId}/dns_records`      | `listRecords()`          |
+| `POST`   | `/zones/{zoneId}/dns_records`      | Create record            |
+| `PATCH`  | `/zones/{zoneId}/dns_records/{id}` | Update record            |
+| `DELETE` | `/zones/{zoneId}/dns_records/{id}` | `deleteRecord()`         |
 
 ### Implementation sketch
 
@@ -469,15 +469,15 @@ readonly providerName = "posthog";
 
 ```typescript
 export interface PostHogPluginOptions extends ResolveTokenInput {
-	/**
-	 * PostHog instance host. Defaults to US cloud.
-	 * EU cloud: "https://eu.posthog.com"
-	 * Self-hosted: your own base URL.
-	 */
-	host?: string;
-	/** Override base URL for tests (takes precedence over `host`). */
-	baseUrl?: string;
-	fetch?: typeof fetch;
+  /**
+   * PostHog instance host. Defaults to US cloud.
+   * EU cloud: "https://eu.posthog.com"
+   * Self-hosted: your own base URL.
+   */
+  host?: string;
+  /** Override base URL for tests (takes precedence over `host`). */
+  baseUrl?: string;
+  fetch?: typeof fetch;
 }
 ```
 
@@ -497,20 +497,20 @@ if that pattern emerges, promote it then.
 
 ```typescript
 export const AUTH_HINT =
-	"create a personal API key at https://app.posthog.com/settings/user/api-keys " +
-	"(not the project API key — that is the client-side tracking token), " +
-	"then run: holocron auth set posthog <phx_KEY>";
+  "create a personal API key at https://app.posthog.com/settings/user/api-keys " +
+  "(not the project API key — that is the client-side tracking token), " +
+  "then run: holocron auth set posthog <phx_KEY>";
 ```
 
 ### Key API calls
 
 Base URL: `{host}` (default `https://app.posthog.com`)
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/api/users/@me/` | `whoami()` — verify key; returns `{ email, organization }` |
-| `GET` | `/api/projects/` | List projects for existence check |
-| `POST` | `/api/projects/` | Create project; body `{ name }`; returns `{ api_token }` |
+| Method | Endpoint          | Purpose                                                    |
+| ------ | ----------------- | ---------------------------------------------------------- |
+| `GET`  | `/api/users/@me/` | `whoami()` — verify key; returns `{ email, organization }` |
+| `GET`  | `/api/projects/`  | List projects for existence check                          |
+| `POST` | `/api/projects/`  | Create project; body `{ name }`; returns `{ api_token }`   |
 
 ### Implementation sketch
 

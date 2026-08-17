@@ -19,7 +19,10 @@ describe("dns()", () => {
 	it("instantiates CloudflareDns bound to the client", () => {
 		const { fetch } = stubFetch([cfOk([])]);
 		const plugin = createPlugin({ cliToken: "cf-tok", fetch });
-		const cap = dns({ options: { cliToken: "cf-tok", fetch }, client: plugin.capabilities.dns()["client" as never] as never });
+		const cap = dns({
+			options: { cliToken: "cf-tok", fetch },
+			client: plugin.capabilities.dns()["client" as never] as never,
+		});
 		expect(cap.key).toBe("dns");
 		expect(cap.providerName).toBe("cloudflare");
 	});

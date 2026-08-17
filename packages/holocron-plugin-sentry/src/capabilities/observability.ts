@@ -55,7 +55,8 @@ export class SentryObservability implements Observability {
 		});
 		const keys = await this.client.projects.keys(this.opts.org, project.slug);
 		const dsn = keys[0]?.dsn.public;
-		if (!dsn) throw new ProviderApiError(`Sentry project ${project.slug} has no keys after creation`, 500, undefined);
+		if (!dsn)
+			throw new ProviderApiError(`Sentry project ${project.slug} has no keys after creation`, 500, undefined);
 		return { dsn, alreadyExists: false };
 	}
 }

@@ -20,7 +20,10 @@ const key = {
 	label: "Default",
 	public: "abc123",
 	secret: "secret123",
-	dsn: { public: "https://abc123@o123.ingest.sentry.io/456", secret: "https://abc123:secret123@o123.ingest.sentry.io/456" },
+	dsn: {
+		public: "https://abc123@o123.ingest.sentry.io/456",
+		secret: "https://abc123:secret123@o123.ingest.sentry.io/456",
+	},
 };
 
 describe("SentryObservability.describe", () => {

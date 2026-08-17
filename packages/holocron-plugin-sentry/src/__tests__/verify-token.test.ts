@@ -19,7 +19,9 @@ describe("verifyToken", () => {
 	});
 
 	it("returns ok:false when the API rejects the token", async () => {
-		const { fetch } = stubFetch([{ status: 401, body: { detail: "Authentication credentials were not provided." } }]);
+		const { fetch } = stubFetch([
+			{ status: 401, body: { detail: "Authentication credentials were not provided." } },
+		]);
 		const result = await verifyToken("bad-token", { baseUrl: BASE, fetch });
 		expect(result.ok).toBe(false);
 	});

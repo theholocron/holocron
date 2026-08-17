@@ -43,11 +43,11 @@ user-owned and org-owned tokens are accepted.
 
 ## What's implemented
 
-| Method           | What it does                                                                                                                                                    |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `describe`       | Returns `{ provider: "sentry", envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"] }` — the env vars the app reads at runtime.                                  |
-| `whoami`         | Fetches the org by slug to verify the token and confirm the org exists.                                                                                         |
-| `ensureProject`  | Looks up the project by slug (derived from `name`); creates it under the configured team if absent. Returns the DSN and an `alreadyExists` flag. Idempotent.   |
+| Method          | What it does                                                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `describe`      | Returns `{ provider: "sentry", envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"] }` — the env vars the app reads at runtime.                                 |
+| `whoami`        | Fetches the org by slug to verify the token and confirm the org exists.                                                                                      |
+| `ensureProject` | Looks up the project by slug (derived from `name`); creates it under the configured team if absent. Returns the DSN and an `alreadyExists` flag. Idempotent. |
 
 `holocron setup` calls `ensureProject` and pushes both `SENTRY_DSN` and
 `NEXT_PUBLIC_SENTRY_DSN` to GitHub Secrets (same DSN value, both keys

@@ -41,10 +41,10 @@ with `Zone:Read` and `DNS:Edit` permissions.
 
 ## What's implemented
 
-| Method          | What it does                                                                                                                                         |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `listRecords`   | Lists all DNS records in the zone that contains the given domain. Resolves the zone by walking label-by-label from the full domain to the apex.      |
-| `upsertRecord`  | Creates a record if none matching `type + name` exists; patches the first match otherwise. When multiple same-type records exist, only the first is updated — use explicit list/delete/create for multi-TXT scenarios (SPF + DKIM). |
-| `deleteRecord`  | Deletes a record by id within the zone that contains the given domain.                                                                               |
+| Method         | What it does                                                                                                                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listRecords`  | Lists all DNS records in the zone that contains the given domain. Resolves the zone by walking label-by-label from the full domain to the apex.                                                                                     |
+| `upsertRecord` | Creates a record if none matching `type + name` exists; patches the first match otherwise. When multiple same-type records exist, only the first is updated — use explicit list/delete/create for multi-TXT scenarios (SPF + DKIM). |
+| `deleteRecord` | Deletes a record by id within the zone that contains the given domain.                                                                                                                                                              |
 
 Zone ids are cached per plugin instance for the lifetime of the process.
