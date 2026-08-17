@@ -81,11 +81,6 @@ component_management:
       paths:
         - packages/holocron-plugin-sentry/**
 
-    - component_id: holocron-docs
-      name: "holocron-docs"
-      paths:
-        - packages/holocron-docs/**
-
     - component_id: holocron-plugin-vercel
       name: "holocron-plugin-vercel"
       paths:
