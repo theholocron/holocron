@@ -6,43 +6,43 @@ packages:
 # plugin packages grow.
 catalog:
   '@inquirer/prompts': ^8.5.2
+  '@sentry/node': ^10.69.0
+  '@types/node': ^26
+  '@types/yargs': ^17.0.35
   '@vitest/coverage-v8': ^4.1.10
   '@vitest/eslint-plugin': ^1.6.27
+  chalk: ^6.0.0
   eslint: ^10.8.1
   eslint-plugin-n: ^18.3.0
   eslint-plugin-simple-import-sort: ^14.0.0
   globals: ^17.9.0
-  chalk: ^6.0.0
   ora: ^9.4.1
   tsdown: ^0.22.14
-  turbo: ^2.10.9
   tsx: 4.22.4
-  vitest: ^4.1.10
+  turbo: ^2.10.9
   typescript: ^5.9.3
+  vitest: ^4.1.10
   yargs: ^18.1.0
-  '@sentry/node': ^10.69.0
-  '@types/node': ^26
-  '@types/yargs': ^17.0.35
 
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
     '@theholocron/clerk-client': ^1.7.0
-    '@theholocron/cloudflare-client': ^1.7.0
+    '@theholocron/cloudflare-client': ^1.7.1
     '@theholocron/doppler-client': ^1.7.0
-    '@theholocron/github-client': ^1.6.7
-    '@theholocron/http-client': ^1.7.0
+    '@theholocron/github-client': ^1.7.1
+    '@theholocron/http-client': ^1.7.1
     '@theholocron/infisical-client': ^1.7.0
     '@theholocron/neon-client': ^1.7.0
     '@theholocron/postman-client': ^1.7.0
-    '@theholocron/sentry-client': ^1.7.0
+    '@theholocron/sentry-client': ^1.7.1
     '@theholocron/vercel-client': ^1.7.0
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
     '@theholocron/commitlint-config': ^7.19.1
-    '@theholocron/holocron-config': ^7.19.1
     '@theholocron/eslint-config': ^7.19.1
+    '@theholocron/holocron-config': ^7.19.1
     '@theholocron/lint-staged-config': ^7.19.1
     '@theholocron/prettier-config': ^7.19.1
     '@theholocron/semantic-release-config': ^7.19.1
@@ -54,5 +54,5 @@ catalogs:
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  '@theholocron/http-client': ^1.7.0
+  '@theholocron/http-client': ^1.7.1
   tsx: 4.22.4
