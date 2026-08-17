@@ -28,7 +28,7 @@ export type {
 } from "./git/git.js";
 export type { GitHubIssue, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
 export type { GitHubLabel } from "./labels/labels.js";
-export type { CreatePagesPayload, GitHubPages, PagesBuildType, UpdatePagesPayload } from "./pages/pages.js";
+export type { CreatePagesPayload, GitHubPages, PagesBuildStatus, PagesBuildType, UpdatePagesPayload } from "./pages/pages.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
 export type { GitHubRuleset } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";

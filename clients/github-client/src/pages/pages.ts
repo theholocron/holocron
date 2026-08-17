@@ -5,8 +5,10 @@ import { repoBase } from "../utils.js";
 
 export type PagesBuildType = "workflow" | "legacy";
 
+export type PagesBuildStatus = "built" | "building" | "errored" | "unknown";
+
 export interface GitHubPages {
-	status: "built" | "building" | "errored" | "unknown" | null;
+	status: PagesBuildStatus | null;
 	build_type: PagesBuildType | null;
 	source?: { branch: string; path: string };
 	https_enforced: boolean;

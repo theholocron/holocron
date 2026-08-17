@@ -7,7 +7,7 @@ import { zones } from "./zones/zones.js";
 export type { CfDnsRecord, CfDnsRecordInput, CfDnsRecordType } from "./dns/dns.js";
 export type { CfTokenVerification } from "./tokens/tokens.js";
 export type { CfIngressRule, CfTunnel, CfTunnelConfig } from "./tunnels/tunnels.js";
-export type { CloudflareClientOptions } from "./utils.js";
+export type { CfEnvelope, CloudflareClientOptions } from "./utils.js";
 export type { CfZone } from "./zones/zones.js";
 
 export function createCloudflareClient(opts: CloudflareClientOptions) {

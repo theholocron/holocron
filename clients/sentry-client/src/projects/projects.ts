@@ -10,6 +10,8 @@ export interface SentryProject {
 export interface SentryKeyDsn {
 	public: string;
 	secret: string;
+	/** Content Security Policy endpoint. */
+	csp: string;
 }
 
 export interface SentryKey {
