@@ -39,6 +39,8 @@ export class DiscordNotifications implements Notifications {
 		// 3. defaultChannel (may itself be an alias or raw URL)
 		const def = this.opts.defaultChannel;
 		if (def) return this.opts.webhooks?.[def] ?? def;
-		throw new Error(`DiscordNotifications.send: unknown channel "${channel}" — pass a webhook URL, an alias key, or set defaultChannel`);
+		throw new Error(
+			`DiscordNotifications.send: unknown channel "${channel}" — pass a webhook URL, an alias key, or set defaultChannel`
+		);
 	}
 }

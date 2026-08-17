@@ -29,7 +29,12 @@ export function createDiscordClient({ baseUrl, fetch: fetchImpl }: DiscordClient
 		webhooks: {
 			get: async (id, token) => {
 				const res = await f(`${base}/webhooks/${id}/${token}`, { method: "GET" });
-				if (!res.ok) throw new ProviderApiError(`Discord webhook not found or invalid (${res.status})`, res.status, undefined);
+				if (!res.ok)
+					throw new ProviderApiError(
+						`Discord webhook not found or invalid (${res.status})`,
+						res.status,
+						undefined
+					);
 				return res.json() as Promise<DiscordWebhookInfo>;
 			},
 			execute: async (id, token, content) => {
@@ -39,7 +44,8 @@ export function createDiscordClient({ baseUrl, fetch: fetchImpl }: DiscordClient
 					body: JSON.stringify({ content }),
 				});
 				// 204 No Content on success
-				if (!res.ok) throw new ProviderApiError(`Discord webhook POST failed (${res.status})`, res.status, undefined);
+				if (!res.ok)
+					throw new ProviderApiError(`Discord webhook POST failed (${res.status})`, res.status, undefined);
 			},
 		},
 	};

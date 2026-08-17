@@ -13,9 +13,9 @@ pnpm add -D @theholocron/holocron-plugin-discord
 
 ## Capabilities
 
-| Capability      | Token required                             |
-| --------------- | ------------------------------------------ |
-| `notifications` | `HOLOCRON_DISCORD_WEBHOOK` (`discord`)     |
+| Capability      | Token required                         |
+| --------------- | -------------------------------------- |
+| `notifications` | `HOLOCRON_DISCORD_WEBHOOK` (`discord`) |
 
 The "token" for Discord is the full webhook URL, not a separate API key.
 
@@ -37,10 +37,10 @@ providers: {
 
 ### Options
 
-| Option           | Required | Description                                                                                 |
-| ---------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `webhooks`       | No       | Named aliases mapping logical channel names to their webhook URLs                           |
-| `defaultChannel` | No       | Alias key or raw webhook URL used as the fallback when no channel is passed to `send()`     |
+| Option           | Required | Description                                                                             |
+| ---------------- | -------- | --------------------------------------------------------------------------------------- |
+| `webhooks`       | No       | Named aliases mapping logical channel names to their webhook URLs                       |
+| `defaultChannel` | No       | Alias key or raw webhook URL used as the fallback when no channel is passed to `send()` |
 
 ## Authentication
 

@@ -10,7 +10,10 @@ const WEBHOOK = "https://discord.com/api/webhooks/111/abc123";
 const ID = "111";
 const TOKEN = "abc123";
 
-function makeNotifs(responses: Parameters<typeof stubFetch>[0], opts: ConstructorParameters<typeof DiscordNotifications>[1] = {}) {
+function makeNotifs(
+	responses: Parameters<typeof stubFetch>[0],
+	opts: ConstructorParameters<typeof DiscordNotifications>[1] = {}
+) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createDiscordClient({ baseUrl: BASE, fetch });
 	return { notifs: new DiscordNotifications(client, opts), calls };

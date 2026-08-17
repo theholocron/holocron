@@ -13,8 +13,8 @@ pnpm add -D @theholocron/holocron-plugin-slack
 
 ## Capabilities
 
-| Capability      | Token required                  |
-| --------------- | ------------------------------- |
+| Capability      | Token required                   |
+| --------------- | -------------------------------- |
 | `notifications` | `HOLOCRON_SLACK_TOKEN` (`slack`) |
 
 ## Config
@@ -30,9 +30,9 @@ providers: {
 
 ### Options
 
-| Option           | Required | Description                                                         |
-| ---------------- | -------- | ------------------------------------------------------------------- |
-| `defaultChannel` | No       | Slack channel id (e.g. `C0123456789`) used as the fallback channel  |
+| Option           | Required | Description                                                        |
+| ---------------- | -------- | ------------------------------------------------------------------ |
+| `defaultChannel` | No       | Slack channel id (e.g. `C0123456789`) used as the fallback channel |
 
 ## Authentication
 

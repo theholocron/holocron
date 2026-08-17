@@ -22,7 +22,10 @@ export function createSlackClient({ token, baseUrl, fetch: fetchImpl }: SlackCli
 	const base = baseUrl ?? "https://slack.com/api";
 	const f = fetchImpl ?? globalThis.fetch;
 
-	async function call<T extends { ok: boolean; error?: string }>(method: string, body: Record<string, unknown>): Promise<T> {
+	async function call<T extends { ok: boolean; error?: string }>(
+		method: string,
+		body: Record<string, unknown>
+	): Promise<T> {
 		const res = await f(`${base}/${method}`, {
 			method: "POST",
 			headers: {
