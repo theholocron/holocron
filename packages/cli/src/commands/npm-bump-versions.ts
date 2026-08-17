@@ -64,7 +64,8 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	try {
 		entries = listDir(packagesDir);
 	} catch {
-		return { status: "fail", bumped, skipped, message: `packages/ directory not found in ${cwd}` };
+		// No packages/ dir — single-package repo; root bump is sufficient.
+		return { status: dryRun ? "dry-run" : "ok", bumped, skipped };
 	}
 
 	for (const entry of entries) {
