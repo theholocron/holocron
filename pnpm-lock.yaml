@@ -175,6 +175,9 @@ importers:
       '@theholocron/holocron-plugin-cloudflare':
         specifier: workspace:*
         version: link:packages/holocron-plugin-cloudflare
+      '@theholocron/holocron-plugin-discord':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-discord
       '@theholocron/holocron-plugin-doppler':
         specifier: workspace:*
         version: link:packages/holocron-plugin-doppler
@@ -193,6 +196,9 @@ importers:
       '@theholocron/holocron-plugin-sentry':
         specifier: workspace:*
         version: link:packages/holocron-plugin-sentry
+      '@theholocron/holocron-plugin-slack':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-slack
       '@theholocron/holocron-plugin-vercel':
         specifier: workspace:*
         version: link:packages/holocron-plugin-vercel
@@ -469,6 +475,54 @@ importers:
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.9.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.22.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  packages/holocron-plugin-discord:
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@theholocron/eslint-config':
+        specifier: catalog:configs
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+      '@theholocron/tsconfig':
+        specifier: catalog:configs
+        version: 7.19.1(typescript@5.9.3)
+      '@theholocron/tsdown-config':
+        specifier: catalog:configs
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+      '@theholocron/vitest-config':
+        specifier: catalog:configs
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.1.2
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10)
       eslint:
         specifier: 'catalog:'
         version: 10.8.1(jiti@2.7.0)
@@ -782,6 +836,54 @@ importers:
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.9.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.22.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  packages/holocron-plugin-slack:
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@theholocron/eslint-config':
+        specifier: catalog:configs
+        version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+      '@theholocron/tsconfig':
+        specifier: catalog:configs
+        version: 7.19.1(typescript@5.9.3)
+      '@theholocron/tsdown-config':
+        specifier: catalog:configs
+        version: 7.19.1(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
+      '@theholocron/vitest-config':
+        specifier: catalog:configs
+        version: 7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.1.2
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.10(vitest@4.1.10)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10)
       eslint:
         specifier: 'catalog:'
         version: 10.8.1(jiti@2.7.0)

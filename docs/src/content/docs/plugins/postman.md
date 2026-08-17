@@ -41,6 +41,10 @@ providers: {
 
 ## Authentication
 
+1. Sign in to [web.postman.co](https://web.postman.co)
+2. Click your avatar (top-right) → **Settings** → **API Keys**
+3. Click **Generate API Key**, give it a name, and copy the key — it starts with `PMAK-`
+
 ```bash
 holocron auth set postman PMAK-xxx
 ```
@@ -50,8 +54,6 @@ Or via env var:
 ```bash
 export HOLOCRON_POSTMAN_API_KEY=PMAK-xxx
 ```
-
-Generate an API key in the Postman web app → Account Settings → API Keys.
 
 ## What `tooling` provides
 

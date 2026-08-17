@@ -39,6 +39,11 @@ providers: {
 
 ## Authentication
 
+1. Go to [dashboard.doppler.com](https://dashboard.doppler.com) and open your project
+2. Select the config you want to read from (e.g. `prd`)
+3. Click **Access** → **Service Tokens** → **Generate Service Token**
+4. Copy the token — it starts with `dp.st.`
+
 ```bash
 holocron auth set doppler dp.st.xxx
 ```
@@ -48,8 +53,6 @@ Or via env var:
 ```bash
 export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 ```
-
-Generate a service token in the Doppler dashboard → Project → Config → Access → Service Tokens.
 
 ## What `vault` provides
 

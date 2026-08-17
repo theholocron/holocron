@@ -25,12 +25,14 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-1password",
 		"@theholocron/holocron-plugin-clerk",
 		"@theholocron/holocron-plugin-cloudflare",
+		"@theholocron/holocron-plugin-discord",
 		"@theholocron/holocron-plugin-doppler",
 		"@theholocron/holocron-plugin-github",
 		"@theholocron/holocron-plugin-infisical",
 		"@theholocron/holocron-plugin-neon",
 		"@theholocron/holocron-plugin-postman",
 		"@theholocron/holocron-plugin-sentry",
+		"@theholocron/holocron-plugin-slack",
 		"@theholocron/holocron-plugin-vercel",
 		// ESLint toolchain: per-package eslint.config.ts spreads the root config;
 		// Knip's ESLint plugin doesn't trace through the spread

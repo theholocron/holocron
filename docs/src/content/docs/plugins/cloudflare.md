@@ -44,6 +44,12 @@ providers: {
 
 ## Authentication
 
+1. Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Click **Create Token** → use the **Edit zone DNS** template (or **Custom token**)
+3. Set permissions: **Zone → Zone → Read**, **Zone → DNS → Edit**
+4. Optionally scope to specific zones, then click **Continue to summary** → **Create Token**
+5. Copy the token (shown once)
+
 ```bash
 holocron auth set cloudflare <TOKEN>
 ```
@@ -55,8 +61,6 @@ export HOLOCRON_CLOUDFLARE_TOKEN=<TOKEN>
 # Also recognized:
 export CLOUDFLARE_API_TOKEN=<TOKEN>
 ```
-
-Create an API token at Cloudflare dashboard → Profile → API Tokens with **Zone:Read** and **DNS:Edit** permissions.
 
 ## What `dns` provides
 
