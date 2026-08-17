@@ -10,8 +10,7 @@ describe("verifyToken", () => {
 	it("returns ok:true with webhook name and id on success", async () => {
 		const { fetch } = stubFetch([{ status: 200, body: { id: "111", name: "deploy-alerts" } }]);
 		const result = await verifyToken(WEBHOOK_URL, { baseUrl: BASE, fetch });
-		expect(result.ok).toBe(true);
-		if (result.ok) expect(result.subject).toContain("deploy-alerts");
+		expect(result).toMatchObject({ ok: true, subject: expect.stringContaining("deploy-alerts") });
 	});
 
 	it("returns ok:false when webhook is not found", async () => {
@@ -22,7 +21,6 @@ describe("verifyToken", () => {
 
 	it("returns ok:false for an invalid webhook URL", async () => {
 		const result = await verifyToken("not-a-url");
-		expect(result.ok).toBe(false);
-		if (!result.ok) expect(result.message).toContain("Invalid Discord webhook URL");
+		expect(result).toMatchObject({ ok: false, message: expect.stringContaining("Invalid Discord webhook URL") });
 	});
 });

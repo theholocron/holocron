@@ -1,7 +1,6 @@
 import type { Notifications } from "@theholocron/cli";
 
-import { parseWebhookUrl } from "../rest.js";
-import type { DiscordClient } from "../rest.js";
+import { parseWebhookUrl, type DiscordClient } from "../rest.js";
 
 export interface DiscordNotificationsOptions {
 	/**

@@ -53,10 +53,10 @@ export * from "./auth.js";
 export { DiscordNotifications, type DiscordNotificationsOptions } from "./capabilities/notifications.js";
 export {
 	createDiscordClient,
-	parseWebhookUrl,
 	type DiscordClient,
 	type DiscordClientOptions,
 	type DiscordWebhookInfo,
+	parseWebhookUrl,
 } from "./rest.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

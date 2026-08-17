@@ -9,8 +9,7 @@ describe("verifyToken", () => {
 	it("returns ok:true with user@team on success", async () => {
 		const { fetch } = stubFetch([{ body: { ok: true, user: "newton", team: "theholocron" } }]);
 		const result = await verifyToken("xoxb-test", { baseUrl: BASE, fetch });
-		expect(result.ok).toBe(true);
-		if (result.ok) expect(result.subject).toBe("newton @ theholocron");
+		expect(result).toMatchObject({ ok: true, subject: "newton @ theholocron" });
 	});
 
 	it("returns ok:false on Slack API error", async () => {
