@@ -3,7 +3,7 @@ title: Discord Plugin
 description: Implements the notifications capability via Discord incoming webhooks.
 ---
 
-`@theholocron/holocron-plugin-discord` implements the `notifications` capability using Discord incoming webhooks. No bot account or server permissions are required — just a webhook URL generated from channel settings.
+`@theholocron/holocron-plugin-discord` implements the `notifications` capability using Discord incoming webhooks. No bot account or server permissions are required — only a webhook URL generated from channel settings.
 
 ## Install
 
