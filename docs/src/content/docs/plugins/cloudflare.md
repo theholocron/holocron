@@ -13,8 +13,8 @@ pnpm add -D @theholocron/holocron-plugin-cloudflare
 
 ## Capabilities
 
-| Capability | Token required                              |
-| ---------- | ------------------------------------------- |
+| Capability | Token required                             |
+| ---------- | ------------------------------------------ |
 | `dns`      | `HOLOCRON_CLOUDFLARE_TOKEN` (`cloudflare`) |
 
 ## Config

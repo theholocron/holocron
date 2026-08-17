@@ -30,10 +30,10 @@ providers: {
 
 ### Options
 
-| Option | Required | Description                                                   |
-| ------ | -------- | ------------------------------------------------------------- |
-| `org`  | Yes      | Sentry organization slug                                      |
-| `team` | No       | Default team slug for project creation. Defaults to org slug  |
+| Option | Required | Description                                                  |
+| ------ | -------- | ------------------------------------------------------------ |
+| `org`  | Yes      | Sentry organization slug                                     |
+| `team` | No       | Default team slug for project creation. Defaults to org slug |
 
 ## Authentication
 
