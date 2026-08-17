@@ -2,7 +2,7 @@ import type { Dns } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { CloudflareDns } from "./capabilities/dns.js";
-import { createCloudflareClient, type CloudflareClient } from "./rest.js";
+import { type CloudflareClient,createCloudflareClient } from "./rest.js";
 
 export interface CloudflarePluginOptions extends ResolveTokenInput {
 	/**
@@ -51,6 +51,6 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { CloudflareDns } from "./capabilities/dns.js";
-export { createCloudflareClient, type CloudflareClient, type CloudflareClientOptions } from "./rest.js";
+export { type CloudflareClient, type CloudflareClientOptions,createCloudflareClient } from "./rest.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

@@ -9,8 +9,7 @@ describe("verifyToken", () => {
 	it("returns ok:true with token id and status on success", async () => {
 		const { fetch } = stubFetch([cfOk({ id: "tok-123", status: "active" })]);
 		const result = await verifyToken("cf-token", { baseUrl: BASE, fetch });
-		expect(result.ok).toBe(true);
-		if (result.ok) expect(result.subject).toContain("tok-123");
+		expect(result).toMatchObject({ ok: true, subject: expect.stringContaining("tok-123") });
 	});
 
 	it("returns ok:false when the API rejects the token", async () => {

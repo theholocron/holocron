@@ -9,15 +9,13 @@ describe("verifyToken", () => {
 	it("returns ok:true with org slug on success", async () => {
 		const { fetch } = stubFetch([{ body: [{ id: "1", slug: "my-org", name: "My Org" }] }]);
 		const result = await verifyToken("sntryu_tok", { baseUrl: BASE, fetch });
-		expect(result.ok).toBe(true);
-		if (result.ok) expect(result.subject).toBe("org: my-org");
+		expect(result).toMatchObject({ ok: true, subject: "org: my-org" });
 	});
 
 	it("returns ok:true with 'unknown' when no orgs returned", async () => {
 		const { fetch } = stubFetch([{ body: [] }]);
 		const result = await verifyToken("sntryu_tok", { baseUrl: BASE, fetch });
-		expect(result.ok).toBe(true);
-		if (result.ok) expect(result.subject).toBe("org: unknown");
+		expect(result).toMatchObject({ ok: true, subject: "org: unknown" });
 	});
 
 	it("returns ok:false when the API rejects the token", async () => {

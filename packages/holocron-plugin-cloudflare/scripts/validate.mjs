@@ -12,6 +12,7 @@
  */
 
 import chalk from "chalk";
+
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
 const ok = (msg) => console.log(`${chalk.green("✓")} ${msg}`);
