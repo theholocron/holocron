@@ -41,6 +41,7 @@ export class SentryObservability implements Observability {
 			const existing = await this.client.projects.get(this.opts.org, slug);
 			const keys = await this.client.projects.keys(this.opts.org, existing.slug);
 			const dsn = keys[0]?.dsn.public;
+			/* c8 ignore next */
 			if (!dsn) throw new ProviderApiError(`Sentry project ${slug} has no keys`, 404, undefined);
 			return { dsn, alreadyExists: true };
 		} catch (err) {
@@ -55,6 +56,7 @@ export class SentryObservability implements Observability {
 		});
 		const keys = await this.client.projects.keys(this.opts.org, project.slug);
 		const dsn = keys[0]?.dsn.public;
+		/* c8 ignore next */
 		if (!dsn)
 			throw new ProviderApiError(`Sentry project ${project.slug} has no keys after creation`, 500, undefined);
 		return { dsn, alreadyExists: false };

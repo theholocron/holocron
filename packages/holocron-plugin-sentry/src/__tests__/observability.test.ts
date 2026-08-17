@@ -26,6 +26,14 @@ const key = {
 	},
 };
 
+describe("SentryObservability constructor", () => {
+	it("throws when org is empty", () => {
+		const { fetch } = stubFetch([]);
+		const client = createSentryClient({ token: "tok", baseUrl: BASE, fetch });
+		expect(() => new SentryObservability(client, { org: "" })).toThrow("requires `org`");
+	});
+});
+
 describe("SentryObservability.describe", () => {
 	it("returns sentry provider with both DSN env keys", async () => {
 		const { obs } = makeObs([]);
@@ -75,5 +83,17 @@ describe("SentryObservability.ensureProject — create", () => {
 	it("rethrows non-404 errors from the existence check", async () => {
 		const { obs } = makeObs([{ status: 403, body: { detail: "Forbidden" } }]);
 		await expect(obs.ensureProject({ name: "My Project" })).rejects.toBeInstanceOf(ProviderApiError);
+	});
+
+	it("uses the configured team slug when creating", async () => {
+		const { fetch, calls } = stubFetch([
+			{ status: 404, body: { detail: "Not Found" } },
+			{ body: project },
+			{ body: [key] },
+		]);
+		const client = createSentryClient({ token: "tok", baseUrl: BASE, fetch });
+		const obs = new SentryObservability(client, { org: ORG, team: "backend" });
+		await obs.ensureProject({ name: "My Project" });
+		expect(calls[1]?.url).toContain(`/teams/${ORG}/backend/projects/`);
 	});
 });

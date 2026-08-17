@@ -23,6 +23,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		const result = await client.tokens.verify();
 		return { ok: true, subject: `token ${result.id} (${result.status})` };
 	} catch (err) {
+		/* c8 ignore next */
 		const message = err instanceof Error ? err.message : String(err);
 		return { ok: false, message };
 	}

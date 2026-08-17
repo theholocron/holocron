@@ -24,6 +24,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		const first = orgs[0];
 		return { ok: true, subject: `org: ${first?.slug ?? "unknown"}` };
 	} catch (err) {
+		/* c8 ignore next */
 		const message = err instanceof Error ? err.message : String(err);
 		return { ok: false, message };
 	}

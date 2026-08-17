@@ -54,6 +54,12 @@ describe("CloudflareDns.upsertRecord — create path", () => {
 		expect(calls[2]?.method).toBe("POST");
 		expect(calls[2]?.url).toContain(`/zones/${ZONE_ID}/dns_records`);
 	});
+
+	it("includes ttl in create body when provided", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), cfOk([]), cfOk(record)]);
+		await dns.upsertRecord(ZONE_NAME, { type: "A", name: "api", content: "1.2.3.4", ttl: 300 });
+		expect(calls[2]?.body).toMatchObject({ ttl: 300 });
+	});
 });
 
 describe("CloudflareDns.upsertRecord — update path", () => {
@@ -66,6 +72,12 @@ describe("CloudflareDns.upsertRecord — update path", () => {
 		await dns.upsertRecord(ZONE_NAME, { type: "CNAME", name: "www", content: "new.example.com" });
 		expect(calls[2]?.method).toBe("PATCH");
 		expect(calls[2]?.url).toContain(`/zones/${ZONE_ID}/dns_records/${record.id}`);
+	});
+
+	it("includes ttl in patch body when provided", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), cfOk([record]), cfOk(record)]);
+		await dns.upsertRecord(ZONE_NAME, { type: "CNAME", name: "www", content: "new.com", ttl: 60 });
+		expect(calls[2]?.body).toMatchObject({ ttl: 60 });
 	});
 });
 
