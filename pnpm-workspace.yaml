@@ -30,7 +30,7 @@ catalogs:
     '@theholocron/clerk-client': ^1.7.0
     '@theholocron/cloudflare-client': ^1.7.0
     '@theholocron/doppler-client': ^1.7.0
-    '@theholocron/github-client': ^1.7.0
+    '@theholocron/github-client': ^1.6.7
     '@theholocron/http-client': ^1.7.0
     '@theholocron/infisical-client': ^1.7.0
     '@theholocron/neon-client': ^1.7.0

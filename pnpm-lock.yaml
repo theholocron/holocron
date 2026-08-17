@@ -16,8 +16,8 @@ catalogs:
       specifier: ^1.7.0
       version: 1.7.0
     '@theholocron/github-client':
-      specifier: ^1.7.0
-      version: 1.7.0
+      specifier: ^1.6.7
+      version: 1.6.7
     '@theholocron/http-client':
       specifier: ^1.7.0
       version: 1.7.0
@@ -280,7 +280,7 @@ importers:
         version: 10.69.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))
       '@theholocron/github-client':
         specifier: catalog:clients
-        version: 1.7.0(vitest@4.1.10)
+        version: 1.6.7(vitest@4.1.10)
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.7.0(vitest@4.1.10)
@@ -579,7 +579,7 @@ importers:
         version: 7.19.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.9.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/github-client':
         specifier: catalog:clients
-        version: 1.7.0(vitest@4.1.10)
+        version: 1.6.7(vitest@4.1.10)
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 7.19.1(typescript@5.9.3)
@@ -2711,8 +2711,8 @@ packages:
       eslint-plugin-storybook:
         optional: true
 
-  '@theholocron/github-client@1.7.0':
-    resolution: {integrity: sha512-E39nDjNomCeC7xApEOq3L33R+6p213AIYFGoOv5ziILWzfqaycyuSO6dgYSRi77A9stCli5Y6ORoTXi1fUy1OA==}
+  '@theholocron/github-client@1.6.7':
+    resolution: {integrity: sha512-ReF/vCXmGD0QmSFrIr60EAFSPOoWA40lpnI4rWj6Ss8w2X8eRs+e/4DatLqwECTN+3R+EqBTU0iKRRf3UA2Xow==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/holocron-config@7.19.1':
@@ -8471,7 +8471,7 @@ snapshots:
       eslint-plugin-n: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
       eslint-plugin-react: 7.37.5(eslint@10.8.1(jiti@2.7.0))
 
-  '@theholocron/github-client@1.7.0(vitest@4.1.10)':
+  '@theholocron/github-client@1.6.7(vitest@4.1.10)':
     dependencies:
       '@theholocron/http-client': 1.7.0(vitest@4.1.10)
     transitivePeerDependencies:
@@ -8552,7 +8552,7 @@ snapshots:
 
   '@theholocron/vitest-config@7.19.1(@vitest/coverage-v8@4.1.10)(vitest@4.1.10)':
     dependencies:
-      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.11)(yaml@2.9.0))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       '@vitest/coverage-v8': 4.1.10(vitest@4.1.10)
 
@@ -8863,7 +8863,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.11)(yaml@2.9.0))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   '@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.10)':
     dependencies:
