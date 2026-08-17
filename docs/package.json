@@ -5,19 +5,9 @@
   "description": "Docs site for the @theholocron/holocron CLI and plugin ecosystem",
   "homepage": "https://theholocron.github.io/holocron/",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview"
-  },
-  "dependencies": {
-    "@astrojs/starlight": "^0.41.7",
-    "@theholocron/astro-config": "^7.16.0",
-    "@theholocron/docs-theme": "^1.3.2",
-    "astro": "^7.2.0"
-  },
-  "devDependencies": {
-    "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "build": "astro build --root ..",
+    "dev": "astro dev --root ..",
+    "preview": "astro preview --root .."
   },
   "engines": {
     "node": ">=22.0.0"
