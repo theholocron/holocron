@@ -28,12 +28,14 @@ catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
     '@theholocron/clerk-client': ^1.6.0
+    '@theholocron/cloudflare-client': ^1.6.7
     '@theholocron/doppler-client': ^1.6.0
     '@theholocron/github-client': ^1.6.2
     '@theholocron/http-client': ^1.6.6
     '@theholocron/infisical-client': ^1.6.0
     '@theholocron/neon-client': ^1.6.0
     '@theholocron/postman-client': ^1.6.0
+    '@theholocron/sentry-client': ^1.6.7
     '@theholocron/vercel-client': ^1.6.0
 
   # Shared configs — release in lockstep; bump all entries together.

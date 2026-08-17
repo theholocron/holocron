@@ -46,6 +46,11 @@ component_management:
       paths:
         - packages/holocron-plugin-clerk/**
 
+    - component_id: holocron-plugin-cloudflare
+      name: "holocron-plugin-cloudflare"
+      paths:
+        - packages/holocron-plugin-cloudflare/**
+
     - component_id: holocron-plugin-doppler
       name: "holocron-plugin-doppler"
       paths:
@@ -70,6 +75,11 @@ component_management:
       name: "holocron-plugin-postman"
       paths:
         - packages/holocron-plugin-postman/**
+
+    - component_id: holocron-plugin-sentry
+      name: "holocron-plugin-sentry"
+      paths:
+        - packages/holocron-plugin-sentry/**
 
     - component_id: holocron-docs
       name: "holocron-docs"

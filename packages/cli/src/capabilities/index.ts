@@ -738,12 +738,18 @@ export interface Notifications extends ProviderIdentity {
 
 export interface Analytics extends ProviderIdentity {
 	readonly key: "analytics";
-	describe(): Promise<{ provider: string; dsnEnvKey: string }>;
+	/** Returns the env var names the app reads at runtime for this provider. */
+	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	whoami?(): Promise<{ org: string }>;
+	ensureProject?(name: string): Promise<{ token: string; alreadyExists: boolean }>;
 }
 
 export interface Observability extends ProviderIdentity {
 	readonly key: "observability";
-	describe(): Promise<{ provider: string; dsnEnvKey: string }>;
+	/** Returns the env var names the app reads at runtime for this provider. */
+	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	whoami?(): Promise<{ org: string }>;
+	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
