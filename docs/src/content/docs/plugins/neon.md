@@ -36,6 +36,10 @@ providers: {
 
 ## Authentication
 
+1. Go to [console.neon.tech](https://console.neon.tech) and sign in
+2. Click your avatar (top-right) → **Account Settings** → **API Keys**
+3. Click **Generate new API key**, give it a name, and copy the key
+
 ```bash
 holocron auth set neon <api-key>
 ```
@@ -45,8 +49,6 @@ Or via env var:
 ```bash
 export HOLOCRON_NEON_API_KEY=<api-key>
 ```
-
-Create an API key in the Neon dashboard → Account → API Keys.
 
 ## What `storage` provides
 

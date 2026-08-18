@@ -29,6 +29,10 @@ No options are required — the plugin resolves the secret key from `HOLOCRON_CL
 
 ## Authentication
 
+1. Go to [dashboard.clerk.com](https://dashboard.clerk.com) and open your application
+2. Navigate to **API Keys** in the left sidebar
+3. Copy the **Secret key** — it starts with `sk_live_` (production) or `sk_test_` (development)
+
 ```bash
 holocron auth set clerk sk_live_xxx
 ```
@@ -38,8 +42,6 @@ Or via env var:
 ```bash
 export HOLOCRON_CLERK_SECRET_KEY=sk_live_xxx
 ```
-
-The secret key is found in the Clerk Dashboard → API Keys → Secret keys (`sk_live_...` for production, `sk_test_...` for development).
 
 ## What `auth` provides
 

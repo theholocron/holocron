@@ -51,6 +51,11 @@ component_management:
       paths:
         - packages/holocron-plugin-cloudflare/**
 
+    - component_id: holocron-plugin-discord
+      name: "holocron-plugin-discord"
+      paths:
+        - packages/holocron-plugin-discord/**
+
     - component_id: holocron-plugin-doppler
       name: "holocron-plugin-doppler"
       paths:
@@ -80,6 +85,11 @@ component_management:
       name: "holocron-plugin-sentry"
       paths:
         - packages/holocron-plugin-sentry/**
+
+    - component_id: holocron-plugin-slack
+      name: "holocron-plugin-slack"
+      paths:
+        - packages/holocron-plugin-slack/**
 
     - component_id: holocron-plugin-vercel
       name: "holocron-plugin-vercel"

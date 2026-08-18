@@ -42,8 +42,15 @@ providers: {
 
 ## Authentication
 
+The plugin uses Infisical **Universal Auth** (machine identity). This lets a machine identity authenticate without a user session.
+
+1. Go to [app.infisical.com](https://app.infisical.com) → **Access Control** → **Machine Identities**
+2. Click **Create identity**, give it a name, and set the role (e.g. `member`)
+3. Under **Authentication → Universal Auth**, click **Add Client Secret**
+4. Copy the **Client Secret** (shown once)
+
 ```bash
-holocron auth set infisical <universal-auth-client-secret>
+holocron auth set infisical <client-secret>
 ```
 
 Or via env var:
@@ -51,8 +58,6 @@ Or via env var:
 ```bash
 export HOLOCRON_INFISICAL_TOKEN=<client-secret>
 ```
-
-The plugin uses Infisical Universal Auth (machine identity) to exchange the client secret for an access token on each call. Create a machine identity in the Infisical dashboard and copy its client secret.
 
 ## What `vault` provides
 

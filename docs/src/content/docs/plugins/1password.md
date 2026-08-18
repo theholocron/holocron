@@ -47,7 +47,11 @@ providers: {
 
 **On laptop:** Sign in via the 1Password desktop app or `op signin`. The plugin uses the active session automatically.
 
-**In CI:** Set `OP_SERVICE_ACCOUNT_TOKEN` in the workflow environment:
+**In CI:** Create a service account token and set it in your workflow:
+
+1. Go to [my.1password.com/developer-tools/service-accounts](https://my.1password.com/developer-tools/service-accounts)
+2. Click **New Service Account**, name it (e.g. "CI"), and grant access to the vaults the plugin needs
+3. Copy the token (shown once) and store it as a repository secret named `OP_SERVICE_ACCOUNT_TOKEN`
 
 ```yaml
 env:

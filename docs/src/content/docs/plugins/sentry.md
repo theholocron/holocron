@@ -37,6 +37,13 @@ providers: {
 
 ## Authentication
 
+1. Go to [sentry.io/settings/account/api/auth-tokens/](https://sentry.io/settings/account/api/auth-tokens/)
+2. Click **Create New Token**
+3. Enable scopes: **project:read**, **project:write**, **org:read**
+4. Click **Create Token** and copy it
+
+For CI, prefer an org-level token: **Settings → [Your Org] → Developer Settings → Auth Tokens**.
+
 ```bash
 holocron auth set sentry <TOKEN>
 ```
@@ -48,8 +55,6 @@ export HOLOCRON_SENTRY_TOKEN=<TOKEN>
 # Also recognized:
 export SENTRY_AUTH_TOKEN=<TOKEN>
 ```
-
-Generate an auth token at Sentry → Settings → Auth Tokens with **project:read**, **project:write**, and **org:read** scopes.
 
 ## What `observability` provides
 
