@@ -1,3 +1,5 @@
+## [7.21.1](https://github.com/theholocron/configs/compare/v7.21.0...v7.21.1) (2026-08-18)
+
 ## [7.21.0](https://github.com/theholocron/configs/compare/v7.20.0...v7.21.0) (2026-08-18)
 
 ## [7.20.0](https://github.com/theholocron/configs/compare/v7.19.1...v7.20.0) (2026-08-18)
