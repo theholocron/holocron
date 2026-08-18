@@ -208,6 +208,56 @@ const EDITORCONFIG_CHECKER_CONFIG =
 const ALEX_CONFIG =
 	JSON.stringify({ allow: ["dead", "failure", "failures", "hook", "hooks", "husky", "period"] }, null, 2) + "\n";
 
+// ── devmoji config ───────────────────────────────────────────────────
+// Minimal config for devmoji commit-message emoji. All theholocron
+// commit types (feat, fix, chore, docs, ci, test, refactor, perf) are
+// covered by devmoji's built-in defaults — no extra entries needed.
+// Lives at the repo root so it is picked up for every package in the
+// monorepo. Must be .cjs because devmoji uses require() and repos set
+// "type": "module".
+function devmojiConfigContent(): string {
+	return [
+		`// devmoji.config.cjs — emoji mapping for conventional commits`,
+		`// https://github.com/folke/devmoji`,
+		`//`,
+		`// All theholocron commit types are covered by devmoji defaults.`,
+		`// See default reference: https://github.com/folke/devmoji#default-devmoji-reference`,
+		`module.exports = {};`,
+		``,
+	].join("\n");
+}
+
+// ── .husky/prepare-commit-msg hook ───────────────────────────────────
+// 1. Validates that git user.name and user.email are configured.
+// 2. Appends the DCO Signed-off-by trailer (required on every commit).
+// 3. Runs devmoji to add an emoji to the commit subject and lint the
+//    conventional commit format.
+function prepareCommitMsgHookContent(): string {
+	return [
+		`#!/bin/sh`,
+		``,
+		`NAME=$(git config user.name)`,
+		`EMAIL=$(git config user.email)`,
+		``,
+		`if [ -z "$NAME" ]; then`,
+		`\techo "empty git config user.name"`,
+		`\texit 1`,
+		`fi`,
+		``,
+		`if [ -z "$EMAIL" ]; then`,
+		`\techo "empty git config user.email"`,
+		`\texit 1`,
+		`fi`,
+		``,
+		`git interpret-trailers --if-exists doNothing --trailer \\`,
+		`\t"Signed-off-by: $NAME <$EMAIL>" \\`,
+		`\t--in-place "$1"`,
+		``,
+		`npx devmoji -e --lint`,
+		``,
+	].join("\n");
+}
+
 // ── canonical label set ──────────────────────────────────────────────
 // Single source of truth for labels across all theholocron repos.
 // `syncLabels` (holocron-plugin-github) diffs against these and
@@ -635,6 +685,18 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		steps.push(
 			await runStep("source", "write .editorconfig-checker.json", dryRun, async () => {
 				await source.writeRepoFile(".editorconfig-checker.json", EDITORCONFIG_CHECKER_CONFIG);
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write devmoji.config.cjs", dryRun, async () => {
+				await source.writeRepoFile("devmoji.config.cjs", devmojiConfigContent());
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write .husky/prepare-commit-msg", dryRun, async () => {
+				await source.writeRepoFile(".husky/prepare-commit-msg", prepareCommitMsgHookContent());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
