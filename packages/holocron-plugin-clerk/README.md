@@ -18,6 +18,8 @@ Token resolution order:
 1. `--token <KEY>` flag on the holocron invocation
 2. `HOLOCRON_CLERK_SECRET_KEY` env var
 3. `CLERK_SECRET_KEY` env var (Clerk's own default; what their docs reference)
+4. Keyring `clerk.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `clerk` — unnamespaced fallback; set via `holocron auth set clerk <key>`
 
 > **Why not the `clerk` CLI?** Rando's adapter shells out to `npx clerk@latest
 api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.

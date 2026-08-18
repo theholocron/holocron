@@ -39,14 +39,14 @@ pnpm add -D @theholocron/holocron-plugin-infisical@alpha
 
 ## Auth
 
-Token resolution order (matches the standard 4-step precedence set
-by `.notes/tech-auth-bootstrap.spec.md`):
+Token resolution order:
 
 1. `--token <TOKEN>` flag on the holocron invocation
 2. `HOLOCRON_INFISICAL_TOKEN` env var (preferred — explicit intent)
 3. `INFISICAL_TOKEN` env var (Infisical-native, works in CI)
-4. **Keyring** — `com.theholocron.cli` service, account `infisical`
-5. `AuthError` naming all four options + the bootstrap hint
+4. Keyring `infisical.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `infisical` — unnamespaced fallback; set via `holocron auth set infisical <token>`
+6. `AuthError` naming all five options + the bootstrap hint
 
 ## Setup
 
@@ -85,7 +85,7 @@ auth methods attached.
 **CI**: the keyring is not available in headless containers. Expose
 the token as a GitHub Actions secret and set `HOLOCRON_INFISICAL_TOKEN`
 (or `INFISICAL_TOKEN`) in the workflow env. Steps 1–3 of the auth
-precedence still work; step 4 quietly falls through.
+precedence still work; steps 4–5 quietly fall through.
 
 ## Config
 

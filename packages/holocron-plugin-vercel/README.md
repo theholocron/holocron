@@ -20,6 +20,8 @@ Token resolution order:
 1. `--token <PAT>` flag on the holocron invocation
 2. `HOLOCRON_VERCEL_TOKEN` env var
 3. `VERCEL_TOKEN` env var (the default the Vercel CLI also reads)
+4. Keyring `vercel.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `vercel` — unnamespaced fallback; set via `holocron auth set vercel <token>`
 
 If none are set, the plugin throws a clear error. No `vercel auth`
 fallback — Vercel's CLI auth is per-account and the scopes don't
