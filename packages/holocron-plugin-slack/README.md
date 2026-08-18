@@ -43,8 +43,8 @@ scope, install it to your workspace, and copy the **Bot User OAuth Token**
 
 ## What's implemented
 
-| Method | What it does                                                                                                                         |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Method | What it does                                                                                                                       |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `send` | Posts a plain-text message to the given channel id via `chat.postMessage`. Falls back to `defaultChannel` when `channel` is empty. |
 
 Slack always returns HTTP 200 with an `ok` field — errors are surfaced as

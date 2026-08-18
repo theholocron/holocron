@@ -52,8 +52,8 @@ server membership is required — generate one in Discord under
 
 ## What's implemented
 
-| Method | What it does                                                                                                                                                                              |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Method | What it does                                                                                                                                                                                 |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `send` | Posts a message to the given channel. `channel` can be a named alias (from `webhooks`), a raw webhook URL, or an empty string (falls back to `defaultChannel`). Returns on `204 No Content`. |
 
 The webhook id and token are embedded in the URL path — no `Authorization`
