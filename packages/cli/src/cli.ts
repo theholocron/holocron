@@ -35,6 +35,16 @@ const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.jso
 	version: string;
 };
 
+/**
+ * Resolves the active org in priority order:
+ *   1. `--org` CLI flag
+ *   2. `HOLOCRON_ORG` env var
+ *   3. `org` from `holocron.config.ts`
+ */
+function resolveOrg(argv: { org?: string }, config: { org?: string }): string | undefined {
+	return argv.org ?? process.env["HOLOCRON_ORG"] ?? config.org;
+}
+
 /** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */
 function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 	if (!rawTokens?.length) return {};
@@ -79,6 +89,13 @@ try {
 				"Bare form: --token <value> (fallback for all plugins, single-plugin commands). " +
 				"Keyed form: --token vendor=value (targets a specific provider; repeat for each). " +
 				"Example: --token github=ghp_xxx --token vercel=v_yyy",
+		})
+		.option("org", {
+			type: "string",
+			describe:
+				"Active org name for namespaced keyring lookup. " +
+				"Overrides HOLOCRON_ORG env var and the `org` field in holocron.config.ts. " +
+				"Example: --org theholocron",
 		})
 		.option("cwd", {
 			type: "string",
@@ -147,6 +164,7 @@ try {
 						dryRun: argv.dryRun,
 						...(argv.repo ? { repo: argv.repo } : {}),
 						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
 					},
 				});
 				if (report.summary.fail > 0) {
@@ -173,6 +191,7 @@ try {
 						dryRun: argv.dryRun,
 						...(argv.repo ? { repo: argv.repo } : {}),
 						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
 					},
 				});
 				if (report.summary.fail > 0) {
@@ -264,12 +283,14 @@ try {
 				if (!tokens) return;
 				const scopeArg = argv.scope as string;
 				const scope = parseScope(scopeArg);
+				const loaded = await loadConfig(argv.cwd);
 				const report = await runSecretSet({
-					loaded: await loadConfig(argv.cwd),
+					loaded,
 					context: {
 						repoRoot: argv.cwd,
 						dryRun: argv.dryRun,
 						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
 					},
 					name: argv.name as string,
 					...(argv.value ? { value: argv.value as string } : {}),
@@ -311,6 +332,7 @@ try {
 						repoRoot: argv.cwd,
 						dryRun: argv.dryRun,
 						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
 					},
 					environmentId: argv.environmentId as string,
 					...(argv.projectId ? { projectId: argv.projectId } : {}),
@@ -351,6 +373,7 @@ try {
 						repoRoot: argv.cwd,
 						dryRun: argv.dryRun,
 						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
 					},
 					projectId: argv.projectId as string,
 					branch: argv.branch as string,
@@ -441,6 +464,7 @@ try {
 						dryRun: argv.dryRun,
 						...(argv.repo ? { repo: argv.repo } : {}),
 						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
 					},
 					...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps as string[] } : {}),
 				});
@@ -959,6 +983,7 @@ try {
 							const result = await runAuthSet({
 								provider: argv.provider as string,
 								...(argv.value ? { positional: argv.value as string } : {}),
+								...(argv.org ? { org: argv.org as string } : {}),
 							});
 							if (result.status === "fail") process.exitCode = 1;
 						}
@@ -976,7 +1001,10 @@ try {
 						"Re-verify a stored bootstrap token",
 						(yy) => yy.positional("provider", { type: "string", demandOption: true }),
 						async (argv) => {
-							const result = await runAuthCheck({ provider: argv.provider as string });
+							const result = await runAuthCheck({
+								provider: argv.provider as string,
+								...(argv.org ? { org: argv.org as string } : {}),
+							});
 							if (result.status === "fail") process.exitCode = 1;
 						}
 					)

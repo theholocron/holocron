@@ -83,12 +83,15 @@ export interface RunAuthSetInput {
 	env?: NodeJS.ProcessEnv;
 	importer?: AuthImporter;
 	print?: AuthPrint;
+	/** When set, stores the token under `<provider>.<org>` in the keyring. */
+	org?: string;
 }
 
 export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandStatus> {
 	const print = input.print ?? ((l: string) => console.log(l));
 	const importer = input.importer ?? defaultImporter;
 	const { provider } = input;
+	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
 
 	const token = resolveAuthSetToken({ provider, positional: input.positional, env: input.env });
 
@@ -98,7 +101,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	const packageName = isFeatureKey ? null : resolvePluginPackage(provider);
 
 	if (!token) {
-		print(style.fail(`no token supplied for \`${provider}\`.`));
+		print(style.fail(`no token supplied for \`${keyringKey}\`.`));
 		print(style.hint(`  pass as positional arg: holocron auth set ${provider} <token>`));
 		if (!isFeatureKey) {
 			print(
@@ -137,13 +140,13 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 		}
 	}
 
-	const stored = setToken(provider, token);
+	const stored = setToken(keyringKey, token);
 	if (!stored) {
 		print(style.fail(`keyring unavailable — token not stored. Use env vars instead.`));
 		return { status: "fail", message: "keyring unavailable" };
 	}
 
-	print(style.success(`stored ${provider} token${subject ? ` (${subject})` : ""}`));
+	print(style.success(`stored ${keyringKey} token${subject ? ` (${subject})` : ""}`));
 	return { status: "ok", ...(subject ? { message: subject } : {}) };
 }
 
@@ -169,22 +172,25 @@ export interface RunAuthCheckInput {
 	print?: AuthPrint;
 	/** Set to false to suppress the ora spinner (e.g. when called from runAuthList). */
 	showSpinner?: boolean;
+	/** When set, checks the token stored under `<provider>.<org>` in the keyring. */
+	org?: string;
 }
 
 export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthCommandStatus> {
 	const print = input.print ?? ((l: string) => console.log(l));
 	const importer = input.importer ?? defaultImporter;
 	const { provider } = input;
+	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
 
-	const token = getToken(provider);
+	const token = getToken(keyringKey);
 	if (!token) {
-		print(style.dim(`no stored token for ${provider}`));
+		print(style.dim(`no stored token for ${keyringKey}`));
 		return { status: "skip", message: "no stored token" };
 	}
 
 	// Feature sub-keys have no plugin to verify against — report stored only.
 	if (provider.includes(".")) {
-		print(style.success(`${provider}: token stored (feature key — no plugin verification)`));
+		print(style.success(`${keyringKey}: token stored (feature key — no plugin verification)`));
 		return { status: "ok", message: "stored" };
 	}
 
@@ -192,22 +198,22 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	try {
 		const module = await importer(packageName);
 		if (typeof module.verifyToken !== "function") {
-			print(style.warn(`${provider}: token stored (plugin has no verifyToken; can't confirm validity)`));
+			print(style.warn(`${keyringKey}: token stored (plugin has no verifyToken; can't confirm validity)`));
 			return { status: "ok", message: "stored, unverified" };
 		}
 		const verify = () => module.verifyToken!(token);
 		const verified =
-			input.showSpinner !== false ? await withSpinner(`Verifying ${provider} token…`, verify) : await verify();
+			input.showSpinner !== false ? await withSpinner(`Verifying ${keyringKey} token…`, verify) : await verify();
 		if (verified.ok) {
-			print(style.success(`${provider}: ok — ${verified.subject}`));
+			print(style.success(`${keyringKey}: ok — ${verified.subject}`));
 			return { status: "ok", message: verified.subject };
 		}
-		print(style.fail(`${provider}: rejected — ${verified.message}`));
+		print(style.fail(`${keyringKey}: rejected — ${verified.message}`));
 		if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
 		return { status: "fail", message: verified.message };
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
-		print(style.fail(`${provider}: cannot verify — ${msg}`));
+		print(style.fail(`${keyringKey}: cannot verify — ${msg}`));
 		return { status: "fail", message: msg };
 	}
 }

@@ -436,6 +436,82 @@ describe("runAuthCheck", () => {
 	});
 });
 
+describe("runAuthSet — org-scoped keyring", () => {
+	beforeEach(reset);
+
+	it("stores under <provider>.<org> when org is given", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "cloudflare",
+			positional: "cf_token",
+			env: {},
+			org: "theholocron",
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "acme" }) }),
+			print,
+		});
+		expect(result.status).toBe("ok");
+		expect(store.has("com.theholocron.cli::cloudflare.theholocron")).toBe(true);
+		expect(store.has("com.theholocron.cli::cloudflare")).toBe(false);
+		expect(lines.join("\n")).toMatch(/stored cloudflare\.theholocron token/);
+	});
+
+	it("stores under bare provider when no org is given", async () => {
+		const { print } = collect();
+		await runAuthSet({
+			provider: "cloudflare",
+			positional: "cf_token",
+			env: {},
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "acme" }) }),
+			print,
+		});
+		expect(store.has("com.theholocron.cli::cloudflare")).toBe(true);
+	});
+
+	it("uses org-scoped key in no-token error message", async () => {
+		const { print, lines } = collect();
+		const result = await runAuthSet({
+			provider: "cloudflare",
+			env: {},
+			org: "rando-co",
+			print,
+		});
+		expect(result.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/cloudflare\.rando-co/);
+	});
+});
+
+describe("runAuthCheck — org-scoped keyring", () => {
+	beforeEach(reset);
+
+	it("reads from <provider>.<org> when org is given", async () => {
+		store.set("com.theholocron.cli::cloudflare.theholocron", "cf_tok");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "cloudflare",
+			org: "theholocron",
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "acme" }) }),
+			print,
+			showSpinner: false,
+		});
+		expect(result.status).toBe("ok");
+		expect(lines.join("\n")).toMatch(/cloudflare\.theholocron: ok/);
+	});
+
+	it("skips when the org-scoped slot is empty even if bare slot has a token", async () => {
+		store.set("com.theholocron.cli::cloudflare", "bare_tok");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "cloudflare",
+			org: "rando-co",
+			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "x" }) }),
+			print,
+			showSpinner: false,
+		});
+		expect(result.status).toBe("skip");
+		expect(lines.join("\n")).toMatch(/cloudflare\.rando-co/);
+	});
+});
+
 describe("runAuthList", () => {
 	beforeEach(reset);
 
