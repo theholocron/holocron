@@ -1,4 +1,4 @@
-import { createPostHogClient } from "./rest.js";
+import { createPostHogClient } from "@theholocron/posthog-client";
 
 export interface VerifyTokenSuccess {
 	ok: true;

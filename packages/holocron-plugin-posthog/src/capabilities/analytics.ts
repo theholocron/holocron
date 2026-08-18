@@ -1,6 +1,6 @@
 import type { Analytics } from "@theholocron/cli";
 
-import type { PostHogClient } from "../rest.js";
+import type { PostHogClient } from "@theholocron/posthog-client";
 
 export interface PostHogAnalyticsOptions {
 	/** PostHog instance host — pushed as NEXT_PUBLIC_POSTHOG_HOST. Default: https://app.posthog.com */
