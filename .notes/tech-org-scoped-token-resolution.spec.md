@@ -115,7 +115,7 @@ to pick up the env var automatically):
 return function resolveToken(input: ResolveTokenInput = {}): string {
   const env = input.env ?? process.env;
   const keyring = input.keyring ?? defaultKeyring;
-  const org = input.org ?? env['HOLOCRON_ORG'];
+  const org = input.org ?? env["HOLOCRON_ORG"];
 
   const token =
     input.cliToken ||
@@ -146,7 +146,7 @@ invocation.
 
 ```typescript
 function resolveOrg(argv: { org?: string }, config: HolocronConfig): string | undefined {
-  return argv.org ?? process.env['HOLOCRON_ORG'] ?? config.org;
+  return argv.org ?? process.env["HOLOCRON_ORG"] ?? config.org;
 }
 ```
 
