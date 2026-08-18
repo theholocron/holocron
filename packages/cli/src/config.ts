@@ -240,6 +240,13 @@ export interface HolocronConfig {
 	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron sync`. */
 	homepage?: string;
 	/**
+	 * Active org name for namespaced keyring lookup. When set, token resolution
+	 * tries `<service>.<org>` before the unnamespaced `<service>` fallback, so
+	 * a single machine can hold credentials for multiple GitHub orgs without
+	 * collision. Overridden by `--org` CLI flag or `HOLOCRON_ORG` env var.
+	 */
+	org?: string;
+	/**
 	 * Repository identity and metadata. When set, `PluginLoader` injects
 	 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
 	 * need a repo (github, etc.) don't require `--repo` on every invocation.
@@ -367,6 +374,7 @@ export interface ResolvedHolocronConfig {
 	name: string;
 	description?: string;
 	homepage?: string;
+	org?: string;
 	repo?: RepoConfig;
 	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: ResolvedProvidersConfig;
@@ -504,6 +512,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		name: raw.name,
 		description: raw.description,
 		homepage,
+		org: raw.org,
 		repo: raw.repo,
 		workflows: raw.workflows,
 		providers,

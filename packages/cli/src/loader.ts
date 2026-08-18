@@ -60,6 +60,13 @@ export interface RuntimeContext {
 	 * Plugins never receive this map — they always see a single `cliToken`.
 	 */
 	cliTokens?: Record<string, string>;
+	/**
+	 * Active org name for namespaced keyring lookup. Resolved from
+	 * `--org` flag → `HOLOCRON_ORG` env var → `org` in config, then
+	 * injected here so plugins receive it via their options
+	 * (which extend `ResolveTokenInput`) without any per-plugin change.
+	 */
+	org?: string;
 }
 
 /**
