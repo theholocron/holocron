@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-discord",
-  "version": "3.25.1",
+  "version": "3.26.0",
   "description": "Holocron plugin for Discord. Implements the notifications capability via Discord incoming webhooks.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-discord#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
