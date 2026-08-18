@@ -101,3 +101,56 @@ describe("createResolveToken — with getKeyringToken", () => {
 		expect(resolver({ env: {} })).toBe("from-config-kr");
 	});
 });
+
+describe("createResolveToken — org-scoped keyring", () => {
+	it("uses <service>.<org> when org is provided in input", () => {
+		expect(
+			resolveToken({
+				env: {},
+				keyring: (p) => (p === "test.theholocron" ? "org-kr" : null),
+				org: "theholocron",
+			})
+		).toBe("org-kr");
+	});
+
+	it("uses HOLOCRON_ORG from env when org is not in input", () => {
+		expect(
+			resolveToken({
+				env: { HOLOCRON_ORG: "theholocron" },
+				keyring: (p) => (p === "test.theholocron" ? "org-kr-env" : null),
+			})
+		).toBe("org-kr-env");
+	});
+
+	it("input org takes priority over HOLOCRON_ORG env var", () => {
+		expect(
+			resolveToken({
+				env: { HOLOCRON_ORG: "env-org" },
+				keyring: (p) => {
+					if (p === "test.flag-org") return "flag-kr";
+					if (p === "test.env-org") return "env-kr";
+					return null;
+				},
+				org: "flag-org",
+			})
+		).toBe("flag-kr");
+	});
+
+	it("falls back to unnamespaced keyring when org-scoped key is not found", () => {
+		expect(
+			resolveToken({
+				env: { HOLOCRON_ORG: "theholocron" },
+				keyring: (p) => (p === "test" ? "unscoped-kr" : null),
+			})
+		).toBe("unscoped-kr");
+	});
+
+	it("skips org-scoped lookup when no org is active", () => {
+		expect(
+			resolveToken({
+				env: {},
+				keyring: (p) => (p === "test" ? "unscoped" : null),
+			})
+		).toBe("unscoped");
+	});
+});

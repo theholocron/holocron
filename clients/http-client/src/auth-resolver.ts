@@ -9,6 +9,8 @@ export interface ResolveTokenInput {
 	env?: NodeJS.ProcessEnv;
 	/** Keyring lookup fn; passed in for testability. */
 	keyring?: (provider: string) => string | null;
+	/** Active org name — drives namespaced keyring lookup (`<service>.<org>`). */
+	org?: string;
 }
 
 export interface ResolveTokenConfig {
@@ -43,9 +45,14 @@ export function createResolveToken(config: ResolveTokenConfig): (input?: Resolve
 	return function resolveToken(input: ResolveTokenInput = {}): string {
 		const env = input.env ?? process.env;
 		const keyring = input.keyring ?? defaultKeyring;
+		const org = input.org ?? env["HOLOCRON_ORG"];
 		// Bracket access so numeric-prefixed env var names remain syntactically valid.
 		const token =
-			input.cliToken || env[config.envName] || env[config.vendorEnvName] || keyring(config.keyringService);
+			input.cliToken ||
+			env[config.envName] ||
+			env[config.vendorEnvName] ||
+			(org ? keyring(`${config.keyringService}.${org}`) : null) ||
+			keyring(config.keyringService);
 		if (!token) {
 			throw new AuthError(config.errorMessage);
 		}

@@ -41,7 +41,13 @@ const data = await client.request<{ id: string }>("/widgets/42");
 
 ### `createResolveToken(config)`
 
-Factory for the standard 4-step token resolution used by all holocron plugins: `--token` flag → `HOLOCRON_*` env var → vendor env var → keyring.
+Factory for the standard token resolution used by all holocron plugins. Resolution order:
+
+1. `cliToken` — value from `--token` CLI flag
+2. `HOLOCRON_*` env var (e.g. `HOLOCRON_EXAMPLE_TOKEN`)
+3. Vendor env var (e.g. `EXAMPLE_TOKEN`)
+4. Keyring `<service>.<org>` — only when an org is active (see `ResolveTokenInput.org`)
+5. Keyring `<service>` — unnamespaced fallback; backward-compatible default
 
 ```ts
 import { createResolveToken, AuthError } from "@theholocron/http-client";
@@ -55,6 +61,15 @@ export const resolveToken = createResolveToken({
     "or run: holocron auth set example <TOKEN>",
 });
 ```
+
+The returned `resolveToken(input?)` function accepts a `ResolveTokenInput`:
+
+| Field      | Type                                   | Description                                                                                                                                        |
+| ---------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cliToken` | `string`                               | Token from `--token` CLI flag; takes highest priority                                                                                              |
+| `env`      | `NodeJS.ProcessEnv`                    | Env vars to consult; defaults to `process.env`                                                                                                     |
+| `keyring`  | `(provider: string) => string \| null` | Keyring lookup fn; defaults to the keyring injected by `@theholocron/cli`                                                                          |
+| `org`      | `string`                               | Active org name; tries `keyring("<service>.<org>")` before the unnamespaced fallback. Also auto-read from `env["HOLOCRON_ORG"]` when not provided. |
 
 ### `ProviderApiError`
 
