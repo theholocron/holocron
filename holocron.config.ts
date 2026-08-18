@@ -10,6 +10,7 @@ export default defineConfig({
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		...repo,
+		protection: "strict",
 	},
 	workflows: [
 		...workflows,
