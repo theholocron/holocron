@@ -45,6 +45,7 @@ export default defineConfig({
 					{ label: "GitHub", slug: "plugins/github" },
 					{ label: "Infisical", slug: "plugins/infisical" },
 					{ label: "Neon", slug: "plugins/neon" },
+					{ label: "PostHog", slug: "plugins/posthog" },
 					{ label: "Postman", slug: "plugins/postman" },
 					{ label: "Sentry", slug: "plugins/sentry" },
 					{ label: "Slack", slug: "plugins/slack" },
