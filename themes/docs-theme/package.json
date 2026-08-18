@@ -55,7 +55,7 @@
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
-    "astro": "^7.2.0",
+    "astro": "^7.2.2",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
