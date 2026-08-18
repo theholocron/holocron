@@ -5,6 +5,8 @@ import { SentryObservability, type SentryObservabilityOptions } from "./capabili
 import { createSentryClient, type SentryClient } from "./rest.js";
 
 export interface SentryPluginOptions extends ResolveTokenInput, SentryObservabilityOptions {
+	/** Sentry organization slug. Required. Narrows ResolveTokenInput.org (optional) to string. */
+	org: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;
 	fetch?: typeof fetch;
