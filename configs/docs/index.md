@@ -13,6 +13,7 @@ sidebar:
 | ------------------------------------------------------------------- | -------------------------------------------------- |
 | [`@theholocron/browserslist-config`](./browserslist-config)         | Browserslist target browser list                   |
 | [`@theholocron/commitlint-config`](./commitlint-config)             | CommitLint rules for Conventional Commits          |
+| [`@theholocron/devmoji-config`](./devmoji-config)                   | Devmoji emoji mappings for conventional commits    |
 | [`@theholocron/eslint-config`](./eslint-config)                     | ESLint configs and bundles                         |
 | [`@theholocron/holocron-config`](./holocron-config)                 | Shareable Holocron CLI presets                     |
 | [`@theholocron/lint-staged-config`](./lint-staged-config)           | Lint-staged hooks configuration                    |
