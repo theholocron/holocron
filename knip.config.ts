@@ -9,7 +9,7 @@ const config: KnipConfig = {
 			project: ["*.ts"],
 		},
 		docs: {
-			project: ["src/**/*.ts", "src/**/*.astro", "src/**/*.mdx"],
+			project: ["src/**/*.ts"],
 		},
 		"packages/cli": {
 			// entry points auto-detected from package.json exports/bin
@@ -48,6 +48,8 @@ const config: KnipConfig = {
 		"@theholocron/commitlint-config",
 		// passed as --config arg to lint-staged in .husky/pre-commit, not an import
 		"@theholocron/lint-staged-config",
+		// required in devmoji.config.cjs via require() — not a static import Knip can trace
+		"@theholocron/devmoji-config",
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
 		"husky",
