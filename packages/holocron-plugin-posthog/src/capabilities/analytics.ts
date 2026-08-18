@@ -1,5 +1,4 @@
 import type { Analytics } from "@theholocron/cli";
-
 import type { PostHogClient } from "@theholocron/posthog-client";
 
 export interface PostHogAnalyticsOptions {

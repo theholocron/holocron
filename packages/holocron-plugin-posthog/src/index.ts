@@ -1,8 +1,8 @@
 import type { Analytics } from "@theholocron/cli";
+import { createPostHogClient, type PostHogClient } from "@theholocron/posthog-client";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { PostHogAnalytics, type PostHogAnalyticsOptions } from "./capabilities/analytics.js";
-import { createPostHogClient, type PostHogClient } from "@theholocron/posthog-client";
 
 export interface PostHogPluginOptions extends ResolveTokenInput, PostHogAnalyticsOptions {
 	/**
@@ -52,6 +52,8 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { PostHogAnalytics, type PostHogAnalyticsOptions } from "./capabilities/analytics.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
+export { verifyToken } from "./verify-token.js";
 export {
 	createPostHogClient,
 	type PostHogClient,
@@ -60,5 +62,3 @@ export {
 	type PostHogProjectsResponse,
 	type PostHogUser,
 } from "@theholocron/posthog-client";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
-export { verifyToken } from "./verify-token.js";

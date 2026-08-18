@@ -1,7 +1,7 @@
+import { createPostHogClient } from "@theholocron/posthog-client";
 import { describe, expect, it } from "vitest";
 
 import { PostHogAnalytics } from "../capabilities/analytics.js";
-import { createPostHogClient } from "@theholocron/posthog-client";
 import { stubFetch } from "./helpers.js";
 
 const BASE = "https://posthog.test";
