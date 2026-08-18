@@ -30,6 +30,7 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-github",
 		"@theholocron/holocron-plugin-infisical",
 		"@theholocron/holocron-plugin-neon",
+		"@theholocron/holocron-plugin-posthog",
 		"@theholocron/holocron-plugin-postman",
 		"@theholocron/holocron-plugin-sentry",
 		"@theholocron/holocron-plugin-slack",
