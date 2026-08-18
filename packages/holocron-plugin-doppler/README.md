@@ -16,14 +16,14 @@ pnpm add -D @theholocron/holocron-plugin-doppler@alpha
 
 ## Auth
 
-Token resolution order (matches the standard 4-step precedence set by
-`.notes/tech-auth-bootstrap.spec.md`):
+Token resolution order:
 
 1. `--token <TOKEN>` flag on the holocron invocation
 2. `HOLOCRON_DOPPLER_TOKEN` env var (preferred — explicit intent)
 3. `DOPPLER_TOKEN` env var (Doppler-native, works in CI)
-4. **Keyring** — `com.theholocron.cli` service, account `doppler`
-5. `AuthError` naming all four options + the bootstrap hint
+4. Keyring `doppler.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `doppler` — unnamespaced fallback; set via `holocron auth set doppler <token>`
+6. `AuthError` naming all five options + the bootstrap hint
 
 ## Manual setup (one-time, per operator)
 
@@ -52,7 +52,7 @@ holocron auth check doppler
 **CI**: the keyring is not available in headless containers. Expose
 the token as a GitHub Actions secret and set `HOLOCRON_DOPPLER_TOKEN`
 (or `DOPPLER_TOKEN`) in the workflow env. Steps 1–3 of the auth
-precedence still work; step 4 quietly falls through.
+precedence still work; steps 4–5 quietly fall through.
 
 ## Config
 

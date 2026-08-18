@@ -26,6 +26,8 @@ Token resolution order:
 1. `--token <KEY>` flag on the holocron invocation
 2. `HOLOCRON_POSTMAN_API_KEY` env var
 3. `POSTMAN_API_KEY` env var (Postman's own standard)
+4. Keyring `postman.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `postman` — unnamespaced fallback; set via `holocron auth set postman <key>`
 
 Generate the key at <https://web.postman.co/settings/me/api-keys>.
 

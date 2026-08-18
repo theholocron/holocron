@@ -21,6 +21,8 @@ Token resolution order:
 1. `--token <KEY>` flag on the holocron invocation
 2. `HOLOCRON_POSTHOG_TOKEN` env var
 3. `POSTHOG_PERSONAL_API_KEY` env var
+4. Keyring `posthog.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `posthog` — unnamespaced fallback; set via `holocron auth set posthog <phx_key>`
 
 The token must be a **personal API key** (`phx_*`), found at
 **app.posthog.com → Settings → User → Personal API keys**. This is

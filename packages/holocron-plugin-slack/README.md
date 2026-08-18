@@ -20,6 +20,8 @@ Token resolution order:
 1. `--token <TOKEN>` flag on the holocron invocation
 2. `HOLOCRON_SLACK_TOKEN` env var
 3. `SLACK_BOT_TOKEN` env var (the standard Slack variable name)
+4. Keyring `slack.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `slack` — unnamespaced fallback; set via `holocron auth set slack <xoxb-token>`
 
 Create a Slack app at **api.slack.com/apps**, add the `chat:write` bot
 scope, install it to your workspace, and copy the **Bot User OAuth Token**

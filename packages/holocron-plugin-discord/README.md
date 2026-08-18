@@ -20,6 +20,8 @@ Token resolution order:
 1. `--token <WEBHOOK_URL>` flag on the holocron invocation
 2. `HOLOCRON_DISCORD_WEBHOOK` env var
 3. `DISCORD_WEBHOOK_URL` env var
+4. Keyring `discord.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
+5. Keyring `discord` — unnamespaced fallback; set via `holocron auth set discord <webhook-url>`
 
 The "token" is the full incoming webhook URL
 (`https://discord.com/api/webhooks/{id}/{token}`). No bot account or

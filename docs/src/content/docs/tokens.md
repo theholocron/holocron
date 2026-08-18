@@ -5,9 +5,9 @@ description: Fine-grained GitHub PATs and provider-native tokens used by the Hol
 
 Holocron uses one Personal Access Token per capability group. Each token carries only the scopes its operations require — a leaked token's blast radius is contained to that feature alone.
 
-## Resolution chain
+## GitHub feature token resolution
 
-For every feature, the token is resolved in this order:
+For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.), the chain is:
 
 ```
 --token flag
@@ -16,6 +16,41 @@ For every feature, the token is resolved in this order:
 ```
 
 No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure.
+
+## Provider token resolution
+
+For every other provider plugin (Cloudflare, Sentry, Slack, Vercel, etc.), tokens are resolved in this order:
+
+```
+--token flag
+  → HOLOCRON_<PROVIDER>_TOKEN   (e.g. HOLOCRON_CLOUDFLARE_TOKEN)
+  → <VENDOR>_TOKEN              (e.g. CLOUDFLARE_API_TOKEN)
+  → keyring("<provider>.<org>") (org-scoped — only when an org is active)
+  → keyring("<provider>")       (unnamespaced fallback)
+```
+
+The org-scoped keyring step fires when an org name is active. Org resolution order:
+
+1. `--org <name>` CLI flag — per-invocation override
+2. `HOLOCRON_ORG` env var — set in shell profile, `.envrc`, or CI secret
+3. `org` field in `holocron.config.ts` — automatic for projects that declare it
+
+This lets a single machine hold separate credentials for multiple GitHub orgs without collision:
+
+```bash
+# Store per-org credentials once
+holocron auth set cloudflare --org theholocron <TOKEN-A>
+holocron auth set cloudflare --org client-co   <TOKEN-B>
+
+# theholocron project (org: "theholocron" in config) → picks up TOKEN-A automatically
+cd ~/Code/theholocron/some-project && holocron setup
+
+# client-co project (org: "client-co" in config) → picks up TOKEN-B automatically
+cd ~/Code/client-co/some-project && holocron setup
+
+# One-off override
+holocron setup --org client-co
+```
 
 ## GitHub tokens
 
