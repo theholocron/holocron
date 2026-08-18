@@ -22,6 +22,7 @@ resolution, base URL construction, and normalised error responses.
 | [`@theholocron/infisical-client`](./infisical)   | Infisical secrets manager           |
 | [`@theholocron/jira-client`](./jira)             | Jira Cloud issues & projects        |
 | [`@theholocron/neon-client`](./neon)             | Neon serverless Postgres            |
+| [`@theholocron/posthog-client`](./posthog)       | PostHog product analytics           |
 | [`@theholocron/postman-client`](./postman)       | Postman collections & environments  |
 | [`@theholocron/vercel-client`](./vercel)         | Vercel deployments & projects       |
 | [`@theholocron/zendesk-client`](./zendesk)       | Zendesk tickets & users             |

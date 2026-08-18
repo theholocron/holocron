@@ -1,0 +1,76 @@
+{
+  "name": "@theholocron/posthog-client",
+  "version": "1.8.0",
+  "description": "A TypeScript client for the PostHog management API",
+  "homepage": "https://github.com/theholocron/clients/tree/main/packages/posthog-client#readme",
+  "bugs": "https://github.com/theholocron/clients/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/clients.git",
+    "directory": "packages/posthog-client"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "keywords": [
+    "posthog",
+    "analytics",
+    "product-analytics",
+    "typescript",
+    "http-client",
+    "api"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@theholocron/http-client": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@theholocron/eslint-config": "catalog:",
+    "@theholocron/tsconfig": "catalog:",
+    "@theholocron/tsdown-config": "catalog:",
+    "@theholocron/vitest-config": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "releases": "https://github.com/theholocron/clients/releases",
+  "wiki": "https://github.com/theholocron/clients/wiki"
+}
