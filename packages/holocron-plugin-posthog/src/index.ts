@@ -52,6 +52,12 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { PostHogAnalytics, type PostHogAnalyticsOptions } from "./capabilities/analytics.js";
-export { createPostHogClient, type PostHogClient, type PostHogClientOptions, type PostHogProject, type PostHogUser } from "./rest.js";
+export {
+	createPostHogClient,
+	type PostHogClient,
+	type PostHogClientOptions,
+	type PostHogProject,
+	type PostHogUser,
+} from "./rest.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

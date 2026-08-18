@@ -15,7 +15,9 @@ describe("verifyToken", () => {
 	});
 
 	it("returns ok:false on 401", async () => {
-		const { fetch } = stubFetch([{ status: 401, body: { detail: "Authentication credentials were not provided." } }]);
+		const { fetch } = stubFetch([
+			{ status: 401, body: { detail: "Authentication credentials were not provided." } },
+		]);
 		const result = await verifyToken("phx_bad", { baseUrl: BASE, fetch });
 		expect(result.ok).toBe(false);
 	});

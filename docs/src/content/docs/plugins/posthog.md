@@ -38,8 +38,8 @@ providers: {
 
 ### Options
 
-| Option | Required | Description                                                                                                       |
-| ------ | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| Option | Required | Description                                                                                                        |
+| ------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
 | `host` | No       | PostHog instance URL. Defaults to `https://app.posthog.com` (US cloud). Use `https://eu.posthog.com` for EU cloud. |
 
 ## Authentication

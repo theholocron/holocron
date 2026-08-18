@@ -20,7 +20,10 @@ describe("PostHogAnalytics.describe", () => {
 	it("returns posthog provider with both env keys", async () => {
 		const { analytics } = makeAnalytics([]);
 		const result = await analytics.describe();
-		expect(result).toEqual({ provider: "posthog", envKeys: ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"] });
+		expect(result).toEqual({
+			provider: "posthog",
+			envKeys: ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"],
+		});
 	});
 });
 
@@ -45,10 +48,7 @@ describe("PostHogAnalytics.ensureProject — existing", () => {
 
 describe("PostHogAnalytics.ensureProject — create", () => {
 	it("creates project when name not found in list", async () => {
-		const { analytics, calls } = makeAnalytics([
-			{ body: { results: [] } },
-			{ body: project },
-		]);
+		const { analytics, calls } = makeAnalytics([{ body: { results: [] } }, { body: project }]);
 		const result = await analytics.ensureProject("my-app");
 		expect(calls[1]?.method).toBe("POST");
 		expect(calls[1]?.url).toContain("/api/projects/");

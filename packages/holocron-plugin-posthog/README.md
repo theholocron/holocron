@@ -45,10 +45,10 @@ runtime — the personal key is for management only.
 
 ## What's implemented
 
-| Method          | What it does                                                                                                                                                                  |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `describe`      | Returns `{ provider: "posthog", envKeys: ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"] }` — the env vars the app reads at runtime.                                 |
-| `whoami`        | Calls `/api/users/@me/` to verify the token and return the org slug.                                                                                                          |
+| Method          | What it does                                                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `describe`      | Returns `{ provider: "posthog", envKeys: ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"] }` — the env vars the app reads at runtime.                                   |
+| `whoami`        | Calls `/api/users/@me/` to verify the token and return the org slug.                                                                                                           |
 | `ensureProject` | Lists projects and returns the existing one if found by name; creates it via `POST /api/projects/` otherwise. Returns the project's `api_token` (`phc_*`) and `alreadyExists`. |
 
 `holocron setup` calls `ensureProject` and pushes `NEXT_PUBLIC_POSTHOG_KEY`
