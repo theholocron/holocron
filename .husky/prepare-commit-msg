@@ -17,4 +17,4 @@ git interpret-trailers --if-exists doNothing --trailer \
 	"Signed-off-by: $NAME <$EMAIL>" \
 	--in-place "$1"
 
-npx devmoji -e --lint
+npx devmoji -e
