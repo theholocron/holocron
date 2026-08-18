@@ -29,6 +29,9 @@
     "test:coverage": "vitest run --coverage",
     "validate": "tsx scripts/validate.mjs"
   },
+  "dependencies": {
+    "@theholocron/posthog-client": "catalog:clients"
+  },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*"
   },
