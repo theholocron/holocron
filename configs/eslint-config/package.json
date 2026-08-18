@@ -28,7 +28,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@eslint/compat": "^2.1.0"
+    "@eslint/compat": "^2.1.0",
+    "eslint-package-json": "^0.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
@@ -72,6 +73,11 @@
       "types": "./dist/configs/node.d.ts",
       "import": "./dist/configs/node.js",
       "default": "./dist/configs/node.js"
+    },
+    "./package-json": {
+      "types": "./dist/configs/package-json.d.ts",
+      "import": "./dist/configs/package-json.js",
+      "default": "./dist/configs/package-json.js"
     },
     "./vitest": {
       "types": "./dist/configs/vitest.d.ts",
@@ -121,8 +127,8 @@
     "eslint-plugin-cypress": "^6",
     "eslint-plugin-n": "^18",
     "eslint-plugin-react": "^7",
-    "eslint-plugin-storybook": "^10",
     "eslint-plugin-simple-import-sort": "^14",
+    "eslint-plugin-storybook": "^10",
     "globals": "^17",
     "typescript-eslint": "^8"
   },

@@ -1,5 +1,6 @@
 import { base } from "../configs/base.js";
 import { node } from "../configs/node.js";
+import { packageJson } from "../configs/package-json.js";
 import { typescript } from "../configs/typescript.js";
 
 export function library() {
@@ -7,6 +8,7 @@ export function library() {
 		...base(),
 		...node(),
 		...typescript(),
+		...packageJson(),
 		{
 			name: "@theholocron/library",
 			rules: {
