@@ -27,5 +27,3 @@ export function docsTheme(): StarlightPlugin {
 		},
 	};
 }
-
-export default docsTheme;

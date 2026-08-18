@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it, vi } from "vitest";
 
-import docsTheme from "../index.ts";
+import { docsTheme } from "../index.ts";
 
 type SetupArgs = Parameters<ReturnType<typeof docsTheme>["hooks"]["setup"]>[0];
 
