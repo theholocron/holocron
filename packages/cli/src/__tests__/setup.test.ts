@@ -779,8 +779,9 @@ describe("runSetup", () => {
 
 		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
-		const contexts = (checksRule?.parameters as { required_status_checks: Array<{ context: string }> })
-			?.required_status_checks.map((c) => c.context);
+		const contexts = (
+			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
+		)?.required_status_checks.map((c) => c.context);
 		expect(contexts?.filter((c) => c === "Test / Run tests and collect coverage")).toHaveLength(1);
 	});
 
