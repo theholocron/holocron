@@ -76,6 +76,11 @@ component_management:
       paths:
         - packages/holocron-plugin-neon/**
 
+    - component_id: holocron-plugin-posthog
+      name: "holocron-plugin-posthog"
+      paths:
+        - packages/holocron-plugin-posthog/**
+
     - component_id: holocron-plugin-postman
       name: "holocron-plugin-postman"
       paths:

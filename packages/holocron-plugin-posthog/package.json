@@ -1,13 +1,13 @@
 {
-  "name": "@theholocron/holocron-plugin-vercel",
+  "name": "@theholocron/holocron-plugin-posthog",
   "version": "3.27.0",
-  "description": "Holocron plugin for Vercel. Implements the deployment capability against the Vercel REST API.",
-  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-vercel#readme",
+  "description": "Holocron plugin for PostHog. Implements the analytics capability — project provisioning and tracking token retrieval.",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-posthog#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "packages/holocron-plugin-vercel"
+    "directory": "packages/holocron-plugin-posthog"
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
@@ -30,24 +30,18 @@
     "validate": "tsx scripts/validate.mjs"
   },
   "peerDependencies": {
-    "@theholocron/cli": "workspace:*",
-    "@theholocron/vercel-client": "catalog:clients"
-  },
-  "peerDependenciesMeta": {
-    "@theholocron/vercel-client": {
-      "optional": false
-    }
+    "@theholocron/cli": "workspace:*"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vercel-client": "catalog:clients",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
+    "chalk": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
@@ -63,5 +57,8 @@
     "dist",
     "README.md"
   ],
-  "types": "./dist/index.d.mts"
+  "types": "./dist/index.d.mts",
+  "engines": {
+    "node": ">=22"
+  }
 }

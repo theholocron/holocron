@@ -1,0 +1,86 @@
+---
+title: PostHog Plugin
+description: Implements the analytics capability against PostHog's management API.
+---
+
+`@theholocron/holocron-plugin-posthog` implements the `analytics` capability using PostHog's management API. It handles project provisioning and tracking token retrieval for product analytics.
+
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-posthog
+```
+
+## Capabilities
+
+| Capability  | Token required                       |
+| ----------- | ------------------------------------ |
+| `analytics` | `HOLOCRON_POSTHOG_TOKEN` (`posthog`) |
+
+## Config
+
+```ts
+providers: {
+  analytics: "posthog",
+}
+```
+
+Or with options:
+
+```ts
+providers: {
+  analytics: ["posthog", {
+    // EU cloud or self-hosted instance
+    host: "https://eu.posthog.com",
+  }],
+}
+```
+
+### Options
+
+| Option | Required | Description                                                                                                        |
+| ------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `host` | No       | PostHog instance URL. Defaults to `https://app.posthog.com` (US cloud). Use `https://eu.posthog.com` for EU cloud. |
+
+## Authentication
+
+The plugin uses a **personal API key** — not the project API key. The personal key (`phx_*`) is org-scoped and can create projects; the project key (`phc_*`) is the runtime tracking token your app embeds.
+
+1. Go to [app.posthog.com/settings/user/api-keys](https://app.posthog.com/settings/user/api-keys)
+2. Click **Create personal API key**, give it a label (e.g. "Holocron"), and copy it
+
+```bash
+holocron auth set posthog phx_xxxxxxxxxxxxxxxxxxxx
+```
+
+Or via env var:
+
+```bash
+export HOLOCRON_POSTHOG_TOKEN=phx_...
+# Also recognized:
+export POSTHOG_PERSONAL_API_KEY=phx_...
+```
+
+:::note
+For EU cloud, set `host: "https://eu.posthog.com"` in your config — the personal API key URL is `eu.posthog.com/settings/user/api-keys`.
+:::
+
+## What `analytics` provides
+
+- `describe()` — returns the provider name and required env var keys (`NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`)
+- `whoami()` — verifies the personal API key by fetching the current user and org
+- `ensureProject(name)` — find or create a PostHog project by name, returning its tracking token (`phc_*`) and whether it already existed
+
+## Example
+
+```ts
+import { createPlugin } from "@theholocron/holocron-plugin-posthog";
+
+const plugin = createPlugin({ cliToken: process.env.HOLOCRON_POSTHOG_TOKEN });
+const an = plugin.capabilities.analytics();
+
+const { token, alreadyExists } = await an.ensureProject("my-app");
+// Push NEXT_PUBLIC_POSTHOG_KEY=token and NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+// to GitHub Secrets via the secrets capability.
+console.log(`PostHog key: ${token} (${alreadyExists ? "existing" : "created"})`);
+```
