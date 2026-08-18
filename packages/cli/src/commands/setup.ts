@@ -562,9 +562,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 
 			const configuredWorkflowNames = [
-				...new Set((config.workflows ?? []).map((entry) =>
-					typeof entry === "string" ? entry : entry.name
-				)),
+				...new Set((config.workflows ?? []).map((entry) => (typeof entry === "string" ? entry : entry.name))),
 			];
 			const requiredChecks =
 				effectivePreset === "strict"
