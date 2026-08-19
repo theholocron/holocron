@@ -9,6 +9,9 @@ on: # yamllint disable-line rule:truthy
     branches: [main]
     paths:
       - docs/**
+      - astro.config.ts
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
   workflow_dispatch:
 
 concurrency:
