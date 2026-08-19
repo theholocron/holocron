@@ -17,10 +17,12 @@ export interface DocsConfigInput {
 	srcDir?: string;
 	outDir?: string;
 	publicDir?: string;
+	base?: string;
 }
 
-export function defineConfig({ docs, starlight, docsTheme, srcDir, outDir, publicDir }: DocsConfigInput) {
+export function defineConfig({ docs, starlight, docsTheme, srcDir, outDir, publicDir, base }: DocsConfigInput) {
 	return astroDefineConfig({
+		base: base ?? `/${docs.github}`,
 		...(srcDir && { srcDir }),
 		...(outDir && { outDir }),
 		...(publicDir && { publicDir }),

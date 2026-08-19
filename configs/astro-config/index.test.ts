@@ -74,4 +74,14 @@ describe("defineConfig", () => {
 		const config = defineConfig({ ...baseInput, publicDir: "./docs/public" }) as { publicDir: string };
 		expect(config.publicDir).toBe("./docs/public");
 	});
+
+	it("derives base from docs.github by default", () => {
+		const config = defineConfig(baseInput) as { base: string };
+		expect(config.base).toBe("/clients");
+	});
+
+	it("allows base to be overridden", () => {
+		const config = defineConfig({ ...baseInput, base: "/" }) as { base: string };
+		expect(config.base).toBe("/");
+	});
 });
