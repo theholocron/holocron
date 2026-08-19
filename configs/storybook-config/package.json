@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/storybook-config",
-  "version": "7.22.0",
+  "version": "7.22.1",
   "description": "A Storybook configuration for writing tested components within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/storybook-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
@@ -84,10 +84,18 @@
     "axe-playwright": ">=2"
   },
   "peerDependenciesMeta": {
-    "@storybook/addon-viewport": { "optional": true },
-    "msw-storybook-addon": { "optional": true },
-    "playwright": { "optional": true },
-    "axe-playwright": { "optional": true }
+    "@storybook/addon-viewport": {
+      "optional": true
+    },
+    "msw-storybook-addon": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    },
+    "axe-playwright": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=22.0.0"
