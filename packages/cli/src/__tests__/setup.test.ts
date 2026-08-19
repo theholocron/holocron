@@ -1372,6 +1372,9 @@ describe("runSetup", () => {
 		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- astro.config.ts");
+		expect(deployContent).toContain("- pnpm-workspace.yaml");
+		expect(deployContent).toContain("- pnpm-lock.yaml");
 		expect(deployContent).toContain("- apps/web/**");
 		expect(deployContent).toContain("- packages/ui/**");
 	});
@@ -1406,6 +1409,9 @@ describe("runSetup", () => {
 		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- astro.config.ts");
+		expect(deployContent).toContain("- pnpm-workspace.yaml");
+		expect(deployContent).toContain("- pnpm-lock.yaml");
 		expect(deployContent).not.toContain("apps/");
 	});
 
