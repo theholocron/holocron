@@ -79,7 +79,8 @@
   },
   "pnpm": {
     "overrides": {
-      "cookie": "^2.0.1"
+      "cookie": "^2.0.1",
+      "tsx": "4.22.4"
     }
   }
 }
