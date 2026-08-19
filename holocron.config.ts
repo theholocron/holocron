@@ -12,9 +12,8 @@ export default defineConfig({
 		...repo,
 		protection: "strict",
 		requiredChecks: [
-			"Audit / Knip (pull_request)",
-			"Build / tsdown (every workspace) (pull_request)",
-			"Build / tsdown (every workspace) (push)",
+			"Knip",
+			"tsdown (every workspace)",
 			"codecov/patch",
 			"codecov/patch/cli",
 			"codecov/patch/cli-utils",
