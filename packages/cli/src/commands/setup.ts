@@ -229,8 +229,10 @@ function devmojiConfigContent(): string {
 // ── .husky/prepare-commit-msg hook ───────────────────────────────────
 // 1. Validates that git user.name and user.email are configured.
 // 2. Appends the DCO Signed-off-by trailer (required on every commit).
-// 3. Runs devmoji to add an emoji to the commit subject and lint the
-//    conventional commit format.
+// 3. Runs devmoji to add an emoji to the commit subject.
+//    Note: --lint is intentionally omitted. prepare-commit-msg fires before
+//    the editor opens, so --lint would reject the still-empty message on
+//    interactive `git commit`. Validation is handled by commitlint in commit-msg.
 function prepareCommitMsgHookContent(): string {
 	return [
 		`#!/bin/sh`,
@@ -252,7 +254,7 @@ function prepareCommitMsgHookContent(): string {
 		`\t"Signed-off-by: $NAME <$EMAIL>" \\`,
 		`\t--in-place "$1"`,
 		``,
-		`npx devmoji -e --lint`,
+		`npx devmoji -e`,
 		``,
 	].join("\n");
 }
@@ -561,9 +563,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			);
 			print(formatStep(steps[steps.length - 1]!));
 
-			const configuredWorkflowNames = (config.workflows ?? []).map((entry) =>
-				typeof entry === "string" ? entry : entry.name
-			);
+			const configuredWorkflowNames = [
+				...new Set((config.workflows ?? []).map((entry) => (typeof entry === "string" ? entry : entry.name))),
+			];
 			const requiredChecks =
 				effectivePreset === "strict"
 					? [

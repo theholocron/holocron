@@ -745,6 +745,46 @@ describe("runSetup", () => {
 		});
 	});
 
+	it("deduplicates workflow names when building required checks", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			// "test" appears as both a plain string and an override object — simulates ...workflows spread + explicit override
+			workflows: ["test", { name: "test", with: { "run-unit": true } }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		const contexts = (
+			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
+		)?.required_status_checks.map((c) => c.context);
+		expect(contexts?.filter((c) => c === "Test / Run tests and collect coverage")).toHaveLength(1);
+	});
+
 	it("updates an existing ruleset instead of creating a new one", async () => {
 		const created: unknown[] = [];
 		const updated: unknown[] = [];
