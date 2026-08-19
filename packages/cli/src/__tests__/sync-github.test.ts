@@ -778,7 +778,8 @@ describe("generateThinCallerContent", () => {
 	it("generates bookkeeping thin-caller with pull_request trigger only", () => {
 		const content = generateThinCallerContent("bookkeeping");
 		expect(content).toContain("pull_request:");
-		expect(content).not.toContain("issues:");
+		expect(content).toContain("issues: write");
+		expect(content).toContain("pull-requests: write");
 		expect(content).toContain("secrets: inherit");
 	});
 
