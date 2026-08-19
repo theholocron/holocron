@@ -1,3 +1,5 @@
+## [1.4.0](https://github.com/theholocron/skills/compare/v1.3.3...v1.4.0) (2026-08-19)
+
 ## [1.3.3](https://github.com/theholocron/skills/compare/v1.3.2...v1.3.3) (2026-08-15)
 
 ## [1.3.2](https://github.com/theholocron/skills/compare/v1.3.1...v1.3.2) (2026-08-02)
