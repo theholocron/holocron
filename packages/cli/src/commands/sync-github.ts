@@ -93,7 +93,10 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	// dropped from the generated thin caller.
 	let j = 0;
 	while (j < body.length) {
-		if (body[j] !== "{") { j++; continue; }
+		if (body[j] !== "{") {
+			j++;
+			continue;
+		}
 
 		const objStart = j;
 		let objDepth = 1;
