@@ -14,6 +14,7 @@ resolution, base URL construction, and normalised error responses.
 | Package                                          | Description                         |
 | ------------------------------------------------ | ----------------------------------- |
 | [`@theholocron/clerk-client`](./clerk)           | Clerk user management               |
+| [`@theholocron/cloudflare-client`](./cloudflare) | Cloudflare zones, DNS & tunnels     |
 | [`@theholocron/confluence-client`](./confluence) | Confluence Cloud pages & spaces     |
 | [`@theholocron/doppler-client`](./doppler)       | Doppler secrets manager             |
 | [`@theholocron/github-client`](./github)         | GitHub REST API                     |
@@ -24,6 +25,7 @@ resolution, base URL construction, and normalised error responses.
 | [`@theholocron/neon-client`](./neon)             | Neon serverless Postgres            |
 | [`@theholocron/posthog-client`](./posthog)       | PostHog product analytics           |
 | [`@theholocron/postman-client`](./postman)       | Postman collections & environments  |
+| [`@theholocron/sentry-client`](./sentry)         | Sentry error tracking               |
 | [`@theholocron/vercel-client`](./vercel)         | Vercel deployments & projects       |
 | [`@theholocron/zendesk-client`](./zendesk)       | Zendesk tickets & users             |
 
