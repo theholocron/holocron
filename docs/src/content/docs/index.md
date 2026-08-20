@@ -15,11 +15,16 @@ Holocron is a pluggable CLI that orchestrates infrastructure and repository oper
 | [`@theholocron/holocron-plugin-github`](./plugins/github)            | source, ci, secrets, environments, issues          |
 | [`@theholocron/holocron-plugin-vercel`](./plugins/vercel)            | deployment                                         |
 | [`@theholocron/holocron-plugin-1password`](./plugins/1password)      | vault                                              |
+| [`@theholocron/holocron-plugin-cloudflare`](./plugins/cloudflare)    | dns                                                |
+| [`@theholocron/holocron-plugin-clerk`](./plugins/clerk)              | auth                                               |
+| [`@theholocron/holocron-plugin-discord`](./plugins/discord)          | notifications                                      |
 | [`@theholocron/holocron-plugin-doppler`](./plugins/doppler)          | vault                                              |
 | [`@theholocron/holocron-plugin-infisical`](./plugins/infisical)      | vault                                              |
-| [`@theholocron/holocron-plugin-clerk`](./plugins/clerk)              | auth                                               |
 | [`@theholocron/holocron-plugin-neon`](./plugins/neon)                | storage                                            |
+| [`@theholocron/holocron-plugin-posthog`](./plugins/posthog)          | analytics                                          |
 | [`@theholocron/holocron-plugin-postman`](./plugins/postman)          | tooling                                            |
+| [`@theholocron/holocron-plugin-sentry`](./plugins/sentry)            | observability                                      |
+| [`@theholocron/holocron-plugin-slack`](./plugins/slack)              | notifications                                      |
 
 ## Install
 
