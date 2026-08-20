@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { generateThinCallerContent, WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
-import { gitBlobSha as _gitBlobSha, runSyncGithub } from "../commands/sync-github.js";
+import { gitBlobSha as _gitBlobSha, parseWorkflowsFromTs, runSyncGithub } from "../commands/sync-github.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
@@ -836,5 +836,40 @@ describe("generateThinCallerContent", () => {
 		} finally {
 			delete WORKFLOW_TEMPLATES[sentinel];
 		}
+	});
+});
+
+describe("parseWorkflowsFromTs", () => {
+	it("returns explicit string and object entries when no spread", () => {
+		const source = `export default defineConfig({
+	workflows: ["lint", { name: "release", with: { "run-build": true } }],
+});`;
+		const result = parseWorkflowsFromTs(source);
+		expect(result.map((e) => e.name)).toEqual(["lint", "release"]);
+		expect(result.find((e) => e.name === "release")?.with).toEqual({ "run-build": true });
+	});
+
+	it("includes all known workflows when spread is present", () => {
+		const source = `const { workflows } = node();
+export default defineConfig({
+	workflows: [...workflows, "audit", { name: "deploy", with: { docs: true } }],
+});`;
+		const result = parseWorkflowsFromTs(source);
+		const names = result.map((e) => e.name);
+		expect(names).toContain("lint");
+		expect(names).toContain("test");
+		expect(names).toContain("bookkeeping");
+		expect(names).toContain("audit");
+		expect(names).toContain("deploy");
+	});
+
+	it("explicit overrides take precedence over spread defaults when spread present", () => {
+		const source = `const { workflows } = node();
+export default defineConfig({
+	workflows: [...workflows, { name: "test", with: { "run-unit": false } }],
+});`;
+		const result = parseWorkflowsFromTs(source);
+		const testEntry = result.find((e) => e.name === "test");
+		expect(testEntry?.with).toEqual({ "run-unit": false });
 	});
 });
