@@ -13,18 +13,10 @@
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    "./skills/*": "./*"
+    "./skills/*": "./src/*"
   },
   "files": [
-    "commit-standards/",
-    "git-safety/",
-    "holocron-skill-client/",
-    "holocron-skill-config/",
-    "holocron-skill-plugin/",
-    "holocron-skill-skill/",
-    "holocron-skill-util/",
-    "pr-workflow/",
-    "security-review/",
+    "src/",
     "skills-lock.json",
     "README.md"
   ],

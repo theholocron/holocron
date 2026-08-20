@@ -11,7 +11,7 @@ Adds a new skill to the `theholocron/skills` registry.
 
 ## What it produces
 
-A new `skills/<name>/` directory with a `SKILL.md` file in the standard frontmatter format:
+A new `src/<name>/` directory with a `SKILL.md` file in the standard frontmatter format:
 
 ```markdown
 ---
@@ -35,4 +35,5 @@ The category determines which section of `README.md` the skill is listed under.
 ## After creating
 
 - Add the skill to `README.md` in the appropriate section
+- Add a corresponding doc page to `docs/src/content/docs/skills/`
 - Register it in any consuming repos via `npx skills add @theholocron/skills`
