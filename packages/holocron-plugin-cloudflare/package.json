@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-cloudflare",
-  "version": "3.29.5",
+  "version": "3.29.6",
   "description": "Holocron plugin for Cloudflare. Implements the dns capability against Cloudflare's REST API — zone resolution, DNS record management.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-cloudflare#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
