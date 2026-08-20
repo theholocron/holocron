@@ -13,7 +13,8 @@ type StoreEntry = {
 	body: string;
 	filePath: string;
 	digest: string;
-	rendered: unknown;
+	rendered?: unknown;
+	deferredRender?: boolean;
 };
 
 function makeCtx(rootDir: string) {
@@ -141,6 +142,55 @@ describe("createDocsLoader", () => {
 			expect.stringContaining("Content here."),
 			expect.objectContaining({ fileURL: expect.any(URL) })
 		);
+	});
+
+	it("sets deferredRender for local .mdx files instead of calling renderMarkdown", async () => {
+		await writeFile(
+			join(tmpDir, "guide.mdx"),
+			'---\ntitle: Guide\n---\n\nimport { Card } from "@astrojs/starlight/components";\n\n<Card>Hello</Card>'
+		);
+		const { ctx, store } = makeCtx(tmpDir);
+
+		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
+
+		expect(ctx.renderMarkdown).not.toHaveBeenCalled();
+		const entry = store.get("guide")!;
+		expect(entry.deferredRender).toBe(true);
+		expect(entry.rendered).toBeUndefined();
+	});
+
+	it("uses renderMarkdown for .md files even alongside .mdx", async () => {
+		await writeFile(join(tmpDir, "prose.md"), "---\ntitle: Prose\n---\n\nPlain text.");
+		await writeFile(
+			join(tmpDir, "rich.mdx"),
+			'---\ntitle: Rich\n---\n\nimport { Card } from "@astrojs/starlight/components";'
+		);
+		const { ctx, store } = makeCtx(tmpDir);
+
+		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
+
+		expect(ctx.renderMarkdown).toHaveBeenCalledOnce();
+		expect(store.get("prose")!.rendered).toBeDefined();
+		expect(store.get("rich")!.deferredRender).toBe(true);
+	});
+
+	it("uses renderMarkdown for .mdx files from package sources (node_modules)", async () => {
+		const pkgDir = join(tmpDir, "node_modules", "mdx-pkg");
+		await mkdir(join(pkgDir, "dist"), { recursive: true });
+		await mkdir(join(pkgDir, "content"), { recursive: true });
+		await writeFile(join(pkgDir, "dist", "index.js"), "");
+		await writeFile(join(pkgDir, "package.json"), JSON.stringify({ name: "mdx-pkg", main: "./dist/index.js" }));
+		await writeFile(
+			join(pkgDir, "content", "page.mdx"),
+			'---\ntitle: Pkg MDX\n---\n\nimport { Card } from "@astrojs/starlight/components";'
+		);
+		const { ctx, store } = makeCtx(tmpDir);
+
+		await createDocsLoader([{ package: "mdx-pkg", slug: "pkg" }]).load(ctx as never);
+
+		expect(ctx.renderMarkdown).toHaveBeenCalledOnce();
+		expect(store.get("pkg/page")!.rendered).toBeDefined();
+		expect(store.get("pkg/page")!.deferredRender).toBeUndefined();
 	});
 
 	it("registers each file with the watcher", async () => {

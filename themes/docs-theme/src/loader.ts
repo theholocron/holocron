@@ -117,17 +117,35 @@ export function createDocsLoader(sources: DocsSource[]): Loader {
 						data: frontmatter,
 						filePath,
 					});
-					const rendered = await ctx.renderMarkdown(body, {
-						fileURL: pathToFileURL(absPath),
-					});
-					ctx.store.set({
-						id,
-						data,
-						body,
-						filePath,
-						digest,
-						rendered,
-					});
+					// Local .mdx files must go through Astro's native MDX pipeline so
+					// that JSX imports and Starlight components (Card, Steps, etc.) render
+					// correctly. deferredRender: true tells Astro to look up the compiled
+					// module in astro:content-module-imports — the same strategy Astro's
+					// own glob() loader uses for .mdx files. Package sources are plain .md,
+					// so ctx.renderMarkdown is correct for them.
+					const isLocalMdx = !absPath.includes("node_modules") && extname(absPath) === ".mdx";
+					if (isLocalMdx) {
+						ctx.store.set({
+							id,
+							data,
+							body,
+							filePath,
+							digest,
+							deferredRender: true,
+						});
+					} else {
+						const rendered = await ctx.renderMarkdown(body, {
+							fileURL: pathToFileURL(absPath),
+						});
+						ctx.store.set({
+							id,
+							data,
+							body,
+							filePath,
+							digest,
+							rendered,
+						});
+					}
 					ctx.watcher?.add(absPath);
 				}
 			}
