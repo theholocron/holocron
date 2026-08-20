@@ -732,7 +732,7 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("injects boolean true, boolean false, and string overrides into the with block", () => {
-		// The `test` template ends with bare `secrets: inherit` so injection works
+		// The `test` template already has a `with:` block so overrides are merged in
 		const content = generateThinCallerContent("test", {
 			enable: true,
 			debug: false,
@@ -778,7 +778,8 @@ describe("generateThinCallerContent", () => {
 	it("generates bookkeeping thin-caller with pull_request trigger only", () => {
 		const content = generateThinCallerContent("bookkeeping");
 		expect(content).toContain("pull_request:");
-		expect(content).not.toContain("issues:");
+		expect(content).toContain("issues: write");
+		expect(content).toContain("pull-requests: write");
 		expect(content).toContain("secrets: inherit");
 	});
 
