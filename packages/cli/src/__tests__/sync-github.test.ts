@@ -732,7 +732,7 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("injects boolean true, boolean false, and string overrides into the with block", () => {
-		// The `test` template ends with bare `secrets: inherit` so injection works
+		// The `test` template already has a `with:` block so overrides are merged in
 		const content = generateThinCallerContent("test", {
 			enable: true,
 			debug: false,
