@@ -9,6 +9,7 @@ import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../te
 import {
 	deriveDeployPaths,
 	generateThinCallerContent,
+	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
 	WORKFLOW_TEMPLATES,
 } from "./setup-workflows.js";
@@ -62,7 +63,7 @@ type WorkflowEntry = { name: string; with?: Record<string, unknown> };
  * Handles both plain string entries and `{ name, with }` object entries.
  * Falls back to an empty array if the array cannot be found or parsed.
  */
-function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
+export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	const keyMatch = source.match(/\bworkflows\s*:\s*\[/);
 	if (!keyMatch) return [];
 
@@ -77,7 +78,12 @@ function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	}
 	const body = source.slice(start, i - 1);
 
-	const entries: Array<{ pos: number; entry: WorkflowEntry }> = [];
+	// Detect spread operators like ...workflows (from node() / react() presets).
+	// When present, all known workflows are included as defaults so the sync
+	// doesn't silently skip workflows that come from the preset.
+	const hasPresetSpread = /\.\.\.[a-zA-Z_$][a-zA-Z0-9_$]*/.test(body);
+
+	const explicit: Array<{ pos: number; entry: WorkflowEntry }> = [];
 	const objSpans: Array<[number, number]> = [];
 
 	// Pass 1: object entries — { name: "foo", with: { ... }, paths: [...] }
@@ -99,19 +105,29 @@ function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 				/* ignore malformed with: value */
 			}
 		}
-		entries.push({ pos: m.index, entry: { name: m[1], ...(withObj && { with: withObj }) } });
+		explicit.push({ pos: m.index, entry: { name: m[1], ...(withObj && { with: withObj }) } });
 	}
 
 	// Pass 2: simple string entries — "workflowname" — skip chars inside object spans
 	const strRe = /"([^"]+)"/g;
 	while ((m = strRe.exec(body)) !== null) {
 		if (!objSpans.some(([s, e]) => m!.index >= s && m!.index < e)) {
-			entries.push({ pos: m.index, entry: { name: m[1] } });
+			explicit.push({ pos: m.index, entry: { name: m[1] } });
 		}
 	}
 
-	entries.sort((a, b) => a.pos - b.pos);
-	return entries.map(({ entry }) => entry);
+	explicit.sort((a, b) => a.pos - b.pos);
+	const explicitEntries = explicit.map(({ entry }) => entry);
+
+	if (!hasPresetSpread) return explicitEntries;
+
+	// Spread detected: seed with all known workflows, then let explicit entries
+	// override (e.g. to carry their with: overrides).
+	const merged = new Map<string, WorkflowEntry>([...KNOWN_WORKFLOWS].map((name) => [name, { name }]));
+	for (const entry of explicitEntries) {
+		merged.set(entry.name, entry);
+	}
+	return [...merged.values()];
 }
 
 function reusableHeader(source: string): string {
