@@ -31,12 +31,12 @@ module.exports = defineConfig({
 
 ## Exports
 
-| Export               | Description                                                              |
-| -------------------- | ------------------------------------------------------------------------ |
-| `defineConfig`       | Factory that produces a typed `lighthouserc` config object               |
-| `defaultAssertions`  | Pre-set assertion thresholds covering core Web Vitals and common audits  |
-| `LighthouseAssertion`| Type for the `assertions` map                                            |
-| `LighthouseConfigOptions` | Options type for `defineConfig`                                     |
+| Export                    | Description                                                             |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `defineConfig`            | Factory that produces a typed `lighthouserc` config object              |
+| `defaultAssertions`       | Pre-set assertion thresholds covering core Web Vitals and common audits |
+| `LighthouseAssertion`     | Type for the `assertions` map                                           |
+| `LighthouseConfigOptions` | Options type for `defineConfig`                                         |
 
 ## Default assertions
 

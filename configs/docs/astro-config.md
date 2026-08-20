@@ -41,20 +41,20 @@ export default defineConfig({
 
 ## Options
 
-| Option        | Required | Description                                                                             |
-| ------------- | -------- | --------------------------------------------------------------------------------------- |
-| `docs`        | Yes      | Site metadata — `name`, `github` slug, and `sidebar` config                            |
-| `starlight`   | Yes      | The `starlight` integration import from `@astrojs/starlight`                            |
-| `docsTheme`   | Yes      | The `docsTheme` export from `@theholocron/docs-theme`                                   |
-| `srcDir`      | No       | Astro `srcDir` — use when `astro.config.ts` lives at the repo root, e.g. `./docs/src`  |
-| `outDir`      | No       | Astro `outDir`, e.g. `./docs/dist`                                                      |
-| `publicDir`   | No       | Astro `publicDir`, e.g. `./docs/public`                                                 |
-| `base`        | No       | URL base path. Defaults to `/${docs.github}` for GitHub Pages subpath deployment        |
+| Option      | Required | Description                                                                           |
+| ----------- | -------- | ------------------------------------------------------------------------------------- |
+| `docs`      | Yes      | Site metadata — `name`, `github` slug, and `sidebar` config                           |
+| `starlight` | Yes      | The `starlight` integration import from `@astrojs/starlight`                          |
+| `docsTheme` | Yes      | The `docsTheme` export from `@theholocron/docs-theme`                                 |
+| `srcDir`    | No       | Astro `srcDir` — use when `astro.config.ts` lives at the repo root, e.g. `./docs/src` |
+| `outDir`    | No       | Astro `outDir`, e.g. `./docs/dist`                                                    |
+| `publicDir` | No       | Astro `publicDir`, e.g. `./docs/public`                                               |
+| `base`      | No       | URL base path. Defaults to `/${docs.github}` for GitHub Pages subpath deployment      |
 
 ## Exports
 
-| Export           | Description                            |
-| ---------------- | -------------------------------------- |
-| `defineConfig`   | Factory that returns an Astro config   |
-| `DocsConfig`     | Type for the `docs` field              |
-| `DocsConfigInput`| Full options type for `defineConfig`   |
+| Export            | Description                          |
+| ----------------- | ------------------------------------ |
+| `defineConfig`    | Factory that returns an Astro config |
+| `DocsConfig`      | Type for the `docs` field            |
+| `DocsConfigInput` | Full options type for `defineConfig` |
