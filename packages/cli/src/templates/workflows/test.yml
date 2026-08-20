@@ -47,10 +47,6 @@ on: # yamllint disable-line rule:truthy
     secrets:
       CHROMATIC_PROJECT_TOKEN:
         required: false
-      CHROMATIC_PROJECT_TOKEN_WEB:
-        required: false
-      CHROMATIC_PROJECT_TOKEN_UI:
-        required: false
       CYPRESS_RECORD_KEY:
         required: false
       TURBO_TOKEN:
