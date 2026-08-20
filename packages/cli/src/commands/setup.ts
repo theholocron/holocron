@@ -1148,7 +1148,7 @@ export async function installSkills({
 	const missing: string[] = [];
 
 	for (const name of skills) {
-		const srcDir = join(skillsRoot, "skills", name);
+		const srcDir = join(skillsRoot, "src", name);
 
 		try {
 			await stat(srcDir);
