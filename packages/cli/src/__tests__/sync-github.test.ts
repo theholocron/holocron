@@ -919,4 +919,34 @@ export default defineConfig({
 		const testEntry = result.find((e) => e.name === "test");
 		expect(testEntry?.with).toEqual({ "run-unit": false });
 	});
+
+	it("parses with: blocks that contain nested objects with unquoted keys and trailing commas", () => {
+		// Matches the real-world shape from react-template's holocron.config.ts where
+		// run-chromatic uses a nested { projects: [...] } TypeScript object literal.
+		// The key-quoting regex handles unquoted keys; trailing comma stripping is needed
+		// because TS allows trailing commas but JSON.parse does not.
+		const source = `export default defineConfig({
+	workflows: [
+		{
+			name: "test",
+			with: {
+				"run-unit": false,
+				"run-storybook": true,
+				"run-chromatic": {
+					projects: [{ tokenName: "default", workingDir: ".", buildScript: "build:storybook:chromatic" }],
+				},
+			},
+		},
+	],
+});`;
+		const result = parseWorkflowsFromTs(source);
+		const testEntry = result.find((e) => e.name === "test");
+		expect(testEntry?.with).toEqual({
+			"run-unit": false,
+			"run-storybook": true,
+			"run-chromatic": {
+				projects: [{ tokenName: "default", workingDir: ".", buildScript: "build:storybook:chromatic" }],
+			},
+		});
+	});
 });

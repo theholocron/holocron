@@ -126,9 +126,14 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 			}
 			const withStr = objContent.slice(withOpen, k);
 			try {
-				// TS object literals use unquoted keys (docs: true); JSON requires quoted keys.
-				// Normalise before parsing so both forms work.
-				const jsonSafe = withStr.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
+				// TS object literals differ from JSON in two ways:
+				//   1. Unquoted keys:      { docs: true }   → { "docs": true }
+				//   2. Trailing commas:    { a: 1, }        → { a: 1 }
+				// Normalise both before parsing so nested objects like
+				// run-chromatic: { projects: [...], } are handled correctly.
+				const jsonSafe = withStr
+					.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":')
+					.replace(/,(\s*[}\]])/g, "$1");
 				withObj = JSON.parse(jsonSafe) as Record<string, unknown>;
 			} catch {
 				/* ignore malformed with: value */
