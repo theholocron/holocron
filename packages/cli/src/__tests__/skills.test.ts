@@ -28,7 +28,7 @@ async function fakeSkillsPackage(
 		JSON.stringify({ name: "@theholocron/skills", exports: { "./package.json": "./package.json" } })
 	);
 	for (const [name, files] of Object.entries(skills)) {
-		await writeSkillFiles(join(pkgDir, "skills", name), files);
+		await writeSkillFiles(join(pkgDir, "src", name), files);
 	}
 }
 
@@ -426,7 +426,7 @@ describe("runSkillsInstall", () => {
 	});
 
 	it("installs skills when agent and skills are configured", async () => {
-		await mkdir(join(tmpDir, "node_modules", "@theholocron", "skills", "skills", "git-safety"), {
+		await mkdir(join(tmpDir, "node_modules", "@theholocron", "skills", "src", "git-safety"), {
 			recursive: true,
 		});
 		await writeFile(
@@ -434,7 +434,7 @@ describe("runSkillsInstall", () => {
 			JSON.stringify({ name: "@theholocron/skills", exports: { "./package.json": "./package.json" } })
 		);
 		await writeFile(
-			join(tmpDir, "node_modules", "@theholocron", "skills", "skills", "git-safety", "SKILL.md"),
+			join(tmpDir, "node_modules", "@theholocron", "skills", "src", "git-safety", "SKILL.md"),
 			"# git-safety"
 		);
 
