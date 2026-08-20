@@ -207,7 +207,7 @@ export interface ChromaticProjectConfig {
  * `path` is the working directory relative to the repo root; defaults to `"."` (repo root) when omitted.
  */
 export interface StorybookDeployProject {
-	name: string;
+	name?: string;
 	path?: string;
 }
 

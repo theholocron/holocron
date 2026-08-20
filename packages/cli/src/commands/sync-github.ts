@@ -86,30 +86,58 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	const explicit: Array<{ pos: number; entry: WorkflowEntry }> = [];
 	const objSpans: Array<[number, number]> = [];
 
-	// Pass 1: object entries — { name: "foo", with: { ... }, paths: [...] }
-	// (?:\s*,[^}]*)? skips any additional properties (e.g. paths: [...]) whose
-	// values don't contain } — covers arrays and strings but not nested objects.
-	// The trailing ,? handles TS trailing commas: with: { ... },  }
-	const objRe = /\{\s*name\s*:\s*"([^"]+)"(?:\s*,\s*with\s*:\s*(\{[^}]*\}))?(?:\s*,[^}]*)?\s*,?\s*\}/g;
-	let m: RegExpExecArray | null;
-	while ((m = objRe.exec(body)) !== null) {
-		objSpans.push([m.index, m.index + m[0].length]);
+	// Pass 1: extract top-level { ... } objects using bracket counting so that
+	// nested braces inside with: values (e.g. storybook: [{ name: "app" }])
+	// are handled correctly. The previous regex approach stopped at the first }
+	// inside a nested object, causing JSON.parse to fail and with: to be silently
+	// dropped from the generated thin caller.
+	let j = 0;
+	while (j < body.length) {
+		if (body[j] !== "{") { j++; continue; }
+
+		const objStart = j;
+		let objDepth = 1;
+		j++;
+		while (j < body.length && objDepth > 0) {
+			if (body[j] === "{") objDepth++;
+			else if (body[j] === "}") objDepth--;
+			j++;
+		}
+		const objContent = body.slice(objStart, j);
+		objSpans.push([objStart, j]);
+
+		const nameMatch = objContent.match(/\bname\s*:\s*"([^"]+)"/);
+		if (!nameMatch) continue;
+		const name = nameMatch[1];
+
 		let withObj: Record<string, unknown> | undefined;
-		if (m[2]) {
+		const withKeyMatch = objContent.match(/\bwith\s*:\s*\{/);
+		if (withKeyMatch) {
+			const withOpen = withKeyMatch.index! + withKeyMatch[0].length - 1;
+			let withDepth = 1;
+			let k = withOpen + 1;
+			while (k < objContent.length && withDepth > 0) {
+				if (objContent[k] === "{") withDepth++;
+				else if (objContent[k] === "}") withDepth--;
+				k++;
+			}
+			const withStr = objContent.slice(withOpen, k);
 			try {
 				// TS object literals use unquoted keys (docs: true); JSON requires quoted keys.
 				// Normalise before parsing so both forms work.
-				const jsonSafe = m[2].replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
+				const jsonSafe = withStr.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
 				withObj = JSON.parse(jsonSafe) as Record<string, unknown>;
 			} catch {
 				/* ignore malformed with: value */
 			}
 		}
-		explicit.push({ pos: m.index, entry: { name: m[1], ...(withObj && { with: withObj }) } });
+
+		explicit.push({ pos: objStart, entry: { name, ...(withObj && { with: withObj }) } });
 	}
 
 	// Pass 2: simple string entries — "workflowname" — skip chars inside object spans
 	const strRe = /"([^"]+)"/g;
+	let m: RegExpExecArray | null;
 	while ((m = strRe.exec(body)) !== null) {
 		if (!objSpans.some(([s, e]) => m!.index >= s && m!.index < e)) {
 			explicit.push({ pos: m.index, entry: { name: m[1] } });

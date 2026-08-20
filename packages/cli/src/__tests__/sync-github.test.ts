@@ -278,6 +278,53 @@ describe("runSyncGithub", () => {
 		expect(deployBlob?.body?.content).toContain("- docs/**");
 	});
 
+	it("parses with: blocks containing nested objects (e.g. storybook: [{ name: 'app' }])", async () => {
+		const configTs = `export default defineConfig({
+	workflows: [
+		{ name: "deploy", with: { docs: true, storybook: [{ name: "app" }] } },
+	],
+})`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		const deployBlob = blobs.find(
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
+		);
+		// docs: true → type: docs; storybook: [{ name: "app" }] → storybook-projects with name
+		expect(deployBlob?.body?.content).toContain("type: docs");
+		expect(deployBlob?.body?.content).toContain("storybook-projects:");
+		expect(deployBlob?.body?.content).toContain("name");
+	});
+
+	it("skips objects in the workflows array that have no name property", async () => {
+		const configTs = `export default defineConfig({
+	workflows: [
+		{ path: "." },
+		{ name: "lint" },
+	],
+})`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		// Only lint should be synced — the nameless object is skipped
+		expect(blobs).toHaveLength(1);
+		expect(blobs[0]?.body?.content).toContain("name: Lint");
+	});
+
 	it("parses name-only object entry with trailing comma", async () => {
 		const configTs = `export default defineConfig({
 	workflows: [
