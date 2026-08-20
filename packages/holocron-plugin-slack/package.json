@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-slack",
-  "version": "3.29.9",
+  "version": "3.29.10",
   "description": "Holocron plugin for Slack. Implements the notifications capability via Slack's bot API.",
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-slack#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
