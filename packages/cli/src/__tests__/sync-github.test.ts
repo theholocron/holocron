@@ -842,7 +842,7 @@ describe("generateThinCallerContent", () => {
 describe("parseWorkflowsFromTs", () => {
 	it("returns explicit string and object entries when no spread", () => {
 		const source = `export default defineConfig({
-  workflows: ["lint", { name: "release", with: { "run-build": true } }],
+	workflows: ["lint", { name: "release", with: { "run-build": true } }],
 });`;
 		const result = parseWorkflowsFromTs(source);
 		expect(result.map((e) => e.name)).toEqual(["lint", "release"]);
@@ -852,7 +852,7 @@ describe("parseWorkflowsFromTs", () => {
 	it("includes all known workflows when spread is present", () => {
 		const source = `const { workflows } = node();
 export default defineConfig({
-  workflows: [...workflows, "audit", { name: "deploy", with: { docs: true } }],
+	workflows: [...workflows, "audit", { name: "deploy", with: { docs: true } }],
 });`;
 		const result = parseWorkflowsFromTs(source);
 		const names = result.map((e) => e.name);
@@ -866,7 +866,7 @@ export default defineConfig({
 	it("explicit overrides take precedence over spread defaults when spread present", () => {
 		const source = `const { workflows } = node();
 export default defineConfig({
-  workflows: [...workflows, { name: "test", with: { "run-unit": false } }],
+	workflows: [...workflows, { name: "test", with: { "run-unit": false } }],
 });`;
 		const result = parseWorkflowsFromTs(source);
 		const testEntry = result.find((e) => e.name === "test");
