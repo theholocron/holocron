@@ -146,7 +146,7 @@ Secret source-of-truth — read, write, list, and manage environments. Implement
 
 ### `dns`
 
-DNS record management. No first-party plugin ships yet — implement via a community plugin.
+DNS record management. Implemented by: [Cloudflare](./plugins/cloudflare).
 
 | Method                         | Description                       |
 | ------------------------------ | --------------------------------- |
@@ -169,16 +169,28 @@ Sync external tool state from the repo. Implemented by: [Postman](./plugins/post
 
 ### `notifications`
 
-Send messages. No first-party plugin ships yet.
+Send messages. Implemented by: [Discord](./plugins/discord), [Slack](./plugins/slack).
 
 | Method                   | Description                 |
 | ------------------------ | --------------------------- |
 | `send(channel, message)` | Send a message to a channel |
 
-### `analytics` / `observability`
+### `analytics`
 
-Describe the provider's DSN env key. No first-party plugin ships yet.
+Project provisioning and tracking token retrieval for product analytics. Implemented by: [PostHog](./plugins/posthog).
 
-| Method       | Description                      |
-| ------------ | -------------------------------- |
-| `describe()` | Return `{ provider, dsnEnvKey }` |
+| Method                | Description                                                      |
+| --------------------- | ---------------------------------------------------------------- |
+| `describe()`          | Return the provider name and required env var keys               |
+| `whoami()`            | Verify the personal API key                                      |
+| `ensureProject(name)` | Find or create a project, returning its tracking token           |
+
+### `observability`
+
+Error tracking — project provisioning and DSN retrieval. Implemented by: [Sentry](./plugins/sentry).
+
+| Method                  | Description                                                      |
+| ----------------------- | ---------------------------------------------------------------- |
+| `describe()`            | Return the provider name and required env var keys               |
+| `whoami()`              | Verify the token by fetching the organization                    |
+| `ensureProject(input)`  | Create or retrieve a project, returning its DSN                  |

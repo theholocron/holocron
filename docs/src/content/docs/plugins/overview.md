@@ -37,11 +37,16 @@ Plugins are the adapters between the Holocron CLI's capability interfaces and re
 | [`@theholocron/holocron-plugin-github`](./github)       | source, ci, secrets, environments, issues | `HOLOCRON_*_TOKEN` (5 fine-grained PATs) |
 | [`@theholocron/holocron-plugin-vercel`](./vercel)       | deployment                                | `HOLOCRON_VERCEL_TOKEN`                  |
 | [`@theholocron/holocron-plugin-1password`](./1password) | vault                                     | `op` CLI auth (no stored token)          |
+| [`@theholocron/holocron-plugin-cloudflare`](./cloudflare) | dns                                     | `HOLOCRON_CLOUDFLARE_TOKEN`              |
+| [`@theholocron/holocron-plugin-discord`](./discord)     | notifications                             | `HOLOCRON_DISCORD_WEBHOOK`               |
 | [`@theholocron/holocron-plugin-doppler`](./doppler)     | vault                                     | `HOLOCRON_DOPPLER_TOKEN`                 |
 | [`@theholocron/holocron-plugin-infisical`](./infisical) | vault                                     | `HOLOCRON_INFISICAL_TOKEN`               |
 | [`@theholocron/holocron-plugin-clerk`](./clerk)         | auth                                      | `HOLOCRON_CLERK_SECRET_KEY`              |
 | [`@theholocron/holocron-plugin-neon`](./neon)           | storage                                   | `HOLOCRON_NEON_API_KEY`                  |
+| [`@theholocron/holocron-plugin-posthog`](./posthog)     | analytics                                 | `HOLOCRON_POSTHOG_TOKEN`                 |
 | [`@theholocron/holocron-plugin-postman`](./postman)     | tooling                                   | `HOLOCRON_POSTMAN_API_KEY`               |
+| [`@theholocron/holocron-plugin-sentry`](./sentry)       | observability                             | `HOLOCRON_SENTRY_TOKEN`                  |
+| [`@theholocron/holocron-plugin-slack`](./slack)         | notifications                             | `HOLOCRON_SLACK_TOKEN`                   |
 
 ## Writing a community plugin
 
