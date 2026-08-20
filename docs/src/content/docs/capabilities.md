@@ -179,18 +179,18 @@ Send messages. Implemented by: [Discord](./plugins/discord), [Slack](./plugins/s
 
 Project provisioning and tracking token retrieval for product analytics. Implemented by: [PostHog](./plugins/posthog).
 
-| Method                | Description                                                      |
-| --------------------- | ---------------------------------------------------------------- |
-| `describe()`          | Return the provider name and required env var keys               |
-| `whoami()`            | Verify the personal API key                                      |
-| `ensureProject(name)` | Find or create a project, returning its tracking token           |
+| Method                | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `describe()`          | Return the provider name and required env var keys     |
+| `whoami()`            | Verify the personal API key                            |
+| `ensureProject(name)` | Find or create a project, returning its tracking token |
 
 ### `observability`
 
 Error tracking — project provisioning and DSN retrieval. Implemented by: [Sentry](./plugins/sentry).
 
-| Method                  | Description                                                      |
-| ----------------------- | ---------------------------------------------------------------- |
-| `describe()`            | Return the provider name and required env var keys               |
-| `whoami()`              | Verify the token by fetching the organization                    |
-| `ensureProject(input)`  | Create or retrieve a project, returning its DSN                  |
+| Method                 | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `describe()`           | Return the provider name and required env var keys |
+| `whoami()`             | Verify the token by fetching the organization      |
+| `ensureProject(input)` | Create or retrieve a project, returning its DSN    |
