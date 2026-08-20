@@ -1,38 +1,60 @@
 ---
 title: Astro Config
-description: Astro configuration factory for theholocron docs sites.
+description: Astro + Starlight configuration factory for theholocron per-repo docs sites.
 ---
 
-`@theholocron/astro-config` provides a `defineConfig` factory that generates a standard Astro + Starlight configuration for per-repo docs sites, deriving the base URL, title, social links, and sidebar from the repo's docs config package.
+`@theholocron/astro-config` provides a `defineConfig` factory that wires up a standard Astro + Starlight configuration for per-repo docs sites, including base path, title, GitHub social link, sidebar, and the shared `docsTheme` plugin.
 
 ## Install
 
 ```bash
-pnpm add -D @theholocron/astro-config
+pnpm add -D @theholocron/astro-config @astrojs/starlight @theholocron/docs-theme
 ```
 
 ## Usage
 
 ```ts
 // astro.config.ts
+import starlight from "@astrojs/starlight";
 import { defineConfig } from "@theholocron/astro-config";
-import clientsConfig from "@theholocron/clients-docs";
+import { docsTheme } from "@theholocron/docs-theme";
 
 export default defineConfig({
-  docs: clientsConfig,
-  importMetaUrl: import.meta.url,
+  docs: {
+    name: "My Package",
+    github: "my-repo",
+    sidebar: [
+      { label: "Overview", slug: "" },
+      {
+        label: "Packages",
+        items: [{ label: "Something", slug: "something" }],
+      },
+    ],
+  },
+  starlight,
+  docsTheme,
+  srcDir: "./docs/src",
+  outDir: "./docs/dist",
+  publicDir: "./docs/public",
 });
 ```
 
-### Custom sidebar label
+## Options
 
-```ts
-import { defineConfig } from "@theholocron/astro-config";
-import holocronConfig from "@theholocron/holocron-docs";
+| Option        | Required | Description                                                                             |
+| ------------- | -------- | --------------------------------------------------------------------------------------- |
+| `docs`        | Yes      | Site metadata — `name`, `github` slug, and `sidebar` config                            |
+| `starlight`   | Yes      | The `starlight` integration import from `@astrojs/starlight`                            |
+| `docsTheme`   | Yes      | The `docsTheme` export from `@theholocron/docs-theme`                                   |
+| `srcDir`      | No       | Astro `srcDir` — use when `astro.config.ts` lives at the repo root, e.g. `./docs/src`  |
+| `outDir`      | No       | Astro `outDir`, e.g. `./docs/dist`                                                      |
+| `publicDir`   | No       | Astro `publicDir`, e.g. `./docs/public`                                                 |
+| `base`        | No       | URL base path. Defaults to `/${docs.github}` for GitHub Pages subpath deployment        |
 
-export default defineConfig({
-  docs: holocronConfig,
-  importMetaUrl: import.meta.url,
-  sidebarLabel: "Reference",
-});
-```
+## Exports
+
+| Export           | Description                            |
+| ---------------- | -------------------------------------- |
+| `defineConfig`   | Factory that returns an Astro config   |
+| `DocsConfig`     | Type for the `docs` field              |
+| `DocsConfigInput`| Full options type for `defineConfig`   |
