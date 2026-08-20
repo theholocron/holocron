@@ -211,6 +211,9 @@ export function deriveDeployPaths(raw: Record<string, unknown>): string[] {
 	const docs = raw["docs"];
 	if (docs === true) {
 		paths.push("docs/**");
+		paths.push("astro.config.ts");
+		paths.push("pnpm-workspace.yaml");
+		paths.push("pnpm-lock.yaml");
 	} else if (docs !== null && typeof docs === "object" && "path" in docs) {
 		const p = (docs as { path: string }).path;
 		if (p && p !== ".") paths.push(`${p}/**`);

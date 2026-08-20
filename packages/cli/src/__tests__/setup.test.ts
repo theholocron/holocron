@@ -1372,6 +1372,9 @@ describe("runSetup", () => {
 		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- astro.config.ts");
+		expect(deployContent).toContain("- pnpm-workspace.yaml");
+		expect(deployContent).toContain("- pnpm-lock.yaml");
 		expect(deployContent).toContain("- apps/web/**");
 		expect(deployContent).toContain("- packages/ui/**");
 	});
@@ -1406,6 +1409,9 @@ describe("runSetup", () => {
 		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- astro.config.ts");
+		expect(deployContent).toContain("- pnpm-workspace.yaml");
+		expect(deployContent).toContain("- pnpm-lock.yaml");
 		expect(deployContent).not.toContain("apps/");
 	});
 
@@ -1763,6 +1769,7 @@ describe("runSetup", () => {
 
 	it("writes .github/labeler.yml when bookkeeping workflow is configured", async () => {
 		const written: Record<string, string> = {};
+		const workflowFiles: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
 			workflows: ["lint", "bookkeeping"],
@@ -1778,7 +1785,9 @@ describe("runSetup", () => {
 					enableAutomatedSecurityFixes: async () => {},
 					enableSecretScanning: async () => {},
 					enablePrivateVulnerabilityReporting: async () => {},
-					writeWorkflowFile: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						workflowFiles[name] = content;
+					},
 					writeRepoFile: async (path: string, content: string) => {
 						written[path] = content;
 					},
@@ -1795,6 +1804,8 @@ describe("runSetup", () => {
 		expect(written[".github/labeler.yml"]).toMatch(/\n$/);
 		const step = report.steps.find((s) => s.step === "write .github/labeler.yml");
 		expect(step?.status).toBe("ok");
+		expect(workflowFiles["bookkeeping.yml"]).toContain("issues: write");
+		expect(workflowFiles["bookkeeping.yml"]).toContain("pull-requests: write");
 	});
 
 	it("does not write .github/labeler.yml when bookkeeping is not configured", async () => {
