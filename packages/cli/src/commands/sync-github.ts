@@ -12,6 +12,7 @@ import {
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
 	WORKFLOW_TEMPLATES,
+	workflowHeader,
 } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
@@ -177,18 +178,6 @@ function reusableHeader(source: string): string {
 	].join("\n");
 }
 
-function thinCallerHeader(forPrimary = false): string {
-	const doNotEdit = forPrimary
-		? `# AUTO-GENERATED — do not edit in theholocron/.github directly.`
-		: `# AUTO-GENERATED — do not edit directly.`;
-	return [
-		doNotEdit,
-		`# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts`,
-		`# Tool:    holocron sync-github`,
-		`# Changes: edit source in theholocron/holocron and push to alpha or main.`,
-		``,
-	].join("\n");
-}
 
 function buildBatch(
 	repo: string,
@@ -218,7 +207,7 @@ function buildBatch(
 		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
 				path: `workflow-templates/${name}.yml`,
-				content: thinCallerHeader(true) + content,
+				content: workflowHeader(undefined, true) + content,
 			});
 			const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 			if (props) {
@@ -238,7 +227,7 @@ function buildBatch(
 			if (!content) continue;
 			files.push({
 				path: `.github/workflows/${name}.yml`,
-				content: thinCallerHeader() + content,
+				content: workflowHeader() + content,
 			});
 		}
 	}

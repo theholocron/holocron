@@ -21,13 +21,28 @@ import staleYml from "./workflows/stale.yml";
 import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
 
-/** Header prepended when holocron setup writes a generated file to a repo. */
-export function workflowHeader(source = "packages/cli/src/commands/setup-workflows.ts"): string {
+/**
+ * Header prepended to every auto-generated workflow thin caller.
+ *
+ * Used by both `holocron setup` (initial creation) and `holocron sync-github`
+ * (subsequent updates) so the header is always identical regardless of which
+ * command last wrote the file.
+ *
+ * @param source - path within theholocron/holocron that owns the template
+ * @param forPrimary - true only when writing to theholocron/.github itself
+ */
+export function workflowHeader(
+	source = "packages/cli/src/commands/setup-workflows.ts",
+	forPrimary = false,
+): string {
+	const doNotEdit = forPrimary
+		? `# AUTO-GENERATED — do not edit in theholocron/.github directly.`
+		: `# AUTO-GENERATED — do not edit directly.`;
 	return [
-		`# AUTO-GENERATED — do not edit directly.`,
+		doNotEdit,
 		`# Source:  theholocron/holocron · ${source}`,
-		`# Tool:    holocron setup`,
-		`# Changes: run \`holocron setup\` to regenerate.`,
+		`# Tool:    holocron sync-github`,
+		`# Changes: edit source in theholocron/holocron and push to alpha or main.`,
 		``,
 	].join("\n");
 }
