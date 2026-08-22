@@ -1,0 +1,62 @@
+---
+title: docs-theme
+description: Starlight plugin providing the shared theme and createDocsLoader for @theholocron docs sites.
+---
+
+export const pkg = "@theholocron/docs-theme";
+
+`{pkg}` provides a Starlight plugin and a reusable content loader for all `@theholocron` documentation sites.
+
+## Install
+
+```bash
+pnpm add @theholocron/docs-theme
+```
+
+## Exports
+
+| Export                            | Description                                  |
+| --------------------------------- | -------------------------------------------- |
+| `@theholocron/docs-theme`         | `docsTheme()` Starlight plugin               |
+| `@theholocron/docs-theme/loader`  | `createDocsLoader()` Astro content loader    |
+| `@theholocron/docs-theme/content` | `createDocsCollections()` for content config |
+
+## Usage
+
+### Starlight plugin
+
+Wire up the plugin in `astro.config.ts` via `@theholocron/astro-config`:
+
+```ts
+import starlight from "@astrojs/starlight";
+import { defineConfig } from "@theholocron/astro-config";
+import { docsTheme } from "@theholocron/docs-theme";
+
+export default defineConfig({ docs: { ... }, starlight, docsTheme });
+```
+
+### Content collections
+
+Add `createDocsCollections()` to `docs/src/content.config.ts`:
+
+```ts
+import { createDocsCollections } from "@theholocron/docs-theme/content";
+export const collections = createDocsCollections();
+```
+
+### Custom content loader
+
+Use `createDocsLoader()` when content lives outside the standard Starlight path:
+
+```ts
+import { createDocsLoader } from "@theholocron/docs-theme/loader";
+import { defineCollection } from "astro:content";
+import { docsSchema } from "@astrojs/starlight/schema";
+
+export const collections = {
+  docs: defineCollection({
+    loader: createDocsLoader([{ dir: "/path/to/content", slug: "" }]),
+    schema: docsSchema(),
+  }),
+};
+```
