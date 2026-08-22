@@ -1,3 +1,5 @@
+## [1.5.0](https://github.com/theholocron/themes/compare/v1.4.5...v1.5.0) (2026-08-22)
+
 ## [1.4.5](https://github.com/theholocron/themes/compare/v1.4.4...v1.4.5) (2026-08-20)
 
 ## [1.4.4](https://github.com/theholocron/themes/compare/v1.4.3...v1.4.4) (2026-08-20)
