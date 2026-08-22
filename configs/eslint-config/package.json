@@ -54,6 +54,11 @@
       "import": "./dist/configs/base.js",
       "default": "./dist/configs/base.js"
     },
+    "./jsdoc": {
+      "types": "./dist/configs/jsdoc.d.ts",
+      "import": "./dist/configs/jsdoc.js",
+      "default": "./dist/configs/jsdoc.js"
+    },
     "./typescript": {
       "types": "./dist/configs/typescript.d.ts",
       "import": "./dist/configs/typescript.js",
@@ -125,6 +130,7 @@
     "@vitest/eslint-plugin": "^1",
     "eslint": "^10",
     "eslint-plugin-cypress": "^6",
+    "eslint-plugin-jsdoc": "^50.0.0",
     "eslint-plugin-n": "^18",
     "eslint-plugin-react": "^7",
     "eslint-plugin-simple-import-sort": "^14",
@@ -134,6 +140,9 @@
   },
   "peerDependenciesMeta": {
     "@next/eslint-plugin-next": {
+      "optional": true
+    },
+    "eslint-plugin-jsdoc": {
       "optional": true
     },
     "@vitest/eslint-plugin": {
