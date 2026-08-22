@@ -14,6 +14,10 @@ export function packageJson(): Linter.Config[] {
 				// workspace:* is intentional in peerDependencies for monorepo-internal
 				// packages; turning off avoids false positives on pnpm workspace refs.
 				"package-json/no-wildcard-dependencies": "off",
+				// @eslint/json 2.x provides a JSON sourceCode object without
+				// getAllComments(), causing this core rule to crash when linting
+				// package.json files. JSON files have no comments to check anyway.
+				"no-irregular-whitespace": "off",
 			},
 		},
 	];
