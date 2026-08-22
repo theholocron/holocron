@@ -17,6 +17,10 @@ export function library() {
 				// (e.g. tsdown banner) rather than written in source. The hashbang rule
 				// produces false positives in both cases for the library use-case.
 				"n/hashbang": "off",
+				// tsdown compiles src/ → dist/ and package.json#files lists dist/ only.
+				// Every relative src/ import is therefore flagged as unpublished — a
+				// universal false positive for the TypeScript src→dist build model.
+				"n/no-unpublished-import": "off",
 			},
 		},
 	];
