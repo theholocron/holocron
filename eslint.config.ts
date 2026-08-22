@@ -10,14 +10,6 @@ export default [
 		// a package — override at workspace level to match our engines requirement.
 		// TODO: move engines.node into each package.json instead (#111 follow-up).
 		settings: { node: { version: ">=22.0.0" } },
-		rules: {
-			// src/ files are compiled to dist/ by tsdown; `files` in package.json
-			// lists dist/, so the plugin flags every relative src/ import as
-			// "unpublished". Project-level false positive for the TypeScript
-			// src→dist build model — intentionally kept here rather than disabled
-			// in the shared org config where the rule is genuinely useful.
-			"n/no-unpublished-import": "off",
-		},
 	},
 	{
 		files: ["docs/src/**"],
