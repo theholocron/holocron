@@ -31,10 +31,7 @@ import typecheckYml from "./workflows/typecheck.yml";
  * @param source - path within theholocron/holocron that owns the template
  * @param forPrimary - true only when writing to theholocron/.github itself
  */
-export function workflowHeader(
-	source = "packages/cli/src/commands/setup-workflows.ts",
-	forPrimary = false,
-): string {
+export function workflowHeader(source = "packages/cli/src/commands/setup-workflows.ts", forPrimary = false): string {
 	const doNotEdit = forPrimary
 		? `# AUTO-GENERATED — do not edit in theholocron/.github directly.`
 		: `# AUTO-GENERATED — do not edit directly.`;
