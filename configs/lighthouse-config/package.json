@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/lighthouse-config",
-  "version": "7.22.3",
+  "version": "7.22.4",
   "description": "A Lighthouse CI configuration for auditing performance and accessibility within the Galaxy.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/lighthouse-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
