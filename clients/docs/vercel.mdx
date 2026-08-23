@@ -2,14 +2,12 @@
 title: Vercel Client
 description: TypeScript client for the Vercel REST API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/vercel-client` is a typed wrapper around the Vercel API for managing deployments, projects, and environment variables.
+<PackageHeader entry={getClients()["vercel-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/vercel-client
-```
+<Installation package={getClients()["vercel-client"].package} />
 
 ## Usage
 

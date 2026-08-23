@@ -2,14 +2,12 @@
 title: Google Client
 description: TypeScript client for Google Workspace APIs (Docs and Sheets), built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/google-client` is a typed wrapper around Google Workspace APIs for reading Google Docs and Sheets.
+<PackageHeader entry={getClients()["google-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/google-client
-```
+<Installation package={getClients()["google-client"].package} />
 
 ## Usage
 

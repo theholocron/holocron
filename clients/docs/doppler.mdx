@@ -2,14 +2,12 @@
 title: Doppler Client
 description: TypeScript client for the Doppler secrets manager API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/doppler-client` is a typed wrapper around the Doppler v3 API for managing projects, environments, and secrets.
+<PackageHeader entry={getClients()["doppler-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/doppler-client
-```
+<Installation package={getClients()["doppler-client"].package} />
 
 ## Usage
 

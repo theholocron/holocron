@@ -2,14 +2,12 @@
 title: Postman Client
 description: TypeScript client for the Postman API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/postman-client` is a typed wrapper around the Postman API for managing collections, environments, workspaces, and API specs.
+<PackageHeader entry={getClients()["postman-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/postman-client
-```
+<Installation package={getClients()["postman-client"].package} />
 
 ## Usage
 

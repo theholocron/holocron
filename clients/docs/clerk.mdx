@@ -2,14 +2,12 @@
 title: Clerk Client
 description: TypeScript client for the Clerk user management API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/clerk-client` is a typed wrapper around the Clerk backend API for managing users, instances, and webhooks.
+<PackageHeader entry={getClients()["clerk-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/clerk-client
-```
+<Installation package={getClients()["clerk-client"].package} />
 
 ## Usage
 

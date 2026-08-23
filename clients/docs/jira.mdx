@@ -2,14 +2,12 @@
 title: Jira Client
 description: TypeScript client for the Jira Cloud REST API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/jira-client` is a typed wrapper around the Jira Cloud REST API v2 for managing issues, projects, versions, and transitions.
+<PackageHeader entry={getClients()["jira-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/jira-client
-```
+<Installation package={getClients()["jira-client"].package} />
 
 ## Usage
 

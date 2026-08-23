@@ -2,14 +2,12 @@
 title: Neon Client
 description: TypeScript client for the Neon serverless Postgres API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/neon-client` is a typed wrapper around the Neon API for managing Postgres branches, databases, and connection URIs.
+<PackageHeader entry={getClients()["neon-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/neon-client
-```
+<Installation package={getClients()["neon-client"].package} />
 
 ## Usage
 

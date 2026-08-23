@@ -2,14 +2,12 @@
 title: HTTP Client (base)
 description: Shared HTTP primitives used by all @theholocron clients.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/http-client` is the base layer for all other clients in this monorepo. It provides a thin fetch-based REST client with token resolution and normalised error handling.
+<PackageHeader entry={getClients()["http-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/http-client
-```
+<Installation package={getClients()["http-client"].package} />
 
 ## Usage
 

@@ -2,14 +2,12 @@
 title: Zendesk Client
 description: TypeScript client for the Zendesk REST API, built on @theholocron/http-client.
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getClients } from "@theholocron/registry-doc";
 
-`@theholocron/zendesk-client` is a typed wrapper around the Zendesk Support API for managing tickets, statuses, fields, and search.
+<PackageHeader entry={getClients()["zendesk-client"]} />
 
-## Install
-
-```bash
-pnpm add @theholocron/zendesk-client
-```
+<Installation package={getClients()["zendesk-client"].package} />
 
 ## Usage
 
