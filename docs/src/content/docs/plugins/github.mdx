@@ -2,24 +2,20 @@
 title: GitHub Plugin
 description: Implements source, ci, secrets, environments, and issues against the GitHub REST API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-github` is the most full-featured first-party plugin. It implements five capabilities against the GitHub REST API using `@theholocron/github-client`.
+<PluginHeader entry={getPlugins()["holocron-plugin-github"]} capability="source" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-github"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-github
-```
-
-## Capabilities
-
-| Capability     | Token required                            |
-| -------------- | ----------------------------------------- |
-| `source`       | `HOLOCRON_ADMIN_TOKEN` (`github.admin`)   |
-| `ci`           | `HOLOCRON_READ_TOKEN` (`github.read`)     |
-| `secrets`      | `HOLOCRON_ADMIN_TOKEN` (`github.admin`)   |
-| `environments` | `HOLOCRON_ADMIN_TOKEN` (`github.admin`)   |
-| `issues`       | `HOLOCRON_ISSUES_TOKEN` (`github.issues`) |
+<CapabilitiesTable rows={[
+  { capability: "source", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
+  { capability: "ci", token: "HOLOCRON_READ_TOKEN (github.read)" },
+  { capability: "secrets", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
+  { capability: "environments", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
+  { capability: "issues", token: "HOLOCRON_ISSUES_TOKEN (github.issues)" },
+]} />
 
 ## Config
 

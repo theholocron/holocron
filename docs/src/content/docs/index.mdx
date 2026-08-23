@@ -1,0 +1,37 @@
+---
+title: Holocron
+description: A pluggable, capability-based CLI for spinning up and operating software projects.
+sidebar:
+  hidden: true
+---
+import { PackageGrid } from "@theholocron/components-doc";
+import { getHolocron } from "@theholocron/registry-doc";
+
+<PackageGrid packages={getHolocron()} />
+
+## Install
+
+```bash
+npm i -g @theholocron/cli
+# or per-project:
+pnpm add -D @theholocron/cli
+```
+
+## Quick example
+
+```bash
+# Authenticate once
+holocron auth set github.admin  ghp_xxx
+holocron auth set github.read   ghp_yyy
+
+# Apply full repo setup
+holocron setup
+
+# Sync repo metadata to GitHub
+holocron sync
+
+# Check all providers are reachable
+holocron doctor
+```
+
+See [Getting Started](./getting-started) for the full walkthrough.

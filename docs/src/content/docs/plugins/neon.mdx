@@ -2,20 +2,16 @@
 title: Neon Plugin
 description: Implements the storage capability against Neon's serverless Postgres REST API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-neon` implements the `storage` capability against [Neon](https://neon.tech/)'s REST API — branch operations, connection strings, and Postgres extension management.
+<PluginHeader entry={getPlugins()["holocron-plugin-neon"]} capability="storage" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-neon"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-neon
-```
-
-## Capabilities
-
-| Capability | Token required                   |
-| ---------- | -------------------------------- |
-| `storage`  | `HOLOCRON_NEON_API_KEY` (`neon`) |
+<CapabilitiesTable rows={[
+  { capability: "storage", token: "HOLOCRON_NEON_API_KEY (neon)" },
+]} />
 
 ## Config
 

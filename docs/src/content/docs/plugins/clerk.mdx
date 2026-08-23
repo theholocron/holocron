@@ -2,20 +2,16 @@
 title: Clerk Plugin
 description: Implements the auth capability against Clerk's Backend REST API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-clerk` implements the `auth` capability using Clerk's Backend API. It also exports a `parseWebhook` utility for normalizing Clerk webhook events into the canonical `AuthEvent` shape.
+<PluginHeader entry={getPlugins()["holocron-plugin-clerk"]} capability="auth" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-clerk"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-clerk
-```
-
-## Capabilities
-
-| Capability | Token required                        |
-| ---------- | ------------------------------------- |
-| `auth`     | `HOLOCRON_CLERK_SECRET_KEY` (`clerk`) |
+<CapabilitiesTable rows={[
+  { capability: "auth", token: "HOLOCRON_CLERK_SECRET_KEY (clerk)" },
+]} />
 
 ## Config
 
