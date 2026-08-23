@@ -2,20 +2,16 @@
 title: Slack Plugin
 description: Implements the notifications capability via Slack's bot API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-slack` implements the `notifications` capability using a Slack bot token. It posts messages to channels via `chat.postMessage`.
+<PluginHeader entry={getPlugins()["holocron-plugin-slack"]} capability="notifications" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-slack"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-slack
-```
-
-## Capabilities
-
-| Capability      | Token required                   |
-| --------------- | -------------------------------- |
-| `notifications` | `HOLOCRON_SLACK_TOKEN` (`slack`) |
+<CapabilitiesTable rows={[
+  { capability: "notifications", token: "HOLOCRON_SLACK_TOKEN (slack)" },
+]} />
 
 ## Config
 

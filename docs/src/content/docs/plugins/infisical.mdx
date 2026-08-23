@@ -2,20 +2,16 @@
 title: Infisical Plugin
 description: Implements the vault capability against Infisical's REST API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-infisical` implements the `vault` capability against [Infisical](https://infisical.com/)'s REST API, including Universal Auth for machine-to-machine token generation.
+<PluginHeader entry={getPlugins()["holocron-plugin-infisical"]} capability="vault" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-infisical"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-infisical
-```
-
-## Capabilities
-
-| Capability | Token required                           |
-| ---------- | ---------------------------------------- |
-| `vault`    | `HOLOCRON_INFISICAL_TOKEN` (`infisical`) |
+<CapabilitiesTable rows={[
+  { capability: "vault", token: "HOLOCRON_INFISICAL_TOKEN (infisical)" },
+]} />
 
 ## Config
 

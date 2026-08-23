@@ -11,7 +11,7 @@
     "^public/.*",
     "^packages/cli/src/commands/plugin-create/templates/.*",
     "^\\.notes/.*\\.spec\\.md$",
-    "^docs/src/content/docs/.*\\.md$"
+    "^docs/src/content/docs/.*\\.(md|mdx)$"
   ],
   "AllowedContentTypes": [],
   "PassedFiles": [],

@@ -2,20 +2,16 @@
 title: Cloudflare Plugin
 description: Implements the dns capability against Cloudflare's API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-cloudflare` implements the `dns` capability using Cloudflare's API. It handles DNS record management across zones, with automatic zone resolution from domain names.
+<PluginHeader entry={getPlugins()["holocron-plugin-cloudflare"]} capability="dns" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-cloudflare"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-cloudflare
-```
-
-## Capabilities
-
-| Capability | Token required                             |
-| ---------- | ------------------------------------------ |
-| `dns`      | `HOLOCRON_CLOUDFLARE_TOKEN` (`cloudflare`) |
+<CapabilitiesTable rows={[
+  { capability: "dns", token: "HOLOCRON_CLOUDFLARE_TOKEN (cloudflare)" },
+]} />
 
 ## Config
 

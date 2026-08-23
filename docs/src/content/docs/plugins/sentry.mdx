@@ -2,20 +2,16 @@
 title: Sentry Plugin
 description: Implements the observability capability against Sentry's management API.
 ---
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
 
-`@theholocron/holocron-plugin-sentry` implements the `observability` capability using Sentry's management API. It handles project provisioning and DSN retrieval for error tracking.
+<PluginHeader entry={getPlugins()["holocron-plugin-sentry"]} capability="observability" />
 
-## Install
+<Installation package={getPlugins()["holocron-plugin-sentry"].package} dev />
 
-```bash
-pnpm add -D @theholocron/holocron-plugin-sentry
-```
-
-## Capabilities
-
-| Capability      | Token required                     |
-| --------------- | ---------------------------------- |
-| `observability` | `HOLOCRON_SENTRY_TOKEN` (`sentry`) |
+<CapabilitiesTable rows={[
+  { capability: "observability", token: "HOLOCRON_SENTRY_TOKEN (sentry)" },
+]} />
 
 ## Config
 
