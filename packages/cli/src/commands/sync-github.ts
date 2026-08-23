@@ -178,7 +178,6 @@ function reusableHeader(source: string): string {
 	].join("\n");
 }
 
-
 function buildBatch(
 	repo: string,
 	allowedWorkflows?: Set<string>,
