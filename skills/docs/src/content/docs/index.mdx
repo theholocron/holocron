@@ -4,8 +4,10 @@ description: Shared agent skill registry for @theholocron projects.
 sidebar:
   hidden: true
 ---
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getSkills } from "@theholocron/registry-doc";
 
-`@theholocron/skills` is a shared registry of agent skills — reusable, invocable prompts that guide Claude and other agents through repeatable workflows in `@theholocron` repositories.
+<PackageHeader entry={getSkills()["skills"]} />
 
 ## Skills
 
@@ -21,21 +23,7 @@ sidebar:
 | [`pr-workflow`](./skills/pr-workflow) | Pull request workflow rules |
 | [`security-review`](./skills/security-review) | Security review checklist |
 
-## Install
-
-```bash
-npm i @theholocron/skills
-```
-
-Skills are exposed as importable files:
-
-```ts
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const skill = readFileSync(require.resolve("@theholocron/skills/skills/commit-standards/SKILL.md"), "utf-8");
-```
+<Installation package={getSkills()["skills"].package} />
 
 ## Using skills in Claude Code
 

@@ -45,7 +45,9 @@
     "astro": "catalog:",
     "conventional-changelog-conventionalcommits": "^10.2.1",
     "semantic-release": "^25.0.9",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@theholocron/components-doc": "^1.2.0",
+    "@theholocron/registry-doc": "^1.2.0"
   },
   "publishConfig": {
     "access": "public"
