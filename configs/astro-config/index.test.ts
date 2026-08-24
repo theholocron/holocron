@@ -4,6 +4,10 @@ vi.mock("astro/config", () => ({
 	defineConfig: vi.fn((config: unknown) => config),
 }));
 
+vi.mock("@astrojs/react", () => ({
+	default: vi.fn(() => ({ name: "@astrojs/react" })),
+}));
+
 import type starlight from "@astrojs/starlight";
 import type { docsTheme } from "@theholocron/docs-theme";
 
@@ -83,5 +87,12 @@ describe("defineConfig", () => {
 	it("allows base to be overridden", () => {
 		const config = defineConfig({ ...baseInput, base: "/" }) as { base: string };
 		expect(config.base).toBe("/");
+	});
+
+	it("includes @astrojs/react integration", () => {
+		const config = defineConfig(baseInput) as unknown as {
+			integrations: Array<{ name: string }>;
+		};
+		expect(config.integrations.some((i) => i.name === "@astrojs/react")).toBe(true);
 	});
 });

@@ -1,3 +1,4 @@
+import react from "@astrojs/react";
 import type starlight from "@astrojs/starlight";
 import type { docsTheme } from "@theholocron/docs-theme";
 import { defineConfig as astroDefineConfig } from "astro/config";
@@ -45,6 +46,7 @@ export function defineConfig({ docs, starlight, docsTheme, srcDir, outDir, publi
 				],
 				sidebar: docs.sidebar,
 			}),
+			react(),
 		],
 	});
 }
