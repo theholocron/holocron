@@ -33,8 +33,6 @@
       "default": "./dist/capabilities/index.mjs"
     }
   },
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
   "bin": {
     "holocron": "./dist/cli.mjs"
   },
