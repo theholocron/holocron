@@ -3,13 +3,12 @@ title: Environment Utils
 description: Runtime environment detection and typed env-var parsing.
 ---
 
-`@theholocron/env-utils` provides two complementary APIs: runtime environment detection and a typed `createEnvParser` factory for structured env-var access.
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getUtils } from "@theholocron/registry-doc";
 
-## Install
+<PackageHeader entry={getUtils()["env-utils"]} />
 
-```bash
-pnpm add @theholocron/env-utils
-```
+<Installation package={getUtils()["env-utils"].package} />
 
 ## Environment detection
 

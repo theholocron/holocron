@@ -3,13 +3,12 @@ title: Storage Utils
 description: Namespaced session storage.
 ---
 
-`@theholocron/storage-utils` provides a namespaced session storage abstraction. Apps register under a name and read/write isolated storage slices without key collisions.
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getUtils } from "@theholocron/registry-doc";
 
-## Install
+<PackageHeader entry={getUtils()["storage-utils"]} />
 
-```bash
-pnpm add @theholocron/storage-utils
-```
+<Installation package={getUtils()["storage-utils"].package} />
 
 ## API
 
