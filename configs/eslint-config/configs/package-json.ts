@@ -24,6 +24,10 @@ export function packageJson(): Linter.Config[] {
 				// is safe — these rules are meaningless for package.json files.
 				"n/no-unsupported-features/node-builtins": "off",
 				"n/no-extraneous-require": "off",
+				// sort-package-json (run by lint-staged) already owns field ordering
+				// and uses a different canonical order than this rule. Keeping both
+				// active causes an unresolvable conflict on every package.json change.
+				"package-json/sort-properties": "off",
 			},
 		},
 	];
