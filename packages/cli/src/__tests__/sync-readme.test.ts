@@ -300,124 +300,124 @@ describe("runSyncReadme", () => {
 	});
 });
 
-	// --- 4.3: packages, development, releases sections ---
+// --- 4.3: packages, development, releases sections ---
 
-	it("writes development section when marker exists", async () => {
-		const { readFileFn, writeFileFn, written } = makeFs({
-			"/tmp/test/package.json": SCRIPTS_PKG,
-			"/tmp/test/README.md": README_WITH_SECTIONS,
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		expect(written["/tmp/test/README.md"]).toContain("pnpm build");
-		expect(written["/tmp/test/README.md"]).toContain("pnpm test");
-		expect(written["/tmp/test/README.md"]).toContain("pnpm lint");
-		expect(written["/tmp/test/README.md"]).not.toContain("pnpm release");
+it("writes development section when marker exists", async () => {
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_SECTIONS,
 	});
-
-	it("writes releases section when marker exists", async () => {
-		const { readFileFn, writeFileFn, written } = makeFs({
-			"/tmp/test/package.json": SCRIPTS_PKG,
-			"/tmp/test/README.md": README_WITH_SECTIONS,
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		expect(written["/tmp/test/README.md"]).toContain("https://example.com/releases");
-		expect(written["/tmp/test/README.md"]).toContain("CHANGELOG.md");
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
 	});
+	expect(written["/tmp/test/README.md"]).toContain("pnpm build");
+	expect(written["/tmp/test/README.md"]).toContain("pnpm test");
+	expect(written["/tmp/test/README.md"]).toContain("pnpm lint");
+	expect(written["/tmp/test/README.md"]).not.toContain("pnpm release");
+});
 
-	it("writes packages section for known monorepo", async () => {
-		const { readFileFn, writeFileFn, written } = makeFs({
-			"/tmp/test/package.json": MONOREPO_PKG,
-			"/tmp/test/README.md": README_WITH_SECTIONS,
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "Clients.", homepage: "https://docs.theholocron.dev/clients" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		expect(written["/tmp/test/README.md"]).toContain("@theholocron/github-client");
+it("writes releases section when marker exists", async () => {
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_SECTIONS,
 	});
-
-	it("silently skips sections whose markers are absent", async () => {
-		const { readFileFn, writeFileFn, written } = makeFs({
-			"/tmp/test/package.json": SCRIPTS_PKG,
-			"/tmp/test/README.md": README_WITH_MARKERS,
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		// development/releases markers absent — README unchanged except installation
-		expect(written["/tmp/test/README.md"]).not.toContain("<!-- holocron:development -->");
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
 	});
+	expect(written["/tmp/test/README.md"]).toContain("https://example.com/releases");
+	expect(written["/tmp/test/README.md"]).toContain("CHANGELOG.md");
+});
 
-	// --- 4.4: index.mdx frontmatter ---
-
-	it("updates index.mdx description when file exists", async () => {
-		const mdxPath = "/tmp/test/docs/src/content/docs/index.mdx";
-		const { readFileFn, writeFileFn, written } = makeFs({
-			"/tmp/test/package.json": SCRIPTS_PKG,
-			"/tmp/test/README.md": README_WITH_MARKERS,
-			[mdxPath]: "---\ntitle: Overview\ndescription: old description\n---\n",
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "New description.", homepage: "https://example.com" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		expect(written[mdxPath]).toContain("description: New description.");
-		expect(written[mdxPath]).not.toContain("old description");
+it("writes packages section for known monorepo", async () => {
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": MONOREPO_PKG,
+		"/tmp/test/README.md": README_WITH_SECTIONS,
 	});
-
-	it("skips index.mdx write when description already matches", async () => {
-		const mdxPath = "/tmp/test/docs/src/content/docs/index.mdx";
-		const { readFileFn, writeFileFn } = makeFs({
-			"/tmp/test/package.json": SCRIPTS_PKG,
-			"/tmp/test/README.md": README_WITH_MARKERS,
-			[mdxPath]: "---\ntitle: Overview\ndescription: New description.\n---\n",
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "New description.", homepage: "https://example.com" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		expect(writeFileFn).not.toHaveBeenCalledWith(mdxPath, expect.anything(), expect.anything());
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "Clients.", homepage: "https://docs.theholocron.dev/clients" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
 	});
+	expect(written["/tmp/test/README.md"]).toContain("@theholocron/github-client");
+});
 
-	it("skips index.mdx update when file does not exist", async () => {
-		const { readFileFn, writeFileFn, written } = makeFs({
-			"/tmp/test/package.json": SCRIPTS_PKG,
-			"/tmp/test/README.md": README_WITH_MARKERS,
-		});
-		await runSyncReadme({
-			loaded: makeLoaded({ description: "New description.", homepage: "https://example.com" }),
-			context: { repoRoot: "/tmp/test" },
-			print: () => {},
-			readFileFn,
-			writeFileFn,
-		});
-		expect(Object.keys(written)).not.toContain("/tmp/test/docs/src/content/docs/index.mdx");
+it("silently skips sections whose markers are absent", async () => {
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_MARKERS,
 	});
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
+	});
+	// development/releases markers absent — README unchanged except installation
+	expect(written["/tmp/test/README.md"]).not.toContain("<!-- holocron:development -->");
+});
+
+// --- 4.4: index.mdx frontmatter ---
+
+it("updates index.mdx description when file exists", async () => {
+	const mdxPath = "/tmp/test/docs/src/content/docs/index.mdx";
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_MARKERS,
+		[mdxPath]: "---\ntitle: Overview\ndescription: old description\n---\n",
+	});
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "New description.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
+	});
+	expect(written[mdxPath]).toContain("description: New description.");
+	expect(written[mdxPath]).not.toContain("old description");
+});
+
+it("skips index.mdx write when description already matches", async () => {
+	const mdxPath = "/tmp/test/docs/src/content/docs/index.mdx";
+	const { readFileFn, writeFileFn } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_MARKERS,
+		[mdxPath]: "---\ntitle: Overview\ndescription: New description.\n---\n",
+	});
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "New description.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
+	});
+	expect(writeFileFn).not.toHaveBeenCalledWith(mdxPath, expect.anything(), expect.anything());
+});
+
+it("skips index.mdx update when file does not exist", async () => {
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_MARKERS,
+	});
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "New description.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
+	});
+	expect(Object.keys(written)).not.toContain("/tmp/test/docs/src/content/docs/index.mdx");
+});
 
 // --- config: EnvConfig ---
 

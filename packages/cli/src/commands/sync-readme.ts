@@ -3,15 +3,7 @@ import { join } from "node:path";
 
 import type { PackagesRegistry } from "@theholocron/components-doc/markdown";
 import { generateReadme } from "@theholocron/components-doc/markdown";
-import {
-	getClients,
-	getConfigs,
-	getDocs,
-	getPlugins,
-	getSkills,
-	getThemes,
-	getUtils,
-} from "@theholocron/registry-doc";
+import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
 import type { LoadedConfig } from "../load-config.js";
 import type { RuntimeContext } from "../loader.js";
@@ -70,7 +62,8 @@ function generateInstallBlock(pkg: PackageJson): string {
 	lines.push("", "## Usage", "");
 
 	if (isCli) {
-		const commands = typeof bin === "string" ? [name.split("/").at(-1)!] : Object.keys(bin as Record<string, string>);
+		const commands =
+			typeof bin === "string" ? [name.split("/").at(-1)!] : Object.keys(bin as Record<string, string>);
 		lines.push("```bash");
 		for (const cmd of commands) {
 			lines.push(`${cmd} --help`);
