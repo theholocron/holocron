@@ -2,13 +2,6 @@
   "name": "@theholocron/cli",
   "version": "3.29.12",
   "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
-  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
-  "bugs": "https://github.com/theholocron/holocron/issues",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "packages/cli"
-  },
   "keywords": [
     "cli",
     "devops",
@@ -17,15 +10,17 @@
     "orchestrator",
     "theholocron"
   ],
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/cli#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/cli"
+  },
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
-  "bin": {
-    "holocron": "./dist/cli.mjs"
-  },
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -37,6 +32,11 @@
       "import": "./dist/capabilities/index.mjs",
       "default": "./dist/capabilities/index.mjs"
     }
+  },
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "bin": {
+    "holocron": "./dist/cli.mjs"
   },
   "files": [
     "dist",
