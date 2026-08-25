@@ -447,7 +447,8 @@ try {
 					.positional("steps", {
 						type: "string",
 						array: true,
-						describe: "Steps to run: labels, properties, topics, keywords, description, homepage, readme (default: all)",
+						describe:
+							"Steps to run: labels, properties, topics, keywords, description, homepage, readme (default: all)",
 					})
 					.option("repo", {
 						type: "string",
