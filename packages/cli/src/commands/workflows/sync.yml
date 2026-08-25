@@ -7,6 +7,12 @@ on: # yamllint disable-line rule:truthy
       - holocron.config.ts
       - package.json
       - pnpm-workspace.yaml
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: Sync steps to run (default: all)
+        type: string
+        required: false
 
 concurrency:
   group: sync-${{ github.ref }}
@@ -20,4 +26,6 @@ jobs:
   sync:
     name: Sync
     uses: theholocron/.github/.github/workflows/sync.yml@main
+    with:
+      steps: ${{ inputs.steps }}
     secrets: inherit
