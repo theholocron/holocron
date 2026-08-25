@@ -1,0 +1,79 @@
+name: Sync
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      steps:
+        description: >
+          Sync steps to run (default: all). Valid values:
+          labels, properties, teams, topics, keywords, description, homepage, readme.
+          Pass a space-separated list to run a subset, e.g. "readme" or "readme description".
+        type: string
+        required: false
+    secrets:
+      HOLOCRON_SYNC_TOKEN:
+        required: false
+      GH_TOKEN:
+        description: >
+          Generic GitHub token fallback for gh CLI calls. Used when
+          HOLOCRON_SYNC_TOKEN is not set.
+        required: false
+
+jobs:
+  sync:
+    name: Sync repo from config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Configure git identity
+        run: |
+          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
+          GIT_EMAIL=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          git config --global format.signoff true
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - name: Run holocron sync
+        run: |
+          if [ -n "$STEPS" ]; then
+            # shellcheck disable=SC2086
+            pnpm exec holocron sync --steps $STEPS
+          else
+            pnpm exec holocron sync
+          fi
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          STEPS: ${{ inputs.steps }}
+
+      - name: Open PR if files changed
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes — nothing to commit."
+            exit 0
+          fi
+          BRANCH="chore/auto-sync"
+          git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+          git add -A
+          git commit -m "chore: sync from holocron.config"
+          git push --force-with-lease origin "$BRANCH"
+          gh pr create \
+            --title "chore: sync README and repo metadata" \
+            --body "Automated sync triggered by changes to config or package files. Merge to apply." \
+            --base main \
+            --head "$BRANCH" \
+          || echo "PR already exists — branch updated."
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
