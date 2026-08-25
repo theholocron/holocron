@@ -1,0 +1,69 @@
+name: Sync
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      steps:
+        description: >
+          Sync steps to run (default: all). Valid values:
+          labels, properties, teams, topics, keywords, description, homepage, readme.
+          Pass a space-separated list to run a subset, e.g. "readme" or "readme description".
+        type: string
+        required: false
+    secrets:
+      HOLOCRON_SYNC_TOKEN:
+        required: false
+      GH_TOKEN:
+        description: >
+          Generic GitHub token fallback for gh CLI calls. Used when
+          HOLOCRON_SYNC_TOKEN is not set.
+        required: false
+
+jobs:
+  sync:
+    name: Sync repo from config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Run holocron sync
+        run: |
+          if [ -n "$STEPS" ]; then
+            # shellcheck disable=SC2086
+            pnpm exec holocron sync --steps $STEPS
+          else
+            pnpm exec holocron sync
+          fi
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          STEPS: ${{ inputs.steps }}
+
+      - uses: theholocron/.github/.github/actions/auto-commit@main
+        id: auto-commit
+        name: Commit sync changes
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+          branch: chore/auto-sync
+          commit-message: "chore: sync from holocron.config"
+
+      - name: Open PR if changes were committed
+        if: steps.auto-commit.outputs.changes-detected == 'true'
+        run: |
+          gh pr create \
+            --title "chore: sync README and repo metadata" \
+            --body "Automated sync triggered by changes to config or package files. Merge to apply." \
+            --base main \
+            --head chore/auto-sync \
+          || echo "PR already open — branch updated."
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
