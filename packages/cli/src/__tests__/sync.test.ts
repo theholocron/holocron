@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthError } from "../auth-resolver.js";
 import { runSync } from "../commands/sync.js";
-import { runSyncReadme } from "../commands/sync-readme.js";
 import type { RunSyncReadmeInput, SyncReadmeReport } from "../commands/sync-readme.js";
+import { runSyncReadme } from "../commands/sync-readme.js";
 
 vi.mock("../commands/sync-readme.js", () => ({
 	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> =>

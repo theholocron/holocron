@@ -298,7 +298,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			steps.push({
 				capability: "local",
 				step: "sync readme",
-				status: report.status === "ok" ? "ok" : report.status === "dry-run" ? "dry-run" : report.updated ? "ok" : "skip",
+				status: report.status === "ok" ? "ok" : report.status === "dry-run" ? "dry-run" : "skip",
 				...(report.message ? { message: report.message } : {}),
 			});
 			print(formatSyncStep(steps[steps.length - 1]!));
