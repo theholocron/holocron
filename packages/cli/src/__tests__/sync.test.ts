@@ -10,8 +10,9 @@ import type { RunSyncReadmeInput, SyncReadmeReport } from "../commands/sync-read
 import { runSyncReadme } from "../commands/sync-readme.js";
 
 vi.mock("../commands/sync-readme.js", () => ({
-	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> =>
-		input.context.dryRun ? { status: "dry-run", updated: false } : { status: "ok", updated: true }
+	runSyncReadme: vi.fn(
+		async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> =>
+			input.context.dryRun ? { status: "dry-run", updated: false } : { status: "ok", updated: true }
 	),
 }));
 import { resolveConfig } from "../config.js";
@@ -1158,7 +1159,9 @@ describe("runSync", () => {
 				providers: { source: "github" },
 			});
 			const loader = makeLoaderWith(loaded, {
-				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: { syncTopics: async () => "1 set" } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: { syncTopics: async () => "1 set" },
+				}),
 			});
 
 			await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["topics"], print: () => {} });
@@ -1185,7 +1188,11 @@ describe("runSync", () => {
 		});
 
 		it("reports skip status when runSyncReadme fails", async () => {
-			vi.mocked(runSyncReadme).mockResolvedValueOnce({ status: "fail", updated: false, message: "README.md not found" });
+			vi.mocked(runSyncReadme).mockResolvedValueOnce({
+				status: "fail",
+				updated: false,
+				message: "README.md not found",
+			});
 			const loaded = loadedFrom({ name: "demo", providers: {} });
 			const loader = makeLoaderWith(loaded, {});
 

@@ -9,7 +9,16 @@ import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 import { runSyncReadme } from "./sync-readme.js";
 
-export const SYNC_STEPS = ["labels", "properties", "teams", "topics", "keywords", "description", "homepage", "readme"] as const;
+export const SYNC_STEPS = [
+	"labels",
+	"properties",
+	"teams",
+	"topics",
+	"keywords",
+	"description",
+	"homepage",
+	"readme",
+] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
