@@ -18,6 +18,7 @@ import dependenciesWorkflow from "./workflows/dependencies.yml";
 import deployWorkflow from "./workflows/deploy.yml";
 import greetingsWorkflow from "./workflows/greetings.yml";
 import lintWorkflow from "./workflows/lint.yml";
+import postReleaseWorkflow from "./workflows/post-release.yml";
 import releaseWorkflow from "./workflows/release.yml";
 import reviewWorkflow from "./workflows/review.yml";
 import staleWorkflow from "./workflows/stale.yml";
@@ -42,6 +43,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	deploy: deployWorkflow,
 	greetings: greetingsWorkflow,
 	lint: lintWorkflow,
+	"post-release": postReleaseWorkflow,
 	release: releaseWorkflow,
 	review: reviewWorkflow,
 	stale: staleWorkflow,
