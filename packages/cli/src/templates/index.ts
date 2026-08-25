@@ -7,6 +7,7 @@
  * inlines them as string exports at build time.
  */
 
+import autoCommitAction from "./actions/auto-commit.yml";
 import installAction from "./actions/install.yml";
 import setupAction from "./actions/setup.yml";
 import setupNodeAction from "./actions/setup-node.yml";
@@ -20,13 +21,15 @@ import lintWorkflow from "./workflows/lint.yml";
 import releaseWorkflow from "./workflows/release.yml";
 import reviewWorkflow from "./workflows/review.yml";
 import staleWorkflow from "./workflows/stale.yml";
+import syncWorkflow from "./workflows/sync.yml";
 import syncGithubWorkflow from "./workflows/sync-github.yml";
 import testWorkflow from "./workflows/test.yml";
 import typecheckWorkflow from "./workflows/typecheck.yml";
 
 export const ACTIONS: Record<string, string> = {
-	"setup/action": setupAction,
+	"auto-commit/action": autoCommitAction,
 	"install/action": installAction,
+	"setup/action": setupAction,
 	"setup-node/action": setupNodeAction,
 };
 
@@ -42,6 +45,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	review: reviewWorkflow,
 	stale: staleWorkflow,
 	"sync-github": syncGithubWorkflow,
+	sync: syncWorkflow,
 	test: testWorkflow,
 	typecheck: typecheckWorkflow,
 };

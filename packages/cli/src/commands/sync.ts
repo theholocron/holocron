@@ -7,12 +7,22 @@ import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
+import { runSyncReadme } from "./sync-readme.js";
 
-export const SYNC_STEPS = ["labels", "properties", "teams", "topics", "keywords", "description", "homepage"] as const;
+export const SYNC_STEPS = [
+	"labels",
+	"properties",
+	"teams",
+	"topics",
+	"keywords",
+	"description",
+	"homepage",
+	"readme",
+] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
-const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage"]);
+const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme"]);
 
 export interface RunSyncInput {
 	loaded: LoadedConfig;
@@ -198,11 +208,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	}
 
 	// ── local-only steps (no provider token required) ──────────────────
-	// keywords and description write to package.json / README.md and
+	// keywords, description, homepage, and readme write to local files and
 	// optionally push to GitHub when source is loaded. They run outside
 	// the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description", "homepage"] as const) {
+	for (const stepName of ["keywords", "description", "homepage", "readme"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -290,6 +300,17 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				);
 				print(formatSyncStep(steps[steps.length - 1]!));
 			}
+		}
+
+		if (stepName === "readme") {
+			const report = await runSyncReadme({ loaded: input.loaded, context: input.context, print: () => {} });
+			steps.push({
+				capability: "local",
+				step: "sync readme",
+				status: report.status === "ok" ? "ok" : report.status === "dry-run" ? "dry-run" : "skip",
+				...(report.message ? { message: report.message } : {}),
+			});
+			print(formatSyncStep(steps[steps.length - 1]!));
 		}
 	}
 
