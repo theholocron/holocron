@@ -18,6 +18,7 @@ import lintYml from "./workflows/lint.yml";
 import releaseYml from "./workflows/release.yml";
 import reviewYml from "./workflows/review.yml";
 import staleYml from "./workflows/stale.yml";
+import syncYml from "./workflows/sync.yml";
 import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
 
@@ -60,6 +61,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	review: reviewYml,
 	release: releaseYml,
 	stale: staleYml,
+	sync: syncYml,
 	greetings: greetingsYml,
 	dependencies: dependenciesYml,
 	bookkeeping: bookkeepingYml,
