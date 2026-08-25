@@ -7,6 +7,7 @@
  * inlines them as string exports at build time.
  */
 
+import autoCommitAction from "./actions/auto-commit.yml";
 import installAction from "./actions/install.yml";
 import setupAction from "./actions/setup.yml";
 import setupNodeAction from "./actions/setup-node.yml";
@@ -26,8 +27,9 @@ import testWorkflow from "./workflows/test.yml";
 import typecheckWorkflow from "./workflows/typecheck.yml";
 
 export const ACTIONS: Record<string, string> = {
-	"setup/action": setupAction,
+	"auto-commit/action": autoCommitAction,
 	"install/action": installAction,
+	"setup/action": setupAction,
 	"setup-node/action": setupNodeAction,
 };
 

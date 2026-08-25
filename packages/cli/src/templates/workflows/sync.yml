@@ -36,16 +36,6 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - name: Configure git identity
-        run: |
-          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
-          GIT_EMAIL=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
-          git config --global user.name "$GIT_NAME"
-          git config --global user.email "$GIT_EMAIL"
-          git config --global format.signoff true
-        env:
-          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
-
       - name: Run holocron sync
         run: |
           if [ -n "$STEPS" ]; then
@@ -58,22 +48,22 @@ jobs:
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           STEPS: ${{ inputs.steps }}
 
-      - name: Open PR if files changed
+      - uses: theholocron/.github/.github/actions/auto-commit@main
+        id: auto-commit
+        name: Commit sync changes
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+          branch: chore/auto-sync
+          commit-message: "chore: sync from holocron.config\n\nSigned-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+
+      - name: Open PR if changes were committed
+        if: steps.auto-commit.outputs.changes-detected == 'true'
         run: |
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "No changes — nothing to commit."
-            exit 0
-          fi
-          BRANCH="chore/auto-sync"
-          git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
-          git add -A
-          git commit -m "chore: sync from holocron.config"
-          git push --force-with-lease origin "$BRANCH"
           gh pr create \
             --title "chore: sync README and repo metadata" \
             --body "Automated sync triggered by changes to config or package files. Merge to apply." \
             --base main \
-            --head "$BRANCH" \
-          || echo "PR already exists — branch updated."
+            --head chore/auto-sync \
+          || echo "PR already open — branch updated."
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
