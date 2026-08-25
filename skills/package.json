@@ -26,6 +26,7 @@
     "test:coverage": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs"
   },
   "devDependencies": {
+    "@astrojs/react": "^6.0.4",
     "@astrojs/starlight": "catalog:",
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
@@ -44,18 +45,19 @@
     "@theholocron/holocron-plugin-github": "catalog:holocron",
     "astro": "catalog:",
     "conventional-changelog-conventionalcommits": "^10.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "semantic-release": "^25.0.9",
     "typescript": "^5.9.3",
-    "@theholocron/components-doc": "^1.2.0",
-    "@theholocron/registry-doc": "^1.2.0"
+    "@theholocron/components-doc": "^1.6.0",
+    "@theholocron/registry-doc": "^1.6.0"
   },
   "publishConfig": {
     "access": "public"
   },
   "packageManager": "pnpm@10.34.4",
   "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
+    "node": ">=22"
   },
   "releases": "https://github.com/theholocron/skills/releases",
   "wiki": "https://github.com/theholocron/skills/wiki"

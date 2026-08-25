@@ -4,24 +4,14 @@ description: Shared agent skill registry for @theholocron projects.
 sidebar:
   hidden: true
 ---
-import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { PackageHeader, Installation, RepoIndex } from "@theholocron/components-doc";
 import { getSkills } from "@theholocron/registry-doc";
 
 <PackageHeader entry={getSkills()["skills"]} />
 
 ## Skills
 
-| Skill | Description |
-| --- | --- |
-| [`commit-standards`](./skills/commit-standards) | Conventional Commits format and DCO signing rules |
-| [`git-safety`](./skills/git-safety) | Guard rails for destructive git operations |
-| [`holocron-skill-client`](./skills/holocron-skill-client) | Scaffold a new HTTP client package in `theholocron/clients` |
-| [`holocron-skill-config`](./skills/holocron-skill-config) | Scaffold a new shareable config package in `theholocron/configs` |
-| [`holocron-skill-plugin`](./skills/holocron-skill-plugin) | Scaffold a new `holocron-plugin-*` package |
-| [`holocron-skill-skill`](./skills/holocron-skill-skill) | Add a new owned skill to `theholocron/skills` |
-| [`holocron-skill-util`](./skills/holocron-skill-util) | Scaffold a new utility package in `theholocron/utils` |
-| [`pr-workflow`](./skills/pr-workflow) | Pull request workflow rules |
-| [`security-review`](./skills/security-review) | Security review checklist |
+<RepoIndex type="skills" />
 
 <Installation package={getSkills()["skills"].package} />
 
