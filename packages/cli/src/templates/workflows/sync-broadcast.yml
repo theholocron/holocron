@@ -1,0 +1,35 @@
+name: Sync Broadcast
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: >
+          Sync steps to pass to each repo's sync.yml. Default is "readme"
+          (only README marker blocks are updated).
+        type: string
+        required: false
+        default: readme
+
+permissions:
+  contents: read
+
+jobs:
+  broadcast:
+    name: Broadcast sync to all repos
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Dispatch sync to all repos with sync.yml
+        run: |
+          gh api /orgs/theholocron/repos --paginate --jq '.[].name' \
+            | while IFS= read -r repo; do
+              gh api "/repos/theholocron/$repo/contents/.github/workflows/sync.yml" --silent 2>/dev/null || continue
+              echo "Dispatching sync to theholocron/$repo"
+              gh workflow run sync.yml \
+                --repo "theholocron/$repo" \
+                --field "steps=$STEPS"
+            done
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          STEPS: ${{ inputs.steps }}
