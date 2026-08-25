@@ -6,6 +6,7 @@ name: Sync GitHub Templates
 #
 # Secrets required:
 #   HOLOCRON_SYNC_TOKEN — fine-grained PAT (resource owner: org) with:
+#                  Actions:       Read and write  (dispatch workflow runs via gh workflow run)
 #                  Contents:      Read and write  (git trees, blobs, refs)
 #                  Pull requests: Read and write  (open sync PR)
 #                  Workflows:     Read and write  (write .github/workflows/*.yml)
