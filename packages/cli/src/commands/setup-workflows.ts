@@ -15,6 +15,7 @@ import dependenciesYml from "./workflows/dependencies.yml";
 import deployYml from "./workflows/deploy.yml";
 import greetingsYml from "./workflows/greetings.yml";
 import lintYml from "./workflows/lint.yml";
+import postReleaseYml from "./workflows/post-release.yml";
 import releaseYml from "./workflows/release.yml";
 import reviewYml from "./workflows/review.yml";
 import staleYml from "./workflows/stale.yml";
@@ -59,6 +60,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	typecheck: typecheckYml,
 	codeql: codeqlYml,
 	review: reviewYml,
+	"post-release": postReleaseYml,
 	release: releaseYml,
 	stale: staleYml,
 	sync: syncYml,
