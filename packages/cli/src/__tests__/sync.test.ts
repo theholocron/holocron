@@ -6,6 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthError } from "../auth-resolver.js";
 import { runSync } from "../commands/sync.js";
+import { runSyncReadme } from "../commands/sync-readme.js";
+import type { RunSyncReadmeInput, SyncReadmeReport } from "../commands/sync-readme.js";
+
+vi.mock("../commands/sync-readme.js", () => ({
+	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> =>
+		input.context.dryRun ? { status: "dry-run", updated: false } : { status: "ok", updated: true }
+	),
+}));
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
@@ -39,6 +47,10 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 }
 
 describe("runSync", () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
 	it("runs all sync steps when no steps filter is given", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
@@ -69,10 +81,10 @@ describe("runSync", () => {
 		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
-		expect(report.steps).toHaveLength(7);
-		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(5);
+		expect(report.steps).toHaveLength(8);
+		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(6);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 5, fail: 0, skip: 2 });
+		expect(report.summary).toMatchObject({ ok: 6, fail: 0, skip: 2 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -216,7 +228,7 @@ describe("runSync", () => {
 
 		expect(called).toBe(false);
 		expect(report.steps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
-		expect(report.summary.dryRun).toBe(5);
+		expect(report.summary.dryRun).toBe(6);
 	});
 
 	it("reports skip when provider does not implement syncLabels", async () => {
@@ -1109,5 +1121,101 @@ describe("runSync", () => {
 		expect(step?.status).toBe("fail");
 		expect(step?.message).toContain("API rate limit");
 		expect(report.summary.fail).toBe(1);
+	});
+
+	describe("sync readme step", () => {
+		it("runs the readme step when no steps filter is given", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+			expect(runSyncReadme).toHaveBeenCalledOnce();
+		});
+
+		it("runs the readme step when steps includes 'readme'", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			expect(runSyncReadme).toHaveBeenCalledOnce();
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("ok");
+		});
+
+		it("skips the readme step when steps does not include 'readme'", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				description: "A demo CLI tool",
+				repo: { topics: ["ts"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: { syncTopics: async () => "1 set" } }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["topics"], print: () => {} });
+
+			expect(runSyncReadme).not.toHaveBeenCalled();
+		});
+
+		it("works without a provider token (local-only step)", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			vi.spyOn(loader, "load").mockRejectedValue(new AuthError("no token"));
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			expect(runSyncReadme).toHaveBeenCalledOnce();
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("ok");
+		});
+
+		it("reports skip status when runSyncReadme fails", async () => {
+			vi.mocked(runSyncReadme).mockResolvedValueOnce({ status: "fail", updated: false, message: "README.md not found" });
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("README.md not found");
+		});
+
+		it("reports dry-run status when context.dryRun is true", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("dry-run");
+		});
 	});
 });
