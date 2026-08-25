@@ -1,0 +1,67 @@
+name: Auto Commit
+description: >
+  Commit and push any file changes using stefanzweifel/git-auto-commit-action.
+  If a branch name is provided and differs from the current branch, a new branch
+  is created automatically.
+
+inputs:
+  token:
+    description: >
+      GitHub token with push access to the target branch. Used to authenticate
+      the git remote so the commit can be pushed.
+    required: true
+  branch:
+    description: >
+      Branch to commit to. Leave empty to commit to the current branch (useful
+      in PR contexts). Provide an explicit name (e.g. chore/auto-sync) to push
+      to a separate branch.
+    required: false
+    default: ""
+  commit-message:
+    description: Commit message.
+    required: true
+  commit-options:
+    description: >
+      Additional options passed to git commit (e.g. --no-verify).
+    required: false
+    default: ""
+  commit-user-name:
+    description: Git user.name for the commit.
+    required: false
+    default: "github-actions[bot]"
+  commit-user-email:
+    description: Git user.email for the commit.
+    required: false
+    default: "41898282+github-actions[bot]@users.noreply.github.com"
+  commit-author:
+    description: >
+      Git author string in "Name <email>" format.
+    required: false
+    default: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+
+outputs:
+  changes-detected:
+    description: "'true' if any files were committed, 'false' otherwise."
+    value: ${{ steps.commit.outputs.changes_detected }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure git remote with token
+      shell: bash
+      run: |
+        REMOTE_URL=$(git remote get-url origin)
+        AUTHED_URL=$(echo "$REMOTE_URL" | sed "s|https://|https://x-access-token:${TOKEN}@|")
+        git remote set-url origin "$AUTHED_URL"
+      env:
+        TOKEN: ${{ inputs.token }}
+
+    - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+      id: commit
+      with:
+        branch: ${{ inputs.branch }}
+        commit_message: ${{ inputs.commit-message }}
+        commit_options: ${{ inputs.commit-options }}
+        commit_user_name: ${{ inputs.commit-user-name }}
+        commit_user_email: ${{ inputs.commit-user-email }}
+        commit_author: ${{ inputs.commit-author }}
