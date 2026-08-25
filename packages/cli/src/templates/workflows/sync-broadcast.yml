@@ -24,13 +24,11 @@ jobs:
         run: |
           gh api /orgs/theholocron/repos --paginate --jq '.[].name' \
             | while IFS= read -r repo; do
-              if gh api "/repos/theholocron/$repo/contents/.github/workflows/sync.yml" \
-                   --silent 2>/dev/null; then
-                echo "Dispatching sync to theholocron/$repo"
-                gh workflow run sync.yml \
-                  --repo "theholocron/$repo" \
-                  --field "steps=$STEPS"
-              fi
+              gh api "/repos/theholocron/$repo/contents/.github/workflows/sync.yml" --silent 2>/dev/null || continue
+              echo "Dispatching sync to theholocron/$repo"
+              gh workflow run sync.yml \
+                --repo "theholocron/$repo" \
+                --field "steps=$STEPS"
             done
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
