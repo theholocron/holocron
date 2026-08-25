@@ -10,7 +10,7 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       steps:
-        description: Sync steps to run (default: all)
+        description: "Sync steps to run (default: all)"
         type: string
         required: false
 
