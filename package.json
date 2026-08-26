@@ -3,19 +3,12 @@
   "version": "3.30.6",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/holocron.git"
-  },
   "homepage": "https://docs.theholocron.dev/holocron/",
   "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": "github:theholocron/holocron",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
-  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "audit": "knip",
     "build": "turbo run build",
@@ -27,6 +20,7 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
+    "@astrojs/react": "^5.0.0",
     "@astrojs/starlight": "^0.41.7",
     "@commitlint/types": "^21.2.0",
     "@semantic-release/changelog": "^6.0.3",
@@ -77,6 +71,10 @@
     "turbo": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "^8.67.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
   },
   "pnpm": {
     "overrides": {
