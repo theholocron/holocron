@@ -23,12 +23,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
+      "types": "./src/index.ts",
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./capabilities": {
-      "types": "./dist/capabilities/index.d.mts",
+      "types": "./src/capabilities/index.ts",
       "import": "./dist/capabilities/index.mjs",
       "default": "./dist/capabilities/index.mjs"
     }
