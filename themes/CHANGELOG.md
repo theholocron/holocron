@@ -2,11 +2,11 @@
 
 ### Bug Fixes
 
-* 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#72](https://github.com/theholocron/themes/issues/72)) ([bb50cef](https://github.com/theholocron/themes/commit/bb50cef671ea665ce1f436aec1a8eac87456a1e6))
+- 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#72](https://github.com/theholocron/themes/issues/72)) ([bb50cef](https://github.com/theholocron/themes/commit/bb50cef671ea665ce1f436aec1a8eac87456a1e6))
 
 ### Chores
 
-* sync from theholocron/holocron ([#71](https://github.com/theholocron/themes/issues/71)) ([bb7c886](https://github.com/theholocron/themes/commit/bb7c886a2d33b786a1042957901b553cfbf9f000))
+- sync from theholocron/holocron ([#71](https://github.com/theholocron/themes/issues/71)) ([bb7c886](https://github.com/theholocron/themes/commit/bb7c886a2d33b786a1042957901b553cfbf9f000))
 
 ## [1.7.1](https://github.com/theholocron/themes/compare/v1.7.0...v1.7.1) (2026-08-25)
 
