@@ -68,6 +68,9 @@ jobs:
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           STEPS: ${{ inputs.steps }}
 
+      - name: Format generated files
+        run: pnpm exec prettier --write README.md docs/src/content/docs/index.mdx 2>/dev/null || true
+
       - uses: theholocron/.github/.github/actions/auto-commit@main
         id: auto-commit
         name: Commit sync changes
