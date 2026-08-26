@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/theholocron/utils/compare/v1.4.1...v1.4.2) (2026-08-26)
+
+### Chores
+
+* **deps:** Bump the all-dependencies group with 5 updates ([#244](https://github.com/theholocron/utils/issues/244)) ([d9c8de7](https://github.com/theholocron/utils/commit/d9c8de764b45de499efe6f30bec25b6ac9f8d6c1))
+
 ## [1.4.1](https://github.com/theholocron/utils/compare/v1.4.0...v1.4.1) (2026-08-26)
 
 ### Bug Fixes
