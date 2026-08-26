@@ -37,8 +37,7 @@
     "holocron": "./dist/cli.mjs"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsdown --config-loader tsx",
