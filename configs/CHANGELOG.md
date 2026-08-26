@@ -2,20 +2,20 @@
 
 ### Bug Fixes
 
-* **eslint-config:** 🐛 disable no-workspace-protocol-in-published-package — pnpm rewrites workspace:* on publish ([#393](https://github.com/theholocron/configs/issues/393)) ([c5634bf](https://github.com/theholocron/configs/commit/c5634bf082d371a6eb676cf17f9d660a7e3ba151))
+- **eslint-config:** 🐛 disable no-workspace-protocol-in-published-package — pnpm rewrites workspace:\* on publish ([#393](https://github.com/theholocron/configs/issues/393)) ([c5634bf](https://github.com/theholocron/configs/commit/c5634bf082d371a6eb676cf17f9d660a7e3ba151))
 
 ## [7.25.1](https://github.com/theholocron/configs/compare/v7.25.0...v7.25.1) (2026-08-26)
 
 ### Bug Fixes
 
-* 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#392](https://github.com/theholocron/configs/issues/392)) ([40a66e9](https://github.com/theholocron/configs/commit/40a66e923f5bc2ed1a52086a2ff5d5c3a17af888))
+- 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#392](https://github.com/theholocron/configs/issues/392)) ([40a66e9](https://github.com/theholocron/configs/commit/40a66e923f5bc2ed1a52086a2ff5d5c3a17af888))
 
 ### Chores
 
-* add sync workflow to holocron.config ([#387](https://github.com/theholocron/configs/issues/387)) ([d4feb41](https://github.com/theholocron/configs/commit/d4feb419454d9629c4924809a689c08ff6a8fa21))
-* sync from theholocron/holocron ([#388](https://github.com/theholocron/configs/issues/388)) ([b0273f8](https://github.com/theholocron/configs/commit/b0273f88ecd5d5e0de9d4ef4c5f93b32aa729a4c))
-* sync from theholocron/holocron ([#389](https://github.com/theholocron/configs/issues/389)) ([e06f549](https://github.com/theholocron/configs/commit/e06f5492d3f3a6140458f4055e3664732c26352b))
-* sync from theholocron/holocron ([#390](https://github.com/theholocron/configs/issues/390)) ([1791bb2](https://github.com/theholocron/configs/commit/1791bb2ed3a6ba0c634b6a651dd86f823b89d900))
+- add sync workflow to holocron.config ([#387](https://github.com/theholocron/configs/issues/387)) ([d4feb41](https://github.com/theholocron/configs/commit/d4feb419454d9629c4924809a689c08ff6a8fa21))
+- sync from theholocron/holocron ([#388](https://github.com/theholocron/configs/issues/388)) ([b0273f8](https://github.com/theholocron/configs/commit/b0273f88ecd5d5e0de9d4ef4c5f93b32aa729a4c))
+- sync from theholocron/holocron ([#389](https://github.com/theholocron/configs/issues/389)) ([e06f549](https://github.com/theholocron/configs/commit/e06f5492d3f3a6140458f4055e3664732c26352b))
+- sync from theholocron/holocron ([#390](https://github.com/theholocron/configs/issues/390)) ([1791bb2](https://github.com/theholocron/configs/commit/1791bb2ed3a6ba0c634b6a651dd86f823b89d900))
 
 ## [7.25.0](https://github.com/theholocron/configs/compare/v7.24.1...v7.25.0) (2026-08-25)
 
