@@ -1,3 +1,9 @@
+## [7.25.2](https://github.com/theholocron/configs/compare/v7.25.1...v7.25.2) (2026-08-26)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 disable no-workspace-protocol-in-published-package — pnpm rewrites workspace:* on publish ([#393](https://github.com/theholocron/configs/issues/393)) ([c5634bf](https://github.com/theholocron/configs/commit/c5634bf082d371a6eb676cf17f9d660a7e3ba151))
+
 ## [7.25.1](https://github.com/theholocron/configs/compare/v7.25.0...v7.25.1) (2026-08-26)
 
 ### Bug Fixes

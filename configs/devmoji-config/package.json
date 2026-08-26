@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/devmoji-config",
-  "version": "7.25.1",
+  "version": "7.25.2",
   "description": "Shared devmoji configuration for conventional commit emojis.",
   "homepage": "https://github.com/theholocron/configs/tree/main/packages/devmoji-config#readme",
   "bugs": "https://github.com/theholocron/configs/issues",
