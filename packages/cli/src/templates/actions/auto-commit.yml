@@ -56,12 +56,10 @@ runs:
       env:
         TOKEN: ${{ inputs.token }}
 
-    - name: Ensure branch exists
+    - name: Reset branch to current HEAD
       if: ${{ inputs.branch != '' }}
       shell: bash
-      run: |
-        git fetch origin "$BRANCH" 2>/dev/null && git checkout "$BRANCH" \
-          || git checkout -b "$BRANCH"
+      run: git checkout -B "$BRANCH"
       env:
         BRANCH: ${{ inputs.branch }}
 

@@ -75,6 +75,7 @@ jobs:
           token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
           branch: chore/auto-sync
           commit-message: "chore: sync from holocron.config"
+          commit-options: "--no-verify"
 
       - name: Open PR if changes were committed
         if: steps.auto-commit.outputs.changes-detected == 'true'
