@@ -2,6 +2,12 @@
   "name": "@theholocron/holocron-plugin-slack",
   "version": "3.29.12",
   "description": "Holocron plugin for Slack. Implements the notifications capability via Slack's bot API.",
+  "keywords": [
+    "holocron",
+    "notifications",
+    "plugin",
+    "slack"
+  ],
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-slack#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -11,8 +17,8 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -20,6 +26,9 @@
       "default": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
@@ -29,19 +38,16 @@
     "test:coverage": "vitest run --coverage",
     "validate": "tsx scripts/validate.mjs"
   },
-  "peerDependencies": {
-    "@theholocron/cli": "workspace:*"
-  },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
-    "chalk": "catalog:",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
+    "chalk": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
@@ -50,15 +56,13 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "publishConfig": {
-    "access": "public"
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "types": "./dist/index.d.mts",
   "engines": {
     "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

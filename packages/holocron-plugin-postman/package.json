@@ -1,7 +1,13 @@
 {
   "name": "@theholocron/holocron-plugin-postman",
   "version": "3.29.12",
-  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API — workspace + collection + spec + environment sync.",
+  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API \u2014 workspace + collection + spec + environment sync.",
+  "keywords": [
+    "holocron",
+    "plugin",
+    "postman",
+    "tooling"
+  ],
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-postman#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -11,8 +17,8 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -20,6 +26,9 @@
       "default": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
@@ -28,15 +37,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "validate": "tsx scripts/validate.mjs"
-  },
-  "peerDependencies": {
-    "@theholocron/cli": "workspace:*",
-    "@theholocron/postman-client": "catalog:clients"
-  },
-  "peerDependenciesMeta": {
-    "@theholocron/postman-client": {
-      "optional": false
-    }
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
@@ -56,12 +56,17 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/postman-client": "catalog:clients"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/postman-client": {}
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "types": "./dist/index.d.mts"
+  }
 }

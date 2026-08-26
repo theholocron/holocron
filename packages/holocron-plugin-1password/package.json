@@ -2,6 +2,12 @@
   "name": "@theholocron/holocron-plugin-1password",
   "version": "3.29.12",
   "description": "Holocron plugin for 1Password. Implements the vault capability via shell-out to the `op` CLI (https://developer.1password.com/docs/cli).",
+  "keywords": [
+    "1password",
+    "holocron",
+    "plugin",
+    "vault"
+  ],
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-1password#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -11,8 +17,8 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -20,6 +26,9 @@
       "default": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
@@ -28,9 +37,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "validate": "tsx scripts/validate.mjs"
-  },
-  "peerDependencies": {
-    "@theholocron/cli": "workspace:*"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
@@ -49,12 +55,13 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "types": "./dist/index.d.mts"
+  }
 }
