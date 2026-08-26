@@ -2,6 +2,13 @@
   "name": "@theholocron/holocron-plugin-github",
   "version": "3.29.12",
   "description": "Holocron plugin for GitHub. Implements source, ci, secrets, environments, and issues capabilities against the GitHub REST API.",
+  "keywords": [
+    "ci",
+    "github",
+    "holocron",
+    "plugin",
+    "source"
+  ],
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-github#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -11,9 +18,8 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -21,6 +27,9 @@
       "default": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
@@ -29,10 +38,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "validate": "tsx scripts/validate.mjs"
-  },
-  "peerDependencies": {
-    "@theholocron/cli": "workspace:*",
-    "@theholocron/github-client": "catalog:clients"
   },
   "dependencies": {
     "libsodium-wrappers": "^0.8.4"
@@ -55,11 +60,14 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/github-client": "catalog:clients"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

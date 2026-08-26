@@ -1,7 +1,13 @@
 {
   "name": "@theholocron/holocron-plugin-cloudflare",
   "version": "3.29.12",
-  "description": "Holocron plugin for Cloudflare. Implements the dns capability against Cloudflare's REST API — zone resolution, DNS record management.",
+  "description": "Holocron plugin for Cloudflare. Implements the dns capability against Cloudflare's REST API \u2014 zone resolution, DNS record management.",
+  "keywords": [
+    "cloudflare",
+    "dns",
+    "holocron",
+    "plugin"
+  ],
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-cloudflare#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
@@ -11,8 +17,8 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -20,6 +26,9 @@
       "default": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
@@ -29,15 +38,6 @@
     "test:coverage": "vitest run --coverage",
     "validate": "tsx scripts/validate.mjs"
   },
-  "peerDependencies": {
-    "@theholocron/cli": "workspace:*",
-    "@theholocron/cloudflare-client": "catalog:clients"
-  },
-  "peerDependenciesMeta": {
-    "@theholocron/cloudflare-client": {
-      "optional": false
-    }
-  },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/cloudflare-client": "catalog:clients",
@@ -46,9 +46,9 @@
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
-    "chalk": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
+    "chalk": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
@@ -57,12 +57,17 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/cloudflare-client": "catalog:clients"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/cloudflare-client": {}
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "types": "./dist/index.d.mts"
+  }
 }
