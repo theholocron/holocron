@@ -2,14 +2,14 @@
 
 ### Bug Fixes
 
-* 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#243](https://github.com/theholocron/utils/issues/243)) ([952347e](https://github.com/theholocron/utils/commit/952347ebf362a0bbc131f61e1bfcb37321e2191f))
+- 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#243](https://github.com/theholocron/utils/issues/243)) ([952347e](https://github.com/theholocron/utils/commit/952347ebf362a0bbc131f61e1bfcb37321e2191f))
 
 ### Chores
 
-* add sync workflow to holocron.config ([#239](https://github.com/theholocron/utils/issues/239)) ([00a022d](https://github.com/theholocron/utils/commit/00a022df1d366863abdf78aa7e140b464dd764fb))
-* sync from theholocron/holocron ([#240](https://github.com/theholocron/utils/issues/240)) ([7948c4d](https://github.com/theholocron/utils/commit/7948c4d92b03cc4290cb40b801112602c640bc34))
-* sync from theholocron/holocron ([#241](https://github.com/theholocron/utils/issues/241)) ([30c6876](https://github.com/theholocron/utils/commit/30c6876672fc824896fc7b76db2746d6267bab5a))
-* sync from theholocron/holocron ([#242](https://github.com/theholocron/utils/issues/242)) ([53ac219](https://github.com/theholocron/utils/commit/53ac219000cbf88bb514fb9985a75b982ea1f4d2))
+- add sync workflow to holocron.config ([#239](https://github.com/theholocron/utils/issues/239)) ([00a022d](https://github.com/theholocron/utils/commit/00a022df1d366863abdf78aa7e140b464dd764fb))
+- sync from theholocron/holocron ([#240](https://github.com/theholocron/utils/issues/240)) ([7948c4d](https://github.com/theholocron/utils/commit/7948c4d92b03cc4290cb40b801112602c640bc34))
+- sync from theholocron/holocron ([#241](https://github.com/theholocron/utils/issues/241)) ([30c6876](https://github.com/theholocron/utils/commit/30c6876672fc824896fc7b76db2746d6267bab5a))
+- sync from theholocron/holocron ([#242](https://github.com/theholocron/utils/issues/242)) ([53ac219](https://github.com/theholocron/utils/commit/53ac219000cbf88bb514fb9985a75b982ea1f4d2))
 
 ## [1.4.0](https://github.com/theholocron/utils/compare/v1.3.5...v1.4.0) (2026-08-25)
 
