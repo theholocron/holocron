@@ -1,3 +1,9 @@
+## [1.7.3](https://github.com/theholocron/themes/compare/v1.7.2...v1.7.3) (2026-08-26)
+
+### Bug Fixes
+
+* 🐛 use absolute paths for TypeDoc entry points ([#73](https://github.com/theholocron/themes/issues/73)) ([9a68cdc](https://github.com/theholocron/themes/commit/9a68cdc9d9329971e85b4f2a93a3f5378cee2197))
+
 ## [1.7.2](https://github.com/theholocron/themes/compare/v1.7.1...v1.7.2) (2026-08-26)
 
 ### Bug Fixes
