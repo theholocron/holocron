@@ -11,6 +11,11 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
     secrets:
+      HOLOCRON_ADMIN_TOKEN:
+        description: >
+          Fine-grained PAT with admin scopes (labels, properties, teams, branch
+          protection). Required when running steps other than readme.
+        required: false
       HOLOCRON_SYNC_TOKEN:
         required: false
       GH_TOKEN:
@@ -45,6 +50,7 @@ jobs:
             pnpm exec holocron sync
           fi
         env:
+          HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           STEPS: ${{ inputs.steps }}
 
