@@ -2,24 +2,32 @@
   "name": "@theholocron/env-utils",
   "version": "1.4.2",
   "description": "Runtime environment detection and typed env-var parsing.",
+  "keywords": [
+    "env",
+    "environment",
+    "typescript",
+    "utils"
+  ],
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/env#readme",
   "bugs": "https://github.com/theholocron/utils/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/utils.git"
+    "url": "git+https://github.com/theholocron/utils.git",
+    "directory": "packages/env-utils"
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "types": "./dist/index.d.mts"
+      "default": "./dist/index.mjs"
     }
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsdown",
@@ -43,8 +51,7 @@
   },
   "packageManager": "pnpm@10.34.4",
   "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"

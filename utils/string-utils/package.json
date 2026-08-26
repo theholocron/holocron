@@ -2,24 +2,31 @@
   "name": "@theholocron/string-utils",
   "version": "1.4.2",
   "description": "Convert a string to any case or case to a different data type.",
+  "keywords": [
+    "string",
+    "typescript",
+    "utils"
+  ],
   "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-string#readme",
   "bugs": "https://github.com/theholocron/utils/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/utils.git"
+    "url": "git+https://github.com/theholocron/utils.git",
+    "directory": "packages/string-utils"
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.js"
     }
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsdown",
@@ -43,8 +50,7 @@
   },
   "packageManager": "pnpm@10.34.4",
   "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
