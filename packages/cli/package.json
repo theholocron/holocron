@@ -23,12 +23,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./capabilities": {
-      "types": "./src/capabilities/index.ts",
+      "types": "./dist/capabilities/index.d.mts",
       "import": "./dist/capabilities/index.mjs",
       "default": "./dist/capabilities/index.mjs"
     }
@@ -37,8 +37,7 @@
     "holocron": "./dist/cli.mjs"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsdown --config-loader tsx",
