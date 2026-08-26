@@ -37,7 +37,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@astrojs/react": "^4.0.0"
+    "@astrojs/react": "^5.0.0"
   },
   "devDependencies": {
     "@astrojs/starlight": "^0.41.7",
