@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/holocron-plugin-postman",
-  "version": "3.29.12",
-  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API \u2014 workspace + collection + spec + environment sync.",
+  "version": "3.30.0",
+  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API — workspace + collection + spec + environment sync.",
   "keywords": [
     "holocron",
     "plugin",

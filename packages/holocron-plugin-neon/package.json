@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/holocron-plugin-neon",
-  "version": "3.29.12",
-  "description": "Holocron plugin for Neon. Implements the storage capability against Neon's REST API \u2014 branch ops, connection strings, extensions.",
+  "version": "3.30.0",
+  "description": "Holocron plugin for Neon. Implements the storage capability against Neon's REST API — branch ops, connection strings, extensions.",
   "keywords": [
     "holocron",
     "neon",
