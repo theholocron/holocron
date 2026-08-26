@@ -12,8 +12,10 @@ export function packageJson(): Linter.Config[] {
 				// semver ranges — this rule would flag every theholocron catalog entry.
 				"package-json/dependency-version-range": "off",
 				// workspace:* is intentional in peerDependencies for monorepo-internal
-				// packages; turning off avoids false positives on pnpm workspace refs.
+				// packages; pnpm rewrites these to real versions on publish.
+				// Both rules are false positives for pnpm workspaces.
 				"package-json/no-wildcard-dependencies": "off",
+				"package-json/no-workspace-protocol-in-published-package": "off",
 				// @eslint/json 2.x provides a JSON sourceCode object without
 				// getAllComments(), causing this core rule to crash when linting
 				// package.json files. JSON files have no comments to check anyway.
