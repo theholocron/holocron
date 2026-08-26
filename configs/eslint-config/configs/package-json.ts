@@ -26,6 +26,12 @@ export function packageJson(): Linter.Config[] {
 				// is safe — these rules are meaningless for package.json files.
 				"n/no-unsupported-features/node-builtins": "off",
 				"n/no-extraneous-require": "off",
+				// In a pnpm workspace, packages/* dirs are each the root of an
+				// independently published package, not nested package.json files.
+				// The rule has no workspace awareness and fires on every workspace
+				// package that declares exports. The rule docs explicitly recommend
+				// disabling for such manifests.
+				"package-json/no-nested-exports": "off",
 				// Canonical order matching sort-package-json's sortOrder so that the
 				// pre-commit hook and this rule agree and never conflict.
 				"package-json/sort-properties": [

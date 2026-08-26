@@ -2,7 +2,7 @@
 
 ### Chores
 
-* **deps:** Bump @theholocron/holocron-plugin-github from 3.24.4 to 3.29.12 in the all-dependencies group ([#391](https://github.com/theholocron/configs/issues/391)) ([f7c26b3](https://github.com/theholocron/configs/commit/f7c26b38db2bbe3b26b6c3b59735a10b2ada03c0))
+- **deps:** Bump @theholocron/holocron-plugin-github from 3.24.4 to 3.29.12 in the all-dependencies group ([#391](https://github.com/theholocron/configs/issues/391)) ([f7c26b3](https://github.com/theholocron/configs/commit/f7c26b38db2bbe3b26b6c3b59735a10b2ada03c0))
 
 ## [7.25.2](https://github.com/theholocron/configs/compare/v7.25.1...v7.25.2) (2026-08-26)
 
