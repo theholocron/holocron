@@ -1,3 +1,13 @@
+## [1.4.3](https://github.com/theholocron/utils/compare/v1.4.2...v1.4.3) (2026-08-26)
+
+### Bug Fixes
+
+* package.json lint violations + bump eslint-config to 7.25.3 ([#247](https://github.com/theholocron/utils/issues/247)) ([f043575](https://github.com/theholocron/utils/commit/f04357550565499d2e953cb594c4d8f4cb937fd4))
+
+### Chores
+
+* update description to holocron.config.ts ([2fb9e62](https://github.com/theholocron/utils/commit/2fb9e6278f3af164f79fae91e645aa0d10392e9a))
+
 ## [1.4.2](https://github.com/theholocron/utils/compare/v1.4.1...v1.4.2) (2026-08-26)
 
 ### Chores
