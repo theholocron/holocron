@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-sentry",
-  "version": "3.30.3",
+  "version": "3.30.4",
   "description": "Holocron plugin for Sentry. Implements the observability capability against Sentry's management API — project provisioning and DSN retrieval.",
   "keywords": [
     "holocron",
