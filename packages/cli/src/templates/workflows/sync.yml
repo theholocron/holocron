@@ -13,8 +13,13 @@ on: # yamllint disable-line rule:truthy
     secrets:
       HOLOCRON_ADMIN_TOKEN:
         description: >
-          Fine-grained PAT with admin scopes (labels, properties, teams, branch
-          protection). Required when running steps other than readme.
+          Fine-grained PAT with admin scopes (labels, properties, teams).
+          Required when running steps other than readme.
+        required: false
+      HOLOCRON_READ_TOKEN:
+        description: >
+          Fine-grained PAT for read-only GitHub API calls (repo metadata,
+          committer identity). Required for the readme step.
         required: false
       HOLOCRON_SYNC_TOKEN:
         required: false
@@ -51,6 +56,7 @@ jobs:
           fi
         env:
           HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
+          HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           STEPS: ${{ inputs.steps }}
 
