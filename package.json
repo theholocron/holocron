@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron",
-  "version": "3.30.5",
+  "version": "3.30.6",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
   "license": "MIT",
