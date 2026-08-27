@@ -192,8 +192,10 @@ export interface PreviewConfig {
 export interface OrgContext {
 	/** GitHub org name — becomes the prefix of the default project: `<org>-preview`. */
 	org?: string;
-	/** Custom docs domain — becomes `preview.<docsDomain>` for the default preview domain. */
-	docsDomain?: string;
+	/** Org canonical domain — becomes `preview.<domain>` for the default preview domain. */
+	domain?: string;
+	/** Project name — injected as the `name` input to the deploy reusable when `docs: true`. */
+	repoName?: string;
 }
 
 /**
@@ -213,7 +215,7 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
 	// preview: true — derive both values from org context
 	if (preview === true) {
 		const project = ctx.org ? `${ctx.org}-preview` : null;
-		const domain = ctx.docsDomain ? `preview.${ctx.docsDomain}` : undefined;
+		const domain = ctx.domain ? `preview.${ctx.domain}` : undefined;
 		if (!project) return null;
 		return { project, ...(domain ? { domain } : {}) };
 	}
@@ -226,11 +228,7 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
 	if (!project) return null;
 
 	const domain =
-		typeof p["domain"] === "string" && p["domain"]
-			? p["domain"]
-			: ctx.docsDomain
-				? `preview.${ctx.docsDomain}`
-				: undefined;
+		typeof p["domain"] === "string" && p["domain"] ? p["domain"] : ctx.domain ? `preview.${ctx.domain}` : undefined;
 
 	return { project, ...(domain ? { domain } : {}) };
 }
@@ -319,7 +317,7 @@ export function generateCombinedDeployContent(
  *
  * Used by both `holocron setup` and `sync-workflow-templates`.
  */
-export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
+export function normalizeWorkflowWith(raw: Record<string, unknown>, repoName?: string): Record<string, unknown> {
 	const result = { ...raw };
 	delete result["preview"];
 
@@ -328,6 +326,9 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<stri
 	if (hasDocs) {
 		result["type"] = "docs";
 		delete result["docs"];
+		// Derive the `name` input (selects @theholocron/<name>-site) from caller context
+		// when not already set explicitly in the config.
+		if (!result["name"] && repoName) result["name"] = repoName;
 	}
 	if (Array.isArray(storybookProjects)) {
 		if (!hasDocs) result["type"] = "storybook";

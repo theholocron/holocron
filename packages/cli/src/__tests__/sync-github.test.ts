@@ -315,6 +315,29 @@ describe("runSyncGithub", () => {
 		expect(deployBlob?.body?.content).toContain("- docs/**");
 	});
 
+	it("derives name input from config name when docs: true and no explicit name", async () => {
+		const configTs = `export default defineConfig({
+	name: "myproject",
+	workflows: [
+		{ name: "deploy", with: { docs: true } },
+	],
+})`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		const deployBlob = blobs.find(
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
+		);
+		expect(deployBlob?.body?.content).toContain("name: myproject");
+	});
+
 	it("parses with: blocks containing nested objects (e.g. storybook: [{ name: 'app' }])", async () => {
 		const configTs = `export default defineConfig({
 	workflows: [
@@ -1004,27 +1027,24 @@ describe("extractPreviewConfig", () => {
 	});
 
 	it("derives project and domain from org context when preview: true", () => {
-		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", docsDomain: "acme.dev" });
+		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", domain: "acme.dev" });
 		expect(cfg).toEqual({ project: "acme-preview", domain: "preview.acme.dev" });
 	});
 
-	it("derives project only when docsDomain is absent", () => {
+	it("derives project only when domain is absent", () => {
 		const cfg = extractPreviewConfig({ preview: true }, { org: "acme" });
 		expect(cfg).toEqual({ project: "acme-preview" });
 	});
 
 	it("uses explicit project when provided as object", () => {
-		const cfg = extractPreviewConfig(
-			{ preview: { project: "my-preview" } },
-			{ org: "acme", docsDomain: "acme.dev" }
-		);
+		const cfg = extractPreviewConfig({ preview: { project: "my-preview" } }, { org: "acme", domain: "acme.dev" });
 		expect(cfg).toEqual({ project: "my-preview", domain: "preview.acme.dev" });
 	});
 
 	it("uses explicit domain when provided", () => {
 		const cfg = extractPreviewConfig(
 			{ preview: { project: "my-preview", domain: "custom.preview.dev" } },
-			{ org: "acme", docsDomain: "acme.dev" }
+			{ org: "acme", domain: "acme.dev" }
 		);
 		expect(cfg).toEqual({ project: "my-preview", domain: "custom.preview.dev" });
 	});
@@ -1085,25 +1105,41 @@ describe("generateCombinedDeployContent", () => {
 });
 
 describe("parseOrgContextFromTs", () => {
-	it("extracts org and docsDomain from config source", () => {
+	it("extracts org, domain, and repoName from config source", () => {
 		const source = `export default defineConfig({
+	name: "holocron",
 	org: "theholocron",
-	docs: { build: "workflow", domain: "theholocron.dev", https: true },
+	domain: "theholocron.dev",
+	workflows: [
+		{ name: "deploy", with: { docs: true } },
+	],
 });`;
 		const ctx = parseOrgContextFromTs(source);
 		expect(ctx.org).toBe("theholocron");
-		expect(ctx.docsDomain).toBe("theholocron.dev");
+		expect(ctx.domain).toBe("theholocron.dev");
+		expect(ctx.repoName).toBe("holocron");
+	});
+
+	it("does not pick up workflow entry names as repoName", () => {
+		const source = `export default defineConfig({
+	workflows: [
+		{ name: "deploy", with: { docs: true } },
+	],
+});`;
+		const ctx = parseOrgContextFromTs(source);
+		expect(ctx.repoName).toBeUndefined();
 	});
 
 	it("returns empty context when fields are absent", () => {
-		const ctx = parseOrgContextFromTs(`export default defineConfig({ name: "demo" });`);
+		const ctx = parseOrgContextFromTs(`export default defineConfig({});`);
 		expect(ctx.org).toBeUndefined();
-		expect(ctx.docsDomain).toBeUndefined();
+		expect(ctx.domain).toBeUndefined();
+		expect(ctx.repoName).toBeUndefined();
 	});
 
-	it("handles org without docs", () => {
+	it("handles org without domain", () => {
 		const ctx = parseOrgContextFromTs(`export default defineConfig({ org: "acme" });`);
 		expect(ctx.org).toBe("acme");
-		expect(ctx.docsDomain).toBeUndefined();
+		expect(ctx.domain).toBeUndefined();
 	});
 });

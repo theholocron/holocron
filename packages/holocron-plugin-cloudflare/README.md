@@ -2,8 +2,8 @@
 
 # `@theholocron/holocron-plugin-cloudflare`
 
-Cloudflare plugin for [Holocron](../cli). Implements the `dns`
-capability against the [Cloudflare v4 API](https://developers.cloudflare.com/api/).
+Cloudflare plugin for [Holocron](../cli). Implements the `dns` and `deployment`
+capabilities against the [Cloudflare v4 API](https://developers.cloudflare.com/api/).
 
 ## Install
 
@@ -23,8 +23,10 @@ Token resolution order:
 4. Keyring `cloudflare.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
 5. Keyring `cloudflare` — unnamespaced fallback; set via `holocron auth set cloudflare <token>`
 
-Generate a scoped API token at **dash.cloudflare.com/profile/api-tokens**
-with `Zone:Read` and `DNS:Edit` permissions.
+Generate a scoped API token at **dash.cloudflare.com/profile/api-tokens**.
+
+- **DNS only:** `Zone:Read`, `Zone:DNS:Edit`
+- **DNS + Pages (deployment):** `Zone:Read`, `Zone:DNS:Edit`, `Cloudflare Pages:Edit`
 
 ## Config
 
@@ -32,16 +34,33 @@ with `Zone:Read` and `DNS:Edit` permissions.
 ```jsonc
 {
   "providers": {
-    "dns": ["cloudflare", { "accountId": "optional-account-id" }],
+    // DNS management only
+    "dns": "cloudflare",
+
+    // Cloudflare Pages deployments (requires accountId)
+    // accountId falls back to CLOUDFLARE_ACCOUNT_ID env var when omitted
+    "deployment": "cloudflare",
   },
 }
 
 ```
 
-- `accountId` (optional) — Cloudflare account id. Not required for DNS
-  operations; needed only if you extend the plugin to tunnel management.
+Both capabilities can be enabled together:
 
-## What's implemented
+<!-- prettier-ignore -->
+```jsonc
+{
+  "providers": {
+    "dns": "cloudflare",
+    "deployment": "cloudflare",
+  },
+}
+
+```
+
+The `deployment` capability is only exposed when `accountId` is resolvable — either passed explicitly in options or set via the `CLOUDFLARE_ACCOUNT_ID` env var.
+
+## `dns` capability
 
 | Method         | What it does                                                                                                                                                                                                                        |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -50,3 +69,26 @@ with `Zone:Read` and `DNS:Edit` permissions.
 | `deleteRecord` | Deletes a record by id within the zone that contains the given domain.                                                                                                                                                              |
 
 Zone ids are cached per plugin instance for the lifetime of the process.
+
+## `deployment` capability
+
+Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. Used by `holocron setup` to provision per-PR preview deployments.
+
+| Method                  | What it does                                                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `listProjects`          | Lists all Cloudflare Pages projects in the account.                                                                     |
+| `ensureProject`         | Creates the Pages project if it does not exist; returns the existing project otherwise.                                 |
+| `ensureCustomDomain`    | Attaches a custom domain (or wildcard) to the project if not already attached; idempotent.                              |
+| `listDeployments`       | Lists recent deployments for the project.                                                                               |
+| `triggerDeployment`     | Triggers a new Pages deployment from the latest production branch commit.                                               |
+| `updateProjectSettings` | Updates project-level settings (currently a no-op; CF Pages REST API has no direct settings endpoint for these fields). |
+
+### Preview deployment setup
+
+When `preview: true` (or `preview: { project, domain }`) is set in a repo's deploy config, `holocron setup` calls:
+
+1. `ensureProject` — creates `<org>-preview` if it doesn't exist
+2. `ensureCustomDomain` — attaches `*.<domain>` to the project
+3. `dns.upsertRecord` — adds a wildcard CNAME `*.<domain>` → `<project>.pages.dev`
+
+The combined `deploy.yml` thin caller then routes `push` events to GitHub Pages and `pull_request` events to Cloudflare Pages via `cloudflare/pages-action`. Preview URLs resolve as `<repo>-pr-<n>.<domain>`.
