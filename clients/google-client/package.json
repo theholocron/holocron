@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/google-client",
-  "version": "1.11.0",
+  "version": "1.11.2",
   "description": "A TypeScript client for Google Workspace APIs (Docs, Sheets)",
   "keywords": [
     "google",
