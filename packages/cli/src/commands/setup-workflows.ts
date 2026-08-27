@@ -279,10 +279,8 @@ export function generateCombinedDeployContent(
 		Object.keys(deployWith).length > 0
 			? `    with:\n${withLines(deployWith)}\n`
 			: "";
-	const previewWithBlock =
-		Object.keys(previewWith).length > 0
-			? `    with:\n${withLines(previewWith)}\n`
-			: "";
+	// previewWith always has at least cloudflare-project, so the block is never empty.
+	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 
 	return [
 		`name: Deploy`,
@@ -318,7 +316,7 @@ export function generateCombinedDeployContent(
 		`    name: Deploy Preview`,
 		`    if: \${{ github.event_name == 'pull_request' }}`,
 		`    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main`,
-		...(previewWithBlock ? [previewWithBlock.trimEnd()] : []),
+		previewWithBlock.trimEnd(),
 		`    secrets: inherit`,
 		``,
 	].join("\n");
