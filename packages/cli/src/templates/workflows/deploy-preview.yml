@@ -138,17 +138,13 @@ jobs:
           ALIAS: ${{ steps.deploy.outputs.alias }}
           SITE_NAME: ${{ inputs.name }}
           PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           PREVIEW_URL="${ALIAS%/}${SITE_NAME:+/${SITE_NAME}}/"
-          # Create a GitHub Deployment pointing at the stable branch alias URL.
+          # GITHUB_HEAD_REF is the PR branch name — using it as the deployment ref
+          # ensures GitHub links the deployment to this PR in the sidebar widget.
           PAYLOAD=$(printf '{"ref":"%s","environment":"%s","description":"Cloudflare Pages","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
-            "$GITHUB_SHA" "${PROJECT} (Preview)")
+            "$GITHUB_HEAD_REF" "${PROJECT} (Preview)")
           DEPLOY_ID=$(echo "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
             --method POST --input - | jq -r '.id')
           gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOY_ID}/statuses" \
             --method POST --field state=success --field environment_url="${PREVIEW_URL}"
-          # Post a single PR comment with the clean, stable URL.
-          gh pr comment "${PR_NUMBER}" \
-            --body "🚀 Preview: ${PREVIEW_URL}" \
-            --repo "${GITHUB_REPOSITORY}"
