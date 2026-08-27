@@ -180,7 +180,7 @@ export function parseOrgContextFromTs(source: string): OrgContext {
 	// subdomains are derived (e.g. "theholocron.dev" → preview.theholocron.dev).
 	const domainMatch = source.match(/\bdomain\s*:\s*["']([^"']+)["']/);
 	// Match `name: "..."` only before `workflows:` so workflow-entry names are excluded.
-	const beforeWorkflows = source.split(/\bworkflows\s*:/)[0] ?? source;
+	const beforeWorkflows = source.split(/\bworkflows\s*:/)[0]!;
 	const nameMatch = beforeWorkflows.match(/\bname\s*:\s*["']([^"']+)["']/);
 	return {
 		org: orgMatch?.[1],
