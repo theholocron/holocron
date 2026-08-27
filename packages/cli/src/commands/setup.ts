@@ -909,13 +909,26 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		);
 		print(formatStep(steps[steps.length - 1]!));
 
-		// When the deploy workflow has preview: { project, domain }, provision the
-		// Cloudflare Pages custom domain so preview URLs resolve at
-		// <repo>-pr-<n>.<domain> — dogfooding our own deployment + dns capabilities.
+		// When the deploy workflow has preview: config, provision the preview Pages
+		// project + custom domain so preview URLs resolve at <repo>-pr-<n>.<domain>.
 		const deployEntry = (config.workflows ?? [])
 			.map((e) => (typeof e === "string" ? { name: e } : e))
 			.find((e) => e.name === "deploy");
-		const previewCfg = deployEntry?.with ? extractPreviewConfig(deployEntry.with as Record<string, unknown>) : null;
+		const previewCfg = deployEntry?.with
+			? extractPreviewConfig(deployEntry.with as Record<string, unknown>, {
+					org: config.org,
+					domain: config.domain,
+				})
+			: null;
+
+		if (previewCfg) {
+			steps.push(
+				await runStep("deployment", `ensureProject ${previewCfg.project}`, dryRun, async () => {
+					await deploy.ensureProject({ name: previewCfg.project });
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
 
 		if (previewCfg?.domain && deploy.ensureCustomDomain) {
 			const wildcardDomain = `*.${previewCfg.domain}`;

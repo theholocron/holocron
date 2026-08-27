@@ -313,6 +313,52 @@ describe("runSetup", () => {
 		});
 	});
 
+	it("resolves preview: true using org and domain context to provision project and custom domain", async () => {
+		const ensureProjectCalls: string[] = [];
+		const customDomainCalls: Array<[string, string]> = [];
+		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			org: "acme",
+			domain: "acme.dev",
+			workflows: [{ name: "deploy", with: { docs: true, preview: true } }],
+			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => {
+						ensureProjectCalls.push(input.name);
+						return { id: input.name, name: input.name };
+					},
+					ensureCustomDomain: async (projectId: string, hostname: string) => {
+						customDomainCalls.push([projectId, hostname]);
+					},
+				},
+				dns: {
+					listRecords: async () => [],
+					upsertRecord: async (domain: string, record: { type: string; name: string; content: string }) => {
+						dnsCalls.push(record);
+						return record;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(ensureProjectCalls).toContain("acme-preview");
+		expect(customDomainCalls).toEqual([["acme-preview", "*.preview.acme.dev"]]);
+		expect(dnsCalls[0]).toMatchObject({
+			type: "CNAME",
+			name: "*.preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
+	});
+
 	it("skips ensureCustomDomain when preview has no domain", async () => {
 		const customDomainCalls: string[] = [];
 		const loaded = loadedFrom({
