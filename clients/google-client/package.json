@@ -2,6 +2,14 @@
   "name": "@theholocron/google-client",
   "version": "1.10.3",
   "description": "A TypeScript client for Google Workspace APIs (Docs, Sheets)",
+  "keywords": [
+    "google",
+    "workspace",
+    "docs",
+    "sheets",
+    "typescript",
+    "api"
+  ],
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/google-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
   "repository": {
@@ -11,26 +19,22 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
-  "keywords": [
-    "google",
-    "workspace",
-    "docs",
-    "sheets",
-    "typescript",
-    "api"
-  ],
-  "type": "module",
   "sideEffects": false,
-  "main": "./src/index.ts",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
+  "main": "./src/index.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -56,24 +60,20 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "publishConfig": {
     "access": "public",
-    "main": "./dist/index.mjs",
-    "types": "./dist/index.d.mts",
     "exports": {
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs",
         "default": "./dist/index.mjs"
       }
-    }
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "engines": {
-    "node": ">=22.0.0"
+    },
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts"
   },
   "releases": "https://github.com/theholocron/clients/releases",
   "wiki": "https://github.com/theholocron/clients/wiki"

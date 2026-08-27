@@ -2,6 +2,13 @@
   "name": "@theholocron/http-client",
   "version": "1.10.3",
   "description": "Shared HTTP primitives for theholocron — REST client factory, auth resolver, and error types",
+  "keywords": [
+    "typescript",
+    "http",
+    "rest",
+    "api",
+    "fetch"
+  ],
   "homepage": "https://github.com/theholocron/clients/tree/main/packages/http-client#readme",
   "bugs": "https://github.com/theholocron/clients/issues",
   "repository": {
@@ -11,42 +18,31 @@
   },
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
-  "keywords": [
-    "typescript",
-    "http",
-    "rest",
-    "api",
-    "fetch"
-  ],
-  "type": "module",
   "sideEffects": false,
-  "main": "./src/index.ts",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./testing": "./src/testing.ts"
   },
+  "main": "./src/index.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "vitest": ">=4.0.0"
-  },
-  "peerDependenciesMeta": {
-    "vitest": {
-      "optional": true
-    }
-  },
   "devDependencies": {
-    "@types/node": "catalog:",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",
     "@theholocron/vitest-config": "catalog:",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
@@ -57,10 +53,19 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
+  "peerDependencies": {
+    "vitest": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "publishConfig": {
     "access": "public",
-    "main": "./dist/index.mjs",
-    "types": "./dist/index.d.mts",
     "exports": {
       ".": {
         "types": "./dist/index.d.mts",
@@ -72,14 +77,9 @@
         "import": "./dist/testing.mjs",
         "default": "./dist/testing.mjs"
       }
-    }
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "engines": {
-    "node": ">=22.0.0"
+    },
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts"
   },
   "releases": "https://github.com/theholocron/clients/releases",
   "wiki": "https://github.com/theholocron/clients/wiki"
