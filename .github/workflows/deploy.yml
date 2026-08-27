@@ -1,7 +1,7 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
-# Tool:    holocron setup
-# Changes: run `holocron setup` to regenerate.
+# Tool:    holocron sync
+# Changes: run `holocron sync` to regenerate.
 name: Deploy
 
 on: # yamllint disable-line rule:truthy
@@ -9,22 +9,44 @@ on: # yamllint disable-line rule:truthy
     branches: [main]
     paths:
       - docs/**
+      - astro.config.ts
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+  pull_request:
+    branches: [main]
+    paths:
+      - docs/**
+      - astro.config.ts
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
   workflow_dispatch:
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('deploy-preview-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
 
 jobs:
   deploy:
     name: Deploy
+    if: ${{ github.event_name != 'pull_request' }}
     uses: theholocron/.github/.github/workflows/deploy.yml@main
     with:
       type: docs
       name: holocron
+    secrets: inherit
+
+  preview:
+    name: Deploy Preview
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main
+    with:
+      type: docs
+      name: holocron
+      cloudflare-project: theholocron-preview
     secrets: inherit

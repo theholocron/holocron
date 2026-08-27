@@ -6,6 +6,9 @@ export default defineConfig({
 	description:
 		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
 	homepage: "https://docs.theholocron.dev/holocron/",
+	org: "theholocron",
+	domain: "theholocron.dev",
+	docs: { build: "workflow", https: true },
 	repo: {
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
@@ -37,13 +40,15 @@ export default defineConfig({
 		...workflows,
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
 		"sync",
-		{ name: "deploy", with: { docs: true } },
+		{ name: "deploy", with: { docs: true, name: "holocron", preview: true } },
 	],
 	providers: {
 		...providers,
 		vault: ["doppler", { project: "holocron", config: "dev" }],
 		secrets: "github",
 		environments: "github",
+		deployment: "cloudflare",
+		dns: "cloudflare",
 	},
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],

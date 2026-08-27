@@ -247,6 +247,12 @@ export interface HolocronConfig {
 	 */
 	org?: string;
 	/**
+	 * Org canonical domain (e.g. `"theholocron.dev"`). Subdomains are derived
+	 * from this — `preview: true` on a deploy workflow resolves the preview base
+	 * domain as `preview.<domain>`, giving URLs like `<repo>-pr-<n>.<domain>`.
+	 */
+	domain?: string;
+	/**
 	 * Repository identity and metadata. When set, `PluginLoader` injects
 	 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
 	 * need a repo (github, etc.) don't require `--repo` on every invocation.
@@ -375,6 +381,7 @@ export interface ResolvedHolocronConfig {
 	description?: string;
 	homepage?: string;
 	org?: string;
+	domain?: string;
 	repo?: RepoConfig;
 	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: ResolvedProvidersConfig;

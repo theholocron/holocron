@@ -1004,11 +1004,11 @@ describe("extractPreviewConfig", () => {
 	});
 
 	it("derives project and domain from org context when preview: true", () => {
-		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", docsDomain: "acme.dev" });
+		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", domain: "acme.dev" });
 		expect(cfg).toEqual({ project: "acme-preview", domain: "preview.acme.dev" });
 	});
 
-	it("derives project only when docsDomain is absent", () => {
+	it("derives project only when domain is absent", () => {
 		const cfg = extractPreviewConfig({ preview: true }, { org: "acme" });
 		expect(cfg).toEqual({ project: "acme-preview" });
 	});
@@ -1016,7 +1016,7 @@ describe("extractPreviewConfig", () => {
 	it("uses explicit project when provided as object", () => {
 		const cfg = extractPreviewConfig(
 			{ preview: { project: "my-preview" } },
-			{ org: "acme", docsDomain: "acme.dev" }
+			{ org: "acme", domain: "acme.dev" }
 		);
 		expect(cfg).toEqual({ project: "my-preview", domain: "preview.acme.dev" });
 	});
@@ -1024,7 +1024,7 @@ describe("extractPreviewConfig", () => {
 	it("uses explicit domain when provided", () => {
 		const cfg = extractPreviewConfig(
 			{ preview: { project: "my-preview", domain: "custom.preview.dev" } },
-			{ org: "acme", docsDomain: "acme.dev" }
+			{ org: "acme", domain: "acme.dev" }
 		);
 		expect(cfg).toEqual({ project: "my-preview", domain: "custom.preview.dev" });
 	});
@@ -1085,25 +1085,25 @@ describe("generateCombinedDeployContent", () => {
 });
 
 describe("parseOrgContextFromTs", () => {
-	it("extracts org and docsDomain from config source", () => {
+	it("extracts org and domain from config source", () => {
 		const source = `export default defineConfig({
 	org: "theholocron",
-	docs: { build: "workflow", domain: "theholocron.dev", https: true },
+	domain: "theholocron.dev",
 });`;
 		const ctx = parseOrgContextFromTs(source);
 		expect(ctx.org).toBe("theholocron");
-		expect(ctx.docsDomain).toBe("theholocron.dev");
+		expect(ctx.domain).toBe("theholocron.dev");
 	});
 
 	it("returns empty context when fields are absent", () => {
 		const ctx = parseOrgContextFromTs(`export default defineConfig({ name: "demo" });`);
 		expect(ctx.org).toBeUndefined();
-		expect(ctx.docsDomain).toBeUndefined();
+		expect(ctx.domain).toBeUndefined();
 	});
 
 	it("handles org without docs", () => {
 		const ctx = parseOrgContextFromTs(`export default defineConfig({ org: "acme" });`);
 		expect(ctx.org).toBe("acme");
-		expect(ctx.docsDomain).toBeUndefined();
+		expect(ctx.domain).toBeUndefined();
 	});
 });

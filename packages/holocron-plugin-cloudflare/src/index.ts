@@ -23,8 +23,11 @@ export interface PluginContext {
 
 export function createContext(options: CloudflarePluginOptions = {}): PluginContext {
 	const token = resolveToken(options);
+	// CLOUDFLARE_ACCOUNT_ID is the standard Cloudflare env var; fall back so
+	// `deployment: "cloudflare"` works without repeating the ID in every config.
+	const accountId = options.accountId ?? process.env.CLOUDFLARE_ACCOUNT_ID;
 	return {
-		options,
+		options: { ...options, accountId },
 		client: createCloudflareClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
 	};
 }
