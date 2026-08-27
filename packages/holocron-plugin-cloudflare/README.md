@@ -74,14 +74,14 @@ Zone ids are cached per plugin instance for the lifetime of the process.
 
 Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. Used by `holocron setup` to provision per-PR preview deployments.
 
-| Method                 | What it does                                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `listProjects`         | Lists all Cloudflare Pages projects in the account.                                                                       |
-| `ensureProject`        | Creates the Pages project if it does not exist; returns the existing project otherwise.                                   |
-| `ensureCustomDomain`   | Attaches a custom domain (or wildcard) to the project if not already attached; idempotent.                                |
-| `listDeployments`      | Lists recent deployments for the project.                                                                                 |
-| `triggerDeployment`    | Triggers a new Pages deployment from the latest production branch commit.                                                 |
-| `updateProjectSettings`| Updates project-level settings (currently a no-op; CF Pages REST API has no direct settings endpoint for these fields).  |
+| Method                  | What it does                                                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `listProjects`          | Lists all Cloudflare Pages projects in the account.                                                                     |
+| `ensureProject`         | Creates the Pages project if it does not exist; returns the existing project otherwise.                                 |
+| `ensureCustomDomain`    | Attaches a custom domain (or wildcard) to the project if not already attached; idempotent.                              |
+| `listDeployments`       | Lists recent deployments for the project.                                                                               |
+| `triggerDeployment`     | Triggers a new Pages deployment from the latest production branch commit.                                               |
+| `updateProjectSettings` | Updates project-level settings (currently a no-op; CF Pages REST API has no direct settings endpoint for these fields). |
 
 ### Preview deployment setup
 
