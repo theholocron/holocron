@@ -902,15 +902,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (loader.has("deployment")) {
 		const deploy = loader.get("deployment") as Deployment;
 		print(style.step("deployment"));
-		steps.push(
-			await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
-				await deploy.ensureProject({ name: config.name });
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
 
-		// When the deploy workflow has preview: config, provision the preview Pages
-		// project + custom domain so preview URLs resolve at <repo>-pr-<n>.<domain>.
+		// Resolve preview config first so we know whether the deployment capability
+		// is being used exclusively for preview infrastructure or for a direct deploy.
 		const deployEntry = (config.workflows ?? [])
 			.map((e) => (typeof e === "string" ? { name: e } : e))
 			.find((e) => e.name === "deploy");
@@ -920,6 +914,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					domain: config.domain,
 				})
 			: null;
+
+		// Only provision the main project when the repo is directly deploying to
+		// Cloudflare Pages (no preview config). When preview: is set, the deployment
+		// provider is used solely for preview infrastructure — creating a project
+		// named after the repo would be an unwanted side-effect.
+		if (!previewCfg) {
+			steps.push(
+				await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
+					await deploy.ensureProject({ name: config.name });
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
 
 		if (previewCfg) {
 			steps.push(
@@ -931,10 +938,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 
 		if (previewCfg?.domain && deploy.ensureCustomDomain) {
-			const wildcardDomain = `*.${previewCfg.domain}`;
+			// CF Pages accepts the apex domain, not a wildcard — branch deployments
+			// then resolve automatically as <repo>-pr-<n>.<domain>.
 			steps.push(
-				await runStep("deployment", `ensureCustomDomain ${wildcardDomain}`, dryRun, async () => {
-					await deploy.ensureCustomDomain!(previewCfg.project, wildcardDomain);
+				await runStep("deployment", `ensureCustomDomain ${previewCfg.domain}`, dryRun, async () => {
+					await deploy.ensureCustomDomain!(previewCfg.project, previewCfg.domain!);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
@@ -943,6 +951,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (previewCfg?.domain && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			const wildcardDomain = `*.${previewCfg.domain}`;
+			// Apex CNAME so preview.theholocron.dev itself resolves.
+			steps.push(
+				await runStep("dns", `upsertRecord ${previewCfg.domain}`, dryRun, async () => {
+					await dns.upsertRecord(previewCfg.domain!, {
+						type: "CNAME",
+						name: previewCfg.domain!,
+						content: `${previewCfg.project}.pages.dev`,
+						ttl: 1,
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+			// Wildcard CNAME so <repo>-pr-<n>.preview.theholocron.dev resolves.
 			steps.push(
 				await runStep("dns", `upsertRecord ${wildcardDomain}`, dryRun, async () => {
 					await dns.upsertRecord(previewCfg.domain!, {
