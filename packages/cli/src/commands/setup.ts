@@ -646,12 +646,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					docsDomain: config.docs?.domain,
 				});
 				if (previewCfg) {
-					const paths = additionalPaths ?? [];
+					const paths = additionalPaths!;
 					steps.push(
 						await runStep("source", "write workflow deploy (with preview)", dryRun, async () => {
 							await source.writeWorkflowFile(
 								"deploy.yml",
-								workflowHeader() + generateCombinedDeployContent(withOverrides ?? {}, paths, previewCfg)
+								workflowHeader() + generateCombinedDeployContent(withOverrides!, paths, previewCfg)
 							);
 						})
 					);

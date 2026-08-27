@@ -253,7 +253,7 @@ function buildBatch(
 						path: `.github/workflows/deploy.yml`,
 						content:
 							workflowHeader() +
-							generateCombinedDeployContent(normalizedWith ?? {}, additionalPaths ?? [], previewCfg),
+							generateCombinedDeployContent(normalizedWith!, additionalPaths!, previewCfg),
 					});
 					continue;
 				}
