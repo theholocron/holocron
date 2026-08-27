@@ -643,7 +643,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			if (name === "deploy" && rawWith) {
 				const previewCfg = extractPreviewConfig(rawWith as Record<string, unknown>, {
 					org: config.org,
-					docsDomain: config.docs?.domain,
+					domain: config.domain,
 				});
 				if (previewCfg) {
 					const paths = additionalPaths!;

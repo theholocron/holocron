@@ -176,11 +176,12 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
  */
 export function parseOrgContextFromTs(source: string): OrgContext {
 	const orgMatch = source.match(/\borg\s*:\s*["']([^"']+)["']/);
-	// Match `docs: { ... domain: "..." ... }` — handles object on one or multiple lines
-	const domainMatch = source.match(/\bdocs\s*:[^}]*?domain\s*:\s*["']([^"']+)["']/s);
+	// Match top-level `domain: "..."` — the org canonical domain from which preview
+	// subdomains are derived (e.g. "theholocron.dev" → preview.theholocron.dev).
+	const domainMatch = source.match(/\bdomain\s*:\s*["']([^"']+)["']/);
 	return {
 		org: orgMatch?.[1],
-		docsDomain: domainMatch?.[1],
+		domain: domainMatch?.[1],
 	};
 }
 

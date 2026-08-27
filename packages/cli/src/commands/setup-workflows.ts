@@ -192,8 +192,8 @@ export interface PreviewConfig {
 export interface OrgContext {
 	/** GitHub org name — becomes the prefix of the default project: `<org>-preview`. */
 	org?: string;
-	/** Custom docs domain — becomes `preview.<docsDomain>` for the default preview domain. */
-	docsDomain?: string;
+	/** Org canonical domain — becomes `preview.<domain>` for the default preview domain. */
+	domain?: string;
 }
 
 /**
@@ -213,7 +213,7 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
 	// preview: true — derive both values from org context
 	if (preview === true) {
 		const project = ctx.org ? `${ctx.org}-preview` : null;
-		const domain = ctx.docsDomain ? `preview.${ctx.docsDomain}` : undefined;
+		const domain = ctx.domain ? `preview.${ctx.domain}` : undefined;
 		if (!project) return null;
 		return { project, ...(domain ? { domain } : {}) };
 	}
@@ -228,8 +228,8 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
 	const domain =
 		typeof p["domain"] === "string" && p["domain"]
 			? p["domain"]
-			: ctx.docsDomain
-				? `preview.${ctx.docsDomain}`
+			: ctx.domain
+				? `preview.${ctx.domain}`
 				: undefined;
 
 	return { project, ...(domain ? { domain } : {}) };
