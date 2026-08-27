@@ -64,6 +64,20 @@ describe("CloudflareDeployment.ensureProject", () => {
 		expect(calls[1]?.method).toBe("POST");
 		expect(calls[1]?.body).toMatchObject({ name: PROJECT_NAME, production_branch: "main" });
 	});
+
+	it("re-throws non-404 errors from getProject", async () => {
+		const { dep } = makeDeployment([{ status: 500, body: { success: false, errors: [], result: null } }]);
+		await expect(dep.ensureProject({ name: PROJECT_NAME })).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});
+
+describe("CloudflareDeployment.updateProjectSettings", () => {
+	it("GETs the current project and returns it (CF Pages has no disable-preview API)", async () => {
+		const { dep, calls } = makeDeployment([cfOk(project)]);
+		const result = await dep.updateProjectSettings(PROJECT_NAME, {});
+		expect(calls[0]?.method).toBe("GET");
+		expect(result.name).toBe(PROJECT_NAME);
+	});
 });
 
 describe("CloudflareDeployment.listEnvVars", () => {

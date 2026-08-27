@@ -165,6 +165,7 @@ function normalizeStatus(status: RawDeployment["latest_stage"]["status"]): Deplo
 			return "error";
 		case "canceled":
 			return "cancelled";
+		/* c8 ignore next */
 		default:
 			return "error";
 	}

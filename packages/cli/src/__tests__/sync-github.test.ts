@@ -998,6 +998,11 @@ describe("extractPreviewConfig", () => {
 		expect(extractPreviewConfig({ preview: true }, {})).toBeNull();
 	});
 
+	it("returns null when preview is a non-object, non-boolean primitive", () => {
+		expect(extractPreviewConfig({ preview: 42 })).toBeNull();
+		expect(extractPreviewConfig({ preview: "invalid" })).toBeNull();
+	});
+
 	it("derives project and domain from org context when preview: true", () => {
 		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", docsDomain: "acme.dev" });
 		expect(cfg).toEqual({ project: "acme-preview", domain: "preview.acme.dev" });
