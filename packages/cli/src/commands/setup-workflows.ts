@@ -174,10 +174,159 @@ export function generateThinCallerContent(
 	return injected;
 }
 
+export interface PreviewConfig {
+	/** Cloudflare Pages project name shared across all repos for previews. */
+	project: string;
+	/**
+	 * Base domain for preview URLs (e.g. `"preview.theholocron.dev"`).
+	 * When set, `holocron setup` automatically provisions:
+	 * - Cloudflare Pages custom domain `*.<domain>` on the project
+	 * - DNS wildcard CNAME `*.<domain>` → `<project>.pages.dev`
+	 *
+	 * Preview URLs resolve as `<repo>-pr-<n>.<domain>`.
+	 */
+	domain?: string;
+}
+
+/** Org-level context used to derive preview defaults from `preview: true`. */
+export interface OrgContext {
+	/** GitHub org name — becomes the prefix of the default project: `<org>-preview`. */
+	org?: string;
+	/** Custom docs domain — becomes `preview.<docsDomain>` for the default preview domain. */
+	docsDomain?: string;
+}
+
+/**
+ * Extract the Cloudflare Pages preview config from a deploy workflow's `with:` object.
+ *
+ * Accepts three forms:
+ * - `preview: true` — derive both project and domain from org context
+ * - `preview: { project: "..." }` — explicit project; domain derived from context if omitted
+ * - `preview: { project: "...", domain: "..." }` — fully explicit
+ *
+ * Returns null when `preview:` is absent, false, or can't be resolved.
+ */
+export function extractPreviewConfig(
+	raw: Record<string, unknown>,
+	ctx: OrgContext = {}
+): PreviewConfig | null {
+	const preview = raw["preview"];
+	if (!preview) return null;
+
+	// preview: true — derive both values from org context
+	if (preview === true) {
+		const project = ctx.org ? `${ctx.org}-preview` : null;
+		const domain = ctx.docsDomain ? `preview.${ctx.docsDomain}` : undefined;
+		if (!project) return null;
+		return { project, ...(domain ? { domain } : {}) };
+	}
+
+	if (typeof preview !== "object") return null;
+	const p = preview as Record<string, unknown>;
+
+	const project =
+		typeof p["project"] === "string" && p["project"]
+			? p["project"]
+			: ctx.org
+				? `${ctx.org}-preview`
+				: null;
+	if (!project) return null;
+
+	const domain =
+		typeof p["domain"] === "string" && p["domain"]
+			? p["domain"]
+			: ctx.docsDomain
+				? `preview.${ctx.docsDomain}`
+				: undefined;
+
+	return { project, ...(domain ? { domain } : {}) };
+}
+
+/**
+ * Generate the full thin-caller YAML for a `deploy.yml` that handles both
+ * production (push to main → GitHub Pages) and preview (pull_request →
+ * Cloudflare Pages) in a single file.
+ *
+ * Both jobs receive the same docs/storybook `with:` inputs. If the per-repo
+ * config supplies `cloudflare-project` it is forwarded; otherwise the reusable
+ * falls back to the `CLOUDFLARE_PAGES_PROJECT` org variable — set that once and
+ * all repos with a `deploy` workflow get previews without per-repo config.
+ */
+export function generateCombinedDeployContent(
+	deployWith: Record<string, unknown>,
+	paths: string[],
+	preview: Pick<PreviewConfig, "project">
+): string {
+	const yamlScalar = (v: unknown): string => {
+		if (v === true) return "true";
+		if (v === false) return "false";
+		const s = String(v);
+		return s.startsWith("[") || s.startsWith("{") ? `'${s}'` : s;
+	};
+	const withLines = (entries: Record<string, unknown>) =>
+		Object.entries(entries)
+			.map(([k, v]) => `      ${k}: ${yamlScalar(v)}`)
+			.join("\n");
+
+	const pathsBlock =
+		paths.length > 0
+			? `    paths:\n${paths.map((p) => `      - ${p}\n`).join("")}`
+			: "";
+
+	const previewWith = { ...deployWith, "cloudflare-project": preview.project };
+
+	const deployWithBlock =
+		Object.keys(deployWith).length > 0
+			? `    with:\n${withLines(deployWith)}\n`
+			: "";
+	// previewWith always has at least cloudflare-project, so the block is never empty.
+	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
+
+	return [
+		`name: Deploy`,
+		``,
+		`on: # yamllint disable-line rule:truthy`,
+		`  push:`,
+		`    branches: [main]`,
+		...(pathsBlock ? [`${pathsBlock}`] : []),
+		`  pull_request:`,
+		`    branches: [main]`,
+		...(pathsBlock ? [`${pathsBlock}`] : []),
+		`  workflow_dispatch:`,
+		``,
+		`concurrency:`,
+		`  group: $\{{ github.event_name == 'pull_request' && format('deploy-preview-{0}', github.event.pull_request.number) || 'pages' }}`,
+		`  cancel-in-progress: $\{{ github.event_name == 'pull_request' }}`,
+		``,
+		`permissions:`,
+		`  contents: read`,
+		`  pages: write`,
+		`  id-token: write`,
+		`  pull-requests: write`,
+		``,
+		`jobs:`,
+		`  deploy:`,
+		`    name: Deploy`,
+		`    if: \${{ github.event_name != 'pull_request' }}`,
+		`    uses: theholocron/.github/.github/workflows/deploy.yml@main`,
+		...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
+		`    secrets: inherit`,
+		``,
+		`  preview:`,
+		`    name: Deploy Preview`,
+		`    if: \${{ github.event_name == 'pull_request' }}`,
+		`    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main`,
+		previewWithBlock.trimEnd(),
+		`    secrets: inherit`,
+		``,
+	].join("\n");
+}
+
 /**
  * Expand structured with-values to flat GitHub Actions inputs before
  * generating the thin caller. Handles:
  *   - deploy shorthand: docs/storybook → type + storybook-projects
+ *   - preview: stripped (handled separately via extractPreviewConfig)
  *   - run-chromatic object → run-chromatic: true + chromatic-projects
  *   - plain arrays → JSON-stringified for YAML scalar quoting
  *
@@ -185,6 +334,7 @@ export function generateThinCallerContent(
  */
 export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
 	const result = { ...raw };
+	delete result["preview"];
 
 	const hasDocs = raw["docs"] === true || (raw["docs"] !== null && typeof raw["docs"] === "object");
 	const storybookProjects = raw["storybook"];

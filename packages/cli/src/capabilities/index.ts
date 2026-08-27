@@ -472,6 +472,13 @@ export interface Deployment extends ProviderIdentity {
 	}): Promise<DeploymentRecord>;
 
 	getDeployment(deploymentId: string): Promise<DeploymentRecord>;
+
+	/**
+	 * Add a custom domain (or wildcard) to the project. Idempotent — no-op
+	 * when the domain is already present. Optional: providers without a custom
+	 * domain API omit this (e.g. Vercel manages domains separately).
+	 */
+	ensureCustomDomain?(projectId: string, hostname: string): Promise<void>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

@@ -8,9 +8,12 @@ import { ProviderApiError } from "@theholocron/http-client";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import {
 	deriveDeployPaths,
+	extractPreviewConfig,
+	generateCombinedDeployContent,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
+	type OrgContext,
 	WORKFLOW_TEMPLATES,
 	workflowHeader,
 } from "./setup-workflows.js";
@@ -167,6 +170,20 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	return [...merged.values()];
 }
 
+/**
+ * Extract org name and docs domain from a `holocron.config.ts` source string.
+ * Used to resolve `preview: true` to `{ project: "<org>-preview", domain: "preview.<docsDomain>" }`.
+ */
+export function parseOrgContextFromTs(source: string): OrgContext {
+	const orgMatch = source.match(/\borg\s*:\s*["']([^"']+)["']/);
+	// Match `docs: { ... domain: "..." ... }` — handles object on one or multiple lines
+	const domainMatch = source.match(/\bdocs\s*:[^}]*?domain\s*:\s*["']([^"']+)["']/s);
+	return {
+		org: orgMatch?.[1],
+		docsDomain: domainMatch?.[1],
+	};
+}
+
 function reusableHeader(source: string): string {
 	return [
 		`# AUTO-GENERATED — do not edit in theholocron/.github directly.`,
@@ -181,7 +198,8 @@ function reusableHeader(source: string): string {
 function buildBatch(
 	repo: string,
 	allowedWorkflows?: Set<string>,
-	withOverrides?: Map<string, Record<string, unknown>>
+	withOverrides?: Map<string, Record<string, unknown>>,
+	orgContext?: OrgContext
 ): FileBatch {
 	const files: FileBatch = [];
 	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
@@ -218,10 +236,27 @@ function buildBatch(
 		}
 	} else {
 		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
+			// deploy-preview is a reusable that lives in .github, not a user-configurable
+			// thin caller — skip it in the secondary-repo loop.
+			if (name === "deploy-preview") continue;
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
 			const rawWith = withOverrides?.get(name);
 			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
 			const additionalPaths = name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
+
+			// deploy + preview: → combined thin caller; preview: true derives
+			// project + domain from the repo's org/docs config.
+			if (name === "deploy" && rawWith) {
+				const previewCfg = extractPreviewConfig(rawWith, orgContext);
+				if (previewCfg) {
+					files.push({
+						path: `.github/workflows/deploy.yml`,
+						content: workflowHeader() + generateCombinedDeployContent(normalizedWith ?? {}, additionalPaths ?? [], previewCfg),
+					});
+					continue;
+				}
+			}
+
 			const content = generateThinCallerContent(name, normalizedWith, additionalPaths);
 			if (!content) continue;
 			files.push({
@@ -301,6 +336,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// ── 3. Fetch workflow allowlist + per-workflow overrides from target repo ─
 	let allowedWorkflows: Set<string> | undefined;
 	let withOverrides: Map<string, Record<string, unknown>> | undefined;
+	let orgContext: OrgContext | undefined;
 	if (repo !== DEFAULT_REPO) {
 		try {
 			let entries: WorkflowEntry[] = [];
@@ -318,6 +354,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 					const data = await client.git.getContents(repo, "holocron.config.ts");
 					const source = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
 					entries = parseWorkflowsFromTs(source);
+					orgContext = parseOrgContextFromTs(source);
 				} catch {
 					// No config — sync all workflows with no overrides
 				}
@@ -334,7 +371,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	}
 
 	// ── 4. Build file batch ──────────────────────────────────────────────────
-	const batch = buildBatch(repo, allowedWorkflows, withOverrides);
+	const batch = buildBatch(repo, allowedWorkflows, withOverrides, orgContext);
 
 	// ── 5. Detect changes ────────────────────────────────────────────────────
 	let created = 0;
