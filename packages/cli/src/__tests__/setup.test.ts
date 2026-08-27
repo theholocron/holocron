@@ -305,12 +305,12 @@ describe("runSetup", () => {
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect(customDomainCalls).toEqual([["acme-preview", "*.preview.acme.dev"]]);
-		expect(dnsCalls[0]).toMatchObject({
-			type: "CNAME",
-			name: "*.preview.acme.dev",
-			content: "acme-preview.pages.dev",
-		});
+		// apex domain registered with Pages (CF routes branch deployments automatically)
+		expect(customDomainCalls).toEqual([["acme-preview", "preview.acme.dev"]]);
+		// apex CNAME + wildcard CNAME both created
+		expect(dnsCalls).toHaveLength(2);
+		expect(dnsCalls[0]).toMatchObject({ type: "CNAME", name: "preview.acme.dev", content: "acme-preview.pages.dev" });
+		expect(dnsCalls[1]).toMatchObject({ type: "CNAME", name: "*.preview.acme.dev", content: "acme-preview.pages.dev" });
 	});
 
 	it("resolves preview: true using org and domain context to provision project and custom domain", async () => {
@@ -351,12 +351,10 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(ensureProjectCalls).toContain("acme-preview");
-		expect(customDomainCalls).toEqual([["acme-preview", "*.preview.acme.dev"]]);
-		expect(dnsCalls[0]).toMatchObject({
-			type: "CNAME",
-			name: "*.preview.acme.dev",
-			content: "acme-preview.pages.dev",
-		});
+		expect(customDomainCalls).toEqual([["acme-preview", "preview.acme.dev"]]);
+		expect(dnsCalls).toHaveLength(2);
+		expect(dnsCalls[0]).toMatchObject({ type: "CNAME", name: "preview.acme.dev", content: "acme-preview.pages.dev" });
+		expect(dnsCalls[1]).toMatchObject({ type: "CNAME", name: "*.preview.acme.dev", content: "acme-preview.pages.dev" });
 	});
 
 	it("skips ensureCustomDomain when preview has no domain", async () => {

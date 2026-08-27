@@ -931,10 +931,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 
 		if (previewCfg?.domain && deploy.ensureCustomDomain) {
-			const wildcardDomain = `*.${previewCfg.domain}`;
+			// CF Pages accepts the apex domain, not a wildcard — branch deployments
+			// then resolve automatically as <repo>-pr-<n>.<domain>.
 			steps.push(
-				await runStep("deployment", `ensureCustomDomain ${wildcardDomain}`, dryRun, async () => {
-					await deploy.ensureCustomDomain!(previewCfg.project, wildcardDomain);
+				await runStep("deployment", `ensureCustomDomain ${previewCfg.domain}`, dryRun, async () => {
+					await deploy.ensureCustomDomain!(previewCfg.project, previewCfg.domain!);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
@@ -943,6 +944,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (previewCfg?.domain && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			const wildcardDomain = `*.${previewCfg.domain}`;
+			// Apex CNAME so preview.theholocron.dev itself resolves.
+			steps.push(
+				await runStep("dns", `upsertRecord ${previewCfg.domain}`, dryRun, async () => {
+					await dns.upsertRecord(previewCfg.domain!, {
+						type: "CNAME",
+						name: previewCfg.domain!,
+						content: `${previewCfg.project}.pages.dev`,
+						ttl: 1,
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+			// Wildcard CNAME so <repo>-pr-<n>.preview.theholocron.dev resolves.
 			steps.push(
 				await runStep("dns", `upsertRecord ${wildcardDomain}`, dryRun, async () => {
 					await dns.upsertRecord(previewCfg.domain!, {
