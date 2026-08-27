@@ -114,7 +114,7 @@ jobs:
         if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
           directory: _site
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
