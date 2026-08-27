@@ -259,7 +259,7 @@ export interface HolocronConfig {
 	 * Use the object form to pass `with:` inputs to the reusable workflow.
 	 *
 	 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
-	 *   "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit" |
+	 *   "release" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit" |
 	 *   "deploy"
 	 *
 	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
