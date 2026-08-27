@@ -120,6 +120,7 @@ jobs:
           fi
 
       - uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca # v1.5.0
+        id: deploy
         name: Deploy to Cloudflare Pages
         # Skip when neither the per-repo input nor the org variable is set.
         if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
@@ -128,7 +129,26 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
           directory: _site
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          # Branch name scoped to repo+PR so the wildcard custom domain
-          # *.preview.theholocron.dev resolves to <repo>-pr-<n>.preview.theholocron.dev
           branch: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+
+      - name: Report preview URL
+        if: ${{ steps.deploy.outputs.alias != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALIAS: ${{ steps.deploy.outputs.alias }}
+          SITE_NAME: ${{ inputs.name }}
+          PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          PREVIEW_URL="https://${ALIAS}${SITE_NAME:+/${SITE_NAME}}/"
+          # Create a GitHub Deployment pointing at the stable branch alias URL.
+          PAYLOAD=$(printf '{"ref":"%s","environment":"%s","description":"Cloudflare Pages","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
+            "$GITHUB_SHA" "${PROJECT} (Preview)")
+          DEPLOY_ID=$(echo "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+            --method POST --input - | jq -r '.id')
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOY_ID}/statuses" \
+            --method POST --field state=success --field environment_url="${PREVIEW_URL}"
+          # Post a single PR comment with the clean, stable URL.
+          gh pr comment "${PR_NUMBER}" \
+            --body "🚀 Preview: ${PREVIEW_URL}" \
+            --repo "${GITHUB_REPOSITORY}"

@@ -16,6 +16,7 @@ import bookkeepingWorkflow from "./workflows/bookkeeping.yml";
 import codeqlWorkflow from "./workflows/codeql.yml";
 import dependenciesWorkflow from "./workflows/dependencies.yml";
 import deployWorkflow from "./workflows/deploy.yml";
+import cleanupPreviewWorkflow from "./workflows/cleanup-preview.yml";
 import deployPreviewWorkflow from "./workflows/deploy-preview.yml";
 import greetingsWorkflow from "./workflows/greetings.yml";
 import lintWorkflow from "./workflows/lint.yml";
@@ -43,6 +44,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	codeql: codeqlWorkflow,
 	dependencies: dependenciesWorkflow,
 	deploy: deployWorkflow,
+	"cleanup-preview": cleanupPreviewWorkflow,
 	"deploy-preview": deployPreviewWorkflow,
 	greetings: greetingsWorkflow,
 	lint: lintWorkflow,
