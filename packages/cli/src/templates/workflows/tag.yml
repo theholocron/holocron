@@ -10,6 +10,11 @@ name: Tag
 #   .release-please-manifest.json — tracks the current version
 
 on: # yamllint disable-line rule:truthy
+  # Self-trigger: when this workflow lives in theholocron/.github itself,
+  # push to main runs Release Please for that repo's own releases.
+  push:
+    branches:
+      - main
   workflow_call:
     inputs:
       release-type:
