@@ -902,15 +902,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (loader.has("deployment")) {
 		const deploy = loader.get("deployment") as Deployment;
 		print(style.step("deployment"));
-		steps.push(
-			await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
-				await deploy.ensureProject({ name: config.name });
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
 
-		// When the deploy workflow has preview: config, provision the preview Pages
-		// project + custom domain so preview URLs resolve at <repo>-pr-<n>.<domain>.
+		// Resolve preview config first so we know whether the deployment capability
+		// is being used exclusively for preview infrastructure or for a direct deploy.
 		const deployEntry = (config.workflows ?? [])
 			.map((e) => (typeof e === "string" ? { name: e } : e))
 			.find((e) => e.name === "deploy");
@@ -920,6 +914,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					domain: config.domain,
 				})
 			: null;
+
+		// Only provision the main project when the repo is directly deploying to
+		// Cloudflare Pages (no preview config). When preview: is set, the deployment
+		// provider is used solely for preview infrastructure — creating a project
+		// named after the repo would be an unwanted side-effect.
+		if (!previewCfg) {
+			steps.push(
+				await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
+					await deploy.ensureProject({ name: config.name });
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
 
 		if (previewCfg) {
 			steps.push(

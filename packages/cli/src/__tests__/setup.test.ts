@@ -358,7 +358,8 @@ describe("runSetup", () => {
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect(ensureProjectCalls).toContain("acme-preview");
+		// preview project provisioned; repo's own project name NOT created
+		expect(ensureProjectCalls).toEqual(["acme-preview"]);
 		expect(customDomainCalls).toEqual([["acme-preview", "preview.acme.dev"]]);
 		expect(dnsCalls).toHaveLength(2);
 		expect(dnsCalls[0]).toMatchObject({
