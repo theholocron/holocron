@@ -267,6 +267,8 @@ export function generateCombinedDeployContent(
 	// previewWith always has at least cloudflare-project, so the block is never empty.
 	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 
+	const cleanupWithBlock = `    with:\n      cloudflare-project: ${preview.project}`;
+
 	return [
 		`name: Deploy`,
 		``,
@@ -276,12 +278,13 @@ export function generateCombinedDeployContent(
 		...(pathsBlock ? [`${pathsBlock}`] : []),
 		`  pull_request:`,
 		`    branches: [main]`,
+		`    types: [opened, synchronize, reopened, closed]`,
 		...(pathsBlock ? [`${pathsBlock}`] : []),
 		`  workflow_dispatch:`,
 		``,
 		`concurrency:`,
 		`  group: $\{{ github.event_name == 'pull_request' && format('deploy-preview-{0}', github.event.pull_request.number) || 'pages' }}`,
-		`  cancel-in-progress: $\{{ github.event_name == 'pull_request' }}`,
+		`  cancel-in-progress: $\{{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
 		``,
 		`permissions:`,
 		`  contents: read`,
@@ -300,9 +303,16 @@ export function generateCombinedDeployContent(
 		``,
 		`  preview:`,
 		`    name: Deploy Preview`,
-		`    if: \${{ github.event_name == 'pull_request' }}`,
+		`    if: \${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
 		`    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main`,
 		previewWithBlock.trimEnd(),
+		`    secrets: inherit`,
+		``,
+		`  cleanup:`,
+		`    name: Clean up Preview`,
+		`    if: \${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}`,
+		`    uses: theholocron/.github/.github/workflows/cleanup-preview.yml@main`,
+		cleanupWithBlock,
 		`    secrets: inherit`,
 		``,
 	].join("\n");
