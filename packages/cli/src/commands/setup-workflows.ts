@@ -285,6 +285,7 @@ export function generateCombinedDeployContent(
 		``,
 		`permissions:`,
 		`  contents: read`,
+		`  deployments: write`,
 		`  pages: write`,
 		`  id-token: write`,
 		`  pull-requests: write`,
