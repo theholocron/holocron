@@ -26,7 +26,16 @@ import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { AuthError, createFeatureResolver } from "../auth-resolver.js";
-import type { Auth, Deployment, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
+import type {
+	Auth,
+	Deployment,
+	Dns,
+	Environments,
+	RepoSettings,
+	Source,
+	Tooling,
+	Vault,
+} from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import { ConfigError } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
@@ -36,6 +45,8 @@ import { style } from "../ui/style.js";
 import {
 	DEPENDABOT_CONFIG,
 	deriveDeployPaths,
+	extractPreviewConfig,
+	generateCombinedDeployContent,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
@@ -626,6 +637,29 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				print(formatStep(steps[steps.length - 1]!));
 				continue;
 			}
+
+			// deploy + preview: → combined thin caller (single file, two jobs).
+			// preview: true derives project + domain from config.org / config.docs.
+			if (name === "deploy" && rawWith) {
+				const previewCfg = extractPreviewConfig(rawWith as Record<string, unknown>, {
+					org: config.org,
+					docsDomain: config.docs?.domain,
+				});
+				if (previewCfg) {
+					const paths = additionalPaths!;
+					steps.push(
+						await runStep("source", "write workflow deploy (with preview)", dryRun, async () => {
+							await source.writeWorkflowFile(
+								"deploy.yml",
+								workflowHeader() + generateCombinedDeployContent(withOverrides!, paths, previewCfg)
+							);
+						})
+					);
+					print(formatStep(steps[steps.length - 1]!));
+					continue;
+				}
+			}
+
 			steps.push(
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
 					await source.writeWorkflowFile(
@@ -864,7 +898,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 	}
 
-	// ── deployment: ensure project ──────────────────────────────────────
+	// ── deployment: ensure project + preview infrastructure ─────────────
 	if (loader.has("deployment")) {
 		const deploy = loader.get("deployment") as Deployment;
 		print(style.step("deployment"));
@@ -874,6 +908,40 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
+
+		// When the deploy workflow has preview: { project, domain }, provision the
+		// Cloudflare Pages custom domain so preview URLs resolve at
+		// <repo>-pr-<n>.<domain> — dogfooding our own deployment + dns capabilities.
+		const deployEntry = (config.workflows ?? [])
+			.map((e) => (typeof e === "string" ? { name: e } : e))
+			.find((e) => e.name === "deploy");
+		const previewCfg = deployEntry?.with ? extractPreviewConfig(deployEntry.with as Record<string, unknown>) : null;
+
+		if (previewCfg?.domain && deploy.ensureCustomDomain) {
+			const wildcardDomain = `*.${previewCfg.domain}`;
+			steps.push(
+				await runStep("deployment", `ensureCustomDomain ${wildcardDomain}`, dryRun, async () => {
+					await deploy.ensureCustomDomain!(previewCfg.project, wildcardDomain);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		if (previewCfg?.domain && loader.has("dns")) {
+			const dns = loader.get("dns") as Dns;
+			const wildcardDomain = `*.${previewCfg.domain}`;
+			steps.push(
+				await runStep("dns", `upsertRecord ${wildcardDomain}`, dryRun, async () => {
+					await dns.upsertRecord(previewCfg.domain!, {
+						type: "CNAME",
+						name: wildcardDomain,
+						content: `${previewCfg.project}.pages.dev`,
+						ttl: 1,
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
 	}
 
 	// ── auth: ensure webhook app (optional method) ──────────────────────

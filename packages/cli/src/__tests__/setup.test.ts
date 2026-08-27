@@ -267,6 +267,162 @@ describe("runSetup", () => {
 		expect(ensuredName).toBe("my-app");
 	});
 
+	it("calls ensureCustomDomain and dns.upsertRecord when deploy has preview.domain", async () => {
+		const customDomainCalls: Array<[string, string]> = [];
+		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			org: "acme",
+			docs: { build: "workflow", domain: "acme.dev", https: true },
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
+			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async (projectId: string, hostname: string) => {
+						customDomainCalls.push([projectId, hostname]);
+					},
+				},
+				dns: {
+					listRecords: async () => [],
+					upsertRecord: async (domain: string, record: { type: string; name: string; content: string }) => {
+						dnsCalls.push(record);
+						return record;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(customDomainCalls).toEqual([["acme-preview", "*.preview.acme.dev"]]);
+		expect(dnsCalls[0]).toMatchObject({
+			type: "CNAME",
+			name: "*.preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
+	});
+
+	it("skips ensureCustomDomain when preview has no domain", async () => {
+		const customDomainCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async (_id: string, hostname: string) => {
+						customDomainCalls.push(hostname);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(customDomainCalls).toHaveLength(0);
+	});
+
+	it("skips ensureCustomDomain when deployment provider does not implement it", async () => {
+		const domainCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					// no ensureCustomDomain — provider omits the optional method
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(domainCalls).toHaveLength(0);
+	});
+
+	it("skips DNS upsert when dns capability is not configured", async () => {
+		const dnsCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(dnsCalls).toHaveLength(0);
+	});
+
+	it("skips preview provisioning when workflow entry is a plain string (no preview config)", async () => {
+		const customDomainCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			workflows: ["deploy"],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async (_id: string, hostname: string) => {
+						customDomainCalls.push(hostname);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(customDomainCalls).toHaveLength(0);
+	});
+
 	it("reports already-exists for ensureWebhookApp when the provider supports it", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1060,6 +1216,71 @@ describe("runSetup", () => {
 		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
 		expect(workflowSteps).toHaveLength(3);
 		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);
+	});
+
+	it("writes standard deploy.yml (no preview job) when deploy has no preview: key", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			workflows: [{ name: "deploy", with: { docs: true } }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect("deploy.yml" in written).toBe(true);
+		expect(written["deploy.yml"]).not.toContain("pull_request:");
+		expect(written["deploy.yml"]).not.toContain("Deploy Preview");
+	});
+
+	it("writes combined deploy.yml with preview job when deploy config has preview:", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "my-docs",
+			org: "acme",
+			docs: { build: "workflow", domain: "acme.dev", https: true },
+			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect("deploy.yml" in written).toBe(true);
+		expect(written["deploy.yml"]).toContain("pull_request:");
+		expect(written["deploy.yml"]).toContain("name: Deploy Preview");
+		expect(written["deploy.yml"]).toContain("cloudflare-project: acme-preview");
 	});
 
 	it("skips workflow writing when project.workflows is absent", async () => {

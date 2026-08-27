@@ -5,7 +5,7 @@ import { cfOk, stubFetch } from "./helpers.js";
 
 describe("createPlugin", () => {
 	it("throws when no token is resolvable", () => {
-		expect(() => createPlugin({})).toThrow();
+		expect(() => createPlugin({ env: {}, keyring: () => null })).toThrow();
 	});
 
 	it("returns a plugin with a dns capability factory", () => {

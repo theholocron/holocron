@@ -5,8 +5,18 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { generateThinCallerContent, WORKFLOW_TEMPLATES } from "../commands/setup-workflows.js";
-import { gitBlobSha as _gitBlobSha, parseWorkflowsFromTs, runSyncGithub } from "../commands/sync-github.js";
+import {
+	extractPreviewConfig,
+	generateCombinedDeployContent,
+	generateThinCallerContent,
+	WORKFLOW_TEMPLATES,
+} from "../commands/setup-workflows.js";
+import {
+	gitBlobSha as _gitBlobSha,
+	parseOrgContextFromTs,
+	parseWorkflowsFromTs,
+	runSyncGithub,
+} from "../commands/sync-github.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
@@ -252,6 +262,33 @@ describe("runSyncGithub", () => {
 		);
 		expect(deployBlob?.body?.content).toContain("type: docs");
 		expect(deployBlob?.body?.content).toContain("name: clients");
+	});
+
+	it("generates combined deploy.yml with preview job when deploy config has preview:", async () => {
+		const configTs = `export default defineConfig({
+	org: "acme",
+	docs: { build: "workflow", domain: "acme.dev", https: true },
+	workflows: [
+		{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } },
+	],
+})`;
+		const { fn, calls } = makeFetch({}, undefined, configTs);
+		await runSyncGithub({
+			token: "ghp_test",
+			repo: "theholocron/.github-private",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		const deployBlob = blobs.find(
+			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
+		);
+		const content = deployBlob?.body?.content as string | undefined;
+		expect(content).toContain("pull_request:");
+		expect(content).toContain("name: Deploy Preview");
+		expect(content).toContain("cloudflare-project: acme-preview");
 	});
 
 	it("parses unquoted TS keys in with: blocks (e.g. docs: true)", async () => {
@@ -948,5 +985,125 @@ export default defineConfig({
 				projects: [{ tokenName: "default", workingDir: ".", buildScript: "build:storybook:chromatic" }],
 			},
 		});
+	});
+});
+
+describe("extractPreviewConfig", () => {
+	it("returns null when preview is absent", () => {
+		expect(extractPreviewConfig({})).toBeNull();
+		expect(extractPreviewConfig({ docs: true })).toBeNull();
+	});
+
+	it("returns null when preview: true and no org context", () => {
+		expect(extractPreviewConfig({ preview: true }, {})).toBeNull();
+	});
+
+	it("returns null when preview is a non-object, non-boolean primitive", () => {
+		expect(extractPreviewConfig({ preview: 42 })).toBeNull();
+		expect(extractPreviewConfig({ preview: "invalid" })).toBeNull();
+	});
+
+	it("derives project and domain from org context when preview: true", () => {
+		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", docsDomain: "acme.dev" });
+		expect(cfg).toEqual({ project: "acme-preview", domain: "preview.acme.dev" });
+	});
+
+	it("derives project only when docsDomain is absent", () => {
+		const cfg = extractPreviewConfig({ preview: true }, { org: "acme" });
+		expect(cfg).toEqual({ project: "acme-preview" });
+	});
+
+	it("uses explicit project when provided as object", () => {
+		const cfg = extractPreviewConfig(
+			{ preview: { project: "my-preview" } },
+			{ org: "acme", docsDomain: "acme.dev" }
+		);
+		expect(cfg).toEqual({ project: "my-preview", domain: "preview.acme.dev" });
+	});
+
+	it("uses explicit domain when provided", () => {
+		const cfg = extractPreviewConfig(
+			{ preview: { project: "my-preview", domain: "custom.preview.dev" } },
+			{ org: "acme", docsDomain: "acme.dev" }
+		);
+		expect(cfg).toEqual({ project: "my-preview", domain: "custom.preview.dev" });
+	});
+
+	it("returns null when object form has no project and no org context", () => {
+		expect(extractPreviewConfig({ preview: {} }, {})).toBeNull();
+	});
+
+	it("falls back to derived project when object has no project but org is set", () => {
+		const cfg = extractPreviewConfig({ preview: {} }, { org: "acme" });
+		expect(cfg).toEqual({ project: "acme-preview" });
+	});
+});
+
+describe("generateCombinedDeployContent", () => {
+	it("includes both push and pull_request triggers", () => {
+		const content = generateCombinedDeployContent({}, [], { project: "my-preview" });
+		expect(content).toContain("push:");
+		expect(content).toContain("pull_request:");
+	});
+
+	it("includes paths block in both triggers when paths are provided", () => {
+		const content = generateCombinedDeployContent({}, ["docs/**", "astro.config.ts"], { project: "my-preview" });
+		const pathsBlocks = [...content.matchAll(/paths:/g)];
+		expect(pathsBlocks.length).toBeGreaterThanOrEqual(2);
+		expect(content).toContain("- docs/**");
+	});
+
+	it("forwards cloudflare-project to the preview job with: block", () => {
+		const content = generateCombinedDeployContent({}, [], { project: "acme-preview" });
+		expect(content).toContain("cloudflare-project: acme-preview");
+	});
+
+	it("includes deploy with: block when deployWith is non-empty", () => {
+		const content = generateCombinedDeployContent({ type: "docs", name: "acme" }, [], { project: "p" });
+		expect(content).toContain("type: docs");
+		expect(content).toContain("name: acme");
+	});
+
+	it("omits with: block from deploy job when deployWith is empty but preview job still has cloudflare-project", () => {
+		const content = generateCombinedDeployContent({}, [], { project: "p" });
+		const lines = content.split("\n");
+		const previewIdx = lines.findIndex((l) => l.includes("name: Deploy Preview"));
+		const previewSection = lines.slice(previewIdx).join("\n");
+		expect(previewSection).toContain("cloudflare-project: p");
+	});
+
+	it("serialises boolean true/false and array values correctly", () => {
+		const content = generateCombinedDeployContent(
+			{ "run-unit": true, "run-storybook": false, "storybook-projects": '["a","b"]' },
+			[],
+			{ project: "p" }
+		);
+		expect(content).toContain("run-unit: true");
+		expect(content).toContain("run-storybook: false");
+		expect(content).toContain('storybook-projects: \'["a","b"]\'');
+	});
+});
+
+describe("parseOrgContextFromTs", () => {
+	it("extracts org and docsDomain from config source", () => {
+		const source = `export default defineConfig({
+	org: "theholocron",
+	docs: { build: "workflow", domain: "theholocron.dev", https: true },
+});`;
+		const ctx = parseOrgContextFromTs(source);
+		expect(ctx.org).toBe("theholocron");
+		expect(ctx.docsDomain).toBe("theholocron.dev");
+	});
+
+	it("returns empty context when fields are absent", () => {
+		const ctx = parseOrgContextFromTs(`export default defineConfig({ name: "demo" });`);
+		expect(ctx.org).toBeUndefined();
+		expect(ctx.docsDomain).toBeUndefined();
+	});
+
+	it("handles org without docs", () => {
+		const ctx = parseOrgContextFromTs(`export default defineConfig({ org: "acme" });`);
+		expect(ctx.org).toBe("acme");
+		expect(ctx.docsDomain).toBeUndefined();
 	});
 });
