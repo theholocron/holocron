@@ -251,7 +251,9 @@ function buildBatch(
 				if (previewCfg) {
 					files.push({
 						path: `.github/workflows/deploy.yml`,
-						content: workflowHeader() + generateCombinedDeployContent(normalizedWith ?? {}, additionalPaths ?? [], previewCfg),
+						content:
+							workflowHeader() +
+							generateCombinedDeployContent(normalizedWith ?? {}, additionalPaths ?? [], previewCfg),
 					});
 					continue;
 				}

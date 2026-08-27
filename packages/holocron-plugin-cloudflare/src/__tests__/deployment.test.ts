@@ -56,7 +56,10 @@ describe("CloudflareDeployment.ensureProject", () => {
 	});
 
 	it("creates project when not found", async () => {
-		const { dep, calls } = makeDeployment([{ status: 404, body: { success: false, errors: [], result: null } }, cfOk(project)]);
+		const { dep, calls } = makeDeployment([
+			{ status: 404, body: { success: false, errors: [], result: null } },
+			cfOk(project),
+		]);
 		await dep.ensureProject({ name: PROJECT_NAME });
 		expect(calls[1]?.method).toBe("POST");
 		expect(calls[1]?.body).toMatchObject({ name: PROJECT_NAME, production_branch: "main" });
@@ -113,9 +116,7 @@ describe("CloudflareDeployment.getDeployment", () => {
 	it("parses projectName:deploymentId and fetches", async () => {
 		const { dep, calls } = makeDeployment([cfOk(rawDeployment)]);
 		await dep.getDeployment(`${PROJECT_NAME}:deploy-abc`);
-		expect(calls[0]?.url).toContain(
-			`/accounts/${ACCOUNT}/pages/projects/${PROJECT_NAME}/deployments/deploy-abc`
-		);
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/pages/projects/${PROJECT_NAME}/deployments/deploy-abc`);
 	});
 
 	it("throws ProviderApiError for malformed id", async () => {
@@ -155,7 +156,9 @@ describe("CloudflareDeployment — status mapping", () => {
 
 	for (const [cfStatus, expected] of statusCases) {
 		it(`maps "${cfStatus}" → "${expected}"`, async () => {
-			const { dep } = makeDeployment([cfOk({ ...rawDeployment, latest_stage: { name: "deploy", status: cfStatus } })]);
+			const { dep } = makeDeployment([
+				cfOk({ ...rawDeployment, latest_stage: { name: "deploy", status: cfStatus } }),
+			]);
 			const record = await dep.triggerDeployment({ projectId: PROJECT_NAME, branch: "main" });
 			expect(record.status).toBe(expected);
 		});

@@ -206,10 +206,7 @@ export interface OrgContext {
  *
  * Returns null when `preview:` is absent, false, or can't be resolved.
  */
-export function extractPreviewConfig(
-	raw: Record<string, unknown>,
-	ctx: OrgContext = {}
-): PreviewConfig | null {
+export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgContext = {}): PreviewConfig | null {
 	const preview = raw["preview"];
 	if (!preview) return null;
 
@@ -225,11 +222,7 @@ export function extractPreviewConfig(
 	const p = preview as Record<string, unknown>;
 
 	const project =
-		typeof p["project"] === "string" && p["project"]
-			? p["project"]
-			: ctx.org
-				? `${ctx.org}-preview`
-				: null;
+		typeof p["project"] === "string" && p["project"] ? p["project"] : ctx.org ? `${ctx.org}-preview` : null;
 	if (!project) return null;
 
 	const domain =
@@ -268,17 +261,11 @@ export function generateCombinedDeployContent(
 			.map(([k, v]) => `      ${k}: ${yamlScalar(v)}`)
 			.join("\n");
 
-	const pathsBlock =
-		paths.length > 0
-			? `    paths:\n${paths.map((p) => `      - ${p}\n`).join("")}`
-			: "";
+	const pathsBlock = paths.length > 0 ? `    paths:\n${paths.map((p) => `      - ${p}\n`).join("")}` : "";
 
 	const previewWith = { ...deployWith, "cloudflare-project": preview.project };
 
-	const deployWithBlock =
-		Object.keys(deployWith).length > 0
-			? `    with:\n${withLines(deployWith)}\n`
-			: "";
+	const deployWithBlock = Object.keys(deployWith).length > 0 ? `    with:\n${withLines(deployWith)}\n` : "";
 	// previewWith always has at least cloudflare-project, so the block is never empty.
 	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 

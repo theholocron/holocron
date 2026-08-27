@@ -55,7 +55,8 @@ export class CloudflareDeployment implements Deployment {
 
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
 		const project = await this.client.pages.getProject(this.accountId, projectId);
-		const envConfig = target === "production" ? project.deployment_configs.production : project.deployment_configs.preview;
+		const envConfig =
+			target === "production" ? project.deployment_configs.production : project.deployment_configs.preview;
 		return Object.keys(envConfig.env_vars);
 	}
 

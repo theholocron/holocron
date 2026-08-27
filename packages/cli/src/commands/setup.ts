@@ -26,7 +26,16 @@ import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { AuthError, createFeatureResolver } from "../auth-resolver.js";
-import type { Auth, Deployment, Dns, Environments, RepoSettings, Source, Tooling, Vault } from "../capabilities/index.js";
+import type {
+	Auth,
+	Deployment,
+	Dns,
+	Environments,
+	RepoSettings,
+	Source,
+	Tooling,
+	Vault,
+} from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import { ConfigError } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";

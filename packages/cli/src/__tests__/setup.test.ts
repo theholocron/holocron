@@ -274,7 +274,12 @@ describe("runSetup", () => {
 			name: "my-docs",
 			org: "acme",
 			docs: { build: "workflow", domain: "acme.dev", https: true },
-			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } } }],
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
 			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -301,7 +306,11 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(customDomainCalls).toEqual([["acme-preview", "*.preview.acme.dev"]]);
-		expect(dnsCalls[0]).toMatchObject({ type: "CNAME", name: "*.preview.acme.dev", content: "acme-preview.pages.dev" });
+		expect(dnsCalls[0]).toMatchObject({
+			type: "CNAME",
+			name: "*.preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
 	});
 
 	it("skips ensureCustomDomain when preview has no domain", async () => {
@@ -318,7 +327,9 @@ describe("runSetup", () => {
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
 				deployment: {
 					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
-					ensureCustomDomain: async (_id: string, hostname: string) => { customDomainCalls.push(hostname); },
+					ensureCustomDomain: async (_id: string, hostname: string) => {
+						customDomainCalls.push(hostname);
+					},
 				},
 			}),
 		});

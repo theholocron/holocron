@@ -63,6 +63,7 @@ automatically when `gitHubToken` is provided.
 ```
 
 `preview: true` resolves using the repo's `holocron.config.ts`:
+
 - `project` = `${config.org}-preview`
 - `domain` = `preview.${config.docs.domain}`
 
@@ -96,7 +97,7 @@ with `preview:` that contains two jobs with `if:` guards:
 
 ```yaml
 on:
-  push:       { branches: [main] }   # → GitHub Pages (production)
+  push: { branches: [main] } # → GitHub Pages (production)
   pull_request: { branches: [main] } # → Cloudflare Pages (preview)
   workflow_dispatch:
 
@@ -105,8 +106,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  deploy:   { if: "github.event_name != 'pull_request'", uses: deploy.yml@main }
-  preview:  { if: "github.event_name == 'pull_request'", uses: deploy-preview.yml@main }
+  deploy: { if: "github.event_name != 'pull_request'", uses: deploy.yml@main }
+  preview: { if: "github.event_name == 'pull_request'", uses: deploy-preview.yml@main }
 ```
 
 ---
@@ -115,9 +116,9 @@ jobs:
 
 Add to the repo (or org) under **Settings → Secrets and variables → Actions**:
 
-| Secret | Purpose |
-| ------ | ------- |
-| `CLOUDFLARE_API_TOKEN` | API token with **Cloudflare Pages: Edit** scope |
+| Secret                  | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | API token with **Cloudflare Pages: Edit** scope     |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID (dashboard home page sidebar) |
 
 ---
@@ -128,16 +129,16 @@ Add to the repo (or org) under **Settings → Secrets and variables → Actions*
 
 New `pages` namespace on `createCloudflareClient`:
 
-| Method | API |
-| ------ | --- |
-| `listProjects(accountId)` | `GET /accounts/{id}/pages/projects` |
-| `getProject(accountId, name)` | `GET /accounts/{id}/pages/projects/{name}` |
-| `createProject(accountId, input)` | `POST /accounts/{id}/pages/projects` |
-| `updateProject(accountId, name, patch)` | `PATCH /accounts/{id}/pages/projects/{name}` |
-| `createDeployment(accountId, projectName, branch)` | `POST /accounts/{id}/pages/projects/{name}/deployments` |
+| Method                                                | API                                                         |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| `listProjects(accountId)`                             | `GET /accounts/{id}/pages/projects`                         |
+| `getProject(accountId, name)`                         | `GET /accounts/{id}/pages/projects/{name}`                  |
+| `createProject(accountId, input)`                     | `POST /accounts/{id}/pages/projects`                        |
+| `updateProject(accountId, name, patch)`               | `PATCH /accounts/{id}/pages/projects/{name}`                |
+| `createDeployment(accountId, projectName, branch)`    | `POST /accounts/{id}/pages/projects/{name}/deployments`     |
 | `getDeployment(accountId, projectName, deploymentId)` | `GET /accounts/{id}/pages/projects/{name}/deployments/{id}` |
-| `listDomains(accountId, projectName)` | `GET /accounts/{id}/pages/projects/{name}/domains` |
-| `addDomain(accountId, projectName, hostname)` | `POST /accounts/{id}/pages/projects/{name}/domains` |
+| `listDomains(accountId, projectName)`                 | `GET /accounts/{id}/pages/projects/{name}/domains`          |
+| `addDomain(accountId, projectName, hostname)`         | `POST /accounts/{id}/pages/projects/{name}/domains`         |
 
 ### 2. `@theholocron/holocron-plugin-cloudflare` (theholocron/holocron#419)
 

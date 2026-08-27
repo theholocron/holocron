@@ -11,7 +11,12 @@ import {
 	generateThinCallerContent,
 	WORKFLOW_TEMPLATES,
 } from "../commands/setup-workflows.js";
-import { gitBlobSha as _gitBlobSha, parseOrgContextFromTs, parseWorkflowsFromTs, runSyncGithub } from "../commands/sync-github.js";
+import {
+	gitBlobSha as _gitBlobSha,
+	parseOrgContextFromTs,
+	parseWorkflowsFromTs,
+	runSyncGithub,
+} from "../commands/sync-github.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
@@ -1004,7 +1009,10 @@ describe("extractPreviewConfig", () => {
 	});
 
 	it("uses explicit project when provided as object", () => {
-		const cfg = extractPreviewConfig({ preview: { project: "my-preview" } }, { org: "acme", docsDomain: "acme.dev" });
+		const cfg = extractPreviewConfig(
+			{ preview: { project: "my-preview" } },
+			{ org: "acme", docsDomain: "acme.dev" }
+		);
 		expect(cfg).toEqual({ project: "my-preview", domain: "preview.acme.dev" });
 	});
 
@@ -1067,7 +1075,7 @@ describe("generateCombinedDeployContent", () => {
 		);
 		expect(content).toContain("run-unit: true");
 		expect(content).toContain("run-storybook: false");
-		expect(content).toContain("storybook-projects: '[\"a\",\"b\"]'");
+		expect(content).toContain('storybook-projects: \'["a","b"]\'');
 	});
 });
 
