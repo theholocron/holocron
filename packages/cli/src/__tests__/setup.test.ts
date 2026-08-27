@@ -343,7 +343,12 @@ describe("runSetup", () => {
 		const domainCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } } }],
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
 			providers: { vault: "1password", deployment: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -367,7 +372,12 @@ describe("runSetup", () => {
 		const dnsCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } } }],
+			workflows: [
+				{
+					name: "deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
 			providers: { vault: "1password", deployment: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
