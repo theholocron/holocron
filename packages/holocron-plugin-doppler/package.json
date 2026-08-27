@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-doppler",
-  "version": "3.31.1",
+  "version": "3.32.0",
   "description": "Holocron plugin for Doppler. Implements the vault capability against Doppler's REST API — projects, configs, secrets, plus verifyToken + AUTH_HINT for `holocron auth`.",
   "keywords": [
     "doppler",
