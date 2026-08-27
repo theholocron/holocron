@@ -25,6 +25,7 @@ import staleWorkflow from "./workflows/stale.yml";
 import syncWorkflow from "./workflows/sync.yml";
 import syncBroadcastWorkflow from "./workflows/sync-broadcast.yml";
 import syncGithubWorkflow from "./workflows/sync-github.yml";
+import tagWorkflow from "./workflows/tag.yml";
 import testWorkflow from "./workflows/test.yml";
 import typecheckWorkflow from "./workflows/typecheck.yml";
 
@@ -48,6 +49,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	review: reviewWorkflow,
 	stale: staleWorkflow,
 	"sync-broadcast": syncBroadcastWorkflow,
+	tag: tagWorkflow,
 	"sync-github": syncGithubWorkflow,
 	sync: syncWorkflow,
 	test: testWorkflow,
