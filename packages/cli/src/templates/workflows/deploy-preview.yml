@@ -84,12 +84,22 @@ jobs:
       - name: Assemble site
         env:
           DEPLOY_TYPE: ${{ inputs.type }}
+          SITE_NAME: ${{ inputs.name }}
           PROJECTS: ${{ inputs.storybook-projects }}
           STORYBOOK_OUTPUT_DIR: ${{ inputs.output-dir }}
         run: |
           mkdir -p _site
           if [ "$DEPLOY_TYPE" = "docs" ]; then
-            cp -r docs/dist/. _site/
+            if [ -n "$SITE_NAME" ]; then
+              # Site built with base: /<name>/ — nest under _site/<name>/ so asset
+              # paths match (/name/_astro/... → served at /name/_astro/...).
+              mkdir -p "_site/${SITE_NAME}"
+              cp -r docs/dist/. "_site/${SITE_NAME}/"
+              # Redirect root to the base path so the preview URL lands correctly.
+              printf "/ /%s/ 301\n" "$SITE_NAME" > _site/_redirects
+            else
+              cp -r docs/dist/. _site/
+            fi
           fi
           if [ "$PROJECTS" != "[]" ]; then
             echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
