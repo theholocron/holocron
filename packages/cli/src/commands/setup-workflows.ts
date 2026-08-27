@@ -194,6 +194,8 @@ export interface OrgContext {
 	org?: string;
 	/** Org canonical domain — becomes `preview.<domain>` for the default preview domain. */
 	domain?: string;
+	/** Project name — injected as the `name` input to the deploy reusable when `docs: true`. */
+	repoName?: string;
 }
 
 /**
@@ -315,7 +317,7 @@ export function generateCombinedDeployContent(
  *
  * Used by both `holocron setup` and `sync-workflow-templates`.
  */
-export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
+export function normalizeWorkflowWith(raw: Record<string, unknown>, repoName?: string): Record<string, unknown> {
 	const result = { ...raw };
 	delete result["preview"];
 
@@ -324,6 +326,9 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<stri
 	if (hasDocs) {
 		result["type"] = "docs";
 		delete result["docs"];
+		// Derive the `name` input (selects @theholocron/<name>-site) from caller context
+		// when not already set explicitly in the config.
+		if (!result["name"] && repoName) result["name"] = repoName;
 	}
 	if (Array.isArray(storybookProjects)) {
 		if (!hasDocs) result["type"] = "storybook";

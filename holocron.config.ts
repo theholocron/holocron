@@ -40,7 +40,7 @@ export default defineConfig({
 		...workflows,
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
 		"sync",
-		{ name: "deploy", with: { docs: true, name: "holocron", preview: true } },
+		{ name: "deploy", with: { docs: true, preview: true } },
 	],
 	providers: {
 		...providers,

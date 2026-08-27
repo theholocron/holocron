@@ -604,7 +604,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		for (const entry of workflows) {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const rawWith = typeof entry === "object" ? entry.with : undefined;
-			const withOverrides = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
+			const withOverrides = rawWith ? normalizeWorkflowWith(rawWith, config.name) : undefined;
 			const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
 			const additionalPaths =
 				explicitPaths ??
