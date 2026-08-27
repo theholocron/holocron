@@ -1,0 +1,123 @@
+name: Deploy Preview
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      type:
+        description: "Type of deployment: docs or storybook"
+        required: true
+        type: string
+      name:
+        description: Repo name prefix used to filter the docs site package (<name>-site); omit to run pnpm -C docs build
+        required: false
+        type: string
+        default: ""
+      storybook-projects:
+        description: >
+          JSON array of { "name"?, "workingDir", "outputDir"? } objects for storybook deploys.
+          Each is built via `pnpm -C <workingDir> build:storybook`. If "name" is provided the
+          output is placed under `sandbox/<name>/`; omit "name" for single-repo deploys and the
+          output lands directly in `sandbox/`.
+        type: string
+        required: false
+        default: "[]"
+      build-script:
+        description: pnpm script that builds the Storybook static output (single storybook, type:storybook only)
+        type: string
+        required: false
+        default: build:storybook
+      output-dir:
+        description: Directory where Storybook writes its static output (single storybook, type:storybook only)
+        type: string
+        required: false
+        default: storybook-static
+      cloudflare-project:
+        description: >
+          Cloudflare Pages project name. Falls back to the CLOUDFLARE_PAGES_PROJECT
+          org variable when omitted — set that variable once and all repos get previews
+          without per-repo config.
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build docs site
+        if: ${{ inputs.type == 'docs' && inputs.name != '' }}
+        env:
+          SITE_NAME: ${{ inputs.name }}
+        run: pnpm --filter @theholocron/"$SITE_NAME"-site build
+
+      - name: Build docs site
+        if: ${{ inputs.type == 'docs' && inputs.name == '' }}
+        run: pnpm -C docs build
+
+      - name: Build Storybook projects
+        if: ${{ inputs.storybook-projects != '[]' }}
+        env:
+          PROJECTS: ${{ inputs.storybook-projects }}
+        run: |
+          echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+            workingDir=$(echo "$project" | jq -r '.workingDir')
+            pnpm -C "$workingDir" build:storybook
+          done
+
+      - name: Build Storybook
+        if: ${{ inputs.type == 'storybook' && inputs.storybook-projects == '[]' }}
+        env:
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+        run: pnpm run "$BUILD_SCRIPT"
+
+      - name: Assemble site
+        env:
+          DEPLOY_TYPE: ${{ inputs.type }}
+          PROJECTS: ${{ inputs.storybook-projects }}
+          STORYBOOK_OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          mkdir -p _site
+          if [ "$DEPLOY_TYPE" = "docs" ]; then
+            cp -r docs/dist/. _site/
+          fi
+          if [ "$PROJECTS" != "[]" ]; then
+            echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+              name=$(echo "$project" | jq -r '.name // ""')
+              workingDir=$(echo "$project" | jq -r '.workingDir')
+              outputDir=$(echo "$project" | jq -r '.outputDir // "storybook-static"')
+              if [ -n "$name" ]; then
+                target="_site/sandbox/${name}"
+              else
+                target="_site/sandbox"
+              fi
+              mkdir -p "$target"
+              cp -r "${workingDir}/${outputDir}/." "$target/"
+            done
+          elif [ "$DEPLOY_TYPE" = "storybook" ]; then
+            mkdir -p _site/sandbox
+            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
+          fi
+
+      - uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca # v1.5.0
+        name: Deploy to Cloudflare Pages
+        # Skip when neither the per-repo input nor the org variable is set.
+        if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+          directory: _site
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # Branch name scoped to repo+PR so the wildcard custom domain
+          # *.preview.theholocron.dev resolves to <repo>-pr-<n>.preview.theholocron.dev
+          branch: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
