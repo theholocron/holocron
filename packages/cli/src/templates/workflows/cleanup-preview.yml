@@ -50,7 +50,7 @@ jobs:
           # Mark the GitHub Deployment environment as inactive.
           ENV_NAME="${PROJECT} (Preview)"
           gh api "repos/${GITHUB_REPOSITORY}/deployments" \
-            --jq --arg e "$ENV_NAME" '.[] | select(.environment == $e) | .id' \
+            | jq -r ".[] | select(.environment == \"${ENV_NAME}\") | .id" \
             | while read -r deploy_id; do
                 gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
                   --method POST --field state=inactive 2>/dev/null || true
