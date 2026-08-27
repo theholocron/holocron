@@ -176,11 +176,16 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
  */
 export function parseOrgContextFromTs(source: string): OrgContext {
 	const orgMatch = source.match(/\borg\s*:\s*["']([^"']+)["']/);
-	// Match `docs: { ... domain: "..." ... }` — handles object on one or multiple lines
-	const domainMatch = source.match(/\bdocs\s*:[^}]*?domain\s*:\s*["']([^"']+)["']/s);
+	// Match top-level `domain: "..."` — the org canonical domain from which preview
+	// subdomains are derived (e.g. "theholocron.dev" → preview.theholocron.dev).
+	const domainMatch = source.match(/\bdomain\s*:\s*["']([^"']+)["']/);
+	// Match `name: "..."` only before `workflows:` so workflow-entry names are excluded.
+	const beforeWorkflows = source.split(/\bworkflows\s*:/)[0]!;
+	const nameMatch = beforeWorkflows.match(/\bname\s*:\s*["']([^"']+)["']/);
 	return {
 		org: orgMatch?.[1],
-		docsDomain: domainMatch?.[1],
+		domain: domainMatch?.[1],
+		repoName: nameMatch?.[1],
 	};
 }
 
@@ -241,7 +246,7 @@ function buildBatch(
 			if (name === "deploy-preview") continue;
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
 			const rawWith = withOverrides?.get(name);
-			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
+			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith, orgContext?.repoName) : undefined;
 			const additionalPaths = name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
 
 			// deploy + preview: → combined thin caller; preview: true derives
