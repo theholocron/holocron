@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/jira-client",
-  "version": "1.10.3",
+  "version": "1.11.0",
   "description": "A TypeScript client for the Jira REST API",
   "keywords": [
     "jira",
