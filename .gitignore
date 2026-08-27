@@ -87,8 +87,12 @@ coverage
 reports
 dist
 super-linter-output
+.astro/
 docs/.astro/
 docs/dist/
+
+# Claude Code project settings (machine-local)
+.claude/
 
 # Generated test output — not useful in version control
 test-report.junit.xml
