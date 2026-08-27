@@ -520,6 +520,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		description: raw.description,
 		homepage,
 		org: raw.org,
+		domain: raw.domain,
 		repo: raw.repo,
 		workflows: raw.workflows,
 		providers,
