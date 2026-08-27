@@ -1014,10 +1014,7 @@ describe("extractPreviewConfig", () => {
 	});
 
 	it("uses explicit project when provided as object", () => {
-		const cfg = extractPreviewConfig(
-			{ preview: { project: "my-preview" } },
-			{ org: "acme", domain: "acme.dev" }
-		);
+		const cfg = extractPreviewConfig({ preview: { project: "my-preview" } }, { org: "acme", domain: "acme.dev" });
 		expect(cfg).toEqual({ project: "my-preview", domain: "preview.acme.dev" });
 	});
 

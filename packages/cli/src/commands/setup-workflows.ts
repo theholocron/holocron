@@ -226,11 +226,7 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
 	if (!project) return null;
 
 	const domain =
-		typeof p["domain"] === "string" && p["domain"]
-			? p["domain"]
-			: ctx.domain
-				? `preview.${ctx.domain}`
-				: undefined;
+		typeof p["domain"] === "string" && p["domain"] ? p["domain"] : ctx.domain ? `preview.${ctx.domain}` : undefined;
 
 	return { project, ...(domain ? { domain } : {}) };
 }
