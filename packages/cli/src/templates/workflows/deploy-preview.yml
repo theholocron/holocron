@@ -119,26 +119,35 @@ jobs:
             cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
           fi
 
-      - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+      - name: Install Wrangler
+        # Install from /tmp so npm does not read the repo's package.json, which
+        # uses pnpm catalog: references that npm cannot parse.
+        working-directory: /tmp
+        run: npm install -g wrangler@4
+
+      - name: Deploy to Cloudflare Pages
         id: deploy
-        name: Deploy to Cloudflare Pages
         # Skip when neither the per-repo input nor the org variable is set.
         if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: npm
-          command: >-
-            pages deploy _site
-            --project-name ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
-            --branch ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
-            --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+          BRANCH: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+        run: |
+          RESULT=$(wrangler pages deploy _site \
+            --project-name "$PROJECT" \
+            --branch "$BRANCH" \
+            --commit-dirty=true \
+            --json 2>/dev/null)
+          ALIAS=$(echo "$RESULT" | jq -r '.aliases[0] // .url // ""')
+          echo "alias=${ALIAS}" >> "$GITHUB_OUTPUT"
 
       - name: Report preview URL
-        if: ${{ steps.deploy.outputs.pages-deployment-alias-url != '' }}
+        if: ${{ steps.deploy.outputs.alias != '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+          ALIAS: ${{ steps.deploy.outputs.alias }}
           SITE_NAME: ${{ inputs.name }}
           PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
         run: |
