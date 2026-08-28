@@ -39,6 +39,7 @@ function prStateLabel(pr: PullRequest): string {
 
 export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<CleanupPreviewReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	// c8 ignore next -- real PluginLoader construction is integration-level; unit tests always supply loader
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
 
@@ -62,7 +63,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	// Derive the Cloudflare branch alias from the repo name and PR number.
 	// Matches the convention the deploy-preview workflow uses:
 	// --branch ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
-	const repoName = (input.repo ?? input.loaded.resolved.repo?.name ?? "").split("/").pop() ?? "";
+	const repoName = (input.repo ?? input.loaded.resolved.repo?.name ?? "").split("/").pop()!;
 	const branch = `${repoName}-pr-${pr.number}`;
 
 	print("");
@@ -104,11 +105,15 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	}
 
 	// ── 3. Interactive selection ────────────────────────────────────────
-	const choices = deployments.map((d) => ({
-		name: `${d.id.split(":").pop() ?? d.id}  ${d.createdAt ? style.dim(d.createdAt.slice(0, 10)) : ""}  ${style.dim(d.url)}`,
-		value: d.id,
-		checked: pr.state !== "open",
-	}));
+	const choices = deployments.map((d) => {
+		const label = d.id.includes(":") ? d.id.split(":").pop()! : d.id;
+		const date = d.createdAt ? style.dim(d.createdAt.slice(0, 10)) : "";
+		return {
+			name: `${label}  ${date}  ${style.dim(d.url)}`,
+			value: d.id,
+			checked: pr.state !== "open",
+		};
+	});
 
 	let selected: string[];
 	try {

@@ -51,6 +51,7 @@ const PR_MERGED: PullRequest = {
 };
 
 const PR_OPEN: PullRequest = { ...PR_MERGED, state: "open", merged: false };
+const PR_CLOSED_UNMERGED: PullRequest = { ...PR_MERGED, merged: false };
 
 const DEPLOYMENT: DeploymentRecord = {
 	id: "my-project:deploy-abc",
@@ -111,6 +112,34 @@ describe("runCleanupPreview", () => {
 		await expect(
 			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
 		).rejects.toThrow(/does not support getPullRequest/);
+	});
+
+	it("uses console.log when no print function is provided", async () => {
+		const { loaded, loader } = makePlugins(PR_MERGED, []);
+		const report = await runCleanupPreview({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			prNumber: 42,
+			project: "my-project",
+			loader,
+		});
+		expect(report.status).toBe("none");
+	});
+
+	it("coerces non-Error thrown by getPullRequest to string message", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("github", {
+				source: {
+					providerName: "github",
+					key: "source",
+					getPullRequest: vi.fn().mockRejectedValue("not found"),
+				},
+			}),
+		});
+		await expect(
+			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+		).rejects.toThrow("not found");
 	});
 
 	it("throws when getPullRequest fails", async () => {
@@ -276,6 +305,19 @@ describe("runCleanupPreview", () => {
 		).rejects.toThrow(/Failed to list deployments/);
 	});
 
+	it("coerces non-Error thrown by listPreviewDeployments to string message", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github", deployment: "cloudflare" } });
+		const deployment = makeDeployment();
+		deployment.listPreviewDeployments.mockRejectedValueOnce("network timeout");
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment }),
+		});
+		await expect(
+			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+		).rejects.toThrow("network timeout");
+	});
+
 	it("uses --repo override when looking up the PR and deriving the branch alias", async () => {
 		mockCheckbox.mockResolvedValueOnce([]);
 		const { loaded, loader, source } = makePlugins(PR_MERGED);
@@ -290,5 +332,88 @@ describe("runCleanupPreview", () => {
 		});
 		expect(source.getPullRequest).toHaveBeenCalledWith(42, "theholocron/clients");
 		expect(report.branch).toBe("clients-pr-42");
+	});
+
+	it("shows 'closed (not merged)' label for a closed unmerged PR", async () => {
+		mockCheckbox.mockResolvedValueOnce([]);
+		const lines: string[] = [];
+		const { loaded, loader } = makePlugins(PR_CLOSED_UNMERGED);
+		await runCleanupPreview({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			prNumber: 42,
+			project: "my-project",
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(lines.some((l) => l.includes("closed (not merged)"))).toBe(true);
+	});
+
+	it("uses plural form when multiple deployments exist and are deleted", async () => {
+		const d2: DeploymentRecord = { ...DEPLOYMENT, id: "my-project:deploy-def" };
+		mockCheckbox.mockResolvedValueOnce([DEPLOYMENT.id, d2.id]);
+		const { loaded } = makePlugins(PR_MERGED);
+		const deployment = makeDeployment([DEPLOYMENT, d2]);
+		deployment.deletePreviewDeployments.mockResolvedValueOnce(2);
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment }),
+		});
+		const lines: string[] = [];
+		const report = await runCleanupPreview({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			prNumber: 42,
+			project: "my-project",
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(report.deleted).toBe(2);
+		expect(lines.some((l) => l.includes("2 deployments"))).toBe(true);
+		expect(lines.some((l) => l.includes("Found 2 deployments"))).toBe(true);
+	});
+
+	it("uses full id as label when id has no colon, and omits date when createdAt is absent", async () => {
+		const bare: DeploymentRecord = { id: "deploy-bare", url: "https://bare.pages.dev", branch: null, status: "ready" };
+		const capturedChoices: Array<{ name: string; value: string }> = [];
+		mockCheckbox.mockImplementationOnce(async (opts: { choices: Array<{ name: string; value: string }> }) => {
+			capturedChoices.push(...opts.choices);
+			return [];
+		});
+		const { loaded } = makePlugins(PR_MERGED);
+		await runCleanupPreview({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			prNumber: 42,
+			project: "my-project",
+			loader: makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment: makeDeployment([bare]) }),
+			}),
+			print: () => {},
+		});
+		expect(capturedChoices[0]?.name).toContain("deploy-bare");
+		expect(capturedChoices[0]?.name).not.toContain("2026");
+	});
+
+	it("coerces non-Error thrown by deletePreviewDeployments to string message", async () => {
+		mockCheckbox.mockResolvedValueOnce([DEPLOYMENT.id]);
+		const { loaded } = makePlugins(PR_MERGED);
+		const deployment = makeDeployment();
+		deployment.deletePreviewDeployments.mockRejectedValueOnce("network timeout");
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment }),
+		});
+		const report = await runCleanupPreview({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			prNumber: 42,
+			project: "my-project",
+			loader,
+			print: () => {},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("network timeout");
 	});
 });
