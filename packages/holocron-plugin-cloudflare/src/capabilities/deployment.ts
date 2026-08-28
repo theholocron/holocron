@@ -104,6 +104,27 @@ export class CloudflareDeployment implements Deployment {
 		return mapDeployment(raw, projectName, raw.deployment_trigger.metadata.branch, undefined);
 	}
 
+	// ── preview cleanup ─────────────────────────────────────────────────
+
+	async listPreviewDeployments(projectId: string, branch: string): Promise<DeploymentRecord[]> {
+		// @ts-expect-error listDeployments ships in clients PR #305; remove once catalog bumps to that release
+		const all = (await this.client.pages.listDeployments(this.accountId, projectId)) as CfPagesDeployment[];
+		return all
+			.filter((d) => d.deployment_trigger.metadata.branch === branch)
+			.map((d) => mapDeployment(d, projectId, d.deployment_trigger.metadata.branch, undefined));
+	}
+
+	async deletePreviewDeployments(projectId: string, deploymentIds: string[]): Promise<number> {
+		await Promise.all(
+			deploymentIds.map((id) => {
+				const cfId = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
+				// @ts-expect-error deleteDeployment ships in clients PR #305; remove once catalog bumps to that release
+				return this.client.pages.deleteDeployment(this.accountId, projectId, cfId) as Promise<void>;
+			})
+		);
+		return deploymentIds.length;
+	}
+
 	// ── custom domains ──────────────────────────────────────────────────
 
 	async ensureCustomDomain(projectId: string, hostname: string): Promise<void> {
