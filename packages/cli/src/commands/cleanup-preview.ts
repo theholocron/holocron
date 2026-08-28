@@ -56,7 +56,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 		pr = await source.getPullRequest(input.prNumber, input.repo);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		throw new Error(`Failed to fetch PR #${input.prNumber}: ${message}`);
+		throw new Error(`Failed to fetch PR #${input.prNumber}: ${message}`, { cause: err });
 	}
 
 	// Derive the Cloudflare branch alias from the repo name and PR number.
@@ -86,7 +86,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 		deployments = await deploy.listPreviewDeployments(input.project, branch);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		throw new Error(`Failed to list deployments: ${message}`);
+		throw new Error(`Failed to list deployments: ${message}`, { cause: err });
 	}
 
 	if (deployments.length === 0) {
