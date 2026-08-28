@@ -31,3 +31,12 @@ describe("createInfisicalClient", () => {
 		expect(calls[0]?.url).toContain("https://infisical.test.invalid/api");
 	});
 });
+
+describe("error handling", () => {
+	it("throws ProviderApiError on non-2xx response", async () => {
+		const { fetch } = stubFetch([{ status: 401, body: { message: "Unauthorized" } }]);
+		const client = createInfisicalClient({ token: "bad", fetch });
+		const err = await client.workspaces.list().catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ProviderApiError");
+	});
+});

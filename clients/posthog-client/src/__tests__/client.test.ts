@@ -94,12 +94,19 @@ describe("projects.create", () => {
 });
 
 describe("error handling", () => {
-	it("throws ProviderApiError on non-2xx response", async () => {
+	it("throws ProviderApiError on non-2xx response from users.me", async () => {
 		const { fetch } = stubFetch([
 			{ status: 401, body: { detail: "Authentication credentials were not provided." } },
 		]);
 		const client = createPostHogClient({ token: "bad", fetch });
 		const err = await client.users.me().catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ProviderApiError");
+	});
+
+	it("throws ProviderApiError on non-2xx response from projects.list", async () => {
+		const { fetch } = stubFetch([{ status: 403, body: { detail: "You do not have permission." } }]);
+		const client = createPostHogClient({ token: "bad", fetch });
+		const err = await client.projects.list().catch((e: unknown) => e);
 		expect((err as Error).name).toBe("ProviderApiError");
 	});
 });

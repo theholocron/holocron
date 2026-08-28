@@ -31,3 +31,12 @@ describe("createDopplerClient", () => {
 		expect(calls[0]?.url).toContain("https://doppler.test.invalid/v3");
 	});
 });
+
+describe("error handling", () => {
+	it("throws ProviderApiError on non-2xx response", async () => {
+		const { fetch } = stubFetch([{ status: 401, body: { messages: ["Invalid auth token"] } }]);
+		const client = createDopplerClient({ token: "bad", fetch });
+		const err = await client.me.get().catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ProviderApiError");
+	});
+});
