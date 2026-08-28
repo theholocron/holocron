@@ -1,23 +1,22 @@
 import { defineConfig } from "@theholocron/cli";
-import { node } from "@theholocron/holocron-config";
+import { nodeDocs } from "@theholocron/holocron-config";
 
-const { repo, workflows, providers } = node();
+const { repo, workflows, providers, org, domain, docs } = nodeDocs();
 export default defineConfig({
 	description:
 		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
 	homepage: "https://docs.theholocron.dev/holocron/",
-	org: "theholocron",
-	domain: "theholocron.dev",
-	docs: { build: "workflow", https: true },
+	org,
+	domain,
+	docs,
 	repo: {
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		...repo,
-		protection: "strict",
 		requiredChecks: [
+			...repo.requiredChecks,
 			"Knip",
 			"tsdown (every workspace)",
-			"codecov/patch",
 			"codecov/patch/cli",
 			"codecov/patch/cli-utils",
 			"codecov/patch/holocron-plugin-1password",
@@ -33,22 +32,14 @@ export default defineConfig({
 			"codecov/patch/holocron-plugin-sentry",
 			"codecov/patch/holocron-plugin-slack",
 			"codecov/patch/holocron-plugin-vercel",
-			"codecov/project",
 		],
 	},
-	workflows: [
-		...workflows,
-		{ name: "release", with: { "sentry-project": "holocron-cli" } },
-		"sync",
-		{ name: "deploy", with: { docs: true, preview: true } },
-	],
+	workflows: [...workflows, { name: "release", with: { "sentry-project": "holocron-cli" } }, "sync"],
 	providers: {
 		...providers,
 		vault: ["doppler", { project: "holocron", config: "dev" }],
 		secrets: "github",
 		environments: "github",
-		deployment: "cloudflare",
-		dns: "cloudflare",
 	},
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
