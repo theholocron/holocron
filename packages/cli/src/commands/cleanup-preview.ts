@@ -72,11 +72,6 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	print(`  CF alias : ${style.dim(branch)}`);
 	print("");
 
-	if (pr.state === "open") {
-		print(style.warn(`PR #${pr.number} is still open — refusing to delete preview deployments for an active PR.`));
-		return { pr, branch, found: 0, deleted: 0, status: "aborted" };
-	}
-
 	// ── 2. List deployments ─────────────────────────────────────────────
 	if (!loader.has("deployment")) {
 		throw new Error("deployment capability is not configured — add a deployment provider to holocron.config.json");
@@ -102,11 +97,17 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	print(`Found ${deployments.length} deployment${deployments.length === 1 ? "" : "s"} for ${style.dim(branch)}:`);
 	print("");
 
+	if (pr.state === "open") {
+		print(style.warn(`PR #${pr.number} is still open. Deleting its preview deployments will break the live preview link.`));
+		print(style.warn("Nothing is pre-selected — check the deployments you want to remove."));
+		print("");
+	}
+
 	// ── 3. Interactive selection ────────────────────────────────────────
 	const choices = deployments.map((d) => ({
 		name: `${d.id.split(":").pop() ?? d.id}  ${d.createdAt ? style.dim(d.createdAt.slice(0, 10)) : ""}  ${style.dim(d.url)}`,
 		value: d.id,
-		checked: true,
+		checked: pr.state !== "open",
 	}));
 
 	let selected: string[];
