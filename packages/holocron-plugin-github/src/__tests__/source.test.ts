@@ -27,10 +27,8 @@ const RAW_PR = {
 	head: { ref: "fix/something" },
 };
 
-// These tests require the pulls namespace from clients PR #305.
-// Un-skip once the catalog is bumped to include that release.
 describe("GitHubSource.getPullRequest", () => {
-	it.skip("GETs /repos/{owner}/{name}/pulls/{number} and maps the result", async () => {
+	it("GETs /repos/{owner}/{name}/pulls/{number} and maps the result", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: RAW_PR }]);
 		const pr = await source.getPullRequest(42);
 		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/pulls/42");
@@ -42,13 +40,13 @@ describe("GitHubSource.getPullRequest", () => {
 		expect(pr.url).toBe("https://github.com/theholocron/holocron/pull/42");
 	});
 
-	it.skip("sets merged: false when merged_at is null", async () => {
+	it("sets merged: false when merged_at is null", async () => {
 		const { source } = makeSource([{ status: 200, body: { ...RAW_PR, merged_at: null } }]);
 		const pr = await source.getPullRequest(42);
 		expect(pr.merged).toBe(false);
 	});
 
-	it.skip("accepts a repo override", async () => {
+	it("accepts a repo override", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: RAW_PR }]);
 		await source.getPullRequest(42, "theholocron/clients");
 		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls/42");

@@ -181,8 +181,7 @@ export class GitHubSource implements Source {
 	}
 
 	async getPullRequest(number: number, repo?: string): Promise<PullRequest> {
-		// @ts-expect-error pulls namespace ships in clients PR #305; remove once catalog bumps to that release
-		const raw = await (this.client.pulls as { getPullRequest(repo: string, n: number): Promise<{ number: number; title: string; state: "open" | "closed"; merged_at: string | null; html_url: string; head: { ref: string } }> }).getPullRequest(repo ?? this.repo, number);
+		const raw = await this.client.pulls.getPullRequest(repo ?? this.repo, number);
 		return {
 			number: raw.number,
 			title: raw.title,

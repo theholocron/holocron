@@ -159,10 +159,8 @@ describe("CloudflareDeployment.ensureCustomDomain", () => {
 	});
 });
 
-// These tests require listDeployments / deleteDeployment from clients PR #305.
-// Un-skip once the catalog is bumped to include that release.
 describe("CloudflareDeployment.listPreviewDeployments", () => {
-	it.skip("returns deployments filtered by branch", async () => {
+	it("returns deployments filtered by branch", async () => {
 		const other = { ...rawDeployment, id: "deploy-other", deployment_trigger: { ...rawDeployment.deployment_trigger, metadata: { branch: "other-branch", commit_hash: "000" } } };
 		const { dep, calls } = makeDeployment([cfOk([rawDeployment, other])]);
 		const result = await dep.listPreviewDeployments(PROJECT_NAME, "feat/my-pr");
@@ -172,7 +170,7 @@ describe("CloudflareDeployment.listPreviewDeployments", () => {
 		expect(result[0]?.branch).toBe("feat/my-pr");
 	});
 
-	it.skip("returns empty array when no deployments match the branch", async () => {
+	it("returns empty array when no deployments match the branch", async () => {
 		const { dep } = makeDeployment([cfOk([rawDeployment])]);
 		const result = await dep.listPreviewDeployments(PROJECT_NAME, "no-such-branch");
 		expect(result).toHaveLength(0);
@@ -180,7 +178,7 @@ describe("CloudflareDeployment.listPreviewDeployments", () => {
 });
 
 describe("CloudflareDeployment.deletePreviewDeployments", () => {
-	it.skip("deletes each deployment by id and returns count", async () => {
+	it("deletes each deployment by id and returns count", async () => {
 		const { dep, calls } = makeDeployment([cfOk(null), cfOk(null)]);
 		const count = await dep.deletePreviewDeployments(PROJECT_NAME, [
 			`${PROJECT_NAME}:deploy-abc`,
@@ -192,7 +190,7 @@ describe("CloudflareDeployment.deletePreviewDeployments", () => {
 		expect(calls[1]?.url).toContain("deploy-def");
 	});
 
-	it.skip("strips projectName: prefix before calling the API", async () => {
+	it("strips projectName: prefix before calling the API", async () => {
 		const { dep, calls } = makeDeployment([cfOk(null)]);
 		await dep.deletePreviewDeployments(PROJECT_NAME, [`${PROJECT_NAME}:deploy-abc`]);
 		expect(calls[0]?.url).not.toContain(`${PROJECT_NAME}:`);

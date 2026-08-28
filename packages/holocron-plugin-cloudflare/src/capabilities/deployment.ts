@@ -107,8 +107,7 @@ export class CloudflareDeployment implements Deployment {
 	// ── preview cleanup ─────────────────────────────────────────────────
 
 	async listPreviewDeployments(projectId: string, branch: string): Promise<DeploymentRecord[]> {
-		// @ts-expect-error listDeployments ships in clients PR #305; remove once catalog bumps to that release
-		const all = (await this.client.pages.listDeployments(this.accountId, projectId)) as CfPagesDeployment[];
+		const all = await this.client.pages.listDeployments(this.accountId, projectId);
 		return all
 			.filter((d) => d.deployment_trigger.metadata.branch === branch)
 			.map((d) => mapDeployment(d, projectId, d.deployment_trigger.metadata.branch, undefined));
@@ -118,8 +117,7 @@ export class CloudflareDeployment implements Deployment {
 		await Promise.all(
 			deploymentIds.map((id) => {
 				const cfId = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
-				// @ts-expect-error deleteDeployment ships in clients PR #305; remove once catalog bumps to that release
-				return this.client.pages.deleteDeployment(this.accountId, projectId, cfId) as Promise<void>;
+				return this.client.pages.deleteDeployment(this.accountId, projectId, cfId);
 			})
 		);
 		return deploymentIds.length;
