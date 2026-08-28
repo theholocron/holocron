@@ -25,3 +25,18 @@ jobs:
 
       - run: pnpm typecheck
         name: Type check
+
+
+  conclusion:
+    name: Conclusion
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [typecheck]
+    steps:
+      - name: Check job statuses
+        run: |
+          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
+            exit 1
+          fi
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}

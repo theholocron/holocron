@@ -110,3 +110,18 @@ jobs:
         env:
           LIGHTHOUSE_CONFIG: ${{ inputs.lighthouse-config }}
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+
+  conclusion:
+    name: Conclusion
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [bundle-size, knip, performance]
+    steps:
+      - name: Check job statuses
+        run: |
+          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
+            exit 1
+          fi
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}

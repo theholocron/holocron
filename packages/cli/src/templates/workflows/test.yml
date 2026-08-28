@@ -212,3 +212,18 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  conclusion:
+    name: Conclusion
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [unit, storybook, visual-and-composition, interaction-and-accessibility, user-flow]
+    steps:
+      - name: Check job statuses
+        run: |
+          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
+            exit 1
+          fi
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}
