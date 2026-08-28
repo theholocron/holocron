@@ -24,11 +24,11 @@ nothing enforces them. The rules exist but the feedback loop does not.
 There are three places where enforcement can live, and each covers a different
 moment:
 
-| Layer | Mechanism | Moment | Scope |
-|---|---|---|---|
-| **CI** | Validation scripts | After a PR is opened | Safety net — catches what the other two miss |
-| **Skills** | Checklist items in skill files | When Claude is invoked for a specific task | Task-specific guidance at the point of action |
-| **CLAUDE.md / AGENTS.md** | Always-on rules | Every task, every session | Cross-cutting rules that apply regardless of what is being built |
+| Layer                     | Mechanism                      | Moment                                     | Scope                                                            |
+| ------------------------- | ------------------------------ | ------------------------------------------ | ---------------------------------------------------------------- |
+| **CI**                    | Validation scripts             | After a PR is opened                       | Safety net — catches what the other two miss                     |
+| **Skills**                | Checklist items in skill files | When Claude is invoked for a specific task | Task-specific guidance at the point of action                    |
+| **CLAUDE.md / AGENTS.md** | Always-on rules                | Every task, every session                  | Cross-cutting rules that apply regardless of what is being built |
 
 The key property of each layer:
 
@@ -65,6 +65,7 @@ CI job: validate-registry
 ```
 
 This runs in:
+
 - The registry repo's own CI (catches direct changes)
 - Consuming repos' CI (catches new packages added without a registry update)
 
@@ -105,11 +106,11 @@ The agent works through the checklist before declaring the task done.
 
 ### Skills that need enforcement updates
 
-| Skill | Missing checklist items |
-|---|---|
-| `holocron-plugin` / `plugin create` | Registry update, docs page |
-| `holocron-client` (if exists) | Registry update, docs page |
-| Any scaffolding skill | Branch verification, docs requirement |
+| Skill                               | Missing checklist items               |
+| ----------------------------------- | ------------------------------------- |
+| `holocron-plugin` / `plugin create` | Registry update, docs page            |
+| `holocron-client` (if exists)       | Registry update, docs page            |
+| Any scaffolding skill               | Branch verification, docs requirement |
 
 The `/implement` prompt in the AI engineering workflow should also include a
 post-implementation checklist covering docs, registry, and branch state. See
