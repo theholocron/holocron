@@ -119,6 +119,15 @@ jobs:
             cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
           fi
 
+      - name: Install Wrangler
+        # The action's install step runs npm/pnpm in the repo root; pnpm fails
+        # because it rejects adding to a workspace root without -w, and npm fails
+        # because package.json contains pnpm catalog: references it cannot parse.
+        # Pre-installing from /tmp (no package.json) lets the action find wrangler
+        # already on PATH and skip its own install entirely.
+        working-directory: /tmp
+        run: npm install -g wrangler@4
+
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         id: deploy
         name: Deploy to Cloudflare Pages
