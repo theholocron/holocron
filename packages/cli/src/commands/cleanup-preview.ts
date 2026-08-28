@@ -99,7 +99,11 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	print("");
 
 	if (pr.state === "open") {
-		print(style.warn(`PR #${pr.number} is still open. Deleting its preview deployments will break the live preview link.`));
+		print(
+			style.warn(
+				`PR #${pr.number} is still open. Deleting its preview deployments will break the live preview link.`
+			)
+		);
 		print(style.warn("Nothing is pre-selected — check the deployments you want to remove."));
 		print("");
 	}

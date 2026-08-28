@@ -161,7 +161,14 @@ describe("CloudflareDeployment.ensureCustomDomain", () => {
 
 describe("CloudflareDeployment.listPreviewDeployments", () => {
 	it("returns deployments filtered by branch", async () => {
-		const other = { ...rawDeployment, id: "deploy-other", deployment_trigger: { ...rawDeployment.deployment_trigger, metadata: { branch: "other-branch", commit_hash: "000" } } };
+		const other = {
+			...rawDeployment,
+			id: "deploy-other",
+			deployment_trigger: {
+				...rawDeployment.deployment_trigger,
+				metadata: { branch: "other-branch", commit_hash: "000" },
+			},
+		};
 		const { dep, calls } = makeDeployment([cfOk([rawDeployment, other])]);
 		const result = await dep.listPreviewDeployments(PROJECT_NAME, "feat/my-pr");
 		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/pages/projects/${PROJECT_NAME}/deployments`);

@@ -98,7 +98,14 @@ describe("runCleanupPreview", () => {
 		const loaded = loadedFrom({ name: "demo", providers: {} });
 		const loader = makeLoaderWith(loaded, {});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow(/source capability is not configured/);
 	});
 
@@ -110,7 +117,14 @@ describe("runCleanupPreview", () => {
 			}),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow(/does not support getPullRequest/);
 	});
 
@@ -138,7 +152,14 @@ describe("runCleanupPreview", () => {
 			}),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow("not found");
 	});
 
@@ -154,7 +175,14 @@ describe("runCleanupPreview", () => {
 			}),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow(/Failed to fetch PR #42/);
 	});
 
@@ -164,7 +192,14 @@ describe("runCleanupPreview", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow(/deployment capability is not configured/);
 	});
 
@@ -177,7 +212,14 @@ describe("runCleanupPreview", () => {
 			}),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow(/does not support preview cleanup/);
 	});
 
@@ -301,7 +343,14 @@ describe("runCleanupPreview", () => {
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment }),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow(/Failed to list deployments/);
 	});
 
@@ -314,7 +363,14 @@ describe("runCleanupPreview", () => {
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment }),
 		});
 		await expect(
-			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+			runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				loader,
+				print: () => {},
+			})
 		).rejects.toThrow("network timeout");
 	});
 
@@ -374,7 +430,12 @@ describe("runCleanupPreview", () => {
 	});
 
 	it("uses full id as label when id has no colon, and omits date when createdAt is absent", async () => {
-		const bare: DeploymentRecord = { id: "deploy-bare", url: "https://bare.pages.dev", branch: null, status: "ready" };
+		const bare: DeploymentRecord = {
+			id: "deploy-bare",
+			url: "https://bare.pages.dev",
+			branch: null,
+			status: "ready",
+		};
 		let capturedName = "";
 		mockCheckbox.mockImplementationOnce(async (opts: { choices: readonly unknown[] }) => {
 			const first = opts.choices[0] as { name: string; value: string };
@@ -389,7 +450,9 @@ describe("runCleanupPreview", () => {
 			project: "my-project",
 			loader: makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
-				"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment: makeDeployment([bare]) }),
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", {
+					deployment: makeDeployment([bare]),
+				}),
 			}),
 			print: () => {},
 		});
