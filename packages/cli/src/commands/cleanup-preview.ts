@@ -72,6 +72,11 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	print(`  CF alias : ${style.dim(branch)}`);
 	print("");
 
+	if (pr.state === "open") {
+		print(style.warn(`PR #${pr.number} is still open — refusing to delete preview deployments for an active PR.`));
+		return { pr, branch, found: 0, deleted: 0, status: "aborted" };
+	}
+
 	// ── 2. List deployments ─────────────────────────────────────────────
 	if (!loader.has("deployment")) {
 		throw new Error("deployment capability is not configured — add a deployment provider to holocron.config.json");
