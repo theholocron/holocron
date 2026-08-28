@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* 🐛 add @theholocron/registry-doc as explicit dep ([#74](https://github.com/theholocron/themes/issues/74)) ([0937d34](https://github.com/theholocron/themes/commit/0937d34b1af07e4caa001a17fa85a16627cdfe01))
+- 🐛 add @theholocron/registry-doc as explicit dep ([#74](https://github.com/theholocron/themes/issues/74)) ([0937d34](https://github.com/theholocron/themes/commit/0937d34b1af07e4caa001a17fa85a16627cdfe01))
 
 ## [1.7.3](https://github.com/theholocron/themes/compare/v1.7.2...v1.7.3) (2026-08-26)
 
