@@ -18,6 +18,41 @@ function makeSource(responses: Parameters<typeof stubFetch>[0], repoRoot: string
 	return { source, calls };
 }
 
+const RAW_PR = {
+	number: 42,
+	title: "fix: something",
+	state: "closed" as const,
+	merged_at: "2026-08-28T00:00:00Z",
+	html_url: "https://github.com/theholocron/holocron/pull/42",
+	head: { ref: "fix/something" },
+};
+
+describe("GitHubSource.getPullRequest", () => {
+	it("GETs /repos/{owner}/{name}/pulls/{number} and maps the result", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: RAW_PR }]);
+		const pr = await source.getPullRequest(42);
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/pulls/42");
+		expect(pr.number).toBe(42);
+		expect(pr.title).toBe("fix: something");
+		expect(pr.state).toBe("closed");
+		expect(pr.merged).toBe(true);
+		expect(pr.branch).toBe("fix/something");
+		expect(pr.url).toBe("https://github.com/theholocron/holocron/pull/42");
+	});
+
+	it("sets merged: false when merged_at is null", async () => {
+		const { source } = makeSource([{ status: 200, body: { ...RAW_PR, merged_at: null } }]);
+		const pr = await source.getPullRequest(42);
+		expect(pr.merged).toBe(false);
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: RAW_PR }]);
+		await source.getPullRequest(42, "theholocron/clients");
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls/42");
+	});
+});
+
 describe("GitHubSource — REST methods", () => {
 	it("whoami → GET /user", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: { login: "iamnewton" } }]);

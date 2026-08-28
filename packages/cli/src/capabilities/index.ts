@@ -211,6 +211,15 @@ export interface Source extends ProviderIdentity {
 	syncHomepage?(homepage: string): Promise<string>;
 
 	/**
+	 * Fetch a pull request by number. The `repo` override lets callers look up
+	 * a PR in a different repo than the one the plugin is scoped to — useful
+	 * when the cleanup command targets another repo's PR (e.g. docs PR from
+	 * the holocron repo context).
+	 * Optional — providers without a PR concept omit this.
+	 */
+	getPullRequest?(number: number, repo?: string): Promise<PullRequest>;
+
+	/**
 	 * Enable or update GitHub Pages for the repository.
 	 * Idempotent: POST to create, PUT to update existing settings.
 	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
@@ -235,6 +244,18 @@ export interface PagesConfig {
 	domain?: string;
 	/** Enforce HTTPS. Only effective once the custom domain is DNS-verified. */
 	https?: boolean;
+}
+
+export interface PullRequest {
+	number: number;
+	title: string;
+	/** "open" | "closed" — GitHub marks merged PRs as "closed". */
+	state: "open" | "closed";
+	/** True when the PR was merged (as opposed to closed without merging). */
+	merged: boolean;
+	/** The head branch name (e.g. "fix/my-change"). */
+	branch: string;
+	url: string;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -439,6 +460,7 @@ export interface DeploymentRecord {
 	/** Named environment if one was targeted; undefined for branch previews. */
 	target?: DeploymentTrigger;
 	status: "queued" | "building" | "ready" | "error" | "cancelled";
+	createdAt?: string;
 }
 
 export interface Deployment extends ProviderIdentity {
@@ -472,6 +494,18 @@ export interface Deployment extends ProviderIdentity {
 	}): Promise<DeploymentRecord>;
 
 	getDeployment(deploymentId: string): Promise<DeploymentRecord>;
+
+	/**
+	 * List preview deployments for a specific branch alias (e.g. "repo-pr-42").
+	 * Optional — providers that don't support listing by branch omit this.
+	 */
+	listPreviewDeployments?(projectId: string, branch: string): Promise<DeploymentRecord[]>;
+
+	/**
+	 * Delete specific preview deployments by id. Returns the count deleted.
+	 * Optional — providers that don't support deletion omit this.
+	 */
+	deletePreviewDeployments?(projectId: string, deploymentIds: string[]): Promise<number>;
 
 	/**
 	 * Add a custom domain (or wildcard) to the project. Idempotent — no-op
