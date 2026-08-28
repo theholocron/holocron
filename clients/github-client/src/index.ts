@@ -5,6 +5,7 @@ import { issues } from "./issues/issues.js";
 import { labels } from "./labels/labels.js";
 import { pages } from "./pages/pages.js";
 import { properties } from "./properties/properties.js";
+import { pulls } from "./pulls/pulls.js";
 import { repos } from "./repos/repos.js";
 import { rulesets } from "./rulesets/rulesets.js";
 import { secrets } from "./secrets/secrets.js";
@@ -35,6 +36,7 @@ export type {
 	PagesBuildType,
 	UpdatePagesPayload,
 } from "./pages/pages.js";
+export type { GitHubPullRequest } from "./pulls/pulls.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
 export type { GitHubRuleset } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
@@ -54,6 +56,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		labels: labels(rest),
 		pages: pages(rest),
 		properties: properties(rest),
+		pulls: pulls(rest),
 		repos: repos(rest),
 		rulesets: rulesets(rest),
 		secrets: secrets(rest),

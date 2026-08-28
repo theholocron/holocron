@@ -89,6 +89,24 @@ export function pages(rest: RestClient) {
 				`/accounts/${accountId}/pages/projects/${projectName}/deployments/${deploymentId}`
 			),
 
+		listDeployments: (accountId: string, projectName: string): Promise<CfPagesDeployment[]> =>
+			cfRequest<CfPagesDeployment[]>(
+				rest,
+				"GET",
+				`/accounts/${accountId}/pages/projects/${projectName}/deployments`,
+				undefined,
+				{ per_page: "25" }
+			),
+
+		deleteDeployment: (accountId: string, projectName: string, deploymentId: string): Promise<void> =>
+			cfRequest<void>(
+				rest,
+				"DELETE",
+				`/accounts/${accountId}/pages/projects/${projectName}/deployments/${deploymentId}`,
+				undefined,
+				{ force: "true" }
+			),
+
 		listDomains: (accountId: string, projectName: string): Promise<CfPagesDomain[]> =>
 			cfRequest<CfPagesDomain[]>(rest, "GET", `/accounts/${accountId}/pages/projects/${projectName}/domains`),
 

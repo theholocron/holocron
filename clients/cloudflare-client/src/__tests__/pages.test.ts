@@ -117,3 +117,24 @@ describe("pages.addDomain", () => {
 		expect(calls[0]?.body).toEqual({ name: "*.preview.example.dev" });
 	});
 });
+
+describe("pages.listDeployments", () => {
+	it("GETs /projects/{name}/deployments with per_page=25", async () => {
+		const { pages, calls } = client([cfOk([deployment])]);
+		const result = await pages.listDeployments(ACCOUNT, PROJECT_NAME);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/pages/projects/${PROJECT_NAME}/deployments`);
+		expect(calls[0]?.url).toContain("per_page=25");
+		expect(result[0]?.id).toBe("deploy-abc");
+	});
+});
+
+describe("pages.deleteDeployment", () => {
+	it("DELETEs /projects/{name}/deployments/{id} with force=true", async () => {
+		const { pages, calls } = client([cfOk(null)]);
+		await pages.deleteDeployment(ACCOUNT, PROJECT_NAME, "deploy-abc");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/pages/projects/${PROJECT_NAME}/deployments/deploy-abc`);
+		expect(calls[0]?.url).toContain("force=true");
+	});
+});
