@@ -375,9 +375,10 @@ describe("runCleanupPreview", () => {
 
 	it("uses full id as label when id has no colon, and omits date when createdAt is absent", async () => {
 		const bare: DeploymentRecord = { id: "deploy-bare", url: "https://bare.pages.dev", branch: null, status: "ready" };
-		const capturedChoices: Array<{ name: string; value: string }> = [];
-		mockCheckbox.mockImplementationOnce(async (opts: { choices: Array<{ name: string; value: string }> }) => {
-			capturedChoices.push(...opts.choices);
+		let capturedName = "";
+		mockCheckbox.mockImplementationOnce(async (opts: { choices: readonly unknown[] }) => {
+			const first = opts.choices[0] as { name: string; value: string };
+			capturedName = first?.name ?? "";
 			return [];
 		});
 		const { loaded } = makePlugins(PR_MERGED);
@@ -392,8 +393,8 @@ describe("runCleanupPreview", () => {
 			}),
 			print: () => {},
 		});
-		expect(capturedChoices[0]?.name).toContain("deploy-bare");
-		expect(capturedChoices[0]?.name).not.toContain("2026");
+		expect(capturedName).toContain("deploy-bare");
+		expect(capturedName).not.toContain("2026");
 	});
 
 	it("coerces non-Error thrown by deletePreviewDeployments to string message", async () => {
