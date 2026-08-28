@@ -2,13 +2,13 @@
 
 ### Bug Fixes
 
-* **astro-config:** 🐛 bump @astrojs/react to ^5.0.0 — v4 uses @vitejs/plugin-react peered to vite@6, incompatible with Astro 7 / Vite 8 Rolldown ([#395](https://github.com/theholocron/configs/issues/395)) ([7697638](https://github.com/theholocron/configs/commit/7697638abd6d7299a5d522824a4fbee7f33d7ea8))
+- **astro-config:** 🐛 bump @astrojs/react to ^5.0.0 — v4 uses @vitejs/plugin-react peered to vite@6, incompatible with Astro 7 / Vite 8 Rolldown ([#395](https://github.com/theholocron/configs/issues/395)) ([7697638](https://github.com/theholocron/configs/commit/7697638abd6d7299a5d522824a4fbee7f33d7ea8))
 
 ## [7.25.4](https://github.com/theholocron/configs/compare/v7.25.3...v7.25.4) (2026-08-26)
 
 ### Bug Fixes
 
-* 🐛 disable no-nested-exports in packageJson() config ([#394](https://github.com/theholocron/configs/issues/394)) ([72a2121](https://github.com/theholocron/configs/commit/72a2121b0a718547814676f0aff77bd94ac0e7d7))
+- 🐛 disable no-nested-exports in packageJson() config ([#394](https://github.com/theholocron/configs/issues/394)) ([72a2121](https://github.com/theholocron/configs/commit/72a2121b0a718547814676f0aff77bd94ac0e7d7))
 
 ## [7.25.3](https://github.com/theholocron/configs/compare/v7.25.2...v7.25.3) (2026-08-26)
 
