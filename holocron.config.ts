@@ -34,11 +34,7 @@ export default defineConfig({
 			"codecov/patch/holocron-plugin-vercel",
 		],
 	},
-	workflows: [
-		...workflows,
-		{ name: "release", with: { "sentry-project": "holocron-cli" } },
-		"sync",
-	],
+	workflows: [...workflows, { name: "release", with: { "sentry-project": "holocron-cli" } }, "sync"],
 	providers: {
 		...providers,
 		vault: ["doppler", { project: "holocron", config: "dev" }],
