@@ -57,7 +57,7 @@ already use: detect the gap, prompt for what is missing, continue.
 ## Non-goals
 
 - Fuzzy-matching for mistyped command names (e.g., `depoly → did you mean
-  deploy?`). Yargs `.strict()` already handles unknown commands with a clear
+deploy?`). Yargs `.strict()` already handles unknown commands with a clear
   error; that path is unchanged.
 - Interactive fallback for optional positionals or options — only required
   positionals that would otherwise cause a hard failure.
@@ -201,17 +201,17 @@ corresponding Yargs registration.
 
 ```ts
 interface PositionalPrompt {
-  key: string;        // matches the yargs positional name
-  message: string;    // label shown to the user
+  key: string; // matches the yargs positional name
+  message: string; // label shown to the user
   type: "input" | "select";
   choices?: string[]; // required when type === "select"
 }
 
 interface CommandEntry {
-  name: string;                    // full command name, e.g. "auth set"
-  description: string;             // one-liner, matches the yargs registration
+  name: string; // full command name, e.g. "auth set"
+  description: string; // one-liner, matches the yargs registration
   positionals: PositionalPrompt[]; // required positionals only, in order
-  group?: string;                  // parent command: "auth" | "skills" | "npm" | "upgrade"
+  group?: string; // parent command: "auth" | "skills" | "npm" | "upgrade"
 }
 ```
 
@@ -223,32 +223,32 @@ positional changes or a new command is added.
 
 ### Full registry
 
-| name | positionals | group |
-|---|---|---|
-| `auth check` | `provider` (select) | `auth` |
-| `auth list` | — | `auth` |
-| `auth set` | `provider` (select) | `auth` |
-| `auth unset` | `provider` (select) | `auth` |
-| `cleanup-preview` | `pr` (input) | — |
-| `clone` | — | — |
-| `config show` | — | — |
-| `deploy` | `branch` (input) | — |
-| `doctor` | — | — |
-| `new` | — | — |
-| `npm bump-versions` | `new-version` (input) | `npm` |
-| `npm publish-initial` | — | `npm` |
-| `plugin create` | `slug` (input), `vendor` (input) | — |
-| `secret set` | `name` (input) | — |
-| `secrets sync` | `environmentId` (input) | — |
-| `setup` | — | — |
-| `skills install` | — | `skills` |
-| `skills remove` | — | `skills` |
-| `skills update` | — | `skills` |
-| `sync` | — | — |
-| `sync-github` | — | — |
-| `sync-readme` | — | — |
-| `upgrade node` | `to` (input) | `upgrade` |
-| `version` | — | — |
+| name                  | positionals                      | group     |
+| --------------------- | -------------------------------- | --------- |
+| `auth check`          | `provider` (select)              | `auth`    |
+| `auth list`           | —                                | `auth`    |
+| `auth set`            | `provider` (select)              | `auth`    |
+| `auth unset`          | `provider` (select)              | `auth`    |
+| `cleanup-preview`     | `pr` (input)                     | —         |
+| `clone`               | —                                | —         |
+| `config show`         | —                                | —         |
+| `deploy`              | `branch` (input)                 | —         |
+| `doctor`              | —                                | —         |
+| `new`                 | —                                | —         |
+| `npm bump-versions`   | `new-version` (input)            | `npm`     |
+| `npm publish-initial` | —                                | `npm`     |
+| `plugin create`       | `slug` (input), `vendor` (input) | —         |
+| `secret set`          | `name` (input)                   | —         |
+| `secrets sync`        | `environmentId` (input)          | —         |
+| `setup`               | —                                | —         |
+| `skills install`      | —                                | `skills`  |
+| `skills remove`       | —                                | `skills`  |
+| `skills update`       | —                                | `skills`  |
+| `sync`                | —                                | —         |
+| `sync-github`         | —                                | —         |
+| `sync-readme`         | —                                | —         |
+| `upgrade node`        | `to` (input)                     | `upgrade` |
+| `version`             | —                                | —         |
 
 `new` and `plugin create` are included in the top-level picker but have no
 registry positionals — both already prompt for everything they need internally.
@@ -333,17 +333,17 @@ same in every case — look up the registry entry for the command, call
 
 Commands requiring changes:
 
-| File | Positional(s) |
-|---|---|
-| `commands/deploy.ts` | `branch` |
-| `commands/secret.ts` | `name` |
-| `commands/secrets-sync.ts` | `environmentId` |
-| `commands/cleanup-preview.ts` | `pr` |
-| `commands/npm/bump-versions.ts` | `new-version` |
-| `commands/upgrade/node.ts` | `to` |
-| `commands/auth/set.ts` | `provider` |
-| `commands/auth/unset.ts` | `provider` |
-| `commands/auth/check.ts` | `provider` |
+| File                              | Positional(s)    |
+| --------------------------------- | ---------------- |
+| `commands/deploy.ts`              | `branch`         |
+| `commands/secret.ts`              | `name`           |
+| `commands/secrets-sync.ts`        | `environmentId`  |
+| `commands/cleanup-preview.ts`     | `pr`             |
+| `commands/npm/bump-versions.ts`   | `new-version`    |
+| `commands/upgrade/node.ts`        | `to`             |
+| `commands/auth/set.ts`            | `provider`       |
+| `commands/auth/unset.ts`          | `provider`       |
+| `commands/auth/check.ts`          | `provider`       |
 | `commands/plugin-create/index.ts` | `slug`, `vendor` |
 
 `plugin-create` already prompts for `--capability`, `--vendor-env`, and
@@ -356,21 +356,21 @@ after setup. The `<pr>` positional is the gap: when absent, prompt for it with
 
 ### File change summary
 
-| File | Change |
-|---|---|
-| `packages/cli/package.json` | add `@inquirer/search` |
-| `packages/cli/src/interactive-menu.ts` | **new** — registry, `pickCommand`, `promptForPositionals`, `buildChildArgv`, `forwardedFlags` |
-| `packages/cli/src/cli.ts` | `$0` top-level default; `$0` in 4 parent builders; remove `demandCommand(1)` at top level and from each parent builder |
-| `commands/deploy.ts` | `promptForPositionals` at handler top |
-| `commands/secret.ts` | `promptForPositionals` at handler top |
-| `commands/secrets-sync.ts` | `promptForPositionals` at handler top |
-| `commands/cleanup-preview.ts` | `promptForPositionals` at handler top |
-| `commands/npm/bump-versions.ts` | `promptForPositionals` at handler top |
-| `commands/upgrade/node.ts` | `promptForPositionals` at handler top |
-| `commands/auth/set.ts` | `promptForPositionals` at handler top |
-| `commands/auth/unset.ts` | `promptForPositionals` at handler top |
-| `commands/auth/check.ts` | `promptForPositionals` at handler top |
-| `commands/plugin-create/index.ts` | `promptForPositionals` at handler top for `slug` + `vendor` |
+| File                                   | Change                                                                                                                 |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `packages/cli/package.json`            | add `@inquirer/search`                                                                                                 |
+| `packages/cli/src/interactive-menu.ts` | **new** — registry, `pickCommand`, `promptForPositionals`, `buildChildArgv`, `forwardedFlags`                          |
+| `packages/cli/src/cli.ts`              | `$0` top-level default; `$0` in 4 parent builders; remove `demandCommand(1)` at top level and from each parent builder |
+| `commands/deploy.ts`                   | `promptForPositionals` at handler top                                                                                  |
+| `commands/secret.ts`                   | `promptForPositionals` at handler top                                                                                  |
+| `commands/secrets-sync.ts`             | `promptForPositionals` at handler top                                                                                  |
+| `commands/cleanup-preview.ts`          | `promptForPositionals` at handler top                                                                                  |
+| `commands/npm/bump-versions.ts`        | `promptForPositionals` at handler top                                                                                  |
+| `commands/upgrade/node.ts`             | `promptForPositionals` at handler top                                                                                  |
+| `commands/auth/set.ts`                 | `promptForPositionals` at handler top                                                                                  |
+| `commands/auth/unset.ts`               | `promptForPositionals` at handler top                                                                                  |
+| `commands/auth/check.ts`               | `promptForPositionals` at handler top                                                                                  |
+| `commands/plugin-create/index.ts`      | `promptForPositionals` at handler top for `slug` + `vendor`                                                            |
 
 ---
 
