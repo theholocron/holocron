@@ -39,15 +39,15 @@ decisions during coding.
 Each artifact answers a different question. Lower-level artifacts must not
 silently redefine higher-level ones — conflicts surface upward.
 
-| Artifact | Question |
-|---|---|
-| Issue | What problem needs attention? |
-| Discussion | What should we decide? |
-| ADR | What did we decide, and why? |
-| Spec | What must the system do? |
-| Implementation Plan | How will this repository change? |
-| PR | What actually changed? |
-| Tests | Does the implementation satisfy the spec? |
+| Artifact            | Question                                  |
+| ------------------- | ----------------------------------------- |
+| Issue               | What problem needs attention?             |
+| Discussion          | What should we decide?                    |
+| ADR                 | What did we decide, and why?              |
+| Spec                | What must the system do?                  |
+| Implementation Plan | How will this repository change?          |
+| PR                  | What actually changed?                    |
+| Tests               | Does the implementation satisfy the spec? |
 
 Authority flows downward:
 
@@ -165,6 +165,7 @@ are org-visible, searchable, and decoupled from any single repo's version
 history.
 
 Create an ADR when a future engineer might reasonably ask:
+
 > Why did we choose this approach instead of another plausible approach?
 
 **ADR-worthy:**
@@ -222,9 +223,11 @@ Explain why this option was selected.
 Description.
 
 Advantages:
+
 - ...
 
 Disadvantages:
+
 - ...
 
 ### Option B
@@ -232,9 +235,11 @@ Disadvantages:
 Description.
 
 Advantages:
+
 - ...
 
 Disadvantages:
+
 - ...
 
 ## Consequences
@@ -1066,7 +1071,7 @@ the implementing agent whether its own implementation is correct.
 ### theholocron/holocron
 
 - `feat(setup): provision .agents/prompts/ with role-based AI workflow prompt
-  files` — `holocron setup` writes one prompt file per agent role into
+files` — `holocron setup` writes one prompt file per agent role into
   `.agents/prompts/`. Files are gitignored by default but can be committed per
   repo preference.
 
