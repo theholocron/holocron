@@ -1,8 +1,10 @@
 # ADR 001 — Holocron Config Preset System
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-08-28  
-**Repo:** theholocron/configs
+**Repo:** theholocron/configs  
+**Issue:** #398  
+**PR:** #400
 
 ---
 

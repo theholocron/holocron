@@ -1,6 +1,8 @@
 ---
 title: Holocron Config Preset System
 description: Layered configuration presets for theholocron repositories — what each preset includes, how to compose them, and what stays per-repo.
+issue: 398
+status: accepted
 ---
 
 `@theholocron/holocron-config` ships a set of presets that encode the standard configuration for each class of `theholocron/*` repository. Each preset returns a fragment — `providers`, `repo`, `workflows` — that you spread into `defineConfig()` and extend with only the fields unique to your repo.
