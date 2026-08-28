@@ -6,7 +6,7 @@ on: # yamllint disable-line rule:truthy
       steps:
         description: >
           Sync steps to run (default: all). Valid values:
-          labels, properties, teams, topics, keywords, description, homepage, readme.
+          labels, properties, teams, topics, keywords, description, homepage, readme, workflows.
           Pass a space-separated list to run a subset, e.g. "readme" or "readme description".
         type: string
         required: false
