@@ -47,6 +47,7 @@ interface." That distinction removes most traditional wiki products from
 consideration — the tool should not own the ADRs, Git should.
 
 A hosted platform that renders Git-backed Markdown gives you:
+
 - portability (switch platforms without migrating documents)
 - review (ADR changes go through PR, not a wiki edit)
 - agent access (MCP endpoints, `llms.txt`, raw Markdown URLs)
@@ -56,14 +57,14 @@ A hosted platform that renders Git-backed Markdown gives you:
 
 ## Platform evaluation
 
-| Option | Free tier | Private source repo | Private rendered docs | Git direction | MCP / agent | Markdown portable | Fit |
-|---|---|---|---|---|---|---|---|
-| **Fern** | ✅ 2 platform users | ✅ | ✅ Password protection | Git-first; web edits become PRs | ✅ Excellent | ✅ `.md/.mdx` | **9.5/10** |
-| **Mintlify** | ✅ 5 editor seats | ✅ | 🟡 Verify — pricing page conflicts with auth docs | Git-first; editor creates PRs | ✅ Excellent | ✅ `.md/.mdx` | **9/10** |
-| **Starlight + Cloudflare** | ✅ Effectively free | ✅ | ✅ Cloudflare Access (≤50 users free) | Pure Git → deploy | ✅ Bring-your-own MCP | ✅ Pure Markdown | **9/10** |
-| **GitBook** | ✅ 1 user | ✅ | ❌ Free published docs effectively public | True two-way Git sync | ✅ Built-in | ✅ Markdown | **7/10** |
-| **Confluence** | ✅ ≤10 users | — | ✅ | API rather than Git sync | 🟡 | 🟡 Proprietary | **6/10** |
-| **ReadMe** | ✅ | ✅ | ❌ Private docs require $250/mo Pro | Two-way Git sync | ✅ Built-in | ✅ Markdown | **6/10** |
+| Option                     | Free tier           | Private source repo | Private rendered docs                             | Git direction                   | MCP / agent           | Markdown portable | Fit        |
+| -------------------------- | ------------------- | ------------------- | ------------------------------------------------- | ------------------------------- | --------------------- | ----------------- | ---------- |
+| **Fern**                   | ✅ 2 platform users | ✅                  | ✅ Password protection                            | Git-first; web edits become PRs | ✅ Excellent          | ✅ `.md/.mdx`     | **9.5/10** |
+| **Mintlify**               | ✅ 5 editor seats   | ✅                  | 🟡 Verify — pricing page conflicts with auth docs | Git-first; editor creates PRs   | ✅ Excellent          | ✅ `.md/.mdx`     | **9/10**   |
+| **Starlight + Cloudflare** | ✅ Effectively free | ✅                  | ✅ Cloudflare Access (≤50 users free)             | Pure Git → deploy               | ✅ Bring-your-own MCP | ✅ Pure Markdown  | **9/10**   |
+| **GitBook**                | ✅ 1 user           | ✅                  | ❌ Free published docs effectively public         | True two-way Git sync           | ✅ Built-in           | ✅ Markdown       | **7/10**   |
+| **Confluence**             | ✅ ≤10 users        | —                   | ✅                                                | API rather than Git sync        | 🟡                    | 🟡 Proprietary    | **6/10**   |
+| **ReadMe**                 | ✅                  | ✅                  | ❌ Private docs require $250/mo Pro               | Two-way Git sync                | ✅ Built-in           | ✅ Markdown       | **6/10**   |
 
 ### Recommendation: Fern first, Mintlify second, Starlight fallback
 
@@ -72,6 +73,7 @@ Git rather than offering Git export as an escape hatch. Web edits create GitHub
 PRs; the repository stays authoritative; deployment follows the merged state.
 
 Free Hobby tier includes:
+
 - 2 Fern team members (developers not needing Fern accounts use Git directly)
 - Custom domain
 - Password-protected docs
@@ -190,7 +192,7 @@ Every ADR file begins with machine-readable YAML frontmatter:
 id: ADR-0042
 title: Store Architectural Decisions as Markdown in Git
 
-status: accepted   # proposed | accepted | rejected | deprecated | superseded
+status: accepted # proposed | accepted | rejected | deprecated | superseded
 date: 2026-08-27
 
 owners:
@@ -200,7 +202,7 @@ specs:
   - SPEC-0018
 
 discussion:
-  github: 183      # GitHub Discussion number
+  github: 183 # GitHub Discussion number
 
 supersedes: []
 superseded-by: []
@@ -229,16 +231,19 @@ What did we decide?
 ## Option A
 
 ### Pros
+
 ### Cons
 
 ## Option B
 
 ### Pros
+
 ### Cons
 
 # Consequences
 
 ## Positive
+
 ## Negative
 
 # References
@@ -283,7 +288,9 @@ What are we currently leaning toward, and why?
 ## Consequences
 
 ### Positive
+
 ### Negative
+
 ### Risks
 
 ## Related Specification
@@ -389,6 +396,7 @@ Add `DISCUSSION_TEMPLATE/architecture-decision.yml` and update
 ### theholocron/skills — `/adr` skill
 
 The `/adr` skill (theholocron/skills#66) should:
+
 1. Accept a GitHub Discussion number
 2. Fetch the Discussion body via `gh api`
 3. Apply the ADR Author prompt
