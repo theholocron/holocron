@@ -2,11 +2,11 @@
 
 ### Features
 
-* ✨ add nodeDocs, nextjs, react, and monorepo presets to holocron-config ([#400](https://github.com/theholocron/configs/issues/400)) ([f0a570a](https://github.com/theholocron/configs/commit/f0a570ad8d98b3338f267cf5ce5423434589c9c1)), closes [#398](https://github.com/theholocron/configs/issues/398)
+- ✨ add nodeDocs, nextjs, react, and monorepo presets to holocron-config ([#400](https://github.com/theholocron/configs/issues/400)) ([f0a570a](https://github.com/theholocron/configs/commit/f0a570ad8d98b3338f267cf5ce5423434589c9c1)), closes [#398](https://github.com/theholocron/configs/issues/398)
 
 ### Documentation
 
-* 📚 add preset system spec and ADR 001 ([#399](https://github.com/theholocron/configs/issues/399)) ([4645c50](https://github.com/theholocron/configs/commit/4645c50812123e58c042873ee74167aec83461d1))
+- 📚 add preset system spec and ADR 001 ([#399](https://github.com/theholocron/configs/issues/399)) ([4645c50](https://github.com/theholocron/configs/commit/4645c50812123e58c042873ee74167aec83461d1))
 
 ## [7.25.5](https://github.com/theholocron/configs/compare/v7.25.4...v7.25.5) (2026-08-26)
 
