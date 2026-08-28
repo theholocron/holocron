@@ -120,34 +120,34 @@ jobs:
           fi
 
       - name: Install Wrangler
-        # Install from /tmp so npm does not read the repo's package.json, which
-        # uses pnpm catalog: references that npm cannot parse.
+        # The action's install step runs npm/pnpm in the repo root; pnpm fails
+        # because it rejects adding to a workspace root without -w, and npm fails
+        # because package.json contains pnpm catalog: references it cannot parse.
+        # Pre-installing from /tmp (no package.json) lets the action find wrangler
+        # already on PATH and skip its own install entirely.
         working-directory: /tmp
         run: npm install -g wrangler@4
 
-      - name: Deploy to Cloudflare Pages
+      - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         id: deploy
+        name: Deploy to Cloudflare Pages
         # Skip when neither the per-repo input nor the org variable is set.
         if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
-          BRANCH: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
-        run: |
-          RESULT=$(wrangler pages deploy _site \
-            --project-name "$PROJECT" \
-            --branch "$BRANCH" \
-            --commit-dirty=true \
-            --json 2>/dev/null)
-          ALIAS=$(echo "$RESULT" | jq -r '.aliases[0] // .url // ""')
-          echo "alias=${ALIAS}" >> "$GITHUB_OUTPUT"
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: npm
+          command: >-
+            pages deploy _site
+            --project-name ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+            --branch ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+            --commit-dirty=true
 
       - name: Report preview URL
-        if: ${{ steps.deploy.outputs.alias != '' }}
+        if: ${{ steps.deploy.outputs.pages-deployment-alias-url != '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ALIAS: ${{ steps.deploy.outputs.alias }}
+          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
           SITE_NAME: ${{ inputs.name }}
           PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
         run: |
