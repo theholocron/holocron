@@ -1,8 +1,9 @@
+import { checkbox } from "@inquirer/prompts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { DeploymentRecord, PullRequest } from "../capabilities/index.js";
 import { runCleanupPreview } from "../commands/cleanup-preview.js";
 import { resolveConfig } from "../config.js";
-import type { DeploymentRecord, PullRequest } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
 
@@ -10,7 +11,6 @@ vi.mock("@inquirer/prompts", () => ({
 	checkbox: vi.fn(),
 }));
 
-import { checkbox } from "@inquirer/prompts";
 const mockCheckbox = vi.mocked(checkbox);
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -244,7 +244,7 @@ describe("runCleanupPreview", () => {
 
 	it("returns status=fail when deletePreviewDeployments throws", async () => {
 		mockCheckbox.mockResolvedValueOnce([DEPLOYMENT.id]);
-		const { loaded, loader } = makePlugins(PR_MERGED);
+		const { loaded } = makePlugins(PR_MERGED);
 		const { deployment } = makePlugins(PR_MERGED);
 		deployment.deletePreviewDeployments.mockRejectedValueOnce(new Error("API error"));
 		const failLoader = makeLoaderWith(loaded, {
@@ -261,6 +261,19 @@ describe("runCleanupPreview", () => {
 		});
 		expect(report.status).toBe("fail");
 		expect(report.message).toContain("API error");
+	});
+
+	it("throws when listPreviewDeployments fails", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github", deployment: "cloudflare" } });
+		const deployment = makeDeployment();
+		deployment.listPreviewDeployments.mockRejectedValueOnce(new Error("list failed"));
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("github", { source: makeSource(PR_MERGED) }),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", { deployment }),
+		});
+		await expect(
+			runCleanupPreview({ loaded, context: { repoRoot: "/tmp/test" }, prNumber: 42, project: "my-project", loader, print: () => {} })
+		).rejects.toThrow(/Failed to list deployments/);
 	});
 
 	it("uses --repo override when looking up the PR and deriving the branch alias", async () => {
