@@ -159,6 +159,52 @@ describe("CloudflareDeployment.ensureCustomDomain", () => {
 	});
 });
 
+describe("CloudflareDeployment.listPreviewDeployments", () => {
+	it("returns deployments filtered by branch", async () => {
+		const other = {
+			...rawDeployment,
+			id: "deploy-other",
+			deployment_trigger: {
+				...rawDeployment.deployment_trigger,
+				metadata: { branch: "other-branch", commit_hash: "000" },
+			},
+		};
+		const { dep, calls } = makeDeployment([cfOk([rawDeployment, other])]);
+		const result = await dep.listPreviewDeployments(PROJECT_NAME, "feat/my-pr");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/pages/projects/${PROJECT_NAME}/deployments`);
+		expect(result).toHaveLength(1);
+		expect(result[0]?.id).toBe(`${PROJECT_NAME}:deploy-abc`);
+		expect(result[0]?.branch).toBe("feat/my-pr");
+	});
+
+	it("returns empty array when no deployments match the branch", async () => {
+		const { dep } = makeDeployment([cfOk([rawDeployment])]);
+		const result = await dep.listPreviewDeployments(PROJECT_NAME, "no-such-branch");
+		expect(result).toHaveLength(0);
+	});
+});
+
+describe("CloudflareDeployment.deletePreviewDeployments", () => {
+	it("deletes each deployment by id and returns count", async () => {
+		const { dep, calls } = makeDeployment([cfOk(null), cfOk(null)]);
+		const count = await dep.deletePreviewDeployments(PROJECT_NAME, [
+			`${PROJECT_NAME}:deploy-abc`,
+			`${PROJECT_NAME}:deploy-def`,
+		]);
+		expect(count).toBe(2);
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toContain("deploy-abc");
+		expect(calls[1]?.url).toContain("deploy-def");
+	});
+
+	it("strips projectName: prefix before calling the API", async () => {
+		const { dep, calls } = makeDeployment([cfOk(null)]);
+		await dep.deletePreviewDeployments(PROJECT_NAME, [`${PROJECT_NAME}:deploy-abc`]);
+		expect(calls[0]?.url).not.toContain(`${PROJECT_NAME}:`);
+		expect(calls[0]?.url).toContain("deploy-abc");
+	});
+});
+
 describe("CloudflareDeployment — status mapping", () => {
 	const statusCases: Array<[CfPagesDeploymentStage["status"], string]> = [
 		["idle", "queued"],

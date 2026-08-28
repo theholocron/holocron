@@ -1,7 +1,16 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type { LabelDef, PagesConfig, RepoRef, RepoSettings, Ruleset, Source, TeamEntry } from "@theholocron/cli";
+import type {
+	LabelDef,
+	PagesConfig,
+	PullRequest,
+	RepoRef,
+	RepoSettings,
+	Ruleset,
+	Source,
+	TeamEntry,
+} from "@theholocron/cli";
 import {
 	createGitHubClient,
 	type CreatePagesPayload,
@@ -178,6 +187,18 @@ export class GitHubSource implements Source {
 	async syncHomepage(homepage: string): Promise<string> {
 		await this.client.repos.updateRepo(this.repo, { homepage });
 		return "homepage updated";
+	}
+
+	async getPullRequest(number: number, repo?: string): Promise<PullRequest> {
+		const raw = await this.client.pulls.getPullRequest(repo ?? this.repo, number);
+		return {
+			number: raw.number,
+			title: raw.title,
+			state: raw.state,
+			merged: raw.merged_at !== null,
+			branch: raw.head.ref,
+			url: raw.html_url,
+		};
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {

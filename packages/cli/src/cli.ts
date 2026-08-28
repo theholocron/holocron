@@ -8,6 +8,7 @@ import { hideBin } from "yargs/helpers";
 import { AuthError, createFeatureResolver } from "./auth-resolver.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
+import { runCleanupPreview } from "./commands/cleanup-preview.js";
 import { runClone } from "./commands/clone.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
@@ -378,6 +379,46 @@ try {
 					projectId: argv.projectId as string,
 					branch: argv.branch as string,
 					...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+				});
+				if (report.status === "fail") {
+					process.exitCode = 1;
+				}
+			}
+		)
+		.command(
+			"cleanup-preview <pr>",
+			"List and delete Cloudflare Pages preview deployments for a GitHub PR",
+			(y) =>
+				y
+					.positional("pr", {
+						type: "number",
+						demandOption: true,
+						describe: "PR number to clean up",
+					})
+					.option("project", {
+						type: "string",
+						demandOption: true,
+						describe: "Cloudflare Pages project name (e.g. theholocron-preview)",
+					})
+					.option("repo", {
+						type: "string",
+						describe: "GitHub repo as owner/name — defaults to the repo in holocron.config",
+					}),
+			async (argv) => {
+				const tokens = tokenContext(argv.token);
+				if (!tokens) return;
+				const loaded = await loadConfig(argv.cwd);
+				const report = await runCleanupPreview({
+					loaded,
+					context: {
+						repoRoot: argv.cwd,
+						dryRun: argv.dryRun,
+						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
+					},
+					prNumber: argv.pr as number,
+					project: argv.project as string,
+					...(argv.repo ? { repo: argv.repo as string } : {}),
 				});
 				if (report.status === "fail") {
 					process.exitCode = 1;

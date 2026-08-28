@@ -104,6 +104,25 @@ export class CloudflareDeployment implements Deployment {
 		return mapDeployment(raw, projectName, raw.deployment_trigger.metadata.branch, undefined);
 	}
 
+	// ── preview cleanup ─────────────────────────────────────────────────
+
+	async listPreviewDeployments(projectId: string, branch: string): Promise<DeploymentRecord[]> {
+		const all = await this.client.pages.listDeployments(this.accountId, projectId);
+		return all
+			.filter((d) => d.deployment_trigger.metadata.branch === branch)
+			.map((d) => mapDeployment(d, projectId, d.deployment_trigger.metadata.branch, undefined));
+	}
+
+	async deletePreviewDeployments(projectId: string, deploymentIds: string[]): Promise<number> {
+		await Promise.all(
+			deploymentIds.map((id) => {
+				const cfId = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
+				return this.client.pages.deleteDeployment(this.accountId, projectId, cfId);
+			})
+		);
+		return deploymentIds.length;
+	}
+
 	// ── custom domains ──────────────────────────────────────────────────
 
 	async ensureCustomDomain(projectId: string, hostname: string): Promise<void> {
