@@ -32,13 +32,13 @@ The fix is to give each surface a specific job and then enforce it.
 
 ## Surface boundary
 
-| Surface | Question answered | Audience |
-|---|---|---|
-| **Astro docs / GitHub Pages** | How do I use this? | Consumers, developers — potentially public |
-| **README** | What is this and how do I get started? | Everyone |
-| **GitHub Wiki** | Why is it built this way? How do we maintain and evolve it? | Org members / contributors |
-| **Issues / Projects** | What are we doing next? | Contributors / team |
-| **Code / PRs** | What changed and how does it work? | Developers |
+| Surface                       | Question answered                                           | Audience                                   |
+| ----------------------------- | ----------------------------------------------------------- | ------------------------------------------ |
+| **Astro docs / GitHub Pages** | How do I use this?                                          | Consumers, developers — potentially public |
+| **README**                    | What is this and how do I get started?                      | Everyone                                   |
+| **GitHub Wiki**               | Why is it built this way? How do we maintain and evolve it? | Org members / contributors                 |
+| **Issues / Projects**         | What are we doing next?                                     | Contributors / team                        |
+| **Code / PRs**                | What changed and how does it work?                          | Developers                                 |
 
 The mental model:
 
@@ -222,10 +222,12 @@ README:     "Authentication details"
 **Instead — one authoritative source, links everywhere else:**
 
 Astro docs (user-facing):
+
 > Authentication is handled by the shared authentication middleware.
 > See the API reference for usage.
 
 Wiki (institutional):
+
 > **ADR-007: Selection of the authentication architecture**
 > Context → alternatives → decision → consequences.
 
