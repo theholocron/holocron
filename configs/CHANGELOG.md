@@ -2,11 +2,11 @@
 
 ### Bug Fixes
 
-* 🐛 include CF account ID in nodeDocs deployment provider ([#404](https://github.com/theholocron/configs/issues/404)) ([f2e433b](https://github.com/theholocron/configs/commit/f2e433b72dfb10211e823617e0bd23da64198f74))
+- 🐛 include CF account ID in nodeDocs deployment provider ([#404](https://github.com/theholocron/configs/issues/404)) ([f2e433b](https://github.com/theholocron/configs/commit/f2e433b72dfb10211e823617e0bd23da64198f74))
 
 ### Chores
 
-* sync from theholocron/holocron ([#401](https://github.com/theholocron/configs/issues/401)) ([d31fee8](https://github.com/theholocron/configs/commit/d31fee8d2c01f82e9da839f5d62afd5129ac37bd))
+- sync from theholocron/holocron ([#401](https://github.com/theholocron/configs/issues/401)) ([d31fee8](https://github.com/theholocron/configs/commit/d31fee8d2c01f82e9da839f5d62afd5129ac37bd))
 
 ## [7.26.0](https://github.com/theholocron/configs/compare/v7.25.5...v7.26.0) (2026-08-28)
 
