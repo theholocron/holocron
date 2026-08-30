@@ -1,4 +1,4 @@
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { AuthError } from "../auth-resolver.js";
@@ -7,6 +7,15 @@ import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
+import {
+	deriveDeployPaths,
+	extractPreviewConfig,
+	generateCombinedDeployContent,
+	generateThinCallerContent,
+	KNOWN_WORKFLOWS,
+	normalizeWorkflowWith,
+	workflowHeader,
+} from "./setup-workflows.js";
 import { runSyncReadme } from "./sync-readme.js";
 
 export const SYNC_STEPS = [
@@ -18,11 +27,12 @@ export const SYNC_STEPS = [
 	"description",
 	"homepage",
 	"readme",
+	"workflows",
 ] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
-const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme"]);
+const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme", "workflows"]);
 
 export interface RunSyncInput {
 	loaded: LoadedConfig;
@@ -208,11 +218,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	}
 
 	// ── local-only steps (no provider token required) ──────────────────
-	// keywords, description, homepage, and readme write to local files and
-	// optionally push to GitHub when source is loaded. They run outside
-	// the `if (loader.has("source"))` block so they work without a token.
+	// keywords, description, homepage, readme, and workflows write to local
+	// files and optionally push to GitHub when source is loaded. They run
+	// outside the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description", "homepage", "readme"] as const) {
+	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -312,6 +322,72 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			});
 			print(formatSyncStep(steps[steps.length - 1]!));
 		}
+
+		if (stepName === "workflows") {
+			const workflowEntries = config.workflows ?? [];
+			if (workflowEntries.length === 0) {
+				steps.push({
+					capability: "local",
+					step: "sync workflows",
+					status: "skip",
+					message: "no workflows configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				for (const entry of workflowEntries) {
+					const name = typeof entry === "string" ? entry : entry.name;
+					const rawWith = typeof entry === "object" ? entry.with : undefined;
+					const withOverrides = rawWith
+						? normalizeWorkflowWith(rawWith as Record<string, unknown>, config.name)
+						: undefined;
+					const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
+					const additionalPaths =
+						explicitPaths ??
+						(name === "deploy" && rawWith
+							? deriveDeployPaths(rawWith as Record<string, unknown>)
+							: undefined);
+
+					if (!KNOWN_WORKFLOWS.has(name)) {
+						steps.push({
+							capability: "local",
+							step: `sync workflow ${name}`,
+							status: "skip",
+							message: `unknown workflow "${name}" — no template available`,
+						});
+						print(formatSyncStep(steps[steps.length - 1]!));
+						continue;
+					}
+
+					if (name === "deploy" && rawWith) {
+						const previewCfg = extractPreviewConfig(rawWith as Record<string, unknown>, {
+							org: config.org,
+							domain: config.domain,
+						});
+						if (previewCfg) {
+							steps.push(
+								await runSyncStep("local", "sync workflow deploy (with preview)", dryRun, async () => {
+									const content =
+										workflowHeader() +
+										generateCombinedDeployContent(withOverrides!, additionalPaths!, previewCfg);
+									await writeWorkflowFile(input.context.repoRoot, "deploy.yml", content);
+								})
+							);
+							print(formatSyncStep(steps[steps.length - 1]!));
+							continue;
+						}
+					}
+
+					steps.push(
+						await runSyncStep("local", `sync workflow ${name}`, dryRun, async () => {
+							const content =
+								workflowHeader() + generateThinCallerContent(name, withOverrides, additionalPaths);
+							await writeWorkflowFile(input.context.repoRoot, `${name}.yml`, content);
+						})
+					);
+					print(formatSyncStep(steps[steps.length - 1]!));
+				}
+			}
+		}
 	}
 
 	const summary = steps.reduce(
@@ -407,4 +483,10 @@ async function updateReadmeDescription(repoRoot: string, description: string): P
 	lines.splice(h1Index + 1, 0, "", README_DESC_START, description, README_DESC_END);
 	await writeFile(readmePath, lines.join("\n"), "utf8");
 	return true;
+}
+
+async function writeWorkflowFile(repoRoot: string, filename: string, content: string): Promise<void> {
+	const dir = join(repoRoot, ".github", "workflows");
+	await mkdir(dir, { recursive: true });
+	await writeFile(join(dir, filename), content, "utf8");
 }

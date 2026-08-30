@@ -1,0 +1,35 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Tool:    holocron sync-github
+# Changes: edit source in theholocron/holocron and push to alpha or main.
+name: Sync
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - holocron.config.ts
+      - package.json
+      - pnpm-workspace.yaml
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Sync steps to run (default: all)"
+        type: string
+        required: false
+
+concurrency:
+  group: sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Sync
+    uses: theholocron/.github/.github/workflows/sync.yml@main
+    with:
+      steps: ${{ inputs.steps }}
+    secrets: inherit
