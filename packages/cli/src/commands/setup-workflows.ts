@@ -332,7 +332,7 @@ export function generateCombinedDeployContent(
  *
  * Used by both `holocron setup` and `sync-workflow-templates`.
  */
-export function normalizeWorkflowWith(raw: Record<string, unknown>, repoName?: string): Record<string, unknown> {
+export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
 	const result = { ...raw };
 	delete result["preview"];
 
@@ -341,9 +341,6 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>, repoName?: s
 	if (hasDocs) {
 		result["type"] = "docs";
 		delete result["docs"];
-		// Derive the `name` input (selects @theholocron/<name>-site) from caller context
-		// when not already set explicitly in the config.
-		if (!result["name"] && repoName) result["name"] = repoName;
 	}
 	if (Array.isArray(storybookProjects)) {
 		if (!hasDocs) result["type"] = "storybook";

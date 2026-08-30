@@ -339,7 +339,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const name = typeof entry === "string" ? entry : entry.name;
 					const rawWith = typeof entry === "object" ? entry.with : undefined;
 					const withOverrides = rawWith
-						? normalizeWorkflowWith(rawWith as Record<string, unknown>, config.name)
+						? normalizeWorkflowWith(rawWith as Record<string, unknown>)
 						: undefined;
 					const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
 					const additionalPaths =
