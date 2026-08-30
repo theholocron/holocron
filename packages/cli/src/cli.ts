@@ -482,14 +482,14 @@ try {
 		)
 		.command(
 			"sync [steps..]",
-			"Sync state from config to the provider and local files (labels, properties, topics, keywords, description, homepage, readme)",
+			"Sync state from config to the provider and local files (labels, properties, topics, keywords, description, homepage, readme, workflows)",
 			(y) =>
 				y
 					.positional("steps", {
 						type: "string",
 						array: true,
 						describe:
-							"Steps to run: labels, properties, topics, keywords, description, homepage, readme (default: all)",
+							"Steps to run: labels, properties, topics, keywords, description, homepage, readme, workflows (default: all)",
 					})
 					.option("repo", {
 						type: "string",

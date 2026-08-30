@@ -28,7 +28,8 @@ jobs:
               echo "Dispatching sync to theholocron/$repo"
               gh workflow run sync.yml \
                 --repo "theholocron/$repo" \
-                --field "steps=$STEPS"
+                --field "steps=$STEPS" \
+              || echo "Warning: could not dispatch to theholocron/$repo — skipping"
             done
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
