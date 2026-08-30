@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { AuthError } from "../auth-resolver.js";
 import type { Source } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
-import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { LoaderError, PluginLoader, type RuntimeContext } from "../loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
 import {
@@ -63,10 +63,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		try {
 			await loader.load();
 		} catch (err) {
-			// Only swallow auth errors (missing token). Any other load failure
-			// (bad plugin config, unresolvable package) is re-thrown so the
-			// operator sees it rather than getting a silent GitHub-push miss.
-			if (!(err instanceof AuthError)) throw err;
+			// Swallow auth errors (missing token) and loader errors (plugin
+			// package not installed). Both mean optional remote push is
+			// unavailable; local file writes still proceed. Any other failure
+			// is re-thrown so the operator sees it.
+			if (!(err instanceof AuthError) && !(err instanceof LoaderError)) throw err;
 		}
 	}
 
