@@ -315,7 +315,6 @@ describe("runSyncGithub", () => {
 		expect(deployBlob?.body?.content).toContain("- docs/**");
 	});
 
-
 	it("parses with: blocks containing nested objects (e.g. storybook: [{ name: 'app' }])", async () => {
 		const configTs = `export default defineConfig({
 	workflows: [
