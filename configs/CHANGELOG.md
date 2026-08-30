@@ -2,11 +2,11 @@
 
 ### Features
 
-* ✨ accept test overrides in nextjs() to prevent duplicate workflow entries ([#406](https://github.com/theholocron/configs/issues/406)) ([ae7dc30](https://github.com/theholocron/configs/commit/ae7dc3025b9245fd0d53b4042301da7e2a00dce1))
+- ✨ accept test overrides in nextjs() to prevent duplicate workflow entries ([#406](https://github.com/theholocron/configs/issues/406)) ([ae7dc30](https://github.com/theholocron/configs/commit/ae7dc3025b9245fd0d53b4042301da7e2a00dce1))
 
 ### Chores
 
-* ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#405](https://github.com/theholocron/configs/issues/405)) ([3a58735](https://github.com/theholocron/configs/commit/3a58735d6f8fce9d55ce511217a2ebf9beaee7ab))
+- ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#405](https://github.com/theholocron/configs/issues/405)) ([3a58735](https://github.com/theholocron/configs/commit/3a58735d6f8fce9d55ce511217a2ebf9beaee7ab))
 
 ## [7.26.1](https://github.com/theholocron/configs/compare/v7.26.0...v7.26.1) (2026-08-30)
 
