@@ -246,7 +246,7 @@ function buildBatch(
 			if (name === "deploy-preview") continue;
 			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
 			const rawWith = withOverrides?.get(name);
-			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith, orgContext?.repoName) : undefined;
+			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
 			const additionalPaths = name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
 
 			// deploy + preview: → combined thin caller; preview: true derives
