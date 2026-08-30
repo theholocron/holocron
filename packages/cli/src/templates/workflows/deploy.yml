@@ -7,11 +7,6 @@ on: # yamllint disable-line rule:truthy
         description: "Type of deployment: docs or storybook"
         required: true
         type: string
-      name:
-        description: Repo name prefix used to filter the docs site package (<name>-site); omit to run pnpm -C docs build
-        required: false
-        type: string
-        default: ""
       storybook-projects:
         description: >
           JSON array of { "name"?, "workingDir", "outputDir"? } objects for storybook deploys.
@@ -51,13 +46,7 @@ jobs:
         name: Setup
 
       - name: Build docs site
-        if: ${{ inputs.type == 'docs' && inputs.name != '' }}
-        env:
-          SITE_NAME: ${{ inputs.name }}
-        run: pnpm --filter @theholocron/"$SITE_NAME"-site build
-
-      - name: Build docs site
-        if: ${{ inputs.type == 'docs' && inputs.name == '' }}
+        if: ${{ inputs.type == 'docs' }}
         run: pnpm -C docs build
 
       - name: Build Storybook projects
