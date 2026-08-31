@@ -6,7 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENT_PROMPTS } from "../agent-prompts.js";
 import { ProviderApiError } from "../capabilities/index.js";
-import { codecovContent, installAgentPrompts, installEngineeringStructure, mergeCodecovComponents, runSetup } from "../commands/setup.js";
+import {
+	codecovContent,
+	installAgentPrompts,
+	installEngineeringStructure,
+	mergeCodecovComponents,
+	runSetup,
+} from "../commands/setup.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
@@ -3459,10 +3465,7 @@ describe("installAgentPrompts", () => {
 
 	it("recovers gracefully when end marker is missing (orphaned start)", async () => {
 		// Write a gitignore that has the start marker but no end marker
-		await writeFile(
-			join(tmpDir, ".gitignore"),
-			"# managed by holocron setup — prompts\n/.agents/prompts/\n"
-		);
+		await writeFile(join(tmpDir, ".gitignore"), "# managed by holocron setup — prompts\n/.agents/prompts/\n");
 
 		await installAgentPrompts({ repoRoot: tmpDir });
 

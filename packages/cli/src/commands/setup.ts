@@ -1481,9 +1481,7 @@ export async function installEngineeringStructure({ repoRoot }: { repoRoot: stri
 		if (wrote) results.push(path.replace(repoRoot + "/", ""));
 	}
 
-	return results.length > 0
-		? `created: ${results.join(", ")}`
-		: "all files already exist — nothing to write";
+	return results.length > 0 ? `created: ${results.join(", ")}` : "all files already exist — nothing to write";
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
