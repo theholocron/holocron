@@ -1,6 +1,9 @@
-# Local workflow — publishes engineering wiki to Fern on push to main.
-# Not a thin caller; this is Fern-specific and not a reusable workflow concern.
-name: Publish docs
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-08-31T00:00:00.000Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
+name: Wiki
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -11,20 +14,6 @@ on: # yamllint disable-line rule:truthy
       - "docs/engineering/**"
 
 jobs:
-  publish:
-    name: Publish to Fern
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        name: Checkout repository
-
-      - name: Install Fern CLI
-        run: npm install -g fern-api@5.35.4
-
-      - name: Publish docs
-        run: fern generate --docs
-        env:
-          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+  wiki:
+    uses: theholocron/.github/.github/workflows/wiki.yml@main
+    secrets: inherit
