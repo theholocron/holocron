@@ -3,8 +3,8 @@
  * Warns when a PR adds a new public package without a corresponding docs change.
  *
  * Heuristic:
- * - Triggers on new packages/*/src/index.ts where package.json has no "private: true"
- * - A docs change = any file changed under docs/ or matching *.md / *.mdx
+ * - Triggers on new packages/<name>/src/index.ts where package.json has no "private: true"
+ * - A docs change = any file changed under docs/ or matching .md / .mdx
  * - Exits 0 (warning only) so it never blocks emergency fixes
  *
  * Usage: node scripts/validate-docs-presence.mjs
@@ -13,7 +13,7 @@
 
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
