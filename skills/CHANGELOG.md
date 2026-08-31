@@ -1,3 +1,9 @@
+## [1.7.0](https://github.com/theholocron/skills/compare/v1.6.0...v1.7.0) (2026-08-31)
+
+### Features
+
+* ✨ add enforcement checklists to scaffolding and PR skills ([#77](https://github.com/theholocron/skills/issues/77)) ([c27246d](https://github.com/theholocron/skills/commit/c27246d1dbbcec70a4557aa21945193d9c5a727c)), closes [#67](https://github.com/theholocron/skills/issues/67)
+
 ## [1.6.0](https://github.com/theholocron/skills/compare/v1.5.0...v1.6.0) (2026-08-31)
 
 ### Features
