@@ -64,14 +64,10 @@ const hasDocsChange = allChanged.some(
 console.log(`\nNew public package(s): ${newPackages.join(", ")}`);
 
 if (!hasDocsChange) {
-	console.warn(`
-⚠  Docs-presence warning: new package(s) added without a docs change.
-
-   New packages: ${newPackages.join(", ")}
-
-   Add a docs page under docs/ in this PR, or open a scoped follow-up PR
-   immediately after — docs should ship with the feature.
-`);
+	console.warn("\n⚠  Docs-presence warning: new package(s) added without a docs change.\n");
+	console.warn(`   New packages: ${newPackages.join(", ")}\n`);
+	console.warn("   Add a docs page under docs/ in this PR, or open a scoped follow-up PR");
+	console.warn("   immediately after — docs should ship with the feature.\n");
 	// Exit 0 — warning only, does not block the PR.
 	process.exit(0);
 }
