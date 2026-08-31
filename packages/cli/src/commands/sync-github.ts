@@ -239,39 +239,12 @@ function buildBatch(
 				});
 			}
 		}
-	} else {
-		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
-			// deploy-preview is a reusable that lives in .github, not a user-configurable
-			// thin caller — skip it in the secondary-repo loop.
-			if (name === "deploy-preview") continue;
-			if (allowedWorkflows && !allowedWorkflows.has(name)) continue;
-			const rawWith = withOverrides?.get(name);
-			const normalizedWith = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
-			const additionalPaths = name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined;
-
-			// deploy + preview: → combined thin caller; preview: true derives
-			// project + domain from the repo's org/docs config.
-			if (name === "deploy" && rawWith) {
-				const previewCfg = extractPreviewConfig(rawWith, orgContext);
-				if (previewCfg) {
-					files.push({
-						path: `.github/workflows/deploy.yml`,
-						content:
-							workflowHeader() +
-							generateCombinedDeployContent(normalizedWith!, additionalPaths!, previewCfg),
-					});
-					continue;
-				}
-			}
-
-			const content = generateThinCallerContent(name, normalizedWith, additionalPaths);
-			if (!content) continue;
-			files.push({
-				path: `.github/workflows/${name}.yml`,
-				content: workflowHeader() + content,
-			});
-		}
 	}
+	// Secondary repos: thin callers are managed by `holocron sync --steps workflows`,
+	// which executes the resolved config at runtime and handles preset spreads correctly.
+	// sync-github uses static regex parsing that cannot resolve spread variables
+	// (e.g. `...workflows` from nodeDocs()), so writing thin callers here produces
+	// incorrect output for repos that use preset composition. See issue #464.
 
 	return files;
 }
