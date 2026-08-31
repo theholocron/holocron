@@ -5,7 +5,7 @@ description: Replace monolithic preset functions with composable capability frag
 
 ## Status
 
-Proposed
+Implemented — `@theholocron/cli@3.38.0` (`compose`, `Capability`, `ComposedPreset`), `@theholocron/holocron-config` (capability factories + shims)
 
 ## Problem
 
