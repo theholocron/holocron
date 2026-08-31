@@ -22,6 +22,7 @@ import staleYml from "./workflows/stale.yml";
 import syncYml from "./workflows/sync.yml";
 import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
+import wikiYml from "./workflows/wiki.yml";
 
 /**
  * Header prepended to every auto-generated workflow thin caller.
@@ -73,6 +74,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	bookkeeping: bookkeepingYml,
 	audit: auditYml,
 	deploy: deployYml,
+	wiki: wikiYml,
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
