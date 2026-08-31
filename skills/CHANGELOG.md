@@ -1,3 +1,9 @@
+## [1.8.1](https://github.com/theholocron/skills/compare/v1.8.0...v1.8.1) (2026-08-31)
+
+### Bug Fixes
+
+* 🐛 update /adr skill to docs/decisions/ path ([#79](https://github.com/theholocron/skills/issues/79)) ([3d2eeb8](https://github.com/theholocron/skills/commit/3d2eeb8f833a34dd03247cebb2a01700c69fcee4))
+
 ## [1.8.0](https://github.com/theholocron/skills/compare/v1.7.0...v1.8.0) (2026-08-31)
 
 ### Features
