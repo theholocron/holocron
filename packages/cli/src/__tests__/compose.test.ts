@@ -177,4 +177,24 @@ describe("compose()", () => {
 		);
 		expect(gatekeepers).toEqual({ slug: "gatekeepers", permission: "maintain" });
 	});
+
+	it("handles string-shorthand team entries", () => {
+		const a: Capability = { id: "a", repo: { teams: ["gatekeepers"] } };
+		const b: Capability = { id: "b", repo: { teams: ["gatekeepers", "admins"] } };
+		const preset = compose(a, b);
+		expect(preset.repo.teams).toHaveLength(2);
+		expect(preset.repo.teams).toContain("gatekeepers");
+		expect(preset.repo.teams).toContain("admins");
+	});
+
+	it("deduplicates requiredChecks appearing in multiple capabilities", () => {
+		const a: Capability = { id: "a", requiredChecks: ["Lint / Conclusion", "Test / Conclusion"] };
+		const b: Capability = { id: "b", requiredChecks: ["Lint / Conclusion", "codecov/patch"] };
+		const preset = compose(a, b);
+		expect(preset.repo.requiredChecks).toEqual([
+			"Lint / Conclusion",
+			"Test / Conclusion",
+			"codecov/patch",
+		]);
+	});
 });
