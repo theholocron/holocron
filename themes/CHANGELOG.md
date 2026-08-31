@@ -1,3 +1,16 @@
+## [1.8.0](https://github.com/theholocron/themes/compare/v1.7.4...v1.8.0) (2026-08-31)
+
+### Features
+
+* ✨ ⬆️ adopt compose(node(), docs(), audit()) preset; bump cli, plugin, and holocron-config ([#82](https://github.com/theholocron/themes/issues/82)) ([88db88a](https://github.com/theholocron/themes/commit/88db88a650ca5ea89fa618071e1d614d0d52d561))
+
+### Chores
+
+* ⬆️ adopt nodeDocs() preset ([#76](https://github.com/theholocron/themes/issues/76)) ([d7090ea](https://github.com/theholocron/themes/commit/d7090ea26a515fb9f47d5ea7f3ab3c404be34924))
+* 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#78](https://github.com/theholocron/themes/issues/78)) ([30e1e72](https://github.com/theholocron/themes/commit/30e1e724bd06b8c0ede47a15875adc5b239dfa8d))
+* 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#79](https://github.com/theholocron/themes/issues/79)) ([0a90178](https://github.com/theholocron/themes/commit/0a90178db88d9d8a1e9581ec3230b5b50de36cc4))
+* sync from theholocron/holocron ([#77](https://github.com/theholocron/themes/issues/77)) ([e402cee](https://github.com/theholocron/themes/commit/e402cee36b4c77e6eb6650de1c0e199b8e2ccc88))
+
 ## [1.7.4](https://github.com/theholocron/themes/compare/v1.7.3...v1.7.4) (2026-08-26)
 
 ### Bug Fixes
