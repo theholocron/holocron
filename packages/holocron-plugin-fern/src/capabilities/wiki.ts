@@ -10,7 +10,25 @@ export interface FernWikiOptions {
 	repoRoot?: string;
 	/** Active org name (e.g. "theholocron"). Injected by the loader from RuntimeContext. */
 	org?: string;
-	/** Custom domain for the Fern docs instance (e.g. "engineering.theholocron.dev"). */
+	/**
+	 * "owner/name" repo coordinate. Injected by the loader from RuntimeContext.
+	 * Used to derive the per-repo basepath when multi-source custom domain is configured.
+	 */
+	repo?: string;
+	/**
+	 * Base domain for the Fern docs site (e.g. "wiki.theholocron.dev").
+	 *
+	 * When provided without a path, the repo name is appended automatically:
+	 *   domain "wiki.theholocron.dev" + repo "owner/holocron"
+	 *   → custom-domain: wiki.theholocron.dev/holocron
+	 *   → multi-source: true
+	 *
+	 * You can also supply the full path explicitly:
+	 *   domain "wiki.theholocron.dev/holocron"
+	 *
+	 * Note: password protection is configured in the Fern Dashboard
+	 * (https://dashboard.buildwithfern.com) — it is not configurable via docs.yml.
+	 */
 	domain?: string;
 }
 
@@ -22,11 +40,11 @@ export class FernWiki implements Wiki {
 
 	async provision(callOpts?: WikiProvisionOpts): Promise<string> {
 		const repoRoot = this.opts.repoRoot ?? process.cwd();
-		const { org, domain } = this.opts;
+		const { org, repo, domain } = this.opts;
 		const name = callOpts?.name;
 
 		const configNote = await writeFernConfig({ repoRoot, org });
-		const docsNote = await writeFernDocsYml({ repoRoot, org, name, domain });
+		const docsNote = await writeFernDocsYml({ repoRoot, org, repo, name, domain });
 		return `${configNote}; ${docsNote}`;
 	}
 }
@@ -42,11 +60,13 @@ async function writeFernConfig({ repoRoot, org }: { repoRoot: string; org?: stri
 async function writeFernDocsYml({
 	repoRoot,
 	org,
+	repo,
 	name,
 	domain,
 }: {
 	repoRoot: string;
 	org?: string;
+	repo?: string;
 	name?: string;
 	domain?: string;
 }): Promise<string> {
@@ -60,17 +80,55 @@ async function writeFernDocsYml({
 	} catch {
 		// file not found — write scaffold
 	}
-	const instanceUrl = `${org ?? "holocron"}.docs.buildwithfern.com`;
+
+	const fernOrg = org ?? "holocron";
+	const repoName = repo?.split("/").pop();
+
+	// Derive instance URL, custom-domain, and multi-source flag.
+	//
+	// When domain has no path component and a repo name is available, append
+	// the repo name as a basepath so all repos in the org share one domain:
+	//   wiki.theholocron.dev/holocron, wiki.theholocron.dev/configs, …
+	//
+	// Fern requires the Fern instance URL to share the same basepath as the
+	// custom-domain when multi-source: true (verified via NVIDIA examples).
+	let instanceUrl: string;
+	let customDomain: string | undefined;
+	let multiSource = false;
+
+	if (domain) {
+		const slashIdx = domain.indexOf("/");
+		if (slashIdx !== -1) {
+			// Domain already contains a basepath — use as-is.
+			const basepath = domain.slice(slashIdx + 1);
+			instanceUrl = `${fernOrg}.docs.buildwithfern.com/${basepath}`;
+			customDomain = domain;
+			multiSource = true;
+		} else if (repoName) {
+			// Base domain only — append repo name as basepath.
+			instanceUrl = `${fernOrg}.docs.buildwithfern.com/${repoName}`;
+			customDomain = `${domain}/${repoName}`;
+			multiSource = true;
+		} else {
+			// Domain provided but no repo to derive basepath — use domain directly.
+			instanceUrl = `${fernOrg}.docs.buildwithfern.com`;
+			customDomain = domain;
+		}
+	} else {
+		instanceUrl = `${fernOrg}.docs.buildwithfern.com`;
+	}
+
 	const lines: string[] = [
 		`# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json`,
 		``,
 		`instances:`,
 		`  - url: ${instanceUrl}`,
 	];
-	if (domain) lines.push(`    custom-domain: ${domain}`);
+	if (customDomain) lines.push(`    custom-domain: ${customDomain}`);
+	if (multiSource) lines.push(`    multi-source: true`);
 	lines.push(
 		``,
-		`title: ${name ?? org ?? "Engineering"} Engineering`,
+		`title: ${name ?? fernOrg} Engineering`,
 		``,
 		`layout:`,
 		`  page-width: full`,
@@ -112,5 +170,7 @@ async function writeFernDocsYml({
 		``
 	);
 	await writeFile(docsPath, lines.join("\n"), "utf8");
-	return `docs.yml: url=${instanceUrl}${domain ? `, domain=${domain}` : ""}`;
+
+	const domainSummary = customDomain ? `, domain=${customDomain}${multiSource ? " (multi-source)" : ""}` : "";
+	return `docs.yml: url=${instanceUrl}${domainSummary}`;
 }
