@@ -49,7 +49,5 @@ colors:
 logo:
   height: 20
 
-favicon: docs/favicon.png
-
 metadata:
   og:dynamic: true
