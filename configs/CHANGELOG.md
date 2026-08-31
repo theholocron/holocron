@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* **nodeDocs:** 🐛 include audit required check but not workflow; audit stays repo-specific ([#415](https://github.com/theholocron/configs/issues/415)) ([b64f910](https://github.com/theholocron/configs/commit/b64f910488f2aa60a7094fd2bcd1f836ed5938a2))
+- **nodeDocs:** 🐛 include audit required check but not workflow; audit stays repo-specific ([#415](https://github.com/theholocron/configs/issues/415)) ([b64f910](https://github.com/theholocron/configs/commit/b64f910488f2aa60a7094fd2bcd1f836ed5938a2))
 
 ## [7.28.0](https://github.com/theholocron/configs/compare/v7.27.0...v7.28.0) (2026-08-31)
 
