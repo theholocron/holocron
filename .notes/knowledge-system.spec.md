@@ -118,7 +118,7 @@ directly rather than an MCP endpoint.
                                      │
                      ┌───────────────┴──────────────┐
                      │                              │
-             docs/specifications/        docs/architecture/adr/
+             docs/specifications/        docs/decisions/
                                                     │
                                         ┌───────────┴───────────┐
                                         │                       │
@@ -170,7 +170,7 @@ a long-lived Markdown document.
 **Specs** live in `docs/specifications/` once substantial enough to commit.
 They capture what is being built and what success means.
 
-**ADRs** live in `docs/architecture/adr/`. One file per decision, sequentially
+**ADRs** live in `docs/decisions/`. One file per decision, sequentially
 numbered. A single spec may produce several ADRs:
 
 ```
@@ -308,7 +308,7 @@ When the Discussion reaches consensus:
 Discussion (accepted)
       │
       ▼
-ADR PR → docs/architecture/adr/0045-something.md
+ADR PR → docs/decisions/0045-something.md
       │
       ▼
 Merge → Fern renders it
@@ -353,7 +353,7 @@ A PR check enforces ADR structure and metadata consistency:
 on:
   pull_request:
     paths:
-      - "docs/architecture/adr/**"
+      - "docs/decisions/**"
 ```
 
 Checks to run:
@@ -381,7 +381,7 @@ Example passing output:
 
 ### theholocron/holocron — `holocron setup`
 
-Provision the `docs/architecture/adr/` directory structure, the ADR template,
+Provision the `docs/decisions/` directory structure, the ADR template,
 and the GitHub Issue and Discussion templates when setting up a new repo.
 
 Relates to: issue #442 (prompt directory provisioning — same setup step, can
@@ -400,7 +400,7 @@ The `/adr` skill (theholocron/skills#66) should:
 1. Accept a GitHub Discussion number
 2. Fetch the Discussion body via `gh api`
 3. Apply the ADR Author prompt
-4. Write output to `docs/architecture/adr/<next-id>-<slug>.md` with correct frontmatter
+4. Write output to `docs/decisions/<next-id>-<slug>.md` with correct frontmatter
 
 ### Platform adoption (decision pending)
 
@@ -416,7 +416,7 @@ parallel. Confirm before standardizing either as the org presentation layer.
    what criteria confirm success? Suggested: docs site for `theholocron/holocron`
    itself, criteria: password protection working, MCP endpoint reachable,
    ADR pages render with frontmatter parsed.
-2. **`docs/architecture/adr/` vs `architecture/adr/` at repo root** — the
+2. **`docs/decisions/` vs `architecture/adr/` at repo root** — the
    research suggests `docs/` as the parent; confirm this does not conflict with
    existing Astro docs site paths for repos that have one.
 3. **`holocron setup` scope** — should ADR directory provisioning be part of

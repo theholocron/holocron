@@ -191,7 +191,7 @@ jobs:
         if: hashFiles('scripts/validate-adrs.mjs') != ''
         run: |
           mapfile -t changed < <(git diff --name-only "$BASE_SHA" HEAD -- \
-            'docs/architecture/adr/*.md' '.notes/*.spec.md' 2>/dev/null || true)
+            'docs/decisions/*.md' '.notes/*.spec.md' 2>/dev/null || true)
           if [ "${#changed[@]}" -eq 0 ]; then
             node scripts/validate-adrs.mjs
           else
