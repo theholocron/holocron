@@ -1,3 +1,13 @@
+## [7.29.0](https://github.com/theholocron/configs/compare/v7.28.2...v7.29.0) (2026-08-31)
+
+### Features
+
+* **react:** ✨ add test option to merge chromatic/user-flow overrides into single entry ([#419](https://github.com/theholocron/configs/issues/419)) ([183a170](https://github.com/theholocron/configs/commit/183a17015db49a1b974efda8288b33c90cd3ad42))
+
+### Chores
+
+* sync README and repo metadata ([#418](https://github.com/theholocron/configs/issues/418)) ([ba7ebe5](https://github.com/theholocron/configs/commit/ba7ebe5c313fc2501d8a464de87d80180814aa42))
+
 ## [7.28.2](https://github.com/theholocron/configs/compare/v7.28.1...v7.28.2) (2026-08-31)
 
 ### Bug Fixes
