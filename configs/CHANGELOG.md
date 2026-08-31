@@ -1,3 +1,13 @@
+## [7.28.2](https://github.com/theholocron/configs/compare/v7.28.1...v7.28.2) (2026-08-31)
+
+### Bug Fixes
+
+* **holocron-config:** 🐛 restore react() as preset shim; rename capability to reactCapability ([#417](https://github.com/theholocron/configs/issues/417)) ([76a7d33](https://github.com/theholocron/configs/commit/76a7d33619fd282e51bf9c3638f7fc7cf108b115))
+
+### Chores
+
+* sync README and repo metadata ([#414](https://github.com/theholocron/configs/issues/414)) ([a2b3d5b](https://github.com/theholocron/configs/commit/a2b3d5bd670a6a1fc0c43010cd7d1e180184029b))
+
 ## [7.28.1](https://github.com/theholocron/configs/compare/v7.28.0...v7.28.1) (2026-08-31)
 
 ### Bug Fixes
