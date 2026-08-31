@@ -32,11 +32,10 @@ confidently, identify the missing information instead of inventing it.
 
 ## Format
 
-Use MADR format. Scaffold with:
+Use MADR format. Copy the template and number sequentially:
 
 ```sh
-npx madr new "title of the decision"
+cp docs/decisions/template.md docs/decisions/000N-short-title.md
 ```
 
-Or copy `docs/architecture/adr/template.md` and number sequentially.
-Save to `docs/architecture/adr/NNNN-<slug>.md`.
+`madr` has no CLI — creation is manual. Save to `docs/decisions/NNNN-<slug>.md`.
