@@ -339,6 +339,12 @@ export interface HolocronConfig {
 	 */
 	skills?: string[];
 	/**
+	 * When `true`, `holocron setup` provisions the engineering knowledge structure:
+	 * - `docs/decisions/` — ADR directory with template and README (skipped if exists)
+	 * - `docs/engineering/` — internal engineering knowledge stub (skipped if exists)
+	 */
+	engineering?: boolean;
+	/**
 	 * GitHub Pages configuration. When present, `holocron setup` calls the
 	 * Pages API using `HOLOCRON_DEPLOY_TOKEN` (requires `pages:write` + `repo` scope).
 	 * When absent, Pages is left as-is.
@@ -389,6 +395,7 @@ export interface ResolvedHolocronConfig {
 	doctor: DoctorConfig;
 	agent?: "claude" | "codex" | "gemini";
 	skills?: string[];
+	engineering?: boolean;
 	/** Resolved Pages config. `build` is guaranteed present when this field exists. */
 	docs?: PagesConfig;
 	env?: EnvConfig;
@@ -528,6 +535,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		doctor: raw.doctor ?? {},
 		agent: raw.agent,
 		skills: raw.skills,
+		engineering: raw.engineering,
 		docs,
 		env: raw.env,
 	};
