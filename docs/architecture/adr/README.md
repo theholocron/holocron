@@ -5,13 +5,15 @@ that were considered, and the rationale for the choice made.
 
 ## Format
 
-Use the [MADR](https://adr.github.io/madr/) format. Scaffold a new ADR with:
+Use the [MADR](https://adr.github.io/madr/) format. To create a new ADR,
+copy `template.md` and number it sequentially (`0001-…`, `0002-…`):
 
 ```sh
-npx madr new "title of the decision"
+cp docs/architecture/adr/template.md docs/architecture/adr/000N-short-title.md
 ```
 
-Or copy `template.md` and number it sequentially (`0001-…`, `0002-…`).
+`madr` has no CLI — creation is manual. Frontmatter is validated automatically
+in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 
 ## Status values
 
