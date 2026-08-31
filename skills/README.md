@@ -6,6 +6,22 @@ Shared agent skill registry.
 
 <!-- /holocron:description -->
 
+<!-- holocron:installation -->
+
+## Installation
+
+```bash
+pnpm install @theholocron/skills
+```
+
+## Usage
+
+```typescript
+import { } from "@theholocron/skills";
+```
+
+<!-- /holocron:installation -->
+
 Each skill is a directory under `skills/` containing a `SKILL.md` file that Claude Code (and compatible
 agents) can load as a slash command.
 
