@@ -6,17 +6,7 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import {
-	deriveDeployPaths,
-	extractPreviewConfig,
-	generateCombinedDeployContent,
-	generateThinCallerContent,
-	KNOWN_WORKFLOWS,
-	normalizeWorkflowWith,
-	type OrgContext,
-	WORKFLOW_TEMPLATES,
-	workflowHeader,
-} from "./setup-workflows.js";
+import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES, workflowHeader } from "./setup-workflows.js";
 
 const DEFAULT_REPO = "theholocron/.github";
 
@@ -200,12 +190,7 @@ function reusableHeader(source: string): string {
 	].join("\n");
 }
 
-function buildBatch(
-	repo: string,
-	allowedWorkflows?: Set<string>,
-	withOverrides?: Map<string, Record<string, unknown>>,
-	orgContext?: OrgContext
-): FileBatch {
+function buildBatch(repo: string): FileBatch {
 	const files: FileBatch = [];
 	const isPrimaryGithubRepo = repo === DEFAULT_REPO;
 
@@ -313,45 +298,9 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
 	}
 
-	// ── 3. Fetch workflow allowlist + per-workflow overrides from target repo ─
-	let allowedWorkflows: Set<string> | undefined;
-	let withOverrides: Map<string, Record<string, unknown>> | undefined;
-	let orgContext: OrgContext | undefined;
-	if (repo !== DEFAULT_REPO) {
-		try {
-			let entries: WorkflowEntry[] = [];
-
-			try {
-				const data = await client.git.getContents(repo, "holocron.config.json");
-				const raw = JSON.parse(Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8")) as {
-					workflows?: Array<string | WorkflowEntry>;
-				};
-				entries = (raw?.workflows ?? []).map((w) => (typeof w === "string" ? { name: w } : w));
-			} catch (err) {
-				if (!(err instanceof ProviderApiError) || err.status !== 404) throw err;
-				// Fall back to .ts config
-				try {
-					const data = await client.git.getContents(repo, "holocron.config.ts");
-					const source = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
-					entries = parseWorkflowsFromTs(source);
-					orgContext = parseOrgContextFromTs(source);
-				} catch {
-					// No config — sync all workflows with no overrides
-				}
-			}
-
-			if (entries.length > 0) {
-				allowedWorkflows = new Set(entries.map((e) => e.name));
-				const overrideEntries = entries.filter((e) => e.with != null).map((e) => [e.name, e.with!] as const);
-				if (overrideEntries.length > 0) withOverrides = new Map(overrideEntries);
-			}
-		} catch {
-			// Parse error — sync all workflows with no overrides
-		}
-	}
-
-	// ── 4. Build file batch ──────────────────────────────────────────────────
-	const batch = buildBatch(repo, allowedWorkflows, withOverrides, orgContext);
+	// ── 3. Build file batch ─────────────────────────────────────────────────
+	// Secondary-repo thin callers are managed by `holocron sync --steps workflows`.
+	const batch = buildBatch(repo);
 
 	// ── 5. Detect changes ────────────────────────────────────────────────────
 	let created = 0;

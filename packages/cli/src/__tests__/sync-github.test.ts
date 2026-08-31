@@ -30,9 +30,6 @@ const PRIMARY_FILE_COUNT =
 	Object.keys(REUSABLE_WORKFLOWS).length +
 	Object.keys(WORKFLOW_TEMPLATES).length +
 	PROPS_COUNT;
-const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).filter(
-	(name) => generateThinCallerContent(name) !== ""
-).length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
 
