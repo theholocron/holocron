@@ -1,3 +1,9 @@
+## [1.8.0](https://github.com/theholocron/skills/compare/v1.7.0...v1.8.0) (2026-08-31)
+
+### Features
+
+* **skills:** add AI engineering workflow slash commands ([#78](https://github.com/theholocron/skills/issues/78)) ([5993900](https://github.com/theholocron/skills/commit/59939000b0e667b069c1cb2d8619b73d3d453b65)), closes [#66](https://github.com/theholocron/skills/issues/66)
+
 ## [1.7.0](https://github.com/theholocron/skills/compare/v1.6.0...v1.7.0) (2026-08-31)
 
 ### Features
