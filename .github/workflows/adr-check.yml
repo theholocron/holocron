@@ -1,5 +1,8 @@
-# Validates frontmatter in ADR and spec files on PRs that touch them.
-# This is a local workflow — not a thin caller of a reusable workflow.
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-08-31T00:00:00.000Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
 name: ADR & spec check
 
 on: # yamllint disable-line rule:truthy
@@ -18,22 +21,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate ADR and spec frontmatter
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        name: Checkout repository
-
-      - name: Validate changed files
-        run: |
-          changed=$(git diff --name-only HEAD~1 HEAD -- 'docs/architecture/adr/*.md' '.notes/*.spec.md' 2>/dev/null || true)
-          if [ -z "$changed" ]; then
-            echo "No ADR or spec files changed — running full validation"
-            node scripts/validate-adrs.mjs
-          else
-            echo "Validating changed files: $changed"
-            node scripts/validate-adrs.mjs $changed
-          fi
-        shell: bash
+  adr-check:
+    uses: theholocron/.github/.github/workflows/adr-check.yml@main
+    secrets: inherit

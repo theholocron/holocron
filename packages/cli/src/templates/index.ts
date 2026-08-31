@@ -11,6 +11,7 @@ import autoCommitAction from "./actions/auto-commit.yml";
 import installAction from "./actions/install.yml";
 import setupAction from "./actions/setup.yml";
 import setupNodeAction from "./actions/setup-node.yml";
+import adrCheckWorkflow from "./workflows/adr-check.yml";
 import auditWorkflow from "./workflows/audit.yml";
 import bookkeepingWorkflow from "./workflows/bookkeeping.yml";
 import cleanupPreviewWorkflow from "./workflows/cleanup-preview.yml";
@@ -39,6 +40,7 @@ export const ACTIONS: Record<string, string> = {
 };
 
 export const REUSABLE_WORKFLOWS: Record<string, string> = {
+	"adr-check": adrCheckWorkflow,
 	audit: auditWorkflow,
 	bookkeeping: bookkeepingWorkflow,
 	codeql: codeqlWorkflow,
