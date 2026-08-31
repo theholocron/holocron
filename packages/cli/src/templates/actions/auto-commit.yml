@@ -63,11 +63,32 @@ runs:
       env:
         BRANCH: ${{ inputs.branch }}
 
+    - name: Build signed commit message
+      id: msg
+      shell: bash
+      run: |
+        TRAILER="Signed-off-by: ${COMMIT_USER_NAME} <${COMMIT_USER_EMAIL}>"
+        if echo "$COMMIT_MESSAGE" | grep -qF "$TRAILER"; then
+          FINAL="$COMMIT_MESSAGE"
+        else
+          FINAL="${COMMIT_MESSAGE}"$'\n\n'"${TRAILER}"
+        fi
+        {
+          echo "value<<EOF_TRAILER"
+          printf '%s' "$FINAL"
+          echo ""
+          echo "EOF_TRAILER"
+        } >> "$GITHUB_OUTPUT"
+      env:
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        COMMIT_USER_NAME: ${{ inputs.commit-user-name }}
+        COMMIT_USER_EMAIL: ${{ inputs.commit-user-email }}
+
     - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
       id: commit
       with:
         branch: ${{ inputs.branch }}
-        commit_message: ${{ inputs.commit-message }}
+        commit_message: ${{ steps.msg.outputs.value }}
         commit_options: ${{ inputs.commit-options }}
         commit_user_name: ${{ inputs.commit-user-name }}
         commit_user_email: ${{ inputs.commit-user-email }}
