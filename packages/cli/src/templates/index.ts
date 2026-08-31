@@ -30,6 +30,7 @@ import syncGithubWorkflow from "./workflows/sync-github.yml";
 import tagWorkflow from "./workflows/tag.yml";
 import testWorkflow from "./workflows/test.yml";
 import typecheckWorkflow from "./workflows/typecheck.yml";
+import wikiWorkflow from "./workflows/wiki.yml";
 
 export const ACTIONS: Record<string, string> = {
 	"auto-commit/action": autoCommitAction,
@@ -58,6 +59,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	sync: syncWorkflow,
 	test: testWorkflow,
 	typecheck: typecheckWorkflow,
+	wiki: wikiWorkflow,
 };
 
 export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {

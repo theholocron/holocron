@@ -1,0 +1,27 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Synced:  2026-08-31T00:00:00.000Z
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
+name: Wiki
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - "fern/**"
+      - "docs/decisions/**"
+      - "docs/engineering/**"
+  pull_request:
+    paths:
+      - "fern/**"
+      - "docs/decisions/**"
+      - "docs/engineering/**"
+
+jobs:
+  wiki:
+    uses: theholocron/.github/.github/workflows/wiki.yml@main
+    secrets: inherit
+    with:
+      preview: ${{ github.event_name == 'pull_request' }}
+      preview-id: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || '' }}
