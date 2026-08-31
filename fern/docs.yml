@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json
+
+instances:
+  - url: theholocron.docs.buildwithfern.com
+    # custom-domain: engineering.theholocron.dev
+
+title: Holocron Engineering
+
+layout:
+  page-width: full
+  tabs-placement: header
+  searchbar-placement: header
+
+tabs:
+  decisions:
+    display-name: Decisions
+    icon: fa-duotone fa-scale-balanced
+  engineering:
+    display-name: Engineering
+    icon: fa-duotone fa-gear
+
+navigation:
+  - tab: decisions
+    layout:
+      - section: Architecture Decision Records
+        contents:
+          - page: Index
+            path: ../docs/decisions/README.md
+          - page: ADR-0001 — Vault provider
+            path: ../docs/decisions/0001-vault-provider-doppler-and-infisical.md
+          - page: ADR-0002 — Interactive menu spawn
+            path: ../docs/decisions/0002-interactive-menu-spawn-over-reparse.md
+          - page: ADR-0003 — Auth bootstrap keyring
+            path: ../docs/decisions/0003-auth-bootstrap-keyring-token-precedence.md
+          - page: ADR-0004 — ADR home in repo
+            path: ../docs/decisions/0004-adr-home-repo-over-wiki.md
+
+  - tab: engineering
+    layout:
+      - section: Overview
+        contents:
+          - page: Engineering Home
+            path: ../docs/engineering/README.md
+
+colors:
+  accent-primary:
+    dark: "#70E155"
+    light: "#008700"
+
+logo:
+  height: 20
+
+favicon: docs/favicon.png
+
+metadata:
+  og:dynamic: true
