@@ -24,13 +24,13 @@ The existing `docs` config provisions GitHub Pages for **consumer-facing**
 package documentation — API references, guides, changelogs. The `wiki`
 capability serves a different audience with different requirements:
 
-| Concern | `docs` (Pages) | `wiki` (this spec) |
-| ------- | -------------- | ------------------ |
-| Audience | npm consumers, contributors | Internal engineers, AI agents |
-| Content | Package APIs, guides | ADRs, specs, runbooks |
-| Access | Public | Password-protected or org-only |
-| Agent access | Not required | MCP endpoint, `llms.txt` |
-| Lifecycle | Ships with each release | Separate from release cycle |
+| Concern      | `docs` (Pages)              | `wiki` (this spec)             |
+| ------------ | --------------------------- | ------------------------------ |
+| Audience     | npm consumers, contributors | Internal engineers, AI agents  |
+| Content      | Package APIs, guides        | ADRs, specs, runbooks          |
+| Access       | Public                      | Password-protected or org-only |
+| Agent access | Not required                | MCP endpoint, `llms.txt`       |
+| Lifecycle    | Ships with each release     | Separate from release cycle    |
 
 Conflating them would force every consumer-facing docs site to carry
 access-control configuration it doesn't need, and vice versa.
@@ -77,9 +77,9 @@ produces a rendered docs site, and provides:
 
 **Secrets required:**
 
-| Secret | Purpose |
-| ------ | ------- |
-| `FERN_TOKEN` | API token for Fern workspace |
+| Secret          | Purpose                                   |
+| --------------- | ----------------------------------------- |
+| `FERN_TOKEN`    | API token for Fern workspace              |
 | `FERN_PASSWORD` | Password for access protection (optional) |
 
 **Provider options:**
@@ -142,6 +142,7 @@ docs/
 ```
 
 Content not published (remains in the repository only):
+
 - `.notes/` — draft specs and working documents
 - `docs/` consumer-facing content — served by the Pages (`docs`) config,
   not the wiki provider
