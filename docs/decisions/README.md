@@ -9,7 +9,7 @@ Use the [MADR](https://adr.github.io/madr/) format. To create a new ADR,
 copy `template.md` and number it sequentially (`0001-…`, `0002-…`):
 
 ```sh
-cp docs/architecture/adr/template.md docs/architecture/adr/000N-short-title.md
+cp docs/decisions/template.md docs/decisions/000N-short-title.md
 ```
 
 `madr` has no CLI — creation is manual. Frontmatter is validated automatically

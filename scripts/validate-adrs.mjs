@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
-const ADR_DIR = resolve(root, "docs/architecture/adr");
+const ADR_DIR = resolve(root, "docs/decisions");
 const NOTES_DIR = resolve(root, ".notes");
 
 const ADR_STATUSES = new Set(["proposed", "accepted", "rejected", "deprecated", "superseded"]);
