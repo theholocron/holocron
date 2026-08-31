@@ -25,8 +25,8 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import { AGENT_PROMPTS, DECISIONS_README, DECISIONS_TEMPLATE, ENGINEERING_README } from "../agent-prompts.js";
+import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import type {
 	Auth,
 	Deployment,

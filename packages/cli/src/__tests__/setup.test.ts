@@ -3491,9 +3491,9 @@ describe("installEngineeringStructure", () => {
 	it("creates docs/decisions/ and docs/engineering/ files", async () => {
 		await installEngineeringStructure({ repoRoot: tmpDir });
 
-		await stat(join(tmpDir, "docs/decisions/template.md"));
-		await stat(join(tmpDir, "docs/decisions/README.md"));
-		await stat(join(tmpDir, "docs/engineering/README.md"));
+		await expect(stat(join(tmpDir, "docs/decisions/template.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/decisions/README.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/engineering/README.md"))).resolves.toBeDefined();
 	});
 
 	it("skips files that already exist", async () => {
@@ -3577,7 +3577,7 @@ describe("setup: engineering step", () => {
 		const step = report.steps.find((s) => s.capability === "engineering");
 		expect(step).toBeDefined();
 		expect(step?.status).toBe("ok");
-		await stat(join(tmpDir, "docs/decisions/template.md"));
+		await expect(stat(join(tmpDir, "docs/decisions/template.md"))).resolves.toBeDefined();
 	});
 
 	it("skips engineering step when docs is absent", async () => {
