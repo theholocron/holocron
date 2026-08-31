@@ -348,21 +348,6 @@ export interface HolocronConfig {
 	 */
 	docs?: DocsConfig;
 	/**
-	 * Engineering wiki provider. When set, `holocron setup` provisions
-	 * the wiki configuration files for the chosen provider.
-	 *
-	 * Currently supported: `"fern"` — writes `fern/fern.config.json` and
-	 * a `fern/docs.yml` scaffold, then adds `wiki.yml` as a thin CI caller.
-	 *
-	 * @example
-	 * // Short form
-	 * wiki: "fern"
-	 *
-	 * // With options
-	 * wiki: ["fern", { domain: "engineering.theholocron.dev" }]
-	 */
-	wiki?: string | ["fern", FernWikiOptions];
-	/**
 	 * Environment variable namespace configuration.
 	 * Declares the prefix(es) this project uses for its env vars so that
 	 * tooling can generate `.env.example`, validate required vars, and
@@ -372,11 +357,6 @@ export interface HolocronConfig {
 	 * { namespaces: ["HOLOCRON", "MY_CLI"] }
 	 */
 	env?: EnvConfig;
-}
-
-export interface FernWikiOptions {
-	/** Custom domain for the Fern docs instance (e.g. "engineering.theholocron.dev"). */
-	domain?: string;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -411,8 +391,6 @@ export interface ResolvedHolocronConfig {
 	skills?: string[];
 	/** Resolved Pages config. `build` is guaranteed present when this field exists. */
 	docs?: PagesConfig;
-	/** Engineering wiki provider (passed through from raw config unchanged). */
-	wiki?: string | ["fern", FernWikiOptions];
 	env?: EnvConfig;
 }
 
@@ -551,7 +529,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		agent: raw.agent,
 		skills: raw.skills,
 		docs,
-		wiki: raw.wiki,
 		env: raw.env,
 	};
 }

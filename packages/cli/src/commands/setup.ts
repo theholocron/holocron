@@ -36,6 +36,7 @@ import type {
 	Source,
 	Tooling,
 	Vault,
+	Wiki,
 } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import { ConfigError } from "../config.js";
@@ -900,45 +901,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── wiki: provision engineering wiki config ──────────────────────────
-	if (config.wiki) {
-		const wikiEntry = config.wiki;
-		const [provider, wikiOpts] =
-			typeof wikiEntry === "string"
-				? [wikiEntry, {} as Record<string, unknown>]
-				: [wikiEntry[0], (wikiEntry[1] ?? {}) as Record<string, unknown>];
-
+	if (loader.has("wiki")) {
+		const wiki = loader.get("wiki") as Wiki;
 		print(style.step("wiki"));
-
-		if (provider === "fern") {
-			const domain = typeof wikiOpts["domain"] === "string" ? wikiOpts["domain"] : undefined;
-
-			steps.push(
-				await runStep("wiki", "write fern/fern.config.json", dryRun, async () => {
-					return await writeFernConfig({ repoRoot: input.context.repoRoot, org: config.org });
-				})
-			);
-			print(formatStep(steps[steps.length - 1]!));
-
-			steps.push(
-				await runStep("wiki", "write fern/docs.yml", dryRun, async () => {
-					return await writeFernDocsYml({
-						repoRoot: input.context.repoRoot,
-						org: config.org,
-						name: config.name,
-						domain,
-					});
-				})
-			);
-			print(formatStep(steps[steps.length - 1]!));
-		} else {
-			steps.push({
-				capability: "wiki",
-				step: `wiki provider ${provider}`,
-				status: "skip",
-				message: `unknown wiki provider "${provider}" — only "fern" is supported`,
-			});
-			print(formatStep(steps[steps.length - 1]!));
-		}
+		steps.push(
+			await runStep("wiki", "provision wiki config", dryRun, async () => {
+				return await wiki.provision({ name: config.name });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
 	}
 
 	// ── deployment: ensure project + preview infrastructure ─────────────
@@ -1524,94 +1495,6 @@ export async function installEngineeringStructure({ repoRoot }: { repoRoot: stri
 	}
 
 	return results.length > 0 ? `created: ${results.join(", ")}` : "all files already exist — nothing to write";
-}
-
-// ── wiki (Fern) config writers ────────────────────────────────────────
-
-const FERN_VERSION = "5.35.4";
-
-async function writeFernConfig({ repoRoot, org }: { repoRoot: string; org?: string }): Promise<string> {
-	const fernDir = join(repoRoot, "fern");
-	await mkdir(fernDir, { recursive: true });
-	const content = JSON.stringify({ organization: org ?? "holocron", version: FERN_VERSION }, null, 2) + "\n";
-	await writeFile(join(fernDir, "fern.config.json"), content, "utf8");
-	return `org=${org ?? "holocron"}, version=${FERN_VERSION}`;
-}
-
-async function writeFernDocsYml({
-	repoRoot,
-	org,
-	name,
-	domain,
-}: {
-	repoRoot: string;
-	org?: string;
-	name?: string;
-	domain?: string;
-}): Promise<string> {
-	const fernDir = join(repoRoot, "fern");
-	await mkdir(fernDir, { recursive: true });
-	const docsPath = join(fernDir, "docs.yml");
-	// Skip if already present — user may have customised ADR navigation entries.
-	try {
-		await access(docsPath);
-		return "skipped (exists — update navigation manually)";
-	} catch {
-		// not found — write scaffold
-	}
-	const instanceUrl = `${org ?? "holocron"}.docs.buildwithfern.com`;
-	const lines: string[] = [
-		`# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json`,
-		``,
-		`instances:`,
-		`  - url: ${instanceUrl}`,
-	];
-	if (domain) lines.push(`    custom-domain: ${domain}`);
-	lines.push(
-		``,
-		`title: ${name ?? org ?? "Engineering"} Engineering`,
-		``,
-		`layout:`,
-		`  page-width: full`,
-		`  tabs-placement: header`,
-		`  searchbar-placement: header`,
-		``,
-		`tabs:`,
-		`  decisions:`,
-		`    display-name: Decisions`,
-		`    icon: fa-duotone fa-scale-balanced`,
-		`  engineering:`,
-		`    display-name: Engineering`,
-		`    icon: fa-duotone fa-gear`,
-		``,
-		`navigation:`,
-		`  - tab: decisions`,
-		`    layout:`,
-		`      - section: Architecture Decision Records`,
-		`        contents:`,
-		`          - page: Index`,
-		`            path: ../docs/decisions/README.md`,
-		`  - tab: engineering`,
-		`    layout:`,
-		`      - section: Overview`,
-		`        contents:`,
-		`          - page: Engineering Home`,
-		`            path: ../docs/engineering/README.md`,
-		``,
-		`colors:`,
-		`  accent-primary:`,
-		`    dark: "#70E155"`,
-		`    light: "#008700"`,
-		``,
-		`logo:`,
-		`  height: 20`,
-		``,
-		`metadata:`,
-		`  og:dynamic: true`,
-		``
-	);
-	await writeFile(docsPath, lines.join("\n"), "utf8");
-	return `url=${instanceUrl}${domain ? `, domain=${domain}` : ""}`;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────

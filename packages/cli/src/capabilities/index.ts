@@ -25,7 +25,8 @@ export type CapabilityKey =
 	| "tooling"
 	| "notifications"
 	| "analytics"
-	| "observability";
+	| "observability"
+	| "wiki";
 
 export type Cardinality = "single" | "many";
 
@@ -44,6 +45,7 @@ export const CARDINALITY = {
 	notifications: "many",
 	analytics: "many",
 	observability: "many",
+	wiki: "single",
 } as const satisfies Record<CapabilityKey, Cardinality>;
 
 /**
@@ -794,6 +796,29 @@ export interface Observability extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// wiki — engineering knowledge publishing platform
+// ───────────────────────────────────────────────────────────────────────
+
+export interface WikiProvisionOpts {
+	/** Project display name used in the wiki title (e.g. "Holocron"). */
+	name?: string;
+}
+
+/**
+ * Engineering wiki provider.
+ *
+ * A swappable provider for publishing the `docs/decisions/` and
+ * `docs/engineering/` surfaces as a browsable, access-controlled site.
+ * Local-only providers (fern, mintlify) write config files; remote
+ * providers (github) make API calls.
+ */
+export interface Wiki extends ProviderIdentity {
+	readonly key: "wiki";
+	/** Provision the wiki — write config files or call the provider API. */
+	provision(opts?: WikiProvisionOpts): Promise<string>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Capability map (key → implementation type) + cardinality helpers
 // ───────────────────────────────────────────────────────────────────────
 
@@ -812,6 +837,7 @@ export interface CapabilityImpls {
 	notifications: Notifications;
 	analytics: Analytics;
 	observability: Observability;
+	wiki: Wiki;
 }
 
 export type CardinalityFor<K extends CapabilityKey> = (typeof CARDINALITY)[K];
