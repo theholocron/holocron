@@ -2,17 +2,17 @@
 
 ### Features
 
-* **holocron-config:** ✨ composable capability factories with preset shims ([#413](https://github.com/theholocron/configs/issues/413)) ([7acc7df](https://github.com/theholocron/configs/commit/7acc7dffbaf6ea8861c68e1bc89a9c44b54f3fc1))
+- **holocron-config:** ✨ composable capability factories with preset shims ([#413](https://github.com/theholocron/configs/issues/413)) ([7acc7df](https://github.com/theholocron/configs/commit/7acc7dffbaf6ea8861c68e1bc89a9c44b54f3fc1))
 
 ### Documentation
 
-* 📝 ADR 002 — composable preset system ([#410](https://github.com/theholocron/configs/issues/410)) ([2696b27](https://github.com/theholocron/configs/commit/2696b27e1987e1740123fde227a590daa53d14ce))
+- 📝 ADR 002 — composable preset system ([#410](https://github.com/theholocron/configs/issues/410)) ([2696b27](https://github.com/theholocron/configs/commit/2696b27e1987e1740123fde227a590daa53d14ce))
 
 ### Chores
 
-* ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#407](https://github.com/theholocron/configs/issues/407)) ([b6b33e6](https://github.com/theholocron/configs/commit/b6b33e682e70327dc72421083c68128d05bb85a5))
-* sync from holocron.config ([#408](https://github.com/theholocron/configs/issues/408)) ([bba8bab](https://github.com/theholocron/configs/commit/bba8babe39bfda13c825de20e8a7798cee8ed6a7))
-* sync from theholocron/holocron ([#411](https://github.com/theholocron/configs/issues/411)) ([fc854bc](https://github.com/theholocron/configs/commit/fc854bcf0bb7e5f6f46571d5714b1b2839133247))
+- ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#407](https://github.com/theholocron/configs/issues/407)) ([b6b33e6](https://github.com/theholocron/configs/commit/b6b33e682e70327dc72421083c68128d05bb85a5))
+- sync from holocron.config ([#408](https://github.com/theholocron/configs/issues/408)) ([bba8bab](https://github.com/theholocron/configs/commit/bba8babe39bfda13c825de20e8a7798cee8ed6a7))
+- sync from theholocron/holocron ([#411](https://github.com/theholocron/configs/issues/411)) ([fc854bc](https://github.com/theholocron/configs/commit/fc854bcf0bb7e5f6f46571d5714b1b2839133247))
 
 ## [7.27.0](https://github.com/theholocron/configs/compare/v7.26.1...v7.27.0) (2026-08-30)
 
