@@ -104,7 +104,15 @@ export default defineConfig({
 });
 ```
 
-**Repos using this preset:** `configs`, `utils`, `themes`, `skills`, `docs`, `clients`, `holocron`
+**Repos using this preset:** `configs`, `utils`, `themes`, `docs`, `clients`, `holocron`
+
+---
+
+## `nodeDocsSite()`
+
+For documentation-only sites with no TypeScript library source to check. Like `nodeDocs()` without `typecheck()` or the audit required check.
+
+**Repos using this preset:** `skills`
 
 ---
 
@@ -155,13 +163,19 @@ export default defineConfig({
 
 ---
 
-## `react()`
+## `react(options?)`
 
 For single-package React/Vite application repos. Identical to `nextjs()` except:
 
 - No `deployment: "vercel"` (deploy target left per-repo)
-- No `run-user-flow` in the test preset (Cypress not assumed)
+- No `run-user-flow` in the test preset by default (Cypress not assumed)
 - `lighthouse-config` optional
+
+Pass a `test` object to merge extra inputs into the single `test` workflow entry — prevents a second `test` entry in `workflows` from silently overwriting the base options via last-entry-wins:
+
+```ts
+react({ test: { "run-user-flow": true, "run-chromatic": { projects: [...] } } })
+```
 
 **Usage** follows the same pattern as `nextjs()`.
 
