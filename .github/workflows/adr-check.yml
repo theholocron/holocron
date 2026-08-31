@@ -1,0 +1,39 @@
+# Validates frontmatter in ADR and spec files on PRs that touch them.
+# This is a local workflow — not a thin caller of a reusable workflow.
+name: ADR & spec check
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+    paths:
+      - "docs/architecture/adr/**"
+      - ".notes/**"
+  pull_request:
+    paths:
+      - "docs/architecture/adr/**"
+      - ".notes/**"
+
+concurrency:
+  group: adr-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate ADR and spec frontmatter
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - name: Validate changed files
+        run: |
+          changed=$(git diff --name-only HEAD~1 HEAD -- 'docs/architecture/adr/*.md' '.notes/*.spec.md' 2>/dev/null || true)
+          if [ -z "$changed" ]; then
+            echo "No ADR or spec files changed — running full validation"
+            node scripts/validate-adrs.mjs
+          else
+            echo "Validating changed files: $changed"
+            node scripts/validate-adrs.mjs $changed
+          fi
+        shell: bash
