@@ -10,13 +10,29 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
         default: "5.35.4"
+      preview:
+        description: >
+          When true, publishes a preview instead of production.
+          Requires preview-id to be set.
+        type: boolean
+        required: false
+        default: false
+      preview-id:
+        description: >
+          Stable ID for the preview URL. The preview is accessible at
+          {org}-preview-{id}.docs.buildwithfern.com. Use the PR number
+          (e.g. "pr-123") so the same URL is reused on every push to
+          the branch.
+        type: string
+        required: false
+        default: ""
     secrets:
       FERN_TOKEN:
         required: true
 
 jobs:
   publish:
-    name: Publish to Fern
+    name: ${{ inputs.preview && 'Preview' || 'Publish' }} to Fern
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -31,6 +47,14 @@ jobs:
           FERN_VERSION: ${{ inputs.fern-version }}
 
       - name: Publish docs
+        if: ${{ !inputs.preview }}
         run: fern generate --docs
         env:
           FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+
+      - name: Preview docs
+        if: ${{ inputs.preview && inputs.preview-id != '' }}
+        run: fern generate --docs --preview --id "$PREVIEW_ID"
+        env:
+          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+          PREVIEW_ID: ${{ inputs.preview-id }}
