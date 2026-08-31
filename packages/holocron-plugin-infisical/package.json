@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-infisical",
-  "version": "3.37.2",
+  "version": "3.38.0",
   "description": "Holocron plugin for Infisical. Implements the vault capability against Infisical's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
   "keywords": [
     "holocron",
