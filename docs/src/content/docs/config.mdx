@@ -63,12 +63,6 @@ export default defineConfig({
   // Installed to .agents/skills/<name>/ — gitignored and regenerated each run.
   skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
 
-  // Provision the engineering knowledge structure (docs/decisions/, docs/engineering/).
-  // When true, holocron setup writes the ADR template, README stubs, and the
-  // engineering directory on first run. Existing files are never overwritten.
-  // Also writes 9 AI workflow role prompts to .agents/prompts/ whenever agent is set.
-  engineering: true,
-
   // Capability → provider bindings.
   providers: {
     source: "github",
@@ -121,9 +115,9 @@ skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
 
 When `agent` is set, `holocron setup` also writes nine AI engineering workflow role prompts to `.agents/prompts/` — one file per agent role (`discovery.md`, `design.md`, `discussion.md`, `adr.md`, `spec.md`, `implementation-plan.md`, `implement.md`, `review.md`, `verify.md`). The prompts directory is gitignored and always regenerated from the current CLI version.
 
-### `engineering`
+### `docs` — decisions structure
 
-When `true`, `holocron setup` provisions the engineering knowledge structure on first run. Existing files are never overwritten.
+When `docs` is configured, `holocron setup` also provisions the engineering knowledge structure on first run. Existing files are never overwritten, so existing ADRs are safe.
 
 | Path | Created |
 | ---- | ------- |
@@ -131,9 +125,7 @@ When `true`, `holocron setup` provisions the engineering knowledge structure on 
 | `docs/decisions/README.md` | Index and usage guide |
 | `docs/engineering/README.md` | Internal engineering site stub |
 
-```ts
-engineering: true,
-```
+Any repo with a docs site gets the structure — it costs nothing and is ready when needed, even if ADRs are never written.
 
 ## Capability cardinality
 

@@ -43,5 +43,4 @@ export default defineConfig({
 	},
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
-	engineering: true,
 });

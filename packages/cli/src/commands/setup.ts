@@ -1108,9 +1108,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── engineering: provision docs/decisions/ and docs/engineering/ ─────
-	// Opt-in via `engineering: true` in holocron.config. Skips existing
-	// files so it is safe to run repeatedly without overwriting ADRs.
-	if (config.engineering) {
+	// Runs automatically when the repo has a docs site (config.docs set).
+	// Skips existing files so it is safe to run repeatedly without
+	// overwriting ADRs. No separate flag needed — any repo with docs gets
+	// the structure; the directories are cheap and useful when needed.
+	if (config.docs) {
 		print(style.step("engineering"));
 		steps.push(
 			await runStep("engineering", "provision engineering structure", dryRun, async () => {

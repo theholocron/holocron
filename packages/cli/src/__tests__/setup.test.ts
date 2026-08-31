@@ -3565,9 +3565,9 @@ describe("setup: engineering step", () => {
 		await rm(tmpDir, { recursive: true, force: true });
 	});
 
-	it("runs engineering step when engineering: true", async () => {
+	it("runs engineering step when docs is configured", async () => {
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", engineering: true, providers: {} }),
+			resolved: resolveConfig({ name: "demo", docs: { build: "workflow" }, providers: {} }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 		const loader = makeLoaderWith(loaded, {});
@@ -3580,7 +3580,7 @@ describe("setup: engineering step", () => {
 		await stat(join(tmpDir, "docs/decisions/template.md"));
 	});
 
-	it("skips engineering step when engineering is absent", async () => {
+	it("skips engineering step when docs is absent", async () => {
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({ name: "demo", providers: {} }),
 			filepath: join(tmpDir, "holocron.config.json"),
