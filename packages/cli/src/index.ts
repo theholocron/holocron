@@ -1,5 +1,6 @@
 export * from "./auth-resolver.js";
 export * from "./capabilities/index.js";
+export * from "./compose.js";
 export * from "./config.js";
 export * from "./define-config.js";
 export * from "./env.js";
