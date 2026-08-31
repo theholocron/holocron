@@ -44,3 +44,12 @@ gh pr close <n> --repo <owner>/<repo> --delete-branch
 
 If a workflow-sync PR is stale or wrong, use the command above. Do NOT close the
 PR without deleting the branch or the next sync run will silently fail.
+
+## Checklist before requesting review
+
+- [ ] Feature branch created before any code was written
+- [ ] Package entry added to registry (if applicable)
+- [ ] Docs page added or updated in the same PR (if adding a new capability)
+- [ ] Tests written for new behavior
+- [ ] PR title follows Conventional Commits
+- [ ] CI green before requesting review

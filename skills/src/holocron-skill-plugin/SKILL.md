@@ -42,6 +42,17 @@ Then follow the "Next" steps printed by the command:
 5. Commit + push when the capability is functionally complete.
 6. **Wire a typed client** once `@theholocron/<slug>-client` exists.
 
+## Checklist before opening a PR
+
+- [ ] Feature branch created before any code was written
+- [ ] `pnpm --filter @theholocron/holocron-plugin-<slug> typecheck` passes
+- [ ] `pnpm --filter @theholocron/holocron-plugin-<slug> lint` passes
+- [ ] `pnpm --filter @theholocron/holocron-plugin-<slug> test` passes
+- [ ] Plugin entry added to the docs-theme registry
+- [ ] Docs page added under `docs/` in the same PR
+- [ ] PR title follows Conventional Commits
+- [ ] CI green before requesting review
+
 ## Step 6: migrate to a typed client
 
 The scaffolded `rest.ts` uses the raw `createRestClient` from `@theholocron/cli`.

@@ -142,6 +142,7 @@ export function create<Vendor>Client(opts: <Vendor>ClientOptions) {
 
 ## 5. Checklist before opening a PR
 
+- [ ] Feature branch created before any code was written
 - [ ] `pnpm install` — workspace symlink created
 - [ ] `pnpm --filter @theholocron/<slug>-client typecheck` passes
 - [ ] `pnpm --filter @theholocron/<slug>-client lint` passes
@@ -150,3 +151,7 @@ export function create<Vendor>Client(opts: <Vendor>ClientOptions) {
 - [ ] `packages/<slug>-client` added to `prepareCmd` in `.releaserc.json`
 - [ ] `version` in `package.json` set to current lockstep version
 - [ ] `codecov.yml` entry added
+- [ ] Client entry added to the docs-theme registry
+- [ ] Docs page added under `docs/` in the same PR
+- [ ] PR title follows Conventional Commits
+- [ ] CI green before requesting review
