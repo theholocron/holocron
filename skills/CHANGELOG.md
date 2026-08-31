@@ -1,3 +1,16 @@
+## [1.6.0](https://github.com/theholocron/skills/compare/v1.5.0...v1.6.0) (2026-08-31)
+
+### Features
+
+* ⬆️ adopt nodeDocsSite() preset; bump cli, plugin, and holocron-config ([#75](https://github.com/theholocron/skills/issues/75)) ([c4c2c41](https://github.com/theholocron/skills/commit/c4c2c41f2cc456590312a8e38591a569c533bf65))
+
+### Chores
+
+* ⬆️ adopt nodeDocs() preset from @theholocron/holocron-config@7.26.0 ([#68](https://github.com/theholocron/skills/issues/68)) ([793bafd](https://github.com/theholocron/skills/commit/793bafd3a4540dd7b0884b673419e0e890ba2709))
+* ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#69](https://github.com/theholocron/skills/issues/69)) ([f9d5f56](https://github.com/theholocron/skills/commit/f9d5f56a17d35e29bcfcb60b8255dc0c3c85e2f0))
+* ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#71](https://github.com/theholocron/skills/issues/71)) ([24e3760](https://github.com/theholocron/skills/commit/24e3760a1f50764d3c508093323d9ddc5fa3661d))
+* sync from holocron.config ([#76](https://github.com/theholocron/skills/issues/76)) ([f802bf3](https://github.com/theholocron/skills/commit/f802bf36e767e6af13a80eaa385a413c290d33d3))
+
 ## [1.5.0](https://github.com/theholocron/skills/compare/v1.4.3...v1.5.0) (2026-08-26)
 
 ### Features
