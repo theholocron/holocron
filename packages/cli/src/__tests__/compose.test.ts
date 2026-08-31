@@ -51,9 +51,7 @@ describe("compose()", () => {
 			workflows: [{ name: "test", with: { "run-unit": false } }],
 		};
 		const preset = compose(node(), override);
-		const testEntry = preset.workflows.find(
-			(w) => (typeof w === "string" ? w : w.name) === "test"
-		);
+		const testEntry = preset.workflows.find((w) => (typeof w === "string" ? w : w.name) === "test");
 		expect(testEntry).toEqual({ name: "test", with: { "run-unit": false } });
 		expect(preset.workflows.filter((w) => (typeof w === "string" ? w : w.name) === "test")).toHaveLength(1);
 	});
@@ -139,7 +137,11 @@ describe("compose()", () => {
 		const cap: Capability = { id: "big", requires: ["node", "typecheck"] };
 		expect(() => compose(cap)).toThrow(ConfigError);
 		const err = (() => {
-			try { compose(cap); } catch (e) { return e as ConfigError; }
+			try {
+				compose(cap);
+			} catch (e) {
+				return e as ConfigError;
+			}
 		})();
 		expect(err?.message).toContain('"big" requires "node"');
 		expect(err?.message).toContain('"big" requires "typecheck"');

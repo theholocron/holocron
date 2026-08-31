@@ -122,9 +122,7 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 			repo.topics = [...merged];
 		}
 		if (teams) {
-			const teamMap = new Map(
-				(repo.teams ?? []).map((t) => [typeof t === "string" ? t : t.slug, t])
-			);
+			const teamMap = new Map((repo.teams ?? []).map((t) => [typeof t === "string" ? t : t.slug, t]));
 			for (const t of teams) {
 				teamMap.set(typeof t === "string" ? t : t.slug, t);
 			}
