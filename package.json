@@ -49,7 +49,7 @@
     "@theholocron/holocron-plugin-vercel": "workspace:*",
     "@theholocron/lint-staged-config": "catalog:configs",
     "@theholocron/prettier-config": "catalog:configs",
-    "@theholocron/registry-doc": "^1.2.0",
+    "@theholocron/registry-doc": "^1.6.1",
     "@theholocron/semantic-release-config": "catalog:configs",
     "@theholocron/skills": "^1.3.3",
     "@theholocron/tsconfig": "catalog:configs",
