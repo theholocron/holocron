@@ -200,6 +200,16 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
 
+      - name: Validate registry consistency
+        if: hashFiles('scripts/validate-registry.mjs') != ''
+        run: node scripts/validate-registry.mjs
+
+      - name: Validate docs presence for new packages
+        if: hashFiles('scripts/validate-docs-presence.mjs') != ''
+        run: node scripts/validate-docs-presence.mjs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+
       - uses: theholocron/.github/.github/actions/auto-commit@main
         name: Commit and push linting fixes
         if: >
