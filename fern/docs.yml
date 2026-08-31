@@ -1,8 +1,7 @@
 # yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json
 
 instances:
-  - url: theholocron.docs.buildwithfern.com
-    # custom-domain: engineering.theholocron.dev
+  - url: holocron.docs.buildwithfern.com
 
 title: Holocron Engineering
 
