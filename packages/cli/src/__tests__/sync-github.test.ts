@@ -30,9 +30,6 @@ const PRIMARY_FILE_COUNT =
 	Object.keys(REUSABLE_WORKFLOWS).length +
 	Object.keys(WORKFLOW_TEMPLATES).length +
 	PROPS_COUNT;
-const SECONDARY_FILE_COUNT = Object.keys(REUSABLE_WORKFLOWS).filter(
-	(name) => generateThinCallerContent(name) !== ""
-).length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
 
@@ -131,7 +128,7 @@ describe("runSyncGithub", () => {
 		expect(refUpdate).toHaveLength(1);
 	});
 
-	it(`pushes thin callers (not definitions) to secondary repos (${SECONDARY_FILE_COUNT} files, no actions)`, async () => {
+	it("writes nothing to secondary repos — thin callers are managed by holocron sync", async () => {
 		const { fn, calls } = makeFetch();
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -142,9 +139,9 @@ describe("runSyncGithub", () => {
 			fetch: fn,
 		});
 		expect(report.status).toBe("ok");
-		expect(report.created).toBe(SECONDARY_FILE_COUNT);
+		expect(report.created).toBe(0);
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		expect(blobs).toHaveLength(SECONDARY_FILE_COUNT);
+		expect(blobs).toHaveLength(0);
 		// No composite actions
 		expect(calls.some((c) => (c.body as { path?: string } | undefined)?.path?.includes(".github/actions/"))).toBe(
 			false
@@ -155,273 +152,6 @@ describe("runSyncGithub", () => {
 		expect(blobContents.some((c) => c.includes("runs-on:"))).toBe(false);
 	});
 
-	it("respects holocron.config.json workflow allowlist for secondary repos", async () => {
-		const allowedNames = ["lint", "review", "stale"];
-		const config = { workflows: allowedNames };
-		const { fn, calls } = makeFetch({}, config);
-		const report = await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		expect(report.status).toBe("ok");
-		expect(report.created).toBe(allowedNames.length);
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		expect(blobs).toHaveLength(allowedNames.length);
-		// Verify only the allowed workflows are in the batch
-		const blobPaths = blobs
-			.map((c) => {
-				const content = (c.body?.content as string) ?? "";
-				return allowedNames.find((n) => content.includes(`name: ${n.charAt(0).toUpperCase() + n.slice(1)}`));
-			})
-			.filter(Boolean);
-		expect(blobPaths).toHaveLength(allowedNames.length);
-	});
-
-	it("reads workflow allowlist from holocron.config.ts when .json is absent", async () => {
-		const allowedNames = ["lint", "review", "stale"];
-		const configTs = `export default defineConfig({ workflows: ${JSON.stringify(allowedNames)} })`;
-		const { fn } = makeFetch({}, undefined, configTs);
-		const report = await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		expect(report.status).toBe("ok");
-		expect(report.created).toBe(allowedNames.length);
-	});
-
-	it("applies per-workflow with: overrides from config to thin callers", async () => {
-		const configTs = `export default defineConfig({ workflows: [{ name: "release", with: { "run-build": false } }] })`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const releaseBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Release")
-		);
-		expect(releaseBlob?.body?.content).toContain("run-build: false");
-	});
-
-	it("applies per-workflow with: overrides when TS config has trailing commas", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		{
-			name: "audit",
-			with: { "run-performance": true, "lighthouse-config": "lighthouse.config.cjs" },
-		},
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const auditBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Audit")
-		);
-		expect(auditBlob?.body?.content).toContain("run-performance: true");
-		expect(auditBlob?.body?.content).toContain("lighthouse-config: lighthouse.config.cjs");
-	});
-
-	it("preserves with: overrides when entry also has a paths: property", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		{ name: "deploy", with: { type: "docs", name: "clients" }, paths: ["docs/**"] },
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const deployBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
-		);
-		expect(deployBlob?.body?.content).toContain("type: docs");
-		expect(deployBlob?.body?.content).toContain("name: clients");
-	});
-
-	it("generates combined deploy.yml with preview job when deploy config has preview:", async () => {
-		const configTs = `export default defineConfig({
-	org: "acme",
-	docs: { build: "workflow", domain: "acme.dev", https: true },
-	workflows: [
-		{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } },
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const deployBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
-		);
-		const content = deployBlob?.body?.content as string | undefined;
-		expect(content).toContain("pull_request:");
-		expect(content).toContain("name: Deploy Preview");
-		expect(content).toContain("cloudflare-project: acme-preview");
-	});
-
-	it("parses unquoted TS keys in with: blocks (e.g. docs: true)", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		{ name: "deploy", with: { docs: true } },
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const deployBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
-		);
-		// docs: true is normalised → type: docs and paths: - docs/**
-		expect(deployBlob?.body?.content).toContain("type: docs");
-		expect(deployBlob?.body?.content).toContain("- docs/**");
-	});
-
-	it("parses with: blocks containing nested objects (e.g. storybook: [{ name: 'app' }])", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		{ name: "deploy", with: { docs: true, storybook: [{ name: "app" }] } },
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const deployBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Deploy")
-		);
-		// docs: true → type: docs; storybook: [{ name: "app" }] → storybook-projects with name
-		expect(deployBlob?.body?.content).toContain("type: docs");
-		expect(deployBlob?.body?.content).toContain("storybook-projects:");
-		expect(deployBlob?.body?.content).toContain("name");
-	});
-
-	it("skips objects in the workflows array that have no name property", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		{ path: "." },
-		{ name: "lint" },
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		// Only lint should be synced — the nameless object is skipped
-		expect(blobs).toHaveLength(1);
-		expect(blobs[0]?.body?.content).toContain("name: Lint");
-	});
-
-	it("parses name-only object entry with trailing comma", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		{
-			name: "typecheck",
-		},
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const typecheckBlob = blobs.find(
-			(c) => typeof c.body?.content === "string" && (c.body.content as string).includes("name: Typecheck")
-		);
-		expect(typecheckBlob).toBeDefined();
-		// name-only entry — no with: block injected
-		expect(typecheckBlob?.body?.content).not.toContain("with:");
-	});
-
-	it("parses mixed entries — some with with:, some name-only — all with trailing commas", async () => {
-		const configTs = `export default defineConfig({
-	workflows: [
-		"typecheck",
-		{
-			name: "release",
-			with: { "run-build": true },
-		},
-		{
-			name: "audit",
-			with: { "run-performance": true, "lighthouse-config": "lighthouse.config.cjs" },
-		},
-	],
-})`;
-		const { fn, calls } = makeFetch({}, undefined, configTs);
-		await runSyncGithub({
-			token: "ghp_test",
-			repo: "theholocron/.github-private",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn,
-		});
-		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const getContent = (name: string) =>
-			blobs.find(
-				(c) => typeof c.body?.content === "string" && (c.body.content as string).includes(`name: ${name}`)
-			)?.body?.content as string | undefined;
-
-		expect(getContent("Typecheck")).toBeDefined();
-		expect(getContent("Release")).toContain("run-build: true");
-		expect(getContent("Audit")).toContain("run-performance: true");
-		expect(getContent("Audit")).toContain("lighthouse-config: lighthouse.config.cjs");
-	});
 
 	it("skips unchanged files and omits them from the commit tree", async () => {
 		// Pre-populate the tree with the actual git blob SHA for release.yml
