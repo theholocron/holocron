@@ -10,8 +10,8 @@
  *   node scripts/validate-adrs.mjs file1 ... # validate specific files
  */
 
-import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { resolve, basename, extname } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
