@@ -1,5 +1,5 @@
-import { ConfigError } from "./config.js";
 import type { DocsConfig, HolocronConfig, RawProvidersConfig, RepoConfig } from "./config.js";
+import { ConfigError } from "./config.js";
 
 type WorkflowEntry = NonNullable<HolocronConfig["workflows"]>[number];
 
