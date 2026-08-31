@@ -1,11 +1,18 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AGENT_PROMPTS } from "../agent-prompts.js";
 import { ProviderApiError } from "../capabilities/index.js";
-import { codecovContent, mergeCodecovComponents, runSetup } from "../commands/setup.js";
+import {
+	codecovContent,
+	installAgentPrompts,
+	installEngineeringStructure,
+	mergeCodecovComponents,
+	runSetup,
+} from "../commands/setup.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
@@ -3417,5 +3424,174 @@ describe("setup: Pages step", () => {
 		const step = report.steps.find((s) => s.step === PAGES_STEP);
 		expect(step?.status).toBe("ok");
 		expect(step?.message).not.toContain("https: enforced");
+	});
+});
+
+describe("installAgentPrompts", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-prompts-test-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("writes all prompt files to .agents/prompts/", async () => {
+		await installAgentPrompts({ repoRoot: tmpDir });
+
+		for (const filename of Object.keys(AGENT_PROMPTS)) {
+			const content = await readFile(join(tmpDir, ".agents/prompts", filename), "utf8");
+			expect(content).toBe(AGENT_PROMPTS[filename]);
+		}
+	});
+
+	it("adds .agents/prompts/ to .gitignore with managed block", async () => {
+		await installAgentPrompts({ repoRoot: tmpDir });
+
+		const gitignore = await readFile(join(tmpDir, ".gitignore"), "utf8");
+		expect(gitignore).toContain("# managed by holocron setup — prompts");
+		expect(gitignore).toContain("/.agents/prompts/");
+		expect(gitignore).toContain("# end managed by holocron setup — prompts");
+	});
+
+	it("replaces existing managed block without duplicating it", async () => {
+		await installAgentPrompts({ repoRoot: tmpDir });
+		await installAgentPrompts({ repoRoot: tmpDir });
+
+		const gitignore = await readFile(join(tmpDir, ".gitignore"), "utf8");
+		const count = (gitignore.match(/^# managed by holocron setup — prompts$/gm) ?? []).length;
+		expect(count).toBe(1);
+	});
+
+	it("recovers gracefully when end marker is missing (orphaned start)", async () => {
+		// Write a gitignore that has the start marker but no end marker
+		await writeFile(join(tmpDir, ".gitignore"), "# managed by holocron setup — prompts\n/.agents/prompts/\n");
+
+		await installAgentPrompts({ repoRoot: tmpDir });
+
+		const gitignore = await readFile(join(tmpDir, ".gitignore"), "utf8");
+		expect(gitignore).toContain("# end managed by holocron setup — prompts");
+		const count = (gitignore.match(/^# managed by holocron setup — prompts$/gm) ?? []).length;
+		expect(count).toBe(1);
+	});
+
+	it("returns summary message", async () => {
+		const result = await installAgentPrompts({ repoRoot: tmpDir });
+		expect(result).toContain("wrote");
+		expect(result).toContain(".agents/prompts/");
+	});
+});
+
+describe("installEngineeringStructure", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-engineering-test-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("creates docs/decisions/ and docs/engineering/ files", async () => {
+		await installEngineeringStructure({ repoRoot: tmpDir });
+
+		await expect(stat(join(tmpDir, "docs/decisions/template.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/decisions/README.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/engineering/README.md"))).resolves.toBeDefined();
+	});
+
+	it("skips files that already exist", async () => {
+		await mkdir(join(tmpDir, "docs/decisions"), { recursive: true });
+		await writeFile(join(tmpDir, "docs/decisions/template.md"), "custom content");
+
+		await installEngineeringStructure({ repoRoot: tmpDir });
+
+		const content = await readFile(join(tmpDir, "docs/decisions/template.md"), "utf8");
+		expect(content).toBe("custom content");
+	});
+
+	it("reports created files in the summary", async () => {
+		const result = await installEngineeringStructure({ repoRoot: tmpDir });
+		expect(result).toContain("docs/decisions/template.md");
+		expect(result).toContain("docs/decisions/README.md");
+		expect(result).toContain("docs/engineering/README.md");
+	});
+
+	it("reports nothing to write when all files exist", async () => {
+		await installEngineeringStructure({ repoRoot: tmpDir });
+		const result = await installEngineeringStructure({ repoRoot: tmpDir });
+		expect(result).toBe("all files already exist — nothing to write");
+	});
+});
+
+describe("setup: prompts step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-prompts-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("runs prompts step when agent is configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", agent: "claude", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "prompts");
+		expect(step).toBeDefined();
+		expect(step?.status).toBe("ok");
+	});
+
+	it("skips prompts step when agent is not configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "prompts")).toBeUndefined();
+	});
+});
+
+describe("setup: engineering step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-engineering-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("runs engineering step when docs is configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", docs: { build: "workflow" }, providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "engineering");
+		expect(step).toBeDefined();
+		expect(step?.status).toBe("ok");
+		await expect(stat(join(tmpDir, "docs/decisions/template.md"))).resolves.toBeDefined();
+	});
+
+	it("skips engineering step when docs is absent", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "engineering")).toBeUndefined();
 	});
 });

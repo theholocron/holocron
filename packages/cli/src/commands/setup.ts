@@ -25,6 +25,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { AGENT_PROMPTS, DECISIONS_README, DECISIONS_TEMPLATE, ENGINEERING_README } from "../agent-prompts.js";
 import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import type {
 	Auth,
@@ -1093,6 +1094,34 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(formatStep(steps[steps.length - 1]!));
 	}
 
+	// ── prompts: write agent role prompts to .agents/prompts/ ────────────
+	// Gitignored and regenerated on every setup run so content always
+	// reflects the current CLI version. Gated on agent being configured.
+	if (config.agent) {
+		print(style.step("prompts"));
+		steps.push(
+			await runStep("prompts", "install agent prompts", dryRun, async () => {
+				return await installAgentPrompts({ repoRoot: input.context.repoRoot });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+	}
+
+	// ── engineering: provision docs/decisions/ and docs/engineering/ ─────
+	// Runs automatically when the repo has a docs site (config.docs set).
+	// Skips existing files so it is safe to run repeatedly without
+	// overwriting ADRs. No separate flag needed — any repo with docs gets
+	// the structure; the directories are cheap and useful when needed.
+	if (config.docs) {
+		print(style.step("engineering"));
+		steps.push(
+			await runStep("engineering", "provision engineering structure", dryRun, async () => {
+				return await installEngineeringStructure({ repoRoot: input.context.repoRoot });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+	}
+
 	const summary = steps.reduce(
 		(acc, s) => {
 			if (s.status === "ok") acc.ok += 1;
@@ -1387,6 +1416,72 @@ async function updateSkillsGitignore(
 	}
 
 	await writeFile(gitignorePath, content, "utf8");
+}
+
+// ── agent prompts installer ───────────────────────────────────────────
+// Writes canonical role prompts to .agents/prompts/ and gitignores the
+// directory. Overwrites on every run so content tracks the CLI version.
+
+const AGENTS_PROMPTS_ROOT = ".agents/prompts";
+const PROMPTS_GITIGNORE_START = "# managed by holocron setup — prompts";
+const PROMPTS_GITIGNORE_END = "# end managed by holocron setup — prompts";
+
+export async function installAgentPrompts({ repoRoot }: { repoRoot: string }): Promise<string> {
+	const promptsDir = join(repoRoot, AGENTS_PROMPTS_ROOT);
+	await mkdir(promptsDir, { recursive: true });
+
+	for (const [filename, content] of Object.entries(AGENT_PROMPTS)) {
+		await writeFile(join(promptsDir, filename), content, "utf8");
+	}
+
+	const gitignorePath = join(repoRoot, ".gitignore");
+	const existing = await readFile(gitignorePath, "utf8").catch(() => "");
+	const block = [PROMPTS_GITIGNORE_START, `/${AGENTS_PROMPTS_ROOT}/`, PROMPTS_GITIGNORE_END].join("\n");
+	let updated: string;
+	if (existing.includes(PROMPTS_GITIGNORE_START)) {
+		const start = existing.indexOf(PROMPTS_GITIGNORE_START);
+		const end = existing.indexOf(PROMPTS_GITIGNORE_END, start);
+		const afterBlock = end !== -1 ? existing.slice(end + PROMPTS_GITIGNORE_END.length) : "\n";
+		updated = existing.slice(0, start) + block + afterBlock;
+	} else {
+		updated = (existing.trimEnd() ? existing.trimEnd() + "\n\n" : "") + block + "\n";
+	}
+	await writeFile(gitignorePath, updated, "utf8");
+
+	return `wrote ${Object.keys(AGENT_PROMPTS).length} prompt files to ${AGENTS_PROMPTS_ROOT}/`;
+}
+
+// ── engineering structure installer ──────────────────────────────────
+// Provisions docs/decisions/ and docs/engineering/ when engineering: true
+// is set in the config. Skips files that already exist so existing ADRs
+// are never overwritten.
+
+async function writeIfAbsent(filePath: string, content: string): Promise<boolean> {
+	try {
+		await access(filePath);
+		return false; // already exists — skip
+	} catch {
+		await mkdir(dirname(filePath), { recursive: true });
+		await writeFile(filePath, content, "utf8");
+		return true;
+	}
+}
+
+export async function installEngineeringStructure({ repoRoot }: { repoRoot: string }): Promise<string> {
+	const results: string[] = [];
+
+	const writes: Array<[string, string]> = [
+		[join(repoRoot, "docs/decisions/template.md"), DECISIONS_TEMPLATE],
+		[join(repoRoot, "docs/decisions/README.md"), DECISIONS_README],
+		[join(repoRoot, "docs/engineering/README.md"), ENGINEERING_README],
+	];
+
+	for (const [path, content] of writes) {
+		const wrote = await writeIfAbsent(path, content);
+		if (wrote) results.push(path.replace(repoRoot + "/", ""));
+	}
+
+	return results.length > 0 ? `created: ${results.join(", ")}` : "all files already exist — nothing to write";
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
