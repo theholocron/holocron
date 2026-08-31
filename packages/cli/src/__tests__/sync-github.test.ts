@@ -152,7 +152,6 @@ describe("runSyncGithub", () => {
 		expect(blobContents.some((c) => c.includes("runs-on:"))).toBe(false);
 	});
 
-
 	it("skips unchanged files and omits them from the commit tree", async () => {
 		// Pre-populate the tree with the actual git blob SHA for release.yml
 		// so sync treats it as unchanged.
