@@ -191,10 +191,6 @@ describe("compose()", () => {
 		const a: Capability = { id: "a", requiredChecks: ["Lint / Conclusion", "Test / Conclusion"] };
 		const b: Capability = { id: "b", requiredChecks: ["Lint / Conclusion", "codecov/patch"] };
 		const preset = compose(a, b);
-		expect(preset.repo.requiredChecks).toEqual([
-			"Lint / Conclusion",
-			"Test / Conclusion",
-			"codecov/patch",
-		]);
+		expect(preset.repo.requiredChecks).toEqual(["Lint / Conclusion", "Test / Conclusion", "codecov/patch"]);
 	});
 });
