@@ -15,8 +15,8 @@ tags: [auth, keyring, plugins, security]
 
 # Auth bootstrap — OS keyring as fourth-precedence token layer
 
-* Status: accepted
-* Date: 2026-08-17
+- Status: accepted
+- Date: 2026-08-17
 
 ## Context and Problem Statement
 
@@ -29,16 +29,16 @@ insecure credential management story across plugins.
 
 ## Decision Drivers
 
-* Consistent credential UX across all plugins
-* No shell-out to vendor CLIs for bootstrap (avoids `op`, `doppler run`, etc.)
-* Must work in CI (env var or flag) and locally (ergonomic persistent store)
-* No per-project scoping at the auth layer — that belongs in `holocron.config.json`
+- Consistent credential UX across all plugins
+- No shell-out to vendor CLIs for bootstrap (avoids `op`, `doppler run`, etc.)
+- Must work in CI (env var or flag) and locally (ergonomic persistent store)
+- No per-project scoping at the auth layer — that belongs in `holocron.config.json`
 
 ## Considered Options
 
-* **Shell out to vendor CLI** — delegate to `op`, `doppler configure get token`, etc.
-* **Env-var only** — operators set `HOLOCRON_<X>_TOKEN` or vendor-native env var
-* **OS keyring as managed store** — `holocron auth <provider>` writes once; plugins read via `@napi-rs/keyring`
+- **Shell out to vendor CLI** — delegate to `op`, `doppler configure get token`, etc.
+- **Env-var only** — operators set `HOLOCRON_<X>_TOKEN` or vendor-native env var
+- **OS keyring as managed store** — `holocron auth <provider>` writes once; plugins read via `@napi-rs/keyring`
 
 ## Decision Outcome
 
@@ -58,33 +58,33 @@ The full precedence order for every plugin:
 
 ### Positive Consequences
 
-* Operators `holocron auth set <provider> <token>` once; it persists across sessions
-* All plugins resolve credentials via the same `resolveToken()` helper
-* CI continues to use env vars (steps 2–3); keyring is never consulted in CI
-* `AuthError` names all four resolution paths with a vendor-specific hint
+- Operators `holocron auth set <provider> <token>` once; it persists across sessions
+- All plugins resolve credentials via the same `resolveToken()` helper
+- CI continues to use env vars (steps 2–3); keyring is never consulted in CI
+- `AuthError` names all four resolution paths with a vendor-specific hint
 
 ### Negative Consequences
 
-* Requires `@napi-rs/keyring` — Rust-based N-API prebuilts, one extra native dependency
-* Keyring availability varies by OS (macOS Keychain, Linux Secret Service, Windows Credential Manager)
+- Requires `@napi-rs/keyring` — Rust-based N-API prebuilts, one extra native dependency
+- Keyring availability varies by OS (macOS Keychain, Linux Secret Service, Windows Credential Manager)
 
 ## Pros and Cons of the Options
 
 ### Shell out to vendor CLI
 
-* Good, because vendor CLIs already handle their own credential lifecycle
-* Bad, because reintroduces CLI-transport dependency we're removing from plugins
-* Bad, because each vendor has a different CLI, different output format, different install requirement
+- Good, because vendor CLIs already handle their own credential lifecycle
+- Bad, because reintroduces CLI-transport dependency we're removing from plugins
+- Bad, because each vendor has a different CLI, different output format, different install requirement
 
 ### Env-var only
 
-* Good, because universally portable, no native dependencies
-* Bad, because operators must set and maintain env vars in shell profiles or dotfiles
-* Bad, because no ergonomic local-dev UX — every new shell session requires re-export
+- Good, because universally portable, no native dependencies
+- Bad, because operators must set and maintain env vars in shell profiles or dotfiles
+- Bad, because no ergonomic local-dev UX — every new shell session requires re-export
 
 ### OS keyring as managed store
 
-* Good, because cross-plugin consistency — one `resolveToken()` helper, one UX
-* Good, because `@napi-rs/keyring` uses Rust prebuilts — no node-gyp, actively maintained
-* Good, because `keytar` (archived) is not used
-* Bad, because native dependency; headless environments need `libsecret` (Linux)
+- Good, because cross-plugin consistency — one `resolveToken()` helper, one UX
+- Good, because `@napi-rs/keyring` uses Rust prebuilts — no node-gyp, actively maintained
+- Good, because `keytar` (archived) is not used
+- Bad, because native dependency; headless environments need `libsecret` (Linux)
