@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-1password",
-  "version": "3.45.1",
+  "version": "3.45.2",
   "description": "Holocron plugin for 1Password. Implements the vault capability via shell-out to the `op` CLI (https://developer.1password.com/docs/cli).",
   "keywords": [
     "1password",
