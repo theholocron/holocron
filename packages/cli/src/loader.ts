@@ -27,6 +27,9 @@
  * sibling packages installed.
  */
 
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
 import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities/index.js";
 import { CARDINALITY } from "./capabilities/index.js";
 import type { CapabilityConfigPackage, ResolvedHolocronConfig, ResolvedTuple } from "./config.js";
@@ -208,9 +211,15 @@ export class PluginLoader {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/** Default importer — native dynamic import. */
+/** Default importer — resolves from cwd first so the global CLI finds project plugins. */
 const defaultImporter: PluginImporter = async (pkg) => {
-	return import(pkg);
+	try {
+		const localRequire = createRequire(process.cwd() + "/");
+		const resolved = localRequire.resolve(pkg);
+		return import(pathToFileURL(resolved).href);
+	} catch {
+		return import(pkg);
+	}
 };
 
 function isPluginModule(mod: unknown): mod is PluginModule {
