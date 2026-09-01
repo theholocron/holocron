@@ -36,6 +36,7 @@ import type {
 	Source,
 	Tooling,
 	Vault,
+	Wiki,
 } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import { ConfigError } from "../config.js";
@@ -897,6 +898,18 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			);
 			print(formatStep(steps[steps.length - 1]!));
 		}
+	}
+
+	// ── wiki: provision engineering wiki config ──────────────────────────
+	if (loader.has("wiki")) {
+		const wiki = loader.get("wiki") as Wiki;
+		print(style.step("wiki"));
+		steps.push(
+			await runStep("wiki", "provision wiki config", dryRun, async () => {
+				return await wiki.provision({ name: config.name });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
 	}
 
 	// ── deployment: ensure project + preview infrastructure ─────────────

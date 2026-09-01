@@ -27,7 +27,7 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: ""
     secrets:
-      FERN_TOKEN:
+      HOLOCRON_FERN_TOKEN:
         required: true
 
 jobs:
@@ -50,11 +50,11 @@ jobs:
         if: ${{ !inputs.preview }}
         run: fern generate --docs
         env:
-          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+          FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN }}
 
       - name: Preview docs
         if: ${{ inputs.preview && inputs.preview-id != '' }}
         run: fern generate --docs --preview --id "$PREVIEW_ID"
         env:
-          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+          FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN }}
           PREVIEW_ID: ${{ inputs.preview-id }}

@@ -1,0 +1,117 @@
+---
+title: Fern Plugin
+description: Implements the wiki capability for engineering knowledge publishing via Fern.
+---
+
+`@theholocron/holocron-plugin-fern` · [npm](https://www.npmjs.com/package/@theholocron/holocron-plugin-fern) · [GitHub](https://github.com/theholocron/holocron)
+
+Implements the `wiki` capability using [Fern](https://buildwithfern.com).
+
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-fern
+```
+
+| Capability | Token                              |
+| ---------- | ---------------------------------- |
+| `wiki`     | `HOLOCRON_FERN_TOKEN` (CI secret)  |
+
+## Config
+
+```ts
+providers: {
+  // Short form — org name inferred from config.org
+  wiki: "fern",
+
+  // With a shared custom domain — repo name appended as basepath automatically
+  wiki: ["fern", { domain: "wiki.theholocron.dev" }],
+}
+```
+
+### Options
+
+| Option   | Required | Description                                                                                                                                             |
+| -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain` | No       | Base domain (`"wiki.theholocron.dev"`) or full path (`"wiki.theholocron.dev/myrepo"`). A bare host gets the repo name appended automatically as a basepath. |
+
+## What `holocron setup` does
+
+Running `holocron setup` with `providers.wiki: "fern"` performs two local
+file writes — no network calls required:
+
+1. **`fern/fern.config.json`** — workspace org name and pinned Fern CLI
+   version. Always overwritten so the pinned version stays current.
+2. **`fern/docs.yml`** — scaffold with instance URL, optional custom domain,
+   and navigation pointing at `docs/decisions/` and `docs/engineering/`.
+   Skipped if the file already exists to preserve hand-edited ADR entries.
+
+Both files are committed to the repo — the `wiki.yml` CI workflow reads them
+at deploy time.
+
+## Custom domain and multi-source routing
+
+Add `"wiki"` to your `workflows` array to get the `wiki.yml` thin caller,
+which publishes to production on push to `main` and generates a Fern preview
+URL on every pull request.
+
+When `domain` is a bare host, the plugin appends the repo name as a
+basepath. Every repo in the org gets its own URL under a shared domain:
+
+| Repo                       | URL                                      |
+| -------------------------- | ---------------------------------------- |
+| `theholocron/holocron`     | `wiki.theholocron.dev/holocron`          |
+| `theholocron/configs`      | `wiki.theholocron.dev/configs`           |
+
+The generated `fern/docs.yml` uses Fern's `multi-source: true` flag, which
+Fern requires for basepath-aware routing:
+
+```yaml
+instances:
+  - url: theholocron.docs.buildwithfern.com/holocron
+    custom-domain: wiki.theholocron.dev/holocron
+    multi-source: true
+```
+
+DNS: one CNAME record — `wiki.theholocron.dev` →
+`theholocron.docs.buildwithfern.com`.
+
+## Authentication
+
+`HOLOCRON_FERN_TOKEN` is a CI-only secret — it is not used by `holocron setup` and
+does not go in the keyring. Add it directly to your repo's GitHub Secrets.
+
+**Resolution order:**
+
+```
+--token flag
+  → HOLOCRON_FERN_TOKEN        (env var)
+  → FERN_TOKEN                 (Fern's native env var — vendor fallback)
+  → keyring "fern.theholocron" (org-namespaced)
+  → keyring "fern"             (unnamespaced fallback)
+```
+
+**Store in keyring:**
+
+```sh
+holocron auth set fern <token>
+```
+
+1. Go to `dashboard.buildwithfern.com` → **Settings → API tokens**
+2. Create a token with publish permissions
+3. Add it as a GitHub secret named `HOLOCRON_FERN_TOKEN`
+
+The `wiki.yml` workflow passes it to `fern generate --docs` via
+`secrets: inherit`.
+
+:::note
+**Password protection** is configured in the Fern Dashboard — not in
+`docs.yml` or via any CLI flag. After running `holocron setup`, configure
+access control at `dashboard.buildwithfern.com`.
+:::
+
+## What `wiki` provides
+
+- `provision(opts?)` — writes `fern/fern.config.json` and scaffolds
+  `fern/docs.yml` (skipped if already present). Called automatically by
+  `holocron setup` when `providers.wiki: "fern"` is set.

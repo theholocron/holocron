@@ -92,3 +92,42 @@ Pass a token directly for a single invocation without touching env vars or the k
 holocron clone --token github=ghp_xxx theholocron
 holocron sync-github --token github=ghp_zzz
 ```
+
+---
+
+# Third-party provider tokens
+
+## Fern (`wiki.yml`)
+
+Generate a token at `dashboard.buildwithfern.com` → **Settings → API tokens**.
+
+**Resolution order:**
+
+```
+--token flag
+  → HOLOCRON_FERN_TOKEN   (env var)
+  → FERN_TOKEN            (Fern's native env var — vendor fallback)
+  → keyring "fern.<org>"        (org-namespaced; e.g. "fern.theholocron" when org: theholocron)
+  → keyring "fern"              (unnamespaced fallback)
+```
+
+**Store in keyring** (recommended for local use):
+
+```sh
+holocron auth set fern <token>
+```
+
+**Or via env var:**
+
+```sh
+export HOLOCRON_FERN_TOKEN=<token>
+# Also recognised:
+export FERN_TOKEN=<token>
+```
+
+**CI (GitHub Actions):** add `HOLOCRON_FERN_TOKEN` as a repository or org
+secret. The `wiki.yml` reusable workflow picks it up via `secrets: inherit`
+and maps it to `FERN_TOKEN` for the Fern CLI.
+
+Password protection is configured in the Fern Dashboard only — no token is
+needed for `holocron setup`.
