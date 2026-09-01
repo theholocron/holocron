@@ -1,7 +1,14 @@
+import { createRequire } from "node:module";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
 import { cardinalityOf, LoaderError, type PluginImporter, PluginLoader } from "../loader.js";
+
+vi.mock("node:module", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:module")>();
+	return { ...actual, createRequire: vi.fn(actual.createRequire) };
+});
 
 function loaderWith(rawConfig: Parameters<typeof resolveConfig>[0], modules: Record<string, unknown>) {
 	const config = resolveConfig(rawConfig);
@@ -504,5 +511,34 @@ describe("cardinalityOf", () => {
 
 	it("returns many for many-cardinality capabilities", () => {
 		expect(cardinalityOf("notifications")).toBe("many");
+	});
+});
+
+describe("PluginLoader — defaultImporter (cwd resolution)", () => {
+	it("resolves packages from cwd when no importer is injected", async () => {
+		// Use vi.mock + vi.mocked to control createRequire without depending on
+		// a plugin package being built — Turbo skips plugin builds when only
+		// unrelated files change, making the real package unreliable in CI.
+		// Point resolve at this test file (always exists); the imported module
+		// has no createPlugin so loadOne throws LoaderError — that's fine, we only
+		// need the try-branch in defaultImporter covered (lines A-C).
+		const selfPath = new URL("./loader.test.js", import.meta.url).pathname;
+		const mockResolve = vi.fn().mockReturnValue(selfPath);
+		vi.mocked(createRequire).mockReturnValueOnce({ resolve: mockResolve } as unknown as ReturnType<
+			typeof createRequire
+		>);
+
+		const config = resolveConfig({ name: "test", providers: { wiki: "fern" } });
+		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
+		await expect(loader.load()).rejects.toThrow(LoaderError);
+		expect(mockResolve).toHaveBeenCalledWith("@theholocron/holocron-plugin-fern");
+		vi.mocked(createRequire).mockRestore();
+	});
+
+	it("falls back to bare import when the package is not in cwd", async () => {
+		// A provider that does not exist anywhere — covers the catch branch.
+		const config = resolveConfig({ name: "test", providers: { source: "no-such-provider-xz9" as "github" } });
+		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
+		await expect(loader.load()).rejects.toThrow(LoaderError);
 	});
 });

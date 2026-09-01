@@ -60,6 +60,17 @@ describe("CloudflareDns.upsertRecord — create path", () => {
 		await dns.upsertRecord(ZONE_NAME, { type: "A", name: "api", content: "1.2.3.4", ttl: 300 });
 		expect(calls[2]?.body).toMatchObject({ ttl: 300 });
 	});
+
+	it("includes proxied in create body when provided", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), cfOk([]), cfOk(record)]);
+		await dns.upsertRecord(ZONE_NAME, {
+			type: "CNAME",
+			name: "wiki",
+			content: "org.docs.buildwithfern.com",
+			proxied: true,
+		});
+		expect(calls[2]?.body).toMatchObject({ proxied: true });
+	});
 });
 
 describe("CloudflareDns.upsertRecord — update path", () => {
@@ -78,6 +89,12 @@ describe("CloudflareDns.upsertRecord — update path", () => {
 		const { dns, calls } = makeDns([cfOk([zone]), cfOk([record]), cfOk(record)]);
 		await dns.upsertRecord(ZONE_NAME, { type: "CNAME", name: "www", content: "new.com", ttl: 60 });
 		expect(calls[2]?.body).toMatchObject({ ttl: 60 });
+	});
+
+	it("includes proxied in patch body when provided", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), cfOk([record]), cfOk(record)]);
+		await dns.upsertRecord(ZONE_NAME, { type: "CNAME", name: "www", content: "new.com", proxied: true });
+		expect(calls[2]?.body).toMatchObject({ proxied: true });
 	});
 });
 
