@@ -99,6 +99,7 @@ test-report.junit.xml
 
 # managed by holocron setup — skills
 /.agents/skills/
+/.claude/skills/turborepo
 /.claude/skills/git-safety
 /.claude/skills/pr-workflow
 /.claude/skills/commit-standards
@@ -108,3 +109,7 @@ test-report.junit.xml
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# managed by holocron setup — prompts
+/.agents/prompts/
+# end managed by holocron setup — prompts

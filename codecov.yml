@@ -31,11 +31,6 @@ component_management:
       paths:
         - packages/cli/**
 
-    - component_id: cli-utils
-      name: "cli-utils"
-      paths:
-        - packages/cli-utils/**
-
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:

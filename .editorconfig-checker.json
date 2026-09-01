@@ -9,10 +9,8 @@
   "Exclude": [
     "(^|.+/)LICENSE$",
     "^public/.*",
-    "^packages/cli/src/commands/plugin-create/templates/.*",
-    "^\\.notes/.*\\.spec\\.md$",
-    "^docs/src/content/docs/.*\\.(md|mdx)$",
-    "^packages/cli/src/agent-prompts\\.ts$"
+    "\\.md$",
+    "\\.mdx$"
   ],
   "AllowedContentTypes": [],
   "PassedFiles": [],

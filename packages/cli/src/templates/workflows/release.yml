@@ -10,6 +10,15 @@ name: Release
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
+      dry-run:
+        description: >
+          When true, runs semantic-release --dry-run: analyzes commits and
+          previews the next release without git writes or publish. Only
+          meaningful for workflow_dispatch triggers; push-triggered runs
+          always run fully.
+        type: boolean
+        required: false
+        default: false
       run-build:
         description: Run `pnpm build` before releasing
         type: boolean
@@ -102,7 +111,7 @@ jobs:
         name: Build
         if: ${{ inputs.run-build == true }}
 
-      - run: npx semantic-release
+      - run: npx semantic-release ${{ inputs.dry-run && '--dry-run' || '' }}
         name: Release
         env:
           # Prefer HOLOCRON_RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
@@ -115,7 +124,7 @@ jobs:
 
       - name: Get release version
         id: release_version
-        if: ${{ inputs.sentry-project != '' }}
+        if: ${{ inputs.sentry-project != '' && inputs.dry-run != true }}
         env:
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
         run: |
@@ -125,7 +134,7 @@ jobs:
           fi
 
       - name: Create Sentry release
-        if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' }}
+        if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' && inputs.dry-run != true }}
         uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

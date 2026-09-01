@@ -26,7 +26,8 @@ export type CapabilityKey =
 	| "notifications"
 	| "analytics"
 	| "observability"
-	| "wiki";
+	| "wiki"
+	| "workers";
 
 export type Cardinality = "single" | "many";
 
@@ -46,6 +47,7 @@ export const CARDINALITY = {
 	analytics: "many",
 	observability: "many",
 	wiki: "single",
+	workers: "single",
 } as const satisfies Record<CapabilityKey, Cardinality>;
 
 /**
@@ -818,6 +820,18 @@ export interface WikiDnsRecord {
 }
 
 /**
+ * Reverse-proxy configuration returned by `Wiki.proxyConfig()`.
+ * Used by `setup` to deploy a Worker that forwards traffic to the wiki
+ * provider's ingress with the required headers injected.
+ */
+export interface WikiProxyConfig {
+	/** Proxy target URL (e.g. "https://app.buildwithfern.com"). */
+	target: string;
+	/** Headers injected on every proxied request. */
+	headers: Record<string, string>;
+}
+
+/**
  * Engineering wiki provider.
  *
  * A swappable provider for publishing the `docs/decisions/` and
@@ -835,6 +849,29 @@ export interface Wiki extends ProviderIdentity {
 	 * Called by `setup` to provision the CNAME via the `dns` capability.
 	 */
 	dnsRecord?(): WikiDnsRecord | null;
+	/**
+	 * Reverse-proxy config when the wiki provider requires a Worker-level
+	 * proxy in addition to the CNAME. Returns null when no proxy is needed.
+	 * Called by `setup` to deploy the proxy via the `workers` capability.
+	 */
+	proxyConfig?(): WikiProxyConfig | null;
+}
+
+/**
+ * Edge Worker / reverse-proxy management capability.
+ *
+ * Deploys and manages Worker scripts that proxy traffic to a configured
+ * target. Used by `setup` to wire wiki custom-domain proxies when the
+ * wiki provider requires a Worker in addition to the CNAME.
+ */
+export interface Workers extends ProviderIdentity {
+	readonly key: "workers";
+	/**
+	 * Deploy (or update) a reverse-proxy Worker for `hostname`.
+	 * Forwards all `hostname/*` requests to `config.target`, injecting
+	 * `config.headers` on each request.
+	 */
+	upsertProxy(hostname: string, config: WikiProxyConfig): Promise<void>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -857,6 +894,7 @@ export interface CapabilityImpls {
 	analytics: Analytics;
 	observability: Observability;
 	wiki: Wiki;
+	workers: Workers;
 }
 
 export type CardinalityFor<K extends CapabilityKey> = (typeof CARDINALITY)[K];

@@ -1,11 +1,9 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Tool:    holocron sync-github
+# Changes: edit source in theholocron/holocron and push to alpha or main.
 name: Release
 
-# main  = stable releases (v2.0.0, v2.0.1, …) → npm `latest` dist-tag
-# alpha = prereleases (v2.0.0-alpha.N)       → npm `alpha` dist-tag
-#
-# workflow_dispatch is kept alongside push so releases can be triggered
-# by hand for recovery / re-runs. The `dry_run` input defaults to true
-# for safety on manual dispatches; push-triggered runs always run fully.
 on: # yamllint disable-line rule:truthy
   push:
     branches:
@@ -14,111 +12,28 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       dry_run:
-        description: |
-          Run semantic-release --dry-run. True = analyze + preview only, no
-          git writes, no publish. Only meaningful for workflow_dispatch runs;
-          push-triggered runs always run fully.
+        description: >
+          Dry run — analyze commits and preview the release without git writes
+          or publish. Push-triggered runs always run fully; this only applies
+          to manual workflow_dispatch triggers.
         required: false
-        default: 'true'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      # id-token: write is required for npm Trusted Publishing — the
-      # workflow requests an OIDC token from GitHub, npm validates it
-      # against the trusted publisher registered for each @theholocron/*
-      # package. No NPM_TOKEN secret needed.
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # full history for semantic-release
-          persist-credentials: false
-
-      - name: Setup pnpm
-        # SHA-pinned per CodeQL's "unpinned 3rd-party action" rule; tag
-        # comment lets humans (+ dependabot) see what version this is.
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: pnpm
-          # NOTE: intentionally NO `registry-url` here. When set, setup-node
-          # writes `.npmrc` with `_authToken=XXXXX-XXXXX-XXXXX-XXXXX` (a
-          # literal placeholder, not GitHub's `***` redaction). pnpm publish
-          # then uses that placeholder token instead of doing the OIDC
-          # exchange, and npm returns 404. Without registry-url, no `.npmrc`
-          # is written and pnpm 10.15+ handles Trusted Publishing via its
-          # own OIDC token request (id-token: write permission above).
-          # See https://github.com/actions/setup-node/blob/main/src/authutil.ts
-
-      - name: Ensure npm supports OIDC Trusted Publishing
-        # Node 22 LTS ships with npm 10.x, which does NOT do the OIDC
-        # token exchange with npm's Trusted Publisher endpoint. pnpm's
-        # publish command delegates the actual PUT to npm under the
-        # hood, so `pnpm publish` inherits npm's OIDC support (or lack
-        # thereof). npm 11.5.1+ has native OIDC. Upgrade globally so
-        # `pnpm publish` picks it up.
-        #
-        # sigstore is required by libnpmpublish/provenance.js and is loaded
-        # at module parse time (before any config check). npm 11+ removed it
-        # from its own bundled node_modules in some versions, causing
-        # MODULE_NOT_FOUND before provenance=false can take effect. Install
-        # it globally into the same prefix so require() finds it.
-        run: npm install -g npm@latest sigstore
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
-
-      - name: Verify (lint + typecheck + test)
-        # Guard publishing on the same checks CI normally enforces, so a
-        # broken main never publishes to npm.
-        run: |
-          pnpm typecheck
-          pnpm lint
-          pnpm test
-
-      - name: Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN }}
-        run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            pnpm exec semantic-release --dry-run
-          else
-            pnpm exec semantic-release
-          fi
-
-      - name: Get release version
-        id: release_version
-        if: ${{ inputs.dry_run != 'true' }}
-        run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -n "$TAG" ]; then
-            echo "release=holocron-cli@${TAG#v}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create Sentry release
-        if: ${{ inputs.dry_run != 'true' && steps.release_version.outputs.release != '' }}
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: theholocron
-          SENTRY_PROJECT: holocron-cli
-        with:
-          environment: production
-          version: ${{ steps.release_version.outputs.release }}
-          sourcemaps: "packages/cli/dist"
+    uses: theholocron/.github/.github/workflows/release.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run == true }}
+      sentry-project: holocron-cli
+    secrets: inherit
