@@ -57,7 +57,7 @@ export class FernWiki implements Wiki {
 	}
 
 	dnsRecord(): WikiDnsRecord | null {
-		const { org, repo, domain, fernOrg } = this.opts;
+		const { org, domain, fernOrg } = this.opts;
 		if (!domain) return null;
 		const resolvedFernOrg = fernOrg ?? org ?? "holocron";
 		// Strip any basepath to get just the hostname for the CNAME.
