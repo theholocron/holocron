@@ -15,7 +15,6 @@ export default defineConfig({
 		...repo,
 		requiredChecks: [
 			...repo.requiredChecks,
-			"Knip",
 			"tsdown (every workspace)",
 			"codecov/patch/cli",
 			"codecov/patch/holocron-plugin-1password",
