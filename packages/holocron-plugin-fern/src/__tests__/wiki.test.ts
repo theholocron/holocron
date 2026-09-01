@@ -59,6 +59,18 @@ describe("FernWiki.provision — fern.config.json", () => {
 		const stat = await import("node:fs/promises").then((fs) => fs.stat(join(repoRoot, "fern")));
 		expect(stat.isDirectory()).toBe(true);
 	});
+
+	it("falls back to process.cwd() when repoRoot is not provided", async () => {
+		const cwd = process.cwd();
+		const fernConfig = join(cwd, "fern", "fern.config.json");
+		try {
+			await new FernWiki({ org: "myorg" }).provision();
+			const raw = await readFile(fernConfig, "utf8");
+			expect((JSON.parse(raw) as { organization: string }).organization).toBe("myorg");
+		} finally {
+			await rm(join(cwd, "fern"), { recursive: true, force: true });
+		}
+	});
 });
 
 describe("FernWiki.provision — docs.yml (no domain)", () => {
