@@ -55,9 +55,9 @@ jobs:
         run: |
           if [ -n "$STEPS" ]; then
             # shellcheck disable=SC2086
-            pnpm exec holocron sync --steps $STEPS
+            pnpm --workspace-root exec holocron sync --steps $STEPS
           else
-            pnpm exec holocron sync
+            pnpm --workspace-root exec holocron sync
           fi
         env:
           HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
