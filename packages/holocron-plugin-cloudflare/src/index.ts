@@ -1,8 +1,9 @@
-import type { Deployment, Dns } from "@theholocron/cli";
+import type { Deployment, Dns, Workers } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { CloudflareDeployment } from "./capabilities/deployment.js";
 import { CloudflareDns } from "./capabilities/dns.js";
+import { CloudflareWorkers } from "./capabilities/workers.js";
 import { type CloudflareClient, createCloudflareClient } from "./rest.js";
 
 export interface CloudflarePluginOptions extends ResolveTokenInput {
@@ -46,13 +47,28 @@ export function deployment(ctx: PluginContext): Deployment {
 	return new CloudflareDeployment(ctx.client, ctx.options.accountId);
 }
 
+export function workersCapability(ctx: PluginContext): Workers {
+	if (!ctx.options.accountId) {
+		throw new Error(
+			"Cloudflare accountId is required for Workers — " +
+				"set accountId in the plugin options or CLOUDFLARE_ACCOUNT_ID env var"
+		);
+	}
+	return new CloudflareWorkers(ctx.client, ctx.options.accountId);
+}
+
 export function createPlugin(options: CloudflarePluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-cloudflare",
 		capabilities: {
 			dns: () => dns(ctx),
-			...(ctx.options.accountId ? { deployment: () => deployment(ctx) } : {}),
+			...(ctx.options.accountId
+				? {
+						deployment: () => deployment(ctx),
+						workers: () => workersCapability(ctx),
+					}
+				: {}),
 		},
 	};
 }
@@ -67,6 +83,7 @@ export const AUTH_HINT =
 export * from "./auth.js";
 export { CloudflareDeployment } from "./capabilities/deployment.js";
 export { CloudflareDns } from "./capabilities/dns.js";
+export { CloudflareWorkers } from "./capabilities/workers.js";
 export { type CloudflareClient, type CloudflareClientOptions, createCloudflareClient } from "./rest.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";

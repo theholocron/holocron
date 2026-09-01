@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Wiki, WikiDnsRecord, WikiProvisionOpts } from "@theholocron/cli";
+import type { Wiki, WikiDnsRecord, WikiProxyConfig, WikiProvisionOpts } from "@theholocron/cli";
 
 export const FERN_VERSION = "5.35.4";
 
@@ -54,6 +54,15 @@ export class FernWiki implements Wiki {
 		const configNote = await writeFernConfig({ repoRoot, fernOrg: resolvedFernOrg });
 		const docsNote = await writeFernDocsYml({ repoRoot, fernOrg: resolvedFernOrg, repo, name, domain });
 		return `${configNote}; ${docsNote}`;
+	}
+
+	proxyConfig(): WikiProxyConfig | null {
+		if (!this.opts.domain) return null;
+		const hostname = this.opts.domain.split("/")[0]!;
+		return {
+			target: "https://app.buildwithfern.com",
+			headers: { "X-Fern-Host": hostname },
+		};
 	}
 
 	dnsRecord(): WikiDnsRecord | null {
