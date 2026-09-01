@@ -60,7 +60,6 @@ export class FernWiki implements Wiki {
 		const { org, repo, domain, fernOrg } = this.opts;
 		if (!domain) return null;
 		const resolvedFernOrg = fernOrg ?? org ?? "holocron";
-		const repoName = repo?.split("/").pop();
 		// Strip any basepath to get just the hostname for the CNAME.
 		const hostname = domain.split("/")[0]!;
 		// Derive zone: last two labels (works for most TLDs).
