@@ -296,9 +296,7 @@ export interface Ci extends ProviderIdentity {
 // ───────────────────────────────────────────────────────────────────────
 
 export type SecretScope =
-	| { kind: "repo" }
-	| { kind: "environment"; name: string }
-	| { kind: "organization"; name: string };
+	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; name: string };
 
 export interface Secrets extends ProviderIdentity {
 	readonly key: "secrets";

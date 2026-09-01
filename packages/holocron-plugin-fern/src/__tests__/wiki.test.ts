@@ -304,3 +304,23 @@ describe("FernWiki.dnsRecord", () => {
 		expect(record?.target).toBe("holocron.docs.buildwithfern.com");
 	});
 });
+
+describe("FernWiki.proxyConfig", () => {
+	it("returns null when no domain is set", () => {
+		expect(new FernWiki({ org: "myorg" }).proxyConfig()).toBeNull();
+	});
+
+	it("returns proxy config targeting app.buildwithfern.com", () => {
+		const config = new FernWiki({ org: "myorg", domain: "wiki.example.com" }).proxyConfig();
+		expect(config?.target).toBe("https://app.buildwithfern.com");
+	});
+
+	it("sets X-Fern-Host header to the hostname without basepath", () => {
+		const config = new FernWiki({
+			org: "myorg",
+			repo: "owner/myrepo",
+			domain: "wiki.example.com/myrepo",
+		}).proxyConfig();
+		expect(config?.headers).toEqual({ "X-Fern-Host": "wiki.example.com" });
+	});
+});
