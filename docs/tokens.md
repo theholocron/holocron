@@ -105,9 +105,9 @@ holocron CLI itself. They go in GitHub Secrets and are passed through
 
 | Secret       | Purpose                                           | Where to create                              |
 | ------------ | ------------------------------------------------- | -------------------------------------------- |
-| `FERN_TOKEN` | Fern workspace API token for `fern generate --docs` | `dashboard.buildwithfern.com` → Settings → API tokens |
+| `HOLOCRON_FERN_TOKEN` | Fern workspace API token for `fern generate --docs` | `dashboard.buildwithfern.com` → Settings → API tokens |
 
-The `wiki.yml` reusable workflow uses `FERN_TOKEN` to authenticate with the
+The `wiki.yml` reusable workflow uses `HOLOCRON_FERN_TOKEN` to authenticate with the
 Fern platform when publishing docs. Add it to your repo's GitHub Secrets
 (or the org-level secrets if all repos share a Fern workspace).
 

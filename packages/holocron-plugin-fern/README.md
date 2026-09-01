@@ -75,12 +75,12 @@ running `holocron setup`.
 
 ## CI secrets
 
-Add `FERN_TOKEN` to your repo's GitHub Secrets. The `wiki.yml` thin caller
+Add `HOLOCRON_FERN_TOKEN` to your repo's GitHub Secrets. The `wiki.yml` thin caller
 passes it to the Fern CLI during `fern generate --docs`.
 
 | Secret       | Purpose                                      |
 | ------------ | -------------------------------------------- |
-| `FERN_TOKEN` | Fern workspace API token for `fern generate` |
+| `HOLOCRON_FERN_TOKEN` | Fern workspace API token for `fern generate` |
 
 Generate a token at `dashboard.buildwithfern.com` under **Settings → API tokens**.
 

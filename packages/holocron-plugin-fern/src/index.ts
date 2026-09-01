@@ -14,11 +14,13 @@ import type { Wiki } from "@theholocron/cli";
 
 import { FernWiki, type FernWikiOptions } from "./capabilities/wiki.js";
 
-export type { FernWikiOptions };
+export type { ResolveTokenInput } from "./auth.js";
+export { AuthError, resolveToken } from "./auth.js";
+export type { FernWikiOptions } from "./capabilities/wiki.js";
 export { FernWiki } from "./capabilities/wiki.js";
 export { FERN_VERSION } from "./capabilities/wiki.js";
 
-export interface FernPluginOptions extends FernWikiOptions {}
+export type FernPluginOptions = FernWikiOptions;
 
 export function wiki(opts: FernPluginOptions): Wiki {
 	return new FernWiki(opts);

@@ -120,7 +120,7 @@ After running setup, configure access control manually in the dashboard.
 
 | Secret       | Purpose                                      | Where set     |
 | ------------ | -------------------------------------------- | ------------- |
-| `FERN_TOKEN` | Fern workspace API token — used by `wiki.yml` CI workflow | GitHub secret |
+| `HOLOCRON_FERN_TOKEN` | Fern workspace API token — used by `wiki.yml` CI workflow | GitHub secret |
 
 **Provider options:**
 
@@ -247,6 +247,6 @@ remote when it calls a provider API (GitHub Wiki enable).
 - [ ] `providers.wiki: "github"` enables the GitHub Wiki and syncs index pages
 - [ ] Password protection configured in Fern Dashboard (manual step — cannot
       be automated; document in `docs/tokens.md` or a runbook)
-- [ ] `FERN_TOKEN` secret documented in `docs/tokens.md` with required scopes
+- [ ] `HOLOCRON_FERN_TOKEN` secret documented in `docs/tokens.md` with required scopes
 - [ ] Closes #65 (AI workflow published to chosen wiki surface)
 - [ ] Closes #446 (Fern trialed as the primary wiki provider)
