@@ -3595,3 +3595,52 @@ describe("setup: engineering step", () => {
 		expect(report.steps.find((s) => s.capability === "engineering")).toBeUndefined();
 	});
 });
+
+describe("setup: wiki step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-wiki-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("runs wiki.provision when the wiki capability is loaded", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { wiki: "fern" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		let provisionCalled = false;
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => {
+						provisionCalled = true;
+						return "ok";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(provisionCalled).toBe(true);
+		const step = report.steps.find((s) => s.capability === "wiki");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("ok");
+	});
+
+	it("skips wiki step when no wiki provider is configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "wiki")).toBeUndefined();
+	});
+});
