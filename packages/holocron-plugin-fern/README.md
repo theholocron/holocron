@@ -27,6 +27,9 @@ pnpm add -D @theholocron/holocron-plugin-fern
 
     // With an explicit basepath
     "wiki": ["fern", { "domain": "wiki.theholocron.dev/myrepo" }],
+
+    // When the Fern workspace slug differs from config.org
+    "wiki": ["fern", { "domain": "wiki.theholocron.dev", "fernOrg": "holocron" }],
   },
 }
 
@@ -34,20 +37,25 @@ pnpm add -D @theholocron/holocron-plugin-fern
 
 ### Options
 
-| Option   | Required | Description                                                                                                                                                                |
-| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `domain` | No       | Base domain (`"wiki.theholocron.dev"`) or full path (`"wiki.theholocron.dev/myrepo"`). When a base domain is given, the repo name is appended automatically as a basepath. |
+| Option     | Required | Description                                                                                                                                                                |
+| ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`   | No       | Base domain (`"wiki.theholocron.dev"`) or full path (`"wiki.theholocron.dev/myrepo"`). When a base domain is given, the repo name is appended automatically as a basepath. |
+| `fernOrg`  | No       | Fern workspace slug. Defaults to `config.org`. Set this when the Fern workspace name differs from the GitHub org (e.g. workspace `"holocron"`, org `"theholocron"`).       |
 
 ## What `holocron setup` does
 
 1. **Writes `fern/fern.config.json`** — Fern workspace org name and pinned
    CLI version. Always overwritten.
-2. **Scaffolds `fern/docs.yml`** — Instance URL, optional custom domain with
-   `multi-source: true`, and navigation pointing at `docs/decisions/` and
-   `docs/engineering/`. Skipped if the file already exists so hand-edited
-   navigation entries are preserved.
+2. **Updates `fern/docs.yml`** — On first run, scaffolds the file with
+   instance URL, optional custom domain, and navigation stubs. On subsequent
+   runs, updates only the `instances:` block (URL, `custom-domain`,
+   `multi-source`) while leaving hand-edited navigation, colors, and layout
+   untouched.
+3. **Provisions DNS** — When a `domain` is set and a `dns` provider is
+   configured, upserts a CNAME record pointing the hostname at
+   `<fernOrg>.docs.buildwithfern.com`.
 
-Both files must be committed — the CI workflow reads them at deploy time.
+Both `fern/` files must be committed — the CI workflow reads them at deploy time.
 
 ## Custom domain and multi-source routing
 

@@ -910,6 +910,23 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
+
+		// Provision CNAME for custom domain when a dns provider is available.
+		const wikiDns = wiki.dnsRecord?.();
+		if (wikiDns && loader.has("dns")) {
+			const dns = loader.get("dns") as Dns;
+			steps.push(
+				await runStep("dns", `upsertRecord ${wikiDns.cname}`, dryRun, async () => {
+					await dns.upsertRecord(wikiDns.zone, {
+						type: "CNAME",
+						name: wikiDns.cname,
+						content: wikiDns.target,
+						ttl: 1,
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
 	}
 
 	// ── deployment: ensure project + preview infrastructure ─────────────

@@ -805,6 +805,19 @@ export interface WikiProvisionOpts {
 }
 
 /**
+ * DNS record that `setup` should create for a wiki custom domain.
+ * Returned by `Wiki.dnsRecord()` when a custom domain is configured.
+ */
+export interface WikiDnsRecord {
+	/** Zone apex passed as the first argument to `dns.upsertRecord`. */
+	zone: string;
+	/** Full hostname for the CNAME (e.g. "wiki.theholocron.dev"). */
+	cname: string;
+	/** CNAME target (e.g. "holocron.docs.buildwithfern.com"). */
+	target: string;
+}
+
+/**
  * Engineering wiki provider.
  *
  * A swappable provider for publishing the `docs/decisions/` and
@@ -816,6 +829,12 @@ export interface Wiki extends ProviderIdentity {
 	readonly key: "wiki";
 	/** Provision the wiki — write config files or call the provider API. */
 	provision(opts?: WikiProvisionOpts): Promise<string>;
+	/**
+	 * DNS record needed for the custom domain, when one is configured.
+	 * Returns null when no custom domain is set.
+	 * Called by `setup` to provision the CNAME via the `dns` capability.
+	 */
+	dnsRecord?(): WikiDnsRecord | null;
 }
 
 // ───────────────────────────────────────────────────────────────────────

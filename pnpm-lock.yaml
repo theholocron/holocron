@@ -225,8 +225,8 @@ importers:
         specifier: catalog:configs
         version: 7.20.0(prettier@3.9.6)
       '@theholocron/registry-doc':
-        specifier: ^1.6.1
-        version: 1.6.1
+        specifier: ^1.7.0
+        version: 1.7.0
       '@theholocron/semantic-release-config':
         specifier: catalog:configs
         version: 7.20.0(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.3.0)(semantic-release@25.0.9(typescript@5.9.3))
@@ -314,8 +314,8 @@ importers:
         specifier: catalog:clients
         version: 1.12.0(vitest@4.1.10)
       '@theholocron/registry-doc':
-        specifier: ^1.6.0
-        version: 1.6.0
+        specifier: ^1.7.0
+        version: 1.7.0
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
@@ -3241,12 +3241,8 @@ packages:
     peerDependencies:
       prettier: ^3
 
-  '@theholocron/registry-doc@1.6.0':
-    resolution: {integrity: sha512-MONKRhpuWE4gdLQxIijU014MFTmgZFBu7+TtgxhbqLxxfJOrsr9HyztSVck/l9D+dWbQ0/V0OijzO1uo6slKqw==}
-    engines: {node: '>=22.0.0'}
-
-  '@theholocron/registry-doc@1.6.1':
-    resolution: {integrity: sha512-dNBalKw4JRfOdYGPxUx2umxTHSx3vvZb24VAN0FxbWneH5OzX/tnjKJ0f9dU5GQFW/XiVQPXtMvv8mjYimbA1g==}
+  '@theholocron/registry-doc@1.7.0':
+    resolution: {integrity: sha512-gcg3ntxJO0SzCLiyQeA2s2FQSxfgRvymFj+aulEVxffzjq8cGyT9dF5mzGvrIljrx21omraVanWrqzYt5fsdDQ==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/semantic-release-config@7.20.0':
@@ -6734,8 +6730,8 @@ packages:
     resolution: {integrity: sha512-IIaP0g3iy9Cyy18w3M9YcaDudujEAVHKt3a3QJg1+sr/oX96TbaGUubG0hJyCjCBThFH+tFpcIyoUHUn1ogaLA==}
     engines: {node: '>=20'}
 
-  string.prototype.matchall@4.0.12:
-    resolution: {integrity: sha512-6CC9uyBL+/48dYizRf7H7VAYCMCNTBeM78x/VTUe9bFEaxBepPJDa1Ow99LqI/1yF7kuy7Q3cQsYMrcjGUcskA==}
+  string.prototype.matchall@4.1.0:
+    resolution: {integrity: sha512-tHNHTxInrYLCga9O9YGxWA3G9/nnzQw8UGAyqGx3Ar1pSTTzIuM4woFSq4SowkXCjJIwq5sIiQvEfRI9tCH1qQ==}
     engines: {node: '>= 0.4'}
 
   string.prototype.repeat@1.0.0:
@@ -9644,9 +9640,7 @@ snapshots:
     dependencies:
       prettier: 3.9.6
 
-  '@theholocron/registry-doc@1.6.0': {}
-
-  '@theholocron/registry-doc@1.6.1': {}
+  '@theholocron/registry-doc@1.7.0': {}
 
   '@theholocron/semantic-release-config@7.20.0(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.3.0)(semantic-release@25.0.9(typescript@5.9.3))':
     dependencies:
@@ -11168,7 +11162,7 @@ snapshots:
       prop-types: 15.8.1
       resolve: 2.0.0-next.7
       semver: 6.3.1
-      string.prototype.matchall: 4.0.12
+      string.prototype.matchall: 4.1.0
       string.prototype.repeat: 1.0.0
     optional: true
 
@@ -14134,7 +14128,7 @@ snapshots:
       get-east-asian-width: 1.6.0
       strip-ansi: 7.2.0
 
-  string.prototype.matchall@4.0.12:
+  string.prototype.matchall@4.1.0:
     dependencies:
       call-bind: 1.0.9
       call-bound: 1.0.4

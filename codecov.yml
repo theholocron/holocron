@@ -61,6 +61,11 @@ component_management:
       paths:
         - packages/holocron-plugin-doppler/**
 
+    - component_id: holocron-plugin-fern
+      name: "holocron-plugin-fern"
+      paths:
+        - packages/holocron-plugin-fern/**
+
     - component_id: holocron-plugin-github
       name: "holocron-plugin-github"
       paths:
