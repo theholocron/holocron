@@ -89,16 +89,117 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 		expect(docs).toContain("path: ../docs/engineering/README.md");
 	});
 
-	it("skips docs.yml when it already exists", async () => {
+	it("updates instances block in existing docs.yml without touching navigation", async () => {
 		const fernDir = join(repoRoot, "fern");
 		await mkdir(fernDir, { recursive: true });
-		await writeFile(join(fernDir, "docs.yml"), "existing", "utf8");
+		const existing = [
+			`# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json`,
+			``,
+			`instances:`,
+			`  - url: myorg.docs.buildwithfern.com`,
+			``,
+			`title: Myorg Engineering`,
+			``,
+			`navigation:`,
+			`  - tab: decisions`,
+			`    layout:`,
+			`      - page: ADR-0001`,
+			`        path: ../docs/decisions/0001.md`,
+			``,
+		].join("\n");
+		await writeFile(join(fernDir, "docs.yml"), existing, "utf8");
 
-		const wiki = new FernWiki({ repoRoot, org: "myorg" });
+		const wiki = new FernWiki({ repoRoot, org: "myorg", repo: "owner/myrepo", domain: "wiki.example.com" });
 		const result = await wiki.provision();
 
-		expect(await readFile(join(fernDir, "docs.yml"), "utf8")).toBe("existing");
-		expect(result).toContain("skipped");
+		const updated = await readFile(join(fernDir, "docs.yml"), "utf8");
+		expect(updated).toContain("url: myorg.docs.buildwithfern.com/myrepo");
+		expect(updated).toContain("custom-domain: wiki.example.com/myrepo");
+		expect(updated).toContain("multi-source: true");
+		// Navigation preserved
+		expect(updated).toContain("ADR-0001");
+		expect(updated).toContain("title: Myorg Engineering");
+		expect(result).toContain("updated instances");
+	});
+
+	it("preserves blank separator between instances and the next key when updating", async () => {
+		const fernDir = join(repoRoot, "fern");
+		await mkdir(fernDir, { recursive: true });
+		const existing = [
+			`instances:`,
+			`  - url: myorg.docs.buildwithfern.com`,
+			``,
+			`title: Myorg Engineering`,
+			``,
+		].join("\n");
+		await writeFile(join(fernDir, "docs.yml"), existing, "utf8");
+
+		const wiki = new FernWiki({ repoRoot, org: "myorg", repo: "owner/myrepo", domain: "wiki.example.com" });
+		await wiki.provision();
+
+		const updated = await readFile(join(fernDir, "docs.yml"), "utf8");
+		expect(updated).toContain("multi-source: true");
+		expect(updated).toContain("title: Myorg Engineering");
+		// Blank line separator preserved
+		expect(updated).toMatch(/multi-source: true\n+title:/);
+	});
+
+	it("includes domain without multi-source in summary when no repo is set", async () => {
+		const fernDir = join(repoRoot, "fern");
+		await mkdir(fernDir, { recursive: true });
+		await writeFile(join(fernDir, "docs.yml"), "instances:\n  - url: myorg.docs.buildwithfern.com\n\ntitle: Foo\n", "utf8");
+
+		const wiki = new FernWiki({ repoRoot, org: "myorg", domain: "wiki.example.com" });
+		const result = await wiki.provision();
+
+		expect(result).toContain("domain=wiki.example.com");
+		expect(result).not.toContain("multi-source");
+	});
+
+	it("leaves docs.yml unchanged when it has no instances block", async () => {
+		const fernDir = join(repoRoot, "fern");
+		await mkdir(fernDir, { recursive: true });
+		const content = "title: No instances here\n";
+		await writeFile(join(fernDir, "docs.yml"), content, "utf8");
+
+		const wiki = new FernWiki({ repoRoot, org: "myorg", domain: "wiki.example.com" });
+		await wiki.provision();
+
+		expect(await readFile(join(fernDir, "docs.yml"), "utf8")).toBe(content);
+	});
+
+	it("updates without a blank separator when none exists in original", async () => {
+		const fernDir = join(repoRoot, "fern");
+		await mkdir(fernDir, { recursive: true });
+		const existing = "instances:\n  - url: myorg.docs.buildwithfern.com\ntitle: Foo\n";
+		await writeFile(join(fernDir, "docs.yml"), existing, "utf8");
+
+		const wiki = new FernWiki({ repoRoot, org: "myorg", repo: "owner/myrepo", domain: "wiki.example.com" });
+		await wiki.provision();
+
+		const updated = await readFile(join(fernDir, "docs.yml"), "utf8");
+		expect(updated).toContain("multi-source: true");
+		expect(updated).toContain("title: Foo");
+	});
+
+	it("reports up to date when instances block already matches", async () => {
+		const fernDir = join(repoRoot, "fern");
+		await mkdir(fernDir, { recursive: true });
+		const existing = [
+			`instances:`,
+			`  - url: myorg.docs.buildwithfern.com/myrepo`,
+			`    custom-domain: wiki.example.com/myrepo`,
+			`    multi-source: true`,
+			``,
+			`title: Myorg Engineering`,
+			``,
+		].join("\n");
+		await writeFile(join(fernDir, "docs.yml"), existing, "utf8");
+
+		const wiki = new FernWiki({ repoRoot, org: "myorg", repo: "owner/myrepo", domain: "wiki.example.com" });
+		const result = await wiki.provision();
+
+		expect(result).toContain("up to date");
 	});
 });
 

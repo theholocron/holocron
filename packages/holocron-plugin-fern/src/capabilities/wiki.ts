@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Wiki, WikiDnsRecord, WikiProvisionOpts } from "@theholocron/cli";
@@ -95,13 +95,6 @@ async function writeFernDocsYml({
 	const fernDir = join(repoRoot, "fern");
 	await mkdir(fernDir, { recursive: true });
 	const docsPath = join(fernDir, "docs.yml");
-	// Skip if already present — user may have customised the ADR navigation entries.
-	try {
-		await access(docsPath);
-		return "docs.yml: skipped (exists — update navigation manually)";
-	} catch {
-		// file not found — write scaffold
-	}
 
 	const resolvedFernOrg = fernOrg ?? "holocron";
 	const repoName = repo?.split("/").pop();
@@ -138,6 +131,25 @@ async function writeFernDocsYml({
 		}
 	} else {
 		instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com`;
+	}
+
+	// If docs.yml already exists, update the instances: block in-place and
+	// leave everything else (navigation, colors, layout) untouched.
+	let existing: string | null = null;
+	try {
+		existing = await readFile(docsPath, "utf8");
+	} catch {
+		// file not found — will write scaffold below
+	}
+
+	if (existing !== null) {
+		const updated = updateInstancesBlock(existing, instanceUrl, customDomain, multiSource);
+		if (updated !== existing) {
+			await writeFile(docsPath, updated, "utf8");
+			const domainPart = customDomain ? `, domain=${customDomain}${multiSource ? " (multi-source)" : ""}` : "";
+			return `docs.yml: updated instances (url=${instanceUrl}${domainPart})`;
+		}
+		return "docs.yml: instances block already up to date";
 	}
 
 	const lines: string[] = [
@@ -195,4 +207,32 @@ async function writeFernDocsYml({
 
 	const domainSummary = customDomain ? `, domain=${customDomain}${multiSource ? " (multi-source)" : ""}` : "";
 	return `docs.yml: url=${instanceUrl}${domainSummary}`;
+}
+
+/**
+ * Replace the `instances:` block in an existing docs.yml, preserving
+ * everything else (navigation, colors, layout, title, etc.).
+ *
+ * Uses a regex to match the block (the `instances:` key and all following
+ * indented / list lines) and replaces it in-place. Returns the original
+ * string unchanged when the block already matches.
+ */
+function updateInstancesBlock(
+	content: string,
+	instanceUrl: string,
+	customDomain: string | undefined,
+	multiSource: boolean
+): string {
+	// Match `instances:` plus all lines that are indented or are list items.
+	const blockRe = /^instances:(?:\n[ \t][^\n]*)*/m;
+	const match = content.match(blockRe);
+	if (!match) return content;
+
+	const newLines = [`instances:`, `  - url: ${instanceUrl}`];
+	if (customDomain) newLines.push(`    custom-domain: ${customDomain}`);
+	if (multiSource) newLines.push(`    multi-source: true`);
+	const newBlock = newLines.join("\n");
+
+	if (match[0] === newBlock) return content;
+	return content.replace(blockRe, newBlock);
 }
