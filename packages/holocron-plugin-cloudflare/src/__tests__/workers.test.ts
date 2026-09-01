@@ -32,11 +32,7 @@ function makeWorkers(responses: Parameters<typeof stubFetch>[0]) {
 describe("CloudflareWorkers.upsertProxy — creates route when none exists", () => {
 	it("deploys script then creates a new route", async () => {
 		// putScript (200), listRoutes (empty), createRoute
-		const { workers, calls } = makeWorkers([
-			{ status: 200 },
-			cfOk([]),
-			cfOk(route),
-		]);
+		const { workers, calls } = makeWorkers([{ status: 200 }, cfOk([]), cfOk(route)]);
 		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
 
 		expect(calls[0]?.method).toBe("PUT");
