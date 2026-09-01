@@ -118,8 +118,8 @@ After running setup, configure access control manually in the dashboard.
 
 **Secrets required:**
 
-| Secret       | Purpose                                      | Where set     |
-| ------------ | -------------------------------------------- | ------------- |
+| Secret                | Purpose                                                   | Where set     |
+| --------------------- | --------------------------------------------------------- | ------------- |
 | `HOLOCRON_FERN_TOKEN` | Fern workspace API token — used by `wiki.yml` CI workflow | GitHub secret |
 
 **Provider options:**

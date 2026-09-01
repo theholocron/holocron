@@ -34,8 +34,8 @@ pnpm add -D @theholocron/holocron-plugin-fern
 
 ### Options
 
-| Option   | Required | Description                                                                                                                                                             |
-| -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Option   | Required | Description                                                                                                                                                                |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `domain` | No       | Base domain (`"wiki.theholocron.dev"`) or full path (`"wiki.theholocron.dev/myrepo"`). When a base domain is given, the repo name is appended automatically as a basepath. |
 
 ## What `holocron setup` does
@@ -78,8 +78,8 @@ running `holocron setup`.
 Add `HOLOCRON_FERN_TOKEN` to your repo's GitHub Secrets. The `wiki.yml` thin caller
 passes it to the Fern CLI during `fern generate --docs`.
 
-| Secret       | Purpose                                      |
-| ------------ | -------------------------------------------- |
+| Secret                | Purpose                                      |
+| --------------------- | -------------------------------------------- |
 | `HOLOCRON_FERN_TOKEN` | Fern workspace API token for `fern generate` |
 
 Generate a token at `dashboard.buildwithfern.com` under **Settings → API tokens**.

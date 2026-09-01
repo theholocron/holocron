@@ -103,8 +103,8 @@ holocron CLI itself. They go in GitHub Secrets and are passed through
 
 ## Fern (`wiki.yml`)
 
-| Secret       | Purpose                                           | Where to create                              |
-| ------------ | ------------------------------------------------- | -------------------------------------------- |
+| Secret                | Purpose                                             | Where to create                                       |
+| --------------------- | --------------------------------------------------- | ----------------------------------------------------- |
 | `HOLOCRON_FERN_TOKEN` | Fern workspace API token for `fern generate --docs` | `dashboard.buildwithfern.com` → Settings → API tokens |
 
 The `wiki.yml` reusable workflow uses `HOLOCRON_FERN_TOKEN` to authenticate with the
