@@ -3704,7 +3704,13 @@ describe("setup: wiki step", () => {
 				},
 			}),
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
-				dns: { key: "dns", providerName: "cloudflare", listRecords: async () => [], upsertRecord: async (_z: string, r: unknown) => r, deleteRecord: async () => {} },
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
 			}),
 		});
 

@@ -147,7 +147,11 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 	it("includes domain without multi-source in summary when no repo is set", async () => {
 		const fernDir = join(repoRoot, "fern");
 		await mkdir(fernDir, { recursive: true });
-		await writeFile(join(fernDir, "docs.yml"), "instances:\n  - url: myorg.docs.buildwithfern.com\n\ntitle: Foo\n", "utf8");
+		await writeFile(
+			join(fernDir, "docs.yml"),
+			"instances:\n  - url: myorg.docs.buildwithfern.com\n\ntitle: Foo\n",
+			"utf8"
+		);
 
 		const wiki = new FernWiki({ repoRoot, org: "myorg", domain: "wiki.example.com" });
 		const result = await wiki.provision();
