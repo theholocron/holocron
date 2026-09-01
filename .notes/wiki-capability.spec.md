@@ -241,8 +241,12 @@ remote when it calls a provider API (GitHub Wiki enable).
       (publish on push to main, Fern preview on pull_request)
 - [x] `domain: "wiki.theholocron.dev"` produces multi-source routing:
       `wiki.theholocron.dev/<reponame>` with `multi-source: true`
-- [x] `holocron setup` is idempotent: `fern.config.json` is overwritten safely;
-      `fern/docs.yml` is skipped if it already exists
+- [x] `fernOrg` option allows the Fern workspace slug to differ from `config.org`
+- [x] `holocron setup` is idempotent: `fern.config.json` is always overwritten
+      safely; `fern/docs.yml` instances block is updated in-place on repeat runs
+      while hand-edited navigation is preserved
+- [x] DNS CNAME provisioned automatically when `domain` is set and a `dns`
+      provider is loaded
 - [x] Provider is swappable with a one-line config change — no code changes
 - [ ] `providers.wiki: "github"` enables the GitHub Wiki and syncs index pages
 - [ ] Password protection configured in Fern Dashboard (manual step — cannot

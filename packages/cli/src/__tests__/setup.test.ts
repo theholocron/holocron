@@ -3643,4 +3643,79 @@ describe("setup: wiki step", () => {
 
 		expect(report.steps.find((s) => s.capability === "wiki")).toBeUndefined();
 	});
+
+	it("upserts CNAME via dns capability when wiki.dnsRecord() returns a record", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { wiki: "fern", dns: "cloudflare" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const upsertCalls: { zone: string; name: string; content: string }[] = [];
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => ({
+						zone: "example.com",
+						cname: "wiki.example.com",
+						target: "myorg.docs.buildwithfern.com",
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (zone: string, record: { name: string; content: string }) => {
+						upsertCalls.push({ zone, name: record.name, content: record.content });
+						return record;
+					},
+					deleteRecord: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(upsertCalls).toHaveLength(1);
+		expect(upsertCalls[0]).toMatchObject({
+			zone: "example.com",
+			name: "wiki.example.com",
+			content: "myorg.docs.buildwithfern.com",
+		});
+		const dnsStep = report.steps.find((s) => s.step === "upsertRecord wiki.example.com");
+		expect(dnsStep?.status).toBe("ok");
+	});
+
+	it("skips dns step when wiki has no custom domain", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { wiki: "fern", dns: "cloudflare" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => null,
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step?.startsWith("upsertRecord wiki"))).toBeUndefined();
+	});
 });

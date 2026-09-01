@@ -20,15 +20,33 @@ on: # yamllint disable-line rule:truthy
       preview-id:
         description: >
           Stable ID for the preview URL. The preview is accessible at
-          {org}-preview-{id}.docs.buildwithfern.com. Use the PR number
+          {fern-org}-preview-{id}.docs.buildwithfern.com. Use the PR number
           (e.g. "pr-123") so the same URL is reused on every push to
           the branch.
         type: string
         required: false
         default: ""
+      fern-org:
+        description: >
+          Fern workspace org slug (e.g. "holocron"). When set, a GitHub
+          deployment is created after a successful preview so the URL appears
+          in the PR sidebar widget — the same pattern as Cloudflare Pages previews.
+        type: string
+        required: false
+        default: ""
+      base-path:
+        description: >
+          Basepath appended to the preview URL (e.g. "holocron" when using
+          multi-source routing with wiki.theholocron.dev/holocron).
+          Omit for single-instance Fern sites.
+        type: string
+        required: false
+        default: ""
     secrets:
       HOLOCRON_FERN_TOKEN:
-        required: true
+        required: false
+      FERN_TOKEN:
+        required: false
 
 jobs:
   publish:
@@ -37,6 +55,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      deployments: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
@@ -50,11 +69,27 @@ jobs:
         if: ${{ !inputs.preview }}
         run: fern generate --docs
         env:
-          FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN }}
+          FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN || secrets.FERN_TOKEN }}
 
       - name: Preview docs
         if: ${{ inputs.preview && inputs.preview-id != '' }}
         run: fern generate --docs --preview --id "$PREVIEW_ID"
         env:
-          FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN }}
+          FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN || secrets.FERN_TOKEN }}
           PREVIEW_ID: ${{ inputs.preview-id }}
+
+      - name: Report preview URL
+        if: ${{ inputs.preview && inputs.preview-id != '' && inputs.fern-org != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FERN_ORG: ${{ inputs.fern-org }}
+          PREVIEW_ID: ${{ inputs.preview-id }}
+          BASE_PATH: ${{ inputs.base-path }}
+        run: |
+          PREVIEW_URL="https://${FERN_ORG}-preview-${PREVIEW_ID}.docs.buildwithfern.com${BASE_PATH:+/${BASE_PATH}}"
+          PAYLOAD=$(printf '{"ref":"%s","environment":"fern (Preview)","description":"Fern Docs","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
+            "$GITHUB_HEAD_REF")
+          DEPLOY_ID=$(echo "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+            --method POST --input - | jq -r '.id')
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOY_ID}/statuses" \
+            --method POST --field state=success --field environment_url="$PREVIEW_URL"
