@@ -164,6 +164,7 @@ packages/
   holocron-plugin-doppler/        — @theholocron/holocron-plugin-doppler    (vault — REST)
   holocron-plugin-infisical/      — @theholocron/holocron-plugin-infisical  (vault — REST)
   holocron-plugin-discord/        — @theholocron/holocron-plugin-discord    (notifications)
+  holocron-plugin-fern/           — @theholocron/holocron-plugin-fern       (wiki)
   holocron-plugin-slack/          — @theholocron/holocron-plugin-slack      (notifications)
   holocron-plugin-postman/        — @theholocron/holocron-plugin-postman    (tooling)
   holocron-plugin-posthog/        — @theholocron/holocron-plugin-posthog   (analytics)
