@@ -1,13 +1,16 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · packages/cli/src/commands/setup.ts
-# Tool:    holocron setup
-# Changes: run `holocron setup` to regenerate.
+# Tool:    holocron sync-github
+# Changes: edit source in theholocron/holocron and push to alpha or main.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
     groups:
       security-patches:
         applies-to: security-updates
@@ -22,6 +25,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
     groups:
       all-actions:
         patterns:

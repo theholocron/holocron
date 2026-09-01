@@ -18,7 +18,6 @@ export default defineConfig({
 			"Knip",
 			"tsdown (every workspace)",
 			"codecov/patch/cli",
-			"codecov/patch/cli-utils",
 			"codecov/patch/holocron-plugin-1password",
 			"codecov/patch/holocron-plugin-clerk",
 			"codecov/patch/holocron-plugin-cloudflare",

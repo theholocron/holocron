@@ -37,6 +37,7 @@ import type {
 	Tooling,
 	Vault,
 	Wiki,
+	Workers,
 } from "../capabilities/index.js";
 import { ProviderApiError } from "../capabilities/index.js";
 import { ConfigError } from "../config.js";
@@ -923,6 +924,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						content: wikiDns.target,
 						ttl: 1,
 					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		// Deploy Worker proxy when the wiki provider requires one and a
+		// workers capability is loaded.
+		const wikiProxy = wiki.proxyConfig?.();
+		if (wikiProxy && wikiDns && loader.has("workers")) {
+			const workers = loader.get("workers") as Workers;
+			steps.push(
+				await runStep("workers", `upsertProxy ${wikiDns.cname}`, dryRun, async () => {
+					await workers.upsertProxy(wikiDns.cname, wikiProxy);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
