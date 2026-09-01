@@ -2,16 +2,20 @@
 title: Fern Plugin
 description: Implements the wiki capability for engineering knowledge publishing via Fern.
 ---
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
 
-<PluginHeader entry={getPlugins()["holocron-plugin-fern"]} capability="wiki" />
+`@theholocron/holocron-plugin-fern` · [npm](https://www.npmjs.com/package/@theholocron/holocron-plugin-fern) · [GitHub](https://github.com/theholocron/holocron)
 
-<Installation package={getPlugins()["holocron-plugin-fern"].package} dev />
+Implements the `wiki` capability using [Fern](https://buildwithfern.com).
 
-<CapabilitiesTable rows={[
-  { capability: "wiki", token: "FERN_TOKEN (CI secret only)" },
-]} />
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-fern
+```
+
+| Capability | Token                              |
+| ---------- | ---------------------------------- |
+| `wiki`     | `HOLOCRON_FERN_TOKEN` (CI secret)  |
 
 ## Config
 
@@ -77,11 +81,27 @@ DNS: one CNAME record — `wiki.theholocron.dev` →
 `HOLOCRON_FERN_TOKEN` is a CI-only secret — it is not used by `holocron setup` and
 does not go in the keyring. Add it directly to your repo's GitHub Secrets.
 
+**Resolution order:**
+
+```
+--token flag
+  → HOLOCRON_FERN_TOKEN        (env var)
+  → FERN_TOKEN                 (Fern's native env var — vendor fallback)
+  → keyring "fern.theholocron" (org-namespaced)
+  → keyring "fern"             (unnamespaced fallback)
+```
+
+**Store in keyring:**
+
+```sh
+holocron auth set fern <token>
+```
+
 1. Go to `dashboard.buildwithfern.com` → **Settings → API tokens**
 2. Create a token with publish permissions
 3. Add it as a GitHub secret named `HOLOCRON_FERN_TOKEN`
 
-The `wiki.yml` workflow passes `HOLOCRON_FERN_TOKEN` to `fern generate --docs` via
+The `wiki.yml` workflow passes it to `fern generate --docs` via
 `secrets: inherit`.
 
 :::note
