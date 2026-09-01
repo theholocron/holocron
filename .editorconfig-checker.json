@@ -10,9 +10,7 @@
     "(^|.+/)LICENSE$",
     "^public/.*",
     "\\.md$",
-    "\\.mdx$",
-    "packages/cli/src/commands/plugin-create/templates/",
-    "packages/cli/src/agent-prompts\\.ts$"
+    "\\.mdx$"
   ],
   "AllowedContentTypes": [],
   "PassedFiles": [],
