@@ -523,7 +523,7 @@ describe("PluginLoader — defaultImporter (cwd resolution)", () => {
 		// need the try-branch in defaultImporter covered (lines A-C).
 		const selfPath = new URL("./loader.test.js", import.meta.url).pathname;
 		const mockResolve = vi.fn().mockReturnValue(selfPath);
-		vi.mocked(createRequire).mockReturnValueOnce({ resolve: mockResolve } as ReturnType<typeof createRequire>);
+		vi.mocked(createRequire).mockReturnValueOnce({ resolve: mockResolve } as unknown as ReturnType<typeof createRequire>);
 
 		const config = resolveConfig({ name: "test", providers: { wiki: "fern" } });
 		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
