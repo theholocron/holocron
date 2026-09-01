@@ -111,9 +111,15 @@ jobs:
         name: Build
         if: ${{ inputs.run-build == true }}
 
-      - run: npx semantic-release ${{ inputs.dry-run && '--dry-run' || '' }}
-        name: Release
+      - name: Release
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            npx semantic-release --dry-run
+          else
+            npx semantic-release
+          fi
         env:
+          DRY_RUN: ${{ inputs.dry-run }}
           # Prefer HOLOCRON_RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
           # owned by an admin with ruleset bypass) so @semantic-release/git can
           # push the version-bump commit through branch protection. Falls back to
