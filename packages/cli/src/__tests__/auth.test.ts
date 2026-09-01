@@ -582,3 +582,36 @@ describe("runAuthList", () => {
 		expect(lines.join("\n")).toMatch(/✓ doppler\s*$/m);
 	});
 });
+
+describe("runAuthSet / runAuthCheck — defaultImporter (cwd resolution)", () => {
+	it("resolves plugin from cwd and runs verifyToken when no importer is injected", async () => {
+		// @theholocron/holocron-plugin-cloudflare is in workspace node_modules.
+		// Stub fetch so verifyToken does not hit the real Cloudflare API.
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				new Response(JSON.stringify({ success: false, errors: [{ code: 10000, message: "bad token" }] }), {
+					status: 401,
+				})
+			)
+		);
+		const { print } = collect();
+		const result = await runAuthSet({ provider: "cloudflare", positional: "fake-token", env: {}, print });
+		vi.unstubAllGlobals();
+		// Plugin loaded from cwd; verifyToken returned fail (401 from stub).
+		expect(result.status).toBe("fail");
+	});
+
+	it("falls back gracefully when the plugin cannot be resolved from cwd or globally", async () => {
+		// Covers the catch branch of defaultImporter.
+		const { print } = collect();
+		const result = await runAuthSet({
+			provider: "no-such-provider-xz9" as "cloudflare",
+			positional: "some-token",
+			env: {},
+			print,
+		});
+		// Plugin not found anywhere — stores token anyway with a warning.
+		expect(result.status).toBe("ok");
+	});
+});

@@ -506,3 +506,21 @@ describe("cardinalityOf", () => {
 		expect(cardinalityOf("notifications")).toBe("many");
 	});
 });
+
+describe("PluginLoader — defaultImporter (cwd resolution)", () => {
+	it("resolves packages from cwd when no importer is injected", async () => {
+		// @theholocron/holocron-plugin-fern is in workspace node_modules and needs
+		// no token to construct — covers the cwd-resolution success path (try branch).
+		const config = resolveConfig({ name: "test", providers: { wiki: "fern" } });
+		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
+		await loader.load();
+		expect(loader.has("wiki")).toBe(true);
+	});
+
+	it("falls back to bare import when the package is not in cwd", async () => {
+		// A provider that does not exist anywhere — covers the catch branch.
+		const config = resolveConfig({ name: "test", providers: { source: "no-such-provider-xz9" as "github" } });
+		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
+		await expect(loader.load()).rejects.toThrow(LoaderError);
+	});
+});
