@@ -1,7 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Wiki, WikiProvisionOpts } from "@theholocron/cli";
+import type { Wiki, WikiDnsRecord, WikiProvisionOpts } from "@theholocron/cli";
 
 export const FERN_VERSION = "5.35.4";
 
@@ -30,6 +30,13 @@ export interface FernWikiOptions {
 	 * (https://dashboard.buildwithfern.com) — it is not configurable via docs.yml.
 	 */
 	domain?: string;
+	/**
+	 * Fern workspace org slug. Defaults to `org` (the GitHub org name).
+	 * Set this explicitly when the Fern workspace name differs from the
+	 * GitHub org — e.g. the workspace was registered as "holocron" while
+	 * the GitHub org is "theholocron".
+	 */
+	fernOrg?: string;
 }
 
 export class FernWiki implements Wiki {
@@ -40,32 +47,48 @@ export class FernWiki implements Wiki {
 
 	async provision(callOpts?: WikiProvisionOpts): Promise<string> {
 		const repoRoot = this.opts.repoRoot ?? process.cwd();
-		const { org, repo, domain } = this.opts;
+		const { org, repo, domain, fernOrg } = this.opts;
 		const name = callOpts?.name;
+		const resolvedFernOrg = fernOrg ?? org;
 
-		const configNote = await writeFernConfig({ repoRoot, org });
-		const docsNote = await writeFernDocsYml({ repoRoot, org, repo, name, domain });
+		const configNote = await writeFernConfig({ repoRoot, fernOrg: resolvedFernOrg });
+		const docsNote = await writeFernDocsYml({ repoRoot, fernOrg: resolvedFernOrg, repo, name, domain });
 		return `${configNote}; ${docsNote}`;
+	}
+
+	dnsRecord(): WikiDnsRecord | null {
+		const { org, repo, domain, fernOrg } = this.opts;
+		if (!domain) return null;
+		const resolvedFernOrg = fernOrg ?? org ?? "holocron";
+		const repoName = repo?.split("/").pop();
+		// Strip any basepath to get just the hostname for the CNAME.
+		const hostname = domain.split("/")[0]!;
+		// Derive zone: last two labels (works for most TLDs).
+		const labels = hostname.split(".");
+		const zone = labels.slice(-2).join(".");
+		const target = `${resolvedFernOrg}.docs.buildwithfern.com`;
+		return { zone, cname: hostname, target };
 	}
 }
 
-async function writeFernConfig({ repoRoot, org }: { repoRoot: string; org?: string }): Promise<string> {
+async function writeFernConfig({ repoRoot, fernOrg }: { repoRoot: string; fernOrg?: string }): Promise<string> {
 	const fernDir = join(repoRoot, "fern");
 	await mkdir(fernDir, { recursive: true });
-	const content = JSON.stringify({ organization: org ?? "holocron", version: FERN_VERSION }, null, 2) + "\n";
+	const org = fernOrg ?? "holocron";
+	const content = JSON.stringify({ organization: org, version: FERN_VERSION }, null, 2) + "\n";
 	await writeFile(join(fernDir, "fern.config.json"), content, "utf8");
-	return `fern.config.json: org=${org ?? "holocron"}, version=${FERN_VERSION}`;
+	return `fern.config.json: org=${org}, version=${FERN_VERSION}`;
 }
 
 async function writeFernDocsYml({
 	repoRoot,
-	org,
+	fernOrg,
 	repo,
 	name,
 	domain,
 }: {
 	repoRoot: string;
-	org?: string;
+	fernOrg?: string;
 	repo?: string;
 	name?: string;
 	domain?: string;
@@ -81,7 +104,7 @@ async function writeFernDocsYml({
 		// file not found — write scaffold
 	}
 
-	const fernOrg = org ?? "holocron";
+	const resolvedFernOrg = fernOrg ?? "holocron";
 	const repoName = repo?.split("/").pop();
 
 	// Derive instance URL, custom-domain, and multi-source flag.
@@ -101,21 +124,21 @@ async function writeFernDocsYml({
 		if (slashIdx !== -1) {
 			// Domain already contains a basepath — use as-is.
 			const basepath = domain.slice(slashIdx + 1);
-			instanceUrl = `${fernOrg}.docs.buildwithfern.com/${basepath}`;
+			instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com/${basepath}`;
 			customDomain = domain;
 			multiSource = true;
 		} else if (repoName) {
 			// Base domain only — append repo name as basepath.
-			instanceUrl = `${fernOrg}.docs.buildwithfern.com/${repoName}`;
+			instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com/${repoName}`;
 			customDomain = `${domain}/${repoName}`;
 			multiSource = true;
 		} else {
 			// Domain provided but no repo to derive basepath — use domain directly.
-			instanceUrl = `${fernOrg}.docs.buildwithfern.com`;
+			instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com`;
 			customDomain = domain;
 		}
 	} else {
-		instanceUrl = `${fernOrg}.docs.buildwithfern.com`;
+		instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com`;
 	}
 
 	const lines: string[] = [
@@ -128,7 +151,7 @@ async function writeFernDocsYml({
 	if (multiSource) lines.push(`    multi-source: true`);
 	lines.push(
 		``,
-		`title: ${name ?? fernOrg} Engineering`,
+		`title: ${name ?? resolvedFernOrg} Engineering`,
 		``,
 		`layout:`,
 		`  page-width: full`,

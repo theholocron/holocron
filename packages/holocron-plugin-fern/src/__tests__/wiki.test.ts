@@ -160,3 +160,42 @@ describe("FernWiki.provision — summary", () => {
 		expect(result).toContain("multi-source");
 	});
 });
+
+describe("FernWiki.dnsRecord", () => {
+	it("returns null when no domain is set", () => {
+		expect(new FernWiki({ org: "myorg" }).dnsRecord()).toBeNull();
+	});
+
+	it("returns CNAME record for a bare domain", () => {
+		const record = new FernWiki({ org: "myorg", domain: "wiki.example.com" }).dnsRecord();
+		expect(record).toEqual({
+			zone: "example.com",
+			cname: "wiki.example.com",
+			target: "myorg.docs.buildwithfern.com",
+		});
+	});
+
+	it("strips basepath from domain when deriving the CNAME hostname", () => {
+		const record = new FernWiki({
+			org: "myorg",
+			repo: "owner/myrepo",
+			domain: "wiki.example.com/myrepo",
+		}).dnsRecord();
+		expect(record?.cname).toBe("wiki.example.com");
+		expect(record?.zone).toBe("example.com");
+	});
+
+	it("uses fernOrg over org for the CNAME target", () => {
+		const record = new FernWiki({
+			org: "theholocron",
+			fernOrg: "holocron",
+			domain: "wiki.example.com",
+		}).dnsRecord();
+		expect(record?.target).toBe("holocron.docs.buildwithfern.com");
+	});
+
+	it("falls back to 'holocron' when neither fernOrg nor org is set", () => {
+		const record = new FernWiki({ domain: "wiki.example.com" }).dnsRecord();
+		expect(record?.target).toBe("holocron.docs.buildwithfern.com");
+	});
+});
