@@ -17,6 +17,9 @@
  * "no verify path" shouldn't block credential storage.
  */
 
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
 import { resolvePluginPackage } from "../config.js";
 import { deleteToken, getToken, listStoredProviders, setToken } from "../keyring.js";
 import { withSpinner } from "../ui/progress.js";
@@ -46,7 +49,15 @@ interface AuthPluginModule {
 
 export type AuthImporter = (packageName: string) => Promise<AuthPluginModule>;
 
-const defaultImporter: AuthImporter = async (pkg) => (await import(pkg)) as AuthPluginModule;
+const defaultImporter: AuthImporter = async (pkg) => {
+	try {
+		const localRequire = createRequire(process.cwd() + "/");
+		const resolved = localRequire.resolve(pkg);
+		return (await import(pathToFileURL(resolved).href)) as AuthPluginModule;
+	} catch {
+		return (await import(pkg)) as AuthPluginModule;
+	}
+};
 
 // ── Common types ─────────────────────────────────────────────────────
 

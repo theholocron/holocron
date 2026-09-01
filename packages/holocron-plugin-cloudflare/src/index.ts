@@ -80,7 +80,8 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 
 export const AUTH_HINT =
 	"create an API token at https://dash.cloudflare.com/profile/api-tokens " +
-	"with Zone:Read, DNS:Edit, and Cloudflare Pages:Edit permissions, " +
+	"with Zone:Read, DNS:Edit, Cloudflare Pages:Edit, Workers Scripts:Edit (account-level), " +
+	"and Workers Routes:Edit (zone-level) permissions, " +
 	"then run: holocron auth set cloudflare <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
