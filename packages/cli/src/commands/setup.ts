@@ -923,6 +923,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						name: wikiDns.cname,
 						content: wikiDns.target,
 						ttl: 1,
+						// Must be proxied so Cloudflare intercepts traffic and the
+						// Worker Route fires. Grey-cloud CNAMEs bypass Worker Routes.
+						...(wikiProxy ? { proxied: true } : {}),
 					});
 				})
 			);

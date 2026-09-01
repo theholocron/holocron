@@ -744,6 +744,7 @@ export interface DnsRecord {
 	content: string;
 	ttl?: number;
 	priority?: number;
+	proxied?: boolean;
 }
 
 export interface Dns extends ProviderIdentity {

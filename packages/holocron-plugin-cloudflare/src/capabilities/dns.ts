@@ -33,6 +33,7 @@ export class CloudflareDns implements Dns {
 				name: record.name,
 				content: record.content,
 				...(record.ttl !== undefined ? { ttl: record.ttl } : {}),
+				...(record.proxied !== undefined ? { proxied: record.proxied } : {}),
 			});
 			return mapRecord(updated);
 		}
@@ -41,6 +42,7 @@ export class CloudflareDns implements Dns {
 			name: record.name,
 			content: record.content,
 			...(record.ttl !== undefined ? { ttl: record.ttl } : {}),
+			...(record.proxied !== undefined ? { proxied: record.proxied } : {}),
 		});
 		return mapRecord(created);
 	}
