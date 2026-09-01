@@ -1,3 +1,17 @@
+## [7.30.0](https://github.com/theholocron/configs/compare/v7.29.0...v7.30.0) (2026-09-01)
+
+### Features
+
+* ✨ add workers capability to docs() preset ([#425](https://github.com/theholocron/configs/issues/425)) ([6744925](https://github.com/theholocron/configs/commit/6744925b7532a5048ce235f03d45b0baac10e431))
+
+### Documentation
+
+* 📝 fix preset docs accuracy after react() test param and themes fix ([#422](https://github.com/theholocron/configs/issues/422)) ([e6d11bc](https://github.com/theholocron/configs/commit/e6d11bc2c7a052b8105627a77f7e3c48334d6386))
+
+### Chores
+
+* sync README and repo metadata ([#421](https://github.com/theholocron/configs/issues/421)) ([2b8b99e](https://github.com/theholocron/configs/commit/2b8b99e2501ca95915116fa6a1f81f51a242c9a7))
+
 ## [7.29.0](https://github.com/theholocron/configs/compare/v7.28.2...v7.29.0) (2026-08-31)
 
 ### Features
