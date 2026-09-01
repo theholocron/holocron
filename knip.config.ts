@@ -27,6 +27,7 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-cloudflare",
 		"@theholocron/holocron-plugin-discord",
 		"@theholocron/holocron-plugin-doppler",
+		"@theholocron/holocron-plugin-fern",
 		"@theholocron/holocron-plugin-github",
 		"@theholocron/holocron-plugin-infisical",
 		"@theholocron/holocron-plugin-neon",

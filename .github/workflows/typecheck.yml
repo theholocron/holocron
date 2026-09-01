@@ -1,8 +1,7 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
-# Synced:  2026-07-21T22:33:24.283Z
-# Tool:    holocron setup
-# Changes: run `holocron setup` to regenerate.
+# Tool:    holocron sync-github
+# Changes: edit source in theholocron/holocron and push to alpha or main.
 name: Typecheck
 
 on: # yamllint disable-line rule:truthy
