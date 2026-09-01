@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config.js";
