@@ -352,7 +352,6 @@ Identify any specification language that is ambiguous or impossible to verify.
 `,
 };
 
-
 export const DECISIONS_README = `# Decisions
 
 Architectural Decision Records live here. Each file captures one architectural
