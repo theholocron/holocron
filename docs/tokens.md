@@ -95,21 +95,39 @@ holocron sync-github --token github=ghp_zzz
 
 ---
 
-# Third-party CI secrets
-
-These tokens are used by generated CI workflows (thin callers), not by the
-holocron CLI itself. They go in GitHub Secrets and are passed through
-`secrets: inherit` — not in the keyring.
+# Third-party provider tokens
 
 ## Fern (`wiki.yml`)
 
-| Secret                | Purpose                                             | Where to create                                       |
-| --------------------- | --------------------------------------------------- | ----------------------------------------------------- |
-| `HOLOCRON_FERN_TOKEN` | Fern workspace API token for `fern generate --docs` | `dashboard.buildwithfern.com` → Settings → API tokens |
+Generate a token at `dashboard.buildwithfern.com` → **Settings → API tokens**.
 
-The `wiki.yml` reusable workflow uses `HOLOCRON_FERN_TOKEN` to authenticate with the
-Fern platform when publishing docs. Add it to your repo's GitHub Secrets
-(or the org-level secrets if all repos share a Fern workspace).
+**Resolution order:**
 
-Password protection is configured in the Fern Dashboard only — no token or
-env var is needed for `holocron setup`.
+```
+--token flag
+  → HOLOCRON_FERN_TOKEN   (env var)
+  → FERN_TOKEN            (Fern's native env var — vendor fallback)
+  → keyring "fern.<org>"        (org-namespaced; e.g. "fern.theholocron" when org: theholocron)
+  → keyring "fern"              (unnamespaced fallback)
+```
+
+**Store in keyring** (recommended for local use):
+
+```sh
+holocron auth set fern <token>
+```
+
+**Or via env var:**
+
+```sh
+export HOLOCRON_FERN_TOKEN=<token>
+# Also recognised:
+export FERN_TOKEN=<token>
+```
+
+**CI (GitHub Actions):** add `HOLOCRON_FERN_TOKEN` as a repository or org
+secret. The `wiki.yml` reusable workflow picks it up via `secrets: inherit`
+and maps it to `FERN_TOKEN` for the Fern CLI.
+
+Password protection is configured in the Fern Dashboard only — no token is
+needed for `holocron setup`.
