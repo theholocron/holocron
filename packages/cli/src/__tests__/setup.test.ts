@@ -3718,4 +3718,98 @@ describe("setup: wiki step", () => {
 
 		expect(report.steps.find((s) => s.step?.startsWith("upsertRecord wiki"))).toBeUndefined();
 	});
+
+	it("deploys Worker proxy via workers capability when wiki.proxyConfig() returns config", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				providers: { wiki: "fern", dns: "cloudflare", workers: "cloudflare" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const proxyCalls: { hostname: string; target: string }[] = [];
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => ({
+						zone: "example.com",
+						cname: "wiki.example.com",
+						target: "myorg.docs.buildwithfern.com",
+					}),
+					proxyConfig: () => ({
+						target: "https://app.buildwithfern.com",
+						headers: { "X-Fern-Host": "wiki.example.com" },
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
+				workers: {
+					key: "workers",
+					providerName: "cloudflare",
+					upsertProxy: async (hostname: string, config: { target: string }) => {
+						proxyCalls.push({ hostname, target: config.target });
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(proxyCalls).toHaveLength(1);
+		expect(proxyCalls[0]).toMatchObject({
+			hostname: "wiki.example.com",
+			target: "https://app.buildwithfern.com",
+		});
+		const workersStep = report.steps.find((s) => s.step === "upsertProxy wiki.example.com");
+		expect(workersStep?.status).toBe("ok");
+	});
+
+	it("skips workers step when wiki.proxyConfig() returns null", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				providers: { wiki: "fern", dns: "cloudflare", workers: "cloudflare" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => null,
+					proxyConfig: () => null,
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
+				workers: {
+					key: "workers",
+					providerName: "cloudflare",
+					upsertProxy: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step?.startsWith("upsertProxy"))).toBeUndefined();
+	});
 });
