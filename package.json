@@ -39,6 +39,7 @@
     "@theholocron/holocron-plugin-cloudflare": "workspace:*",
     "@theholocron/holocron-plugin-discord": "workspace:*",
     "@theholocron/holocron-plugin-doppler": "workspace:*",
+    "@theholocron/holocron-plugin-fern": "workspace:*",
     "@theholocron/holocron-plugin-github": "workspace:*",
     "@theholocron/holocron-plugin-infisical": "workspace:*",
     "@theholocron/holocron-plugin-neon": "workspace:*",
