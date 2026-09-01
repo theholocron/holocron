@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Wiki, WikiDnsRecord, WikiProxyConfig, WikiProvisionOpts } from "@theholocron/cli";
+import type { Wiki, WikiDnsRecord, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
 
 export const FERN_VERSION = "5.35.4";
 
