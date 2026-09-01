@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json
-# Updated: 2026-09-01
 
 instances:
   - url: holocron.docs.buildwithfern.com/holocron
