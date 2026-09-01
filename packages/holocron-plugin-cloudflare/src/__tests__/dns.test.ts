@@ -63,7 +63,12 @@ describe("CloudflareDns.upsertRecord — create path", () => {
 
 	it("includes proxied in create body when provided", async () => {
 		const { dns, calls } = makeDns([cfOk([zone]), cfOk([]), cfOk(record)]);
-		await dns.upsertRecord(ZONE_NAME, { type: "CNAME", name: "wiki", content: "org.docs.buildwithfern.com", proxied: true });
+		await dns.upsertRecord(ZONE_NAME, {
+			type: "CNAME",
+			name: "wiki",
+			content: "org.docs.buildwithfern.com",
+			proxied: true,
+		});
 		expect(calls[2]?.body).toMatchObject({ proxied: true });
 	});
 });
