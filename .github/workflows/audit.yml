@@ -1,54 +1,20 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Tool:    holocron sync-github
+# Changes: edit source in theholocron/holocron and push to alpha or main.
 name: Audit
 
-on:
+on: # yamllint disable-line rule:truthy
   push:
     branches: [main, alpha]
   pull_request:
-
-concurrency:
-  group: audit-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  knip:
-    name: Knip
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Audit
-        run: pnpm exec knip --reporter github-actions
-
-  conclusion:
-    name: Conclusion
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [knip]
-    steps:
-      - name: Check job statuses
-        run: |
-          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
-            exit 1
-          fi
-        env:
-          RESULTS: ${{ join(needs.*.result, ',') }}
+  audit:
+    uses: theholocron/.github/.github/workflows/audit.yml@main
+    with:
+      run-knip: true
+    secrets: inherit
