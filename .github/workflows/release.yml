@@ -10,6 +10,15 @@ on: # yamllint disable-line rule:truthy
       - main
       - alpha
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: >
+          Dry run — analyze commits and preview the release without git writes
+          or publish. Push-triggered runs always run fully; this only applies
+          to manual workflow_dispatch triggers.
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -25,5 +34,6 @@ jobs:
   release:
     uses: theholocron/.github/.github/workflows/release.yml@main
     with:
+      dry-run: ${{ inputs.dry_run == true }}
       sentry-project: holocron-cli
     secrets: inherit
