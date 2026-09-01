@@ -78,7 +78,7 @@ describe("CloudflareWorkers.upsertProxy — skips route update when script uncha
 
 describe("CloudflareWorkers.upsertProxy — zone resolution", () => {
 	it("walks up to apex zone when subdomain is not a direct zone", async () => {
-		const { fetch, calls } = stubFetch([{ status: 200 }, cfOk([]), cfOk(route)]);
+		const { fetch } = stubFetch([{ status: 200 }, cfOk([]), cfOk(route)]);
 		const zones = { list: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([zone]) };
 		const workers = new CloudflareWorkers(zones, ACCOUNT, { token: TOKEN, baseUrl: BASE, fetch });
 		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
