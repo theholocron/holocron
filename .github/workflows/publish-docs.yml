@@ -25,3 +25,5 @@ jobs:
     with:
       preview: ${{ github.event_name == 'pull_request' }}
       preview-id: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || '' }}
+      fern-org: holocron
+      base-path: holocron
