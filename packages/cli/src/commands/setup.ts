@@ -914,6 +914,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		// Provision CNAME for custom domain when a dns provider is available.
 		const wikiDns = wiki.dnsRecord?.();
+		const wikiProxy = wiki.proxyConfig?.();
 		if (wikiDns && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			steps.push(
@@ -934,7 +935,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		// Deploy Worker proxy when the wiki provider requires one and a
 		// workers capability is loaded.
-		const wikiProxy = wiki.proxyConfig?.();
 		if (wikiProxy && wikiDns && loader.has("workers")) {
 			const workers = loader.get("workers") as Workers;
 			steps.push(
