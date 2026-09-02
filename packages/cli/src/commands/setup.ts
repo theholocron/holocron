@@ -221,6 +221,23 @@ const EDITORCONFIG_CHECKER_CONFIG =
 		2
 	) + "\n";
 
+// ── sentiment-bot config ─────────────────────────────────────────────
+// Written to .github/config.yml — picked up by the sentiment-bot GitHub
+// App (https://github.com/behaviorbot/sentiment-bot) installed org-wide.
+// Update the threshold or reply comment here to propagate across all repos.
+const SENTIMENT_BOT_CONFIG = [
+	`# Configuration for sentiment-bot - https://github.com/behaviorbot/sentiment-bot`,
+	``,
+	`# *Required* toxicity threshold between 0 and .99 with the higher numbers being the most toxic`,
+	`# Anything higher than this threshold will be marked as toxic and commented on`,
+	`sentimentBotToxicityThreshold: .7`,
+	``,
+	`# *Required* Comment to reply with`,
+	`sentimentBotReplyComment: >`,
+	`  Please be sure to review the [Code of Conduct](https://docs.theholocron.dev/reference/code-of-conduct/) and be respectful of other users.`,
+	``,
+].join("\n");
+
 // ── alex config ──────────────────────────────────────────────────────
 // Canonical allow-list for the alex prose linter. Shared across all
 // theholocron repos via `holocron setup` so the list only needs to be
@@ -714,6 +731,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// a consistent allow-list. Update ALEX_CONFIG above to propagate changes.
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
+		steps.push(
+			await runStep("source", "write .github/config.yml", dryRun, async () => {
+				await source.writeRepoFile(".github/config.yml", SENTIMENT_BOT_CONFIG);
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .alexrc.json", dryRun, async () => {
 				await source.writeRepoFile(".alexrc.json", ALEX_CONFIG);
