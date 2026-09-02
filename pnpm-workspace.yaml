@@ -44,7 +44,7 @@ catalogs:
     '@theholocron/astro-config': ^7.29.0
     '@theholocron/commitlint-config': ^7.29.0
     '@theholocron/devmoji-config': ^7.29.0
-    '@theholocron/docs-theme': ^1.3.5
+    '@theholocron/docs-theme': ^1.7.4
     '@theholocron/eslint-config': ^7.29.0
     '@theholocron/holocron-config': ^7.30.0
     '@theholocron/lint-staged-config': ^7.29.0
