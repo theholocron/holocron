@@ -2,16 +2,16 @@
 
 ### Features
 
-* ✨ add wiki() capability — wiki.theholocron.dev/utils ([#257](https://github.com/theholocron/utils/issues/257)) ([517c1f9](https://github.com/theholocron/utils/commit/517c1f9747bcc8f6737e974653905ed832d6a1b8))
+- ✨ add wiki() capability — wiki.theholocron.dev/utils ([#257](https://github.com/theholocron/utils/issues/257)) ([517c1f9](https://github.com/theholocron/utils/commit/517c1f9747bcc8f6737e974653905ed832d6a1b8))
 
 ### Chores
 
-* 🔧 ⬆️ adopt nodeDocs() preset from @theholocron/holocron-config@7.26.0 ([#251](https://github.com/theholocron/utils/issues/251)) ([d3a45e9](https://github.com/theholocron/utils/commit/d3a45e9f6b6db3047397b7196e6e1282d2d8301f))
-* 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#253](https://github.com/theholocron/utils/issues/253)) ([48ffeed](https://github.com/theholocron/utils/commit/48ffeedd80fe6770c606cc8a7ece1a36fbc00973))
-* 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#254](https://github.com/theholocron/utils/issues/254)) ([c90a37b](https://github.com/theholocron/utils/commit/c90a37b72940bf53cc55a4e4dc2d01bfb389a24f))
-* sync from holocron.config ([#255](https://github.com/theholocron/utils/issues/255)) ([6b57fa5](https://github.com/theholocron/utils/commit/6b57fa5d1ab17ead3029b25ce6fb77505ebee1a9))
-* sync from theholocron/holocron ([#252](https://github.com/theholocron/utils/issues/252)) ([66204e9](https://github.com/theholocron/utils/commit/66204e9104da64252b0ff4428500f7050f88dd7c))
-* sync package.json ([#248](https://github.com/theholocron/utils/issues/248)) ([aac973d](https://github.com/theholocron/utils/commit/aac973d9c7ecc58057ed7024654bd1dba3538c5c))
+- 🔧 ⬆️ adopt nodeDocs() preset from @theholocron/holocron-config@7.26.0 ([#251](https://github.com/theholocron/utils/issues/251)) ([d3a45e9](https://github.com/theholocron/utils/commit/d3a45e9f6b6db3047397b7196e6e1282d2d8301f))
+- 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#253](https://github.com/theholocron/utils/issues/253)) ([48ffeed](https://github.com/theholocron/utils/commit/48ffeedd80fe6770c606cc8a7ece1a36fbc00973))
+- 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#254](https://github.com/theholocron/utils/issues/254)) ([c90a37b](https://github.com/theholocron/utils/commit/c90a37b72940bf53cc55a4e4dc2d01bfb389a24f))
+- sync from holocron.config ([#255](https://github.com/theholocron/utils/issues/255)) ([6b57fa5](https://github.com/theholocron/utils/commit/6b57fa5d1ab17ead3029b25ce6fb77505ebee1a9))
+- sync from theholocron/holocron ([#252](https://github.com/theholocron/utils/issues/252)) ([66204e9](https://github.com/theholocron/utils/commit/66204e9104da64252b0ff4428500f7050f88dd7c))
+- sync package.json ([#248](https://github.com/theholocron/utils/issues/248)) ([aac973d](https://github.com/theholocron/utils/commit/aac973d9c7ecc58057ed7024654bd1dba3538c5c))
 
 ## [1.4.3](https://github.com/theholocron/utils/compare/v1.4.2...v1.4.3) (2026-08-26)
 
