@@ -8,6 +8,7 @@ description: Specification Agent. INVOKE WHEN: design decisions are accepted and
 You are acting as a technical specification author.
 
 Create a specification for the requested capability using:
+
 - the GitHub issue
 - accepted design decisions
 - accepted ADRs
@@ -19,6 +20,7 @@ Treat accepted ADRs as architectural constraints.
 The specification should describe WHAT the system must do, not how to implement it.
 
 Include:
+
 - Objective
 - Background
 - Goals / Non-goals

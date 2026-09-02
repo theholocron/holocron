@@ -116,11 +116,11 @@ Key fields:
 ```ts
 import { defineConfig } from "tsdown";
 export default defineConfig({
-	entry: ["index.ts"],
-	format: "esm",
-	fixedExtension: false,
-	dts: true,
-	clean: true,
+  entry: ["index.ts"],
+  format: "esm",
+  fixedExtension: false,
+  dts: true,
+  clean: true,
 });
 ```
 
@@ -155,7 +155,7 @@ export default defineConfig(node());
 import type { Config } from "<tool>";
 
 const config = {
-	// ...
+  // ...
 } satisfies Config;
 
 export default config;
@@ -178,10 +178,10 @@ import { describe, it, expect } from "vitest";
 import config from "./index.js";
 
 describe("<tool>-config", () => {
-	it("exports a non-empty config object", () => {
-		expect(typeof config).toBe("object");
-		expect(Object.keys(config).length).toBeGreaterThan(0);
-	});
+  it("exports a non-empty config object", () => {
+    expect(typeof config).toBe("object");
+    expect(Object.keys(config).length).toBeGreaterThan(0);
+  });
 });
 ```
 

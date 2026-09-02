@@ -31,14 +31,17 @@ If you find yourself about to run one of these, stop and ask the user first.
 ## safe alternatives
 
 **Instead of `git reset --hard`:**
+
 - `git stash` to save changes temporarily
 - `git stash pop` to restore them later
 
 **Instead of force push:**
+
 - `git pull --rebase` then normal push to reconcile diverged history
 - If history is intentionally diverged, stop and ask the user how they want to proceed
 
 **Instead of `git clean -fd`:**
+
 - `git stash --include-untracked` to preserve files
 - Review untracked files with `git status` before deciding to delete
 

@@ -73,7 +73,7 @@ export {
 ```yaml
 # pnpm-workspace.yaml
 catalog:
-    "@theholocron/<slug>-client": ^<version>
+  "@theholocron/<slug>-client": ^<version>
 ```
 
 ```json
@@ -85,6 +85,7 @@ catalog:
 ## Auth pattern (4-step precedence)
 
 Every plugin's `auth.ts` follows this order:
+
 1. `--token` CLI flag (`RuntimeContext.cliToken`)
 2. `HOLOCRON_<VENDOR>_TOKEN` env var
 3. `<VENDOR_NATIVE_ENV_VAR>` env var

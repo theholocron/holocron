@@ -13,6 +13,7 @@ Scaffold a new `@theholocron/<name>-utils` package in `theholocron/utils`.
 Replace `<name>` with the utility domain in kebab-case (e.g. `color`, `math`, `format`).
 
 Reference implementations:
+
 - Node-only package: `packages/string-utils` (canonical, no browser APIs)
 - Browser-API package: `packages/location-utils` (adds DOM lib + eslint override)
 
@@ -98,7 +99,7 @@ import { library } from "@theholocron/tsdown-config/presets/library";
 import type { UserConfig } from "tsdown";
 
 const config: UserConfig = library({
-	deps: { neverBundle: [/^@theholocron\//] },
+  deps: { neverBundle: [/^@theholocron\//] },
 });
 
 export default config;
@@ -153,7 +154,7 @@ export default defineConfig(library({ globals: true }) as never);
 ```ts
 // Named exports — no default export
 export function myUtil(value: string): string {
-	return value;
+  return value;
 }
 ```
 
@@ -174,9 +175,9 @@ import { describe, expect, test } from "vitest";
 import { myUtil } from "./index.ts";
 
 describe("<Name>", () => {
-	test("does X", () => {
-		expect(myUtil("input")).toBe("expected");
-	});
+  test("does X", () => {
+    expect(myUtil("input")).toBe("expected");
+  });
 });
 ```
 
@@ -196,7 +197,7 @@ pnpm add @theholocron/<name>-utils
 ## Usage
 
 \`\`\`typescript
-import * as <name> from "@theholocron/<name>-utils";
+import \* as <name> from "@theholocron/<name>-utils";
 
 <minimal working example>
 \`\`\`

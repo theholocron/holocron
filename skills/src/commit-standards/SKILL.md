@@ -16,16 +16,16 @@ All commit subjects must follow the Conventional Commits format:
 
 ### Types
 
-| Type | Use for |
-|------|---------|
-| `feat` | New feature (triggers minor version bump) |
-| `fix` | Bug fix (triggers patch bump) |
-| `chore` | Maintenance that doesn't affect published artifacts |
-| `docs` | Documentation-only changes |
-| `ci` | CI/workflow changes (won't appear in changelog) |
-| `test` | Test additions or changes |
-| `refactor` | Code restructuring with no behavior change |
-| `perf` | Performance improvement |
+| Type       | Use for                                             |
+| ---------- | --------------------------------------------------- |
+| `feat`     | New feature (triggers minor version bump)           |
+| `fix`      | Bug fix (triggers patch bump)                       |
+| `chore`    | Maintenance that doesn't affect published artifacts |
+| `docs`     | Documentation-only changes                          |
+| `ci`       | CI/workflow changes (won't appear in changelog)     |
+| `test`     | Test additions or changes                           |
+| `refactor` | Code restructuring with no behavior change          |
+| `perf`     | Performance improvement                             |
 
 ### Breaking changes
 
@@ -56,24 +56,24 @@ chore(release): 🚀 1.2.0
 lint: fix all eslint warnings
 ```
 
-| Type | Emoji | Notes |
-|------|-------|-------|
-| `feat` | 💥 | New feature (custom: boom instead of sparkles) |
-| `fix` | 🐛 | Bug fix |
-| `fail` | 💩 | Catastrophic failure or emergency hot fix |
-| `docs` | 📚 | Documentation |
-| `chore` | 🔧 | Maintenance |
-| `chore(release)` | 🚀 | Release |
-| `chore(deps)` | 🔗 | Dependencies |
-| `ci` | 👷 | CI changes |
-| `refactor` | ♻️ | Refactor |
-| `test` | 🚨 | Tests |
-| `perf` | ⚡ | Performance |
-| `build` | 📦 | Build changes |
-| `style` | 🎨 | Style/formatting |
-| `security` | 🔒 | Security |
-| `revert` | ⏪ | Revert |
-| `lint` | _(none)_ | Extra accepted type; no emoji mapped |
+| Type             | Emoji    | Notes                                          |
+| ---------------- | -------- | ---------------------------------------------- |
+| `feat`           | 💥       | New feature (custom: boom instead of sparkles) |
+| `fix`            | 🐛       | Bug fix                                        |
+| `fail`           | 💩       | Catastrophic failure or emergency hot fix      |
+| `docs`           | 📚       | Documentation                                  |
+| `chore`          | 🔧       | Maintenance                                    |
+| `chore(release)` | 🚀       | Release                                        |
+| `chore(deps)`    | 🔗       | Dependencies                                   |
+| `ci`             | 👷       | CI changes                                     |
+| `refactor`       | ♻️       | Refactor                                       |
+| `test`           | 🚨       | Tests                                          |
+| `perf`           | ⚡       | Performance                                    |
+| `build`          | 📦       | Build changes                                  |
+| `style`          | 🎨       | Style/formatting                               |
+| `security`       | 🔒       | Security                                       |
+| `revert`         | ⏪       | Revert                                         |
+| `lint`           | _(none)_ | Extra accepted type; no emoji mapped           |
 
 ## DCO — always `git commit -s`
 
@@ -85,6 +85,7 @@ git commit -s -m "feat: add new thing"
 ```
 
 Result:
+
 ```
 feat: add new thing
 

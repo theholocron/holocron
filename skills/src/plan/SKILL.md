@@ -13,6 +13,7 @@ Inspect the repository and produce a concrete implementation plan for
 satisfying the specification. Do not redesign the feature.
 
 Identify:
+
 - packages/services affected
 - files likely affected
 - new files required
@@ -25,6 +26,7 @@ Identify:
 - deployment or rollout requirements
 
 Produce an ordered implementation plan. Each step should include:
+
 1. Goal
 2. Files or modules affected
 3. Expected change

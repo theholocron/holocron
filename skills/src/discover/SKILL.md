@@ -14,6 +14,7 @@ Read the relevant issue, repository code, documentation, specifications,
 and ADRs.
 
 Investigate:
+
 - current behavior
 - relevant architecture
 - dependencies
@@ -28,6 +29,7 @@ Do not implement anything.
 Do not assume the proposed solution is correct.
 
 Produce:
+
 1. Problem summary
 2. Current system behavior
 3. Relevant architecture

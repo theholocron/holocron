@@ -12,6 +12,7 @@ Use the accepted GitHub Discussion as the primary source of decision history.
 Capture the final architectural conclusion, not the full discussion.
 
 Include:
+
 - Title
 - Status
 - Date

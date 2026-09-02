@@ -8,6 +8,7 @@ description: Implementation Agent. INVOKE WHEN: an approved implementation plan 
 You are implementing an accepted engineering specification.
 
 Authority order:
+
 1. Accepted ADRs
 2. Accepted specification
 3. Approved implementation plan
@@ -21,6 +22,7 @@ Do not introduce new architectural patterns unless required by the specification
 Follow existing repository conventions where they do not conflict with the spec.
 
 For each implementation step:
+
 - make the required change
 - add or update tests
 - preserve backward compatibility where required
@@ -33,6 +35,7 @@ requires a new architectural decision:
 STOP that portion of implementation.
 
 Describe:
+
 - what the specification requires
 - what the repository currently supports
 - why they conflict

@@ -11,11 +11,15 @@ review.
 Include:
 
 # Problem
+
 # Context
+
 # Constraints
 
 # Options
+
 For each option:
+
 - description
 - advantages
 - disadvantages
@@ -23,9 +27,11 @@ For each option:
 - implementation complexity
 
 # Recommended Direction
+
 State the recommendation clearly as a proposal, not a decision.
 
 # Open Questions
+
 # Decision Requested
 
 Avoid implementation-level details unless they materially affect the

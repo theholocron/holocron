@@ -10,6 +10,7 @@ Verify this implementation against the accepted specification.
 Treat each acceptance criterion as independently testable.
 
 Create a requirement matrix containing:
+
 - requirement
 - implementation location
 - test coverage

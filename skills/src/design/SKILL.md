@@ -15,6 +15,7 @@ Do not write implementation code.
 Identify the important engineering decisions required.
 
 For each meaningful decision:
+
 1. Explain the decision that must be made.
 2. Describe viable alternatives.
 3. Explain advantages and disadvantages.
@@ -25,6 +26,7 @@ Treat existing accepted ADRs as architectural constraints.
 Do not contradict an accepted ADR without explicitly identifying the conflict.
 
 At the end, produce:
+
 - Recommended design
 - Open questions
 - Decisions requiring ADRs

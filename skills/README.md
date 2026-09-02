@@ -17,7 +17,7 @@ pnpm install @theholocron/skills
 ## Usage
 
 ```typescript
-import { } from "@theholocron/skills";
+import {} from "@theholocron/skills";
 ```
 
 <!-- /holocron:installation -->
@@ -31,35 +31,35 @@ Skills authored and maintained in this repo. Published inside the npm package.
 
 ### Workflow & safety
 
-| Skill | Description |
-|-------|-------------|
-| [`git-safety`](./skills/git-safety/SKILL.md) | Never force-push or run destructive git ops without permission |
-| [`pr-workflow`](./skills/pr-workflow/SKILL.md) | Always open a PR; one-change-per-PR; delete branch on close |
-| [`commit-standards`](./skills/commit-standards/SKILL.md) | Conventional Commits format + DCO signing |
-| [`security-review`](./skills/security-review/SKILL.md) | OWASP-oriented checklist for code review |
+| Skill                                                    | Description                                                    |
+| -------------------------------------------------------- | -------------------------------------------------------------- |
+| [`git-safety`](./skills/git-safety/SKILL.md)             | Never force-push or run destructive git ops without permission |
+| [`pr-workflow`](./skills/pr-workflow/SKILL.md)           | Always open a PR; one-change-per-PR; delete branch on close    |
+| [`commit-standards`](./skills/commit-standards/SKILL.md) | Conventional Commits format + DCO signing                      |
+| [`security-review`](./skills/security-review/SKILL.md)   | OWASP-oriented checklist for code review                       |
 
 ### Project-specific (theholocron)
 
-| Skill | Description |
-|-------|-------------|
+| Skill                                                              | Description                                                             |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | [`holocron-skill-config`](./skills/holocron-skill-config/SKILL.md) | Scaffold a new `@theholocron/*-config` package in `theholocron/configs` |
 | [`holocron-skill-client`](./skills/holocron-skill-client/SKILL.md) | Scaffold a new `@theholocron/*-client` package in `theholocron/clients` |
-| [`holocron-skill-plugin`](./skills/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package |
-| [`holocron-skill-util`](./skills/holocron-skill-util/SKILL.md) | Scaffold a new `@theholocron/*-utils` package in `theholocron/utils` |
-| [`holocron-skill-skill`](./skills/holocron-skill-skill/SKILL.md) | Add a new owned skill to `theholocron/skills` |
+| [`holocron-skill-plugin`](./skills/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package                   |
+| [`holocron-skill-util`](./skills/holocron-skill-util/SKILL.md)     | Scaffold a new `@theholocron/*-utils` package in `theholocron/utils`    |
+| [`holocron-skill-skill`](./skills/holocron-skill-skill/SKILL.md)   | Add a new owned skill to `theholocron/skills`                           |
 
 ## External skills
 
 Tracked in [`skills-lock.json`](./skills-lock.json) with source provenance and content hash.
 Not committed to this repo — fetched from upstream by `holocron skills update` (planned).
 
-| Skill | Source | Description |
-|-------|--------|-------------|
-| `find-skills` | [vercel-labs/skills](https://github.com/vercel-labs/skills) | Discover and install agent skills from the skills.sh ecosystem |
-| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills) | Distinctive, intentional UI design guidance |
-| `vercel-cli` | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Vercel CLI: deploy, env vars, logs, domains, project linking |
-| `turbopack` | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Turbopack bundler: HMR, CSS, tree shaking, webpack migration |
-| `turborepo` | [vercel/turbo](https://github.com/vercel/turbo) | Turborepo task pipeline configuration and cache optimization |
+| Skill             | Source                                                          | Description                                                    |
+| ----------------- | --------------------------------------------------------------- | -------------------------------------------------------------- |
+| `find-skills`     | [vercel-labs/skills](https://github.com/vercel-labs/skills)     | Discover and install agent skills from the skills.sh ecosystem |
+| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills)       | Distinctive, intentional UI design guidance                    |
+| `vercel-cli`      | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Vercel CLI: deploy, env vars, logs, domains, project linking   |
+| `turbopack`       | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Turbopack bundler: HMR, CSS, tree shaking, webpack migration   |
+| `turborepo`       | [vercel/turbo](https://github.com/vercel/turbo)                 | Turborepo task pipeline configuration and cache optimization   |
 
 ## Installation via `holocron setup`
 
@@ -108,14 +108,18 @@ Add both to `.gitignore`:
 ### Adding an owned skill
 
 1. Create `skills/<name>/SKILL.md` with the frontmatter format:
+
    ```markdown
    ---
    name: <name>
    description: One-line description. INVOKE WHEN: <trigger conditions>.
    ---
+
    # skill title
+
    …
    ```
+
 2. Run `pnpm test` — the smoke test checks that every skill dir has a `SKILL.md`.
 3. Update this README with a row in the owned skills table.
 4. Open a PR with a `feat:` commit — semantic-release handles versioning.

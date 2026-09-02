@@ -10,41 +10,41 @@ These rules mirror what the `dcg` PreToolUse hook enforces at runtime. Follow th
 
 ## Git — never run without explicit permission
 
-| Blocked | Safer alternative |
-|---------|------------------|
-| `git reset --hard` | `git stash` first, then reset |
-| `git clean -f` / `git clean -fd` | `git clean -n` (dry run) first |
-| `git checkout -- .` / `git restore .` | Restore individual files only |
-| `git push --force` / `git push -f` | `git push --force-with-lease` |
-| `git branch -D` | `git branch -d` (safe delete) |
-| `git rebase -i` with `drop` | Confirm each drop with the user |
+| Blocked                               | Safer alternative               |
+| ------------------------------------- | ------------------------------- |
+| `git reset --hard`                    | `git stash` first, then reset   |
+| `git clean -f` / `git clean -fd`      | `git clean -n` (dry run) first  |
+| `git checkout -- .` / `git restore .` | Restore individual files only   |
+| `git push --force` / `git push -f`    | `git push --force-with-lease`   |
+| `git branch -D`                       | `git branch -d` (safe delete)   |
+| `git rebase -i` with `drop`           | Confirm each drop with the user |
 
 ## Filesystem — never run without explicit permission
 
-| Blocked | Safer alternative |
-|---------|------------------|
-| `rm -rf <dir>` | `trash <dir>` or move to `/tmp/` |
-| `find ... -delete` | `find ... -print` first to verify |
-| `chmod -R 777` | Scope to specific files only |
+| Blocked                        | Safer alternative                      |
+| ------------------------------ | -------------------------------------- |
+| `rm -rf <dir>`                 | `trash <dir>` or move to `/tmp/`       |
+| `find ... -delete`             | `find ... -print` first to verify      |
+| `chmod -R 777`                 | Scope to specific files only           |
 | `> file` (truncating redirect) | Confirm file contents before overwrite |
-| `dd if=... of=/dev/...` | Confirm target device explicitly |
+| `dd if=... of=/dev/...`        | Confirm target device explicitly       |
 
 ## Database — never run without explicit permission
 
-| Blocked | Safer alternative |
-|---------|------------------|
+| Blocked                        | Safer alternative                         |
+| ------------------------------ | ----------------------------------------- |
 | `DROP TABLE` / `DROP DATABASE` | Rename table first; drop after confirming |
-| `TRUNCATE` | `DELETE WHERE ...` with a `WHERE` clause |
-| `DELETE` without `WHERE` | Always require a `WHERE` clause |
+| `TRUNCATE`                     | `DELETE WHERE ...` with a `WHERE` clause  |
+| `DELETE` without `WHERE`       | Always require a `WHERE` clause           |
 
 ## Containers / infrastructure
 
-| Blocked | Safer alternative |
-|---------|------------------|
-| `docker system prune` | `docker container prune` (scope it) |
-| `kubectl delete namespace` | Confirm namespace + context explicitly |
-| `terraform destroy` | Require `--target` to scope the destroy |
-| `aws ec2 terminate-instances` | Require explicit instance IDs, confirm |
+| Blocked                       | Safer alternative                       |
+| ----------------------------- | --------------------------------------- |
+| `docker system prune`         | `docker container prune` (scope it)     |
+| `kubectl delete namespace`    | Confirm namespace + context explicitly  |
+| `terraform destroy`           | Require `--target` to scope the destroy |
+| `aws ec2 terminate-instances` | Require explicit instance IDs, confirm  |
 
 ## Rule of thumb
 
