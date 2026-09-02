@@ -25,7 +25,13 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { AGENT_PROMPTS, DECISIONS_README, DECISIONS_TEMPLATE, SPECIFICATIONS_README, STANDARDS_README } from "../agent-prompts.js";
+import {
+	AGENT_PROMPTS,
+	DECISIONS_README,
+	DECISIONS_TEMPLATE,
+	SPECIFICATIONS_README,
+	STANDARDS_README,
+} from "../agent-prompts.js";
 import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import type {
 	Auth,
