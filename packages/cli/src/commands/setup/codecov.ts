@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { scaffoldHeader } from "../setup-workflows.js";
+import codecovTemplate from "./templates/codecov.yml";
 
 export interface WorkspacePackage {
 	slug: string;
@@ -33,37 +34,7 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 }
 
 export function codecovContent(packages: WorkspacePackage[]): string {
-	return (
-		[
-			scaffoldHeader("packages/cli/src/commands/setup/index.ts"),
-			`codecov:`,
-			`  require_ci_to_pass: true`,
-			``,
-			`coverage:`,
-			`  precision: 2`,
-			`  round: down`,
-			`  status:`,
-			`    project:`,
-			`      default:`,
-			`        target: auto`,
-			`        threshold: 2%`,
-			`    patch:`,
-			`      default:`,
-			`        target: 80%`,
-			``,
-			`comment:`,
-			`  layout: "reach,diff,flags,components"`,
-			`  behavior: default`,
-			`  require_changes: true`,
-			``,
-			`component_management:`,
-			`  default_rules:`,
-			`    statuses:`,
-			`      - type: patch`,
-			`        target: 80%`,
-			`  individual_components:`,
-		].join("\n") + codecovComponentBlock(packages)
-	);
+	return scaffoldHeader("packages/cli/src/commands/setup/index.ts") + codecovTemplate.trimEnd() + codecovComponentBlock(packages);
 }
 
 export async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {
