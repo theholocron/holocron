@@ -2,16 +2,16 @@
 
 ### Features
 
-* ✨ add wiki() capability — wiki.theholocron.dev/themes ([#87](https://github.com/theholocron/themes/issues/87)) ([f930a91](https://github.com/theholocron/themes/commit/f930a915b8ab819047ec63b40814f45afaa59bf7))
+- ✨ add wiki() capability — wiki.theholocron.dev/themes ([#87](https://github.com/theholocron/themes/issues/87)) ([f930a91](https://github.com/theholocron/themes/commit/f930a915b8ab819047ec63b40814f45afaa59bf7))
 
 ### Bug Fixes
 
-* **config:** 🐛 restore nodeDocs() preset; move audit to explicit workflow entry ([#84](https://github.com/theholocron/themes/issues/84)) ([44e773c](https://github.com/theholocron/themes/commit/44e773ce911c7c5ca532805a92b7ca5b8f9cdfc9)), closes [#82](https://github.com/theholocron/themes/issues/82) [#80](https://github.com/theholocron/themes/issues/80)
+- **config:** 🐛 restore nodeDocs() preset; move audit to explicit workflow entry ([#84](https://github.com/theholocron/themes/issues/84)) ([44e773c](https://github.com/theholocron/themes/commit/44e773ce911c7c5ca532805a92b7ca5b8f9cdfc9)), closes [#82](https://github.com/theholocron/themes/issues/82) [#80](https://github.com/theholocron/themes/issues/80)
 
 ### Chores
 
-* 🔧 sync from holocron.config ([#83](https://github.com/theholocron/themes/issues/83)) ([342abd8](https://github.com/theholocron/themes/commit/342abd8eab50060656a6ebc5a62a8701d883a9d8))
-* sync README and repo metadata ([#80](https://github.com/theholocron/themes/issues/80)) ([05ca60a](https://github.com/theholocron/themes/commit/05ca60ae7ff9b7cc8dc51cf9d0e38f673c8595b9))
+- 🔧 sync from holocron.config ([#83](https://github.com/theholocron/themes/issues/83)) ([342abd8](https://github.com/theholocron/themes/commit/342abd8eab50060656a6ebc5a62a8701d883a9d8))
+- sync README and repo metadata ([#80](https://github.com/theholocron/themes/issues/80)) ([05ca60a](https://github.com/theholocron/themes/commit/05ca60ae7ff9b7cc8dc51cf9d0e38f673c8595b9))
 
 ## [1.8.0](https://github.com/theholocron/themes/compare/v1.7.4...v1.8.0) (2026-08-31)
 
