@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/string-utils",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Convert a string to any case or case to a different data type.",
   "keywords": [
     "string",

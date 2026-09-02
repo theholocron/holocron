@@ -1,3 +1,13 @@
+## [1.5.1](https://github.com/theholocron/utils/compare/v1.5.0...v1.5.1) (2026-09-02)
+
+### Bug Fixes
+
+* 🐛 pass fern-org and base-path to enable deployment widget ([#260](https://github.com/theholocron/utils/issues/260)) ([00a72cc](https://github.com/theholocron/utils/commit/00a72cc6ce20e1a7da4527b014bcca174ad0fe87))
+
+### Chores
+
+* 🔧 bump CLI to ^3.45.1 and run holocron setup ([#258](https://github.com/theholocron/utils/issues/258)) ([b0b3418](https://github.com/theholocron/utils/commit/b0b341841b3dddad6f3cc5c4072bd707efdf9ebf))
+
 ## [1.5.0](https://github.com/theholocron/utils/compare/v1.4.3...v1.5.0) (2026-09-02)
 
 ### Features

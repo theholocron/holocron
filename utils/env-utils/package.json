@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/env-utils",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Runtime environment detection and typed env-var parsing.",
   "keywords": [
     "env",
