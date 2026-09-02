@@ -2,11 +2,11 @@
 
 ### Bug Fixes
 
-* 🐛 pass fern-org and base-path to enable deployment widget ([#90](https://github.com/theholocron/themes/issues/90)) ([9a9d54f](https://github.com/theholocron/themes/commit/9a9d54fe4dedc6a9bf297415f19bc37cc6d46568))
+- 🐛 pass fern-org and base-path to enable deployment widget ([#90](https://github.com/theholocron/themes/issues/90)) ([9a9d54f](https://github.com/theholocron/themes/commit/9a9d54fe4dedc6a9bf297415f19bc37cc6d46568))
 
 ### Chores
 
-* 🔧 bump CLI to ^3.45.1 and run holocron setup ([#89](https://github.com/theholocron/themes/issues/89)) ([e62234a](https://github.com/theholocron/themes/commit/e62234ade6c7d341f284bab7670e73be69e39c7a))
+- 🔧 bump CLI to ^3.45.1 and run holocron setup ([#89](https://github.com/theholocron/themes/issues/89)) ([e62234a](https://github.com/theholocron/themes/commit/e62234ade6c7d341f284bab7670e73be69e39c7a))
 
 ## [1.9.0](https://github.com/theholocron/themes/compare/v1.8.0...v1.9.0) (2026-09-02)
 
