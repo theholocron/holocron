@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/skills",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Shared agent skill registry.",
   "homepage": "https://github.com/theholocron/skills#readme",
   "bugs": "https://github.com/theholocron/skills/issues",

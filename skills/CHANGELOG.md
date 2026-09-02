@@ -1,3 +1,9 @@
+## [1.9.0](https://github.com/theholocron/skills/compare/v1.8.1...v1.9.0) (2026-09-02)
+
+### Features
+
+* ✨ add wiki() capability — wiki.theholocron.dev/skills ([#81](https://github.com/theholocron/skills/issues/81)) ([ffaef75](https://github.com/theholocron/skills/commit/ffaef7552767e6d6778a1dfc004af1cc6700bc97))
+
 ## [1.8.1](https://github.com/theholocron/skills/compare/v1.8.0...v1.8.1) (2026-08-31)
 
 ### Bug Fixes
