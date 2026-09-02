@@ -2,7 +2,7 @@
 
 ### Chores
 
-* **deps:** Bump @types/node from 24.13.3 to 26.4.0 ([#86](https://github.com/theholocron/themes/issues/86)) ([8ce042d](https://github.com/theholocron/themes/commit/8ce042d4e868b0c6957c9cea94463391998bec48))
+- **deps:** Bump @types/node from 24.13.3 to 26.4.0 ([#86](https://github.com/theholocron/themes/issues/86)) ([8ce042d](https://github.com/theholocron/themes/commit/8ce042d4e868b0c6957c9cea94463391998bec48))
 
 ## [1.9.1](https://github.com/theholocron/themes/compare/v1.9.0...v1.9.1) (2026-09-02)
 
