@@ -16,9 +16,12 @@ tabs:
   decisions:
     display-name: Decisions
     icon: fa-duotone fa-scale-balanced
-  engineering:
-    display-name: Engineering
-    icon: fa-duotone fa-gear
+  standards:
+    display-name: Standards
+    icon: fa-duotone fa-book
+  specifications:
+    display-name: Specifications
+    icon: fa-duotone fa-file-lines
 
 navigation:
   - tab: decisions
@@ -26,22 +29,29 @@ navigation:
       - section: Architecture Decision Records
         contents:
           - page: Index
-            path: ../docs/decisions/README.md
+            path: ../docs/wiki/decisions/README.md
           - page: ADR-0001 — Vault provider
-            path: ../docs/decisions/0001-vault-provider-doppler-and-infisical.md
+            path: ../docs/wiki/decisions/0001-vault-provider-doppler-and-infisical.md
           - page: ADR-0002 — Interactive menu spawn
-            path: ../docs/decisions/0002-interactive-menu-spawn-over-reparse.md
+            path: ../docs/wiki/decisions/0002-interactive-menu-spawn-over-reparse.md
           - page: ADR-0003 — Auth bootstrap keyring
-            path: ../docs/decisions/0003-auth-bootstrap-keyring-token-precedence.md
+            path: ../docs/wiki/decisions/0003-auth-bootstrap-keyring-token-precedence.md
           - page: ADR-0004 — ADR home in repo
-            path: ../docs/decisions/0004-adr-home-repo-over-wiki.md
+            path: ../docs/wiki/decisions/0004-adr-home-repo-over-wiki.md
 
-  - tab: engineering
+  - tab: standards
     layout:
-      - section: Overview
+      - section: Standards
         contents:
-          - page: Engineering Home
-            path: ../docs/engineering/README.md
+          - page: Overview
+            path: ../docs/wiki/standards/README.md
+
+  - tab: specifications
+    layout:
+      - section: Specifications
+        contents:
+          - page: Overview
+            path: ../docs/wiki/specifications/README.md
 
 colors:
   accent-primary:

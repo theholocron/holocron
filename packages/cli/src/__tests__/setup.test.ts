@@ -3491,29 +3491,31 @@ describe("installEngineeringStructure", () => {
 		await rm(tmpDir, { recursive: true, force: true });
 	});
 
-	it("creates docs/decisions/ and docs/engineering/ files", async () => {
+	it("creates docs/wiki/{decisions,standards,specifications}/ files", async () => {
 		await installEngineeringStructure({ repoRoot: tmpDir });
 
-		await expect(stat(join(tmpDir, "docs/decisions/template.md"))).resolves.toBeDefined();
-		await expect(stat(join(tmpDir, "docs/decisions/README.md"))).resolves.toBeDefined();
-		await expect(stat(join(tmpDir, "docs/engineering/README.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/template.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/README.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/standards/README.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/specifications/README.md"))).resolves.toBeDefined();
 	});
 
 	it("skips files that already exist", async () => {
-		await mkdir(join(tmpDir, "docs/decisions"), { recursive: true });
-		await writeFile(join(tmpDir, "docs/decisions/template.md"), "custom content");
+		await mkdir(join(tmpDir, "docs/wiki/decisions"), { recursive: true });
+		await writeFile(join(tmpDir, "docs/wiki/decisions/template.md"), "custom content");
 
 		await installEngineeringStructure({ repoRoot: tmpDir });
 
-		const content = await readFile(join(tmpDir, "docs/decisions/template.md"), "utf8");
+		const content = await readFile(join(tmpDir, "docs/wiki/decisions/template.md"), "utf8");
 		expect(content).toBe("custom content");
 	});
 
 	it("reports created files in the summary", async () => {
 		const result = await installEngineeringStructure({ repoRoot: tmpDir });
-		expect(result).toContain("docs/decisions/template.md");
-		expect(result).toContain("docs/decisions/README.md");
-		expect(result).toContain("docs/engineering/README.md");
+		expect(result).toContain("docs/wiki/decisions/template.md");
+		expect(result).toContain("docs/wiki/decisions/README.md");
+		expect(result).toContain("docs/wiki/standards/README.md");
+		expect(result).toContain("docs/wiki/specifications/README.md");
 	});
 
 	it("reports nothing to write when all files exist", async () => {
@@ -3580,7 +3582,7 @@ describe("setup: engineering step", () => {
 		const step = report.steps.find((s) => s.capability === "engineering");
 		expect(step).toBeDefined();
 		expect(step?.status).toBe("ok");
-		await expect(stat(join(tmpDir, "docs/decisions/template.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/template.md"))).resolves.toBeDefined();
 	});
 
 	it("skips engineering step when docs is absent", async () => {
