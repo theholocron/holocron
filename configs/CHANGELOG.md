@@ -2,11 +2,11 @@
 
 ### Bug Fixes
 
-* 🐛 add deployments write permission to wiki workflow ([#432](https://github.com/theholocron/configs/issues/432)) ([ee89021](https://github.com/theholocron/configs/commit/ee8902112cac575345c20ff0467cf49db73d5f06))
+- 🐛 add deployments write permission to wiki workflow ([#432](https://github.com/theholocron/configs/issues/432)) ([ee89021](https://github.com/theholocron/configs/commit/ee8902112cac575345c20ff0467cf49db73d5f06))
 
 ### Chores
 
-* 🔧 run holocron setup ([#431](https://github.com/theholocron/configs/issues/431)) ([e89747a](https://github.com/theholocron/configs/commit/e89747a70f99f59e8d4e18fb1593cc0f96980159)), closes [#430](https://github.com/theholocron/configs/issues/430)
+- 🔧 run holocron setup ([#431](https://github.com/theholocron/configs/issues/431)) ([e89747a](https://github.com/theholocron/configs/commit/e89747a70f99f59e8d4e18fb1593cc0f96980159)), closes [#430](https://github.com/theholocron/configs/issues/430)
 
 ## [7.32.0](https://github.com/theholocron/configs/compare/v7.31.0...v7.32.0) (2026-09-02)
 
