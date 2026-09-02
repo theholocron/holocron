@@ -14,7 +14,10 @@ export function rawText() {
 		name: "raw-text",
 		transform(_code: string, id: string) {
 			const isYmlOrMd = id.endsWith(".yml") || id.endsWith(".md");
-			const isSetupTemplate = id.includes(TEMPLATE_DIR);
+			// .json files in the template dir are imported as native JS objects (via
+			// Vite's built-in JSON handler) so callers can JSON.stringify them at the
+			// write site — exclude them here to avoid double-transforming.
+			const isSetupTemplate = id.includes(TEMPLATE_DIR) && !id.endsWith(".json");
 			if (!isYmlOrMd && !isSetupTemplate) return null;
 			return {
 				code: `export default ${JSON.stringify(readFileSync(id, "utf8"))};`,

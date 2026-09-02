@@ -59,39 +59,12 @@ import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, runStep } from "./run-step.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
 
+import alexrc from "./templates/alexrc.json";
+import editorconfigChecker from "./templates/editorconfig-checker.json";
 import sentimentBotConfig from "./templates/sentiment-bot-config.yml";
 import editorconfigBody from "./templates/editorconfig";
 import labelerBody from "./templates/github-labeler.yml";
 import prepareCommitMsg from "./templates/prepare-commit-msg";
-
-const ALEX_CONFIG =
-	JSON.stringify({ allow: ["dead", "failure", "failures", "hook", "hooks", "husky", "period"] }, null, 2) + "\n";
-
-const EDITORCONFIG_CHECKER_CONFIG =
-	JSON.stringify(
-		{
-			Version: "v3.7.0",
-			Verbose: false,
-			Format: "",
-			Debug: false,
-			IgnoreDefaults: false,
-			SpacesAfterTabs: false,
-			NoColor: false,
-			Exclude: ["(^|.+/)LICENSE$", "^public/.*", "\\.md$", "\\.mdx$"],
-			AllowedContentTypes: [],
-			PassedFiles: [],
-			Disable: {
-				EndOfLine: false,
-				Indentation: false,
-				InsertFinalNewline: false,
-				TrimTrailingWhitespace: false,
-				IndentSize: false,
-				MaxLineLength: false,
-			},
-		},
-		null,
-		2
-	) + "\n";
 
 function devmojiConfigContent(): string {
 	return [
@@ -322,7 +295,7 @@ export async function runSetup(input: import("./run-step.js").RunSetupInput): Pr
 		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .alexrc.json", dryRun, async () => {
-				await source.writeRepoFile(".alexrc.json", ALEX_CONFIG);
+				await source.writeRepoFile(".alexrc.json", JSON.stringify(alexrc, null, 2) + "\n");
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
@@ -337,7 +310,7 @@ export async function runSetup(input: import("./run-step.js").RunSetupInput): Pr
 		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .editorconfig-checker.json", dryRun, async () => {
-				await source.writeRepoFile(".editorconfig-checker.json", EDITORCONFIG_CHECKER_CONFIG);
+				await source.writeRepoFile(".editorconfig-checker.json", JSON.stringify(editorconfigChecker, null, 2) + "\n");
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
