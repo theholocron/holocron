@@ -1,13 +1,13 @@
 import { library } from "@theholocron/vitest-config/bundles/library";
 import { defineConfig } from "vitest/config";
 
-import { rawText } from "./raw-text.js";
+import { rawText } from "@theholocron/rollup-transform-template";
 
 const base = library();
 
 export default defineConfig({
 	...base,
-	plugins: [...(base.plugins ?? []), rawText()],
+	plugins: [...(base.plugins ?? []), rawText({ dirs: ["/src/commands/setup/templates/"] })],
 	test: {
 		...base.test,
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets

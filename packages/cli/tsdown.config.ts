@@ -1,9 +1,9 @@
 import { defineConfig } from "tsdown";
 
-import { rawText } from "./raw-text.js";
+import { rawText } from "@theholocron/rollup-transform-template";
 
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
-const sharedPlugins = [rawText()];
+const sharedPlugins = [rawText({ dirs: ["/src/commands/setup/templates/"] })];
 
 export default defineConfig([
 	{
