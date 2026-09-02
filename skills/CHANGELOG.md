@@ -1,3 +1,9 @@
+## [1.9.1](https://github.com/theholocron/skills/compare/v1.9.0...v1.9.1) (2026-09-02)
+
+### Bug Fixes
+
+* 🐛 pass fern-org and base-path to enable deployment widget ([#84](https://github.com/theholocron/skills/issues/84)) ([de15086](https://github.com/theholocron/skills/commit/de15086033156642e20b23d4feef3ff811a74a96)), closes [#83](https://github.com/theholocron/skills/issues/83)
+
 ## [1.9.0](https://github.com/theholocron/skills/compare/v1.8.1...v1.9.0) (2026-09-02)
 
 ### Features
