@@ -1,3 +1,13 @@
+## [7.32.0](https://github.com/theholocron/configs/compare/v7.31.0...v7.32.0) (2026-09-02)
+
+### Features
+
+* ✨ add wiki() capability — wiki.theholocron.dev/configs ([#428](https://github.com/theholocron/configs/issues/428)) ([40e3bce](https://github.com/theholocron/configs/commit/40e3bce51ebd9ff76939165ca7db444635421bc7))
+
+### Chores
+
+* sync README and repo metadata ([#424](https://github.com/theholocron/configs/issues/424)) ([8479ead](https://github.com/theholocron/configs/commit/8479eaddd2bda31bac985ce5dfc409eb363d9e4d))
+
 ## [7.31.0](https://github.com/theholocron/configs/compare/v7.30.0...v7.31.0) (2026-09-02)
 
 ### Features
