@@ -84,9 +84,11 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 		expect(docs).not.toContain("multi-source:");
 		expect(docs).toContain("title: Myorg Engineering");
 		expect(docs).toContain("tab: decisions");
-		expect(docs).toContain("tab: engineering");
-		expect(docs).toContain("path: ../docs/decisions/README.md");
-		expect(docs).toContain("path: ../docs/engineering/README.md");
+		expect(docs).toContain("tab: standards");
+		expect(docs).toContain("tab: specifications");
+		expect(docs).toContain("path: ../docs/wiki/decisions/README.md");
+		expect(docs).toContain("path: ../docs/wiki/standards/README.md");
+		expect(docs).toContain("path: ../docs/wiki/specifications/README.md");
 	});
 
 	it("updates instances block in existing docs.yml without touching navigation", async () => {

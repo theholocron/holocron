@@ -146,10 +146,10 @@ confidently, identify the missing information instead of inventing it.
 Use MADR format. Copy the template and number sequentially:
 
 \`\`\`sh
-cp docs/decisions/template.md docs/decisions/000N-short-title.md
+cp docs/wiki/decisions/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
-Save to \`docs/decisions/NNNN-<slug>.md\`.
+Save to \`docs/wiki/decisions/NNNN-<slug>.md\`.
 `,
 
 	"spec.md": `# Specification Agent
@@ -362,7 +362,7 @@ decision, the options that were considered, and the rationale for the choice mad
 Copy the template and number it sequentially:
 
 \`\`\`sh
-cp docs/decisions/template.md docs/decisions/000N-short-title.md
+cp docs/wiki/decisions/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
 \`madr\` has no CLI — creation is manual. Frontmatter is validated in CI
@@ -384,19 +384,18 @@ via \`scripts/validate-adrs.mjs\` (runs as part of the Lint workflow).
 | -- | ----- | ------ |
 `;
 
-export const ENGINEERING_README = `# Engineering
+export const STANDARDS_README = `# Standards
 
-Internal engineering knowledge. This subtree is the source for the
-password-protected internal docs site.
+Org-wide engineering standards — conventions, practices, and guidelines that
+apply across all repos in the org.
 
-## Contents
+> **Drafts** live in \`.notes/\` until accepted, then graduate here.
+`;
 
-| Directory | Purpose |
-| --------- | ------- |
-| \`specifications/\` | Accepted specs (graduated from \`.notes/\`) |
-| \`standards/\` | Org-wide engineering standards |
-| \`runbooks/\` | Operational runbooks |
+export const SPECIFICATIONS_README = `# Specifications
+
+Accepted specs for planned or in-progress features. Each spec captures what
+the system must do — not how to implement it.
 
 > **Drafts** live in \`.notes/*.spec.md\` until accepted, then graduate here.
-> **Architectural decisions** live in \`docs/decisions/\` and may be public-facing.
 `;
