@@ -3629,3 +3629,98 @@ describe("setup: wiki step", () => {
 		expect(report.steps.find((s) => s.step?.startsWith("upsertProxy"))).toBeUndefined();
 	});
 });
+
+// ── auth: alreadyExists created branch ────────────────────────────────────────
+
+describe("setup: auth webhook created branch", () => {
+	it("reports 'created' when ensureWebhookApp returns alreadyExists: false (line 632)", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { auth: "clerk", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
+				auth: { ensureWebhookApp: async () => ({ alreadyExists: false }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "ensureWebhookApp");
+		expect(step?.message).toContain("created");
+	});
+});
+
+// ── vault: list throws non-Error ───────────────────────────────────────────────
+
+describe("setup: vault list non-Error throw", () => {
+	it("records vault list failure with String(err) when a non-Error is thrown (line 687)", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					// eslint-disable-next-line @typescript-eslint/only-throw-error
+					list: async () => { throw "vault down"; },
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "vault" && s.step === "list");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toBe("vault down");
+	});
+});
+
+// ── vault: alreadyExists branches ─────────────────────────────────────────────
+
+describe("setup: vault alreadyExists branches", () => {
+	it("reports 'exists' when ensureProject and ensureEnvironment return alreadyExists: true", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { vault: "doppler" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-doppler": makePlugin("doppler", {
+				vault: {
+					list: async () => [],
+					ensureProject: async () => ({ alreadyExists: true }),
+					ensureEnvironment: async () => ({ alreadyExists: true }),
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const projectStep = report.steps.find((s) => s.step?.startsWith("ensureProject"));
+		expect(projectStep?.message).toContain("exists");
+		const envStep = report.steps.find((s) => s.step?.startsWith("ensureEnvironment"));
+		expect(envStep?.message).toContain("exists");
+	});
+});
+
+// ── dry-run summary counter ────────────────────────────────────────────────────
+
+describe("setup: dry-run summary", () => {
+	it("counts dry-run steps in summary.dryRun", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => {},
+					disableDefaultCodeScanning: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.summary.dryRun).toBeGreaterThan(0);
+	});
+});

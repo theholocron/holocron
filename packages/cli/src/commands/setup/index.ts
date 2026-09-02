@@ -59,9 +59,9 @@ import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, runStep } from "./run-step.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
 
-import sentimentBotConfig from "./templates/config.yml";
+import sentimentBotConfig from "./templates/sentiment-bot-config.yml";
 import editorconfigBody from "./templates/editorconfig";
-import labelerBody from "./templates/labeler.yml";
+import labelerBody from "./templates/github-labeler.yml";
 import prepareCommitMsg from "./templates/prepare-commit-msg";
 
 const ALEX_CONFIG =
