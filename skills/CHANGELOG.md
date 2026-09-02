@@ -1,3 +1,9 @@
+## [1.9.2](https://github.com/theholocron/skills/compare/v1.9.1...v1.9.2) (2026-09-02)
+
+### Chores
+
+* **deps:** bump the all-dependencies group across 1 directory with 8 updates ([#82](https://github.com/theholocron/skills/issues/82)) ([9048870](https://github.com/theholocron/skills/commit/9048870343cf6c48970eb270ecec58b4087bba1d))
+
 ## [1.9.1](https://github.com/theholocron/skills/compare/v1.9.0...v1.9.1) (2026-09-02)
 
 ### Bug Fixes
