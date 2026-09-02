@@ -41,6 +41,8 @@
     "@theholocron/components-doc": "^1.6.0",
     "@theholocron/docs-theme": "catalog:",
     "@theholocron/holocron-config": "catalog:holocron",
+    "@theholocron/holocron-plugin-cloudflare": "catalog:holocron",
+    "@theholocron/holocron-plugin-fern": "catalog:holocron",
     "@theholocron/holocron-plugin-github": "catalog:holocron",
     "@theholocron/prettier-config": "catalog:configs",
     "@theholocron/registry-doc": "^1.6.0",
