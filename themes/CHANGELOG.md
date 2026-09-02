@@ -1,3 +1,9 @@
+## [1.9.3](https://github.com/theholocron/themes/compare/v1.9.2...v1.9.3) (2026-09-02)
+
+### Chores
+
+* **deps:** Bump the all-dependencies group across 1 directory with 7 updates ([#88](https://github.com/theholocron/themes/issues/88)) ([4328c2e](https://github.com/theholocron/themes/commit/4328c2e1eedafb9192c6589c93257918c42ce52b))
+
 ## [1.9.2](https://github.com/theholocron/themes/compare/v1.9.1...v1.9.2) (2026-09-02)
 
 ### Chores
