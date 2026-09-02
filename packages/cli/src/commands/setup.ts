@@ -25,7 +25,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { AGENT_PROMPTS, DECISIONS_README, DECISIONS_TEMPLATE, ENGINEERING_README } from "../agent-prompts.js";
+import { AGENT_PROMPTS, DECISIONS_README, DECISIONS_TEMPLATE, SPECIFICATIONS_README, STANDARDS_README } from "../agent-prompts.js";
 import { AuthError, createFeatureResolver } from "../auth-resolver.js";
 import type {
 	Auth,
@@ -1499,9 +1499,9 @@ export async function installAgentPrompts({ repoRoot }: { repoRoot: string }): P
 }
 
 // ── engineering structure installer ──────────────────────────────────
-// Provisions docs/decisions/ and docs/engineering/ when engineering: true
-// is set in the config. Skips files that already exist so existing ADRs
-// are never overwritten.
+// Provisions docs/wiki/{decisions,standards,specifications}/ when
+// engineering: true is set in the config. Skips files that already exist
+// so existing content is never overwritten.
 
 async function writeIfAbsent(filePath: string, content: string): Promise<boolean> {
 	try {
@@ -1518,9 +1518,10 @@ export async function installEngineeringStructure({ repoRoot }: { repoRoot: stri
 	const results: string[] = [];
 
 	const writes: Array<[string, string]> = [
-		[join(repoRoot, "docs/decisions/template.md"), DECISIONS_TEMPLATE],
-		[join(repoRoot, "docs/decisions/README.md"), DECISIONS_README],
-		[join(repoRoot, "docs/engineering/README.md"), ENGINEERING_README],
+		[join(repoRoot, "docs/wiki/decisions/template.md"), DECISIONS_TEMPLATE],
+		[join(repoRoot, "docs/wiki/decisions/README.md"), DECISIONS_README],
+		[join(repoRoot, "docs/wiki/standards/README.md"), STANDARDS_README],
+		[join(repoRoot, "docs/wiki/specifications/README.md"), SPECIFICATIONS_README],
 	];
 
 	for (const [path, content] of writes) {
