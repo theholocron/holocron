@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/clerk-client",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "A TypeScript client for the Clerk Backend API",
   "keywords": [
     "clerk",
