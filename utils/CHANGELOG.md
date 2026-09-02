@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/theholocron/utils/compare/v1.5.1...v1.5.2) (2026-09-02)
+
+### Chores
+
+* **deps:** Bump the all-dependencies group with 11 updates ([#259](https://github.com/theholocron/utils/issues/259)) ([c825016](https://github.com/theholocron/utils/commit/c825016448315c50f2053882601a573f0ba6043b))
+* sync from holocron.config ([#261](https://github.com/theholocron/utils/issues/261)) ([3bdf288](https://github.com/theholocron/utils/commit/3bdf288720b6e180b8980126daae49cb844ea741))
+
 ## [1.5.1](https://github.com/theholocron/utils/compare/v1.5.0...v1.5.1) (2026-09-02)
 
 ### Bug Fixes

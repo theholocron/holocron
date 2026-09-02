@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/date-time-utils",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Handle dates and time.",
   "keywords": [
     "date",
