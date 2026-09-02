@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }));
 
-import { installSkills } from "../commands/setup.js";
+import { installSkills } from "../commands/setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "../commands/skills.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";

@@ -1,13 +1,13 @@
 import { library } from "@theholocron/vitest-config/bundles/library";
 import { defineConfig } from "vitest/config";
 
-import { rawYml } from "./raw-yml.js";
+import { rawText } from "./raw-text.js";
 
 const base = library();
 
 export default defineConfig({
 	...base,
-	plugins: [...(base.plugins ?? []), rawYml()],
+	plugins: [...(base.plugins ?? []), rawText()],
 	test: {
 		...base.test,
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
@@ -30,6 +30,8 @@ export default defineConfig({
 				"src/commands/workflows/**",
 				"src/templates/actions/**",
 				"src/templates/workflows/**",
+				// setup template files — raw text content only, no executable logic.
+				"src/commands/setup/templates/**",
 			],
 		},
 	},

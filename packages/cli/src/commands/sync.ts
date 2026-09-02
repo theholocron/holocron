@@ -5,8 +5,8 @@ import { AuthError } from "../auth-resolver.js";
 import type { Source } from "../capabilities/index.js";
 import type { LoadedConfig } from "../load-config.js";
 import { LoaderError, PluginLoader, type RuntimeContext } from "../loader.js";
-import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
-import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
+import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
+import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,

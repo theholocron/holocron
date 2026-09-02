@@ -1,0 +1,26 @@
+bug:
+  - '^fix'
+
+chore:
+  - '^chore(?!\(deps)'
+
+ci:
+  - '^ci'
+
+dependencies:
+  - '^chore\(deps'
+
+documentation:
+  - '^docs'
+
+enhancement:
+  - '^feat'
+
+performance:
+  - '^perf'
+
+refactor:
+  - '^refactor'
+
+test:
+  - '^test'

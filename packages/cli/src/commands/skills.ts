@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 
 import type { LoadedConfig } from "../load-config.js";
 import type { RuntimeContext } from "../loader.js";
-import { installSkills } from "./setup.js";
+import { installSkills } from "./setup/index.js";
 
 // ── shared exec ──────────────────────────────────────────────────────────────
 

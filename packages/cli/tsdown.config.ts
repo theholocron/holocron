@@ -1,9 +1,9 @@
 import { defineConfig } from "tsdown";
 
-import { rawYml } from "./raw-yml.js";
+import { rawText } from "./raw-text.js";
 
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
-const sharedPlugins = [rawYml()];
+const sharedPlugins = [rawText()];
 
 export default defineConfig([
 	{

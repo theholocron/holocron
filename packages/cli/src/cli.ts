@@ -18,7 +18,7 @@ import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
-import { runSetup } from "./commands/setup.js";
+import { runSetup } from "./commands/setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
