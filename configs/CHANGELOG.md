@@ -2,7 +2,7 @@
 
 ### Features
 
-* ✨ add wiki() capability for Fern engineering wiki ([#427](https://github.com/theholocron/configs/issues/427)) ([ba81e20](https://github.com/theholocron/configs/commit/ba81e2014cb30e11e38b5582f97287f403dbdef8))
+- ✨ add wiki() capability for Fern engineering wiki ([#427](https://github.com/theholocron/configs/issues/427)) ([ba81e20](https://github.com/theholocron/configs/commit/ba81e2014cb30e11e38b5582f97287f403dbdef8))
 
 ## [7.30.0](https://github.com/theholocron/configs/compare/v7.29.0...v7.30.0) (2026-09-01)
 
