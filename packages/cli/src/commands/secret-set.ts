@@ -17,9 +17,9 @@
  * Errors clearly when no value can be sourced.
  */
 
-import type { Secrets, SecretScope } from "../capabilities.js";
+import type { Secrets, SecretScope } from "../plugin/capabilities.js";
 import type { LoadedConfig } from "../config/load-config.js";
-import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 
 export type SecretSetPrint = (line: string) => void;
 

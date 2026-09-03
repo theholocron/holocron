@@ -1,8 +1,8 @@
 import { checkbox } from "@inquirer/prompts";
 
-import type { Deployment, DeploymentRecord, PullRequest, Source } from "../capabilities.js";
+import type { Deployment, DeploymentRecord, PullRequest, Source } from "../plugin/capabilities.js";
 import type { LoadedConfig } from "../config/load-config.js";
-import { PluginLoader, type RuntimeContext } from "../loader.js";
+import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { style } from "../ui/style.js";
 
 export interface RunCleanupPreviewInput {

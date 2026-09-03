@@ -31,7 +31,7 @@ import {
 	REQUIRED_CAPABILITIES,
 	type TeamEntry,
 	type TeamPermission,
-} from "./capabilities.js";
+} from "../plugin/capabilities.js";
 
 // ───────────────────────────────────────────────────────────────────────
 // Raw config (what users write in holocron.config.json)

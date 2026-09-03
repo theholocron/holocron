@@ -1,5 +1,5 @@
-import type { Source } from "../../capabilities.js";
-import { ProviderApiError } from "../../capabilities.js";
+import type { Source } from "../../plugin/capabilities.js";
+import { ProviderApiError } from "../../plugin/capabilities.js";
 import type { SetupStepResult } from "./run-step.js";
 
 export const RULESET_NAME = "holocron-default-branch";

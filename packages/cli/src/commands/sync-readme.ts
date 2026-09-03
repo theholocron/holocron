@@ -6,7 +6,7 @@ import { generateReadme } from "@theholocron/components-doc/markdown";
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
 import type { LoadedConfig } from "../config/load-config.js";
-import type { RuntimeContext } from "../loader.js";
+import type { RuntimeContext } from "../plugin/loader.js";
 import { style } from "../ui/style.js";
 
 const MARKER_INSTALL_START = "<!-- holocron:installation -->";

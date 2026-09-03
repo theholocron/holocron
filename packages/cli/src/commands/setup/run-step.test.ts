@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ProviderApiError } from "../../capabilities.js";
+import { ProviderApiError } from "../../plugin/capabilities.js";
 import { classify403, formatStep, runStep } from "./run-step.js";
 
 describe("runStep", () => {
