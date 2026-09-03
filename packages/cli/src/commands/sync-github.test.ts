@@ -793,7 +793,7 @@ describe("generateCombinedDeployContent", () => {
 	it("omits with: block from deploy job when deployWith is empty but preview job still has cloudflare-project", () => {
 		const content = generateCombinedDeployContent({}, [], { project: "p" });
 		const lines = content.split("\n");
-		const previewIdx = lines.findIndex((l) => l.includes("name: Deploy Preview"));
+		const previewIdx = lines.findIndex((l) => l.includes("name: Preview"));
 		const previewSection = lines.slice(previewIdx).join("\n");
 		expect(previewSection).toContain("cloudflare-project: p");
 	});

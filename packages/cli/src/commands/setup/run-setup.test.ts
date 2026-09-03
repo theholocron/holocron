@@ -1307,7 +1307,7 @@ describe("runSetup", () => {
 
 		expect("deploy.yml" in written).toBe(true);
 		expect(written["deploy.yml"]).not.toContain("pull_request:");
-		expect(written["deploy.yml"]).not.toContain("Deploy Preview");
+		expect(written["deploy.yml"]).not.toContain("name: Preview");
 	});
 
 	it("writes combined deploy.yml with preview job when deploy config has preview:", async () => {
@@ -1340,7 +1340,7 @@ describe("runSetup", () => {
 
 		expect("deploy.yml" in written).toBe(true);
 		expect(written["deploy.yml"]).toContain("pull_request:");
-		expect(written["deploy.yml"]).toContain("name: Deploy Preview");
+		expect(written["deploy.yml"]).toContain("name: Preview");
 		expect(written["deploy.yml"]).toContain("cloudflare-project: acme-preview");
 	});
 
