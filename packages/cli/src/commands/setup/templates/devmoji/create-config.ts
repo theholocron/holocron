@@ -1,4 +1,4 @@
-import { createHeader } from "../../../create-header/index.js";
+import { createHeader } from "../../../../create-header/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/setup/templates/devmoji/create-config.ts",

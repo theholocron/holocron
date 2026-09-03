@@ -5,8 +5,15 @@ import { dirname, join } from "node:path";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
+import { createHeader } from "../create-header/index.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES, workflowHeader } from "./setup-workflows.js";
+import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows.js";
+
+const { workflowHeader } = createHeader({
+	source: "packages/cli/src/commands/sync-github.ts",
+	tool: "holocron sync-github",
+	forPrimary: true,
+});
 
 const DEFAULT_REPO = "theholocron/.github";
 
@@ -214,7 +221,7 @@ function buildBatch(repo: string): FileBatch {
 		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
 				path: `workflow-templates/${name}.yml`,
-				content: workflowHeader(undefined, true) + content,
+				content: workflowHeader() + content,
 			});
 			const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 			if (props) {

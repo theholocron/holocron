@@ -1,4 +1,4 @@
-import { createHeader } from "../../../create-header/index.js";
+import { createHeader } from "../../../../create-header/index.js";
 import editorconfigBody from "./editorconfig";
 
 const { workflowHeader } = createHeader({

@@ -1,4 +1,4 @@
-import { createHeader } from "../../../create-header/index.js";
+import { createHeader } from "../../../../create-header/index.js";
 import sentimentBotConfig from "./sentiment-bot-config.yml";
 
 const { workflowHeader } = createHeader({

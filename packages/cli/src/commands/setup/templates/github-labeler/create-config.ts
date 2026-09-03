@@ -1,4 +1,4 @@
-import { createHeader } from "../../../create-header/index.js";
+import { createHeader } from "../../../../create-header/index.js";
 import labelerBody from "./github-labeler.yml";
 
 const { workflowHeader } = createHeader({

@@ -37,6 +37,7 @@ import { ConfigError } from "../../config.js";
 import { PluginLoader } from "../../loader.js";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
+import { createHeader } from "../../create-header/index.js";
 import {
 	DEPENDABOT_CONFIG,
 	deriveDeployPaths,
@@ -45,10 +46,13 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
-	scaffoldHeader,
 	WORKFLOW_CHECK_CONTEXTS,
-	workflowHeader,
 } from "../setup-workflows.js";
+
+const { workflowHeader, scaffoldHeader } = createHeader({
+	source: "packages/cli/src/commands/setup/run-setup.ts",
+	tool: "holocron setup",
+});
 
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
@@ -249,7 +253,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
 				await source.writeRepoFile(
 					".github/dependabot.yml",
-					workflowHeader("packages/cli/src/commands/setup/run-setup.ts") + DEPENDABOT_CONFIG
+					workflowHeader() + DEPENDABOT_CONFIG
 				);
 			})
 		);

@@ -7,6 +7,7 @@ import type { LoadedConfig } from "../load-config.js";
 import { LoaderError, PluginLoader, type RuntimeContext } from "../loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
+import { createHeader } from "../create-header/index.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,
@@ -14,8 +15,12 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
-	workflowHeader,
 } from "./setup-workflows.js";
+
+const { workflowHeader } = createHeader({
+	source: "packages/cli/src/commands/sync.ts",
+	tool: "holocron sync",
+});
 import { runSyncReadme } from "./sync-readme.js";
 
 export const SYNC_STEPS = [
