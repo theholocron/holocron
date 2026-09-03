@@ -1322,7 +1322,7 @@ describe("runSync", () => {
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("theholocron-preview");
 			expect(content).toContain("preview.yml@main");
-			expect(content).toContain("cleanup-preview.yml@main");
+			expect(content).not.toContain("cleanup-preview.yml@main");
 		});
 
 		it("skips unknown workflow names", async () => {

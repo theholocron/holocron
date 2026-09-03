@@ -13,12 +13,10 @@ import setupAction from "./actions/setup.yml";
 import setupNodeAction from "./actions/setup-node.yml";
 import auditWorkflow from "./workflows/audit.yml";
 import bookkeepingWorkflow from "./workflows/bookkeeping.yml";
-import cleanupPreviewWorkflow from "./workflows/cleanup-preview.yml";
 import dependenciesWorkflow from "./workflows/dependencies.yml";
 import deployWorkflow from "./workflows/deploy.yml";
 import greetingsWorkflow from "./workflows/greetings.yml";
 import lintWorkflow from "./workflows/lint.yml";
-import postReleaseWorkflow from "./workflows/post-release.yml";
 import previewWorkflow from "./workflows/preview.yml";
 import releaseWorkflow from "./workflows/release.yml";
 import reviewWorkflow from "./workflows/review.yml";
@@ -44,12 +42,10 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	bookkeeping: bookkeepingWorkflow,
 	dependencies: dependenciesWorkflow,
 	deploy: deployWorkflow,
-	"cleanup-preview": cleanupPreviewWorkflow,
 	preview: previewWorkflow,
 	security: securityWorkflow,
 	greetings: greetingsWorkflow,
 	lint: lintWorkflow,
-	"post-release": postReleaseWorkflow,
 	release: releaseWorkflow,
 	review: reviewWorkflow,
 	stale: staleWorkflow,

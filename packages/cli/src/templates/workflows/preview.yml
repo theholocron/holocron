@@ -43,6 +43,7 @@ on: # yamllint disable-line rule:truthy
 jobs:
   deploy-preview:
     name: Preview
+    if: ${{ github.event.action != 'closed' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -159,3 +160,48 @@ jobs:
             --method POST --input - | jq -r '.id')
           gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOY_ID}/statuses" \
             --method POST --field state=success --field environment_url="${PREVIEW_URL}"
+
+  cleanup:
+    name: Clean up Preview
+    if: ${{ github.event.action == 'closed' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - name: Delete Cloudflare Pages deployments for branch
+        if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+          BRANCH: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DEPLOYMENTS=$(curl -s \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT}/deployments" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            | jq -r --arg b "$BRANCH" \
+              '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id')
+
+          if [ -z "$DEPLOYMENTS" ]; then
+            echo "No deployments found for branch ${BRANCH} — nothing to clean up."
+            exit 0
+          fi
+
+          for id in $DEPLOYMENTS; do
+            echo "Deleting CF Pages deployment: $id"
+            curl -s -X DELETE \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT}/deployments/${id}?force=true" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" | jq -r 'if .success then "  ✓ deleted" else "  ✗ \(.errors[0].message)" end'
+          done
+
+          # Mark the GitHub Deployment environment as inactive.
+          ENV_NAME="${PROJECT} (Preview)"
+          gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+            | jq -r ".[] | select(.environment == \"${ENV_NAME}\") | .id" \
+            | while read -r deploy_id; do
+                gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+                  --method POST --field state=inactive 2>/dev/null || true
+              done
