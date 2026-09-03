@@ -37,7 +37,7 @@ import { ConfigError } from "../../config/config.js";
 import { PluginLoader } from "../../plugin/loader.js";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
-import { createHeader } from "../../create-header.js";
+import { createHeader } from "../../utils/create-header.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,

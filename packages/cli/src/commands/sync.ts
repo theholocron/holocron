@@ -7,7 +7,7 @@ import type { LoadedConfig } from "../config/load-config.js";
 import { LoaderError, PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
-import { createHeader } from "../create-header.js";
+import { createHeader } from "../utils/create-header.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,

@@ -1,4 +1,4 @@
-import { createHeader } from "../../../create-header.js";
+import { createHeader } from "../../../utils/create-header.js";
 import prepareCommitMsgBody from "./prepare-commit-msg";
 
 const { workflowHeader } = createHeader({

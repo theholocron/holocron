@@ -1,4 +1,4 @@
-import { createHeader } from "../../../create-header.js";
+import { createHeader } from "../../../utils/create-header.js";
 import { codecovComponentBlock } from "./utils.js";
 import codecovTemplate from "./codecov.yml";
 
