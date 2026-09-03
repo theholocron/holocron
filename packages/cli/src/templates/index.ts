@@ -23,7 +23,7 @@ import reviewWorkflow from "./workflows/review.yml";
 import securityWorkflow from "./workflows/security.yml";
 import staleWorkflow from "./workflows/stale.yml";
 import syncWorkflow from "./workflows/sync.yml";
-import syncBroadcastWorkflow from "./workflows/sync-broadcast.yml";
+import syncDispatchWorkflow from "./workflows/sync-dispatch.yml";
 import syncGithubWorkflow from "./workflows/sync-github.yml";
 import tagWorkflow from "./workflows/tag.yml";
 import testWorkflow from "./workflows/test.yml";
@@ -49,7 +49,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	release: releaseWorkflow,
 	review: reviewWorkflow,
 	stale: staleWorkflow,
-	"sync-broadcast": syncBroadcastWorkflow,
+	"sync-dispatch": syncDispatchWorkflow,
 	tag: tagWorkflow,
 	"sync-github": syncGithubWorkflow,
 	sync: syncWorkflow,
