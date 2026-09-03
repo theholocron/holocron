@@ -25,8 +25,6 @@ Today there is no way to:
 - Close or audit projects from the terminal
 - Recreate a board from a known-good definition (boards are effectively
   undocumented config that lives only in GitHub's database)
-- Sweep closed issues off an active board without a manual audit
-
 This matters because project boards are org infrastructure. They should be
 reproducible, version-controlled, and manageable from the same tool that
 manages everything else.
@@ -38,7 +36,6 @@ manages everything else.
 - `holocron project list` — list org projects with number, title, and open/closed state
 - `holocron project create [template]` — create a project from a named template; output the URL
 - `holocron project close <number>` — close (archive) a project by number
-- `holocron project archive-done` — sweep project items whose linked issue/PR is closed off the active board
 - Templates ship as named presets in `@theholocron/cli` and can be extended or
   overridden in `holocron.config.ts`
 - `create` is idempotent on title — if a project with the same title already
@@ -49,8 +46,9 @@ manages everything else.
 - Managing project views beyond what is defined in the template (field
   reordering, filter expressions, saved sorts)
 - Cross-org project support — all commands operate on `config.org`
-- Issue/PR triage automation (that is `archive-done` only; smarter project
-  population is out of scope)
+- Archiving closed items off the board — handled by the project's built-in
+  workflow automation ("Item closed" / "Pull request merged"), enabled in the
+  project settings UI after creation
 - Deleting projects — close only; deletion is irreversible and GitHub does not
   expose a bulk-undo
 
@@ -62,7 +60,6 @@ manages everything else.
 holocron project list
 holocron project create [template] [--title <title>] [--org <org>]
 holocron project close <number> [--yes]
-holocron project archive-done <number> [--dry-run]
 ```
 
 ### `list`
@@ -110,25 +107,6 @@ $ holocron project close 7
 `--yes` skips the confirmation prompt. Closing is reversible; the project
 can be reopened from the GitHub UI.
 
-### `archive-done <number>`
-
-Finds all items on the project whose linked issue or PR is in a `CLOSED` or
-`MERGED` state and archives them from the board.
-
-```
-$ holocron project archive-done 4
-  Scanning project #4 "Holocron CLI Roadmap"…
-  Found 4 closed items:
-    · theholocron/holocron#455  feat: audit existing specs…
-    · theholocron/holocron#456  feat(ci): GitHub Action to validate…
-    · theholocron/.github-private#67  docs: establish process rule…
-    · theholocron/.github#172   fix(ci): DCO check fails…
-  Archive all 4? [Y/n] y
-✔ Archived 4 items.
-```
-
-`--dry-run` prints the list without making changes.
-
 ---
 
 ## Template system
@@ -142,11 +120,10 @@ runtime:
 
 Mirrors the current org roadmap board (project #4):
 
-| Component        | Definition                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| **Fields**       | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
-| **Views**        | Kanban grouped by Status (default), Table with all fields                                             |
-| **Auto-archive** | Items whose issue/PR is closed — must be enabled manually via UI (API limitation)                     |
+| Component  | Definition                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------ |
+| **Fields** | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
+| **Views**  | Kanban grouped by Status (default), Table with all fields                                              |
 
 #### `sprint`
 
@@ -213,14 +190,13 @@ packages/cli/src/commands/project/
   list.ts
   create.ts
   close.ts
-  archive-done.ts
   templates/
     index.ts        ← exports getTemplate(name, config): ResolvedTemplate
     roadmap.ts      ← built-in roadmap definition
     sprint.ts       ← built-in sprint definition
   graphql/
-    queries.ts      ← listProjects, getProjectItems
-    mutations.ts    ← createProject, createField, createView, closeProject, archiveItem
+    queries.ts      ← listProjects
+    mutations.ts    ← createProject, createField, createView, closeProject
 ```
 
 ### GraphQL operations
@@ -282,6 +258,7 @@ mutation CreateField(
 }
 ```
 
+<<<<<<< HEAD
 **`archive-done` — query + mutation**
 
 ```graphql
@@ -322,6 +299,37 @@ mutation ArchiveItem($projectId: ID!, $itemId: ID!) {
 }
 ```
 
+||||||| parent of 2854ebdd (docs: ✏️ remove archive-done from project command spec)
+**`archive-done` — query + mutation**
+
+```graphql
+query GetProjectItems($org: String!, $number: Int!, $first: Int!, $after: String) {
+  organization(login: $org) {
+    projectV2(number: $number) {
+      id
+      items(first: $first, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          content {
+            ... on Issue { state url }
+            ... on PullRequest { state merged url }
+          }
+        }
+      }
+    }
+  }
+}
+
+mutation ArchiveItem($projectId: ID!, $itemId: ID!) {
+  archiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
+    item { id }
+  }
+}
+```
+
+=======
+>>>>>>> 2854ebdd (docs: ✏️ remove archive-done from project command spec)
 ### Token resolution
 
 All project mutations require a token with `project` scope. `GITHUB_TOKEN`
@@ -346,28 +354,27 @@ skips creation and prints the existing project URL.
 
 ### Pagination
 
+<<<<<<< HEAD
 `list` and `archive-done` paginate automatically using `pageInfo.hasNextPage`
 
 - `endCursor` cursor forwarding. No manual `--page` flag needed.
+||||||| parent of 2854ebdd (docs: ✏️ remove archive-done from project command spec)
+`list` and `archive-done` paginate automatically using `pageInfo.hasNextPage`
++ `endCursor` cursor forwarding. No manual `--page` flag needed.
+=======
+`list` paginates automatically using `pageInfo.hasNextPage` + `endCursor`
+cursor forwarding. No manual `--page` flag needed.
+>>>>>>> 2854ebdd (docs: ✏️ remove archive-done from project command spec)
 
 ---
 
 ## Open questions
 
-1. **`archive-done` scope** — should it only look at items in `Done` status,
-   or at all items whose linked issue/PR is closed (regardless of project
-   status field)? The latter is more correct but slower. Current thinking:
-   scan all items, filter by GitHub-side `state === CLOSED || merged === true`.
-
-2. **View configuration depth** — `updateProjectV2View` supports layout,
+1. **View configuration depth** — `updateProjectV2View` supports layout,
    groupBy, sortBy, and visible fields. Should the template schema expose all
    of these, or just `layout` and `groupBy` for the first iteration?
 
-3. **`archive-done` as a scheduled command** — should `holocron ci` (issue #451)
-   or a future `holocron cron` run `archive-done` automatically on a schedule,
-   or is it always manual? For now: manual only.
-
-4. **Title uniqueness scope** — collision check is org-wide. If the same org
+2. **Title uniqueness scope** — collision check is org-wide. If the same org
    runs multiple teams with projects named "Sprint 1", this will false-positive.
    Could scope to open projects only, or skip the check entirely and let GitHub
    create duplicates.
