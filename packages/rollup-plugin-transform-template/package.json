@@ -8,8 +8,8 @@
   "repository": "theholocron/holocron",
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
-  "type": "module",
   "sideEffects": false,
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
