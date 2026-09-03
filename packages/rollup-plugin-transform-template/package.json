@@ -9,6 +9,7 @@
   "license": "GPL-3.0",
   "author": "Newton Koumantzelis",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -16,7 +17,8 @@
       "default": "./dist/index.mjs"
     },
     "./client": {
-      "types": "./client.d.ts"
+      "types": "./client.d.ts",
+      "default": "./client.d.ts"
     }
   },
   "files": [
