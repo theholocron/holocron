@@ -4,7 +4,20 @@ import { CARDINALITY, isMulti, REQUIRED_CAPABILITIES } from "./capabilities.js";
 
 describe("CARDINALITY", () => {
 	it("marks single-provider capabilities as single", () => {
-		const singles = ["source", "ci", "secrets", "environments", "issues", "deployment", "storage", "auth", "vault", "dns", "wiki", "workers"] as const;
+		const singles = [
+			"source",
+			"ci",
+			"secrets",
+			"environments",
+			"issues",
+			"deployment",
+			"storage",
+			"auth",
+			"vault",
+			"dns",
+			"wiki",
+			"workers",
+		] as const;
 		for (const key of singles) {
 			expect(CARDINALITY[key]).toBe("single");
 		}

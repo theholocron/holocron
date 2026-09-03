@@ -11,7 +11,10 @@ describe("transformTemplate", () => {
 		const id = join(tmpdir(), `rtt-test-${Date.now()}.yml`);
 		await writeFile(id, "key: value\n", "utf8");
 		const plugin = transformTemplate();
-		const result = (plugin as { transform: (code: string, id: string) => { code: string } | null }).transform("", id);
+		const result = (plugin as { transform: (code: string, id: string) => { code: string } | null }).transform(
+			"",
+			id
+		);
 		expect(result).not.toBeNull();
 		expect(result!.code).toBe(`export default "key: value\\n";`);
 	});
@@ -20,7 +23,10 @@ describe("transformTemplate", () => {
 		const id = join(tmpdir(), `rtt-test-${Date.now()}.md`);
 		await writeFile(id, "# Title\n", "utf8");
 		const plugin = transformTemplate();
-		const result = (plugin as { transform: (code: string, id: string) => { code: string } | null }).transform("", id);
+		const result = (plugin as { transform: (code: string, id: string) => { code: string } | null }).transform(
+			"",
+			id
+		);
 		expect(result).not.toBeNull();
 		expect(result!.code).toContain("# Title");
 	});

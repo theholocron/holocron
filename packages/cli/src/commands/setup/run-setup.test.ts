@@ -2871,7 +2871,6 @@ describe("runSetup — 403 handling", () => {
 	});
 });
 
-
 // ── setup: write codecov.yml ──────────────────────────────────────────────────
 
 describe("setup: write codecov.yml", () => {
@@ -3337,7 +3336,6 @@ describe("setup: Pages step", () => {
 	});
 });
 
-
 describe("setup: prompts step", () => {
 	let tmpDir: string;
 	beforeEach(async () => {
@@ -3656,7 +3654,9 @@ describe("setup: vault list non-Error throw", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
 				vault: {
-					list: async () => { throw "vault down"; },
+					list: async () => {
+						throw "vault down";
+					},
 				},
 			}),
 		});

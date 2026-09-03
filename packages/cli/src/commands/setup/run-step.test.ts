@@ -71,7 +71,9 @@ describe("runStep", () => {
 
 describe("classify403", () => {
 	it("returns plan for advanced security message", () => {
-		expect(classify403(new ProviderApiError("Advanced security not enabled for this repository", 403))).toBe("plan");
+		expect(classify403(new ProviderApiError("Advanced security not enabled for this repository", 403))).toBe(
+			"plan"
+		);
 	});
 
 	it("returns plan for upgrade message", () => {

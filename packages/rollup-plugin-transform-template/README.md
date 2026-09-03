@@ -29,16 +29,16 @@ import labelerBody from "./github-labeler.yml";
 
 ## What gets transformed
 
-| File type | Condition | Result |
-|---|---|---|
-| `.yml` | Always | Default-exported string |
-| `.md` | Always | Default-exported string |
-| Any non-JSON extension | Path contains a string from `dirs` | Default-exported string |
-| `.json` | Even inside `dirs` | Not transformed — bundlers handle JSON natively as typed objects |
-| `.ts` / `.tsx` | Even inside `dirs` | Not transformed — source files, not templates |
+| File type              | Condition                          | Result                                                           |
+| ---------------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| `.yml`                 | Always                             | Default-exported string                                          |
+| `.md`                  | Always                             | Default-exported string                                          |
+| Any non-JSON extension | Path contains a string from `dirs` | Default-exported string                                          |
+| `.json`                | Even inside `dirs`                 | Not transformed — bundlers handle JSON natively as typed objects |
+| `.ts` / `.tsx`         | Even inside `dirs`                 | Not transformed — source files, not templates                    |
 
 ## Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `dirs` | `string[]` | `[]` | Path substrings — any file whose resolved id contains one of these strings (and isn't `.json`/`.ts`/`.tsx`) is transformed |
+| Option | Type       | Default | Description                                                                                                                |
+| ------ | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `dirs` | `string[]` | `[]`    | Path substrings — any file whose resolved id contains one of these strings (and isn't `.json`/`.ts`/`.tsx`) is transformed |

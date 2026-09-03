@@ -48,7 +48,12 @@ describe("upsertBranchProtection", () => {
 
 	it("returns dry-run without calling source when dryRun is true (line 67)", async () => {
 		let called = false;
-		const source = makeSource({ listRulesets: async () => { called = true; return []; } });
+		const source = makeSource({
+			listRulesets: async () => {
+				called = true;
+				return [];
+			},
+		});
 		const result = await upsertBranchProtection(source as never, true, []);
 		expect(called).toBe(false);
 		expect(result.status).toBe("dry-run");
@@ -71,7 +76,9 @@ describe("upsertBranchProtection", () => {
 
 	it("falls back to classic protection when rulesets return 403", async () => {
 		const source = makeSource({
-			listRulesets: async () => { throw new ProviderApiError("Forbidden", 403); },
+			listRulesets: async () => {
+				throw new ProviderApiError("Forbidden", 403);
+			},
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
 		expect(result.status).toBe("ok");
@@ -80,7 +87,9 @@ describe("upsertBranchProtection", () => {
 
 	it("returns fail for non-403 ProviderApiError thrown by listRulesets", async () => {
 		const source = makeSource({
-			listRulesets: async () => { throw new ProviderApiError("Server error", 500); },
+			listRulesets: async () => {
+				throw new ProviderApiError("Server error", 500);
+			},
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
 		expect(result.status).toBe("fail");
@@ -89,7 +98,9 @@ describe("upsertBranchProtection", () => {
 
 	it("returns fail with String(err) when ruleset throws a non-Error value (line 85 false branch)", async () => {
 		const source = makeSource({
-			listRulesets: async () => { throw "raw string"; },
+			listRulesets: async () => {
+				throw "raw string";
+			},
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
 		expect(result.status).toBe("fail");
@@ -98,8 +109,12 @@ describe("upsertBranchProtection", () => {
 
 	it("skips when classic protection returns 403 (plan restriction)", async () => {
 		const source = makeSource({
-			listRulesets: async () => { throw new ProviderApiError("Forbidden", 403); },
-			protectBranch: async () => { throw new ProviderApiError("Upgrade required", 403); },
+			listRulesets: async () => {
+				throw new ProviderApiError("Forbidden", 403);
+			},
+			protectBranch: async () => {
+				throw new ProviderApiError("Upgrade required", 403);
+			},
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
 		expect(result.status).toBe("skip");
@@ -107,8 +122,12 @@ describe("upsertBranchProtection", () => {
 
 	it("returns fail for non-403 error thrown by classic protection fallback", async () => {
 		const source = makeSource({
-			listRulesets: async () => { throw new ProviderApiError("Forbidden", 403); },
-			protectBranch: async () => { throw new ProviderApiError("Network error", 500); },
+			listRulesets: async () => {
+				throw new ProviderApiError("Forbidden", 403);
+			},
+			protectBranch: async () => {
+				throw new ProviderApiError("Network error", 500);
+			},
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
 		expect(result.status).toBe("fail");
@@ -117,8 +136,12 @@ describe("upsertBranchProtection", () => {
 
 	it("returns fail with String(err) when classic protection throws a non-Error value (line 108 false branch)", async () => {
 		const source = makeSource({
-			listRulesets: async () => { throw new ProviderApiError("Forbidden", 403); },
-			protectBranch: async () => { throw "raw string"; },
+			listRulesets: async () => {
+				throw new ProviderApiError("Forbidden", 403);
+			},
+			protectBranch: async () => {
+				throw "raw string";
+			},
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
 		expect(result.status).toBe("fail");

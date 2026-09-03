@@ -22,7 +22,6 @@ import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
 import wikiYml from "./workflows/wiki.yml";
 
-
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	lint: lintYml,
 	test: testYml,

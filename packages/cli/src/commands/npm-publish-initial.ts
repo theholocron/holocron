@@ -28,7 +28,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { type CliEnv,makeEnv } from "../env.js";
+import { type CliEnv, makeEnv } from "../env.js";
 
 export type PublishInitialPrint = (line: string) => void;
 

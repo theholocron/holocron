@@ -40,11 +40,9 @@ describe("parsePreviousSkills", () => {
 	});
 
 	it("handles a block with no end marker", () => {
-		const gitignore = [
-			"# managed by holocron setup — skills",
-			"/.agents/skills/",
-			"/.claude/skills/foo",
-		].join("\n");
+		const gitignore = ["# managed by holocron setup — skills", "/.agents/skills/", "/.claude/skills/foo"].join(
+			"\n"
+		);
 		expect(parsePreviousSkills(gitignore, symlinkFn)).toEqual(["foo"]);
 	});
 

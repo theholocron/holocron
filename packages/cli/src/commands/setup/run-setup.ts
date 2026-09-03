@@ -36,8 +36,15 @@ import type {
 } from "../../plugin/capabilities.js";
 import { PluginLoader } from "../../plugin/loader.js";
 import sentimentBotConfig from "../../templates/config.yml";
-import { createIgnoreConfig as createAlexignore,createRcConfig as createAlexrc } from "../../templates/configs/alexjs/index.js";
-import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePackages } from "../../templates/configs/codecov/index.js";
+import {
+	createIgnoreConfig as createAlexignore,
+	createRcConfig as createAlexrc,
+} from "../../templates/configs/alexjs/index.js";
+import {
+	createConfig as createCodecov,
+	mergeCodecovComponents,
+	readWorkspacePackages,
+} from "../../templates/configs/codecov/index.js";
 import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
 import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
 import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";

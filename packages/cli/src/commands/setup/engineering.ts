@@ -1,12 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import {
-	DECISIONS_README,
-	DECISIONS_TEMPLATE,
-	SPECIFICATIONS_README,
-	STANDARDS_README,
-} from "./agent-prompts-data.js";
+import { DECISIONS_README, DECISIONS_TEMPLATE, SPECIFICATIONS_README, STANDARDS_README } from "./agent-prompts-data.js";
 
 async function writeIfAbsent(filePath: string, content: string): Promise<boolean> {
 	try {
