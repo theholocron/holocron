@@ -3657,7 +3657,6 @@ describe("setup: vault list non-Error throw", () => {
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
 				vault: {
-					// eslint-disable-next-line @typescript-eslint/only-throw-error
 					list: async () => { throw "vault down"; },
 				},
 			}),

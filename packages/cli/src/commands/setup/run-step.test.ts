@@ -62,7 +62,6 @@ describe("runStep", () => {
 
 	it("returns fail with String(err) when a non-Error value is thrown (line 68 false branch)", async () => {
 		const result = await runStep("source", "step", false, async () => {
-			// eslint-disable-next-line @typescript-eslint/only-throw-error
 			throw "raw string error";
 		});
 		expect(result.status).toBe("fail");

@@ -35,7 +35,8 @@
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs"
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:"
   },
   "engines": {
     "node": ">=22.0.0"

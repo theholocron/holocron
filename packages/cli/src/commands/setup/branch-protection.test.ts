@@ -89,7 +89,6 @@ describe("upsertBranchProtection", () => {
 
 	it("returns fail with String(err) when ruleset throws a non-Error value (line 85 false branch)", async () => {
 		const source = makeSource({
-			// eslint-disable-next-line @typescript-eslint/only-throw-error
 			listRulesets: async () => { throw "raw string"; },
 		});
 		const result = await upsertBranchProtection(source as never, false, []);
@@ -119,7 +118,6 @@ describe("upsertBranchProtection", () => {
 	it("returns fail with String(err) when classic protection throws a non-Error value (line 108 false branch)", async () => {
 		const source = makeSource({
 			listRulesets: async () => { throw new ProviderApiError("Forbidden", 403); },
-			// eslint-disable-next-line @typescript-eslint/only-throw-error
 			protectBranch: async () => { throw "raw string"; },
 		});
 		const result = await upsertBranchProtection(source as never, false, []);

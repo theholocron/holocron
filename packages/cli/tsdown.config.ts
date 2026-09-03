@@ -8,7 +8,7 @@ const sharedPlugins = [transformTemplate({ dirs: ["/src/templates/configs/"] })]
 export default defineConfig([
 	{
 		// Library + capabilities: types generated here; dist is cleaned first.
-		entry: ["src/index.ts", "src/capabilities/index.ts"],
+		entry: ["src/index.ts", "src/plugin/capabilities.ts"],
 		format: "esm",
 		dts: true,
 		clean: true,

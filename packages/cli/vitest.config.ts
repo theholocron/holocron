@@ -22,14 +22,12 @@ export default defineConfig({
 				"src/cli.ts",
 				// Pure TypeScript type definitions; no executable logic to cover.
 				// See issue #117.
-				"src/capabilities/index.ts",
+				"src/plugin/capabilities.ts",
 				// Pure re-export shim — all logic lives in @theholocron/http-client.
-				"src/rest-client.ts",
-				// yml template files — string content only, no executable logic.
-				"src/commands/dependabot.yml",
-				"src/commands/workflows/**",
-				"src/templates/actions/**",
-				"src/templates/workflows/**",
+				"src/plugin/rest-client.ts",
+				// yml/md template files — string content only, no executable logic.
+				"src/commands/setup-workflows/workflows/**",
+				"src/templates/**",
 				// setup template files — raw text content only, no executable logic.
 				"src/templates/configs/**",
 			],
