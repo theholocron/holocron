@@ -20,8 +20,8 @@
     }
   },
   "files": [
-    "dist",
-    "client.d.ts"
+    "client.d.ts",
+    "dist"
   ],
   "scripts": {
     "build": "tsdown",
