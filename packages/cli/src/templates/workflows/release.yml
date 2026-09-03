@@ -19,6 +19,15 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      post-release:
+        description: >
+          When true, dispatches a readme sync broadcast after a successful
+          release. Enable for packages consumed by other repos via the
+          registry-doc system so downstream README installation blocks
+          stay current.
+        type: boolean
+        required: false
+        default: false
       run-build:
         description: Run `pnpm build` before releasing
         type: boolean
@@ -150,3 +159,18 @@ jobs:
           environment: production
           version: ${{ steps.release_version.outputs.release }}
           sourcemaps: "**/dist"
+
+  sync-readme:
+    name: Post-release readme sync
+    needs: release
+    if: ${{ inputs.post-release == true && inputs.dry-run != true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger broadcast readme sync
+        run: |
+          gh workflow run sync-broadcast.yml \
+            --repo theholocron/.github \
+            --field "steps=readme"
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}

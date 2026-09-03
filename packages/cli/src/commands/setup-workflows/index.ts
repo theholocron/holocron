@@ -12,7 +12,6 @@ import dependenciesYml from "./workflows/dependencies.yml";
 import deployYml from "./workflows/deploy.yml";
 import greetingsYml from "./workflows/greetings.yml";
 import lintYml from "./workflows/lint.yml";
-import postReleaseYml from "./workflows/post-release.yml";
 import previewYml from "./workflows/preview.yml";
 import releaseYml from "./workflows/release.yml";
 import reviewYml from "./workflows/review.yml";
@@ -30,7 +29,6 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	security: securityYml,
 	preview: previewYml,
 	review: reviewYml,
-	"post-release": postReleaseYml,
 	release: releaseYml,
 	stale: staleYml,
 	sync: syncYml,
@@ -238,8 +236,6 @@ export function generateCombinedDeployContent(
 	// previewWith always has at least cloudflare-project, so the block is never empty.
 	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 
-	const cleanupWithBlock = `    with:\n      cloudflare-project: ${preview.project}`;
-
 	return [
 		`name: Deploy`,
 		``,
@@ -274,16 +270,9 @@ export function generateCombinedDeployContent(
 		``,
 		`  preview:`,
 		`    name: Preview`,
-		`    if: \${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
+		`    if: \${{ github.event_name == 'pull_request' }}`,
 		`    uses: theholocron/.github/.github/workflows/preview.yml@main`,
 		previewWithBlock.trimEnd(),
-		`    secrets: inherit`,
-		``,
-		`  cleanup:`,
-		`    name: Clean up Preview`,
-		`    if: \${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}`,
-		`    uses: theholocron/.github/.github/workflows/cleanup-preview.yml@main`,
-		cleanupWithBlock,
 		`    secrets: inherit`,
 		``,
 	].join("\n");
