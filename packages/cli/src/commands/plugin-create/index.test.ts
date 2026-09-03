@@ -27,9 +27,9 @@ function makeFakeFs() {
 
 // Derive the workspace root from this file's location — portable
 // across local dev, CI, and any other check-out path.
-//   packages/cli/src/__tests__/plugin-create.test.ts → up 4 → root
+//   packages/cli/src/commands/plugin-create/index.test.ts → up 5 → root
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const WORKSPACE_ROOT = path.resolve(HERE, "../../../..");
+const WORKSPACE_ROOT = path.resolve(HERE, "../../../../..");
 
 const BASE_INPUT = {
 	slug: "nonexistent-fake-slug",

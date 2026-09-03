@@ -39,10 +39,6 @@ catalogs:
     '@theholocron/sentry-client': ^1.14.2
     '@theholocron/vercel-client': ^1.14.2
 
-  # Shared utils — release in lockstep; bump all entries together.
-  utils:
-    '@theholocron/env-utils': ^1.5.2
-
   # Shared configs — release in lockstep; bump all entries together.
   configs:
     '@theholocron/astro-config': ^7.32.1
