@@ -5,7 +5,7 @@ import { input, select } from "@inquirer/prompts";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { AuthError, createFeatureResolver } from "./auth-resolver.js";
+import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
 import { CARDINALITY } from "./capabilities.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
@@ -24,9 +24,9 @@ import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
-import { loadConfig } from "./load-config.js";
+import { loadConfig } from "./config/load-config.js";
 import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
-import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./token-args.js";
+import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

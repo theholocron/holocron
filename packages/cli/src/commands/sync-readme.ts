@@ -5,7 +5,7 @@ import type { PackagesRegistry } from "@theholocron/components-doc/markdown";
 import { generateReadme } from "@theholocron/components-doc/markdown";
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
-import type { LoadedConfig } from "../load-config.js";
+import type { LoadedConfig } from "../config/load-config.js";
 import type { RuntimeContext } from "../loader.js";
 import { style } from "../ui/style.js";
 

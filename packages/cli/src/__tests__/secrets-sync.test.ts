@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { runSecretsSync } from "../commands/secrets-sync.js";
-import { resolveConfig } from "../config.js";
-import type { LoadedConfig } from "../load-config.js";
+import { resolveConfig } from "../config/config.js";
+import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {

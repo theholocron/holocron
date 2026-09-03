@@ -21,7 +21,7 @@
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { AuthError, createFeatureResolver } from "../../auth-resolver.js";
+import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
 import type {
 	Auth,
 	Deployment,
@@ -33,7 +33,7 @@ import type {
 	Wiki,
 	Workers,
 } from "../../capabilities.js";
-import { ConfigError } from "../../config.js";
+import { ConfigError } from "../../config/config.js";
 import { PluginLoader } from "../../loader.js";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";

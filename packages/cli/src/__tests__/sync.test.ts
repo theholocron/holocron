@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthError } from "../auth-resolver.js";
+import { AuthError } from "../auth/auth-resolver.js";
 import { runSync } from "../commands/sync.js";
 import type { RunSyncReadmeInput, SyncReadmeReport } from "../commands/sync-readme.js";
 import { runSyncReadme } from "../commands/sync-readme.js";
@@ -15,8 +15,8 @@ vi.mock("../commands/sync-readme.js", () => ({
 			input.context.dryRun ? { status: "dry-run", updated: false } : { status: "ok", updated: true }
 	),
 }));
-import { resolveConfig } from "../config.js";
-import type { LoadedConfig } from "../load-config.js";
+import { resolveConfig } from "../config/config.js";
+import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {

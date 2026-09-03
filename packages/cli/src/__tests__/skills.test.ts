@@ -8,8 +8,8 @@ vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }
 
 import { installSkills } from "../commands/setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "../commands/skills.js";
-import { resolveConfig } from "../config.js";
-import type { LoadedConfig } from "../load-config.js";
+import { resolveConfig } from "../config/config.js";
+import type { LoadedConfig } from "../config/load-config.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };

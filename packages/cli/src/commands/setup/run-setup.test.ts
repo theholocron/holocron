@@ -7,8 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AGENT_PROMPTS } from "./agent-prompts-data.js";
 import { ProviderApiError } from "../../capabilities.js";
 import { runSetup } from "./run-setup.js";
-import { resolveConfig } from "../../config.js";
-import type { LoadedConfig } from "../../load-config.js";
+import { resolveConfig } from "../../config/config.js";
+import type { LoadedConfig } from "../../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../../loader.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {

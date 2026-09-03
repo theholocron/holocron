@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../config.js";
+import { resolveConfig } from "../config/config.js";
 import { cardinalityOf, LoaderError, type PluginImporter, PluginLoader } from "../loader.js";
 
 vi.mock("node:module", async (importOriginal) => {

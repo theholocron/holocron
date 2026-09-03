@@ -22,7 +22,7 @@
  */
 
 import type { Deployment, DeploymentTarget, Secrets, Vault } from "../capabilities.js";
-import type { LoadedConfig } from "../load-config.js";
+import type { LoadedConfig } from "../config/load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";

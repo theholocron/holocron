@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeploymentRecord, PullRequest } from "../capabilities.js";
 import { runCleanupPreview } from "../commands/cleanup-preview.js";
-import { resolveConfig } from "../config.js";
-import type { LoadedConfig } from "../load-config.js";
+import { resolveConfig } from "../config/config.js";
+import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../loader.js";
 
 vi.mock("@inquirer/prompts", () => ({
