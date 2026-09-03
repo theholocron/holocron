@@ -136,8 +136,7 @@ export interface EnvConfig {
 	 * Namespace prefixes used by this project's env vars.
 	 * Listed from least- to most-specific (cascade model — last wins).
 	 * Tooling reads this to generate `.env.example`, validate required
-	 * vars, and produce documentation. Runtime code passes the same
-	 * value to `createEnvParser({ namespaces })` from `@theholocron/env-utils`.
+	 * vars, and produce documentation.
 	 *
 	 * @example
 	 * // Project-only prefix
