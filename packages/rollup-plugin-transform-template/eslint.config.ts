@@ -1,3 +1,5 @@
-import { node } from "@theholocron/eslint-config";
+import type { Linter } from "eslint";
 
-export default [...node()];
+import root from "../../eslint.config.js";
+
+export default [...root, { ignores: ["dist/**", "coverage/**"] }] satisfies Linter.Config[];
