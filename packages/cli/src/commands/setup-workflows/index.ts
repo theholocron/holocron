@@ -8,15 +8,15 @@
 
 import auditYml from "./workflows/audit.yml";
 import bookkeepingYml from "./workflows/bookkeeping.yml";
-import previewYml from "./workflows/preview.yml";
-import securityYml from "./workflows/security.yml";
 import dependenciesYml from "./workflows/dependencies.yml";
 import deployYml from "./workflows/deploy.yml";
 import greetingsYml from "./workflows/greetings.yml";
 import lintYml from "./workflows/lint.yml";
 import postReleaseYml from "./workflows/post-release.yml";
+import previewYml from "./workflows/preview.yml";
 import releaseYml from "./workflows/release.yml";
 import reviewYml from "./workflows/review.yml";
+import securityYml from "./workflows/security.yml";
 import staleYml from "./workflows/stale.yml";
 import syncYml from "./workflows/sync.yml";
 import testYml from "./workflows/test.yml";
