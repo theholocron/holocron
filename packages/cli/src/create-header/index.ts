@@ -56,7 +56,7 @@ export function createHeader(options: CreateHeaderOptions): HeaderFunctions {
 					`/* ${doNotEdit}`,
 					` * Source:  theholocron/holocron · ${source}`,
 					` * Tool:    ${tool}`,
-					` * Changes: edit source in theholocron/holocron and push to alpha or main.`,
+					` * Changes: edit source in theholocron/holocron`,
 					` */`,
 					``,
 				].join("\n");

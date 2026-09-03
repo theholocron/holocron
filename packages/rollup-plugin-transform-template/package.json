@@ -2,7 +2,7 @@
   "name": "@theholocron/rollup-plugin-transform-template",
   "version": "0.1.0",
   "description": "Rollup/Vite/Rolldown plugin that transforms template files into default-exported strings.",
-  "keywords": ["rollup", "plugin", "vite", "rolldown", "template", "transform"],
+  "keywords": ["rollup", "plugin", "rollup-plugin", "vite", "rolldown", "template", "transform"],
   "homepage": "https://github.com/theholocron/holocron/tree/main/packages/rollup-plugin-transform-template#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": "theholocron/holocron",

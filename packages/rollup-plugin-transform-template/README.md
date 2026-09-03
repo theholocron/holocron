@@ -1,6 +1,6 @@
-# @theholocron/rollup-plugin-transform-template
+# `@theholocron/rollup-plugin-transform-template`
 
-Rollup/Vite/Rolldown plugin that transforms template files into default-exported string literals so they can be imported directly in TypeScript/JavaScript.
+Rollup plugin for Vite/Rolldown/tsdown that transforms template files into default-exported string literals so they can be imported directly in TypeScript/JavaScript.
 
 ## Installation
 
