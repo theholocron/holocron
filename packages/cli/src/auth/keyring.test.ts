@@ -39,7 +39,7 @@ vi.mock("@napi-rs/keyring", () => {
 });
 
 // Import AFTER the mock so keyring.ts binds to the mocked module.
-const { setToken, getToken, deleteToken, listStoredProviders } = await import("../keyring.js");
+const { setToken, getToken, deleteToken, listStoredProviders } = await import("./keyring.js");
 
 function resetKeyring() {
 	store.clear();

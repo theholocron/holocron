@@ -1,7 +1,7 @@
 import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it, vi } from "vitest";
 
-import { createRestClient } from "../rest-client.js";
+import { createRestClient } from "./rest-client.js";
 
 function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: string }>) {
 	const calls: Array<{ url: string; method: string; headers: Record<string, string>; body: unknown }> = [];

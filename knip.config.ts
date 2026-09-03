@@ -15,9 +15,13 @@ const config: KnipConfig = {
 			// entry points auto-detected from package.json exports/bin
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
+			// vitest.config.ts imports the rollup plugin which isn't built at
+			// audit time — disable auto-loading so Knip uses our explicit entry
+			vitest: { config: [] },
 		},
 		"packages/rollup-plugin-transform-template": {
-			entry: ["src/index.ts", "src/**/*.test.ts"],
+			// src/index.ts auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
 		"packages/holocron-plugin-*": {
