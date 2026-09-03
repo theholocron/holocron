@@ -1,12 +1,13 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { AuthError } from "../auth-resolver.js";
-import type { Source } from "../capabilities/index.js";
-import type { LoadedConfig } from "../load-config.js";
-import { LoaderError, PluginLoader, type RuntimeContext } from "../loader.js";
-import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup.js";
-import { CANONICAL_LABELS, STALE_LABELS } from "./setup.js";
+import { AuthError } from "../auth/auth-resolver.js";
+import type { LoadedConfig } from "../config/load-config.js";
+import type { Source } from "../plugin/capabilities.js";
+import { LoaderError, PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { createHeader } from "../utils/create-header.js";
+import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
+import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,
@@ -14,8 +15,12 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
-	workflowHeader,
-} from "./setup-workflows.js";
+} from "./setup-workflows/index.js";
+
+const { workflowHeader } = createHeader({
+	source: "packages/cli/src/commands/sync.ts",
+	tool: "holocron sync",
+});
 import { runSyncReadme } from "./sync-readme.js";
 
 export const SYNC_STEPS = [
@@ -368,8 +373,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							steps.push(
 								await runSyncStep("local", "sync workflow deploy (with preview)", dryRun, async () => {
 									const content =
-										workflowHeader() +
-										generateCombinedDeployContent(withOverrides!, additionalPaths!, previewCfg);
+										`${workflowHeader()}${generateCombinedDeployContent(withOverrides!, additionalPaths!, previewCfg)}`;
 									await writeWorkflowFile(input.context.repoRoot, "deploy.yml", content);
 								})
 							);
@@ -381,7 +385,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					steps.push(
 						await runSyncStep("local", `sync workflow ${name}`, dryRun, async () => {
 							const content =
-								workflowHeader() + generateThinCallerContent(name, withOverrides, additionalPaths);
+								`${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths)}`;
 							await writeWorkflowFile(input.context.repoRoot, `${name}.yml`, content);
 						})
 					);

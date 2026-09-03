@@ -28,6 +28,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { type CliEnv,makeEnv } from "../env.js";
+
 export type PublishInitialPrint = (line: string) => void;
 
 export type PublishExecResult = {
@@ -89,7 +91,7 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 	const tag = input.tag ?? "alpha";
 	const dryRun = input.dryRun ?? false;
 	const otp = input.otp;
-	const env = input.env ?? process.env;
+	const env = makeEnv(input.env);
 	const exec = input.exec ?? defaultExec;
 
 	// Build the publish args once — shared between dry-run preview and
@@ -192,7 +194,7 @@ async function resolveRepoName(cwd: string, exec: NonNullable<RunNpmPublishIniti
 
 function printNextSteps(
 	print: PublishInitialPrint,
-	env: NodeJS.ProcessEnv,
+	env: CliEnv,
 	packageNames: readonly string[],
 	repoName: string
 ): void {
@@ -203,7 +205,7 @@ function printNextSteps(
 	}
 	print(`    Publisher: GitHub Actions   Org: theholocron   Repo: ${repoName}   Workflow: release.yml`);
 
-	if (env.NPM_TOKEN) {
+	if (env.get("NPM_TOKEN")) {
 		print("");
 		print("  → cleanup: $NPM_TOKEN was used. Revoke it now (no API for self-revoke; UI-only):");
 		print("    https://www.npmjs.com/settings/~/tokens");

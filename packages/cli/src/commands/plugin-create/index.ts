@@ -21,8 +21,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { CapabilityKey } from "../../capabilities/index.js";
-import { CARDINALITY } from "../../capabilities/index.js";
+import type { CapabilityKey } from "../../plugin/capabilities.js";
+import { CARDINALITY } from "../../plugin/capabilities.js";
 import { deriveDefaults, type TemplateInputs } from "./template-inputs.js";
 import { render as renderAuth } from "./templates/auth.js";
 import { render as renderAuthTest } from "./templates/auth-test.js";
