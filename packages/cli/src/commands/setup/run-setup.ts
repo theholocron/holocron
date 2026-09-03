@@ -46,7 +46,7 @@ import {
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
 	WORKFLOW_CHECK_CONTEXTS,
-} from "../setup-workflows.js";
+} from "../setup-workflows/index.js";
 import dependabotConfig from "../../templates/dependabot.yml";
 import dcoConfig from "../../templates/dco.yml";
 

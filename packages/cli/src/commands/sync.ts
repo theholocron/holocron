@@ -15,7 +15,7 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
-} from "./setup-workflows.js";
+} from "./setup-workflows/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/sync.ts",

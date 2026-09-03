@@ -7,7 +7,7 @@ import { ProviderApiError } from "@theholocron/http-client";
 
 import { createHeader } from "../create-header/index.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows.js";
+import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/sync-github.ts",

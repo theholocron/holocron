@@ -10,7 +10,7 @@ import {
 	generateCombinedDeployContent,
 	generateThinCallerContent,
 	WORKFLOW_TEMPLATES,
-} from "../commands/setup-workflows.js";
+} from "../commands/setup-workflows/index.js";
 import {
 	gitBlobSha as _gitBlobSha,
 	parseOrgContextFromTs,
