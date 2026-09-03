@@ -67,9 +67,9 @@ import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePac
 import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
 import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
 import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
-import { createConfig as createGithubLabeler } from "../../templates/configs/github-labeler/index.js";
 import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
-import { createConfig as createSentimentBot } from "../../templates/configs/sentiment-bot/index.js";
+import labelerConfig from "../../templates/labeler.yml";
+import sentimentBotConfig from "../../templates/config.yml";
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -240,7 +240,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/labeler.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/labeler.yml", createGithubLabeler());
+				await source.writeRepoFile(".github/labeler.yml", `${workflowHeader()}${labelerConfig}`);
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
@@ -265,7 +265,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/config.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/config.yml", createSentimentBot());
+				await source.writeRepoFile(".github/config.yml", `${workflowHeader()}${sentimentBotConfig}`);
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
