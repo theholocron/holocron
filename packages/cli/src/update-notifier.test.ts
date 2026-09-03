@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { checkForUpdates, isUpdateAvailable } from "../update-notifier.js";
+import { checkForUpdates, isUpdateAvailable } from "./update-notifier.js";
 
 // ── isUpdateAvailable ────────────────────────────────────────────────────────
 

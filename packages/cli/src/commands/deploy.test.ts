@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { runDeploy } from "../commands/deploy.js";
+import { runDeploy } from "./deploy.js";
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { Capability } from "../config/compose.js";
-import { compose } from "../config/compose.js";
-import { ConfigError } from "../config/config.js";
+import type { Capability } from "./compose.js";
+import { compose } from "./compose.js";
+import { ConfigError } from "./config.js";
 
 const node = (): Capability => ({
 	id: "node",

@@ -12,7 +12,7 @@ vi.mock("@sentry/node", () => ({
 
 import * as Sentry from "@sentry/node";
 
-import { captureException, endSession, flush, init, startCommand } from "../telemetry.js";
+import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 
 type MockSpan = { setStatus: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> };
 

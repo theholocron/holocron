@@ -7,7 +7,7 @@ vi.mock("ora", () => {
 
 import ora from "ora";
 
-import { withSpinner } from "../ui/progress.js";
+import { withSpinner } from "./progress.js";
 
 describe("withSpinner", () => {
 	describe("non-TTY (isTTY = false)", () => {

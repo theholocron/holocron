@@ -9,7 +9,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "../commands/plugin-create/index.js";
+import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./index.js";
 
 // In-memory fs so tests don't touch the real workspace.
 function makeFakeFs() {

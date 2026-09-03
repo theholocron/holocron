@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ConfigError, resolveConfig, resolveEntry, resolvePluginPackage } from "../config/config.js";
+import { ConfigError, resolveConfig, resolveEntry, resolvePluginPackage } from "./config.js";
 
 describe("resolvePluginPackage", () => {
 	it("expands a short name to the @theholocron-scoped plugin package", () => {

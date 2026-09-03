@@ -17,7 +17,7 @@ import {
 	runNew,
 	type RuntimeEnvironment,
 	validateRepoName,
-} from "../commands/new.js";
+} from "./new.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 

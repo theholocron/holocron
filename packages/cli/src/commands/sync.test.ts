@@ -5,9 +5,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthError } from "../auth/auth-resolver.js";
-import { runSync } from "../commands/sync.js";
-import type { RunSyncReadmeInput, SyncReadmeReport } from "../commands/sync-readme.js";
-import { runSyncReadme } from "../commands/sync-readme.js";
+import { runSync } from "./sync.js";
+import type { RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.js";
+import { runSyncReadme } from "./sync-readme.js";
 
 vi.mock("../commands/sync-readme.js", () => ({
 	runSyncReadme: vi.fn(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { defineConfig } from "../config/define-config.js";
+import { defineConfig } from "./define-config.js";
 
 describe("defineConfig", () => {
 	it("returns the config object unchanged", () => {

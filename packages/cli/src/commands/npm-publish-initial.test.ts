@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
-import { type PublishExecResult, runNpmPublishInitial } from "../commands/npm-publish-initial.js";
+import { type PublishExecResult, runNpmPublishInitial } from "./npm-publish-initial.js";
 
 function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {
 	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));

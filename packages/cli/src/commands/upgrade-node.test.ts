@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { runUpgradeNode } from "../commands/upgrade-node.js";
+import { runUpgradeNode } from "./upgrade-node.js";
 
 const CWD = "/repo";
 

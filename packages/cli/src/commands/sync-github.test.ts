@@ -10,13 +10,13 @@ import {
 	generateCombinedDeployContent,
 	generateThinCallerContent,
 	WORKFLOW_TEMPLATES,
-} from "../commands/setup-workflows/index.js";
+} from "./setup-workflows/index.js";
 import {
 	gitBlobSha as _gitBlobSha,
 	parseOrgContextFromTs,
 	parseWorkflowsFromTs,
 	runSyncGithub,
-} from "../commands/sync-github.js";
+} from "./sync-github.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed

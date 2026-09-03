@@ -2,7 +2,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { runNpmBumpVersions } from "../commands/npm-bump-versions.js";
+import { runNpmBumpVersions } from "./npm-bump-versions.js";
 
 const CWD = "/repo";
 const PACKAGES_DIR = join(CWD, "packages");

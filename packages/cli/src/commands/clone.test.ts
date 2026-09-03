@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runClone } from "../commands/clone.js";
+import { runClone } from "./clone.js";
 
 function makeRepo(name: string, org = "test-org") {
 	return {

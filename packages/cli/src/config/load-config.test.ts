@@ -5,8 +5,8 @@ import { basename, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ConfigError } from "../config/config.js";
-import { ConfigFileError, loadConfig } from "../config/load-config.js";
+import { ConfigError } from "./config.js";
+import { ConfigFileError, loadConfig } from "./load-config.js";
 
 // In production, tsx CJS-transforms `export default x` into `exports.default = x`,
 // so dynamic import produces { default: { __esModule: true, default: x } }.
