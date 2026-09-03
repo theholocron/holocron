@@ -518,7 +518,7 @@ try {
 		)
 		.command(
 			"sync-github",
-			"Sync workflow templates and composite actions to theholocron/.github via the GitHub API",
+			"Sync workflow templates and composite actions to theholocron/.github",
 			(y) =>
 				y
 					.option("repo", {

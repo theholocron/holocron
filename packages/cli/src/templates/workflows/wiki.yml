@@ -50,7 +50,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   publish:
-    name: ${{ inputs.preview && 'Preview' || 'Publish' }} to Fern
+    name: ${{ inputs.preview && 'Preview' || 'Publish' }} to Wiki
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -87,7 +87,7 @@ jobs:
           BASE_PATH: ${{ inputs.base-path }}
         run: |
           PREVIEW_URL="https://${FERN_ORG}-preview-${PREVIEW_ID}.docs.buildwithfern.com${BASE_PATH:+/${BASE_PATH}}"
-          PAYLOAD=$(printf '{"ref":"%s","environment":"fern (Preview)","description":"Fern Docs","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
+          PAYLOAD=$(printf '{"ref":"%s","environment":"wiki (Preview)","description":"Wiki","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
             "$GITHUB_HEAD_REF")
           DEPLOY_ID=$(echo "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
             --method POST --input - | jq -r '.id')

@@ -8,7 +8,8 @@
 
 import auditYml from "./workflows/audit.yml";
 import bookkeepingYml from "./workflows/bookkeeping.yml";
-import codeqlYml from "./workflows/codeql.yml";
+import previewYml from "./workflows/preview.yml";
+import securityYml from "./workflows/security.yml";
 import dependenciesYml from "./workflows/dependencies.yml";
 import deployYml from "./workflows/deploy.yml";
 import greetingsYml from "./workflows/greetings.yml";
@@ -26,7 +27,8 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	lint: lintYml,
 	test: testYml,
 	typecheck: typecheckYml,
-	codeql: codeqlYml,
+	security: securityYml,
+	preview: previewYml,
 	review: reviewYml,
 	"post-release": postReleaseYml,
 	release: releaseYml,
@@ -252,7 +254,7 @@ export function generateCombinedDeployContent(
 		`  workflow_dispatch:`,
 		``,
 		`concurrency:`,
-		`  group: $\{{ github.event_name == 'pull_request' && format('deploy-preview-{0}', github.event.pull_request.number) || 'pages' }}`,
+		`  group: $\{{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}`,
 		`  cancel-in-progress: $\{{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
 		``,
 		`permissions:`,
@@ -271,9 +273,9 @@ export function generateCombinedDeployContent(
 		`    secrets: inherit`,
 		``,
 		`  preview:`,
-		`    name: Deploy Preview`,
+		`    name: Preview`,
 		`    if: \${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
-		`    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main`,
+		`    uses: theholocron/.github/.github/workflows/preview.yml@main`,
 		previewWithBlock.trimEnd(),
 		`    secrets: inherit`,
 		``,

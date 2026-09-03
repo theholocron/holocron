@@ -1,4 +1,4 @@
-name: Deploy Preview
+name: Preview
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -42,7 +42,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   deploy-preview:
-    name: Deploy Preview
+    name: Preview
     runs-on: ubuntu-latest
     permissions:
       contents: read

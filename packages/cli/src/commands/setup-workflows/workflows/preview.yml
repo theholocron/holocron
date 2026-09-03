@@ -1,11 +1,11 @@
-name: Deploy Preview
+name: Preview
 
 on: # yamllint disable-line rule:truthy
   pull_request:
     branches: [main]
 
 concurrency:
-  group: deploy-preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  deploy-preview:
-    name: Deploy Preview
-    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main
+  preview:
+    name: Preview
+    uses: theholocron/.github/.github/workflows/preview.yml@main
     secrets: inherit
