@@ -39,7 +39,6 @@ import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
 import { createHeader } from "../../create-header/index.js";
 import {
-	DEPENDABOT_CONFIG,
 	deriveDeployPaths,
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -48,6 +47,8 @@ import {
 	normalizeWorkflowWith,
 	WORKFLOW_CHECK_CONTEXTS,
 } from "../setup-workflows.js";
+import dependabotConfig from "../../templates/dependabot.yml";
+import dcoConfig from "../../templates/dco.yml";
 
 const { workflowHeader, scaffoldHeader } = createHeader({
 	source: "packages/cli/src/commands/setup/run-setup.ts",
@@ -246,15 +247,18 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(formatStep(steps[steps.length - 1]!));
 	}
 
-	// ── source: dependabot config ────────────────────────────────────────
+	// ── source: dependabot + dco config ─────────────────────────────────
 	if (loader.has("source") && effectivePreset !== "none") {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
-				await source.writeRepoFile(
-					".github/dependabot.yml",
-					`${workflowHeader()}${DEPENDABOT_CONFIG}`
-				);
+				await source.writeRepoFile(".github/dependabot.yml", `${workflowHeader()}${dependabotConfig}`);
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write .github/dco.yml", dryRun, async () => {
+				await source.writeRepoFile(".github/dco.yml", `${workflowHeader()}${dcoConfig}`);
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));

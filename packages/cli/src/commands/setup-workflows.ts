@@ -6,8 +6,6 @@
  * Files are overwritten on each setup run — they are generated artifacts.
  */
 
-export { default as DEPENDABOT_CONFIG } from "./dependabot.yml";
-
 import auditYml from "./workflows/audit.yml";
 import bookkeepingYml from "./workflows/bookkeeping.yml";
 import codeqlYml from "./workflows/codeql.yml";
