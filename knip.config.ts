@@ -49,6 +49,9 @@ const config: KnipConfig = {
 		// ESLint toolchain: per-package eslint.config.ts spreads the root config;
 		// Knip's ESLint plugin doesn't trace through the spread
 		"@theholocron/eslint-config",
+		// vitest config auto-loading is disabled for packages/cli (the rollup
+		// plugin isn't built at audit time), so Knip can't trace this import
+		"@theholocron/vitest-config",
 		"@vitest/eslint-plugin",
 		"eslint-plugin-n",
 		"globals",
