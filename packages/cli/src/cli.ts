@@ -6,6 +6,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
+import { env } from "./env.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
@@ -43,7 +44,7 @@ const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.jso
  *   3. `org` from `holocron.config.ts`
  */
 function resolveOrg(argv: { org?: string }, config: { org?: string }): string | undefined {
-	return argv.org ?? process.env["HOLOCRON_ORG"] ?? config.org;
+	return argv.org ?? env.get("HOLOCRON_ORG") ?? config.org;
 }
 
 /** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */

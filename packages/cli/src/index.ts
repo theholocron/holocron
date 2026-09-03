@@ -3,7 +3,6 @@ export * from "./plugin/capabilities.js";
 export * from "./config/compose.js";
 export * from "./config/config.js";
 export * from "./config/define-config.js";
-export * from "./env.js";
 export * from "./auth/keyring.js";
 export * from "./config/load-config.js";
 export * from "./plugin/rest-client.js";

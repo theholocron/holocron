@@ -20,6 +20,7 @@
 import type { Secrets, SecretScope } from "../plugin/capabilities.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { env } from "../env.js";
 
 export type SecretSetPrint = (line: string) => void;
 
@@ -98,12 +99,11 @@ async function resolveValue(input: RunSecretSetInput): Promise<string | undefine
 		const text = await reader();
 		return text.replace(/\r?\n$/, ""); // trim trailing newline
 	}
-	const env = process.env;
 	if (input.fromEnv) {
-		return env[input.fromEnv];
+		return env.get(input.fromEnv);
 	}
 	// Implicit: env var with the same name as the secret.
-	return env[input.name];
+	return env.get(input.name);
 }
 
 async function defaultReadStdin(): Promise<string> {

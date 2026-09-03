@@ -8,7 +8,7 @@ import {
 	type ResolveTokenInput,
 } from "@theholocron/http-client";
 
-import { createEnvLookup } from "./env.js";
+import { makeEnv } from "../env.js";
 import { getToken as getKeyringToken } from "./keyring.js";
 
 export { AuthError, type ResolveTokenInput };
@@ -37,7 +37,7 @@ export interface FeatureResolverConfig {
  */
 export function createFeatureResolver(config: FeatureResolverConfig): (input?: ResolveTokenInput) => string {
 	return function resolveFeatureToken(input: ResolveTokenInput = {}): string {
-		const env = createEnvLookup(input.env);
+		const env = makeEnv(input.env);
 		const keyring = input.keyring ?? getKeyringToken;
 		const token = input.cliToken || env.get(config.envName) || keyring(config.keyringKey);
 		if (!token) {

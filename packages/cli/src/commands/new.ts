@@ -22,6 +22,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { env } from "../env.js";
+
 // ── Public API ────────────────────────────────────────────────────────
 
 export type VaultProvider = "doppler" | "1password" | "infisical" | "none";
@@ -554,13 +556,13 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 
 			// Org token: drives team assignments and custom properties.
 			// Skip keychain if already in env (subprocess inherits it anyway).
-			if (!process.env["HOLOCRON_ORG_TOKEN"]) {
+			if (!env.get("HOLOCRON_ORG_TOKEN")) {
 				const orgToken = keychainLookup("github.org");
 				if (orgToken) setupEnv["HOLOCRON_ORG_TOKEN"] = orgToken;
 			}
 
 			// Deploy token: drives GitHub Pages configuration.
-			if (!process.env["HOLOCRON_DEPLOY_TOKEN"]) {
+			if (!env.get("HOLOCRON_DEPLOY_TOKEN")) {
 				const deployToken = keychainLookup("github.deploy");
 				if (deployToken) setupEnv["HOLOCRON_DEPLOY_TOKEN"] = deployToken;
 			}
