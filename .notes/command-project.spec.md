@@ -142,20 +142,20 @@ runtime:
 
 Mirrors the current org roadmap board (project #4):
 
-| Component | Definition |
-|---|---|
-| **Fields** | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
-| **Views** | Kanban grouped by Status (default), Table with all fields |
-| **Auto-archive** | Items whose issue/PR is closed — must be enabled manually via UI (API limitation) |
+| Component        | Definition                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| **Fields**       | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
+| **Views**        | Kanban grouped by Status (default), Table with all fields                                             |
+| **Auto-archive** | Items whose issue/PR is closed — must be enabled manually via UI (API limitation)                     |
 
 #### `sprint`
 
 Lightweight iteration board:
 
-| Component | Definition |
-|---|---|
+| Component  | Definition                                                                   |
+| ---------- | ---------------------------------------------------------------------------- |
 | **Fields** | Status (Todo / In Progress / Done / Blocked), Sprint (text, e.g. "2026-W36") |
-| **Views** | Kanban grouped by Status (default) |
+| **Views**  | Kanban grouped by Status (default)                                           |
 
 ### 2. Config-driven templates (`holocron.config.ts`)
 
@@ -173,9 +173,7 @@ export default defineConfig({
       // Extend the built-in roadmap with a custom field
       roadmap: {
         extends: "roadmap",
-        fields: [
-          { name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] },
-        ],
+        fields: [{ name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] }],
       },
       // Fully custom template
       "bug-bash": {
@@ -184,9 +182,7 @@ export default defineConfig({
           { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
           { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
         ],
-        views: [
-          { name: "By severity", layout: "table", groupBy: "Severity" },
-        ],
+        views: [{ name: "By severity", layout: "table", groupBy: "Severity" }],
       },
     },
   },
@@ -195,13 +191,13 @@ export default defineConfig({
 
 **Field type map** (subset of the GitHub Projects v2 field types):
 
-| `type` value | GitHub field type |
-|---|---|
-| `single_select` | `SINGLE_SELECT` |
-| `text` | `TEXT` |
-| `number` | `NUMBER` |
-| `date` | `DATE` |
-| `iteration` | `ITERATION` |
+| `type` value    | GitHub field type |
+| --------------- | ----------------- |
+| `single_select` | `SINGLE_SELECT`   |
+| `text`          | `TEXT`            |
+| `number`        | `NUMBER`          |
+| `date`          | `DATE`            |
+| `iteration`     | `ITERATION`       |
 
 **View layout values:** `"board"` (kanban) or `"table"`.
 
@@ -235,8 +231,16 @@ packages/cli/src/commands/project/
 query ListProjects($org: String!, $first: Int!, $after: String) {
   organization(login: $org) {
     projectsV2(first: $first, after: $after) {
-      pageInfo { hasNextPage endCursor }
-      nodes { number title closed url }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        number
+        title
+        closed
+        url
+      }
     }
   }
 }
@@ -251,18 +255,29 @@ query ListProjects($org: String!, $first: Int!, $after: String) {
 ```graphql
 mutation CreateProject($ownerId: ID!, $title: String!) {
   createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 { id number url }
+    projectV2 {
+      id
+      number
+      url
+    }
   }
 }
 
-mutation CreateField($projectId: ID!, $name: String!, $dataType: ProjectV2CustomFieldType!, $singleSelectOptions: [ProjectV2SingleSelectFieldOptionInput!]) {
-  createProjectV2Field(input: {
-    projectId: $projectId
-    name: $name
-    dataType: $dataType
-    singleSelectOptions: $singleSelectOptions
-  }) {
-    projectV2Field { ... on ProjectV2SingleSelectField { id name } }
+mutation CreateField(
+  $projectId: ID!
+  $name: String!
+  $dataType: ProjectV2CustomFieldType!
+  $singleSelectOptions: [ProjectV2SingleSelectFieldOptionInput!]
+) {
+  createProjectV2Field(
+    input: { projectId: $projectId, name: $name, dataType: $dataType, singleSelectOptions: $singleSelectOptions }
+  ) {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+      }
+    }
   }
 }
 ```
@@ -275,12 +290,22 @@ query GetProjectItems($org: String!, $number: Int!, $first: Int!, $after: String
     projectV2(number: $number) {
       id
       items(first: $first, after: $after) {
-        pageInfo { hasNextPage endCursor }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           content {
-            ... on Issue { state url }
-            ... on PullRequest { state merged url }
+            ... on Issue {
+              state
+              url
+            }
+            ... on PullRequest {
+              state
+              merged
+              url
+            }
           }
         }
       }
@@ -290,7 +315,9 @@ query GetProjectItems($org: String!, $number: Int!, $first: Int!, $after: String
 
 mutation ArchiveItem($projectId: ID!, $itemId: ID!) {
   archiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item { id }
+    item {
+      id
+    }
   }
 }
 ```
@@ -320,7 +347,8 @@ skips creation and prints the existing project URL.
 ### Pagination
 
 `list` and `archive-done` paginate automatically using `pageInfo.hasNextPage`
-+ `endCursor` cursor forwarding. No manual `--page` flag needed.
+
+- `endCursor` cursor forwarding. No manual `--page` flag needed.
 
 ---
 
