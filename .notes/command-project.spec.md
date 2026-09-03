@@ -127,27 +127,29 @@ export default defineConfig({
     projects: "github",
 
     // Tuple form — provider + options (template overrides, org override)
-    projects: [
-      "github",
-      {
-        org: "theholocron", // defaults to config.org
-        templates: {
-          // Extend the built-in roadmap with a custom field
-          roadmap: {
-            extends: "roadmap",
-            fields: [{ name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] }],
-          },
-          // Fully custom template
-          "bug-bash": {
-            fields: [
-              { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
-              { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
-            ],
-            views: [{ name: "By severity", layout: "table", groupBy: "Severity" }],
-          },
+    projects: ["github", {
+      org: "theholocron", // defaults to config.org
+      templates: {
+        // Extend the built-in roadmap with a custom field
+        roadmap: {
+          extends: "roadmap",
+          fields: [
+            { name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] },
+          ],
+        },
+        // Fully custom template
+        "bug-bash": {
+          fields: [
+            { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
+            { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
+          ],
+          views: [
+            { name: "Active", layout: "table", filter: "-status:Triage -status:Fixed -status:Wontfix" },
+            { name: "By severity", layout: "table", groupBy: "Severity" },
+          ],
         },
       },
-    ],
+    }],
   },
 });
 ```
@@ -173,19 +175,31 @@ runtime — built-in presets and config-driven overrides from the provider optio
 
 Mirrors the current org roadmap board (project #4):
 
-| Component  | Definition                                                                                            |
-| ---------- | ----------------------------------------------------------------------------------------------------- |
+| Component  | Definition                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------ |
 | **Fields** | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
-| **Views**  | Kanban grouped by Status (default), Table with all fields                                             |
+| **Views**  | Active (default), Backlog, Done — see below                                                            |
+
+**Views:**
+
+| Name     | Layout | Filter                          | Purpose                              |
+| -------- | ------ | ------------------------------- | ------------------------------------ |
+| Active   | table  | `-status:Someday -status:Done`  | Day-to-day working view (Todo + In Progress only) |
+| Backlog  | board  | `status:Someday`                | Everything parked for later          |
+| Done     | table  | `status:Done`                   | Completed work, historical record    |
+
+The Active view is set as the default so the board opens showing only
+committed work. Done items are never seen unless you switch to the Done view —
+no need to archive individual items to keep the board clean.
 
 #### `sprint`
 
 Lightweight iteration board:
 
-| Component  | Definition                                                                   |
-| ---------- | ---------------------------------------------------------------------------- |
+| Component  | Definition                                                                    |
+| ---------- | ----------------------------------------------------------------------------- |
 | **Fields** | Status (Todo / In Progress / Done / Blocked), Sprint (text, e.g. "2026-W36") |
-| **Views**  | Kanban grouped by Status (default)                                           |
+| **Views**  | Active (table, `-status:Done`, default), Done (table, `status:Done`)          |
 
 ### Template schema
 
@@ -200,6 +214,16 @@ Lightweight iteration board:
 | `iteration`     | `ITERATION`       |
 
 **View layout values:** `"board"` (kanban) or `"table"`.
+
+**View properties:**
+
+| Property  | Type     | Description |
+| --------- | -------- | ----------- |
+| `name`    | string   | Display name shown in the tab |
+| `layout`  | string   | `"board"` or `"table"` |
+| `filter`  | string   | GitHub Projects filter expression (e.g. `"status:Done"`, `"-status:Someday"`) |
+| `groupBy` | string   | Field name to group rows/columns by |
+| `default` | boolean  | If `true`, this view opens when the project is first loaded. First view wins if multiple are set. |
 
 A config-defined template may set `extends: "<built-in-name>"` to inherit all
 fields and views from a built-in and add to them. Without `extends`, the
@@ -249,16 +273,8 @@ export interface ProjectsProvider {
 query ListProjects($org: String!, $first: Int!, $after: String) {
   organization(login: $org) {
     projectsV2(first: $first, after: $after) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        number
-        title
-        closed
-        url
-      }
+      pageInfo { hasNextPage endCursor }
+      nodes { number title closed url }
     }
   }
 }
@@ -273,11 +289,7 @@ query ListProjects($org: String!, $first: Int!, $after: String) {
 ```graphql
 mutation CreateProject($ownerId: ID!, $title: String!) {
   createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 {
-      id
-      number
-      url
-    }
+    projectV2 { id number url }
   }
 }
 
@@ -287,14 +299,14 @@ mutation CreateField(
   $dataType: ProjectV2CustomFieldType!
   $singleSelectOptions: [ProjectV2SingleSelectFieldOptionInput!]
 ) {
-  createProjectV2Field(
-    input: { projectId: $projectId, name: $name, dataType: $dataType, singleSelectOptions: $singleSelectOptions }
-  ) {
+  createProjectV2Field(input: {
+    projectId: $projectId
+    name: $name
+    dataType: $dataType
+    singleSelectOptions: $singleSelectOptions
+  }) {
     projectV2Field {
-      ... on ProjectV2SingleSelectField {
-        id
-        name
-      }
+      ... on ProjectV2SingleSelectField { id name }
     }
   }
 }
@@ -331,11 +343,7 @@ cursor forwarding. No manual `--page` flag needed.
 
 ## Open questions
 
-1. **View configuration depth** — `updateProjectV2View` supports layout,
-   groupBy, sortBy, and visible fields. Should the template schema expose all
-   of these, or just `layout` and `groupBy` for the first iteration?
-
-2. **Title uniqueness scope** — collision check is org-wide. If the same org
+1. **Title uniqueness scope** — collision check is org-wide. If the same org
    runs multiple teams with projects named "Sprint 1", this will false-positive.
    Could scope to open projects only, or skip the check entirely and let GitHub
    create duplicates.
