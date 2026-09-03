@@ -7,7 +7,7 @@ const base = library();
 
 export default defineConfig({
 	...base,
-	plugins: [...(base.plugins ?? []), transformTemplate({ dirs: ["/src/commands/setup/templates/"] })],
+	plugins: [...(base.plugins ?? []), transformTemplate({ dirs: ["/src/templates/configs/"] })],
 	test: {
 		...base.test,
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
@@ -31,7 +31,7 @@ export default defineConfig({
 				"src/templates/actions/**",
 				"src/templates/workflows/**",
 				// setup template files — raw text content only, no executable logic.
-				"src/commands/setup/templates/**",
+				"src/templates/configs/**",
 			],
 		},
 	},

@@ -5,7 +5,7 @@
  *
  * @example
  * const { workflowHeader, scaffoldHeader } = createHeader({
- *   source: "packages/cli/src/commands/setup/templates/editorconfig/create-config.ts",
+ *   source: "packages/cli/src/templates/configs/editorconfig/create-config.ts",
  * });
  *
  * export function createConfig(): string {

@@ -62,14 +62,14 @@ import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, runStep } from "./run-step.js";
 import type { RunSetupInput, SetupReport, SetupStepResult } from "./run-step.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
-import { createRcConfig as createAlexrc, createIgnoreConfig as createAlexignore } from "./templates/alexjs/index.js";
-import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePackages } from "./templates/codecov/index.js";
-import { createConfig as createDevmoji } from "./templates/devmoji/index.js";
-import { createConfig as createEditorconfig } from "./templates/editorconfig/index.js";
-import { createConfig as createEditorconfigChecker } from "./templates/editorconfig-checker/index.js";
-import { createConfig as createGithubLabeler } from "./templates/github-labeler/index.js";
-import { createConfig as createPrepareCommitMsg } from "./templates/prepare-commit-msg/index.js";
-import { createConfig as createSentimentBot } from "./templates/sentiment-bot/index.js";
+import { createRcConfig as createAlexrc, createIgnoreConfig as createAlexignore } from "../../templates/configs/alexjs/index.js";
+import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePackages } from "../../templates/configs/codecov/index.js";
+import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
+import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
+import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
+import { createConfig as createGithubLabeler } from "../../templates/configs/github-labeler/index.js";
+import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
+import { createConfig as createSentimentBot } from "../../templates/configs/sentiment-bot/index.js";
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));

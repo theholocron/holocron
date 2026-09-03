@@ -1,8 +1,8 @@
-import { createHeader } from "../../../../create-header/index.js";
+import { createHeader } from "../../../create-header/index.js";
 import prepareCommitMsgBody from "./prepare-commit-msg";
 
 const { workflowHeader } = createHeader({
-	source: "packages/cli/src/commands/setup/templates/prepare-commit-msg/create-config.ts",
+	source: "packages/cli/src/templates/configs/prepare-commit-msg/create-config.ts",
 });
 
 export function createConfig(): string {

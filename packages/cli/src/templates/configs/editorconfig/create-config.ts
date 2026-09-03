@@ -1,8 +1,8 @@
-import { createHeader } from "../../../../create-header/index.js";
+import { createHeader } from "../../../create-header/index.js";
 import editorconfigBody from "./editorconfig";
 
 const { workflowHeader } = createHeader({
-	source: "packages/cli/src/commands/setup/templates/editorconfig/create-config.ts",
+	source: "packages/cli/src/templates/configs/editorconfig/create-config.ts",
 });
 
 export function createConfig(): string {
