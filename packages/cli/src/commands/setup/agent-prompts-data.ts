@@ -8,7 +8,7 @@
  * Source: .notes/ai-engineering-workflow.spec.md
  */
 
-import decisionsTemplate from "./templates/decisions-template.md";
+import decisionsTemplate from "../../templates/decisions-template.md";
 
 export const DECISIONS_TEMPLATE = decisionsTemplate;
 
