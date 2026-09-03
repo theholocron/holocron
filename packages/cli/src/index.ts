@@ -6,4 +6,4 @@ export * from "./config/define-config.js";
 export * from "./env.js";
 export * from "./auth/keyring.js";
 export * from "./config/load-config.js";
-export * from "./rest-client.js";
+export * from "./plugin/rest-client.js";
