@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/array-utils",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "Convert or manipulate arrays.",
   "keywords": [
     "array",

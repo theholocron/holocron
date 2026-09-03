@@ -1,3 +1,9 @@
+## [1.6.0](https://github.com/theholocron/utils/compare/v1.5.2...v1.6.0) (2026-09-03)
+
+### Features
+
+* ✨ add createEnvLookup ([#262](https://github.com/theholocron/utils/issues/262)) ([c3a0716](https://github.com/theholocron/utils/commit/c3a0716ede99a712d41aab6bffac1e853fce7cad))
+
 ## [1.5.2](https://github.com/theholocron/utils/compare/v1.5.1...v1.5.2) (2026-09-02)
 
 ### Chores
