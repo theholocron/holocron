@@ -13,11 +13,17 @@ const config: KnipConfig = {
 		},
 		"packages/cli": {
 			// entry points auto-detected from package.json exports/bin
-			project: ["src/**/*.ts", "!src/**/__tests__/**"],
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
+		"packages/rollup-plugin-transform-template": {
+			entry: ["src/index.ts", "src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
 		},
 		"packages/holocron-plugin-*": {
 			// src/index.ts auto-detected from package.json exports
-			project: ["src/**/*.ts", "!src/**/__tests__/**"],
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
 		},
 	},
 	ignoreDependencies: [
@@ -42,9 +48,6 @@ const config: KnipConfig = {
 		"@vitest/eslint-plugin",
 		"eslint-plugin-n",
 		"globals",
-		// sub-package tsconfig.json files reference this via "extends";
-		// hoisted to root devDeps for workspace access but Knip doesn't cross-track it
-		"@theholocron/tsconfig",
 		// commitlint uses string-based "extends", not a module import
 		"@theholocron/commitlint-config",
 		// passed as --config arg to lint-staged in .husky/pre-commit, not an import
@@ -54,7 +57,6 @@ const config: KnipConfig = {
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
 		"husky",
-		"tsdown",
 	],
 	// commitlint binary comes transitively via @theholocron/commitlint-config; not a direct dep
 	ignoreBinaries: ["commitlint"],

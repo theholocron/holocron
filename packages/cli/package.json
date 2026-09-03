@@ -28,9 +28,9 @@
       "default": "./dist/index.mjs"
     },
     "./capabilities": {
-      "types": "./src/capabilities/index.ts",
-      "import": "./dist/capabilities/index.mjs",
-      "default": "./dist/capabilities/index.mjs"
+      "types": "./src/plugin/capabilities.ts",
+      "import": "./dist/plugin/capabilities.mjs",
+      "default": "./dist/plugin/capabilities.mjs"
     }
   },
   "bin": {
@@ -92,9 +92,9 @@
         "default": "./dist/index.mjs"
       },
       "./capabilities": {
-        "types": "./dist/capabilities/index.d.mts",
-        "import": "./dist/capabilities/index.mjs",
-        "default": "./dist/capabilities/index.mjs"
+        "types": "./dist/plugin/capabilities.d.mts",
+        "import": "./dist/plugin/capabilities.mjs",
+        "default": "./dist/plugin/capabilities.mjs"
       }
     }
   }
