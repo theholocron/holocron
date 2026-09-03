@@ -7,7 +7,7 @@
  * normalization + defaulting from user input.
  */
 
-import type { CapabilityKey } from "../../capabilities/index.js";
+import type { CapabilityKey } from "../../plugin/capabilities.js";
 
 export interface TemplateInputs {
 	/** Package slug — e.g., "clerk". Lowercase, kebab-case. */

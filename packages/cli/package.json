@@ -28,9 +28,9 @@
       "default": "./dist/index.mjs"
     },
     "./capabilities": {
-      "types": "./src/capabilities/index.ts",
-      "import": "./dist/capabilities/index.mjs",
-      "default": "./dist/capabilities/index.mjs"
+      "types": "./src/plugin/capabilities.ts",
+      "import": "./dist/plugin/capabilities.mjs",
+      "default": "./dist/plugin/capabilities.mjs"
     }
   },
   "bin": {
@@ -53,9 +53,10 @@
     "@napi-rs/keyring": "^1.3.0",
     "@sentry/node": "catalog:",
     "@theholocron/components-doc": "^1.6.0",
+    "@theholocron/env-utils": "catalog:utils",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/http-client": "catalog:clients",
-    "@theholocron/registry-doc": "^1.7.0",
+    "@theholocron/registry-doc": "^1.8.0",
     "chalk": "catalog:",
     "ora": "catalog:",
     "tsx": "catalog:",
@@ -63,6 +64,7 @@
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/rollup-plugin-transform-template": "workspace:*",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
@@ -90,9 +92,9 @@
         "default": "./dist/index.mjs"
       },
       "./capabilities": {
-        "types": "./dist/capabilities/index.d.mts",
-        "import": "./dist/capabilities/index.mjs",
-        "default": "./dist/capabilities/index.mjs"
+        "types": "./dist/plugin/capabilities.d.mts",
+        "import": "./dist/plugin/capabilities.mjs",
+        "default": "./dist/plugin/capabilities.mjs"
       }
     }
   }

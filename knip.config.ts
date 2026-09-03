@@ -13,11 +13,21 @@ const config: KnipConfig = {
 		},
 		"packages/cli": {
 			// entry points auto-detected from package.json exports/bin
-			project: ["src/**/*.ts", "!src/**/__tests__/**"],
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+			// vitest.config.ts imports the rollup plugin which isn't built at
+			// audit time — disable auto-loading so Knip uses our explicit entry
+			vitest: { config: [] },
+		},
+		"packages/rollup-plugin-transform-template": {
+			// src/index.ts auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
 		},
 		"packages/holocron-plugin-*": {
 			// src/index.ts auto-detected from package.json exports
-			project: ["src/**/*.ts", "!src/**/__tests__/**"],
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
 		},
 	},
 	ignoreDependencies: [
@@ -39,12 +49,12 @@ const config: KnipConfig = {
 		// ESLint toolchain: per-package eslint.config.ts spreads the root config;
 		// Knip's ESLint plugin doesn't trace through the spread
 		"@theholocron/eslint-config",
+		// vitest config auto-loading is disabled for packages/cli (the rollup
+		// plugin isn't built at audit time), so Knip can't trace this import
+		"@theholocron/vitest-config",
 		"@vitest/eslint-plugin",
 		"eslint-plugin-n",
 		"globals",
-		// sub-package tsconfig.json files reference this via "extends";
-		// hoisted to root devDeps for workspace access but Knip doesn't cross-track it
-		"@theholocron/tsconfig",
 		// commitlint uses string-based "extends", not a module import
 		"@theholocron/commitlint-config",
 		// passed as --config arg to lint-staged in .husky/pre-commit, not an import
@@ -54,7 +64,6 @@ const config: KnipConfig = {
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
 		"husky",
-		"tsdown",
 	],
 	// commitlint binary comes transitively via @theholocron/commitlint-config; not a direct dep
 	ignoreBinaries: ["commitlint"],

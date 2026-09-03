@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import chalk from "chalk";
 
+import { env } from "./env.js";
+
 const PACKAGE_NAME = "@theholocron/cli";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 3000;
@@ -14,7 +16,7 @@ interface CacheEntry {
 }
 
 function getCacheDir(): string {
-	return process.env["HOLOCRON_CACHE_DIR"] ?? join(homedir(), ".cache", "holocron");
+	return env.get("HOLOCRON_CACHE_DIR") ?? join(homedir(), ".cache", "holocron");
 }
 
 function getCachePath(): string {
@@ -125,7 +127,7 @@ function formatNotice(current: string, latest: string): string {
 }
 
 export async function checkForUpdates(currentVersion: string): Promise<(() => void) | null> {
-	if (process.env["CI"] || process.env["NO_UPDATE_NOTIFIER"]) return null;
+	if (env.get("CI") || env.get("NO_UPDATE_NOTIFIER")) return null;
 
 	const channel = getChannel(currentVersion);
 	const cache = readCache();

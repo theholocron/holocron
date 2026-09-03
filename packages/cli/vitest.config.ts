@@ -1,13 +1,12 @@
+import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
 import { library } from "@theholocron/vitest-config/bundles/library";
 import { defineConfig } from "vitest/config";
-
-import { rawYml } from "./raw-yml.js";
 
 const base = library();
 
 export default defineConfig({
 	...base,
-	plugins: [...(base.plugins ?? []), rawYml()],
+	plugins: [...(base.plugins ?? []), transformTemplate({ dirs: ["/src/templates/configs/"] })],
 	test: {
 		...base.test,
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
@@ -22,14 +21,17 @@ export default defineConfig({
 				"src/cli.ts",
 				// Pure TypeScript type definitions; no executable logic to cover.
 				// See issue #117.
-				"src/capabilities/index.ts",
+				"src/plugin/capabilities.ts",
 				// Pure re-export shim — all logic lives in @theholocron/http-client.
-				"src/rest-client.ts",
-				// yml template files — string content only, no executable logic.
-				"src/commands/dependabot.yml",
-				"src/commands/workflows/**",
-				"src/templates/actions/**",
-				"src/templates/workflows/**",
+				"src/plugin/rest-client.ts",
+				// Pure barrel re-exports — no executable logic, v8 tracks 0%.
+				"src/commands/setup/index.ts",
+				"src/commands/setup-workflows/index.ts",
+				// yml/md template files — string content only, no executable logic.
+				"src/commands/setup-workflows/workflows/**",
+				"src/templates/**",
+				// setup template files — raw text content only, no executable logic.
+				"src/templates/configs/**",
 			],
 		},
 	},

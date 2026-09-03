@@ -1,12 +1,14 @@
 import type { ErrorEvent, EventHint } from "@sentry/node";
 import * as Sentry from "@sentry/node";
 
+import { env } from "./env.js";
+
 // Paste your DSN from Sentry → Settings → Client Keys once the project is created.
 // Empty string = telemetry silently disabled — safe to ship before the project exists.
 const DSN: string = "https://95cbb72ad5636c94e119a5405ee8f55f@o4508238154104832.ingest.us.sentry.io/4511810950791168";
 
 function isEnabled(): boolean {
-	return !process.env.NO_HOLOCRON_TELEMETRY && DSN !== "";
+	return !env.get("NO_HOLOCRON_TELEMETRY") && DSN !== "";
 }
 
 export function init(version: string): void {
@@ -14,14 +16,14 @@ export function init(version: string): void {
 	Sentry.init({
 		dsn: DSN,
 		release: `holocron@${version}`,
-		environment: process.env.CI ? "ci" : "local",
+		environment: env.get("CI") ? "ci" : "local",
 		tracesSampleRate: 1.0,
 		beforeSend: scrubError,
 	});
 	Sentry.startSession();
 	Sentry.setTag("os", process.platform);
 	Sentry.setTag("node", process.version);
-	Sentry.setTag("ci", String(Boolean(process.env.CI)));
+	Sentry.setTag("ci", String(Boolean(env.get("CI"))));
 }
 
 export function startCommand(name: string): (ok: boolean) => void {

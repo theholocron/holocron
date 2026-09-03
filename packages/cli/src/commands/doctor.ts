@@ -13,10 +13,10 @@
  * capture lines without ANSI / spinner noise.
  */
 
-import type { Auth, Ci, Issues, Secrets, Source, Vault } from "../capabilities/index.js";
-import { CARDINALITY } from "../capabilities/index.js";
-import type { LoadedConfig } from "../load-config.js";
-import { PluginLoader, type RuntimeContext } from "../loader.js";
+import type { LoadedConfig } from "../config/load-config.js";
+import type { Auth, Ci, Issues, Secrets, Source, Vault } from "../plugin/capabilities.js";
+import { CARDINALITY } from "../plugin/capabilities.js";
+import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 

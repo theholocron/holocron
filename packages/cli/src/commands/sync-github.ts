@@ -6,7 +6,14 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
-import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES, workflowHeader } from "./setup-workflows.js";
+import { createHeader } from "../utils/create-header.js";
+import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows/index.js";
+
+const { workflowHeader } = createHeader({
+	source: "packages/cli/src/commands/sync-github.ts",
+	tool: "holocron sync-github",
+	forPrimary: true,
+});
 
 const DEFAULT_REPO = "theholocron/.github";
 
@@ -198,7 +205,7 @@ function buildBatch(repo: string): FileBatch {
 		for (const [name, content] of Object.entries(ACTIONS)) {
 			files.push({
 				path: `.github/actions/${name}.yml`,
-				content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
+				content: `${reusableHeader(`packages/cli/src/templates/index.ts`)}${content}`,
 			});
 		}
 	}
@@ -207,14 +214,14 @@ function buildBatch(repo: string): FileBatch {
 		for (const [name, content] of Object.entries(REUSABLE_WORKFLOWS)) {
 			files.push({
 				path: `.github/workflows/${name}.yml`,
-				content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
+				content: `${reusableHeader(`packages/cli/src/templates/index.ts`)}${content}`,
 			});
 		}
 
 		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
 				path: `workflow-templates/${name}.yml`,
-				content: workflowHeader(undefined, true) + content,
+				content: `${workflowHeader()}${content}`,
 			});
 			const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 			if (props) {

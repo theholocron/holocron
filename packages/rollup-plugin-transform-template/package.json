@@ -1,0 +1,47 @@
+{
+  "name": "@theholocron/rollup-plugin-transform-template",
+  "version": "0.1.0",
+  "description": "Rollup/Vite/Rolldown plugin that transforms template files into default-exported strings.",
+  "keywords": ["rollup", "plugin", "rollup-plugin", "vite", "rolldown", "template", "transform"],
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/rollup-plugin-transform-template#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": "theholocron/holocron",
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./client": {
+      "types": "./client.d.ts",
+      "default": "./client.d.ts"
+    }
+  },
+  "files": [
+    "client.d.ts",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

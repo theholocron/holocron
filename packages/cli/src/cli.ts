@@ -5,8 +5,8 @@ import { input, select } from "@inquirer/prompts";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { AuthError, createFeatureResolver } from "./auth-resolver.js";
-import { CARDINALITY } from "./capabilities/index.js";
+import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
+import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
 import { runClone } from "./commands/clone.js";
@@ -18,15 +18,16 @@ import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
-import { runSetup } from "./commands/setup.js";
+import { runSetup } from "./commands/setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
 import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
-import { loadConfig } from "./load-config.js";
+import { loadConfig } from "./config/load-config.js";
+import { env } from "./env.js";
+import { CARDINALITY } from "./plugin/capabilities.js";
 import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
-import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
@@ -43,7 +44,7 @@ const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.jso
  *   3. `org` from `holocron.config.ts`
  */
 function resolveOrg(argv: { org?: string }, config: { org?: string }): string | undefined {
-	return argv.org ?? process.env["HOLOCRON_ORG"] ?? config.org;
+	return argv.org ?? env.get("HOLOCRON_ORG") ?? config.org;
 }
 
 /** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */

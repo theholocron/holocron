@@ -27,36 +27,40 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    '@theholocron/clerk-client': ^1.12.0
-    '@theholocron/cloudflare-client': ^1.12.0
-    '@theholocron/doppler-client': ^1.12.0
-    '@theholocron/github-client': ^1.12.0
-    '@theholocron/http-client': ^1.12.0
-    '@theholocron/infisical-client': ^1.12.0
-    '@theholocron/neon-client': ^1.12.0
-    '@theholocron/posthog-client': ^1.12.0
-    '@theholocron/postman-client': ^1.12.0
-    '@theholocron/sentry-client': ^1.12.0
-    '@theholocron/vercel-client': ^1.12.0
+    '@theholocron/clerk-client': ^1.14.2
+    '@theholocron/cloudflare-client': ^1.14.2
+    '@theholocron/doppler-client': ^1.14.2
+    '@theholocron/github-client': ^1.14.2
+    '@theholocron/http-client': ^1.14.2
+    '@theholocron/infisical-client': ^1.14.2
+    '@theholocron/neon-client': ^1.14.2
+    '@theholocron/posthog-client': ^1.14.2
+    '@theholocron/postman-client': ^1.14.2
+    '@theholocron/sentry-client': ^1.14.2
+    '@theholocron/vercel-client': ^1.14.2
+
+  # Shared utils — release in lockstep; bump all entries together.
+  utils:
+    '@theholocron/env-utils': ^1.6.0
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
-    '@theholocron/astro-config': ^7.29.0
-    '@theholocron/commitlint-config': ^7.29.0
-    '@theholocron/devmoji-config': ^7.29.0
-    '@theholocron/docs-theme': ^1.7.4
-    '@theholocron/eslint-config': ^7.29.0
-    '@theholocron/holocron-config': ^7.30.0
-    '@theholocron/lint-staged-config': ^7.29.0
-    '@theholocron/prettier-config': ^7.29.0
-    '@theholocron/semantic-release-config': ^7.29.0
-    '@theholocron/tsconfig': ^7.29.0
-    '@theholocron/tsdown-config': ^7.29.0
-    '@theholocron/vitest-config': ^7.29.0
+    '@theholocron/astro-config': ^7.32.1
+    '@theholocron/commitlint-config': ^7.32.1
+    '@theholocron/devmoji-config': ^7.32.1
+    '@theholocron/docs-theme': ^1.9.3
+    '@theholocron/eslint-config': ^7.32.1
+    '@theholocron/holocron-config': ^7.32.1
+    '@theholocron/lint-staged-config': ^7.32.1
+    '@theholocron/prettier-config': ^7.32.1
+    '@theholocron/semantic-release-config': ^7.32.1
+    '@theholocron/tsconfig': ^7.32.1
+    '@theholocron/tsdown-config': ^7.32.1
+    '@theholocron/vitest-config': ^7.32.1
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  '@theholocron/http-client': ^1.12.0
+  '@theholocron/http-client': ^1.14.2
   tsx: 4.23.12

@@ -20,8 +20,9 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import { resolvePluginPackage } from "../config.js";
-import { deleteToken, getToken, listStoredProviders, setToken } from "../keyring.js";
+import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/keyring.js";
+import { resolvePluginPackage } from "../config/config.js";
+import { makeEnv } from "../env.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
@@ -80,10 +81,10 @@ export function resolveAuthSetToken(input: {
 	positional?: string;
 	env?: NodeJS.ProcessEnv;
 }): string | null {
-	const env = input.env ?? process.env;
+	const e = makeEnv(input.env);
 	const upper = input.provider.toUpperCase();
 	const holocronKey = `HOLOCRON_${upper}_TOKEN`;
-	return input.positional || env[holocronKey] || env[upper + "_TOKEN"] || null;
+	return input.positional || e.get(holocronKey) || e.get(`${upper}_TOKEN`) || null;
 }
 
 // ── Subcommands ──────────────────────────────────────────────────────
