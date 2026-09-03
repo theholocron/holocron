@@ -58,7 +58,7 @@ import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, runStep } from "./run-step.js";
 import type { RunSetupInput, SetupReport, SetupStepResult } from "./run-step.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
-import { createConfig as createAlexrc } from "./templates/alexrc/index.js";
+import { createRcConfig as createAlexrc, createIgnoreConfig as createAlexignore } from "./templates/alexjs/index.js";
 import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePackages } from "./templates/codecov/index.js";
 import { createConfig as createDevmoji } from "./templates/devmoji/index.js";
 import { createConfig as createEditorconfig } from "./templates/editorconfig/index.js";
@@ -268,6 +268,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		steps.push(
 			await runStep("source", "write .alexrc.json", dryRun, async () => {
 				await source.writeRepoFile(".alexrc.json", createAlexrc());
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write .alexignore", dryRun, async () => {
+				await source.writeRepoFile(".alexignore", createAlexignore());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
