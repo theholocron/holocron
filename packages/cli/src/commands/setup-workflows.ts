@@ -24,65 +24,6 @@ import testYml from "./workflows/test.yml";
 import typecheckYml from "./workflows/typecheck.yml";
 import wikiYml from "./workflows/wiki.yml";
 
-/** Output format for workflowHeader. */
-export type WorkflowHeaderFormat = "yaml" | "cjs" | "shebang";
-
-/**
- * Header prepended to every auto-generated file.
- *
- * Used by both `holocron setup` (initial creation) and `holocron sync-github`
- * (subsequent updates) so the header is always identical regardless of which
- * command last wrote the file.
- *
- * @param source - path within theholocron/holocron that owns the template
- * @param forPrimary - true only when writing to theholocron/.github itself
- * @param tool - CLI command that wrote the file
- * @param format - comment style: "yaml" (# lines), "cjs" (block comment),
- *   or "shebang" (#!/bin/sh on line 1, then yaml header)
- */
-export function workflowHeader(
-	source = "packages/cli/src/commands/setup-workflows.ts",
-	forPrimary = false,
-	tool = "holocron sync-github",
-	format: WorkflowHeaderFormat = "yaml"
-): string {
-	const doNotEdit = forPrimary
-		? `AUTO-GENERATED — do not edit in theholocron/.github directly.`
-		: `AUTO-GENERATED — do not edit directly.`;
-
-	if (format === "cjs") {
-		return [
-			`/* ${doNotEdit}`,
-			` * Source:  theholocron/holocron · ${source}`,
-			` * Tool:    ${tool}`,
-			` * Changes: edit source in theholocron/holocron and push to alpha or main.`,
-			` */`,
-			``,
-		].join("\n");
-	}
-
-	const yamlLines = [
-		`# ${doNotEdit}`,
-		`# Source:  theholocron/holocron · ${source}`,
-		`# Tool:    ${tool}`,
-		`# Changes: edit source in theholocron/holocron and push to alpha or main.`,
-		``,
-	].join("\n");
-
-	if (format === "shebang") {
-		return `#!/bin/sh\n\n` + yamlLines;
-	}
-
-	return yamlLines;
-}
-
-export function scaffoldHeader(source = "packages/cli/src/commands/setup/index.ts"): string {
-	return [
-		`# Scaffolded by holocron setup — edit this file freely.`,
-		`# Source:  theholocron/holocron · ${source}`,
-		``,
-	].join("\n");
-}
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	lint: lintYml,
