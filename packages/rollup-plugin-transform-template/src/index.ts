@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-export interface RawTextOptions {
+export interface TransformTemplateOptions {
 	/**
 	 * Additional directory path segments. Any file whose resolved id contains
 	 * one of these strings is transformed into a default-exported string,
@@ -8,7 +8,7 @@ export interface RawTextOptions {
 	 * bundlers and should not be double-transformed).
 	 *
 	 * @example
-	 * rawText({ dirs: ["/commands/setup/templates/"] })
+	 * transformTemplate({ dirs: ["/commands/setup/templates/"] })
 	 */
 	dirs?: string[];
 }
@@ -26,14 +26,14 @@ export interface RawTextOptions {
  *
  * @example
  * // vite.config.ts / vitest.config.ts / tsdown.config.ts
- * import { rawText } from "@theholocron/rollup-transform-template";
+ * import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
  *
- * plugins: [rawText({ dirs: ["/src/commands/setup/templates/"] })]
+ * plugins: [transformTemplate({ dirs: ["/src/commands/setup/templates/"] })]
  */
-export function rawText(options: RawTextOptions = {}) {
+export function transformTemplate(options: TransformTemplateOptions = {}) {
 	const { dirs = [] } = options;
 	return {
-		name: "rollup-transform-template",
+		name: "rollup-plugin-transform-template",
 		transform(_code: string, id: string) {
 			const isYmlOrMd = id.endsWith(".yml") || id.endsWith(".md");
 			// Exclude .json (native bundler handler) and .ts/.tsx (source files that

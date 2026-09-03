@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/rollup-transform-template": "workspace:*",
+    "@theholocron/rollup-plugin-transform-template": "workspace:*",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
