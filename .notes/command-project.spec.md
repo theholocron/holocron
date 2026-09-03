@@ -127,28 +127,27 @@ export default defineConfig({
     projects: "github",
 
     // Tuple form — provider + options (template overrides, org override)
-    projects: ["github", {
-      org: "theholocron", // defaults to config.org
-      templates: {
-        // Extend the built-in roadmap with a custom field
-        roadmap: {
-          extends: "roadmap",
-          fields: [
-            { name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] },
-          ],
-        },
-        // Fully custom template
-        "bug-bash": {
-          fields: [
-            { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
-            { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
-          ],
-          views: [
-            { name: "By severity", layout: "table", groupBy: "Severity" },
-          ],
+    projects: [
+      "github",
+      {
+        org: "theholocron", // defaults to config.org
+        templates: {
+          // Extend the built-in roadmap with a custom field
+          roadmap: {
+            extends: "roadmap",
+            fields: [{ name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] }],
+          },
+          // Fully custom template
+          "bug-bash": {
+            fields: [
+              { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
+              { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
+            ],
+            views: [{ name: "By severity", layout: "table", groupBy: "Severity" }],
+          },
         },
       },
-    }],
+    ],
   },
 });
 ```
@@ -174,19 +173,19 @@ runtime — built-in presets and config-driven overrides from the provider optio
 
 Mirrors the current org roadmap board (project #4):
 
-| Component  | Definition                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------ |
+| Component  | Definition                                                                                            |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
 | **Fields** | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
-| **Views**  | Kanban grouped by Status (default), Table with all fields                                              |
+| **Views**  | Kanban grouped by Status (default), Table with all fields                                             |
 
 #### `sprint`
 
 Lightweight iteration board:
 
-| Component  | Definition                                                                    |
-| ---------- | ----------------------------------------------------------------------------- |
+| Component  | Definition                                                                   |
+| ---------- | ---------------------------------------------------------------------------- |
 | **Fields** | Status (Todo / In Progress / Done / Blocked), Sprint (text, e.g. "2026-W36") |
-| **Views**  | Kanban grouped by Status (default)                                            |
+| **Views**  | Kanban grouped by Status (default)                                           |
 
 ### Template schema
 
@@ -250,8 +249,16 @@ export interface ProjectsProvider {
 query ListProjects($org: String!, $first: Int!, $after: String) {
   organization(login: $org) {
     projectsV2(first: $first, after: $after) {
-      pageInfo { hasNextPage endCursor }
-      nodes { number title closed url }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        number
+        title
+        closed
+        url
+      }
     }
   }
 }
@@ -266,7 +273,11 @@ query ListProjects($org: String!, $first: Int!, $after: String) {
 ```graphql
 mutation CreateProject($ownerId: ID!, $title: String!) {
   createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 { id number url }
+    projectV2 {
+      id
+      number
+      url
+    }
   }
 }
 
@@ -276,14 +287,14 @@ mutation CreateField(
   $dataType: ProjectV2CustomFieldType!
   $singleSelectOptions: [ProjectV2SingleSelectFieldOptionInput!]
 ) {
-  createProjectV2Field(input: {
-    projectId: $projectId
-    name: $name
-    dataType: $dataType
-    singleSelectOptions: $singleSelectOptions
-  }) {
+  createProjectV2Field(
+    input: { projectId: $projectId, name: $name, dataType: $dataType, singleSelectOptions: $singleSelectOptions }
+  ) {
     projectV2Field {
-      ... on ProjectV2SingleSelectField { id name }
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+      }
     }
   }
 }
