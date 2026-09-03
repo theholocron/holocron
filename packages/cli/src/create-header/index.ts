@@ -9,7 +9,7 @@
  * });
  *
  * export function createConfig(): string {
- *   return workflowHeader() + body;
+ *   return `${workflowHeader()}${body}`;
  * }
  */
 
@@ -71,7 +71,7 @@ export function createHeader(options: CreateHeaderOptions): HeaderFunctions {
 			].join("\n");
 
 			if (format === "shebang") {
-				return `#!/bin/sh\n\n` + yamlLines;
+				return `#!/bin/sh\n\n${yamlLines}`;
 			}
 
 			return yamlLines;

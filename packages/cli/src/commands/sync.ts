@@ -373,8 +373,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							steps.push(
 								await runSyncStep("local", "sync workflow deploy (with preview)", dryRun, async () => {
 									const content =
-										workflowHeader() +
-										generateCombinedDeployContent(withOverrides!, additionalPaths!, previewCfg);
+										`${workflowHeader()}${generateCombinedDeployContent(withOverrides!, additionalPaths!, previewCfg)}`;
 									await writeWorkflowFile(input.context.repoRoot, "deploy.yml", content);
 								})
 							);
@@ -386,7 +385,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					steps.push(
 						await runSyncStep("local", `sync workflow ${name}`, dryRun, async () => {
 							const content =
-								workflowHeader() + generateThinCallerContent(name, withOverrides, additionalPaths);
+								`${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths)}`;
 							await writeWorkflowFile(input.context.repoRoot, `${name}.yml`, content);
 						})
 					);

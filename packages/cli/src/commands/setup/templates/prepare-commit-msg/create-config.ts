@@ -6,5 +6,5 @@ const { workflowHeader } = createHeader({
 });
 
 export function createConfig(): string {
-	return workflowHeader("shebang") + prepareCommitMsgBody;
+	return `${workflowHeader("shebang")}${prepareCommitMsgBody}`;
 }

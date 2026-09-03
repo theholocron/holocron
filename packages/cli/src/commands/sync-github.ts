@@ -205,7 +205,7 @@ function buildBatch(repo: string): FileBatch {
 		for (const [name, content] of Object.entries(ACTIONS)) {
 			files.push({
 				path: `.github/actions/${name}.yml`,
-				content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
+				content: `${reusableHeader(`packages/cli/src/templates/index.ts`)}${content}`,
 			});
 		}
 	}
@@ -214,14 +214,14 @@ function buildBatch(repo: string): FileBatch {
 		for (const [name, content] of Object.entries(REUSABLE_WORKFLOWS)) {
 			files.push({
 				path: `.github/workflows/${name}.yml`,
-				content: reusableHeader(`packages/cli/src/templates/index.ts`) + content,
+				content: `${reusableHeader(`packages/cli/src/templates/index.ts`)}${content}`,
 			});
 		}
 
 		for (const [name, content] of Object.entries(WORKFLOW_TEMPLATES)) {
 			files.push({
 				path: `workflow-templates/${name}.yml`,
-				content: workflowHeader() + content,
+				content: `${workflowHeader()}${content}`,
 			});
 			const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 			if (props) {

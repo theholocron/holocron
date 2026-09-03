@@ -211,7 +211,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						await runStep("source", "write workflow deploy (with preview)", dryRun, async () => {
 							await source.writeWorkflowFile(
 								"deploy.yml",
-								workflowHeader() + generateCombinedDeployContent(withOverrides!, paths, previewCfg)
+								`${workflowHeader()}${generateCombinedDeployContent(withOverrides!, paths, previewCfg)}`
 							);
 						})
 					);
@@ -224,7 +224,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
 					await source.writeWorkflowFile(
 						`${name}.yml`,
-						workflowHeader() + generateThinCallerContent(name, withOverrides, additionalPaths)
+						`${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths)}`
 					);
 				})
 			);
@@ -253,7 +253,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
 				await source.writeRepoFile(
 					".github/dependabot.yml",
-					workflowHeader() + DEPENDABOT_CONFIG
+					`${workflowHeader()}${DEPENDABOT_CONFIG}`
 				);
 			})
 		);

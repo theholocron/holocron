@@ -6,5 +6,5 @@ const { workflowHeader } = createHeader({
 });
 
 export function createConfig(): string {
-	return workflowHeader() + sentimentBotConfig;
+	return `${workflowHeader()}${sentimentBotConfig}`;
 }

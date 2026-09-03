@@ -7,5 +7,5 @@ const { scaffoldHeader } = createHeader({
 });
 
 export function createConfig(packages: import("./utils.js").WorkspacePackage[]): string {
-	return scaffoldHeader() + codecovTemplate.trimEnd() + codecovComponentBlock(packages);
+	return `${scaffoldHeader()}${codecovTemplate.trimEnd()}${codecovComponentBlock(packages)}`;
 }

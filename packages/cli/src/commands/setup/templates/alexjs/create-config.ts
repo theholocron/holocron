@@ -11,5 +11,5 @@ export function createRcConfig(): string {
 }
 
 export function createIgnoreConfig(): string {
-	return workflowHeader() + alexignore;
+	return `${workflowHeader()}${alexignore}`;
 }
