@@ -1,17 +1,14 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { scaffoldHeader } from "../setup-workflows.js";
-import codecovTemplate from "./templates/codecov.yml";
-
 export interface WorkspacePackage {
 	slug: string;
 	name: string;
 }
 
-const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
+export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
 
-function codecovComponentBlock(packages: WorkspacePackage[]): string {
+export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	if (packages.length === 0) return "\n    []\n";
 	return (
 		"\n" +
@@ -31,10 +28,6 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	const idx = existing.indexOf(INDIVIDUAL_COMPONENTS_MARKER);
 	if (idx === -1) return existing;
 	return existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length) + codecovComponentBlock(packages);
-}
-
-export function codecovContent(packages: WorkspacePackage[]): string {
-	return scaffoldHeader("packages/cli/src/commands/setup/run-setup.ts") + codecovTemplate.trimEnd() + codecovComponentBlock(packages);
 }
 
 export async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {

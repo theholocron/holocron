@@ -1,6 +1,6 @@
 export { runSetup } from "./run-setup.js";
-export { codecovContent, mergeCodecovComponents } from "./codecov.js";
-export type { WorkspacePackage } from "./codecov.js";
+export { createConfig as codecovContent, mergeCodecovComponents } from "./templates/codecov/index.js";
+export type { WorkspacePackage } from "./templates/codecov/index.js";
 export { installAgentPrompts } from "./agent-prompts.js";
 export { installEngineeringStructure } from "./engineering.js";
 export { installSkills } from "./skills.js";

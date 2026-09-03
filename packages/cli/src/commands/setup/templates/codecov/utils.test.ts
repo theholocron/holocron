@@ -1,41 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { codecovContent, mergeCodecovComponents } from "./codecov.js";
-
-describe("codecovContent", () => {
-	it("includes standard coverage thresholds and comment layout", () => {
-		const out = codecovContent([]);
-		expect(out).toContain("require_ci_to_pass: true");
-		expect(out).toContain("target: auto");
-		expect(out).toContain("target: 80%");
-		expect(out).toContain('layout: "reach,diff,flags,components"');
-		expect(out).toContain("require_changes: true");
-	});
-
-	it("produces individual_components entry for each package using slug as name", () => {
-		const out = codecovContent([
-			{ slug: "http-client", name: "@theholocron/http-client" },
-			{ slug: "clerk-client", name: "@theholocron/clerk-client" },
-		]);
-		expect(out).toContain("component_id: http-client");
-		expect(out).toContain('name: "http-client"');
-		expect(out).not.toContain("@theholocron/");
-		expect(out).toContain("- packages/http-client/**");
-		expect(out).toContain("component_id: clerk-client");
-		expect(out).toContain('name: "clerk-client"');
-		expect(out).toContain("- packages/clerk-client/**");
-	});
-
-	it("produces empty individual_components list when no packages are given", () => {
-		const out = codecovContent([]);
-		expect(out).toContain("individual_components:");
-		expect(out).toContain("[]");
-	});
-
-	it("ends with a trailing newline", () => {
-		expect(codecovContent([])).toMatch(/\n$/);
-	});
-});
+import { mergeCodecovComponents } from "./utils.js";
 
 describe("mergeCodecovComponents", () => {
 	const existing = [

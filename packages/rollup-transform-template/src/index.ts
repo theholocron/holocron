@@ -36,7 +36,10 @@ export function rawText(options: RawTextOptions = {}) {
 		name: "rollup-transform-template",
 		transform(_code: string, id: string) {
 			const isYmlOrMd = id.endsWith(".yml") || id.endsWith(".md");
-			const isTemplateDir = dirs.length > 0 && dirs.some((dir) => id.includes(dir)) && !id.endsWith(".json");
+			// Exclude .json (native bundler handler) and .ts/.tsx (source files that
+			// live inside template directories alongside their template files).
+			const isNativeOrSource = id.endsWith(".json") || id.endsWith(".ts") || id.endsWith(".tsx");
+			const isTemplateDir = dirs.length > 0 && dirs.some((dir) => id.includes(dir)) && !isNativeOrSource;
 			if (!isYmlOrMd && !isTemplateDir) return null;
 			return {
 				code: `export default ${JSON.stringify(readFileSync(id, "utf8"))};`,
