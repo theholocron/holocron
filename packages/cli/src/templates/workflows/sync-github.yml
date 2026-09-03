@@ -1,4 +1,4 @@
-name: Sync GitHub Templates
+name: Sync workflow templates
 
 # Builds the holocron CLI from source and pushes updated workflow templates
 # and composite actions to downstream .github repos. Runs whenever the

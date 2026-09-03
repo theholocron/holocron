@@ -14,15 +14,15 @@ import setupNodeAction from "./actions/setup-node.yml";
 import auditWorkflow from "./workflows/audit.yml";
 import bookkeepingWorkflow from "./workflows/bookkeeping.yml";
 import cleanupPreviewWorkflow from "./workflows/cleanup-preview.yml";
-import codeqlWorkflow from "./workflows/codeql.yml";
 import dependenciesWorkflow from "./workflows/dependencies.yml";
 import deployWorkflow from "./workflows/deploy.yml";
-import deployPreviewWorkflow from "./workflows/deploy-preview.yml";
 import greetingsWorkflow from "./workflows/greetings.yml";
 import lintWorkflow from "./workflows/lint.yml";
 import postReleaseWorkflow from "./workflows/post-release.yml";
+import previewWorkflow from "./workflows/preview.yml";
 import releaseWorkflow from "./workflows/release.yml";
 import reviewWorkflow from "./workflows/review.yml";
+import securityWorkflow from "./workflows/security.yml";
 import staleWorkflow from "./workflows/stale.yml";
 import syncWorkflow from "./workflows/sync.yml";
 import syncBroadcastWorkflow from "./workflows/sync-broadcast.yml";
@@ -42,11 +42,11 @@ export const ACTIONS: Record<string, string> = {
 export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	audit: auditWorkflow,
 	bookkeeping: bookkeepingWorkflow,
-	codeql: codeqlWorkflow,
 	dependencies: dependenciesWorkflow,
 	deploy: deployWorkflow,
 	"cleanup-preview": cleanupPreviewWorkflow,
-	"deploy-preview": deployPreviewWorkflow,
+	preview: previewWorkflow,
+	security: securityWorkflow,
 	greetings: greetingsWorkflow,
 	lint: lintWorkflow,
 	"post-release": postReleaseWorkflow,

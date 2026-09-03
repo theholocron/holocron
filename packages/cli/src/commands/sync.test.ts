@@ -1295,7 +1295,7 @@ describe("runSync", () => {
 			expect(step?.status).toBe("ok");
 			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
-			expect(content).not.toContain("deploy-preview.yml@main");
+			expect(content).not.toContain("preview.yml@main");
 		});
 
 		it("writes a combined deploy+preview thin caller when preview is configured", async () => {
@@ -1321,7 +1321,7 @@ describe("runSync", () => {
 			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("theholocron-preview");
-			expect(content).toContain("deploy-preview.yml@main");
+			expect(content).toContain("preview.yml@main");
 			expect(content).toContain("cleanup-preview.yml@main");
 		});
 
