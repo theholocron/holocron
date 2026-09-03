@@ -16,6 +16,10 @@ describe("alexjs createRcConfig", () => {
 });
 
 describe("alexjs createIgnoreConfig", () => {
+	it("includes the auto-generated header", () => {
+		expect(createIgnoreConfig()).toContain("AUTO-GENERATED — do not edit directly");
+	});
+
 	it("ignores .github/ directory", () => {
 		expect(createIgnoreConfig()).toContain(".github/*");
 	});

@@ -1,5 +1,13 @@
-import prepareCommitMsg from "./prepare-commit-msg";
+import { workflowHeader } from "../../../setup-workflows.js";
+import prepareCommitMsgBody from "./prepare-commit-msg";
 
 export function createConfig(): string {
-	return prepareCommitMsg;
+	return (
+		workflowHeader(
+			"packages/cli/src/commands/setup/templates/prepare-commit-msg/create-config.ts",
+			false,
+			"holocron setup",
+			"shebang"
+		) + prepareCommitMsgBody
+	);
 }
