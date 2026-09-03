@@ -1,7 +1,7 @@
 import type { LoadedConfig } from "../../load-config.js";
 import type { RuntimeContext } from "../../loader.js";
 import { PluginLoader } from "../../loader.js";
-import { ProviderApiError } from "../../capabilities/index.js";
+import { ProviderApiError } from "../../capabilities.js";
 
 export type SetupPrintLine = (line: string) => void;
 

@@ -1,7 +1,7 @@
 import { checkbox } from "@inquirer/prompts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { DeploymentRecord, PullRequest } from "../capabilities/index.js";
+import type { DeploymentRecord, PullRequest } from "../capabilities.js";
 import { runCleanupPreview } from "../commands/cleanup-preview.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";

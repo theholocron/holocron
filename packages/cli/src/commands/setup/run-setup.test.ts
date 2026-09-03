@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AGENT_PROMPTS } from "../../agent-prompts.js";
-import { ProviderApiError } from "../../capabilities/index.js";
+import { AGENT_PROMPTS } from "./agent-prompts-data.js";
+import { ProviderApiError } from "../../capabilities.js";
 import { runSetup } from "./run-setup.js";
 import { resolveConfig } from "../../config.js";
 import type { LoadedConfig } from "../../load-config.js";

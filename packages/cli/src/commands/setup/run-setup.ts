@@ -32,12 +32,12 @@ import type {
 	Vault,
 	Wiki,
 	Workers,
-} from "../../capabilities/index.js";
+} from "../../capabilities.js";
 import { ConfigError } from "../../config.js";
 import { PluginLoader } from "../../loader.js";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
-import { createHeader } from "../../create-header/index.js";
+import { createHeader } from "../../create-header.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,

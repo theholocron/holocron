@@ -6,7 +6,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { AuthError, createFeatureResolver } from "./auth-resolver.js";
-import { CARDINALITY } from "./capabilities/index.js";
+import { CARDINALITY } from "./capabilities.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
 import { runClone } from "./commands/clone.js";

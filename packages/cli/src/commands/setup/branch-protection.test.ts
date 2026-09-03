@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ProviderApiError } from "../../capabilities/index.js";
+import { ProviderApiError } from "../../capabilities.js";
 import { buildClassicProtectionPayload, buildRulesetPayload, upsertBranchProtection } from "./branch-protection.js";
 
 describe("buildRulesetPayload", () => {

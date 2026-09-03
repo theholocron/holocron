@@ -17,7 +17,7 @@
  * Errors clearly when no value can be sourced.
  */
 
-import type { Secrets, SecretScope } from "../capabilities/index.js";
+import type { Secrets, SecretScope } from "../capabilities.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 

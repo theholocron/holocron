@@ -6,7 +6,7 @@ import {
 	DECISIONS_TEMPLATE,
 	SPECIFICATIONS_README,
 	STANDARDS_README,
-} from "../../agent-prompts.js";
+} from "./agent-prompts-data.js";
 
 async function writeIfAbsent(filePath: string, content: string): Promise<boolean> {
 	try {

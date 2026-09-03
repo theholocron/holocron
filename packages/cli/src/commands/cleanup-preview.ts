@@ -1,6 +1,6 @@
 import { checkbox } from "@inquirer/prompts";
 
-import type { Deployment, DeploymentRecord, PullRequest, Source } from "../capabilities/index.js";
+import type { Deployment, DeploymentRecord, PullRequest, Source } from "../capabilities.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { style } from "../ui/style.js";

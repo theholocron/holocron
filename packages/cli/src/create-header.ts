@@ -1,7 +1,7 @@
 /**
  * Factory that binds `source` and `tool` once and returns all header
- * constructors. Prefer this over calling workflowHeader() with explicit
- * arguments at every call site.
+ * constructors for auto-generated files. Prefer this over passing source
+ * as a positional argument at every call site.
  *
  * @example
  * const { workflowHeader, scaffoldHeader } = createHeader({
@@ -11,6 +11,21 @@
  * export function createConfig(): string {
  *   return `${workflowHeader()}${body}`;
  * }
+ *
+ * ## Which header to use
+ *
+ * | Function          | When to use                                        | User can edit? |
+ * |-------------------|----------------------------------------------------|----------------|
+ * | `workflowHeader`  | Files overwritten on every setup / sync-github run | No — "AUTO-GENERATED — do not edit" |
+ * | `scaffoldHeader`  | Files written once; user takes ownership after     | Yes — "Scaffolded — edit this file freely" |
+ *
+ * ## `workflowHeader` formats
+ *
+ * | Format              | Comment style          | Used for                                              |
+ * |---------------------|------------------------|-------------------------------------------------------|
+ * | `"yaml"` (default)  | `# …` lines            | YAML workflows, ignore files, `.editorconfig`, labeler|
+ * | `"cjs"`             | `/* … *\/` block       | CommonJS config files (`.cjs`)                        |
+ * | `"shebang"`         | `#!/bin/sh` + `# …`    | Shell scripts (`prepare-commit-msg`, hooks)           |
  */
 
 /** Comment style produced by workflowHeader. */

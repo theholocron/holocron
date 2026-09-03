@@ -30,8 +30,8 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities/index.js";
-import { CARDINALITY } from "./capabilities/index.js";
+import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities.js";
+import { CARDINALITY } from "./capabilities.js";
 import type { CapabilityConfigPackage, ResolvedHolocronConfig, ResolvedTuple } from "./config.js";
 import { resolvePluginPackage } from "./config.js";
 

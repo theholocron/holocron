@@ -21,7 +21,7 @@
  * individually via `holocron secret set` (also planned for v5.1).
  */
 
-import type { Deployment, DeploymentTarget, Secrets, Vault } from "../capabilities/index.js";
+import type { Deployment, DeploymentTarget, Secrets, Vault } from "../capabilities.js";
 import type { LoadedConfig } from "../load-config.js";
 import { PluginLoader, type RuntimeContext } from "../loader.js";
 import { withSpinner } from "../ui/progress.js";

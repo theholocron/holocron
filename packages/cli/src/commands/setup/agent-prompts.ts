@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { AGENT_PROMPTS } from "../../agent-prompts.js";
+import { AGENT_PROMPTS } from "./agent-prompts-data.js";
 
 const AGENTS_PROMPTS_ROOT = ".agents/prompts";
 const PROMPTS_GITIGNORE_START = "# managed by holocron setup — prompts";

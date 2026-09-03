@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AGENT_PROMPTS } from "../../agent-prompts.js";
+import { AGENT_PROMPTS } from "./agent-prompts-data.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 
 describe("installAgentPrompts", () => {

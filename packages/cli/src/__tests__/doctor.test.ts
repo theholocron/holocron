@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { CapabilityKey } from "../capabilities/index.js";
+import type { CapabilityKey } from "../capabilities.js";
 import { runDoctor } from "../commands/doctor.js";
 import { resolveConfig } from "../config.js";
 import type { LoadedConfig } from "../load-config.js";

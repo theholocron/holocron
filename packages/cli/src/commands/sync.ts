@@ -2,12 +2,12 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { AuthError } from "../auth-resolver.js";
-import type { Source } from "../capabilities/index.js";
+import type { Source } from "../capabilities.js";
 import type { LoadedConfig } from "../load-config.js";
 import { LoaderError, PluginLoader, type RuntimeContext } from "../loader.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
-import { createHeader } from "../create-header/index.js";
+import { createHeader } from "../create-header.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,
