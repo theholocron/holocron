@@ -56,7 +56,7 @@
     "@theholocron/env-utils": "catalog:utils",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/http-client": "catalog:clients",
-    "@theholocron/registry-doc": "^1.7.0",
+    "@theholocron/registry-doc": "^1.8.0",
     "chalk": "catalog:",
     "ora": "catalog:",
     "tsx": "catalog:",
