@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENT_PROMPTS } from "../../agent-prompts.js";
 import { ProviderApiError } from "../../capabilities/index.js";
-import { runSetup } from "./index.js";
+import { runSetup } from "./run-setup.js";
 import { resolveConfig } from "../../config.js";
 import type { LoadedConfig } from "../../load-config.js";
 import { type PluginImporter, PluginLoader } from "../../loader.js";

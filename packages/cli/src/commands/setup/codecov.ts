@@ -34,7 +34,7 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 }
 
 export function codecovContent(packages: WorkspacePackage[]): string {
-	return scaffoldHeader("packages/cli/src/commands/setup/index.ts") + codecovTemplate.trimEnd() + codecovComponentBlock(packages);
+	return scaffoldHeader("packages/cli/src/commands/setup/run-setup.ts") + codecovTemplate.trimEnd() + codecovComponentBlock(packages);
 }
 
 export async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {
