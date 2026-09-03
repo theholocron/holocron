@@ -1,13 +1,12 @@
-import { workflowHeader } from "../../../setup-workflows.js";
+import { createHeader } from "../../../create-header/index.js";
+
+const { workflowHeader } = createHeader({
+	source: "packages/cli/src/commands/setup/templates/devmoji/create-config.ts",
+});
 
 export function createConfig(): string {
 	return [
-		workflowHeader(
-			"packages/cli/src/commands/setup/templates/devmoji/create-config.ts",
-			false,
-			"holocron setup",
-			"cjs"
-		),
+		workflowHeader("cjs"),
 		`/* eslint-disable */`,
 		`const { defineConfig } = require("@theholocron/devmoji-config");`,
 		`module.exports = defineConfig();`,
