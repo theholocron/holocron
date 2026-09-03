@@ -1,7 +1,6 @@
+import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
 import { library } from "@theholocron/vitest-config/bundles/library";
 import { defineConfig } from "vitest/config";
-
-import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
 
 const base = library();
 

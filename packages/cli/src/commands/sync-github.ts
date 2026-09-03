@@ -5,8 +5,8 @@ import { dirname, join } from "node:path";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
-import { createHeader } from "../utils/create-header.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
+import { createHeader } from "../utils/create-header.js";
 import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows/index.js";
 
 const { workflowHeader } = createHeader({

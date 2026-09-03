@@ -1,6 +1,5 @@
-import { defineConfig } from "tsdown";
-
 import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
+import { defineConfig } from "tsdown";
 
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
 const sharedPlugins = [transformTemplate({ dirs: ["/src/templates/configs/"] })];

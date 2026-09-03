@@ -22,6 +22,7 @@ import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
+import { ConfigError } from "../../config/config.js";
 import type {
 	Auth,
 	Deployment,
@@ -33,8 +34,17 @@ import type {
 	Wiki,
 	Workers,
 } from "../../plugin/capabilities.js";
-import { ConfigError } from "../../config/config.js";
 import { PluginLoader } from "../../plugin/loader.js";
+import sentimentBotConfig from "../../templates/config.yml";
+import { createIgnoreConfig as createAlexignore,createRcConfig as createAlexrc } from "../../templates/configs/alexjs/index.js";
+import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePackages } from "../../templates/configs/codecov/index.js";
+import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
+import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
+import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
+import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
+import dcoConfig from "../../templates/dco.yml";
+import dependabotConfig from "../../templates/dependabot.yml";
+import labelerConfig from "../../templates/labeler.yml";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
 import { createHeader } from "../../utils/create-header.js";
@@ -47,30 +57,19 @@ import {
 	normalizeWorkflowWith,
 	WORKFLOW_CHECK_CONTEXTS,
 } from "../setup-workflows/index.js";
-import dependabotConfig from "../../templates/dependabot.yml";
-import dcoConfig from "../../templates/dco.yml";
-
-const { workflowHeader, scaffoldHeader } = createHeader({
-	source: "packages/cli/src/commands/setup/run-setup.ts",
-	tool: "holocron setup",
-});
-
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
-import { formatStep, runStep } from "./run-step.js";
 import type { RunSetupInput, SetupReport, SetupStepResult } from "./run-step.js";
+import { formatStep, runStep } from "./run-step.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
-import { createRcConfig as createAlexrc, createIgnoreConfig as createAlexignore } from "../../templates/configs/alexjs/index.js";
-import { createConfig as createCodecov, mergeCodecovComponents, readWorkspacePackages } from "../../templates/configs/codecov/index.js";
-import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
-import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
-import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
-import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
-import labelerConfig from "../../templates/labeler.yml";
-import sentimentBotConfig from "../../templates/config.yml";
+
+const { workflowHeader } = createHeader({
+	source: "packages/cli/src/commands/setup/run-setup.ts",
+	tool: "holocron setup",
+});
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));

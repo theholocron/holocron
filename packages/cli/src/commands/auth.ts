@@ -20,8 +20,8 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import { resolvePluginPackage } from "../config/config.js";
 import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/keyring.js";
+import { resolvePluginPackage } from "../config/config.js";
 import { makeEnv } from "../env.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";

@@ -30,10 +30,10 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities.js";
-import { CARDINALITY } from "./capabilities.js";
 import type { CapabilityConfigPackage, ResolvedHolocronConfig, ResolvedTuple } from "../config/config.js";
 import { resolvePluginPackage } from "../config/config.js";
+import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities.js";
+import { CARDINALITY } from "./capabilities.js";
 
 /**
  * Per-invocation context every plugin receives, on top of its own

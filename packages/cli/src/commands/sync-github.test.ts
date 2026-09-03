@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import {
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -17,7 +18,6 @@ import {
 	parseWorkflowsFromTs,
 	runSyncGithub,
 } from "./sync-github.js";
-import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
 // to the primary .github repo. WORKFLOW_TEMPLATE_PROPERTIES adds one

@@ -1,6 +1,6 @@
 import { createHeader } from "../../../utils/create-header.js";
-import alexrc from "./alexrc.json";
 import alexignore from "./alexignore";
+import alexrc from "./alexrc.json";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/templates/configs/alexjs/create-config.ts",

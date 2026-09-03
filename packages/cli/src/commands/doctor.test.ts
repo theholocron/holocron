@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { CapabilityKey } from "../plugin/capabilities.js";
-import { runDoctor } from "./doctor.js";
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
+import type { CapabilityKey } from "../plugin/capabilities.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { runDoctor } from "./doctor.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {

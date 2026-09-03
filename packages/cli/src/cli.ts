@@ -6,8 +6,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
-import { env } from "./env.js";
-import { CARDINALITY } from "./plugin/capabilities.js";
+import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
 import { runClone } from "./commands/clone.js";
@@ -26,8 +25,9 @@ import { runSyncGithub } from "./commands/sync-github.js";
 import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./config/load-config.js";
+import { env } from "./env.js";
+import { CARDINALITY } from "./plugin/capabilities.js";
 import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
-import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

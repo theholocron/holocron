@@ -1,15 +1,14 @@
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AGENT_PROMPTS } from "./agent-prompts-data.js";
-import { ProviderApiError } from "../../plugin/capabilities.js";
-import { runSetup } from "./run-setup.js";
 import { resolveConfig } from "../../config/config.js";
 import type { LoadedConfig } from "../../config/load-config.js";
+import { ProviderApiError } from "../../plugin/capabilities.js";
 import { type PluginImporter, PluginLoader } from "../../plugin/loader.js";
+import { runSetup } from "./run-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {

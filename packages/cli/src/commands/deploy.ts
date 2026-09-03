@@ -11,8 +11,8 @@
  * the wiring without spinning up a build.
  */
 
-import type { Deployment, DeploymentRecord, DeploymentTrigger } from "../plugin/capabilities.js";
 import type { LoadedConfig } from "../config/load-config.js";
+import type { Deployment, DeploymentRecord, DeploymentTrigger } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";

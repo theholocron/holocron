@@ -1,11 +1,11 @@
 import { checkbox } from "@inquirer/prompts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { DeploymentRecord, PullRequest } from "../plugin/capabilities.js";
-import { runCleanupPreview } from "./cleanup-preview.js";
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
+import type { DeploymentRecord, PullRequest } from "../plugin/capabilities.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { runCleanupPreview } from "./cleanup-preview.js";
 
 vi.mock("@inquirer/prompts", () => ({
 	checkbox: vi.fn(),
