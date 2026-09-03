@@ -25,6 +25,7 @@ Today there is no way to:
 - Close or audit projects from the terminal
 - Recreate a board from a known-good definition (boards are effectively
   undocumented config that lives only in GitHub's database)
+
 This matters because project boards are org infrastructure. They should be
 reproducible, version-controlled, and manageable from the same tool that
 manages everything else.
@@ -36,8 +37,10 @@ manages everything else.
 - `holocron project list` — list org projects with number, title, and open/closed state
 - `holocron project create [template]` — create a project from a named template; output the URL
 - `holocron project close <number>` — close (archive) a project by number
+- The project management backend is modelled as a provider under `providers.projects`
+  in `holocron.config.ts`, following the same convention as `providers.wiki`
 - Templates ship as named presets in `@theholocron/cli` and can be extended or
-  overridden in `holocron.config.ts`
+  overridden via provider options in `holocron.config.ts`
 - `create` is idempotent on title — if a project with the same title already
   exists, prompt the user rather than creating a duplicate
 
@@ -109,12 +112,63 @@ can be reopened from the GitHub UI.
 
 ---
 
+## Provider config
+
+The project management backend is declared under `providers.projects` in
+`holocron.config.ts`, following the same pattern as `providers.wiki`.
+
+```ts
+// holocron.config.ts
+import { defineConfig } from "@theholocron/cli";
+
+export default defineConfig({
+  providers: {
+    // Short form — GitHub Projects v2, no template customization
+    projects: "github",
+
+    // Tuple form — provider + options (template overrides, org override)
+    projects: ["github", {
+      org: "theholocron", // defaults to config.org
+      templates: {
+        // Extend the built-in roadmap with a custom field
+        roadmap: {
+          extends: "roadmap",
+          fields: [
+            { name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] },
+          ],
+        },
+        // Fully custom template
+        "bug-bash": {
+          fields: [
+            { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
+            { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
+          ],
+          views: [
+            { name: "By severity", layout: "table", groupBy: "Severity" },
+          ],
+        },
+      },
+    }],
+  },
+});
+```
+
+`providers.projects` is optional. When absent, `holocron project` resolves
+the provider from the `config.org` owner type — if the org is a GitHub org,
+`"github"` is assumed. An explicit provider entry is only required to supply
+options.
+
+Future providers (`"linear"`, `"jira"`) would be plugged in here without
+any change to the `holocron project` command surface.
+
+---
+
 ## Template system
 
 Templates define the structure of a project board. Two sources are merged at
-runtime:
+runtime — built-in presets and config-driven overrides from the provider options.
 
-### 1. Built-in templates (shipped with `@theholocron/cli`)
+### Built-in templates
 
 #### `roadmap` (default)
 
@@ -129,42 +183,12 @@ Mirrors the current org roadmap board (project #4):
 
 Lightweight iteration board:
 
-| Component  | Definition                                                                   |
-| ---------- | ---------------------------------------------------------------------------- |
+| Component  | Definition                                                                    |
+| ---------- | ----------------------------------------------------------------------------- |
 | **Fields** | Status (Todo / In Progress / Done / Blocked), Sprint (text, e.g. "2026-W36") |
-| **Views**  | Kanban grouped by Status (default)                                           |
+| **Views**  | Kanban grouped by Status (default)                                            |
 
-### 2. Config-driven templates (`holocron.config.ts`)
-
-Defined under a `projects` key. Templates can extend a built-in base and
-add, remove, or rename fields and views.
-
-```ts
-// holocron.config.ts
-import { defineConfig } from "@theholocron/cli";
-
-export default defineConfig({
-  // …existing config…
-  projects: {
-    templates: {
-      // Extend the built-in roadmap with a custom field
-      roadmap: {
-        extends: "roadmap",
-        fields: [{ name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] }],
-      },
-      // Fully custom template
-      "bug-bash": {
-        title: "Bug Bash",
-        fields: [
-          { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
-          { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
-        ],
-        views: [{ name: "By severity", layout: "table", groupBy: "Severity" }],
-      },
-    },
-  },
-});
-```
+### Template schema
 
 **Field type map** (subset of the GitHub Projects v2 field types):
 
@@ -177,6 +201,10 @@ export default defineConfig({
 | `iteration`     | `ITERATION`       |
 
 **View layout values:** `"board"` (kanban) or `"table"`.
+
+A config-defined template may set `extends: "<built-in-name>"` to inherit all
+fields and views from a built-in and add to them. Without `extends`, the
+template is treated as fully custom and must define all fields and views.
 
 ---
 
@@ -197,9 +225,24 @@ packages/cli/src/commands/project/
   graphql/
     queries.ts      ← listProjects
     mutations.ts    ← createProject, createField, createView, closeProject
+packages/cli/src/providers/projects/
+  index.ts          ← ProjectsProvider interface
+  github.ts         ← GitHub Projects v2 implementation
 ```
 
-### GraphQL operations
+The `ProjectsProvider` interface decouples the command layer from the GitHub
+GraphQL implementation. `list`, `create`, and `close` call provider methods;
+the GitHub implementation does the GraphQL work.
+
+```ts
+export interface ProjectsProvider {
+  list(org: string): Promise<ProjectSummary[]>;
+  create(org: string, title: string, template: ResolvedTemplate): Promise<CreatedProject>;
+  close(org: string, number: number): Promise<void>;
+}
+```
+
+### GraphQL operations (GitHub provider)
 
 **`list` — query**
 
@@ -207,16 +250,8 @@ packages/cli/src/commands/project/
 query ListProjects($org: String!, $first: Int!, $after: String) {
   organization(login: $org) {
     projectsV2(first: $first, after: $after) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        number
-        title
-        closed
-        url
-      }
+      pageInfo { hasNextPage endCursor }
+      nodes { number title closed url }
     }
   }
 }
@@ -231,11 +266,7 @@ query ListProjects($org: String!, $first: Int!, $after: String) {
 ```graphql
 mutation CreateProject($ownerId: ID!, $title: String!) {
   createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 {
-      id
-      number
-      url
-    }
+    projectV2 { id number url }
   }
 }
 
@@ -245,91 +276,19 @@ mutation CreateField(
   $dataType: ProjectV2CustomFieldType!
   $singleSelectOptions: [ProjectV2SingleSelectFieldOptionInput!]
 ) {
-  createProjectV2Field(
-    input: { projectId: $projectId, name: $name, dataType: $dataType, singleSelectOptions: $singleSelectOptions }
-  ) {
+  createProjectV2Field(input: {
+    projectId: $projectId
+    name: $name
+    dataType: $dataType
+    singleSelectOptions: $singleSelectOptions
+  }) {
     projectV2Field {
-      ... on ProjectV2SingleSelectField {
-        id
-        name
-      }
+      ... on ProjectV2SingleSelectField { id name }
     }
   }
 }
 ```
 
-<<<<<<< HEAD
-**`archive-done` — query + mutation**
-
-```graphql
-query GetProjectItems($org: String!, $number: Int!, $first: Int!, $after: String) {
-  organization(login: $org) {
-    projectV2(number: $number) {
-      id
-      items(first: $first, after: $after) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        nodes {
-          id
-          content {
-            ... on Issue {
-              state
-              url
-            }
-            ... on PullRequest {
-              state
-              merged
-              url
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-mutation ArchiveItem($projectId: ID!, $itemId: ID!) {
-  archiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item {
-      id
-    }
-  }
-}
-```
-
-||||||| parent of 2854ebdd (docs: ✏️ remove archive-done from project command spec)
-**`archive-done` — query + mutation**
-
-```graphql
-query GetProjectItems($org: String!, $number: Int!, $first: Int!, $after: String) {
-  organization(login: $org) {
-    projectV2(number: $number) {
-      id
-      items(first: $first, after: $after) {
-        pageInfo { hasNextPage endCursor }
-        nodes {
-          id
-          content {
-            ... on Issue { state url }
-            ... on PullRequest { state merged url }
-          }
-        }
-      }
-    }
-  }
-}
-
-mutation ArchiveItem($projectId: ID!, $itemId: ID!) {
-  archiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item { id }
-  }
-}
-```
-
-=======
->>>>>>> 2854ebdd (docs: ✏️ remove archive-done from project command spec)
 ### Token resolution
 
 All project mutations require a token with `project` scope. `GITHUB_TOKEN`
@@ -354,17 +313,8 @@ skips creation and prints the existing project URL.
 
 ### Pagination
 
-<<<<<<< HEAD
-`list` and `archive-done` paginate automatically using `pageInfo.hasNextPage`
-
-- `endCursor` cursor forwarding. No manual `--page` flag needed.
-||||||| parent of 2854ebdd (docs: ✏️ remove archive-done from project command spec)
-`list` and `archive-done` paginate automatically using `pageInfo.hasNextPage`
-+ `endCursor` cursor forwarding. No manual `--page` flag needed.
-=======
 `list` paginates automatically using `pageInfo.hasNextPage` + `endCursor`
 cursor forwarding. No manual `--page` flag needed.
->>>>>>> 2854ebdd (docs: ✏️ remove archive-done from project command spec)
 
 ---
 
