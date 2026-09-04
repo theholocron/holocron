@@ -60,20 +60,24 @@ providers: {
   wiki: ["fern", {
     domain: "wiki.theholocron.dev/holocron",
     fernOrg: "holocron",
-    subtitle: "CLI engineering knowledge and ADRs",
+    // subtitle defaults to config.description — override only when needed
+    subtitle: "A more specific card description",
     icon: "fa-duotone fa-gear",
   }],
 }
 ```
 
-| Field      | Type      | Description                                    |
-| ---------- | --------- | ---------------------------------------------- |
-| `subtitle` | `string?` | One-line description shown on the product card |
-| `icon`     | `string?` | Font Awesome icon class for the card           |
+| Field      | Type      | Default              | Description                                                                                                                        |
+| ---------- | --------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `subtitle` | `string?` | `config.description` | One-line description shown on the product card. Falls back to the top-level `description` field in `holocron.config.ts` when omitted. |
+| `icon`     | `string?` | none                 | Font Awesome icon class for the card                                                                                               |
+
+The `description` fallback means most repos need no change to their wiki
+provider options — the card subtitle comes from the field they already maintain.
 
 These fields are already valid in `ProviderOptions` (typed as
 `Record<string, unknown>`) — no schema change needed until a
-`WikFernOptions` interface is added for type safety.
+`WikiFernOptions` interface is added for type safety.
 
 ---
 
@@ -145,10 +149,10 @@ not change as wikis are added. Only the `products:` block is dynamic.
 1. Read all org repos via GitHub API (paginated)
 2. For each repo, attempt to fetch `holocron.config.ts` / `holocron.config.json`
 3. Parse providers — look for a `wiki` entry
-4. Extract from the wiki provider options:
+4. Extract from the wiki provider options + top-level config:
      - basepath: last segment of `domain` (e.g. "holocron" from "wiki.theholocron.dev/holocron")
      - display-name: repo name, title-cased (e.g. "holocron" → "Holocron")
-     - subtitle: from `subtitle` option, or omit
+     - subtitle: `wiki.subtitle` option → `config.description` → omit
      - icon: from `icon` option, or omit
 5. Sort entries alphabetically by basepath
 6. Generate the products block and write to .github-private/fern/docs.yml
