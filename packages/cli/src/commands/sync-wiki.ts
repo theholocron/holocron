@@ -150,9 +150,7 @@ export async function discoverWikiProducts(
 		let product: WikiProduct | null = null;
 
 		try {
-			const contents = await rest.request<FileContents>(
-				`/repos/${repo.full_name}/contents/holocron.config.json`
-			);
+			const contents = await rest.request<FileContents>(`/repos/${repo.full_name}/contents/holocron.config.json`);
 			if (contents.encoding === "base64") {
 				const raw = Buffer.from(contents.content.replace(/\s/g, ""), "base64").toString("utf8");
 				product = extractFromJson(raw, repo.name);
@@ -213,8 +211,7 @@ export async function mergeProducts(docsYmlPath: string, products: WikiProduct[]
 	// Insert before instances: if present
 	const instancesIdx = content.indexOf("\ninstances:");
 	if (instancesIdx !== -1) {
-		const updated =
-			content.slice(0, instancesIdx + 1) + newBlock + "\n\n" + content.slice(instancesIdx + 1);
+		const updated = content.slice(0, instancesIdx + 1) + newBlock + "\n\n" + content.slice(instancesIdx + 1);
 		await writeFile(docsYmlPath, updated, "utf8");
 		return;
 	}

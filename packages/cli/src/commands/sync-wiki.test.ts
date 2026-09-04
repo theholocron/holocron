@@ -47,22 +47,14 @@ function makeOrgFetch(repos: RepoStub[]) {
 
 		for (const repo of repos) {
 			if (urlStr.includes(`/repos/${repo.full_name}/contents/holocron.config.json`)) {
-				if (!repo.configJson)
-					return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+				if (!repo.configJson) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
 				const content = Buffer.from(JSON.stringify(repo.configJson)).toString("base64");
-				return new Response(
-					JSON.stringify({ content: content + "\n", encoding: "base64" }),
-					{ status: 200 }
-				);
+				return new Response(JSON.stringify({ content: content + "\n", encoding: "base64" }), { status: 200 });
 			}
 			if (urlStr.includes(`/repos/${repo.full_name}/contents/holocron.config.ts`)) {
-				if (!repo.configTs)
-					return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+				if (!repo.configTs) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
 				const content = Buffer.from(repo.configTs).toString("base64");
-				return new Response(
-					JSON.stringify({ content: content + "\n", encoding: "base64" }),
-					{ status: 200 }
-				);
+				return new Response(JSON.stringify({ content: content + "\n", encoding: "base64" }), { status: 200 });
 			}
 		}
 
@@ -330,16 +322,10 @@ export default defineConfig({
 		const fetch = makeOrgFetch([{ name: "weird", full_name: "org/weird" }]);
 		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
 			if (url.toString().includes("/contents/holocron.config.json")) {
-				return new Response(
-					JSON.stringify({ content: "raw content", encoding: "utf-8" }),
-					{ status: 200 }
-				);
+				return new Response(JSON.stringify({ content: "raw content", encoding: "utf-8" }), { status: 200 });
 			}
 			if (url.toString().includes("/contents/holocron.config.ts")) {
-				return new Response(
-					JSON.stringify({ content: "raw content", encoding: "utf-8" }),
-					{ status: 200 }
-				);
+				return new Response(JSON.stringify({ content: "raw content", encoding: "utf-8" }), { status: 200 });
 			}
 			return fetch(url, init);
 		};
@@ -577,18 +563,16 @@ describe("mergeProducts", () => {
 	});
 
 	it("throws when docs.yml does not exist", async () => {
-		await expect(
-			mergeProducts(join(tmpDir, "fern", "missing.yml"), products)
-		).rejects.toThrow("fern/docs.yml not found");
+		await expect(mergeProducts(join(tmpDir, "fern", "missing.yml"), products)).rejects.toThrow(
+			"fern/docs.yml not found"
+		);
 	});
 
 	it("omits subtitle line when subtitle is absent", async () => {
 		const initial = "instances:\n  - url: org.docs.buildwithfern.com/r\n";
 		await writeFile(join(tmpDir, "fern", "docs.yml"), initial, "utf8");
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), [
-			{ displayName: "Bare", basepath: "bare" },
-		]);
+		await mergeProducts(join(tmpDir, "fern", "docs.yml"), [{ displayName: "Bare", basepath: "bare" }]);
 
 		const result = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
 		expect(result).not.toContain("subtitle:");
