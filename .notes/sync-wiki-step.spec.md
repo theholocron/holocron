@@ -67,10 +67,10 @@ providers: {
 }
 ```
 
-| Field      | Type      | Default              | Description                                                                                                                        |
-| ---------- | --------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Field      | Type      | Default              | Description                                                                                                                           |
+| ---------- | --------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `subtitle` | `string?` | `config.description` | One-line description shown on the product card. Falls back to the top-level `description` field in `holocron.config.ts` when omitted. |
-| `icon`     | `string?` | none                 | Font Awesome icon class for the card                                                                                               |
+| `icon`     | `string?` | none                 | Font Awesome icon class for the card                                                                                                  |
 
 The `description` fallback means most repos need no change to their wiki
 provider options — the card subtitle comes from the field they already maintain.
