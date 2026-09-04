@@ -169,7 +169,7 @@ jobs:
     steps:
       - name: Trigger broadcast readme sync
         run: |
-          gh workflow run sync-broadcast.yml \
+          gh workflow run sync-dispatch.yml \
             --repo theholocron/.github \
             --field "steps=readme"
         env:
