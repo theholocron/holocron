@@ -2,9 +2,9 @@
 
 ### Chores
 
-* ✏️ update node preset: codeql → security workflow name ([#436](https://github.com/theholocron/configs/issues/436)) ([141a51b](https://github.com/theholocron/configs/commit/141a51b552c7e0c2eccfa478572a73f1bb4311bd)), closes [#499](https://github.com/theholocron/configs/issues/499) [#499](https://github.com/theholocron/configs/issues/499) [theholocron/configs#435](https://github.com/theholocron/configs/issues/435)
-* **deps:** Bump the all-dependencies group across 1 directory with 2 updates ([#426](https://github.com/theholocron/configs/issues/426)) ([01df8d6](https://github.com/theholocron/configs/commit/01df8d672a1f7058a8230bf6dd3103a49c5f00a9))
-* sync README and repo metadata ([#433](https://github.com/theholocron/configs/issues/433)) ([c18b1f2](https://github.com/theholocron/configs/commit/c18b1f234ac516119c251ac4e88c3b6e567cfa9a))
+- ✏️ update node preset: codeql → security workflow name ([#436](https://github.com/theholocron/configs/issues/436)) ([141a51b](https://github.com/theholocron/configs/commit/141a51b552c7e0c2eccfa478572a73f1bb4311bd)), closes [#499](https://github.com/theholocron/configs/issues/499) [#499](https://github.com/theholocron/configs/issues/499) [theholocron/configs#435](https://github.com/theholocron/configs/issues/435)
+- **deps:** Bump the all-dependencies group across 1 directory with 2 updates ([#426](https://github.com/theholocron/configs/issues/426)) ([01df8d6](https://github.com/theholocron/configs/commit/01df8d672a1f7058a8230bf6dd3103a49c5f00a9))
+- sync README and repo metadata ([#433](https://github.com/theholocron/configs/issues/433)) ([c18b1f2](https://github.com/theholocron/configs/commit/c18b1f234ac516119c251ac4e88c3b6e567cfa9a))
 
 ## [7.32.1](https://github.com/theholocron/configs/compare/v7.32.0...v7.32.1) (2026-09-02)
 
