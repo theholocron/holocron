@@ -304,6 +304,179 @@ export default defineConfig({
 		expect(products).toHaveLength(1);
 		expect(products[0]?.basepath).toBe("has-wiki");
 	});
+
+	it("skips repo when config JSON is invalid", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "bad-json",
+				full_name: "org/bad-json",
+				// configJson is absent — we inject a raw invalid-JSON response below
+			},
+		]);
+		// Wrap fetch to return malformed JSON for the config file
+		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+			if (url.toString().includes("/contents/holocron.config.json")) {
+				const content = Buffer.from("this is not json {{{").toString("base64");
+				return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
+			}
+			return fetch(url, init);
+		};
+
+		const products = await discoverWikiProducts("org", "token", wrappedFetch as typeof globalThis.fetch);
+		expect(products).toHaveLength(0);
+	});
+
+	it("skips repo when config file uses non-base64 encoding", async () => {
+		const fetch = makeOrgFetch([{ name: "weird", full_name: "org/weird" }]);
+		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+			if (url.toString().includes("/contents/holocron.config.json")) {
+				return new Response(
+					JSON.stringify({ content: "raw content", encoding: "utf-8" }),
+					{ status: 200 }
+				);
+			}
+			if (url.toString().includes("/contents/holocron.config.ts")) {
+				return new Response(
+					JSON.stringify({ content: "raw content", encoding: "utf-8" }),
+					{ status: 200 }
+				);
+			}
+			return fetch(url, init);
+		};
+
+		const products = await discoverWikiProducts("org", "token", wrappedFetch as typeof globalThis.fetch);
+		expect(products).toHaveLength(0);
+	});
+
+	it("fetches a second page when first page returns exactly 100 repos", async () => {
+		// Build 100 non-wiki repos for page 1 and 1 wiki repo for page 2
+		const page1Repos = Array.from({ length: 100 }, (_, i) => ({
+			name: `repo-${i}`,
+			full_name: `org/repo-${i}`,
+			archived: false,
+		}));
+		const page2Repo = {
+			name: "wiki-repo",
+			full_name: "org/wiki-repo",
+			archived: false,
+		};
+
+		let callCount = 0;
+		const paginatedFetch = async (url: string | URL | Request, _init?: RequestInit): Promise<Response> => {
+			const urlStr = url.toString();
+			if (urlStr.includes("/orgs/") && urlStr.includes("/repos")) {
+				const page = new URL(urlStr).searchParams.get("page") ?? "1";
+				if (page === "1") return new Response(JSON.stringify(page1Repos), { status: 200 });
+				if (page === "2") return new Response(JSON.stringify([page2Repo]), { status: 200 });
+				return new Response(JSON.stringify([]), { status: 200 });
+			}
+			if (urlStr.includes("/repos/org/wiki-repo/contents/holocron.config.json")) {
+				callCount++;
+				const content = Buffer.from(
+					JSON.stringify({ providers: { wiki: ["fern", { domain: "wiki.example.com/wiki-repo" }] } })
+				).toString("base64");
+				return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
+			}
+			// All other repos: no config
+			return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+		};
+
+		const products = await discoverWikiProducts("org", "token", paginatedFetch as typeof globalThis.fetch);
+		expect(products).toHaveLength(1);
+		expect(products[0]?.basepath).toBe("wiki-repo");
+		expect(callCount).toBe(1);
+	});
+
+	it("ignores TS config that has no wiki markers", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "no-wiki-ts",
+				full_name: "org/no-wiki-ts",
+				configTs: `
+export default defineConfig({
+  name: "no-wiki-ts",
+  providers: { source: "github" },
+});
+`,
+			},
+		]);
+
+		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
+		expect(products).toHaveLength(0);
+	});
+
+	it("extracts subtitle and icon from TS config when present", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "styled",
+				full_name: "org/styled",
+				configTs: `
+export default defineConfig({
+  providers: { wiki: ["fern", { domain: "wiki.example.com/styled", subtitle: "A styled wiki", icon: "fa-duotone fa-star" }] },
+});
+`,
+			},
+		]);
+
+		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
+		expect(products[0]?.subtitle).toBe("A styled wiki");
+		expect(products[0]?.icon).toBe("fa-duotone fa-star");
+	});
+
+	it("handles bare string wiki provider in JSON config", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "bare",
+				full_name: "org/bare",
+				configJson: {
+					name: "bare",
+					providers: { wiki: "fern" },
+				},
+			},
+		]);
+
+		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
+		expect(products).toHaveLength(1);
+		expect(products[0]?.basepath).toBe("bare");
+		expect(products[0]?.displayName).toBe("Bare");
+		expect(products[0]?.subtitle).toBeUndefined();
+	});
+
+	it("ignores non-string domain in wiki options tuple", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configJson: {
+					name: "myrepo",
+					providers: { wiki: ["fern", { domain: 42, fernOrg: "org" }] },
+				},
+			},
+		]);
+
+		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
+		// domain is not a string → basepath derived from repo name
+		expect(products[0]?.basepath).toBe("myrepo");
+	});
+
+	it("produces product with no subtitle when TS config has no description or subtitle", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "minimal",
+				full_name: "org/minimal",
+				configTs: `
+export default {
+  providers: { wiki: ["fern", { domain: "wiki.example.com/minimal" }] },
+};
+`,
+			},
+		]);
+
+		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
+		expect(products[0]?.basepath).toBe("minimal");
+		expect(products[0]?.subtitle).toBeUndefined();
+		expect(products[0]?.icon).toBeUndefined();
+	});
 });
 
 // ---------------------------------------------------------------------------
