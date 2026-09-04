@@ -161,9 +161,16 @@ Add `"wiki"` to `SYNC_STEPS` in `packages/cli/src/commands/sync.ts`:
 
 ```ts
 export const SYNC_STEPS = [
-  "labels", "properties", "teams", "topics", "keywords",
-  "description", "homepage", "readme", "workflows",
-  "wiki",  // ← new
+  "labels",
+  "properties",
+  "teams",
+  "topics",
+  "keywords",
+  "description",
+  "homepage",
+  "readme",
+  "workflows",
+  "wiki", // ← new
 ] as const;
 ```
 
@@ -192,10 +199,10 @@ export interface WikiProduct {
   icon?: string;
 }
 
-export async function discoverWikiProducts(org: string, token: string): Promise<WikiProduct[]>
-export async function generateProductsBlock(products: WikiProduct[]): string
-export async function mergeProductsBlock(docsYml: string, block: string): string
-export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>
+export async function discoverWikiProducts(org: string, token: string): Promise<WikiProduct[]>;
+export async function generateProductsBlock(products: WikiProduct[]): string;
+export async function mergeProductsBlock(docsYml: string, block: string): string;
+export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>;
 ```
 
 ### Commit + PR flow
