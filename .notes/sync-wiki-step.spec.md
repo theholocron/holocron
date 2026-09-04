@@ -196,12 +196,12 @@ export interface WikiProduct {
   icon?: string;
 }
 
-export async function discoverWikiProducts(org: string, token: string): Promise<WikiProduct[]>
+export async function discoverWikiProducts(org: string, token: string): Promise<WikiProduct[]>;
 
 export async function mergeProducts(docsYmlPath: string, products: WikiProduct[]): Promise<void> {
   const raw = await readFile(docsYmlPath, "utf8");
   const parsed = load(raw) as Record<string, unknown>;
-  parsed.products = products.map(p => ({
+  parsed.products = products.map((p) => ({
     "display-name": p.displayName,
     ...(p.subtitle ? { subtitle: p.subtitle } : {}),
     ...(p.icon ? { icon: p.icon } : {}),
@@ -210,7 +210,7 @@ export async function mergeProducts(docsYmlPath: string, products: WikiProduct[]
   await writeFile(docsYmlPath, dump(parsed, { lineWidth: -1 }), "utf8");
 }
 
-export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>
+export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>;
 ```
 
 ### Dependency
