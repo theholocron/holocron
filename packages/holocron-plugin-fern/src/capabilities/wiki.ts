@@ -37,6 +37,17 @@ export interface FernWikiOptions {
 	 * the GitHub org is "theholocron".
 	 */
 	fernOrg?: string;
+	/**
+	 * One-line description shown on the global product switcher card.
+	 * Falls back to the top-level `description` field in `holocron.config.ts`
+	 * when omitted. Only used by `holocron sync --steps wiki`.
+	 */
+	subtitle?: string;
+	/**
+	 * Font Awesome icon class for the product switcher card (e.g. `"fa-duotone fa-gear"`).
+	 * Only used by `holocron sync --steps wiki`.
+	 */
+	icon?: string;
 }
 
 export class FernWiki implements Wiki {
