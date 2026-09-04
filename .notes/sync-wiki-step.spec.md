@@ -66,10 +66,10 @@ providers: {
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
+| Field      | Type      | Description                                    |
+| ---------- | --------- | ---------------------------------------------- |
 | `subtitle` | `string?` | One-line description shown on the product card |
-| `icon` | `string?` | Font Awesome icon class for the card |
+| `icon`     | `string?` | Font Awesome icon class for the card           |
 
 These fields are already valid in `ProviderOptions` (typed as
 `Record<string, unknown>`) — no schema change needed until a
@@ -168,9 +168,16 @@ Add `"wiki"` to `SYNC_STEPS` in `packages/cli/src/commands/sync.ts`:
 
 ```ts
 export const SYNC_STEPS = [
-  "labels", "properties", "teams", "topics", "keywords",
-  "description", "homepage", "readme", "workflows",
-  "wiki",   // ← new
+  "labels",
+  "properties",
+  "teams",
+  "topics",
+  "keywords",
+  "description",
+  "homepage",
+  "readme",
+  "workflows",
+  "wiki", // ← new
 ] as const;
 ```
 
@@ -188,10 +195,11 @@ export interface WikiProduct {
   icon?: string;
 }
 
-export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>
+export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>;
 ```
 
 Responsibilities:
+
 - Discovers repos with wiki provider via GitHub search API
 - Builds `WikiProduct[]`
 - Generates `docs.yml` string using `workflowHeader()` + fixed header + dynamic products block
