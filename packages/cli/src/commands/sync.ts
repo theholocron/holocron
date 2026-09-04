@@ -22,6 +22,7 @@ const { workflowHeader } = createHeader({
 	tool: "holocron sync",
 });
 import { runSyncReadme } from "./sync-readme.js";
+import { runSyncWiki } from "./sync-wiki.js";
 
 export const SYNC_STEPS = [
 	"labels",
@@ -33,11 +34,12 @@ export const SYNC_STEPS = [
 	"homepage",
 	"readme",
 	"workflows",
+	"wiki",
 ] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
-const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme", "workflows"]);
+const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme", "workflows", "wiki"]);
 
 export interface RunSyncInput {
 	loaded: LoadedConfig;
@@ -228,7 +230,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// files and optionally push to GitHub when source is loaded. They run
 	// outside the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows"] as const) {
+	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows", "wiki"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -390,6 +392,12 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					print(formatSyncStep(steps[steps.length - 1]!));
 				}
 			}
+		}
+
+		if (stepName === "wiki") {
+			const result = await runSyncWiki({ loaded: input.loaded, context: input.context });
+			steps.push(result);
+			print(formatSyncStep(result));
 		}
 	}
 

@@ -82,10 +82,10 @@ describe("runSync", () => {
 		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
-		expect(report.steps).toHaveLength(9);
+		expect(report.steps).toHaveLength(10);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(6);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 6, fail: 0, skip: 3 });
+		expect(report.summary).toMatchObject({ ok: 6, fail: 0, skip: 4 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -1392,6 +1392,61 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow lint");
 			expect(step?.status).toBe("ok");
+		});
+	});
+
+	describe("sync wiki step", () => {
+		it("skips when no wiki provider is configured", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["wiki"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync wiki");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toContain("no wiki provider configured");
+		});
+
+		it("skips when no token is available", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				org: "theholocron",
+				providers: { wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron" }] },
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const origReadToken = process.env.HOLOCRON_READ_TOKEN;
+			const origGhToken = process.env.GH_TOKEN;
+			const origGithubToken = process.env.GITHUB_TOKEN;
+			delete process.env.HOLOCRON_READ_TOKEN;
+			delete process.env.GH_TOKEN;
+			delete process.env.GITHUB_TOKEN;
+
+			try {
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: "/tmp/test" },
+					loader,
+					steps: ["wiki"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "sync wiki");
+				expect(step?.status).toBe("skip");
+				expect(step?.message).toContain("no GitHub token");
+			} finally {
+				if (origReadToken !== undefined) process.env.HOLOCRON_READ_TOKEN = origReadToken;
+				if (origGhToken !== undefined) process.env.GH_TOKEN = origGhToken;
+				if (origGithubToken !== undefined) process.env.GITHUB_TOKEN = origGithubToken;
+			}
 		});
 	});
 });
