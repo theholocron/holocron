@@ -185,8 +185,8 @@ describe("discoverWikiProducts", () => {
 import { compose, nodeDocsSite, wikiCapability as wiki } from "@theholocron/holocron-config";
 const preset = compose(nodeDocsSite(), wiki());
 export default defineConfig({
-  ...preset,
-  description: "Shared agent skill registry.",
+	...preset,
+	description: "Shared agent skill registry.",
 });
 `,
 			},
@@ -205,12 +205,12 @@ export default defineConfig({
 				full_name: "org/holocron",
 				configTs: `
 export default defineConfig({
-  name: "holocron",
-  description: "The CLI",
-  providers: {
-    source: "github",
-    wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }],
-  },
+	name: "holocron",
+	description: "The CLI",
+	providers: {
+		source: "github",
+		wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }],
+	},
 });
 `,
 			},
@@ -227,8 +227,8 @@ export default defineConfig({
 				full_name: "org/myrepo",
 				configTs: `
 export default defineConfig({
-  providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
-  description: "From TS",
+	providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+	description: "From TS",
 });
 `,
 			},
@@ -394,8 +394,8 @@ export default defineConfig({
 				full_name: "org/no-wiki-ts",
 				configTs: `
 export default defineConfig({
-  name: "no-wiki-ts",
-  providers: { source: "github" },
+	name: "no-wiki-ts",
+	providers: { source: "github" },
 });
 `,
 			},
@@ -412,7 +412,7 @@ export default defineConfig({
 				full_name: "org/styled",
 				configTs: `
 export default defineConfig({
-  providers: { wiki: ["fern", { domain: "wiki.example.com/styled", subtitle: "A styled wiki", icon: "fa-duotone fa-star" }] },
+	providers: { wiki: ["fern", { domain: "wiki.example.com/styled", subtitle: "A styled wiki", icon: "fa-duotone fa-star" }] },
 });
 `,
 			},
@@ -466,7 +466,7 @@ export default defineConfig({
 				full_name: "org/minimal",
 				configTs: `
 export default {
-  providers: { wiki: ["fern", { domain: "wiki.example.com/minimal" }] },
+	providers: { wiki: ["fern", { domain: "wiki.example.com/minimal" }] },
 };
 `,
 			},
