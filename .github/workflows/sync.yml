@@ -1,3 +1,7 @@
+# Hand-maintained — do not regenerate with `holocron setup`.
+# Combines repo-config sync (holocron sync) and workflow-template sync
+# (sync-github) in one file. Removed from holocron.config.ts workflows
+# to prevent setup from overwriting it.
 name: Sync
 
 on: # yamllint disable-line rule:truthy
