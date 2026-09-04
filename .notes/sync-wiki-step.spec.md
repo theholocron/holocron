@@ -8,45 +8,63 @@ related:
   - theholocron/.github-private#65
 ---
 
-# `sync --steps wiki` — auto-generated Fern products landing
+# `sync --steps wiki` — auto-generated Fern products switcher
 
 Extends `holocron sync` with a `wiki` step that discovers all org repos
-with a wiki configured and generates the root Fern `docs.yml` (with a
-`products:` landing) in `theholocron/.github-private` automatically.
+with a wiki configured and injects a `products:` block into each repo's
+own `fern/docs.yml`, making a global wiki switcher appear on every wiki
+page across all repos.
 
 ---
 
 ## Motivation
 
 The Fern wiki system spans multiple repos, each publishing to a basepath
-under `wiki.theholocron.dev`. There is no top-level landing that surfaces
-all wikis — users must know the basepath directly.
+under `wiki.theholocron.dev`. Once you navigate to a repo's wiki you
+have no way to discover or switch to another — users must know the
+basepath directly.
 
-Fern supports a `products:` landing page that renders cards linking to
-each basepath, but `docs.yml` has no `extends` or `import` — the root
-config must be a standalone file. Keeping it manually in sync as new
-wikis are added is error-prone and easy to forget.
+Fern supports a `products:` block in `docs.yml` that renders a global
+switcher in the header. Since `products:` and `tabs:` are independent
+fields (not mutually exclusive — verified against the Fern schema), the
+switcher can sit alongside each repo's existing tab navigation. Every
+wiki page on every repo shows the same global switcher.
+
+Keeping the switcher manually in sync across repos as new wikis are
+added is error-prone. The `wiki` sync step automates this.
 
 ---
 
 ## Goals
 
-- `holocron sync --steps wiki` discovers all repos with `providers.wiki`
-  and generates the root `docs.yml` in `theholocron/.github-private`
-- Adding a wiki to any repo and syncing automatically surfaces it in the
-  root landing — no manual edits
+- `holocron sync --steps wiki` discovers all org repos with `providers.wiki`
+  and merges a `products:` block into each repo's own `fern/docs.yml`
+- Adding a wiki to any new repo and running the sync automatically
+  propagates the updated switcher to all other wiki-enabled repos
 - Metadata for each product card (subtitle, icon) is sourced from the
-  wiki provider options in `holocron.config.ts` — no external API calls
-- The step is additive to the existing `SYNC_STEPS` list and follows the
-  same local-step pattern as `readme` and `workflows`
-- Only runs when invoked from the `theholocron/holocron` repo context;
-  other repos skip it silently
+  wiki provider options + `config.description` — no manual card content
+- The step follows the same local-step pattern as `readme` and `workflows`
+  — writes to the current repo's own files, committed by the existing
+  `auto-commit` + PR flow
+- `sync-dispatch` triggers the step across all repos when any wiki changes
 
 ## Non-goals
 
 - Fern dashboard "Connect repo" automation — still manual
-- Generating per-repo `fern/docs.yml` — those are hand-maintained
-- Ordering of product cards beyond alphabetical by repo name
+- Generating the full `fern/docs.yml` from scratch — only the `products:`
+  block is managed; everything else remains hand-maintained
+- Ordering beyond alphabetical by basepath
+
+---
+
+## Schema verification
+
+Confirmed via `https://schema.buildwithfern.dev/docs-yml.json`:
+
+- `products` and `tabs` are both independent nullable top-level properties
+- No `oneOf`/`anyOf` makes them mutually exclusive
+- `InternalProduct` has a `path` field for sub-navigation within a product
+- They can coexist in the same `docs.yml`
 
 ---
 
@@ -73,73 +91,44 @@ providers: {
 | `icon`     | `string?` | none                 | Font Awesome icon class for the card                                                                                                  |
 
 The `description` fallback means most repos need no change to their wiki
-provider options — the card subtitle comes from the field they already maintain.
+provider options — the card subtitle comes from the field they already
+maintain.
 
-These fields are already valid in `ProviderOptions` (typed as
-`Record<string, unknown>`) — no schema change needed until a
-`WikiFernOptions` interface is added for type safety.
+These fields are valid in `ProviderOptions` (`Record<string, unknown>`)
+— no schema change needed until a `WikiFernOptions` interface is added.
 
 ---
 
 ## Generated output
 
-`theholocron/.github-private/fern/docs.yml` is overwritten on each run.
-The file is marked with the standard `workflowHeader()` so it is clearly
-auto-generated:
+The `wiki` step merges a `products:` block into each wiki-enabled repo's
+`fern/docs.yml`. The block is bounded by generator markers so subsequent
+runs can replace it without touching anything else in the file:
 
 ```yaml
-# AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
-# Tool:    holocron sync --steps wiki
-# Changes: run `holocron sync --steps wiki` in theholocron/holocron to regenerate.
-
-instances:
-  - url: holocron.docs.buildwithfern.com/internal
-    custom-domain: wiki.theholocron.dev/internal
-    multi-source: true
-
-title: Holocron Wiki
-
-edit-this-page:
-  github:
-    owner: theholocron
-    repo: .github-private
-    branch: main
-
-navbar:
-  links:
-    - type: github
-      value: https://github.com/theholocron
-
-colors:
-  accent-primary:
-    dark: "#70E155"
-    light: "#008700"
-
-logo:
-  height: 20
-
-metadata:
-  og:dynamic: true
-
+# --- BEGIN holocron:wiki-products (auto-generated, do not edit) ---
 products:
   - display-name: Internal
     subtitle: Org conventions, engineering workflow, architecture
     icon: fa-duotone fa-lock
     href: /internal
   - display-name: Holocron
-    subtitle: CLI engineering knowledge and ADRs
+    subtitle: A pluggable, capability-based CLI for spinning up and operating software projects
     icon: fa-duotone fa-gear
     href: /holocron
   - display-name: Skills
-    subtitle: Agent skills and slash commands
+    subtitle: Shared agent skills for Claude Code and Codex
     icon: fa-duotone fa-bolt
     href: /skills
+# --- END holocron:wiki-products ---
 ```
 
-The `instances`, `edit-this-page`, `navbar`, `colors`, `logo`, and
-`metadata` blocks are fixed — they describe the root site itself and do
-not change as wikis are added. Only the `products:` block is dynamic.
+The markers allow the step to identify and replace only the managed
+block on subsequent runs — the same pattern used by `sync-readme` for
+the `<!-- holocron:installation -->` blocks in README files.
+
+Everything else in `fern/docs.yml` (instances, tabs, navigation, colors,
+logo, edit-this-page) is untouched.
 
 ---
 
@@ -147,20 +136,20 @@ not change as wikis are added. Only the `products:` block is dynamic.
 
 ```
 1. Read all org repos via GitHub API (paginated)
-2. For each repo, attempt to fetch `holocron.config.ts` / `holocron.config.json`
-3. Parse providers — look for a `wiki` entry
-4. Extract from the wiki provider options + top-level config:
-     - basepath: last segment of `domain` (e.g. "holocron" from "wiki.theholocron.dev/holocron")
-     - display-name: repo name, title-cased (e.g. "holocron" → "Holocron")
-     - subtitle: `wiki.subtitle` option → `config.description` → omit
-     - icon: from `icon` option, or omit
-5. Sort entries alphabetically by basepath
-6. Generate the products block and write to .github-private/fern/docs.yml
+2. For each repo, attempt to fetch holocron.config.ts / holocron.config.json
+3. Parse providers — look for a wiki entry
+4. Extract:
+     - basepath: last segment of domain
+       (e.g. "holocron" from "wiki.theholocron.dev/holocron")
+     - display-name: basepath, title-cased (e.g. "holocron" → "Holocron")
+     - subtitle: wiki.subtitle option → config.description → omit
+     - icon: wiki.icon option → omit
+5. Sort alphabetically by basepath
+6. Generate the products block with markers
+7. Merge into the current repo's fern/docs.yml:
+     - If markers exist: replace the content between them
+     - If no markers: append the block at end of file
 ```
-
-The `.github-private` repo itself is excluded from the product list — it
-IS the root landing, not a child product. Its fixed `instances` block
-already declares the root URL.
 
 ---
 
@@ -172,22 +161,26 @@ Add `"wiki"` to `SYNC_STEPS` in `packages/cli/src/commands/sync.ts`:
 
 ```ts
 export const SYNC_STEPS = [
-  "labels",
-  "properties",
-  "teams",
-  "topics",
-  "keywords",
-  "description",
-  "homepage",
-  "readme",
-  "workflows",
-  "wiki", // ← new
+  "labels", "properties", "teams", "topics", "keywords",
+  "description", "homepage", "readme", "workflows",
+  "wiki",  // ← new
 ] as const;
 ```
 
-Add to `LOCAL_STEPS` — no provider token needed (reads config from
-GitHub API using the existing `HOLOCRON_READ_TOKEN` / `GH_TOKEN`
-resolution).
+Add to `LOCAL_STEPS` — no provider token needed beyond the existing
+`HOLOCRON_READ_TOKEN` → `GH_TOKEN` → `github.token` chain.
+
+### Guard: only runs when wiki is configured
+
+```ts
+const wikiProvider = config.providers.wiki;
+if (!wikiProvider) {
+  return { step: "sync wiki", status: "skipped", message: "no wiki provider configured" };
+}
+```
+
+Unlike the previous design, no `holocron`-only guard is needed — every
+wiki-enabled repo runs this step and updates its own file.
 
 ### New file: `packages/cli/src/commands/sync-wiki.ts`
 
@@ -199,57 +192,34 @@ export interface WikiProduct {
   icon?: string;
 }
 
-export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>;
+export async function discoverWikiProducts(org: string, token: string): Promise<WikiProduct[]>
+export async function generateProductsBlock(products: WikiProduct[]): string
+export async function mergeProductsBlock(docsYml: string, block: string): string
+export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult>
 ```
 
-Responsibilities:
+### Commit + PR flow
 
-- Discovers repos with wiki provider via GitHub search API
-- Builds `WikiProduct[]`
-- Generates `docs.yml` string using `workflowHeader()` + fixed header + dynamic products block
-- Writes to `<repoRoot>/../github-private/fern/docs.yml` (relative path convention matching the sibling checkout layout)
+No change needed. The step writes to `fern/docs.yml` in the current
+repo checkout. The existing `auto-commit` action in each repo's
+`sync.yml` thin caller picks up the change and opens a PR — exactly
+the same as `readme` and `workflows` steps today.
 
-### Token resolution
-
-Uses existing `HOLOCRON_READ_TOKEN` → `GH_TOKEN` → `github.token`
-chain — only needs read access to fetch `holocron.config.*` files
-from each repo.
-
-### Guard: only runs in holocron context
-
-```ts
-if (config.name !== "holocron") {
-  return { step: "sync wiki", status: "skipped", message: "only runs in theholocron/holocron" };
-}
-```
-
----
-
-## Commit + PR flow
-
-The `wiki` step writes to `../github-private/fern/docs.yml`. The
-existing `setup.yml` in `theholocron/holocron` already handles the
-auto-commit + PR flow for the `sync` step. The `wiki` step piggybacks
-on this — after `runSyncWiki` writes the file, the `auto-commit` action
-picks up the change and opens a PR in `.github-private`.
+When a new wiki is added to any repo, `sync-dispatch` fires and triggers
+`holocron sync --steps wiki` across all wiki-enabled repos, propagating
+the updated switcher everywhere in one shot.
 
 ---
 
 ## Open questions
 
-1. **Sibling path assumption** — the step writes to `../github-private/`
-   which assumes the sibling checkout convention. In CI, both repos need
-   to be checked out. The `setup.yml` workflow would need a second
-   `actions/checkout` step for `.github-private` before running the wiki
-   step. Alternative: use the GitHub API to commit the file directly
-   without a local checkout.
+1. **Marker vs append** — the marker approach (`BEGIN/END holocron:wiki-products`)
+   is the cleanest for idempotent updates but requires the initial merge
+   to append the block. Alternative: require `fern/docs.yml` to already
+   contain the markers (added by `holocron setup` when wiki is first
+   configured). This is consistent with how `sync-readme` works — setup
+   writes the initial markers, sync fills them.
 
-2. **Fixed header content** — `instances`, `edit-this-page`, `navbar`,
-   `colors`, `logo` are currently hardcoded in the generator. Should
-   these be configurable via a `holocron.config.ts` field, or is
-   hardcoding to the `.github-private` site acceptable given there is
-   exactly one root wiki site?
-
-3. **Product ordering** — alphabetical by basepath is the default. Should
-   there be a way to pin specific products to the top (e.g. `internal`
-   always first)?
+2. **Product ordering** — alphabetical by basepath is the default.
+   Should `internal` always sort first since it's the default path?
+   Could be a fixed rule or a `priority` field in the wiki provider options.
