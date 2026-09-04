@@ -45,7 +45,7 @@ export default defineConfig({
 		vault: ["doppler", { project: "holocron", config: "dev" }],
 		secrets: "github",
 		environments: "github",
-		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron" }],
+		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
