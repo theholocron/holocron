@@ -1,20 +1,16 @@
-# Hand-maintained — do not regenerate with `holocron setup`.
-# Combines repo-config sync (holocron sync) and workflow-template sync
-# (sync-github) in one file. Removed from holocron.config.ts workflows
-# to prevent setup from overwriting it.
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
+# Tool:    holocron setup
+# Changes: run `holocron setup` to regenerate.
 name: Sync
 
 on: # yamllint disable-line rule:truthy
   push:
-    branches:
-      - alpha
-      - main
+    branches: [main]
     paths:
       - holocron.config.ts
       - package.json
       - pnpm-workspace.yaml
-      - packages/cli/src/commands/setup-workflows/**
-      - packages/cli/src/templates/**
   workflow_dispatch:
     inputs:
       steps:
@@ -32,38 +28,8 @@ permissions:
 
 jobs:
   sync:
-    name: Sync repo config
+    name: Sync
     uses: theholocron/.github/.github/workflows/sync.yml@main
     with:
       steps: ${{ inputs.steps }}
     secrets: inherit
-
-  discover-repos:
-    name: Discover consumer repos
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      secondary-repos: ${{ steps.find.outputs.secondary-repos }}
-    steps:
-      - name: Find repos with holocron.config
-        id: find
-        env:
-          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
-        run: |
-          repos=$(gh api "search/code?q=filename:holocron.config+org:theholocron&per_page=100" \
-            --jq '[.items[].repository.full_name]
-                  | unique
-                  | map(select(. != "theholocron/.github" and . != "theholocron/holocron"))
-                  | join(" ")')
-          echo "secondary-repos=$repos" >> "$GITHUB_OUTPUT"
-
-  sync-templates:
-    name: Sync workflow templates
-    needs: discover-repos
-    uses: theholocron/.github/.github/workflows/sync-github.yml@main
-    with:
-      primary-repo: theholocron/.github
-      secondary-repos: ${{ needs.discover-repos.outputs.secondary-repos }}
-    secrets:
-      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
