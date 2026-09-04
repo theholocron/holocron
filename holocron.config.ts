@@ -37,6 +37,7 @@ export default defineConfig({
 		...workflows,
 		{ name: "audit", with: { "run-knip": true } },
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
+		"sync",
 		"wiki",
 	],
 	providers: {
