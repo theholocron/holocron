@@ -9,7 +9,7 @@ on: # yamllint disable-line rule:truthy
           Fern updates their config schema.
         type: string
         required: false
-        default: "5.35.4"
+        default: "5.114.1"
       preview:
         description: >
           When true, publishes a preview instead of production.

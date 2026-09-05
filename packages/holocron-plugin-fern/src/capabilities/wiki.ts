@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import type { Wiki, WikiDnsRecord, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
 
-export const FERN_VERSION = "5.35.4";
+export const FERN_VERSION = "5.114.1";
 
 export interface FernWikiOptions {
 	/** Absolute path to the working repo root. Injected by the loader from RuntimeContext. */
