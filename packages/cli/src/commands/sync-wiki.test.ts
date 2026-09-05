@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
-import { discoverWikiProducts, mergeProducts, runSyncWiki } from "./sync-wiki.js";
+import { mergeWikiConfig, runSyncWiki, validateWikiConfig } from "./sync-wiki.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -16,464 +16,14 @@ function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfi
 }
 
 // ---------------------------------------------------------------------------
-// Fetch mock helpers
+// mergeWikiConfig
 // ---------------------------------------------------------------------------
 
-interface RepoStub {
-	name: string;
-	full_name: string;
-	archived?: boolean;
-	configJson?: unknown;
-	configTs?: string;
-}
-
-function makeOrgFetch(repos: RepoStub[]) {
-	return async (url: string | URL | Request, _init?: RequestInit): Promise<Response> => {
-		const urlStr = url.toString();
-
-		if (urlStr.includes("/orgs/") && urlStr.includes("/repos")) {
-			const page = new URL(urlStr).searchParams.get("page") ?? "1";
-			if (page === "1") {
-				const body = repos.map((r) => ({
-					name: r.name,
-					full_name: r.full_name,
-					archived: r.archived ?? false,
-				}));
-				return new Response(JSON.stringify(body), { status: 200 });
-			}
-			// Second page is always empty — all repos fit on page 1 in tests
-			return new Response(JSON.stringify([]), { status: 200 });
-		}
-
-		for (const repo of repos) {
-			if (urlStr.includes(`/repos/${repo.full_name}/contents/holocron.config.json`)) {
-				if (!repo.configJson) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
-				const content = Buffer.from(JSON.stringify(repo.configJson)).toString("base64");
-				return new Response(JSON.stringify({ content: content + "\n", encoding: "base64" }), { status: 200 });
-			}
-			if (urlStr.includes(`/repos/${repo.full_name}/contents/holocron.config.ts`)) {
-				if (!repo.configTs) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
-				const content = Buffer.from(repo.configTs).toString("base64");
-				return new Response(JSON.stringify({ content: content + "\n", encoding: "base64" }), { status: 200 });
-			}
-		}
-
-		return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
-	};
-}
-
-// ---------------------------------------------------------------------------
-// discoverWikiProducts
-// ---------------------------------------------------------------------------
-
-describe("discoverWikiProducts", () => {
-	it("returns empty array when no repos have wiki configured", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "no-wiki",
-				full_name: "org/no-wiki",
-				configJson: { name: "no-wiki", providers: { source: "github" } },
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toEqual([]);
-	});
-
-	it("discovers wiki from a JSON config with explicit domain path", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "myrepo",
-				full_name: "org/myrepo",
-				configJson: {
-					name: "myrepo",
-					description: "My repo description",
-					providers: {
-						wiki: ["fern", { domain: "wiki.example.com/myrepo", fernOrg: "org" }],
-					},
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(1);
-		expect(products[0]).toMatchObject({
-			displayName: "Myrepo",
-			basepath: "myrepo",
-			subtitle: "My repo description",
-		});
-	});
-
-	it("derives basepath from repo name when domain has no path segment", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "myrepo",
-				full_name: "org/myrepo",
-				configJson: {
-					name: "myrepo",
-					providers: {
-						wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }],
-					},
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.basepath).toBe("myrepo");
-		expect(products[0]?.displayName).toBe("Myrepo");
-	});
-
-	it("uses subtitle and icon from wiki options when provided", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "myrepo",
-				full_name: "org/myrepo",
-				configJson: {
-					name: "myrepo",
-					description: "Fallback",
-					providers: {
-						wiki: [
-							"fern",
-							{
-								domain: "wiki.example.com/myrepo",
-								subtitle: "Custom subtitle",
-								icon: "fa-duotone fa-gear",
-							},
-						],
-					},
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.subtitle).toBe("Custom subtitle");
-		expect(products[0]?.icon).toBe("fa-duotone fa-gear");
-	});
-
-	it("falls back to description when subtitle is absent in JSON config", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "myrepo",
-				full_name: "org/myrepo",
-				configJson: {
-					description: "Top-level description",
-					providers: {
-						wiki: ["fern", { domain: "wiki.example.com/myrepo" }],
-					},
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.subtitle).toBe("Top-level description");
-	});
-
-	it("discovers wiki from a TS config using wikiCapability preset", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "skills",
-				full_name: "org/skills",
-				configTs: `
-import { compose, nodeDocsSite, wikiCapability as wiki } from "@theholocron/holocron-config";
-const preset = compose(nodeDocsSite(), wiki());
-export default defineConfig({
-	...preset,
-	description: "Shared agent skill registry.",
-});
-`,
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(1);
-		expect(products[0]?.basepath).toBe("skills");
-		expect(products[0]?.subtitle).toBe("Shared agent skill registry.");
-	});
-
-	it("discovers wiki from a TS config with direct providers.wiki", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "holocron",
-				full_name: "org/holocron",
-				configTs: `
-export default defineConfig({
-	name: "holocron",
-	description: "The CLI",
-	providers: {
-		source: "github",
-		wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }],
-	},
-});
-`,
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.basepath).toBe("holocron");
-	});
-
-	it("falls back to TS config when JSON config is absent", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "myrepo",
-				full_name: "org/myrepo",
-				configTs: `
-export default defineConfig({
-	providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
-	description: "From TS",
-});
-`,
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.basepath).toBe("myrepo");
-		expect(products[0]?.subtitle).toBe("From TS");
-	});
-
-	it("skips archived repos", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "archived-repo",
-				full_name: "org/archived-repo",
-				archived: true,
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/archived-repo" }] },
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(0);
-	});
-
-	it("sorts products alphabetically by basepath", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "zeta",
-				full_name: "org/zeta",
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/zeta" }] },
-				},
-			},
-			{
-				name: "alpha",
-				full_name: "org/alpha",
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/alpha" }] },
-				},
-			},
-			{
-				name: "mu",
-				full_name: "org/mu",
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/mu" }] },
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products.map((p) => p.basepath)).toEqual(["alpha", "mu", "zeta"]);
-	});
-
-	it("skips repos with no wiki config", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "has-wiki",
-				full_name: "org/has-wiki",
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/has-wiki" }] },
-				},
-			},
-			{
-				name: "no-wiki",
-				full_name: "org/no-wiki",
-				configJson: { providers: { source: "github" } },
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(1);
-		expect(products[0]?.basepath).toBe("has-wiki");
-	});
-
-	it("skips repo when config JSON is invalid", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "bad-json",
-				full_name: "org/bad-json",
-				// configJson is absent — we inject a raw invalid-JSON response below
-			},
-		]);
-		// Wrap fetch to return malformed JSON for the config file
-		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-			if (url.toString().includes("/contents/holocron.config.json")) {
-				const content = Buffer.from("this is not json {{{").toString("base64");
-				return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
-			}
-			return fetch(url, init);
-		};
-
-		const products = await discoverWikiProducts("org", "token", wrappedFetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(0);
-	});
-
-	it("skips repo when config file uses non-base64 encoding", async () => {
-		const fetch = makeOrgFetch([{ name: "weird", full_name: "org/weird" }]);
-		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-			if (url.toString().includes("/contents/holocron.config.json")) {
-				return new Response(JSON.stringify({ content: "raw content", encoding: "utf-8" }), { status: 200 });
-			}
-			if (url.toString().includes("/contents/holocron.config.ts")) {
-				return new Response(JSON.stringify({ content: "raw content", encoding: "utf-8" }), { status: 200 });
-			}
-			return fetch(url, init);
-		};
-
-		const products = await discoverWikiProducts("org", "token", wrappedFetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(0);
-	});
-
-	it("fetches a second page when first page returns exactly 100 repos", async () => {
-		// Build 100 non-wiki repos for page 1 and 1 wiki repo for page 2
-		const page1Repos = Array.from({ length: 100 }, (_, i) => ({
-			name: `repo-${i}`,
-			full_name: `org/repo-${i}`,
-			archived: false,
-		}));
-		const page2Repo = {
-			name: "wiki-repo",
-			full_name: "org/wiki-repo",
-			archived: false,
-		};
-
-		let callCount = 0;
-		const paginatedFetch = async (url: string | URL | Request, _init?: RequestInit): Promise<Response> => {
-			const urlStr = url.toString();
-			if (urlStr.includes("/orgs/") && urlStr.includes("/repos")) {
-				const page = new URL(urlStr).searchParams.get("page") ?? "1";
-				if (page === "1") return new Response(JSON.stringify(page1Repos), { status: 200 });
-				if (page === "2") return new Response(JSON.stringify([page2Repo]), { status: 200 });
-				return new Response(JSON.stringify([]), { status: 200 });
-			}
-			if (urlStr.includes("/repos/org/wiki-repo/contents/holocron.config.json")) {
-				callCount++;
-				const content = Buffer.from(
-					JSON.stringify({ providers: { wiki: ["fern", { domain: "wiki.example.com/wiki-repo" }] } })
-				).toString("base64");
-				return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
-			}
-			// All other repos: no config
-			return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
-		};
-
-		const products = await discoverWikiProducts("org", "token", paginatedFetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(1);
-		expect(products[0]?.basepath).toBe("wiki-repo");
-		expect(callCount).toBe(1);
-	});
-
-	it("ignores TS config that has no wiki markers", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "no-wiki-ts",
-				full_name: "org/no-wiki-ts",
-				configTs: `
-export default defineConfig({
-	name: "no-wiki-ts",
-	providers: { source: "github" },
-});
-`,
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(0);
-	});
-
-	it("extracts subtitle and icon from TS config when present", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "styled",
-				full_name: "org/styled",
-				configTs: `
-export default defineConfig({
-	providers: { wiki: ["fern", { domain: "wiki.example.com/styled", subtitle: "A styled wiki", icon: "fa-duotone fa-star" }] },
-});
-`,
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.subtitle).toBe("A styled wiki");
-		expect(products[0]?.icon).toBe("fa-duotone fa-star");
-	});
-
-	it("handles bare string wiki provider in JSON config", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "bare",
-				full_name: "org/bare",
-				configJson: {
-					name: "bare",
-					providers: { wiki: "fern" },
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products).toHaveLength(1);
-		expect(products[0]?.basepath).toBe("bare");
-		expect(products[0]?.displayName).toBe("Bare");
-		expect(products[0]?.subtitle).toBeUndefined();
-	});
-
-	it("ignores non-string domain in wiki options tuple", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "myrepo",
-				full_name: "org/myrepo",
-				configJson: {
-					name: "myrepo",
-					providers: { wiki: ["fern", { domain: 42, fernOrg: "org" }] },
-				},
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		// domain is not a string → basepath derived from repo name
-		expect(products[0]?.basepath).toBe("myrepo");
-	});
-
-	it("produces product with no subtitle when TS config has no description or subtitle", async () => {
-		const fetch = makeOrgFetch([
-			{
-				name: "minimal",
-				full_name: "org/minimal",
-				configTs: `
-export default {
-	providers: { wiki: ["fern", { domain: "wiki.example.com/minimal" }] },
-};
-`,
-			},
-		]);
-
-		const products = await discoverWikiProducts("org", "token", fetch as typeof globalThis.fetch);
-		expect(products[0]?.basepath).toBe("minimal");
-		expect(products[0]?.subtitle).toBeUndefined();
-		expect(products[0]?.icon).toBeUndefined();
-	});
-});
-
-// ---------------------------------------------------------------------------
-// mergeProducts
-// ---------------------------------------------------------------------------
-
-describe("mergeProducts", () => {
+describe("mergeWikiConfig", () => {
 	let tmpDir: string;
 
 	beforeEach(async () => {
-		tmpDir = await mkdtemp(join(tmpdir(), "holocron-wiki-test-"));
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-wiki-merge-test-"));
 		await mkdir(join(tmpDir, "fern"), { recursive: true });
 	});
 
@@ -481,103 +31,293 @@ describe("mergeProducts", () => {
 		await rm(tmpDir, { recursive: true });
 	});
 
-	const products = [
-		{ displayName: "Alpha", basepath: "alpha", subtitle: "Alpha tool" },
-		{ displayName: "Beta", basepath: "beta", icon: "fa-duotone fa-b" },
-	];
+	const cfg = { owner: "theholocron", repoName: "skills" };
+	const docsPath = () => join(tmpDir, "fern", "docs.yml");
 
-	it("inserts products: block before instances: when none exists", async () => {
-		const initial = [
-			"# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json",
-			"",
-			"instances:",
-			"  - url: org.docs.buildwithfern.com/myrepo",
-			"    custom-domain: wiki.example.com/myrepo",
-			"",
-			"title: myrepo Engineering",
-		].join("\n");
-		await writeFile(join(tmpDir, "fern", "docs.yml"), initial, "utf8");
+	function write(content: string) {
+		return writeFile(docsPath(), content, "utf8");
+	}
+	function read() {
+		return readFile(docsPath(), "utf8");
+	}
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), products);
+	it("adds edit-this-page after multi-source: true", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    custom-domain: wiki.theholocron.dev/skills`,
+			`    multi-source: true`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
 
-		const result = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
-		expect(result).toContain("products:");
-		expect(result).toContain("  - display-name: Alpha");
-		expect(result).toContain("    subtitle: Alpha tool");
-		expect(result).toContain("    href: /alpha");
-		expect(result).toContain("  - display-name: Beta");
-		expect(result).toContain("    icon: fa-duotone fa-b");
-		expect(result).toContain("    href: /beta");
-		// products: appears before instances:
-		const productsIdx = result.indexOf("products:");
-		const instancesIdx = result.indexOf("instances:");
-		expect(productsIdx).toBeLessThan(instancesIdx);
-		// original content preserved
-		expect(result).toContain("title: myrepo Engineering");
+		const changed = await mergeWikiConfig(docsPath(), cfg);
+
+		expect(changed).toBe(true);
+		const result = await read();
+		expect(result).toContain("edit-this-page:");
+		expect(result).toContain("        owner: theholocron");
+		expect(result).toContain("        repo: skills");
+		expect(result).toContain("        branch: main");
+		// edit-this-page is indented under the instance (after multi-source: true)
+		const msIdx = result.indexOf("    multi-source: true");
+		const etpIdx = result.indexOf("    edit-this-page:");
+		expect(etpIdx).toBeGreaterThan(msIdx);
 	});
 
-	it("replaces an existing products: block", async () => {
-		const initial = [
-			"instances:",
-			"  - url: org.docs.buildwithfern.com/myrepo",
-			"",
-			"products:",
-			"  - display-name: Old",
-			"    href: /old",
-			"",
-			"title: myrepo Engineering",
-		].join("\n");
-		await writeFile(join(tmpDir, "fern", "docs.yml"), initial, "utf8");
+	it("adds edit-this-page after custom-domain when no multi-source line", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    custom-domain: wiki.theholocron.dev/skills`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), products);
+		await mergeWikiConfig(docsPath(), cfg);
 
-		const result = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
-		expect(result).not.toContain("display-name: Old");
-		expect(result).toContain("display-name: Alpha");
-		expect(result).toContain("display-name: Beta");
-		expect(result).toContain("title: myrepo Engineering");
+		const result = await read();
+		expect(result).toContain("edit-this-page:");
+		const cdIdx = result.indexOf("    custom-domain:");
+		const etpIdx = result.indexOf("    edit-this-page:");
+		expect(etpIdx).toBeGreaterThan(cdIdx);
 	});
 
-	it("replacement is idempotent", async () => {
-		const initial = "instances:\n  - url: org.docs.buildwithfern.com/myrepo\n\ntitle: T\n";
-		await writeFile(join(tmpDir, "fern", "docs.yml"), initial, "utf8");
+	it("adds edit-this-page after url when no custom-domain or multi-source", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), products);
-		const after1 = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
+		await mergeWikiConfig(docsPath(), cfg);
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), products);
-		const after2 = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
-
-		expect(after1).toBe(after2);
+		const result = await read();
+		expect(result).toContain("edit-this-page:");
 	});
 
-	it("appends products: when no instances: marker exists", async () => {
-		const initial = "title: myrepo Engineering\n";
-		await writeFile(join(tmpDir, "fern", "docs.yml"), initial, "utf8");
+	it("adds navbar-links before colors:", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), products);
+		await mergeWikiConfig(docsPath(), cfg);
 
-		const result = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
-		expect(result).toContain("products:");
-		expect(result).toContain("title: myrepo Engineering");
+		const result = await read();
+		expect(result).toContain("navbar-links:");
+		expect(result).toContain("  - type: github");
+		expect(result).toContain("    value: https://github.com/theholocron/skills");
+		const navbarIdx = result.indexOf("navbar-links:");
+		const colorsIdx = result.indexOf("colors:");
+		expect(navbarIdx).toBeLessThan(colorsIdx);
+	});
+
+	it("appends navbar-links at end when no colors: key", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			``,
+			`title: skills Engineering`,
+		].join("\n"));
+
+		await mergeWikiConfig(docsPath(), cfg);
+
+		const result = await read();
+		expect(result).toContain("navbar-links:");
+		expect(result).toContain("https://github.com/theholocron/skills");
+	});
+
+	it("is idempotent when both fields already present", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: theholocron`,
+			`        repo: skills`,
+			`        branch: main`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`navbar-links:`,
+			`  - type: github`,
+			`    value: https://github.com/theholocron/skills`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
+
+		const before = await read();
+		const changed = await mergeWikiConfig(docsPath(), cfg);
+
+		expect(changed).toBe(false);
+		expect(await read()).toBe(before);
+	});
+
+	it("adds both fields and returns true when both are absent", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
+
+		const changed = await mergeWikiConfig(docsPath(), cfg);
+		expect(changed).toBe(true);
+		const result = await read();
+		expect(result).toContain("edit-this-page:");
+		expect(result).toContain("navbar-links:");
+	});
+
+	it("preserves all other content when modifying", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`tabs:`,
+			`  decisions:`,
+			`    display-name: Decisions`,
+			``,
+			`navigation:`,
+			`  - tab: decisions`,
+			`    layout:`,
+			`      - page: Index`,
+			`        path: ../docs/wiki/decisions/README.md`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
+
+		await mergeWikiConfig(docsPath(), cfg);
+
+		const result = await read();
+		expect(result).toContain("tab: decisions");
+		expect(result).toContain("path: ../docs/wiki/decisions/README.md");
+		expect(result).toContain("title: skills Engineering");
 	});
 
 	it("throws when docs.yml does not exist", async () => {
-		await expect(mergeProducts(join(tmpDir, "fern", "missing.yml"), products)).rejects.toThrow(
+		await expect(mergeWikiConfig(join(tmpDir, "fern", "missing.yml"), cfg)).rejects.toThrow(
 			"fern/docs.yml not found"
 		);
 	});
+});
 
-	it("omits subtitle line when subtitle is absent", async () => {
-		const initial = "instances:\n  - url: org.docs.buildwithfern.com/r\n";
-		await writeFile(join(tmpDir, "fern", "docs.yml"), initial, "utf8");
+// ---------------------------------------------------------------------------
+// validateWikiConfig
+// ---------------------------------------------------------------------------
 
-		await mergeProducts(join(tmpDir, "fern", "docs.yml"), [{ displayName: "Bare", basepath: "bare" }]);
+describe("validateWikiConfig", () => {
+	let tmpDir: string;
 
-		const result = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
-		expect(result).not.toContain("subtitle:");
-		expect(result).toContain("display-name: Bare");
-		expect(result).toContain("href: /bare");
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-wiki-validate-test-"));
+		await mkdir(join(tmpDir, "fern"), { recursive: true });
+	});
+
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
+
+	const docsPath = () => join(tmpDir, "fern", "docs.yml");
+
+	it("returns empty array when both fields are present", async () => {
+		await writeFile(docsPath(), [
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: theholocron`,
+			`        repo: skills`,
+			`        branch: main`,
+			``,
+			`navbar-links:`,
+			`  - type: github`,
+			`    value: https://github.com/theholocron/skills`,
+		].join("\n"), "utf8");
+
+		const missing = await validateWikiConfig(docsPath());
+		expect(missing).toEqual([]);
+	});
+
+	it("reports edit-this-page missing", async () => {
+		await writeFile(docsPath(), [
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			``,
+			`navbar-links:`,
+			`  - type: github`,
+			`    value: https://github.com/theholocron/skills`,
+		].join("\n"), "utf8");
+
+		const missing = await validateWikiConfig(docsPath());
+		expect(missing).toContain("edit-this-page");
+		expect(missing).not.toContain("navbar-links");
+	});
+
+	it("reports navbar-links missing", async () => {
+		await writeFile(docsPath(), [
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: theholocron`,
+			`        repo: skills`,
+			`        branch: main`,
+		].join("\n"), "utf8");
+
+		const missing = await validateWikiConfig(docsPath());
+		expect(missing).toContain("navbar-links");
+		expect(missing).not.toContain("edit-this-page");
+	});
+
+	it("reports both missing when neither is present", async () => {
+		await writeFile(docsPath(), "instances:\n  - url: holocron.docs.buildwithfern.com/skills\n", "utf8");
+
+		const missing = await validateWikiConfig(docsPath());
+		expect(missing).toContain("edit-this-page");
+		expect(missing).toContain("navbar-links");
+	});
+
+	it("reports file not found when docs.yml is absent", async () => {
+		const missing = await validateWikiConfig(join(tmpDir, "fern", "missing.yml"));
+		expect(missing).toContain("fern/docs.yml not found");
 	});
 });
 
@@ -593,7 +333,18 @@ describe("runSyncWiki", () => {
 		await mkdir(join(tmpDir, "fern"), { recursive: true });
 		await writeFile(
 			join(tmpDir, "fern", "docs.yml"),
-			"instances:\n  - url: org.docs.buildwithfern.com/myrepo\n",
+			[
+				`instances:`,
+				`  - url: org.docs.buildwithfern.com/myrepo`,
+				`    custom-domain: wiki.example.com/myrepo`,
+				`    multi-source: true`,
+				``,
+				`title: myrepo Engineering`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#000000"`,
+			].join("\n"),
 			"utf8"
 		);
 	});
@@ -605,16 +356,25 @@ describe("runSyncWiki", () => {
 	it("skips when no wiki provider is configured", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
 
-		const result = await runSyncWiki({
-			loaded,
-			context: { repoRoot: tmpDir },
-		});
+		const result = await runSyncWiki({ loaded, context: { repoRoot: tmpDir } });
 
 		expect(result.status).toBe("skip");
 		expect(result.message).toContain("no wiki provider configured");
 	});
 
-	it("skips when no org can be resolved", async () => {
+	it("skips when no repo is available", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
+		});
+
+		const result = await runSyncWiki({ loaded, context: { repoRoot: tmpDir } });
+
+		expect(result.status).toBe("skip");
+		expect(result.message).toContain("no repo configured");
+	});
+
+	it("skips when repo string is not owner/name format", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
@@ -622,193 +382,121 @@ describe("runSyncWiki", () => {
 
 		const result = await runSyncWiki({
 			loaded,
-			context: { repoRoot: tmpDir },
-			token: "tok",
+			context: { repoRoot: tmpDir, repo: "noslash" },
 		});
 
 		expect(result.status).toBe("skip");
-		expect(result.message).toContain("no org configured");
-	});
-
-	it("skips when no token is available", async () => {
-		const loaded = loadedFrom({
-			name: "demo",
-			org: "theholocron",
-			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
-		});
-
-		const origReadToken = process.env.HOLOCRON_READ_TOKEN;
-		const origGhToken = process.env.GH_TOKEN;
-		const origGithubToken = process.env.GITHUB_TOKEN;
-		delete process.env.HOLOCRON_READ_TOKEN;
-		delete process.env.GH_TOKEN;
-		delete process.env.GITHUB_TOKEN;
-
-		try {
-			const result = await runSyncWiki({
-				loaded,
-				context: { repoRoot: tmpDir },
-			});
-
-			expect(result.status).toBe("skip");
-			expect(result.message).toContain("no GitHub token");
-		} finally {
-			if (origReadToken !== undefined) process.env.HOLOCRON_READ_TOKEN = origReadToken;
-			if (origGhToken !== undefined) process.env.GH_TOKEN = origGhToken;
-			if (origGithubToken !== undefined) process.env.GITHUB_TOKEN = origGithubToken;
-		}
+		expect(result.message).toContain("owner/name");
 	});
 
 	it("returns dry-run when dryRun is true", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			org: "theholocron",
 			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
 		});
 
 		const result = await runSyncWiki({
 			loaded,
-			context: { repoRoot: tmpDir, dryRun: true },
-			token: "tok",
+			context: { repoRoot: tmpDir, dryRun: true, repo: "org/myrepo" },
 		});
 
 		expect(result.status).toBe("dry-run");
 	});
 
-	it("runs discovery, merges products, and returns ok", async () => {
+	it("merges wiki config and returns ok with changed message", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			org: "theholocron",
-			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo", fernOrg: "org" }] },
 		});
-
-		const fetch = makeOrgFetch([
-			{
-				name: "alpha",
-				full_name: "theholocron/alpha",
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/alpha" }] },
-				},
-			},
-			{
-				name: "beta",
-				full_name: "theholocron/beta",
-				configJson: {
-					description: "Beta tool",
-					providers: { wiki: ["fern", { domain: "wiki.example.com/beta" }] },
-				},
-			},
-		]);
 
 		const result = await runSyncWiki({
 			loaded,
-			context: { repoRoot: tmpDir },
-			token: "tok",
-			fetch: fetch as typeof globalThis.fetch,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
 		});
 
 		expect(result.status).toBe("ok");
-		expect(result.message).toContain("2 products");
+		expect(result.message).toContain("added missing wiki header fields");
 
-		const docsContent = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
-		expect(docsContent).toContain("display-name: Alpha");
-		expect(docsContent).toContain("display-name: Beta");
-		expect(docsContent).toContain("subtitle: Beta tool");
+		const docs = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
+		expect(docs).toContain("edit-this-page:");
+		expect(docs).toContain("        owner: org");
+		expect(docs).toContain("        repo: myrepo");
+		expect(docs).toContain("navbar-links:");
+		expect(docs).toContain("https://github.com/org/myrepo");
 	});
 
-	it("skips when discovery finds no wiki-enabled repos", async () => {
+	it("returns ok with up-to-date message when nothing to change", async () => {
+		// Pre-populate with all required fields
+		await writeFile(
+			join(tmpDir, "fern", "docs.yml"),
+			[
+				`instances:`,
+				`  - url: org.docs.buildwithfern.com/myrepo`,
+				`    multi-source: true`,
+				`    edit-this-page:`,
+				`      github:`,
+				`        owner: org`,
+				`        repo: myrepo`,
+				`        branch: main`,
+				``,
+				`title: myrepo Engineering`,
+				``,
+				`navbar-links:`,
+				`  - type: github`,
+				`    value: https://github.com/org/myrepo`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#000000"`,
+			].join("\n"),
+			"utf8"
+		);
+
 		const loaded = loadedFrom({
 			name: "demo",
-			org: "theholocron",
-			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo", fernOrg: "org" }] },
 		});
-
-		const fetch = makeOrgFetch([
-			{
-				name: "no-wiki",
-				full_name: "theholocron/no-wiki",
-				configJson: { providers: { source: "github" } },
-			},
-		]);
 
 		const result = await runSyncWiki({
 			loaded,
-			context: { repoRoot: tmpDir },
-			token: "tok",
-			fetch: fetch as typeof globalThis.fetch,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
 		});
 
-		expect(result.status).toBe("skip");
-		expect(result.message).toContain("no wiki-enabled repos found");
+		expect(result.status).toBe("ok");
+		expect(result.message).toContain("up to date");
 	});
 
-	it("returns fail when mergeProducts throws", async () => {
+	it("uses context.repo over config.repo.name", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			org: "theholocron",
 			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
 		});
 
-		// Remove the docs.yml so mergeProducts throws
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "ctx-owner/ctx-repo" },
+		});
+
+		expect(result.status).toBe("ok");
+		const docs = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
+		expect(docs).toContain("owner: ctx-owner");
+		expect(docs).toContain("repo: ctx-repo");
+	});
+
+	it("returns fail when fern/docs.yml does not exist", async () => {
 		await rm(join(tmpDir, "fern"), { recursive: true });
 
-		const fetch = makeOrgFetch([
-			{
-				name: "alpha",
-				full_name: "theholocron/alpha",
-				configJson: {
-					providers: { wiki: ["fern", { domain: "wiki.example.com/alpha" }] },
-				},
-			},
-		]);
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo", fernOrg: "org" }] },
+		});
 
 		const result = await runSyncWiki({
 			loaded,
-			context: { repoRoot: tmpDir },
-			token: "tok",
-			fetch: fetch as typeof globalThis.fetch,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
 		});
 
 		expect(result.status).toBe("fail");
 		expect(result.message).toContain("fern/docs.yml not found");
-	});
-
-	it("uses cliToken from context when no explicit token is given", async () => {
-		const loaded = loadedFrom({
-			name: "demo",
-			org: "theholocron",
-			providers: { wiki: ["fern", { domain: "wiki.example.com", fernOrg: "org" }] },
-		});
-
-		const origReadToken = process.env.HOLOCRON_READ_TOKEN;
-		const origGhToken = process.env.GH_TOKEN;
-		const origGithubToken = process.env.GITHUB_TOKEN;
-		delete process.env.HOLOCRON_READ_TOKEN;
-		delete process.env.GH_TOKEN;
-		delete process.env.GITHUB_TOKEN;
-
-		try {
-			const fetch = makeOrgFetch([
-				{
-					name: "alpha",
-					full_name: "theholocron/alpha",
-					configJson: {
-						providers: { wiki: ["fern", { domain: "wiki.example.com/alpha" }] },
-					},
-				},
-			]);
-
-			const result = await runSyncWiki({
-				loaded,
-				context: { repoRoot: tmpDir, cliToken: "ctx-token" },
-				fetch: fetch as typeof globalThis.fetch,
-			});
-
-			expect(result.status).toBe("ok");
-		} finally {
-			if (origReadToken !== undefined) process.env.HOLOCRON_READ_TOKEN = origReadToken;
-			if (origGhToken !== undefined) process.env.GH_TOKEN = origGhToken;
-			if (origGithubToken !== undefined) process.env.GITHUB_TOKEN = origGithubToken;
-		}
 	});
 });

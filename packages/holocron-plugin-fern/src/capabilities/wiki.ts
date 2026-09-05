@@ -153,6 +153,8 @@ async function writeFernDocsYml({
 		instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com`;
 	}
 
+	const repoOwner = repo?.split("/")[0];
+
 	// If docs.yml already exists, update the instances: block in-place and
 	// leave everything else (navigation, colors, layout) untouched.
 	let existing: string | null = null;
@@ -163,7 +165,7 @@ async function writeFernDocsYml({
 	}
 
 	if (existing !== null) {
-		const updated = updateInstancesBlock(existing, instanceUrl, customDomain, multiSource);
+		const updated = updateInstancesBlock(existing, instanceUrl, customDomain, multiSource, repoOwner, repoName);
 		if (updated !== existing) {
 			await writeFile(docsPath, updated, "utf8");
 			const domainPart = customDomain ? `, domain=${customDomain}${multiSource ? " (multi-source)" : ""}` : "";
@@ -242,15 +244,17 @@ async function writeFernDocsYml({
  * Replace the `instances:` block in an existing docs.yml, preserving
  * everything else (navigation, colors, layout, title, etc.).
  *
- * Uses a regex to match the block (the `instances:` key and all following
- * indented / list lines) and replaces it in-place. Returns the original
- * string unchanged when the block already matches.
+ * Includes `edit-this-page:` nested under the instance when owner and
+ * repoName are provided. Returns the original string unchanged when the
+ * block already matches.
  */
 function updateInstancesBlock(
 	content: string,
 	instanceUrl: string,
 	customDomain: string | undefined,
-	multiSource: boolean
+	multiSource: boolean,
+	repoOwner?: string,
+	repoName?: string
 ): string {
 	// Match `instances:` plus all lines that are indented or are list items.
 	const blockRe = /^instances:(?:\n[ \t][^\n]*)*/m;
@@ -260,6 +264,15 @@ function updateInstancesBlock(
 	const newLines = [`instances:`, `  - url: ${instanceUrl}`];
 	if (customDomain) newLines.push(`    custom-domain: ${customDomain}`);
 	if (multiSource) newLines.push(`    multi-source: true`);
+	if (repoOwner && repoName) {
+		newLines.push(
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: ${repoOwner}`,
+			`        repo: ${repoName}`,
+			`        branch: main`
+		);
+	}
 	const newBlock = newLines.join("\n");
 
 	if (match[0] === newBlock) return content;
