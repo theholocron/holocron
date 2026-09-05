@@ -118,10 +118,41 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 		expect(updated).toContain("url: myorg.docs.buildwithfern.com/myrepo");
 		expect(updated).toContain("custom-domain: wiki.example.com/myrepo");
 		expect(updated).toContain("multi-source: true");
+		expect(updated).toContain("edit-this-page:");
+		expect(updated).toContain("        owner: owner");
+		expect(updated).toContain("        repo: myrepo");
 		// Navigation preserved
 		expect(updated).toContain("ADR-0001");
 		expect(updated).toContain("title: Myorg Engineering");
 		expect(result).toContain("updated instances");
+	});
+
+	it("adds edit-this-page to instances block on re-run when repo is provided", async () => {
+		const fernDir = join(repoRoot, "fern");
+		await mkdir(fernDir, { recursive: true });
+		// Existing file missing edit-this-page (pre-fix state)
+		const existing = [
+			`instances:`,
+			`  - url: myorg.docs.buildwithfern.com/myrepo`,
+			`    custom-domain: wiki.example.com/myrepo`,
+			`    multi-source: true`,
+			``,
+			`title: Myorg Engineering`,
+		].join("\n");
+		await writeFile(join(fernDir, "docs.yml"), existing, "utf8");
+
+		const wiki = new FernWiki({ repoRoot, org: "myorg", repo: "owner/myrepo", domain: "wiki.example.com" });
+		await wiki.provision();
+
+		const updated = await readFile(join(fernDir, "docs.yml"), "utf8");
+		expect(updated).toContain("edit-this-page:");
+		expect(updated).toContain("        owner: owner");
+		expect(updated).toContain("        repo: myrepo");
+		expect(updated).toContain("        branch: main");
+		// edit-this-page is nested under the instance
+		const multiSourceIdx = updated.indexOf("    multi-source: true");
+		const editIdx = updated.indexOf("    edit-this-page:");
+		expect(editIdx).toBeGreaterThan(multiSourceIdx);
 	});
 
 	it("preserves blank separator between instances and the next key when updating", async () => {
@@ -142,8 +173,8 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 		const updated = await readFile(join(fernDir, "docs.yml"), "utf8");
 		expect(updated).toContain("multi-source: true");
 		expect(updated).toContain("title: Myorg Engineering");
-		// Blank line separator preserved
-		expect(updated).toMatch(/multi-source: true\n+title:/);
+		// Blank line separator preserved after the full instances block
+		expect(updated).toMatch(/branch: main\n+title:/);
 	});
 
 	it("includes domain without multi-source in summary when no repo is set", async () => {
@@ -191,11 +222,17 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 	it("reports up to date when instances block already matches", async () => {
 		const fernDir = join(repoRoot, "fern");
 		await mkdir(fernDir, { recursive: true });
+		// Must include edit-this-page: for the block to be considered up to date
 		const existing = [
 			`instances:`,
 			`  - url: myorg.docs.buildwithfern.com/myrepo`,
 			`    custom-domain: wiki.example.com/myrepo`,
 			`    multi-source: true`,
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: owner`,
+			`        repo: myrepo`,
+			`        branch: main`,
 			``,
 			`title: Myorg Engineering`,
 			``,

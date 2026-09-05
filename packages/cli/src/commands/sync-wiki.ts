@@ -7,11 +7,15 @@ import type { LoadedConfig } from "../config/load-config.js";
 import type { RuntimeContext } from "../plugin/loader.js";
 import type { SetupStepResult } from "./setup/index.js";
 
-export interface WikiProduct {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface WikiRepo {
 	displayName: string;
 	basepath: string;
-	subtitle?: string;
-	icon?: string;
+	/** Full custom domain with basepath, e.g. "wiki.theholocron.dev/skills". */
+	domain?: string;
 }
 
 export interface RunSyncWikiInput {
@@ -20,6 +24,10 @@ export interface RunSyncWikiInput {
 	token?: string;
 	fetch?: typeof globalThis.fetch;
 }
+
+// ---------------------------------------------------------------------------
+// Token resolution
+// ---------------------------------------------------------------------------
 
 function resolveToken(input: RunSyncWikiInput): string | undefined {
 	return (
@@ -31,6 +39,10 @@ function resolveToken(input: RunSyncWikiInput): string | undefined {
 	);
 }
 
+// ---------------------------------------------------------------------------
+// Config parsing helpers
+// ---------------------------------------------------------------------------
+
 function deriveBasepath(domain: string | undefined, repoName: string): string {
 	if (domain) {
 		const slashIdx = domain.indexOf("/");
@@ -39,71 +51,11 @@ function deriveBasepath(domain: string | undefined, repoName: string): string {
 	return repoName;
 }
 
-function titleCase(s: string): string {
-	return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function extractFromJson(raw: string, repoName: string): WikiProduct | null {
-	let config: Record<string, unknown>;
-	try {
-		config = JSON.parse(raw) as Record<string, unknown>;
-	} catch {
-		return null;
-	}
-	const providers = config.providers as Record<string, unknown> | undefined;
-	if (!providers?.wiki) return null;
-
-	const wikiEntry = providers.wiki;
-	let domain: string | undefined;
-	let subtitle: string | undefined;
-	let icon: string | undefined;
-
-	if (Array.isArray(wikiEntry) && wikiEntry.length === 2) {
-		const opts = wikiEntry[1] as Record<string, unknown>;
-		domain = typeof opts.domain === "string" ? opts.domain : undefined;
-		subtitle = typeof opts.subtitle === "string" ? opts.subtitle : undefined;
-		icon = typeof opts.icon === "string" ? opts.icon : undefined;
-	}
-
-	if (!subtitle && typeof config.description === "string") {
-		subtitle = config.description;
-	}
-
-	const basepath = deriveBasepath(domain, repoName);
-	return {
-		displayName: titleCase(basepath),
-		basepath,
-		...(subtitle ? { subtitle } : {}),
-		...(icon ? { icon } : {}),
-	};
-}
-
-function extractFromTs(raw: string, repoName: string): WikiProduct | null {
-	const hasWikiProvider = /providers\s*:\s*\{[^}]*\bwiki\b/s.test(raw);
-	const hasWikiPreset = /\bwikiCapability\b|\bwiki\s*\(\s*\)/.test(raw);
-	if (!hasWikiProvider && !hasWikiPreset) return null;
-
-	const domainMatch = raw.match(/\bdomain\s*:\s*["']([^"']+)["']/);
-	const domain = domainMatch?.[1];
-
-	const subtitleMatch = raw.match(/\bsubtitle\s*:\s*["']([^"']+)["']/);
-	let subtitle = subtitleMatch?.[1];
-
-	const iconMatch = raw.match(/\bicon\s*:\s*["']([^"']+)["']/);
-	const icon = iconMatch?.[1];
-
-	if (!subtitle) {
-		const descMatch = raw.match(/\bdescription\s*:\s*["']([^"']+)["']/);
-		subtitle = descMatch?.[1];
-	}
-
-	const basepath = deriveBasepath(domain, repoName);
-	return {
-		displayName: titleCase(basepath),
-		basepath,
-		...(subtitle ? { subtitle } : {}),
-		...(icon ? { icon } : {}),
-	};
+function toNavLabel(basepath: string): string {
+	return basepath
+		.split("-")
+		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+		.join(" ");
 }
 
 interface OrgRepo {
@@ -117,11 +69,50 @@ interface FileContents {
 	encoding: string;
 }
 
-export async function discoverWikiProducts(
+function extractFromJson(raw: string, repoName: string): WikiRepo | null {
+	let config: Record<string, unknown>;
+	try {
+		config = JSON.parse(raw) as Record<string, unknown>;
+	} catch {
+		return null;
+	}
+	const providers = config.providers as Record<string, unknown> | undefined;
+	if (!providers?.wiki) return null;
+
+	const wikiEntry = providers.wiki;
+	let domain: string | undefined;
+
+	if (Array.isArray(wikiEntry) && wikiEntry.length === 2) {
+		const opts = wikiEntry[1] as Record<string, unknown>;
+		domain = typeof opts.domain === "string" ? opts.domain : undefined;
+	}
+
+	const basepath = deriveBasepath(domain, repoName);
+	return { displayName: toNavLabel(basepath), basepath, ...(domain ? { domain } : {}) };
+}
+
+function extractFromTs(raw: string, repoName: string): WikiRepo | null {
+	const hasWikiProvider = /providers\s*:\s*\{[^}]*\bwiki\b/s.test(raw);
+	const hasWikiPreset = /\bwikiCapability\b|\bwiki\s*\(\s*\)/.test(raw);
+	/* c8 ignore next */
+	if (!hasWikiProvider && !hasWikiPreset) return null;
+
+	const domainMatch = raw.match(/\bdomain\s*:\s*["']([^"']+)["']/);
+	const domain = domainMatch?.[1];
+
+	const basepath = deriveBasepath(domain, repoName);
+	return { displayName: toNavLabel(basepath), basepath, ...(domain ? { domain } : {}) };
+}
+
+// ---------------------------------------------------------------------------
+// Discovery
+// ---------------------------------------------------------------------------
+
+export async function discoverWikiRepos(
 	org: string,
 	token: string,
 	fetchFn?: typeof globalThis.fetch
-): Promise<WikiProduct[]> {
+): Promise<WikiRepo[]> {
 	const rest = createRestClient({
 		baseUrl: "https://api.github.com",
 		token,
@@ -144,54 +135,83 @@ export async function discoverWikiProducts(
 		page++;
 	}
 
-	const products: WikiProduct[] = [];
+	const repos: WikiRepo[] = [];
 
 	for (const repo of allRepos.filter((r) => !r.archived)) {
-		let product: WikiProduct | null = null;
+		let found: WikiRepo | null = null;
 
 		try {
 			const contents = await rest.request<FileContents>(`/repos/${repo.full_name}/contents/holocron.config.json`);
 			if (contents.encoding === "base64") {
 				const raw = Buffer.from(contents.content.replace(/\s/g, ""), "base64").toString("utf8");
-				product = extractFromJson(raw, repo.name);
+				found = extractFromJson(raw, repo.name);
 			}
 		} catch {
 			// no JSON config — try TS
 		}
 
-		if (!product) {
+		if (!found) {
 			try {
 				const contents = await rest.request<FileContents>(
 					`/repos/${repo.full_name}/contents/holocron.config.ts`
 				);
 				if (contents.encoding === "base64") {
 					const raw = Buffer.from(contents.content.replace(/\s/g, ""), "base64").toString("utf8");
-					product = extractFromTs(raw, repo.name);
+					found = extractFromTs(raw, repo.name);
 				}
 			} catch {
 				// no config found — skip
 			}
 		}
 
-		if (product) products.push(product);
+		if (found) repos.push(found);
 	}
 
-	products.sort((a, b) => a.basepath.localeCompare(b.basepath));
-	return products;
+	repos.sort((a, b) => a.basepath.localeCompare(b.basepath));
+	return repos;
 }
 
-function buildProductsBlock(products: WikiProduct[]): string {
-	const lines = ["products:"];
-	for (const p of products) {
-		lines.push(`  - display-name: ${p.displayName}`);
-		if (p.subtitle) lines.push(`    subtitle: ${p.subtitle}`);
-		if (p.icon) lines.push(`    icon: ${p.icon}`);
-		lines.push(`    href: /${p.basepath}`);
+// ---------------------------------------------------------------------------
+// navbar-links block builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds the complete navbar-links YAML block for a given repo.
+ *
+ * Includes:
+ *  - A GitHub button linking to the repo itself (always first)
+ *  - Minimal nav links to every other wiki-enabled repo (excluding self)
+ *
+ * The block is replaced wholesale on each sync so removed wikis disappear
+ * and new ones appear automatically.
+ */
+export function buildNavbarLinks(repos: WikiRepo[], currentBasepath: string, repoFullName: string): string {
+	const lines = [`navbar-links:`, `  - type: github`, `    value: https://github.com/${repoFullName}`];
+
+	for (const repo of repos) {
+		if (repo.basepath === currentBasepath) continue; // skip self
+		const url = repo.domain ? `https://${repo.domain}` : `https://wiki.theholocron.dev/${repo.basepath}`;
+		lines.push(`  - type: minimal`, `    value: ${url}`, `    label: ${repo.displayName}`);
 	}
+
 	return lines.join("\n");
 }
 
-export async function mergeProducts(docsYmlPath: string, products: WikiProduct[]): Promise<void> {
+// ---------------------------------------------------------------------------
+// fern/docs.yml updater
+// ---------------------------------------------------------------------------
+
+/**
+ * Idempotently ensures `edit-this-page:` (inside instances) is present and
+ * replaces `navbar-links:` with the provided shared block.
+ *
+ * Returns true when the file was modified.
+ * Throws when fern/docs.yml does not exist.
+ */
+export async function mergeWikiConfig(
+	docsYmlPath: string,
+	config: { owner: string; repoName: string; navbarBlock: string }
+): Promise<boolean> {
 	let content: string;
 	try {
 		content = await readFile(docsYmlPath, "utf8");
@@ -199,49 +219,95 @@ export async function mergeProducts(docsYmlPath: string, products: WikiProduct[]
 		throw new Error(`fern/docs.yml not found at ${docsYmlPath}`);
 	}
 
-	const newBlock = buildProductsBlock(products);
-	const productBlockRe = /^products:(?:\n[ \t][^\n]*)*/m;
+	let updated = content;
 
-	if (productBlockRe.test(content)) {
-		const updated = content.replace(productBlockRe, newBlock);
-		if (updated !== content) await writeFile(docsYmlPath, updated, "utf8");
-		return;
+	// 1. Ensure edit-this-page: is nested inside the instances block entry.
+	if (!updated.includes("edit-this-page:")) {
+		const editBlock = [
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: ${config.owner}`,
+			`        repo: ${config.repoName}`,
+			`        branch: main`,
+		].join("\n");
+
+		if (/^ {4}multi-source: true$/m.test(updated)) {
+			updated = updated.replace(/^( {4}multi-source: true)$/m, `$1\n${editBlock}`);
+		} else if (/^ {4}custom-domain: .+$/m.test(updated)) {
+			updated = updated.replace(/^( {4}custom-domain: .+)$/m, `$1\n${editBlock}`);
+		} else {
+			// Fallback: insert after the "  - url:" list item line
+			updated = updated.replace(/^( {2}- url: .+)$/m, `$1\n${editBlock}`);
+		}
 	}
 
-	// Insert before instances: if present
-	const instancesIdx = content.indexOf("\ninstances:");
-	if (instancesIdx !== -1) {
-		const updated = content.slice(0, instancesIdx + 1) + newBlock + "\n\n" + content.slice(instancesIdx + 1);
+	// 2. Replace navbar-links: wholesale so removed/added wikis stay in sync.
+	const navbarRe = /^navbar-links:(?:\n[ \t][^\n]*)*/m;
+	if (navbarRe.test(updated)) {
+		updated = updated.replace(navbarRe, config.navbarBlock);
+	} else if (/^colors:/m.test(updated)) {
+		updated = updated.replace(/^(colors:)/m, `${config.navbarBlock}\n\n$1`);
+	} else {
+		updated = updated.trimEnd() + "\n\n" + config.navbarBlock + "\n";
+	}
+
+	if (updated !== content) {
 		await writeFile(docsYmlPath, updated, "utf8");
-		return;
+		return true;
+	}
+	return false;
+}
+
+// ---------------------------------------------------------------------------
+// Validate
+// ---------------------------------------------------------------------------
+
+/**
+ * Checks that fern/docs.yml has the required wiki header fields.
+ * Returns a list of missing field names; empty means valid.
+ */
+export async function validateWikiConfig(docsYmlPath: string): Promise<string[]> {
+	let content: string;
+	try {
+		content = await readFile(docsYmlPath, "utf8");
+	} catch {
+		return ["fern/docs.yml not found"];
 	}
 
-	// Fallback: append at end
-	await writeFile(docsYmlPath, content.trimEnd() + "\n\n" + newBlock + "\n", "utf8");
+	const missing: string[] = [];
+	if (!content.includes("edit-this-page:")) missing.push("edit-this-page");
+	if (!content.includes("navbar-links:")) missing.push("navbar-links");
+	return missing;
 }
+
+// ---------------------------------------------------------------------------
+// runSyncWiki
+// ---------------------------------------------------------------------------
 
 export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepResult> {
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
 
 	if (!config.providers.wiki) {
+		return { capability: "local", step: "sync wiki", status: "skip", message: "no wiki provider configured" };
+	}
+
+	const rawRepo = input.context.repo ?? config.repo?.name;
+	if (!rawRepo) {
+		return { capability: "local", step: "sync wiki", status: "skip", message: "no repo configured" };
+	}
+
+	const [owner, repoName] = rawRepo.split("/") as [string, string | undefined];
+	if (!owner || !repoName) {
 		return {
 			capability: "local",
 			step: "sync wiki",
 			status: "skip",
-			message: "no wiki provider configured",
+			message: "repo must be owner/name format",
 		};
 	}
 
-	const org = config.org ?? input.context.repo?.split("/")[0];
-	if (!org) {
-		return {
-			capability: "local",
-			step: "sync wiki",
-			status: "skip",
-			message: "no org configured",
-		};
-	}
+	const org = config.org ?? owner;
 
 	const token = resolveToken(input);
 	if (!token) {
@@ -260,28 +326,31 @@ export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepRes
 	const docsYmlPath = join(input.context.repoRoot, "fern", "docs.yml");
 
 	try {
-		const products = await discoverWikiProducts(org, token, input.fetch);
-		if (products.length === 0) {
-			return {
-				capability: "local",
-				step: "sync wiki",
-				status: "skip",
-				message: "no wiki-enabled repos found",
-			};
-		}
-		await mergeProducts(docsYmlPath, products);
+		const repos = await discoverWikiRepos(org, token, input.fetch);
+
+		// Derive the current repo's basepath from its own wiki config so we
+		// can exclude it from the nav links it renders for itself.
+		// config.providers.wiki is already resolved to { tuple: { options } } form.
+		const wikiOpts = (config.providers.wiki as unknown as { tuple?: { options?: Record<string, unknown> } })?.tuple
+			?.options;
+		const domain = typeof wikiOpts?.domain === "string" ? wikiOpts.domain : undefined;
+		const currentBasepath = deriveBasepath(domain, repoName);
+
+		const navbarBlock = buildNavbarLinks(repos, currentBasepath, rawRepo);
+
+		const changed = await mergeWikiConfig(docsYmlPath, { owner, repoName, navbarBlock });
 		return {
 			capability: "local",
 			step: "sync wiki",
 			status: "ok",
-			message: `${products.length} products`,
+			message: changed ? `updated (${repos.length} wiki repos discovered)` : "already up to date",
 		};
 	} catch (err) {
 		return {
 			capability: "local",
 			step: "sync wiki",
 			status: "fail",
-			message: err instanceof Error ? err.message : String(err),
+			message: err instanceof Error ? err.message : /* c8 ignore next */ String(err),
 		};
 	}
 }
