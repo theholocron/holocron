@@ -140,9 +140,7 @@ export async function discoverWikiRepos(
 		let found: WikiRepo | null = null;
 
 		try {
-			const contents = await rest.request<FileContents>(
-				`/repos/${repo.full_name}/contents/holocron.config.json`
-			);
+			const contents = await rest.request<FileContents>(`/repos/${repo.full_name}/contents/holocron.config.json`);
 			if (contents.encoding === "base64") {
 				const raw = Buffer.from(contents.content.replace(/\s/g, ""), "base64").toString("utf8");
 				found = extractFromJson(raw, repo.name);
@@ -187,11 +185,7 @@ export async function discoverWikiRepos(
  * and new ones appear automatically.
  */
 export function buildNavbarLinks(repos: WikiRepo[], currentBasepath: string, repoFullName: string): string {
-	const lines = [
-		`navbar-links:`,
-		`  - type: github`,
-		`    value: https://github.com/${repoFullName}`,
-	];
+	const lines = [`navbar-links:`, `  - type: github`, `    value: https://github.com/${repoFullName}`];
 
 	for (const repo of repos) {
 		if (repo.basepath === currentBasepath) continue; // skip self

@@ -6,13 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
-import {
-	buildNavbarLinks,
-	discoverWikiRepos,
-	mergeWikiConfig,
-	runSyncWiki,
-	validateWikiConfig,
-} from "./sync-wiki.js";
+import { buildNavbarLinks, discoverWikiRepos, mergeWikiConfig, runSyncWiki, validateWikiConfig } from "./sync-wiki.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -296,17 +290,19 @@ describe("mergeWikiConfig", () => {
 	}
 
 	it("adds edit-this-page and navbar-links to a minimal file", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			`    multi-source: true`,
-			``,
-			`title: skills Engineering`,
-			``,
-			`colors:`,
-			`  accent-primary:`,
-			`    dark: "#70E155"`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				`    multi-source: true`,
+				``,
+				`title: skills Engineering`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#70E155"`,
+			].join("\n")
+		);
 
 		const changed = await mergeWikiConfig(docsPath(), cfg);
 
@@ -320,29 +316,31 @@ describe("mergeWikiConfig", () => {
 	});
 
 	it("replaces an existing navbar-links block wholesale", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			`    multi-source: true`,
-			`    edit-this-page:`,
-			`      github:`,
-			`        owner: theholocron`,
-			`        repo: skills`,
-			`        branch: main`,
-			``,
-			`title: skills Engineering`,
-			``,
-			`navbar-links:`,
-			`  - type: github`,
-			`    value: https://github.com/theholocron/skills`,
-			`  - type: minimal`,
-			`    value: https://wiki.theholocron.dev/stale-repo`,
-			`    label: Stale Repo`,
-			``,
-			`colors:`,
-			`  accent-primary:`,
-			`    dark: "#70E155"`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				`    multi-source: true`,
+				`    edit-this-page:`,
+				`      github:`,
+				`        owner: theholocron`,
+				`        repo: skills`,
+				`        branch: main`,
+				``,
+				`title: skills Engineering`,
+				``,
+				`navbar-links:`,
+				`  - type: github`,
+				`    value: https://github.com/theholocron/skills`,
+				`  - type: minimal`,
+				`    value: https://wiki.theholocron.dev/stale-repo`,
+				`    label: Stale Repo`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#70E155"`,
+			].join("\n")
+		);
 
 		await mergeWikiConfig(docsPath(), cfg);
 
@@ -352,24 +350,26 @@ describe("mergeWikiConfig", () => {
 	});
 
 	it("is idempotent when content already matches", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			`    multi-source: true`,
-			`    edit-this-page:`,
-			`      github:`,
-			`        owner: theholocron`,
-			`        repo: skills`,
-			`        branch: main`,
-			``,
-			`title: skills Engineering`,
-			``,
-			cfg.navbarBlock,
-			``,
-			`colors:`,
-			`  accent-primary:`,
-			`    dark: "#70E155"`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				`    multi-source: true`,
+				`    edit-this-page:`,
+				`      github:`,
+				`        owner: theholocron`,
+				`        repo: skills`,
+				`        branch: main`,
+				``,
+				`title: skills Engineering`,
+				``,
+				cfg.navbarBlock,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#70E155"`,
+			].join("\n")
+		);
 
 		const before = await readFile(docsPath(), "utf8");
 		const changed = await mergeWikiConfig(docsPath(), cfg);
@@ -379,27 +379,29 @@ describe("mergeWikiConfig", () => {
 	});
 
 	it("preserves navigation and other content when modifying", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			`    multi-source: true`,
-			``,
-			`title: skills Engineering`,
-			``,
-			`tabs:`,
-			`  decisions:`,
-			`    display-name: Decisions`,
-			``,
-			`navigation:`,
-			`  - tab: decisions`,
-			`    layout:`,
-			`      - page: Index`,
-			`        path: ../docs/wiki/decisions/README.md`,
-			``,
-			`colors:`,
-			`  accent-primary:`,
-			`    dark: "#70E155"`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				`    multi-source: true`,
+				``,
+				`title: skills Engineering`,
+				``,
+				`tabs:`,
+				`  decisions:`,
+				`    display-name: Decisions`,
+				``,
+				`navigation:`,
+				`  - tab: decisions`,
+				`    layout:`,
+				`      - page: Index`,
+				`        path: ../docs/wiki/decisions/README.md`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#70E155"`,
+			].join("\n")
+		);
 
 		await mergeWikiConfig(docsPath(), cfg);
 
@@ -410,17 +412,19 @@ describe("mergeWikiConfig", () => {
 	});
 
 	it("adds edit-this-page after custom-domain when no multi-source line", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			`    custom-domain: wiki.theholocron.dev/skills`,
-			``,
-			`title: skills Engineering`,
-			``,
-			`colors:`,
-			`  accent-primary:`,
-			`    dark: "#70E155"`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				`    custom-domain: wiki.theholocron.dev/skills`,
+				``,
+				`title: skills Engineering`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#70E155"`,
+			].join("\n")
+		);
 
 		await mergeWikiConfig(docsPath(), cfg);
 
@@ -432,16 +436,18 @@ describe("mergeWikiConfig", () => {
 	});
 
 	it("adds edit-this-page after url when only url is present", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			``,
-			`title: skills Engineering`,
-			``,
-			`colors:`,
-			`  accent-primary:`,
-			`    dark: "#70E155"`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				``,
+				`title: skills Engineering`,
+				``,
+				`colors:`,
+				`  accent-primary:`,
+				`    dark: "#70E155"`,
+			].join("\n")
+		);
 
 		await mergeWikiConfig(docsPath(), cfg);
 
@@ -450,13 +456,15 @@ describe("mergeWikiConfig", () => {
 	});
 
 	it("appends navbar-links at end when no colors: key exists", async () => {
-		await write([
-			`instances:`,
-			`  - url: holocron.docs.buildwithfern.com/skills`,
-			`    multi-source: true`,
-			``,
-			`title: skills Engineering`,
-		].join("\n"));
+		await write(
+			[
+				`instances:`,
+				`  - url: holocron.docs.buildwithfern.com/skills`,
+				`    multi-source: true`,
+				``,
+				`title: skills Engineering`,
+			].join("\n")
+		);
 
 		await mergeWikiConfig(docsPath(), cfg);
 
@@ -493,19 +501,23 @@ describe("validateWikiConfig", () => {
 	const docsPath = () => join(tmpDir, "fern", "docs.yml");
 
 	it("returns empty array when both fields present", async () => {
-		await writeFile(docsPath(), [
-			`instances:`,
-			`  - url: org.docs.buildwithfern.com/r`,
-			`    edit-this-page:`,
-			`      github:`,
-			`        owner: org`,
-			`        repo: r`,
-			`        branch: main`,
-			``,
-			`navbar-links:`,
-			`  - type: github`,
-			`    value: https://github.com/org/r`,
-		].join("\n"), "utf8");
+		await writeFile(
+			docsPath(),
+			[
+				`instances:`,
+				`  - url: org.docs.buildwithfern.com/r`,
+				`    edit-this-page:`,
+				`      github:`,
+				`        owner: org`,
+				`        repo: r`,
+				`        branch: main`,
+				``,
+				`navbar-links:`,
+				`  - type: github`,
+				`    value: https://github.com/org/r`,
+			].join("\n"),
+			"utf8"
+		);
 
 		expect(await validateWikiConfig(docsPath())).toEqual([]);
 	});
