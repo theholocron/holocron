@@ -264,15 +264,9 @@ function updateInstancesBlock(
 	const newLines = [`instances:`, `  - url: ${instanceUrl}`];
 	if (customDomain) newLines.push(`    custom-domain: ${customDomain}`);
 	if (multiSource) newLines.push(`    multi-source: true`);
-	if (repoOwner && repoName) {
-		newLines.push(
-			`    edit-this-page:`,
-			`      github:`,
-			`        owner: ${repoOwner}`,
-			`        repo: ${repoName}`,
-			`        branch: main`
-		);
-	}
+	if (repoOwner && repoName)
+		// prettier-ignore
+		newLines.push(`    edit-this-page:`, `      github:`, `        owner: ${repoOwner}`, `        repo: ${repoName}`, `        branch: main`);
 	const newBlock = newLines.join("\n");
 
 	if (match[0] === newBlock) return content;
