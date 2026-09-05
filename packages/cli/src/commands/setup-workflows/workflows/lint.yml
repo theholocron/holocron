@@ -19,5 +19,3 @@ jobs:
     name: Lint
     uses: theholocron/.github/.github/workflows/lint.yml@main
     secrets: inherit
-    with:
-      enable-auto-commit: true

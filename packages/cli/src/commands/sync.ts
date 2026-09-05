@@ -345,9 +345,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				for (const entry of workflowEntries) {
 					const name = typeof entry === "string" ? entry : entry.name;
 					const rawWith = typeof entry === "object" ? entry.with : undefined;
-					const withOverrides = rawWith
-						? normalizeWorkflowWith(rawWith as Record<string, unknown>)
-						: undefined;
+					const normalized = rawWith ? normalizeWorkflowWith(rawWith as Record<string, unknown>) : undefined;
+					const withOverrides =
+						name === "lint" ? { "enable-auto-commit": true, ...(normalized ?? {}) } : normalized;
 					const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
 					const additionalPaths =
 						explicitPaths ??
