@@ -1,34 +1,29 @@
 import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
+import { nodeDocs } from "@theholocron/holocron-config";
+
+// nodeDocs() provides: org, domain, docs, strict repo protection, standard
+// Node.js workflows (lint, test, codeql, review, stale, greetings, dependencies,
+// bookkeeping, typecheck, deploy), and base providers (source, ci, issues,
+// deployment, dns, workers).
+const { repo, workflows, providers, org, domain, docs } = nodeDocs();
 
 export default defineConfig({
 	description:
 		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
 	homepage: "https://docs.theholocron.dev/holocron/",
-	org: "theholocron",
-	domain: "theholocron.dev",
-	docs: {
-		build: "workflow", // default (nodeDocs preset)
-		https: true, // default (nodeDocs preset)
-	},
+	org,
+	domain,
+	docs,
 	repo: {
-		protection: "strict", // default (node preset)
-		properties: {
-			lifecycle: "active", // default (node preset)
-			open_source: true, // default (node preset)
-			runtime_environment: "node", // default (node preset)
-			uses_external_packages: true, // default (node preset — monorepo workspaces)
-		},
+		...repo,
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		requiredChecks: [
-			"Lint / Conclusion", // from lint workflow (node preset)
-			"Test / Conclusion", // from test workflow (node preset)
-			"Typecheck / Conclusion", // from typecheck workflow (nodeDocs preset)
-			"codecov/patch", // from docs preset
-			"codecov/project", // from docs preset
-			"audit / Conclusion", // from nodeDocs preset
+			...repo.requiredChecks,
+			// tsdown build check — every workspace package must compile
 			"tsdown (every workspace)",
+			// per-package Codecov coverage gates
 			"codecov/patch/cli",
 			"codecov/patch/holocron-plugin-1password",
 			"codecov/patch/holocron-plugin-clerk",
@@ -47,51 +42,25 @@ export default defineConfig({
 		],
 	},
 	workflows: [
-		{ name: "lint", with: { "enable-auto-commit": true } }, // default: true (injected by CLI)
-		{ name: "test", with: { "run-unit": true } }, // default: true (reusable default)
-		"codeql",
-		"review",
-		{
-			name: "stale",
-			with: {
-				"days-before-stale": 30, // default (reusable default)
-				"days-before-close": 5, // default (reusable default)
-			},
-		},
-		"greetings",
-		"dependencies",
-		"bookkeeping",
-		"typecheck",
-		{
-			name: "deploy",
-			with: {
-				docs: true, // deploy type: docs (standard layout)
-				preview: true, // derive Cloudflare Pages project from org context
-			},
-		},
+		...workflows,
+		// Audit: enable Knip dead-code analysis on top of the standard bundle audit
 		{ name: "audit", with: { "run-knip": true } },
+		// Release: tag Sentry releases for the CLI package
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
+		// Sync: keep generated files (workflows, labels, etc.) current on push to main
 		"sync",
+		// Wiki: publish engineering docs to wiki.theholocron.dev/holocron
 		"wiki",
 	],
 	providers: {
-		source: "github", // default (node preset)
-		ci: "github", // default (node preset)
-		issues: [
-			"github",
-			{
-				labels: {
-					inProgress: "status:in-progress", // default (node preset)
-					inReview: "status:in-review", // default (node preset)
-				},
-			},
-		],
-		deployment: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }], // default (docs preset)
-		dns: "cloudflare", // default (docs preset)
-		workers: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }], // default (docs preset)
+		...providers,
+		// Vault: Doppler holds all project secrets (tokens, keys, credentials)
 		vault: ["doppler", { project: "holocron", config: "dev" }],
+		// Secrets: sync vault secrets to GitHub Actions secrets via holocron setup
 		secrets: "github",
+		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
+		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
 		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},
 	agent: "claude",

@@ -33,6 +33,7 @@
     "@theholocron/devmoji-config": "catalog:configs",
     "@theholocron/docs-theme": "catalog:configs",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/holocron-plugin-1password": "workspace:*",
     "@theholocron/holocron-plugin-clerk": "workspace:*",
     "@theholocron/holocron-plugin-cloudflare": "workspace:*",

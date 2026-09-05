@@ -55,6 +55,9 @@ catalogs:
     '@theholocron/eslint-config':
       specifier: ^7.32.1
       version: 7.32.1
+    '@theholocron/holocron-config':
+      specifier: ^7.32.1
+      version: 7.32.2
     '@theholocron/lint-staged-config':
       specifier: ^7.32.1
       version: 7.32.1
@@ -177,6 +180,9 @@ importers:
       '@theholocron/eslint-config':
         specifier: catalog:configs
         version: 7.32.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.11.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+      '@theholocron/holocron-config':
+        specifier: catalog:configs
+        version: 7.32.2(@theholocron/cli@packages+cli)
       '@theholocron/holocron-plugin-1password':
         specifier: workspace:*
         version: link:packages/holocron-plugin-1password
@@ -3272,6 +3278,12 @@ packages:
   '@theholocron/github-client@1.14.2':
     resolution: {integrity: sha512-8udmZZbNS6lbHm6cMgxgcqjaSfLOaX0huGxwr+sx4RooMBqpqyi98JXWYBbZlf/qGW7jT9QCiFY+VgDP/GGsRQ==}
     engines: {node: '>=22.0.0'}
+
+  '@theholocron/holocron-config@7.32.2':
+    resolution: {integrity: sha512-W1OeF6dEow7aS9l8gcl0viGnN8DVhdnXBI4oHHn5TfR9fh/k+Sq7L8RV7W90xFv+AjIUq4eWufLAVe3OILYqfg==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@theholocron/cli': '>=2.0.0-alpha.1'
 
   '@theholocron/http-client@1.14.2':
     resolution: {integrity: sha512-/E5X+ZQvBJPfvgZ/jpNPT7Z8i5yWbq9DlivrgYoJcPs2RtXmh5m9p5WQGHrR0EXIWV7jfjuuWfh82T7yrkohbg==}
@@ -9709,6 +9721,10 @@ snapshots:
       '@theholocron/http-client': 1.14.2(vitest@4.1.11)
     transitivePeerDependencies:
       - vitest
+
+  '@theholocron/holocron-config@7.32.2(@theholocron/cli@packages+cli)':
+    dependencies:
+      '@theholocron/cli': link:packages/cli
 
   '@theholocron/http-client@1.14.2(vitest@4.1.11)':
     optionalDependencies:
