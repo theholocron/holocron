@@ -1433,7 +1433,7 @@ describe("runSync", () => {
 			try {
 				const report = await runSync({
 					loaded,
-					context: { repoRoot: "/tmp/test" },
+					context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
 					loader,
 					steps: ["wiki"],
 					print: () => {},

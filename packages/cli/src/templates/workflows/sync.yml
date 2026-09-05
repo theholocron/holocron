@@ -6,8 +6,8 @@ on: # yamllint disable-line rule:truthy
       steps:
         description: >
           Sync steps to run (default: all). Valid values:
-          labels, properties, teams, topics, keywords, description, homepage, readme, workflows.
-          Pass a space-separated list to run a subset, e.g. "readme" or "readme description".
+          labels, properties, teams, topics, keywords, description, homepage, readme, workflows, wiki.
+          Pass a space-separated list to run a subset, e.g. "readme" or "readme wiki".
         type: string
         required: false
     secrets:
@@ -89,5 +89,16 @@ jobs:
             --base main \
             --head chore/auto-sync \
           || echo "PR already open — branch updated."
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - name: Propagate wiki nav to all repos
+        if: >-
+          steps.auto-commit.outputs.changes-detected == 'true' &&
+          (inputs.steps == '' || contains(inputs.steps, 'wiki'))
+        run: |
+          gh workflow run sync-dispatch.yml \
+            --repo theholocron/.github \
+            --field "steps=wiki"
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
