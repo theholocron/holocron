@@ -50,7 +50,6 @@ catalogs:
     '@theholocron/devmoji-config': ^7.32.1
     '@theholocron/docs-theme': ^1.9.3
     '@theholocron/eslint-config': ^7.32.1
-    '@theholocron/holocron-config': ^7.32.1
     '@theholocron/lint-staged-config': ^7.32.1
     '@theholocron/prettier-config': ^7.32.1
     '@theholocron/semantic-release-config': ^7.32.1
