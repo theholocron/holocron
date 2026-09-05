@@ -236,13 +236,13 @@ export async function mergeWikiConfig(
 			`        branch: main`,
 		].join("\n");
 
-		if (/^    multi-source: true$/m.test(updated)) {
-			updated = updated.replace(/^(    multi-source: true)$/m, `$1\n${editBlock}`);
-		} else if (/^    custom-domain: .+$/m.test(updated)) {
-			updated = updated.replace(/^(    custom-domain: .+)$/m, `$1\n${editBlock}`);
+		if (/^ {4}multi-source: true$/m.test(updated)) {
+			updated = updated.replace(/^( {4}multi-source: true)$/m, `$1\n${editBlock}`);
+		} else if (/^ {4}custom-domain: .+$/m.test(updated)) {
+			updated = updated.replace(/^( {4}custom-domain: .+)$/m, `$1\n${editBlock}`);
 		} else {
 			// Fallback: insert after the "  - url:" list item line
-			updated = updated.replace(/^(  - url: .+)$/m, `$1\n${editBlock}`);
+			updated = updated.replace(/^( {2}- url: .+)$/m, `$1\n${editBlock}`);
 		}
 	}
 
