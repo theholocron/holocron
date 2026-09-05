@@ -68,4 +68,13 @@ export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
 		null,
 		2
 	),
+	security: JSON.stringify(
+		{
+			name: "Security",
+			description: "Analyze code for security vulnerabilities using GitHub CodeQL.",
+			iconName: "octicon shield",
+		},
+		null,
+		2
+	),
 };
