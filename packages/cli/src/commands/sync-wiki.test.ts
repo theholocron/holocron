@@ -165,6 +165,50 @@ describe("discoverWikiRepos", () => {
 		const repos = await discoverWikiRepos("org", "token", fetch as typeof globalThis.fetch);
 		expect(repos[0]?.displayName).toBe("Cli Template");
 	});
+
+	it("skips repo when config JSON is invalid", async () => {
+		const fetch = makeOrgFetch([{ name: "bad", full_name: "org/bad" }]);
+		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+			if (url.toString().includes("/contents/holocron.config.json")) {
+				const content = Buffer.from("not valid json {{{").toString("base64");
+				return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
+			}
+			return (fetch as typeof globalThis.fetch)(url, init);
+		};
+
+		const repos = await discoverWikiRepos("org", "token", wrappedFetch as typeof globalThis.fetch);
+		expect(repos).toHaveLength(0);
+	});
+
+	it("paginates when first page returns exactly 100 repos", async () => {
+		const page1 = Array.from({ length: 100 }, (_, i) => ({
+			name: `repo-${i}`,
+			full_name: `org/repo-${i}`,
+			archived: false,
+		}));
+		const wikiRepo = { name: "wiki-repo", full_name: "org/wiki-repo", archived: false };
+
+		const paginatedFetch = async (url: string | URL | Request): Promise<Response> => {
+			const urlStr = url.toString();
+			if (urlStr.includes("/orgs/") && urlStr.includes("/repos")) {
+				const page = new URL(urlStr).searchParams.get("page") ?? "1";
+				if (page === "1") return new Response(JSON.stringify(page1), { status: 200 });
+				if (page === "2") return new Response(JSON.stringify([wikiRepo]), { status: 200 });
+				return new Response(JSON.stringify([]), { status: 200 });
+			}
+			if (urlStr.includes("/repos/org/wiki-repo/contents/holocron.config.json")) {
+				const content = Buffer.from(
+					JSON.stringify({ providers: { wiki: ["fern", { domain: "wiki.example.com/wiki-repo" }] } })
+				).toString("base64");
+				return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
+			}
+			return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+		};
+
+		const repos = await discoverWikiRepos("org", "token", paginatedFetch as typeof globalThis.fetch);
+		expect(repos).toHaveLength(1);
+		expect(repos[0]?.basepath).toBe("wiki-repo");
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -365,6 +409,64 @@ describe("mergeWikiConfig", () => {
 		expect(result).toContain("title: skills Engineering");
 	});
 
+	it("adds edit-this-page after custom-domain when no multi-source line", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    custom-domain: wiki.theholocron.dev/skills`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
+
+		await mergeWikiConfig(docsPath(), cfg);
+
+		const result = await readFile(docsPath(), "utf8");
+		expect(result).toContain("edit-this-page:");
+		const cdIdx = result.indexOf("    custom-domain:");
+		const etpIdx = result.indexOf("    edit-this-page:");
+		expect(etpIdx).toBeGreaterThan(cdIdx);
+	});
+
+	it("adds edit-this-page after url when only url is present", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			``,
+			`title: skills Engineering`,
+			``,
+			`colors:`,
+			`  accent-primary:`,
+			`    dark: "#70E155"`,
+		].join("\n"));
+
+		await mergeWikiConfig(docsPath(), cfg);
+
+		const result = await readFile(docsPath(), "utf8");
+		expect(result).toContain("edit-this-page:");
+	});
+
+	it("appends navbar-links at end when no colors: key exists", async () => {
+		await write([
+			`instances:`,
+			`  - url: holocron.docs.buildwithfern.com/skills`,
+			`    multi-source: true`,
+			``,
+			`title: skills Engineering`,
+		].join("\n"));
+
+		await mergeWikiConfig(docsPath(), cfg);
+
+		const result = await readFile(docsPath(), "utf8");
+		expect(result).toContain("navbar-links:");
+		expect(result).toContain("https://github.com/theholocron/skills");
+		// Should appear at the end since there's no colors: anchor
+		expect(result.trimEnd()).toMatch(/navbar-links:[^\n]*/);
+	});
+
 	it("throws when fern/docs.yml does not exist", async () => {
 		await expect(mergeWikiConfig(join(tmpDir, "fern", "missing.yml"), cfg)).rejects.toThrow(
 			"fern/docs.yml not found"
@@ -492,6 +594,20 @@ describe("runSyncWiki", () => {
 			if (origGh !== undefined) process.env.GH_TOKEN = origGh;
 			if (origGithub !== undefined) process.env.GITHUB_TOKEN = origGithub;
 		}
+	});
+
+	it("skips when repo is not in owner/name format", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+		});
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "noslash" },
+			token: "tok",
+		});
+		expect(result.status).toBe("skip");
+		expect(result.message).toContain("owner/name");
 	});
 
 	it("returns dry-run when dryRun is true", async () => {
