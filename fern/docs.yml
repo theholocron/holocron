@@ -4,8 +4,71 @@ instances:
   - url: holocron.docs.buildwithfern.com/holocron
     custom-domain: wiki.theholocron.dev/holocron
     multi-source: true
+    edit-this-page:
+      github:
+        owner: theholocron
+        repo: holocron
+        branch: main
 
 title: Holocron Engineering
+
+products:
+  - display-name: Internal
+    subtitle: Member-only documentation for maintaining the org's infrastructure, CI pipelines, and tooling.
+    icon: fa-duotone fa-lock
+    href: /internal
+  - display-name: CLI Template
+    subtitle: A modern CLI template with pre-configured tools, best practices, and CI/CD setup for rapid project development.
+    icon: fa-duotone fa-copy
+    href: /cli-template
+  - display-name: Clients
+    subtitle: API clients and shared HTTP primitives.
+    icon: fa-duotone fa-plug
+    href: /clients
+  - display-name: Configs
+    subtitle: Shared configuration files.
+    icon: fa-duotone fa-sliders
+    href: /configs
+  - display-name: Holocron
+    subtitle: A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.
+    icon: fa-duotone fa-gear
+    href: /holocron
+  - display-name: Monorepo Next.js Template
+    subtitle: A modern Next.js + React component library template for monorepos with pre-configured tools, best practices, and CI/CD setup for rapid application development.
+    icon: fa-duotone fa-copy
+    href: /monorepo-nextjs-template
+  - display-name: Monorepo React Template
+    subtitle: A modern React component library template for monorepos with pre-configured tools, best practices, and CI/CD setup for rapid project development.
+    icon: fa-duotone fa-copy
+    href: /monorepo-react-template
+  - display-name: Monorepo Template
+    subtitle: A modern NodeJS template for monorepos with pre-configured tools, best practices, and CI/CD setup for rapid project development.
+    icon: fa-duotone fa-copy
+    href: /monorepo-template
+  - display-name: Next.js Template
+    subtitle: A modern NextJS template with pre-configured tools, best practices, and CI/CD setup for rapid application development.
+    icon: fa-duotone fa-copy
+    href: /nextjs-template
+  - display-name: Node Template
+    subtitle: A modern NodeJS template with pre-configured tools, best practices, and CI/CD setup for rapid project development.
+    icon: fa-duotone fa-copy
+    href: /node-template
+  - display-name: React Template
+    subtitle: A modern React template with pre-configured tools, best practices, and CI/CD setup for rapid project development.
+    icon: fa-duotone fa-copy
+    href: /react-template
+  - display-name: Skills
+    subtitle: Shared agent skill registry.
+    icon: fa-duotone fa-bolt
+    href: /skills
+  - display-name: Themes
+    subtitle: Themes and design tokens.
+    icon: fa-duotone fa-palette
+    href: /themes
+  - display-name: Utils
+    subtitle: Lightweight TypeScript utility packages for arrays, strings, dates, environment detection, and more.
+    icon: fa-duotone fa-toolbox
+    href: /utils
 
 layout:
   page-width: full
@@ -52,6 +115,10 @@ navigation:
         contents:
           - page: Overview
             path: ../docs/wiki/specifications/README.md
+
+navbar-links:
+  - type: github
+    value: https://github.com/theholocron/holocron
 
 colors:
   accent-primary:
