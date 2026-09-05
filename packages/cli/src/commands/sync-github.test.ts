@@ -558,12 +558,12 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("secrets: inherit");
 	});
 
-	it("merges overrides into an existing with: block (lint template)", () => {
-		// lint already has `with:\n      enable-auto-commit: true` so the
-		// injection path can't append before `secrets: inherit` at end-of-file.
+	it("injects overrides before secrets: inherit when lint template has no with: block", () => {
+		// The lint template no longer hardcodes enable-auto-commit: true — the
+		// default is injected by the caller (sync.ts / run-setup.ts), not here.
 		const content = generateThinCallerContent("lint", { "yaml-config": "custom.yml" });
-		expect(content).toContain("enable-auto-commit: true");
 		expect(content).toContain("yaml-config: custom.yml");
+		expect(content).not.toContain("enable-auto-commit");
 	});
 
 	it("replaces an existing key when the override matches it (lint template)", () => {
