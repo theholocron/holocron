@@ -172,6 +172,7 @@ async function writeFernDocsYml({
 		return "docs.yml: instances block already up to date";
 	}
 
+	const repoOwner = repo?.split("/")[0];
 	const lines: string[] = [
 		`# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json`,
 		``,
@@ -180,6 +181,15 @@ async function writeFernDocsYml({
 	];
 	if (customDomain) lines.push(`    custom-domain: ${customDomain}`);
 	if (multiSource) lines.push(`    multi-source: true`);
+	if (repoOwner && repoName) {
+		lines.push(
+			`    edit-this-page:`,
+			`      github:`,
+			`        owner: ${repoOwner}`,
+			`        repo: ${repoName}`,
+			`        branch: main`
+		);
+	}
 	lines.push(
 		``,
 		`title: ${name ?? resolvedFernOrg} Engineering`,
@@ -220,6 +230,7 @@ async function writeFernDocsYml({
 		`          - page: Overview`,
 		`            path: ../docs/wiki/specifications/README.md`,
 		``,
+		...(repo ? [`navbar-links:`, `  - type: github`, `    value: https://github.com/${repo}`, ``] : []),
 		`colors:`,
 		`  accent-primary:`,
 		`    dark: "#70E155"`,

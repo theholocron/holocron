@@ -89,6 +89,31 @@ describe("FernWiki.provision — docs.yml (no domain)", () => {
 		expect(docs).toContain("path: ../docs/wiki/decisions/README.md");
 		expect(docs).toContain("path: ../docs/wiki/standards/README.md");
 		expect(docs).toContain("path: ../docs/wiki/specifications/README.md");
+		// No repo → no edit-this-page or navbar-links
+		expect(docs).not.toContain("edit-this-page:");
+		expect(docs).not.toContain("navbar-links:");
+	});
+
+	it("scaffolds with edit-this-page and navbar-links when repo is provided", async () => {
+		const wiki = new FernWiki({ repoRoot, org: "myorg", repo: "myorg/myrepo" });
+		await wiki.provision({ name: "Myrepo" });
+
+		const docs = await readFile(join(repoRoot, "fern", "docs.yml"), "utf8");
+		expect(docs).toContain("edit-this-page:");
+		expect(docs).toContain("      github:");
+		expect(docs).toContain("        owner: myorg");
+		expect(docs).toContain("        repo: myrepo");
+		expect(docs).toContain("        branch: main");
+		expect(docs).toContain("navbar-links:");
+		expect(docs).toContain("  - type: github");
+		expect(docs).toContain("    value: https://github.com/myorg/myrepo");
+		// edit-this-page is nested under the instance
+		const instancesIdx = docs.indexOf("instances:");
+		const editIdx = docs.indexOf("edit-this-page:");
+		const navbarIdx = docs.indexOf("navbar-links:");
+		expect(editIdx).toBeGreaterThan(instancesIdx);
+		// navbar-links is at top level (comes after the instance block)
+		expect(navbarIdx).toBeGreaterThan(editIdx);
 	});
 
 	it("updates instances block in existing docs.yml without touching navigation", async () => {
