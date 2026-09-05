@@ -160,6 +160,80 @@ describe("discoverWikiRepos", () => {
 		expect(repos[0]?.displayName).toBe("Cli Template");
 	});
 
+	it("handles bare string wiki entry in JSON config", async () => {
+		const fetch = makeOrgFetch([
+			{ name: "myrepo", full_name: "org/myrepo", configJson: { providers: { wiki: "fern" } } },
+		]);
+
+		const repos = await discoverWikiRepos("org", "token", fetch as typeof globalThis.fetch);
+		expect(repos).toHaveLength(1);
+		expect(repos[0]?.basepath).toBe("myrepo");
+		expect(repos[0]?.domain).toBeUndefined();
+	});
+
+	it("treats non-string domain in JSON config as undefined", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configJson: { providers: { wiki: ["fern", { domain: 42 }] } },
+			},
+		]);
+
+		const repos = await discoverWikiRepos("org", "token", fetch as typeof globalThis.fetch);
+		expect(repos[0]?.domain).toBeUndefined();
+		expect(repos[0]?.basepath).toBe("myrepo");
+	});
+
+	it("produces no domain when JSON config wiki has no domain field", async () => {
+		const fetch = makeOrgFetch([
+			{ name: "myrepo", full_name: "org/myrepo", configJson: { providers: { wiki: ["fern", {}] } } },
+		]);
+
+		const repos = await discoverWikiRepos("org", "token", fetch as typeof globalThis.fetch);
+		expect(repos[0]?.domain).toBeUndefined();
+	});
+
+	it("produces no domain when TS config has no domain string", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configTs: `export default { providers: { wiki: ["fern", {}] } };`,
+			},
+		]);
+
+		const repos = await discoverWikiRepos("org", "token", fetch as typeof globalThis.fetch);
+		expect(repos[0]?.domain).toBeUndefined();
+		expect(repos[0]?.basepath).toBe("myrepo");
+	});
+
+	it("skips TS config with non-base64 encoding", async () => {
+		const fetch = makeOrgFetch([{ name: "myrepo", full_name: "org/myrepo" }]);
+		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+			if (url.toString().includes("/contents/holocron.config.ts")) {
+				return new Response(JSON.stringify({ content: "raw", encoding: "utf-8" }), { status: 200 });
+			}
+			return (fetch as typeof globalThis.fetch)(url, init);
+		};
+
+		const repos = await discoverWikiRepos("org", "token", wrappedFetch as typeof globalThis.fetch);
+		expect(repos).toHaveLength(0);
+	});
+
+	it("skips JSON config with non-base64 encoding", async () => {
+		const fetch = makeOrgFetch([{ name: "myrepo", full_name: "org/myrepo" }]);
+		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+			if (url.toString().includes("/contents/holocron.config.json")) {
+				return new Response(JSON.stringify({ content: "raw", encoding: "utf-8" }), { status: 200 });
+			}
+			return (fetch as typeof globalThis.fetch)(url, init);
+		};
+
+		const repos = await discoverWikiRepos("org", "token", wrappedFetch as typeof globalThis.fetch);
+		expect(repos).toHaveLength(0);
+	});
+
 	it("skips repo when config JSON is invalid", async () => {
 		const fetch = makeOrgFetch([{ name: "bad", full_name: "org/bad" }]);
 		const wrappedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
@@ -677,6 +751,146 @@ describe("runSyncWiki", () => {
 		expect(docs).toContain("value: https://wiki.example.com/other");
 		// Self-link does not appear as a nav value (custom-domain line is fine)
 		expect(docs).not.toContain("value: https://wiki.example.com/myrepo");
+	});
+
+	it("derives org from owner when config.org is absent", async () => {
+		// No org: field — runSyncWiki falls back to splitting context.repo
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+		});
+
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configJson: { providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] } },
+			},
+		]);
+
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
+			token: "tok",
+			fetch: fetch as typeof globalThis.fetch,
+		});
+
+		expect(result.status).toBe("ok");
+	});
+
+	it("uses wiki domain to derive self-exclusion basepath when domain is present", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			org: "org",
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+		});
+
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configJson: { providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] } },
+			},
+		]);
+
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
+			token: "tok",
+			fetch: fetch as typeof globalThis.fetch,
+		});
+
+		expect(result.status).toBe("ok");
+	});
+
+	it("falls back to repo name as basepath when wiki has no domain", async () => {
+		// wiki: ["fern", {}] — no domain in options
+		const loaded = loadedFrom({
+			name: "demo",
+			org: "org",
+			providers: { wiki: ["fern", {}] },
+		});
+
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configJson: { providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] } },
+			},
+		]);
+
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
+			token: "tok",
+			fetch: fetch as typeof globalThis.fetch,
+		});
+
+		expect(result.status).toBe("ok");
+	});
+
+	it("returns ok with up-to-date message when content already matches", async () => {
+		const fetch = makeOrgFetch([
+			{
+				name: "myrepo",
+				full_name: "org/myrepo",
+				configJson: { providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] } },
+			},
+			{
+				name: "other",
+				full_name: "org/other",
+				configJson: { providers: { wiki: ["fern", { domain: "wiki.example.com/other" }] } },
+			},
+		]);
+
+		// Pre-write the file with exactly what discovery would generate
+		const prebuiltNavbar = [
+			"navbar-links:",
+			"  - type: github",
+			"    value: https://github.com/org/myrepo",
+			"  - type: minimal",
+			"    value: https://wiki.example.com/other",
+			"    label: Other",
+		].join("\n");
+		await writeFile(
+			join(tmpDir, "fern", "docs.yml"),
+			[
+				"instances:",
+				"  - url: org.docs.buildwithfern.com/myrepo",
+				"    custom-domain: wiki.example.com/myrepo",
+				"    multi-source: true",
+				"    edit-this-page:",
+				"      github:",
+				"        owner: org",
+				"        repo: myrepo",
+				"        branch: main",
+				"",
+				"title: myrepo Engineering",
+				"",
+				prebuiltNavbar,
+				"",
+				"colors:",
+				"  accent-primary:",
+				'    dark: "#000000"',
+			].join("\n"),
+			"utf8"
+		);
+
+		const loaded = loadedFrom({
+			name: "demo",
+			org: "org",
+			providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+		});
+
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
+			token: "tok",
+			fetch: fetch as typeof globalThis.fetch,
+		});
+
+		expect(result.status).toBe("ok");
+		expect(result.message).toContain("up to date");
 	});
 
 	it("returns fail when fern/docs.yml does not exist", async () => {

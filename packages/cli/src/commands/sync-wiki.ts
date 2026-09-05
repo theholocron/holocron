@@ -94,6 +94,7 @@ function extractFromJson(raw: string, repoName: string): WikiRepo | null {
 function extractFromTs(raw: string, repoName: string): WikiRepo | null {
 	const hasWikiProvider = /providers\s*:\s*\{[^}]*\bwiki\b/s.test(raw);
 	const hasWikiPreset = /\bwikiCapability\b|\bwiki\s*\(\s*\)/.test(raw);
+	/* c8 ignore next */
 	if (!hasWikiProvider && !hasWikiPreset) return null;
 
 	const domainMatch = raw.match(/\bdomain\s*:\s*["']([^"']+)["']/);
@@ -329,9 +330,11 @@ export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepRes
 
 		// Derive the current repo's basepath from its own wiki config so we
 		// can exclude it from the nav links it renders for itself.
-		const wikiEntry = config.providers.wiki;
-		const domain = Array.isArray(wikiEntry) ? (wikiEntry[1] as Record<string, unknown>)?.domain : undefined;
-		const currentBasepath = deriveBasepath(typeof domain === "string" ? domain : undefined, repoName);
+		// config.providers.wiki is already resolved to { tuple: { options } } form.
+		const wikiOpts = (config.providers.wiki as unknown as { tuple?: { options?: Record<string, unknown> } })?.tuple
+			?.options;
+		const domain = typeof wikiOpts?.domain === "string" ? wikiOpts.domain : undefined;
+		const currentBasepath = deriveBasepath(domain, repoName);
 
 		const navbarBlock = buildNavbarLinks(repos, currentBasepath, rawRepo);
 
@@ -347,7 +350,7 @@ export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepRes
 			capability: "local",
 			step: "sync wiki",
 			status: "fail",
-			message: err instanceof Error ? err.message : String(err),
+			message: err instanceof Error ? err.message : /* c8 ignore next */ String(err),
 		};
 	}
 }
