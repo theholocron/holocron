@@ -82,16 +82,26 @@ describe("buildCliLogger", () => {
 
 	it("rebuilds once with the config level when the flag/env pass had none", () => {
 		buildCliLogger({}); // middleware pass — no level
-		buildCliLogger({}, "warn"); // handler pass — config level
+		buildCliLogger({}, { configLevel: "warn" }); // handler pass — config level
 		expect(createLoggerMock).toHaveBeenNthCalledWith(2, { level: "warn" });
 		expect(getRunId()).toBe("run-2");
 	});
 
 	it("does not let a config level override an active --quiet flag", () => {
 		buildCliLogger({ quiet: true });
-		buildCliLogger({ quiet: true }, "debug");
+		buildCliLogger({ quiet: true }, { configLevel: "debug" });
 		expect(createLoggerMock).toHaveBeenCalledTimes(1);
 		expect(createLoggerMock).toHaveBeenCalledWith({ level: "error" });
+	});
+
+	it("binds the command name on the root logger", () => {
+		const child = vi.fn();
+		createLoggerMock.mockImplementationOnce(() => ({
+			logger: { child, __fake: true },
+			runId: "run-x",
+		}));
+		buildCliLogger({}, { command: "doctor" });
+		expect(child).toHaveBeenCalledWith({ command: "doctor" });
 	});
 });
 

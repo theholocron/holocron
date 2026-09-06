@@ -13,7 +13,7 @@ const config: KnipConfig = {
 		},
 		"packages/cli": {
 			// entry points auto-detected from package.json exports/bin
-			entry: ["src/**/*.test.ts"],
+			entry: ["src/**/*.test.ts", "src/test-utils/*.ts"],
 			project: ["src/**/*.ts"],
 			// vitest.config.ts imports the rollup plugin which isn't built at
 			// audit time — disable auto-loading so Knip uses our explicit entry

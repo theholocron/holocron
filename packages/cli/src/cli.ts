@@ -123,10 +123,10 @@ try {
 			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
 			finishCommand = startCommand(name);
 			printRunId = Boolean(argv.debug || argv.verbose);
-			// Establish the root logger from flags + env. Handlers that load a
-			// config call `buildCliLogger(argv, config.log?.level)` again to fold
-			// in the lowest-priority level source.
-			buildCliLogger(argv);
+			// Establish the root logger (command name + flags + env). Handlers
+			// that load a config call `buildCliLogger(argv, { configLevel })`
+			// again to fold in the lowest-priority level source.
+			buildCliLogger(argv, { command: name });
 		})
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
@@ -183,7 +183,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runDoctor({
 					loaded,
 					context: {
@@ -211,7 +211,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runSetup({
 					loaded,
 					context: {
@@ -312,7 +312,7 @@ try {
 				const scopeArg = argv.scope as string;
 				const scope = parseScope(scopeArg);
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runSecretSet({
 					loaded,
 					context: {
@@ -355,7 +355,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runSecretsSync({
 					loaded,
 					context: {
@@ -397,7 +397,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runDeploy({
 					loaded,
 					context: {
@@ -438,7 +438,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runCleanupPreview({
 					loaded,
 					context: {
@@ -530,7 +530,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runSync({
 					loaded,
 					context: {
@@ -616,7 +616,7 @@ try {
 				}),
 			async (argv) => {
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, loaded.resolved.log?.level);
+				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
 				const report = await runSyncReadme({
 					loaded,
 					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },

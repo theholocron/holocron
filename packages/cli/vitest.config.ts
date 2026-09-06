@@ -12,6 +12,7 @@ export default defineConfig({
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
 		// FORCE_COLOR=1). Tests assert on plain-text strings without ANSI codes.
 		env: { ...base.test?.env, FORCE_COLOR: "0" },
+		setupFiles: [...(base.test?.setupFiles ?? []), "./src/test-utils/silence-logger.ts"],
 		coverage: {
 			...base.test?.coverage,
 			exclude: [
@@ -19,6 +20,8 @@ export default defineConfig({
 				// CLI entry point — not unit-testable (yargs wiring, process.exit, etc.).
 				// See issue #117.
 				"src/cli.ts",
+				// Test-only helpers.
+				"src/test-utils/**",
 				// Pure TypeScript type definitions; no executable logic to cover.
 				// See issue #117.
 				"src/plugin/capabilities.ts",
