@@ -38,6 +38,8 @@ navigation:
             path: ../docs/wiki/decisions/0003-auth-bootstrap-keyring-token-precedence.md
           - page: ADR-0004 — ADR home in repo
             path: ../docs/wiki/decisions/0004-adr-home-repo-over-wiki.md
+          - page: ADR-0005 — npm publishing strategy
+            path: ../docs/wiki/decisions/0005-npm-publishing-strategy-oidc-over-staged.md
 
   - tab: standards
     layout:
