@@ -12,7 +12,10 @@
 
 import { spawnSync } from "node:child_process";
 
+import type { Logger } from "@theholocron/logger";
+
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { RuntimeContext } from "../plugin/loader.js";
 import { installSkills } from "./setup/index.js";
 
@@ -70,6 +73,7 @@ export interface RunSkillsRemoveInput {
 	/** Skill name(s) to remove. Omit to remove all installed skills. */
 	names?: string[];
 	exec?: ExecFn;
+	logger?: Logger;
 }
 
 export interface SkillsRemoveReport {
@@ -79,10 +83,11 @@ export interface SkillsRemoveReport {
 export function runSkillsRemove(input: RunSkillsRemoveInput): SkillsRemoveReport {
 	const { dryRun, repoRoot } = input.context;
 	const exec = input.exec ?? defaultExec;
+	const logger = input.logger ?? getLogger();
 	const args = ["skills", "remove", ...(input.names ?? [])];
 
 	if (dryRun) {
-		console.log(`Would run: npx ${args.join(" ")}`);
+		logger.info({ argv: args }, `Would run: npx ${args.join(" ")}`);
 		return { status: "dry-run" };
 	}
 
@@ -97,6 +102,7 @@ export interface RunSkillsUpdateInput {
 	/** When given, update only this skill. Omit to update all. */
 	name?: string;
 	exec?: ExecFn;
+	logger?: Logger;
 }
 
 export interface SkillsUpdateReport {
@@ -106,10 +112,11 @@ export interface SkillsUpdateReport {
 export function runSkillsUpdate(input: RunSkillsUpdateInput): SkillsUpdateReport {
 	const { dryRun, repoRoot } = input.context;
 	const exec = input.exec ?? defaultExec;
+	const logger = input.logger ?? getLogger();
 	const args = ["skills", "update", ...(input.name ? [input.name] : [])];
 
 	if (dryRun) {
-		console.log(`Would run: npx ${args.join(" ")}`);
+		logger.info({ argv: args }, `Would run: npx ${args.join(" ")}`);
 		return { status: "dry-run" };
 	}
 

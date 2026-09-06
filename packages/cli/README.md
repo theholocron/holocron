@@ -168,6 +168,31 @@ holocron auth unset github.read   # remove a stored token
 holocron auth list                # show all stored providers
 ```
 
+## Logging
+
+Operational output goes through [`@theholocron/logger`](../logger) — separate from
+the user-facing `print` surface. Global flags:
+
+```sh
+holocron doctor --verbose   # log level → debug (full structured output)
+holocron doctor --quiet     # log level → error (suppress info + warn)
+holocron doctor --debug     # print "Run ID: <uuid>" at command end for Axiom lookup
+```
+
+Level resolution (highest priority first): `--verbose` / `--quiet` →
+`HOLOCRON_LOG_LEVEL` → `log.level` in `holocron.config` → `"info"`.
+
+```ts
+export default defineConfig({
+  log: { level: "warn" },
+});
+```
+
+Axiom credentials (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`,
+`HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET`) come from env vars only.
+`HOLOCRON_TELEMETRY=false` disables the Axiom transport (and Sentry). See the
+[logging guide](https://docs.theholocron.dev/holocron/logging/).
+
 ## What's in here
 
 - `src/capabilities/` — the 14 capability interfaces that providers
@@ -176,6 +201,8 @@ holocron auth list                # show all stored providers
   `CapabilityConfigPackage`
 - `src/load-config.ts` — `loadConfig` — reads JSON/JS/TS config files
 - `src/define-config.ts` — `defineConfig` typed pass-through
+- `src/logger.ts` — CLI-side `@theholocron/logger` wiring (`buildCliLogger`,
+  `resolveLogLevel`)
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands

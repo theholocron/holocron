@@ -17,15 +17,8 @@ pnpm add @theholocron/logger
 ```ts
 import { createLogger } from "@theholocron/logger";
 
-const { logger, runId } = createLogger({
-  level: "info",
-  axiom: process.env.HOLOCRON_AXIOM_TOKEN
-    ? {
-        dataset: process.env.HOLOCRON_AXIOM_DATASET!,
-        token: process.env.HOLOCRON_AXIOM_TOKEN,
-      }
-    : undefined,
-});
+// Axiom credentials are picked up from the environment automatically.
+const { logger, runId } = createLogger({ level: "info" });
 
 const log = logger.child({ command: "sync-github", repo: "theholocron/configs" });
 log.info({ branch: "main" }, "opening PR");
@@ -63,11 +56,17 @@ The overloads mirror Pino: object-first for structured lines, bare string for si
 
 Returns `{ logger, runId }`. `runId` is a UUID bound to every line the logger and its children emit — surface it via `print` when `--debug` or `--verbose` is set so a whole run can be pulled back out of Axiom.
 
-| `config` field  | Type                                     | Notes                                                      |
-| --------------- | ---------------------------------------- | ---------------------------------------------------------- |
-| `level`         | `"debug" \| "info" \| "warn" \| "error"` | Highest-priority level source. Optional.                   |
-| `axiom.dataset` | `string`                                 | Axiom dataset name. Supply from env vars only.             |
-| `axiom.token`   | `string`                                 | Axiom API token. Supply from env vars only — never config. |
+| `config` field  | Type                                     | Notes                                                                   |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `level`         | `"debug" \| "info" \| "warn" \| "error"` | Highest-priority level source. Optional.                                |
+| `axiom.dataset` | `string`                                 | Axiom dataset. Optional — resolved from env by default (see below).     |
+| `axiom.token`   | `string`                                 | Axiom API token. Optional — resolved from env by default. Never config. |
+
+`createLogger` reads Axiom credentials from the environment automatically when
+`config.axiom` is omitted — `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` +
+`HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET`, both required. The same logic is
+exported as `resolveAxiomFromEnv(env?)`. Credentials come only from env vars,
+never a config file.
 
 ### Level resolution
 
@@ -79,13 +78,13 @@ An unrecognised value at any tier is ignored and resolution falls through. The r
 
 ## Transports
 
-| Environment             | Output                                        |
-| ----------------------- | --------------------------------------------- |
-| Local, TTY              | `pino-pretty` — colourised, human-readable    |
-| CI (`CI` truthy)        | Newline-delimited JSON to stdout              |
-| `config.axiom` supplied | Axiom, in a Pino worker thread (non-blocking) |
+| Environment          | Output                                        |
+| -------------------- | --------------------------------------------- |
+| Local, TTY           | `pino-pretty` — colourised, human-readable    |
+| CI (`CI` truthy)     | Newline-delimited JSON to stdout              |
+| Axiom creds resolved | Axiom, in a Pino worker thread (non-blocking) |
 
-The Axiom transport is added only when `config.axiom` is supplied **and** `HOLOCRON_TELEMETRY` is not `"false"`. When Axiom is the only non-console transport, console JSON is kept alongside it so CI logs stay readable.
+The Axiom transport is added only when credentials resolve (from `config.axiom` or the env) **and** `HOLOCRON_TELEMETRY` is not `"false"`. When Axiom is the only non-console transport, console JSON is kept alongside it so CI logs stay readable.
 
 ### Axiom datasets
 
