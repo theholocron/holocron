@@ -1,7 +1,7 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
-# Tool:    holocron sync-github
-# Changes: edit source in theholocron/holocron and push to alpha or main.
+# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
 name: Greetings
 
 on: # yamllint disable-line rule:truthy
