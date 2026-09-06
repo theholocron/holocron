@@ -4,6 +4,11 @@ instances:
   - url: holocron.docs.buildwithfern.com/holocron
     custom-domain: wiki.theholocron.dev/holocron
     multi-source: true
+    edit-this-page:
+      github:
+        owner: theholocron
+        repo: holocron
+        branch: main
 
 title: Holocron Engineering
 
@@ -38,6 +43,8 @@ navigation:
             path: ../docs/wiki/decisions/0003-auth-bootstrap-keyring-token-precedence.md
           - page: ADR-0004 — ADR home in repo
             path: ../docs/wiki/decisions/0004-adr-home-repo-over-wiki.md
+          - page: ADR-0005 — npm publishing strategy
+            path: ../docs/wiki/decisions/0005-npm-publishing-strategy-oidc-over-staged.md
 
   - tab: standards
     layout:
@@ -52,6 +59,40 @@ navigation:
         contents:
           - page: Overview
             path: ../docs/wiki/specifications/README.md
+
+navbar-links:
+  - type: github
+    value: https://github.com/theholocron/holocron
+  - type: dropdown
+    text: Other Projects
+    icon: fa-duotone fa-book
+    links:
+      - href: https://wiki.theholocron.dev
+        text: Cli Template
+      - href: https://wiki.theholocron.dev
+        text: Clients
+      - href: https://wiki.theholocron.dev
+        text: Configs
+      - href: https://wiki.theholocron.dev/internal
+        text: Internal
+      - href: https://wiki.theholocron.dev
+        text: Monorepo Nextjs Template
+      - href: https://wiki.theholocron.dev
+        text: Monorepo React Template
+      - href: https://wiki.theholocron.dev
+        text: Monorepo Template
+      - href: https://wiki.theholocron.dev
+        text: Nextjs Template
+      - href: https://wiki.theholocron.dev
+        text: Node Template
+      - href: https://wiki.theholocron.dev
+        text: React Template
+      - href: https://wiki.theholocron.dev
+        text: Skills
+      - href: https://wiki.theholocron.dev
+        text: Themes
+      - href: https://wiki.theholocron.dev
+        text: Utils
 
 colors:
   accent-primary:

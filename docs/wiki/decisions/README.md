@@ -9,7 +9,7 @@ Use the [MADR](https://adr.github.io/madr/) format. To create a new ADR,
 copy `template.md` and number it sequentially (`0001-…`, `0002-…`):
 
 ```sh
-cp docs/decisions/template.md docs/decisions/000N-short-title.md
+cp docs/wiki/decisions/template.md docs/wiki/decisions/000N-short-title.md
 ```
 
 `madr` has no CLI — creation is manual. Frontmatter is validated automatically
@@ -27,9 +27,10 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 
 ## Index
 
-| ID                                                          | Title                                                        | Status   |
-| ----------------------------------------------------------- | ------------------------------------------------------------ | -------- |
-| [ADR-0001](0001-vault-provider-doppler-and-infisical.md)    | Vault provider — Doppler and Infisical over 1Password        | accepted |
-| [ADR-0002](0002-interactive-menu-spawn-over-reparse.md)     | Interactive CLI menu — spawn over re-parse                   | accepted |
-| [ADR-0003](0003-auth-bootstrap-keyring-token-precedence.md) | Auth bootstrap — OS keyring as fourth-precedence token layer | accepted |
-| [ADR-0004](0004-adr-home-repo-over-wiki.md)                 | ADR home — Git repository over GitHub Wiki                   | accepted |
+| ID                                                           | Title                                                                    | Status   |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ | -------- |
+| [ADR-0001](0001-vault-provider-doppler-and-infisical.md)     | Vault provider — Doppler and Infisical over 1Password                    | accepted |
+| [ADR-0002](0002-interactive-menu-spawn-over-reparse.md)      | Interactive CLI menu — spawn over re-parse                               | accepted |
+| [ADR-0003](0003-auth-bootstrap-keyring-token-precedence.md)  | Auth bootstrap — OS keyring as fourth-precedence token layer             | accepted |
+| [ADR-0004](0004-adr-home-repo-over-wiki.md)                  | ADR home — Git repository over GitHub Wiki                               | accepted |
+| [ADR-0005](0005-npm-publishing-strategy-oidc-over-staged.md) | npm publishing strategy — OIDC Trusted Publishers over staged publishing | accepted |
