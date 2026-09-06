@@ -60,12 +60,15 @@ jobs:
         name: Build CLI
 
       - name: Run holocron sync
+        # Call the built entry directly — `pnpm exec holocron` relies on a
+        # node_modules/.bin/holocron symlink that pnpm cannot create at install
+        # time (dist/ does not exist yet), same as sync-github.yml.
         run: |
           if [ -n "$STEPS" ]; then
             # shellcheck disable=SC2086
-            pnpm --workspace-root exec holocron sync --steps $STEPS
+            node packages/cli/dist/cli.mjs sync --steps $STEPS
           else
-            pnpm --workspace-root exec holocron sync
+            node packages/cli/dist/cli.mjs sync
           fi
         env:
           HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
