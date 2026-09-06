@@ -45,6 +45,8 @@ navigation:
             path: ../docs/wiki/decisions/0004-adr-home-repo-over-wiki.md
           - page: ADR-0005 — npm publishing strategy
             path: ../docs/wiki/decisions/0005-npm-publishing-strategy-oidc-over-staged.md
+          - page: ADR-0006 — wiki navbar auto-broadcast
+            path: ../docs/wiki/decisions/0006-wiki-navbar-auto-broadcast.md
 
   - tab: standards
     layout:
@@ -52,6 +54,10 @@ navigation:
         contents:
           - page: Overview
             path: ../docs/wiki/standards/README.md
+          - section: Workflows
+            contents:
+              - page: Stale
+                path: ../docs/wiki/standards/stale-workflow.md
 
   - tab: specifications
     layout:

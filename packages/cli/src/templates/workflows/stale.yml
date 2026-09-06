@@ -4,15 +4,65 @@ on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
       days-before-stale:
-        description: Days of inactivity before an issue is marked stale
+        description: Days of inactivity before an issue or PR is marked stale (applies to both unless type-specific value is set)
         type: number
         required: false
         default: 30
       days-before-close:
-        description: Days of inactivity after stale label before closing
+        description: Days after stale label before closing (applies to both unless type-specific value is set)
         type: number
         required: false
         default: 5
+      days-before-issue-stale:
+        description: Days of inactivity before an issue is marked stale; overrides days-before-stale when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      days-before-issue-close:
+        description: Days after stale label before closing an issue; overrides days-before-close when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      days-before-pr-stale:
+        description: Days of inactivity before a PR is marked stale; overrides days-before-stale when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      days-before-pr-close:
+        description: Days after stale label before closing a PR; overrides days-before-close when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      exempt-issue-labels:
+        description: Comma-separated labels that exempt an issue from being marked stale
+        type: string
+        required: false
+        default: "in-progress,wip"
+      exempt-pr-labels:
+        description: Comma-separated labels that exempt a PR from being marked stale
+        type: string
+        required: false
+        default: ""
+      exempt-all-issue-milestones:
+        description: Issues assigned to any milestone are never marked stale
+        type: boolean
+        required: false
+        default: true
+      exempt-all-pr-milestones:
+        description: PRs assigned to any milestone are never marked stale
+        type: boolean
+        required: false
+        default: true
+      exempt-all-issue-projects:
+        description: Issues assigned to any project are never marked stale
+        type: boolean
+        required: false
+        default: true
+      exempt-all-pr-projects:
+        description: PRs assigned to any project are never marked stale
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   stale:
@@ -31,8 +81,17 @@ jobs:
             This issue was closed because it has been stalled for
             ${{ inputs.days-before-close }} days with no activity.
           days-before-close: ${{ inputs.days-before-close }}
+          days-before-issue-close: ${{ inputs.days-before-issue-close }}
+          days-before-issue-stale: ${{ inputs.days-before-issue-stale }}
+          days-before-pr-close: ${{ inputs.days-before-pr-close }}
+          days-before-pr-stale: ${{ inputs.days-before-pr-stale }}
           days-before-stale: ${{ inputs.days-before-stale }}
-          exempt-all-pr-milestones: true
+          exempt-all-issue-milestones: ${{ inputs.exempt-all-issue-milestones }}
+          exempt-all-issue-projects: ${{ inputs.exempt-all-issue-projects }}
+          exempt-all-pr-milestones: ${{ inputs.exempt-all-pr-milestones }}
+          exempt-all-pr-projects: ${{ inputs.exempt-all-pr-projects }}
+          exempt-issue-labels: ${{ inputs.exempt-issue-labels }}
+          exempt-pr-labels: ${{ inputs.exempt-pr-labels }}
           stale-issue-label: wontfix
           stale-issue-message: >
             This issue is stale because it has been open ${{ inputs.days-before-stale }}

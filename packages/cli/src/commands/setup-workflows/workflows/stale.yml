@@ -12,4 +12,9 @@ permissions:
 jobs:
   stale:
     uses: theholocron/.github/.github/workflows/stale.yml@main
+    with:
+      exempt-issue-labels: "in-progress,wip"
+      exempt-all-issue-milestones: true
+      exempt-all-issue-projects: true
+      exempt-all-pr-projects: true
     secrets: inherit
