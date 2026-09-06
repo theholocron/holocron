@@ -28,7 +28,9 @@ import type {
 	Deployment,
 	Dns,
 	Environments,
+	Errors,
 	Logs,
+	Secrets,
 	Source,
 	Tooling,
 	Vault,
@@ -652,6 +654,37 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			});
 		}
 		print(formatStep(steps[steps.length - 1]!));
+	}
+
+	// ── errors: provision the tracker project + push the DSN to secrets ─
+	if (loader.has("errors")) {
+		const errors = loader.get("errors") as Errors;
+		print(style.step("errors"));
+
+		if (errors.ensureProject) {
+			let dsn: string | undefined;
+			steps.push(
+				await runStep("errors", `ensureProject ${config.name}`, dryRun, async () => {
+					const result = await errors.ensureProject!({ name: config.name });
+					dsn = result.dsn;
+					return `project ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+
+			if (dsn && loader.has("secrets")) {
+				const secrets = loader.get("secrets") as Secrets;
+				const { envKeys } = await errors.describe();
+				for (const key of envKeys) {
+					steps.push(
+						await runStep("errors", `secrets set ${key}`, dryRun, async () => {
+							await secrets.setSecret({ kind: "repo" }, key, dsn!);
+						})
+					);
+					print(formatStep(steps[steps.length - 1]!));
+				}
+			}
+		}
 	}
 
 	// ── logs: provision the aggregation datasets ───────────────────────
