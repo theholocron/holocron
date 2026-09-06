@@ -72,11 +72,12 @@ export interface CreatePinoInstanceInput {
 }
 
 /**
- * Construct the underlying Pino instance: resolved level, sensitive-field
- * redaction, ISO timestamps, and `runId` / `env` on every line. Transports
- * come from {@link buildTransport} unless a `destination` stream is supplied.
+ * Assemble the Pino `LoggerOptions`: resolved level, `runId` / `env` on every
+ * line, ISO timestamps, sensitive-field redaction, and — unless a capture
+ * `destination` is in play — the environment-appropriate transport from
+ * {@link buildTransport}.
  */
-export function createPinoInstance(input: CreatePinoInstanceInput): PinoInstance {
+export function buildPinoOptions(input: CreatePinoInstanceInput): LoggerOptions {
 	const options: LoggerOptions = {
 		level: input.level,
 		base: input.base,
@@ -84,8 +85,18 @@ export function createPinoInstance(input: CreatePinoInstanceInput): PinoInstance
 		redact: { paths: [...redactOptions.paths], censor: redactOptions.censor },
 	};
 
-	if (input.destination) return pino(options, input.destination);
+	if (input.destination) return options;
 
 	const transport = buildTransport(input);
-	return transport ? pino({ ...options, transport }) : pino(options);
+	if (transport) options.transport = transport;
+	return options;
+}
+
+/**
+ * Construct the underlying Pino instance. Writes to `destination` when one is
+ * supplied (tests), otherwise to the transports {@link buildPinoOptions} wired.
+ */
+export function createPinoInstance(input: CreatePinoInstanceInput): PinoInstance {
+	const options = buildPinoOptions(input);
+	return input.destination ? pino(options, input.destination) : pino(options);
 }

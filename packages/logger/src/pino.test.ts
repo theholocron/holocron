@@ -2,7 +2,7 @@ import pino from "pino";
 import { describe, expect, it } from "vitest";
 
 import type { LogLevel } from "./interface.js";
-import { createPinoInstance, PinoLogger } from "./pino.js";
+import { buildPinoOptions, createPinoInstance, PinoLogger } from "./pino.js";
 
 function capture() {
 	const lines: Record<string, unknown>[] = [];
@@ -112,5 +112,39 @@ describe("createPinoInstance", () => {
 		logger.warn("dropped");
 		logger.error("kept");
 		expect(lines.map((l) => l.msg)).toEqual(["kept"]);
+	});
+});
+
+describe("buildPinoOptions", () => {
+	const input = {
+		level: "info" as LogLevel,
+		ci: false,
+		tty: false,
+		telemetryDisabled: false,
+		base: { runId: "run-1", env: "local" as const },
+	};
+
+	it("always sets level, base, redaction, and ISO timestamps", () => {
+		const options = buildPinoOptions(input);
+		expect(options.level).toBe("info");
+		expect(options.base).toEqual({ runId: "run-1", env: "local" });
+		expect((options.redact as { censor: string }).censor).toBe("[Redacted]");
+		expect(options.timestamp).toBe(pino.stdTimeFunctions.isoTime);
+	});
+
+	it("attaches a transport when the environment calls for one", () => {
+		const options = buildPinoOptions({ ...input, tty: true });
+		expect(options.transport).toBeDefined();
+	});
+
+	it("omits the transport when plain stdout JSON is enough", () => {
+		const options = buildPinoOptions({ ...input, ci: true });
+		expect(options.transport).toBeUndefined();
+	});
+
+	it("omits the transport when a capture destination is supplied", () => {
+		const stream = { write: () => {} };
+		const options = buildPinoOptions({ ...input, tty: true, destination: stream });
+		expect(options.transport).toBeUndefined();
 	});
 });
