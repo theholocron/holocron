@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-axiom",
-  "version": "3.58.0",
+  "version": "3.58.1",
   "description": "Holocron plugin for Axiom. Implements the logs capability against Axiom's REST API — dataset provisioning and connectivity checks, plus verifyToken + AUTH_HINT for `holocron auth`.",
   "keywords": [
     "axiom",
