@@ -191,7 +191,7 @@ export function buildNavbarLinks(repos: WikiRepo[], currentBasepath: string, rep
 	for (const repo of repos) {
 		if (repo.basepath === currentBasepath) continue; // skip self
 		const url = repo.domain ? `https://${repo.domain}` : `https://wiki.theholocron.dev/${repo.basepath}`;
-		lines.push(`  - type: minimal`, `    value: ${url}`, `    label: ${repo.displayName}`);
+		lines.push(`  - type: minimal`, `    href: ${url}`, `    text: ${repo.displayName}`);
 	}
 
 	return lines.join("\n");
