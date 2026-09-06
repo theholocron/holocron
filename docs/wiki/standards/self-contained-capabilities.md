@@ -22,10 +22,10 @@ Self-contained capabilities are **env-var-activated**. The runtime checks for
 specific env vars at startup and activates the capability immediately, before
 any config is loaded:
 
-| Capability | Provider | Primary env vars                                     | Fallback                        |
-| ---------- | -------- | ---------------------------------------------------- | ------------------------------- |
-| `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN`                                | `SENTRY_DSN`                    |
-| `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`    | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+| Capability | Provider | Primary env vars                                  | Fallback                        |
+| ---------- | -------- | ------------------------------------------------- | ------------------------------- |
+| `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN`                             | `SENTRY_DSN`                    |
+| `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` | `AXIOM_TOKEN` + `AXIOM_DATASET` |
 
 `HOLOCRON_AXIOM_DATASET` is one env var set to different values per environment:
 `holocron-ci` in CI (org secret) or `holocron-local` locally (shell profile).

@@ -255,11 +255,11 @@ Both capabilities are **env-var-activated** — the runtime does not require a
 provider entry in `holocron.config` to function. Activation is automatic when
 the relevant env vars are present:
 
-| Capability        | Primary env var               | Fallback (native SDK)  |
-| ----------------- | ----------------------------- | ---------------------- |
-| `errors` (Sentry) | `HOLOCRON_SENTRY_DSN`         | `SENTRY_DSN`           |
-| `logs` (Axiom)    | `HOLOCRON_AXIOM_TOKEN`        | `AXIOM_TOKEN`          |
-|                   | `HOLOCRON_AXIOM_DATASET`      | `AXIOM_DATASET`        |
+| Capability        | Primary env var          | Fallback (native SDK) |
+| ----------------- | ------------------------ | --------------------- |
+| `errors` (Sentry) | `HOLOCRON_SENTRY_DSN`    | `SENTRY_DSN`          |
+| `logs` (Axiom)    | `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`         |
+|                   | `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET`       |
 
 This makes them cross-cutting infrastructure rather than opt-in features. Error
 tracking and log aggregation activate wherever the env vars are set — including
@@ -391,10 +391,10 @@ are present.
 
 ### Env var reference
 
-| Env var                  | Fallback         | What it controls       |
-| ------------------------ | ---------------- | ---------------------- |
-| `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`    | Axiom API token        |
-| `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET`  | Target dataset name    |
+| Env var                  | Fallback        | What it controls    |
+| ------------------------ | --------------- | ------------------- |
+| `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   | Axiom API token     |
+| `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` | Target dataset name |
 
 Stored in the OS keyring via:
 

@@ -162,9 +162,9 @@ redact: ["token", "secret", "password", "secrets[*].value", "headers.authorizati
 The former `observability` capability (many cardinality) is replaced by two
 dedicated single-cardinality capabilities:
 
-| Capability | Provider | Primary env vars | Fallback |
-| ---------- | -------- | ---------------- | -------- |
-| `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN` | `SENTRY_DSN` |
+| Capability | Provider | Primary env vars                                  | Fallback                        |
+| ---------- | -------- | ------------------------------------------------- | ------------------------------- |
+| `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN`                             | `SENTRY_DSN`                    |
 | `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` | `AXIOM_TOKEN` + `AXIOM_DATASET` |
 
 `HOLOCRON_AXIOM_DATASET` is set to `holocron-ci` in CI (org secret) or
