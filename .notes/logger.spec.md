@@ -255,10 +255,11 @@ Both capabilities are **env-var-activated** — the runtime does not require a
 provider entry in `holocron.config` to function. Activation is automatic when
 the relevant env vars are present:
 
-| Capability        | Env vars required               |
-| ----------------- | ------------------------------- |
-| `errors` (Sentry) | `SENTRY_DSN`                    |
-| `logs` (Axiom)    | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+| Capability        | Primary env var               | Fallback (native SDK)  |
+| ----------------- | ----------------------------- | ---------------------- |
+| `errors` (Sentry) | `HOLOCRON_SENTRY_DSN`         | `SENTRY_DSN`           |
+| `logs` (Axiom)    | `HOLOCRON_AXIOM_TOKEN`        | `AXIOM_TOKEN`          |
+|                   | `HOLOCRON_AXIOM_DATASET`      | `AXIOM_DATASET`        |
 
 This makes them cross-cutting infrastructure rather than opt-in features. Error
 tracking and log aggregation activate wherever the env vars are set — including
@@ -371,20 +372,38 @@ Total migration: ~32 substitutions, all mechanical once `@theholocron/logger` ex
 
 ## Axiom datasets
 
-Two separate Axiom datasets — one per environment:
+Two separate Axiom datasets, selected by setting `HOLOCRON_AXIOM_DATASET` to the
+appropriate value in each environment — one env var, different values:
 
-| Dataset          | Env var               | When used         | Retention suggestion                                                |
-| ---------------- | --------------------- | ----------------- | ------------------------------------------------------------------- |
-| `holocron-ci`    | `AXIOM_CI_DATASET`    | `CI=true`         | 90 days — operational truth, correlates with releases and incidents |
-| `holocron-local` | `AXIOM_LOCAL_DATASET` | `CI` absent/falsy | 7 days — ephemeral dev noise; optional                              |
+| Dataset          | `HOLOCRON_AXIOM_DATASET` value | When used         | Retention suggestion                                                |
+| ---------------- | ------------------------------ | ----------------- | ------------------------------------------------------------------- |
+| `holocron-ci`    | `holocron-ci`                  | `CI=true`         | 90 days — operational truth, correlates with releases and incidents |
+| `holocron-local` | `holocron-local`               | `CI` absent/falsy | 7 days — ephemeral dev noise; optional                              |
 
-**Local runs may omit Axiom entirely.** Since `pino-pretty` fully covers the local
-dev experience, shipping local logs to Axiom is optional. If `AXIOM_LOCAL_DATASET`
-is absent, local runs write only to `pino-pretty` and do not attempt an Axiom
-connection. CI runs always ship to Axiom when `AXIOM_CI_DATASET` + `AXIOM_TOKEN`
+The CI org secret `HOLOCRON_AXIOM_DATASET=holocron-ci` is set once and inherited
+by all repos automatically. Locally, set `HOLOCRON_AXIOM_DATASET=holocron-local`
+in your shell profile or leave it unset to skip Axiom entirely.
+
+**Local runs may omit Axiom entirely.** If `HOLOCRON_AXIOM_DATASET` is absent
+locally, local runs write only to `pino-pretty` — no Axiom connection attempted.
+CI runs always ship to Axiom when `HOLOCRON_AXIOM_DATASET` + `HOLOCRON_AXIOM_TOKEN`
 are present.
 
-`AXIOM_TOKEN` is shared across both datasets.
+### Env var reference
+
+| Env var                  | Fallback         | What it controls       |
+| ------------------------ | ---------------- | ---------------------- |
+| `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`    | Axiom API token        |
+| `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET`  | Target dataset name    |
+
+Stored in the OS keyring via:
+
+```bash
+holocron auth set axiom.theholocron <TOKEN>
+```
+
+`HOLOCRON_AXIOM_DATASET` is not a secret — set it in your shell profile locally
+or as an org secret in CI.
 
 ## Resolved decisions
 
@@ -392,8 +411,9 @@ are present.
    is printed via `print` only when `--debug` or `--verbose` is passed. `--debug`
    is a minimal flag: no level change, just the run ID at command end for Axiom lookup.
 
-2. **Axiom datasets** — two separate datasets (`holocron-ci`, `holocron-local`).
-   Local is optional — absent `AXIOM_LOCAL_DATASET` means local runs use only
+2. **Axiom datasets** — two separate datasets (`holocron-ci`, `holocron-local`),
+   selected via a single `HOLOCRON_AXIOM_DATASET` env var set to the appropriate
+   value per environment. Local is optional — absent var means local runs use only
    `pino-pretty`. Separate datasets allow independent retention policies.
 
 3. **Log level drives all transports** — the configured level applies consistently

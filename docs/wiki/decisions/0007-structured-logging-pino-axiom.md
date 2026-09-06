@@ -162,10 +162,13 @@ redact: ["token", "secret", "password", "secrets[*].value", "headers.authorizati
 The former `observability` capability (many cardinality) is replaced by two
 dedicated single-cardinality capabilities:
 
-| Capability | Provider | Activation                               |
-| ---------- | -------- | ---------------------------------------- |
-| `errors`   | `sentry` | `SENTRY_DSN` env var                     |
-| `logs`     | `axiom`  | `AXIOM_TOKEN` + `AXIOM_DATASET` env vars |
+| Capability | Provider | Primary env vars | Fallback |
+| ---------- | -------- | ---------------- | -------- |
+| `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN` | `SENTRY_DSN` |
+| `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+
+`HOLOCRON_AXIOM_DATASET` is set to `holocron-ci` in CI (org secret) or
+`holocron-local` locally — one env var, different values per environment.
 
 Both are **env-var-activated** — the runtime does not require a provider entry
 in `holocron.config` to function. They activate wherever their env vars are
@@ -174,8 +177,8 @@ present, including before config is fully resolved. The config entry
 provisioning and `holocron doctor` connectivity checks.
 
 This makes `errors` and `logs` self-contained cross-cutting infrastructure
-rather than opt-in feature providers — consistent with how `SENTRY_DSN` already
-drives Sentry initialisation today.
+rather than opt-in feature providers — consistent with how `HOLOCRON_SENTRY_DSN`
+already drives Sentry initialisation today.
 
 ### Package location
 
@@ -189,7 +192,7 @@ interface and `createLogger` factory — never Pino directly.
   be replaced with the shared `logger` — tracked in #454. The existing `print` injection
   pattern is untouched; it serves a different purpose.
 - The `observability` capability (many cardinality) is removed; Sentry migrates to `errors`
-- Axiom dataset and API key stored as org secrets (`AXIOM_DATASET`, `AXIOM_TOKEN`);
+- Axiom credentials stored as org secrets (`HOLOCRON_AXIOM_TOKEN`, `HOLOCRON_AXIOM_DATASET`);
   never in `holocron.config`
 - `HOLOCRON_TELEMETRY=false` disables Axiom transport; `errors` and `logs` are
   independently opt-outable via their respective env vars being absent
