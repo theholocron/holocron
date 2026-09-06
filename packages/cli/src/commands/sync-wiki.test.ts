@@ -307,11 +307,12 @@ describe("buildNavbarLinks", () => {
 
 	it("includes minimal links for all other repos", () => {
 		const block = buildNavbarLinks(repos, "holocron", "org/holocron");
-		expect(block).toContain("  - type: minimal");
-		expect(block).toContain("    value: https://wiki.example.com/configs");
-		expect(block).toContain("    label: Configs");
-		expect(block).toContain("    value: https://wiki.example.com/skills");
-		expect(block).toContain("    label: Skills");
+		expect(block).toContain("  - type: dropdown");
+		expect(block).toContain("    text: Other Projects");
+		expect(block).toContain("      - href: https://wiki.example.com/configs");
+		expect(block).toContain("        text: Configs");
+		expect(block).toContain("      - href: https://wiki.example.com/skills");
+		expect(block).toContain("        text: Skills");
 	});
 
 	it("falls back to wiki.theholocron.dev when domain is absent", () => {
@@ -746,11 +747,11 @@ describe("runSyncWiki", () => {
 		// GitHub button for own repo
 		expect(docs).toContain("type: github");
 		expect(docs).toContain("https://github.com/org/myrepo");
-		// Minimal link to other wiki, not to self
-		expect(docs).toContain("type: minimal");
-		expect(docs).toContain("value: https://wiki.example.com/other");
-		// Self-link does not appear as a nav value (custom-domain line is fine)
-		expect(docs).not.toContain("value: https://wiki.example.com/myrepo");
+		// Dropdown link to other wiki, not to self
+		expect(docs).toContain("type: dropdown");
+		expect(docs).toContain("href: https://wiki.example.com/other");
+		// Self-link does not appear as a nav href (custom-domain line is fine)
+		expect(docs).not.toContain("href: https://wiki.example.com/myrepo");
 	});
 
 	it("derives org from owner when config.org is absent", async () => {
@@ -848,9 +849,12 @@ describe("runSyncWiki", () => {
 			"navbar-links:",
 			"  - type: github",
 			"    value: https://github.com/org/myrepo",
-			"  - type: minimal",
-			"    value: https://wiki.example.com/other",
-			"    label: Other",
+			"  - type: dropdown",
+			"    text: Other Projects",
+			"    icon: fa-duotone fa-book",
+			"    links:",
+			"      - href: https://wiki.example.com/other",
+			"        text: Other",
 		].join("\n");
 		await writeFile(
 			join(tmpDir, "fern", "docs.yml"),
