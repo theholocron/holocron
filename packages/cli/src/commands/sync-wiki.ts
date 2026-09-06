@@ -195,7 +195,7 @@ export function buildNavbarLinks(repos: WikiRepo[], currentBasepath: string, rep
 		lines.push(`  - type: dropdown`, `    text: Wiki`, `    icon: fa-duotone fa-book`, `    links:`);
 		for (const repo of others) {
 			const url = repo.domain ? `https://${repo.domain}` : `https://wiki.theholocron.dev/${repo.basepath}`;
-			lines.push(`      - type: minimal`, `        href: ${url}`, `        text: ${repo.displayName}`);
+			lines.push(`      - href: ${url}`, `        text: ${repo.displayName}`);
 		}
 	}
 
