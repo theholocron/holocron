@@ -57,7 +57,7 @@
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/logger": "workspace:*",
-    "@theholocron/registry-doc": "^1.9.0",
+    "@theholocron/registry-doc": "^1.10.0",
     "chalk": "catalog:",
     "ora": "catalog:",
     "tsx": "catalog:",

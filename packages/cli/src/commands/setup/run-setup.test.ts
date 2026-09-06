@@ -267,6 +267,37 @@ describe("runSetup", () => {
 		expect(ensuredName).toBe("my-app");
 	});
 
+	it("provisions the holocron-ci and holocron-local datasets for the logs capability", async () => {
+		const ensured: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-app",
+			providers: { logs: "axiom" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", {
+				logs: {
+					ensureDataset: async (name: string) => {
+						ensured.push(name);
+						return { alreadyExists: name === "holocron-ci" };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(ensured).toEqual(["holocron-ci", "holocron-local"]);
+		const rows = report.steps.filter((s) => s.capability === "logs");
+		expect(rows.map((r) => r.status)).toEqual(["ok", "ok"]);
+		expect(rows[0]?.message).toContain("exists");
+		expect(rows[1]?.message).toContain("created");
+	});
+
 	it("calls ensureCustomDomain and dns.upsertRecord when deploy has preview.domain", async () => {
 		const customDomainCalls: Array<[string, string]> = [];
 		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];

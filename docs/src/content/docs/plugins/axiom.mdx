@@ -1,0 +1,92 @@
+---
+title: Axiom Plugin
+description: Implements the logs capability against Axiom's REST API.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
+import { getPlugins } from "@theholocron/registry-doc";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-axiom"]} capability="logs" />
+
+<Installation package={getPlugins()["holocron-plugin-axiom"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "logs", token: "HOLOCRON_AXIOM_TOKEN (axiom)" }]} />
+
+## Self-contained activation
+
+Structured log output to Axiom is handled by
+[`@theholocron/logger`](/holocron/logging/) — its Axiom transport reads
+`HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` (fallbacks: `AXIOM_TOKEN` +
+`AXIOM_DATASET`) directly at startup. **This plugin does not ship log lines.**
+
+The `logs` provider entry is used only by `holocron setup` (to provision the
+`holocron-ci` and `holocron-local` datasets) and `holocron doctor` (to verify the
+configured dataset is reachable).
+
+```bash
+# CI — one org secret, inherited by every repo
+export HOLOCRON_AXIOM_DATASET=holocron-ci
+# Local — optional; leave unset to skip Axiom entirely
+export HOLOCRON_AXIOM_DATASET=holocron-local
+```
+
+`HOLOCRON_AXIOM_DATASET` is **not a secret**.
+
+## Config
+
+```ts
+providers: {
+  logs: "axiom",
+}
+```
+
+No options are required. To pin the dataset that `holocron doctor` checks
+independent of the env var:
+
+```ts
+providers: {
+  logs: ["axiom", { dataset: "holocron-ci" }],
+}
+```
+
+### Options
+
+| Option    | Required | Description                                                                       |
+| --------- | -------- | --------------------------------------------------------------------------------- |
+| `dataset` | No       | Dataset name for `whoami`. Defaults to `HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET` |
+
+## Authentication
+
+1. Go to [app.axiom.co/settings/api-tokens](https://app.axiom.co/settings/api-tokens)
+2. Create an API token with permission to **read** and **create** datasets
+3. Store it:
+
+```bash
+holocron auth set axiom <TOKEN>
+```
+
+Or via env var:
+
+```bash
+export HOLOCRON_AXIOM_TOKEN=<TOKEN>
+# Also recognized:
+export AXIOM_TOKEN=<TOKEN>
+```
+
+## What `logs` provides
+
+- `describe()` — returns the provider name and required env var keys (`HOLOCRON_AXIOM_TOKEN`, `HOLOCRON_AXIOM_DATASET`)
+- `whoami()` — fetches the configured dataset to verify the token and its reachability
+- `ensureDataset(name)` — create the dataset if it does not exist; returns whether it already existed. Idempotent.
+
+## Example
+
+```ts
+import { createPlugin } from "@theholocron/holocron-plugin-axiom";
+
+const plugin = createPlugin({ token: process.env.HOLOCRON_AXIOM_TOKEN });
+const logs = plugin.capabilities.logs();
+
+const { alreadyExists } = await logs.ensureDataset("holocron-ci");
+console.log(alreadyExists ? "dataset exists" : "dataset created");
+```
