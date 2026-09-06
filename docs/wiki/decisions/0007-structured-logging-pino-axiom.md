@@ -20,7 +20,7 @@ This creates several problems:
 The codebase already has two distinct output concerns:
 
 - **`print`** — user-facing UX output: formatted results, success messages, the lines
-  a user is *meant* to see. Already abstracted via a `print` dependency injection
+  a user is _meant_ to see. Already abstracted via a `print` dependency injection
   pattern across 19 command files.
 - **`logger`** — operational/observability output: what the system is doing internally,
   debug traces, errors, structured context that routes to external services. Currently
@@ -81,12 +81,12 @@ vars, providers, etc.). If Pino is ever replaced, only the implementation class 
 
 **Alternatives considered:**
 
-| Library | Verdict | Reason rejected |
-|---|---|---|
-| **Winston** | Rejected | Heavier, slower serialisation, no official Axiom transport, more boilerplate for child loggers |
-| **consola** | Rejected | Good DX but no structured redaction, no worker-thread transports, less suited to machine-readable output |
-| **Bunyan** | Rejected | Unmaintained, Pino was forked from it and is its successor |
-| **pino-logger (hand-rolled)** | Not needed | Pino itself is already minimal; building on top adds nothing |
+| Library                       | Verdict    | Reason rejected                                                                                          |
+| ----------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
+| **Winston**                   | Rejected   | Heavier, slower serialisation, no official Axiom transport, more boilerplate for child loggers           |
+| **consola**                   | Rejected   | Good DX but no structured redaction, no worker-thread transports, less suited to machine-readable output |
+| **Bunyan**                    | Rejected   | Unmaintained, Pino was forked from it and is its successor                                               |
+| **pino-logger (hand-rolled)** | Not needed | Pino itself is already minimal; building on top adds nothing                                             |
 
 ### Log aggregation service: Axiom
 
@@ -101,23 +101,23 @@ vars, providers, etc.). If Pino is ever replaced, only the implementation class 
 
 **Alternatives considered:**
 
-| Service | Verdict | Reason rejected |
-|---|---|---|
-| **Logtail / Better Stack** | Close second | Comparable DX and free tier, slightly less native Pino integration. Would be the next choice if Axiom is unsuitable. |
-| **Grafana Loki / Grafana Cloud** | Rejected | Powerful but adds infrastructure overhead; Grafana Cloud free tier is limited; no official Pino transport |
-| **Datadog** | Rejected | Industry standard but expensive at scale; overkill for current log volumes |
-| **AWS CloudWatch** | Rejected | AWS lock-in, poor DX for a tool-agnostic CLI, no native Pino transport |
-| **Splunk** | Rejected | Enterprise pricing, far more complexity than needed |
-| **Sentry (Logs feature)** | Rejected | Sentry is already integrated for error tracking; its log product is newer and not its strength — keep Sentry for errors only |
+| Service                          | Verdict      | Reason rejected                                                                                                              |
+| -------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Logtail / Better Stack**       | Close second | Comparable DX and free tier, slightly less native Pino integration. Would be the next choice if Axiom is unsuitable.         |
+| **Grafana Loki / Grafana Cloud** | Rejected     | Powerful but adds infrastructure overhead; Grafana Cloud free tier is limited; no official Pino transport                    |
+| **Datadog**                      | Rejected     | Industry standard but expensive at scale; overkill for current log volumes                                                   |
+| **AWS CloudWatch**               | Rejected     | AWS lock-in, poor DX for a tool-agnostic CLI, no native Pino transport                                                       |
+| **Splunk**                       | Rejected     | Enterprise pricing, far more complexity than needed                                                                          |
+| **Sentry (Logs feature)**        | Rejected     | Sentry is already integrated for error tracking; its log product is newer and not its strength — keep Sentry for errors only |
 
 ### `print` vs `logger`
 
 These are two parallel concerns and must not be collapsed:
 
-| Concern | Purpose | Audience | Destination |
-|---|---|---|---|
-| `print` | User-facing UX output — formatted results, success lines, what a user is *meant* to read | The human running the CLI | stdout, formatted with chalk |
-| `logger` | Operational output — internal state, debug traces, errors, structured context | Observability tooling | Axiom, stderr, CI log |
+| Concern  | Purpose                                                                                  | Audience                  | Destination                  |
+| -------- | ---------------------------------------------------------------------------------------- | ------------------------- | ---------------------------- |
+| `print`  | User-facing UX output — formatted results, success lines, what a user is _meant_ to read | The human running the CLI | stdout, formatted with chalk |
+| `logger` | Operational output — internal state, debug traces, errors, structured context            | Observability tooling     | Axiom, stderr, CI log        |
 
 `logger` does not wrap or replace `print`. Each command keeps its `print` surface for
 user output and gains a `logger` surface for operational output.
@@ -131,30 +131,30 @@ user output and gains a `logger` surface for operational output.
 
 ### Transport matrix
 
-| Environment | Transport | Format |
-|---|---|---|
-| Local dev | `pino-pretty` | Chalk-colored, human-readable |
-| CI (`CI=true`) | stdout only | Plain JSON, no colour |
-| All | Axiom (`@axiomhq/pino`) | Structured JSON — `info` and above only |
+| Environment    | Transport               | Format                                  |
+| -------------- | ----------------------- | --------------------------------------- |
+| Local dev      | `pino-pretty`           | Chalk-colored, human-readable           |
+| CI (`CI=true`) | stdout only             | Plain JSON, no colour                   |
+| All            | Axiom (`@axiomhq/pino`) | Structured JSON — `info` and above only |
 
 ### Standard context fields on every log line
 
-| Field | Source |
-|---|---|
-| `runId` | UUID generated at command startup — correlates all lines from one invocation |
-| `env` | `"ci"` when `CI=true`, otherwise `"local"` |
-| `command` | Active holocron command name |
-| `module` | Set per child logger: `logger.child({ module: 'sync-github' })` |
-| `repo` | Active repo coordinate when available |
-| `level` | Pino level name |
-| `time` | ISO timestamp |
+| Field     | Source                                                                       |
+| --------- | ---------------------------------------------------------------------------- |
+| `runId`   | UUID generated at command startup — correlates all lines from one invocation |
+| `env`     | `"ci"` when `CI=true`, otherwise `"local"`                                   |
+| `command` | Active holocron command name                                                 |
+| `module`  | Set per child logger: `logger.child({ module: 'sync-github' })`              |
+| `repo`    | Active repo coordinate when available                                        |
+| `level`   | Pino level name                                                              |
+| `time`    | ISO timestamp                                                                |
 
 ### Sensitive field redaction
 
 Pino's `redact` config strips the following paths before any transport sees them:
 
 ```ts
-redact: ['token', 'secret', 'password', 'secrets[*].value', 'headers.authorization']
+redact: ["token", "secret", "password", "secrets[*].value", "headers.authorization"];
 ```
 
 ### Package location
