@@ -63,11 +63,11 @@ The overloads mirror Pino: object-first for structured lines, bare string for si
 
 Returns `{ logger, runId }`. `runId` is a UUID bound to every line the logger and its children emit — surface it via `print` when `--debug` or `--verbose` is set so a whole run can be pulled back out of Axiom.
 
-| `config` field  | Type                                | Notes                                                        |
-| --------------- | ----------------------------------- | ----------------------------------------------------------- |
-| `level`         | `"debug" \| "info" \| "warn" \| "error"` | Highest-priority level source. Optional.               |
-| `axiom.dataset` | `string`                            | Axiom dataset name. Supply from env vars only.               |
-| `axiom.token`   | `string`                            | Axiom API token. Supply from env vars only — never config.   |
+| `config` field  | Type                                     | Notes                                                      |
+| --------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| `level`         | `"debug" \| "info" \| "warn" \| "error"` | Highest-priority level source. Optional.                   |
+| `axiom.dataset` | `string`                                 | Axiom dataset name. Supply from env vars only.             |
+| `axiom.token`   | `string`                                 | Axiom API token. Supply from env vars only — never config. |
 
 ### Level resolution
 
@@ -79,11 +79,11 @@ An unrecognised value at any tier is ignored and resolution falls through. The r
 
 ## Transports
 
-| Environment                    | Output                                          |
-| ------------------------------ | ----------------------------------------------- |
-| Local, TTY                     | `pino-pretty` — colourised, human-readable      |
-| CI (`CI` truthy)               | Newline-delimited JSON to stdout                |
-| `config.axiom` supplied        | Axiom, in a Pino worker thread (non-blocking)   |
+| Environment             | Output                                        |
+| ----------------------- | --------------------------------------------- |
+| Local, TTY              | `pino-pretty` — colourised, human-readable    |
+| CI (`CI` truthy)        | Newline-delimited JSON to stdout              |
+| `config.axiom` supplied | Axiom, in a Pino worker thread (non-blocking) |
 
 The Axiom transport is added only when `config.axiom` is supplied **and** `HOLOCRON_TELEMETRY` is not `"false"`. When Axiom is the only non-console transport, console JSON is kept alongside it so CI logs stay readable.
 
@@ -91,10 +91,10 @@ The Axiom transport is added only when `config.axiom` is supplied **and** `HOLOC
 
 Selected by `HOLOCRON_AXIOM_DATASET` — one env var, one value per environment:
 
-| Value            | When              |
-| ---------------- | ----------------- |
-| `holocron-ci`    | CI (org secret)   |
-| `holocron-local` | local (optional)  |
+| Value            | When             |
+| ---------------- | ---------------- |
+| `holocron-ci`    | CI (org secret)  |
+| `holocron-local` | local (optional) |
 
 If `HOLOCRON_AXIOM_DATASET` is unset locally, local runs write only to `pino-pretty` — no Axiom connection is attempted.
 
@@ -106,13 +106,13 @@ Sensitive field paths are stripped in Pino's serialisation layer, before any tra
 
 ## Development
 
-| Script                | Description              |
-| --------------------- | ------------------------ |
-| `pnpm build`          | Bundle with tsdown       |
-| `pnpm test`           | Run the vitest suite     |
-| `pnpm test:coverage`  | Run tests with coverage  |
-| `pnpm typecheck`      | `tsc --noEmit`           |
-| `pnpm lint`           | ESLint                   |
+| Script               | Description             |
+| -------------------- | ----------------------- |
+| `pnpm build`         | Bundle with tsdown      |
+| `pnpm test`          | Run the vitest suite    |
+| `pnpm test:coverage` | Run tests with coverage |
+| `pnpm typecheck`     | `tsc --noEmit`          |
+| `pnpm lint`          | ESLint                  |
 
 ## Releases
 
