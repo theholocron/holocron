@@ -126,8 +126,13 @@ function validateSpec(filepath) {
 	}
 }
 
-// Determine which files to validate
-const args = process.argv.slice(2).map((f) => resolve(f));
+// Determine which files to validate. Explicit args (from the CI "changed
+// files" pass) are filtered to real, on-disk files — a rename shows the
+// old path in `git diff`, and validating a moved-away file would ENOENT.
+const args = process.argv
+	.slice(2)
+	.map((f) => resolve(f))
+	.filter(existsSync);
 
 const adrFiles =
 	args.length > 0
