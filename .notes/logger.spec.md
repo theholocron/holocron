@@ -297,12 +297,17 @@ Axiom credentials come only from env vars — secrets do not belong in config.
 
 ## CLI flag integration
 
-Add `--verbose` and `--quiet` to the global yargs option definitions in `cli.ts`:
+Add `--verbose`, `--debug`, and `--quiet` to the global yargs option definitions in `cli.ts`:
 
 ```ts
 .option('verbose', {
   boolean: true,
-  description: 'Set log level to debug',
+  description: 'Set log level to debug — full structured output',
+  default: false,
+})
+.option('debug', {
+  boolean: true,
+  description: 'Print run ID for Axiom lookup; minimal extra output',
   default: false,
 })
 .option('quiet', {
@@ -312,6 +317,10 @@ Add `--verbose` and `--quiet` to the global yargs option definitions in `cli.ts`
 })
 ```
 
+`--debug` does not change the log level — it prints the `runId` via `print` at
+the end of the command so the user has a reference for querying Axiom, without
+the full debug trace that `--verbose` produces.
+
 Level resolution in the command layer:
 
 ```ts
@@ -320,6 +329,14 @@ const level = argv.verbose
   : argv.quiet
     ? "error"
     : ((process.env.HOLOCRON_LOG_LEVEL as LogLevel | undefined) ?? config.log?.level ?? "info");
+```
+
+`runId` is returned from `createLogger` alongside the logger instance:
+
+```ts
+const { logger, runId } = createLogger({ level, axiom: resolvedAxiomConfig })
+// ...
+if (argv.debug || argv.verbose) print(`Run ID: ${runId}`)
 ```
 
 ---
@@ -352,14 +369,33 @@ Total migration: ~32 substitutions, all mechanical once `@theholocron/logger` ex
 
 ---
 
-## Open questions
+## Axiom datasets
 
-1. **`runId` exposure** — should `runId` be returned from `createLogger` so the
-   command can include it in `print` output (e.g. "Run ID: abc123 — use this to
-   find logs in Axiom")? Useful for debugging but adds noise to normal output.
-2. **Axiom dataset per environment** — single dataset with an `env` field to
-   filter, or separate `holocron-local` and `holocron-ci` datasets?
-   Single dataset is simpler; separate datasets allow different retention policies.
-3. **Log sampling** — should `debug` lines ever reach Axiom (e.g. when explicitly
-   set via `HOLOCRON_LOG_LEVEL=debug` in CI)? Currently the spec says `info`+
-   always; if a user is debugging in CI they may want `debug` in Axiom too.
+Two separate Axiom datasets — one per environment:
+
+| Dataset | Env var | When used | Retention suggestion |
+|---|---|---|---|
+| `holocron-ci` | `AXIOM_CI_DATASET` | `CI=true` | 90 days — operational truth, correlates with releases and incidents |
+| `holocron-local` | `AXIOM_LOCAL_DATASET` | `CI` absent/falsy | 7 days — ephemeral dev noise; optional |
+
+**Local runs may omit Axiom entirely.** Since `pino-pretty` fully covers the local
+dev experience, shipping local logs to Axiom is optional. If `AXIOM_LOCAL_DATASET`
+is absent, local runs write only to `pino-pretty` and do not attempt an Axiom
+connection. CI runs always ship to Axiom when `AXIOM_CI_DATASET` + `AXIOM_TOKEN`
+are present.
+
+`AXIOM_TOKEN` is shared across both datasets.
+
+## Resolved decisions
+
+1. **`runId` exposure** — `createLogger` returns `{ logger, runId }`. The `runId`
+   is printed via `print` only when `--debug` or `--verbose` is passed. `--debug`
+   is a minimal flag: no level change, just the run ID at command end for Axiom lookup.
+
+2. **Axiom datasets** — two separate datasets (`holocron-ci`, `holocron-local`).
+   Local is optional — absent `AXIOM_LOCAL_DATASET` means local runs use only
+   `pino-pretty`. Separate datasets allow independent retention policies.
+
+3. **Log level drives all transports** — the configured level applies consistently
+   to both `pino-pretty` and Axiom. No separate Axiom-only level gate. If
+   `HOLOCRON_LOG_LEVEL=debug`, debug lines reach Axiom — intentional for CI debugging.
