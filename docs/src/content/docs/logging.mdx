@@ -1,0 +1,149 @@
+---
+title: Logging
+description: Structured logging with @theholocron/logger — a Pino-backed Logger interface, pino-pretty locally, JSON in CI, and Axiom aggregation.
+---
+
+Holocron has two parallel output channels:
+
+- **`print`** — user-facing UX output: formatted results, success lines, the text a
+  user is meant to read.
+- **`logger`** — operational output: internal state, debug traces, errors, and the
+  structured context that routes to [Axiom](https://axiom.co).
+
+They are not a hierarchy. `logger` does not wrap or replace `print`. This page covers
+`logger`, implemented by the [`@theholocron/logger`](https://www.npmjs.com/package/@theholocron/logger)
+package.
+
+> **Note.** The `@theholocron/logger` package ships now. Wiring it through the CLI —
+> the `--verbose` / `--debug` / `--quiet` flags, the `holocron.config` `log` key, and
+> the migration of existing `console.*` call sites — lands alongside that migration.
+> Until then, set the level with `HOLOCRON_LOG_LEVEL`.
+
+## The `Logger` interface
+
+Every command and plugin imports `Logger` — never Pino directly. Pino is an
+implementation detail hidden behind the interface, so the logging library can be
+swapped without touching a call site.
+
+```ts
+interface Logger {
+  debug(obj: Record<string, unknown>, msg?: string): void;
+  debug(msg: string): void;
+  info(obj: Record<string, unknown>, msg?: string): void;
+  info(msg: string): void;
+  warn(obj: Record<string, unknown>, msg?: string): void;
+  warn(msg: string): void;
+  error(obj: Record<string, unknown>, msg?: string): void;
+  error(msg: string): void;
+  child(bindings: Record<string, unknown>): Logger;
+}
+```
+
+## Creating a logger
+
+```ts
+import { createLogger } from "@theholocron/logger";
+
+const { logger, runId } = createLogger({ level: "info" });
+const log = logger.child({ command: "sync-github", repo: "theholocron/configs" });
+
+log.info({ branch: "main" }, "opening PR");
+```
+
+`createLogger` returns `{ logger, runId }`. The `runId` is a UUID bound to every line
+the logger and its children emit — one query pulls a whole run back out of Axiom.
+It is printed via `print` when `--debug` or `--verbose` is passed.
+
+Child loggers inherit every binding from their parent and add their own, so passing
+`logger.child({ module })` into a module means every line from that module carries
+`command`, `repo`, `runId`, `env`, and `module` with no extra wiring.
+
+## Standard context fields
+
+| Field     | Set by                | Value                                          |
+| --------- | --------------------- | --------------------------------------------- |
+| `runId`   | root logger (startup) | UUID, unique per command invocation           |
+| `env`     | root logger (startup) | `"ci"` when CI is detected, else `"local"`     |
+| `command` | command child logger  | active holocron command name                  |
+| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`      |
+| `repo`    | command child logger  | `"owner/name"` when available                  |
+| `level`   | Pino                  | level name string                             |
+| `time`    | Pino                  | ISO 8601 timestamp                            |
+
+## Log level
+
+Resolved in priority order:
+
+1. `--verbose` → `debug`, `--quiet` → `error` (resolved by the command layer)
+2. `HOLOCRON_LOG_LEVEL` env var (`debug` | `info` | `warn` | `error`)
+3. `log.level` in `holocron.config`
+4. `"info"` (default)
+
+The resolved level applies to every transport — there is no separate Axiom gate.
+
+`--debug` is distinct from `--verbose`: it does **not** change the level. It only
+prints the `runId` at the end of the command so you have a reference for querying
+Axiom, without the full debug trace.
+
+## Transports
+
+| Environment       | Output                                       |
+| ----------------- | -------------------------------------------- |
+| Local, on a TTY   | `pino-pretty` — colourised, human-readable   |
+| CI (`CI` truthy)  | newline-delimited JSON to stdout             |
+| Axiom configured  | Axiom, in a non-blocking Pino worker thread  |
+
+### Axiom
+
+The Axiom transport is added when Axiom credentials are present **and**
+`HOLOCRON_TELEMETRY` is not `"false"`.
+
+| Env var                  | Fallback        | Purpose             |
+| ------------------------ | --------------- | ------------------- |
+| `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   | Axiom API token     |
+| `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` | target dataset name |
+
+Two datasets, selected by the single `HOLOCRON_AXIOM_DATASET` value:
+
+| Value            | When                       |
+| ---------------- | -------------------------- |
+| `holocron-ci`    | CI — set once as an org secret |
+| `holocron-local` | local — optional           |
+
+If `HOLOCRON_AXIOM_DATASET` is unset locally, local runs write only to
+`pino-pretty` and never attempt an Axiom connection.
+
+Store the token in the OS keyring:
+
+```bash
+holocron auth set axiom.theholocron <TOKEN>
+```
+
+### Opting out
+
+`HOLOCRON_TELEMETRY=false` disables the Axiom transport only. The logger keeps
+working — it just writes locally.
+
+## Redaction
+
+Sensitive field paths are stripped in Pino's serialisation layer, before any
+transport sees a line. Redacted values become `[Redacted]`.
+
+Redacted: `token`, `secret`, `password`, `apiKey`, `secrets[*].value`,
+`headers.authorization`, `headers["x-api-key"]`, and the same keys one level down
+(`*.token`, `*.secret`, …). The full list is exported as `REDACTED_PATHS`.
+
+## `holocron.config`
+
+```ts
+import { defineConfig } from "@theholocron/holocron-config";
+
+export default defineConfig({
+  log: {
+    level: "info", // "debug" | "info" | "warn" | "error"
+  },
+});
+```
+
+Only the level belongs in config. Axiom credentials come from env vars — secrets do
+not belong in a committed file.

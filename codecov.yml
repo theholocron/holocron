@@ -100,3 +100,8 @@ component_management:
       name: "holocron-plugin-vercel"
       paths:
         - packages/holocron-plugin-vercel/**
+
+    - component_id: logger
+      name: "logger"
+      paths:
+        - packages/logger/**
