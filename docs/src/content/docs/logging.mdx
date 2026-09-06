@@ -100,19 +100,35 @@ The Axiom transport is added when Axiom credentials are present **and**
 
 Two datasets, selected by the single `HOLOCRON_AXIOM_DATASET` value:
 
-| Value            | When                           |
-| ---------------- | ------------------------------ |
-| `holocron-ci`    | CI — set once as an org secret |
-| `holocron-local` | local — optional               |
+| Value            | When           |
+| ---------------- | -------------- |
+| `holocron-ci`    | CI             |
+| `holocron-local` | local — opt-in |
 
-If `HOLOCRON_AXIOM_DATASET` is unset locally, local runs write only to
-`pino-pretty` and never attempt an Axiom connection.
+If `HOLOCRON_AXIOM_DATASET` is unset, runs write only to their console
+transport and never attempt an Axiom connection.
 
-Store the token in the OS keyring:
+#### CI
 
-```bash
-holocron auth set axiom.theholocron <TOKEN>
-```
+The `sync` and `sync-github` reusable workflows read the token from the
+`HOLOCRON_AXIOM_TOKEN` secret and the dataset from the
+`HOLOCRON_AXIOM_DATASET` variable — set both at the org level once
+(`HOLOCRON_AXIOM_DATASET = holocron-ci`). Thin callers forward them via
+`secrets: inherit`; the variable is visible to the reusable workflow
+automatically. `HOLOCRON_TELEMETRY=false` in a workflow disables shipping
+without removing the secret.
+
+#### Local
+
+`holocron auth set axiom.theholocron <TOKEN>` stores the token in the OS
+keyring — this is what `holocron setup` and `holocron doctor` use to
+provision and check the datasets (the `logs` capability).
+
+The **logger's Axiom transport reads env vars only**, not the keyring. To
+ship your local runs to Axiom, export `HOLOCRON_AXIOM_TOKEN` and
+`HOLOCRON_AXIOM_DATASET=holocron-local` in your shell. Leaving
+`HOLOCRON_AXIOM_DATASET` unset (the default) keeps local runs on
+`pino-pretty` only.
 
 ### Opting out
 

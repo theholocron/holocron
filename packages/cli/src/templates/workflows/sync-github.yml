@@ -47,6 +47,11 @@ on: # yamllint disable-line rule:truthy
           Generic GitHub token fallback for `gh` CLI calls. Used when neither
           HOLOCRON_READ_TOKEN nor HOLOCRON_SYNC_TOKEN is set.
         required: false
+      HOLOCRON_AXIOM_TOKEN:
+        description: >
+          Axiom API token. When set alongside the HOLOCRON_AXIOM_DATASET
+          repo/org variable, the CLI ships this run's structured logs to Axiom.
+        required: false
       TURBO_TOKEN:
         required: false
 
@@ -60,6 +65,8 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN }}
+      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
