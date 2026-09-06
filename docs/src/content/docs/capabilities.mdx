@@ -154,6 +154,30 @@ DNS record management. Implemented by: [Cloudflare](./plugins/cloudflare).
 | `upsertRecord(domain, record)` | Create or update a record         |
 | `deleteRecord(domain, id)`     | Delete a record by id             |
 
+### `errors`
+
+Error tracking — project provisioning and DSN retrieval. Implemented by: [Sentry](./plugins/sentry).
+
+**Self-contained:** activates automatically when `SENTRY_DSN` is present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
+
+| Method                 | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `describe()`           | Return the provider name and required env var keys |
+| `whoami()`             | Verify the token by fetching the organization      |
+| `ensureProject(input)` | Create or retrieve a project, returning its DSN    |
+
+### `logs`
+
+Log aggregation — ships structured log output to an external service. Implemented by: Axiom (coming in `@theholocron/holocron-plugin-axiom`).
+
+**Self-contained:** activates automatically when `AXIOM_TOKEN` and `AXIOM_DATASET` are present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
+
+| Method            | Description                                         |
+| ----------------- | --------------------------------------------------- |
+| `describe()`      | Return the provider name and required env var keys  |
+| `whoami()`        | Verify the token by fetching the dataset info       |
+| `ensureDataset()` | Create the Axiom dataset if it does not exist       |
+
 ## Multi-provider capabilities
 
 These accept any number of providers — all are active simultaneously.
@@ -184,13 +208,3 @@ Project provisioning and tracking token retrieval for product analytics. Impleme
 | `describe()`          | Return the provider name and required env var keys     |
 | `whoami()`            | Verify the personal API key                            |
 | `ensureProject(name)` | Find or create a project, returning its tracking token |
-
-### `observability`
-
-Error tracking — project provisioning and DSN retrieval. Implemented by: [Sentry](./plugins/sentry).
-
-| Method                 | Description                                        |
-| ---------------------- | -------------------------------------------------- |
-| `describe()`           | Return the provider name and required env var keys |
-| `whoami()`             | Verify the token by fetching the organization      |
-| `ensureProject(input)` | Create or retrieve a project, returning its DSN    |

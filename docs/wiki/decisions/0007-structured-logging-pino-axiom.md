@@ -157,6 +157,26 @@ Pino's `redact` config strips the following paths before any transport sees them
 redact: ["token", "secret", "password", "secrets[*].value", "headers.authorization"];
 ```
 
+### Capability model — `errors` and `logs`
+
+The former `observability` capability (many cardinality) is replaced by two
+dedicated single-cardinality capabilities:
+
+| Capability | Provider | Activation |
+|---|---|---|
+| `errors` | `sentry` | `SENTRY_DSN` env var |
+| `logs` | `axiom` | `AXIOM_TOKEN` + `AXIOM_DATASET` env vars |
+
+Both are **env-var-activated** — the runtime does not require a provider entry
+in `holocron.config` to function. They activate wherever their env vars are
+present, including before config is fully resolved. The config entry
+(`errors: "sentry"`, `logs: "axiom"`) exists solely for `holocron setup`
+provisioning and `holocron doctor` connectivity checks.
+
+This makes `errors` and `logs` self-contained cross-cutting infrastructure
+rather than opt-in feature providers — consistent with how `SENTRY_DSN` already
+drives Sentry initialisation today.
+
 ### Package location
 
 `packages/logger` in the `theholocron/holocron` monorepo, published as
@@ -168,9 +188,11 @@ interface and `createLogger` factory — never Pino directly.
 - All operational `console.log` / `console.error` call sites in the CLI and plugins must
   be replaced with the shared `logger` — tracked in #454. The existing `print` injection
   pattern is untouched; it serves a different purpose.
-- Axiom dataset and API key must be provisioned and stored as org secrets
-  (`AXIOM_DATASET`, `AXIOM_TOKEN`)
-- `HOLOCRON_TELEMETRY=false` disables the Axiom transport (same opt-out gate as PostHog #452)
+- The `observability` capability (many cardinality) is removed; Sentry migrates to `errors`
+- Axiom dataset and API key stored as org secrets (`AXIOM_DATASET`, `AXIOM_TOKEN`);
+  never in `holocron.config`
+- `HOLOCRON_TELEMETRY=false` disables Axiom transport; `errors` and `logs` are
+  independently opt-outable via their respective env vars being absent
 - PostHog (#452) and Axiom serve complementary purposes; neither is required for the CLI to function
 - Discord thread logging (#521) attaches to the `Logger` interface output stream once this is in place
 - Swapping Pino for another library in the future requires only changing the `PinoLogger`
