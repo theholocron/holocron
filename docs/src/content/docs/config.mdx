@@ -80,6 +80,11 @@ export default defineConfig({
     errors: "sentry",
     logs: "axiom",
   },
+
+  // Structured-logging config — level only. Lowest-priority level source:
+  // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. Axiom
+  // credentials never live here; they come from env vars.
+  log: { level: "info" },
 });
 ```
 
@@ -123,33 +128,33 @@ When `agent` is set, `holocron setup` also writes nine AI engineering workflow r
 
 When `docs` is configured, `holocron setup` also provisions the engineering knowledge structure on first run. Existing files are never overwritten, so existing ADRs are safe.
 
-| Path | Created |
-| ---- | ------- |
+| Path                         | Created                                     |
+| ---------------------------- | ------------------------------------------- |
 | `docs/decisions/template.md` | MADR ADR template with required frontmatter |
-| `docs/decisions/README.md` | Index and usage guide |
-| `docs/engineering/README.md` | Internal engineering site stub |
+| `docs/decisions/README.md`   | Index and usage guide                       |
+| `docs/engineering/README.md` | Internal engineering site stub              |
 
 Any repo with a docs site gets the structure — it costs nothing and is ready when needed, even if ADRs are never written.
 
 ## Capability cardinality
 
-| Capability      | Cardinality | Description                                    |
-| --------------- | ----------- | ---------------------------------------------- |
-| `source`        | single      | Repository + branch + workflow file operations |
-| `ci`            | single      | CI run listing and status                      |
-| `secrets`       | single      | CI/platform secret sync destination            |
-| `environments`  | single      | Named deployment environments                  |
-| `issues`        | single      | Issue tracker (create, search, transition)     |
-| `deployment`    | single      | Preview and production deployment              |
-| `storage`       | single      | Database branch management                     |
-| `auth`          | single      | Identity provider                              |
-| `vault`         | single      | Secret source-of-truth                         |
-| `dns`           | single      | DNS record management                          |
-| `errors`        | single      | Error tracking — env-var-activated (`HOLOCRON_SENTRY_DSN`); provider entry used by setup/doctor only |
+| Capability      | Cardinality | Description                                                                                                                       |
+| --------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `source`        | single      | Repository + branch + workflow file operations                                                                                    |
+| `ci`            | single      | CI run listing and status                                                                                                         |
+| `secrets`       | single      | CI/platform secret sync destination                                                                                               |
+| `environments`  | single      | Named deployment environments                                                                                                     |
+| `issues`        | single      | Issue tracker (create, search, transition)                                                                                        |
+| `deployment`    | single      | Preview and production deployment                                                                                                 |
+| `storage`       | single      | Database branch management                                                                                                        |
+| `auth`          | single      | Identity provider                                                                                                                 |
+| `vault`         | single      | Secret source-of-truth                                                                                                            |
+| `dns`           | single      | DNS record management                                                                                                             |
+| `errors`        | single      | Error tracking — env-var-activated (`HOLOCRON_SENTRY_DSN`); provider entry used by setup/doctor only                              |
 | `logs`          | single      | Log aggregation — env-var-activated (`HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`); provider entry used by setup/doctor only |
-| `tooling`       | **many**    | Sync external tool state                       |
-| `notifications` | **many**    | Send messages                                  |
-| `analytics`     | **many**    | Analytics providers                            |
+| `tooling`       | **many**    | Sync external tool state                                                                                                          |
+| `notifications` | **many**    | Send messages                                                                                                                     |
+| `analytics`     | **many**    | Analytics providers                                                                                                               |
 
 `many` capabilities accept a list of providers; `single` accept exactly one.
 

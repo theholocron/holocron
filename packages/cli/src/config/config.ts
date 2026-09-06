@@ -24,6 +24,8 @@
  *     them from env (or pull from `vault` at runtime)
  */
 
+import type { LogLevel } from "@theholocron/logger";
+
 import {
 	type CapabilityKey,
 	CARDINALITY,
@@ -32,6 +34,15 @@ import {
 	type TeamEntry,
 	type TeamPermission,
 } from "../plugin/capabilities.js";
+
+/** Structured-logging config — level only; credentials never live in config. */
+export interface LogConfig {
+	/**
+	 * Default log level. The lowest-priority level source: `--verbose` /
+	 * `--quiet` and `HOLOCRON_LOG_LEVEL` both outrank it.
+	 */
+	level?: LogLevel;
+}
 
 // ───────────────────────────────────────────────────────────────────────
 // Raw config (what users write in holocron.config.json)
@@ -356,6 +367,14 @@ export interface HolocronConfig {
 	 * { namespaces: ["HOLOCRON", "MY_CLI"] }
 	 */
 	env?: EnvConfig;
+	/**
+	 * Structured-logging config. Only the level belongs here — Axiom
+	 * credentials come from env vars, never a committed file.
+	 *
+	 * @example
+	 * { level: "debug" }
+	 */
+	log?: LogConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -391,6 +410,7 @@ export interface ResolvedHolocronConfig {
 	/** Resolved Pages config. `build` is guaranteed present when this field exists. */
 	docs?: PagesConfig;
 	env?: EnvConfig;
+	log?: LogConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -529,5 +549,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		skills: raw.skills,
 		docs,
 		env: raw.env,
+		log: raw.log,
 	};
 }

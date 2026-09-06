@@ -124,6 +124,11 @@ describe("resolveConfig", () => {
 		expect(resolveConfig(minimal).docs).toBeUndefined();
 	});
 
+	it("passes the log config through", () => {
+		expect(resolveConfig(minimal).log).toBeUndefined();
+		expect(resolveConfig({ ...minimal, log: { level: "debug" } }).log).toEqual({ level: "debug" });
+	});
+
 	it("throws when docs is set but build is absent", () => {
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow(ConfigError);
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow("`docs.build` is required");

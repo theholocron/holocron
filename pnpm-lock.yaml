@@ -332,6 +332,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.14.2(vitest@4.1.11)
+      '@theholocron/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@theholocron/registry-doc':
         specifier: ^1.9.0
         version: 1.9.0

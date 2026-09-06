@@ -7,8 +7,8 @@
  * `CardinalityFor<K>` so config resolution + command code can branch
  * statically.
  *
- * See `.notes/tech-architecture.spec.md` for the design narrative
- * (status: proposed, issue: #74).
+ * See `.notes/archive/tech-architecture.spec.md` for the design narrative
+ * (issue: #74).
  */
 
 export type CapabilityKey =
@@ -25,7 +25,8 @@ export type CapabilityKey =
 	| "tooling"
 	| "notifications"
 	| "analytics"
-	| "observability"
+	| "errors"
+	| "logs"
 	| "wiki"
 	| "workers";
 
@@ -45,7 +46,8 @@ export const CARDINALITY = {
 	tooling: "many",
 	notifications: "many",
 	analytics: "many",
-	observability: "many",
+	errors: "single",
+	logs: "single",
 	wiki: "single",
 	workers: "single",
 } as const satisfies Record<CapabilityKey, Cardinality>;
@@ -755,6 +757,34 @@ export interface Dns extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// errors — error tracking / crash reporting
+// logs — structured log aggregation
+//
+// Both are self-contained: they activate at runtime from env vars alone
+// (`HOLOCRON_SENTRY_DSN`, `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`)
+// with no provider entry in `holocron.config`. The provider entry only
+// enables `holocron setup` provisioning and `holocron doctor` checks.
+// ───────────────────────────────────────────────────────────────────────
+
+export interface Errors extends ProviderIdentity {
+	readonly key: "errors";
+	/** Returns the env var names the app reads at runtime for this provider. */
+	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	whoami?(): Promise<{ org: string }>;
+	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
+}
+
+export interface Logs extends ProviderIdentity {
+	readonly key: "logs";
+	/** Returns the env var names the app reads at runtime for this provider. */
+	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	/** Verify the token by fetching the target dataset's info. */
+	whoami?(): Promise<{ ok: boolean; dataset: string }>;
+	/** Create the aggregation dataset if it does not already exist. Idempotent. */
+	ensureDataset?(name: string): Promise<{ alreadyExists: boolean }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Multi-provider capabilities — many can be active at once
 // ───────────────────────────────────────────────────────────────────────
 
@@ -788,14 +818,6 @@ export interface Analytics extends ProviderIdentity {
 	describe(): Promise<{ provider: string; envKeys: string[] }>;
 	whoami?(): Promise<{ org: string }>;
 	ensureProject?(name: string): Promise<{ token: string; alreadyExists: boolean }>;
-}
-
-export interface Observability extends ProviderIdentity {
-	readonly key: "observability";
-	/** Returns the env var names the app reads at runtime for this provider. */
-	describe(): Promise<{ provider: string; envKeys: string[] }>;
-	whoami?(): Promise<{ org: string }>;
-	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -893,7 +915,8 @@ export interface CapabilityImpls {
 	tooling: Tooling;
 	notifications: Notifications;
 	analytics: Analytics;
-	observability: Observability;
+	errors: Errors;
+	logs: Logs;
 	wiki: Wiki;
 	workers: Workers;
 }

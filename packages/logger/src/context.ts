@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { LOG_LEVELS, type LogEnv, type LogLevel } from "./interface.js";
+import type { AxiomTransportConfig } from "./transports.js";
 
 /**
  * A fresh correlation id for one command invocation. Every log line from a
@@ -49,4 +50,24 @@ export function resolveLevel(explicit?: LogLevel, env: NodeJS.ProcessEnv = proce
 /** True when the Axiom transport must be suppressed via `HOLOCRON_TELEMETRY=false`. */
 export function isTelemetryDisabled(env: NodeJS.ProcessEnv = process.env): boolean {
 	return env.HOLOCRON_TELEMETRY === "false";
+}
+
+/**
+ * Resolve Axiom credentials from the environment — the canonical fallback
+ * chain from ADR-0007. `createLogger` calls this when no explicit
+ * `config.axiom` is supplied, so every consumer of `@theholocron/logger`
+ * gets Axiom activation from env vars alone. Credentials are read here and
+ * only here — never from a config file.
+ *
+ * Returns `undefined` unless BOTH a token and a dataset are present.
+ *
+ * | Value    | Primary                  | Fallback        |
+ * | -------- | ------------------------ | --------------- |
+ * | token    | `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   |
+ * | dataset  | `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` |
+ */
+export function resolveAxiomFromEnv(env: NodeJS.ProcessEnv = process.env): AxiomTransportConfig | undefined {
+	const token = env.HOLOCRON_AXIOM_TOKEN ?? env.AXIOM_TOKEN;
+	const dataset = env.HOLOCRON_AXIOM_DATASET ?? env.AXIOM_DATASET;
+	return token && dataset ? { token, dataset } : undefined;
 }

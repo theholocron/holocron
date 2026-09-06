@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createLogger } from "./index.js";
 
-const ENV_KEYS = ["CI", "HOLOCRON_LOG_LEVEL", "HOLOCRON_TELEMETRY"] as const;
+const ENV_KEYS = [
+	"CI",
+	"HOLOCRON_LOG_LEVEL",
+	"HOLOCRON_TELEMETRY",
+	"HOLOCRON_AXIOM_TOKEN",
+	"HOLOCRON_AXIOM_DATASET",
+	"AXIOM_TOKEN",
+	"AXIOM_DATASET",
+] as const;
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 
 beforeEach(() => {
@@ -11,6 +19,10 @@ beforeEach(() => {
 	process.env.CI = "true";
 	process.env.HOLOCRON_TELEMETRY = "false";
 	delete process.env.HOLOCRON_LOG_LEVEL;
+	delete process.env.HOLOCRON_AXIOM_TOKEN;
+	delete process.env.HOLOCRON_AXIOM_DATASET;
+	delete process.env.AXIOM_TOKEN;
+	delete process.env.AXIOM_DATASET;
 });
 
 afterEach(() => {

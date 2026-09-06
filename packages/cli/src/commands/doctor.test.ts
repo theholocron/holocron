@@ -263,6 +263,83 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("CLERK_SECRET_KEY");
 	});
 
+	it("errors smoke check reports provider and env keys", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { errors: "sentry" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "errors");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("sentry");
+		expect(row?.message).toContain("SENTRY_DSN");
+	});
+
+	it("logs smoke check reports dataset reachability via whoami", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { logs: "axiom" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", {
+				logs: {
+					describe: async () => ({ provider: "axiom", envKeys: ["HOLOCRON_AXIOM_TOKEN"] }),
+					whoami: async () => ({ ok: true, dataset: "holocron-ci" }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "logs");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("holocron-ci");
+	});
+
+	it("logs smoke check falls back to describe when whoami is not implemented", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { logs: "axiom" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", {
+				logs: {
+					describe: async () => ({ provider: "axiom", envKeys: ["HOLOCRON_AXIOM_TOKEN"] }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "logs");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("HOLOCRON_AXIOM_TOKEN");
+	});
+
 	it("single-cardinality capability without a smoke check falls through to skip", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
