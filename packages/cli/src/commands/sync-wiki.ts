@@ -180,18 +180,23 @@ export async function discoverWikiRepos(
  *
  * Includes:
  *  - A GitHub button linking to the repo itself (always first)
- *  - Minimal nav links to every other wiki-enabled repo (excluding self)
+ *  - A single "Wiki" dropdown containing minimal links to every other
+ *    wiki-enabled repo (excluding self), keeping the navbar uncluttered
+ *    regardless of how many repos are in the org.
  *
- * The block is replaced wholesale on each sync so removed wikis disappear
- * and new ones appear automatically.
+ * The block is replaced wholesale on each sync so removed/added wikis
+ * stay in sync automatically.
  */
 export function buildNavbarLinks(repos: WikiRepo[], currentBasepath: string, repoFullName: string): string {
 	const lines = [`navbar-links:`, `  - type: github`, `    value: https://github.com/${repoFullName}`];
 
-	for (const repo of repos) {
-		if (repo.basepath === currentBasepath) continue; // skip self
-		const url = repo.domain ? `https://${repo.domain}` : `https://wiki.theholocron.dev/${repo.basepath}`;
-		lines.push(`  - type: minimal`, `    href: ${url}`, `    text: ${repo.displayName}`);
+	const others = repos.filter((r) => r.basepath !== currentBasepath);
+	if (others.length > 0) {
+		lines.push(`  - type: dropdown`, `    text: Wiki`, `    icon: fa-duotone fa-book`, `    links:`);
+		for (const repo of others) {
+			const url = repo.domain ? `https://${repo.domain}` : `https://wiki.theholocron.dev/${repo.basepath}`;
+			lines.push(`      - type: minimal`, `        href: ${url}`, `        text: ${repo.displayName}`);
+		}
 	}
 
 	return lines.join("\n");
