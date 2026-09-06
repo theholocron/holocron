@@ -1,7 +1,7 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
-# Tool:    holocron sync-github
-# Changes: edit source in theholocron/holocron and push to alpha or main.
+# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
 name: Deploy
 
 on: # yamllint disable-line rule:truthy
@@ -25,7 +25,7 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('deploy-preview-{0}', github.event.pull_request.number) || 'pages' }}
+  group: ${{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
 
 permissions:
@@ -45,18 +45,10 @@ jobs:
     secrets: inherit
 
   preview:
-    name: Deploy Preview
-    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-    uses: theholocron/.github/.github/workflows/deploy-preview.yml@main
+    name: Preview
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: theholocron/.github/.github/workflows/preview.yml@main
     with:
       type: docs
-      cloudflare-project: theholocron-preview
-    secrets: inherit
-
-  cleanup:
-    name: Clean up Preview
-    if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
-    uses: theholocron/.github/.github/workflows/cleanup-preview.yml@main
-    with:
       cloudflare-project: theholocron-preview
     secrets: inherit
