@@ -72,11 +72,15 @@ In the npm web UI, for each `@theholocron/*` package:
    - **Organization**: `theholocron`
    - **Repository**: `holocron`
    - **Workflow filename**: `release.yml`
-   - **Environment** (optional): leave blank
+   - **Environment** (optional): leave blank — the `release` job declares no
+     GitHub environment, and npm matches the OIDC claims exactly
+   - **Label** (optional): `holocron-release` — use the same string for every
+     package; it is a display-only nickname and does not affect matching
 
 Currently configured:
 
 - `@theholocron/cli`
+- `@theholocron/logger`
 - `@theholocron/holocron-plugin-github`
 - `@theholocron/holocron-plugin-vercel`
 - `@theholocron/holocron-plugin-neon`
