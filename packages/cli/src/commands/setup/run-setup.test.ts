@@ -313,6 +313,24 @@ describe("runSetup", () => {
 		]);
 	});
 
+	it("does nothing for an errors provider that has no ensureProject", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: { describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }) },
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.steps.filter((s) => s.capability === "errors")).toEqual([]);
+	});
+
 	it("skips the secrets push when no secrets provider is configured", async () => {
 		const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry" } });
 		const loader = makeLoaderWith(loaded, {
