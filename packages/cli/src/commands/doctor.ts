@@ -7,6 +7,8 @@
  *   issues   → `doctor()` (rich report)
  *   secrets  → `listSecrets({ kind: 'repo' })`
  *   ci       → `listRuns({ limit: 1 })`
+ *   errors   → `describe()`
+ *   logs     → `whoami()` (dataset reachability) or `describe()`
  *   others   → just "loaded" (no smoke endpoint defined yet)
  *
  * Output is plain text via a passed-in `print` function so tests can
@@ -14,7 +16,7 @@
  */
 
 import type { LoadedConfig } from "../config/load-config.js";
-import type { Auth, Ci, Issues, Secrets, Source, Vault } from "../plugin/capabilities.js";
+import type { Auth, Ci, Errors, Issues, Logs, Secrets, Source, Vault } from "../plugin/capabilities.js";
 import { CARDINALITY } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { withSpinner } from "../ui/progress.js";
@@ -143,6 +145,19 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 			}
 			case "auth": {
 				const desc = await (impl as Auth).describe();
+				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
+			}
+			case "errors": {
+				const desc = await (impl as Errors).describe();
+				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
+			}
+			case "logs": {
+				const logs = impl as Logs;
+				const desc = await logs.describe();
+				if (logs.whoami) {
+					const who = await logs.whoami();
+					return mk(key, provider, who.ok ? "ok" : "fail", `dataset: ${who.dataset}`);
+				}
 				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
 			}
 			default:
