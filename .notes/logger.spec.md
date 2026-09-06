@@ -238,9 +238,47 @@ Redacted values are replaced with `[Redacted]` in output.
 
 ---
 
-## `holocron.config` integration
+## Capability model
 
-Add a `log` key to `LoggerConfig` in `@theholocron/holocron-config`:
+`errors` and `logs` are split from the former `observability` bucket into two
+dedicated single-cardinality capabilities:
+
+| Capability | Provider | Cardinality | Purpose |
+|---|---|---|---|
+| `errors` | `sentry` | single | Error tracking |
+| `logs` | `axiom` | single | Log aggregation |
+
+### Self-contained activation
+
+Both capabilities are **env-var-activated** — the runtime does not require a
+provider entry in `holocron.config` to function. Activation is automatic when
+the relevant env vars are present:
+
+| Capability | Env vars required |
+|---|---|
+| `errors` (Sentry) | `SENTRY_DSN` |
+| `logs` (Axiom) | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+
+This makes them cross-cutting infrastructure rather than opt-in features. Error
+tracking and log aggregation activate wherever the env vars are set — including
+in the config-loading phase, before providers are resolved.
+
+The provider entry in `holocron.config` serves a separate purpose:
+
+```ts
+providers: {
+  errors: "sentry",   // tells `holocron setup` to provision the Sentry project
+  logs: "axiom",      // tells `holocron setup` to provision the Axiom dataset
+}
+```
+
+- `holocron setup` uses the entry to provision the dataset/project
+- `holocron doctor` uses it to run connectivity checks
+- Neither entry is required for runtime activation
+
+### `holocron.config` log level
+
+Add a top-level `log` key (not under `providers`) for level configuration:
 
 ```ts
 export interface HolocronConfig {
@@ -252,8 +290,7 @@ export interface HolocronConfig {
 ```
 
 `createLogger` reads `config.log.level` as the lowest-priority level source.
-Axiom credentials are always read from env (`AXIOM_DATASET`, `AXIOM_TOKEN`)
-rather than config — secrets do not belong in `holocron.config.ts`.
+Axiom credentials come only from env vars — secrets do not belong in config.
 
 ---
 

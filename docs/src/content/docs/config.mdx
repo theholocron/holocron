@@ -75,6 +75,10 @@ export default defineConfig({
     storage: "neon",
     auth: "clerk",
     tooling: ["postman"],
+    // errors and logs are env-var-activated at runtime (SENTRY_DSN / AXIOM_TOKEN).
+    // The provider entry is used by `holocron setup` and `holocron doctor` only.
+    errors: "sentry",
+    logs: "axiom",
   },
 });
 ```
@@ -141,12 +145,18 @@ Any repo with a docs site gets the structure — it costs nothing and is ready w
 | `auth`          | single      | Identity provider                              |
 | `vault`         | single      | Secret source-of-truth                         |
 | `dns`           | single      | DNS record management                          |
+| `errors`        | single      | Error tracking — env-var-activated (`SENTRY_DSN`); provider entry used by setup/doctor only |
+| `logs`          | single      | Log aggregation — env-var-activated (`AXIOM_TOKEN` + `AXIOM_DATASET`); provider entry used by setup/doctor only |
 | `tooling`       | **many**    | Sync external tool state                       |
 | `notifications` | **many**    | Send messages                                  |
 | `analytics`     | **many**    | Analytics providers                            |
-| `observability` | **many**    | Observability providers                        |
 
 `many` capabilities accept a list of providers; `single` accept exactly one.
+
+`errors` and `logs` are self-contained: they activate at runtime when their env
+vars are present, regardless of whether a provider entry exists in config. The
+config entry is for `holocron setup` (provisioning the dataset/project) and
+`holocron doctor` (connectivity checks) only.
 
 ## JSON format
 
