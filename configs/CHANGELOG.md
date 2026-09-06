@@ -1,3 +1,14 @@
+## [7.33.0](https://github.com/theholocron/configs/compare/v7.32.2...v7.33.0) (2026-09-06)
+
+### Features
+
+* ✨ add wiki navbar links ([#441](https://github.com/theholocron/configs/issues/441)) ([1f0c04f](https://github.com/theholocron/configs/commit/1f0c04f699cb875cd8cc13f6c5abbbd2732f6096))
+
+### Chores
+
+* ✨ add wiki icon to fern provider options ([#438](https://github.com/theholocron/configs/issues/438)) ([033a077](https://github.com/theholocron/configs/commit/033a0771b63025dc9be8dfb84e23fae6fad3fad8))
+* 🗑️ remove orphaned workflow files ([#437](https://github.com/theholocron/configs/issues/437)) ([12dc03c](https://github.com/theholocron/configs/commit/12dc03c34e0e298ba5f8f222c985352aa524b3fc))
+
 ## [7.32.2](https://github.com/theholocron/configs/compare/v7.32.1...v7.32.2) (2026-09-04)
 
 ### Chores
