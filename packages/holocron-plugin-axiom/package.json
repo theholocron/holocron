@@ -1,0 +1,67 @@
+{
+  "name": "@theholocron/holocron-plugin-axiom",
+  "version": "3.54.0",
+  "description": "Holocron plugin for Axiom. Implements the logs capability against Axiom's REST API — dataset provisioning and connectivity checks, plus verifyToken + AUTH_HINT for `holocron auth`.",
+  "keywords": [
+    "axiom",
+    "holocron",
+    "logs",
+    "plugin"
+  ],
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/holocron-plugin-axiom#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "packages/holocron-plugin-axiom"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "validate": "tsx scripts/validate.mjs"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

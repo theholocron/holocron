@@ -42,6 +42,7 @@ export default defineConfig({
 				items: [
 					{ label: "Overview", slug: "plugins/overview" },
 					{ label: "1Password", slug: "plugins/1password" },
+					{ label: "Axiom", slug: "plugins/axiom" },
 					{ label: "Clerk", slug: "plugins/clerk" },
 					{ label: "Cloudflare", slug: "plugins/cloudflare" },
 					{ label: "Discord", slug: "plugins/discord" },

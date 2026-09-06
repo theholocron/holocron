@@ -28,6 +28,7 @@ import type {
 	Deployment,
 	Dns,
 	Environments,
+	Logs,
 	Source,
 	Tooling,
 	Vault,
@@ -651,6 +652,24 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			});
 		}
 		print(formatStep(steps[steps.length - 1]!));
+	}
+
+	// ── logs: provision the aggregation datasets ───────────────────────
+	if (loader.has("logs")) {
+		const logs = loader.get("logs") as Logs;
+		print(style.step("logs"));
+
+		if (logs.ensureDataset) {
+			for (const dataset of ["holocron-ci", "holocron-local"]) {
+				steps.push(
+					await runStep("logs", `ensureDataset ${dataset}`, dryRun, async () => {
+						const result = await logs.ensureDataset!(dataset);
+						return `${dataset} ${result.alreadyExists ? "exists" : "created"}`;
+					})
+				);
+				print(formatStep(steps[steps.length - 1]!));
+			}
+		}
 	}
 
 	// ── tooling: sync each (many cardinality) ───────────────────────────

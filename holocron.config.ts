@@ -26,6 +26,7 @@ export default defineConfig({
 			// per-package Codecov coverage gates
 			"codecov/patch/cli",
 			"codecov/patch/holocron-plugin-1password",
+			"codecov/patch/holocron-plugin-axiom",
 			"codecov/patch/holocron-plugin-clerk",
 			"codecov/patch/holocron-plugin-cloudflare",
 			"codecov/patch/holocron-plugin-fern",
@@ -57,6 +58,8 @@ export default defineConfig({
 		secrets: "github",
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
+		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
+		logs: "axiom",
 		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
 		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},

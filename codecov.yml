@@ -36,6 +36,11 @@ component_management:
       paths:
         - packages/holocron-plugin-1password/**
 
+    - component_id: holocron-plugin-axiom
+      name: "holocron-plugin-axiom"
+      paths:
+        - packages/holocron-plugin-axiom/**
+
     - component_id: holocron-plugin-clerk
       name: "holocron-plugin-clerk"
       paths:

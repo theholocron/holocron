@@ -35,6 +35,7 @@
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/holocron-plugin-1password": "workspace:*",
+    "@theholocron/holocron-plugin-axiom": "workspace:*",
     "@theholocron/holocron-plugin-clerk": "workspace:*",
     "@theholocron/holocron-plugin-cloudflare": "workspace:*",
     "@theholocron/holocron-plugin-discord": "workspace:*",

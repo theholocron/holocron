@@ -1,6 +1,6 @@
 ---
 title: Capabilities
-description: Reference for all 14 capability interfaces that Holocron plugins implement.
+description: Reference for all 17 capability interfaces that Holocron plugins implement.
 ---
 
 Capabilities are the contracts between the Holocron CLI and its plugins. Each capability is a TypeScript interface that plugins implement; the CLI calls methods on the interface without knowing which provider is behind it.
@@ -168,15 +168,15 @@ Error tracking — project provisioning and DSN retrieval. Implemented by: [Sent
 
 ### `logs`
 
-Log aggregation — ships structured log output to an external service. Implemented by: Axiom (coming in `@theholocron/holocron-plugin-axiom`).
+Log aggregation — ships structured log output to an external service. Implemented by: [Axiom](./plugins/axiom).
 
 **Self-contained:** activates automatically when `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` (fallbacks: `AXIOM_TOKEN` + `AXIOM_DATASET`) are present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
 
-| Method            | Description                                         |
-| ----------------- | --------------------------------------------------- |
-| `describe()`      | Return the provider name and required env var keys  |
-| `whoami()`        | Verify the token by fetching the dataset info       |
-| `ensureDataset()` | Create the Axiom dataset if it does not exist       |
+| Method            | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| `describe()`      | Return the provider name and required env var keys |
+| `whoami()`        | Verify the token by fetching the dataset info      |
+| `ensureDataset()` | Create the Axiom dataset if it does not exist      |
 
 ## Multi-provider capabilities
 
