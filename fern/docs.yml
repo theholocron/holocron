@@ -56,6 +56,10 @@ navigation:
         contents:
           - page: Overview
             path: ../docs/wiki/standards/README.md
+          - section: Capabilities
+            contents:
+              - page: Self-contained capabilities
+                path: ../docs/wiki/standards/self-contained-capabilities.md
           - section: Workflows
             contents:
               - page: Stale
