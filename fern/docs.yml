@@ -62,7 +62,7 @@ navbar-links:
   - type: github
     value: https://github.com/theholocron/holocron
   - type: dropdown
-    text: Wiki
+    text: Other Projects
     icon: fa-duotone fa-book
     links:
       - href: https://wiki.theholocron.dev
