@@ -2,7 +2,7 @@
 /**
  * Read-only smoke test for @theholocron/holocron-plugin-sentry.
  *
- * READ-ONLY. Tests verifyToken + observability.whoami + observability.describe
+ * READ-ONLY. Tests verifyToken + errors.whoami + errors.describe
  * — proves auth, org access, and capability wiring.
  *
  * Usage:
@@ -56,18 +56,18 @@ if (verifyResult.ok) {
 console.log("");
 
 const plugin = createPlugin({ cliToken: token, org });
-const obs = plugin.capabilities.observability();
+const errors = plugin.capabilities.errors();
 
-step("2/3 observability.whoami()");
+step("2/3 errors.whoami()");
 await runStep(async () => {
-	const result = await obs.whoami();
+	const result = await errors.whoami();
 	ok(`org: ${result.org}`);
 });
 console.log("");
 
-step("3/3 observability.describe()");
+step("3/3 errors.describe()");
 await runStep(async () => {
-	const result = await obs.describe();
+	const result = await errors.describe();
 	ok(`provider: ${result.provider}`);
 	console.log(chalk.dim(`   envKeys: ${result.envKeys.join(", ")}`));
 });
@@ -89,8 +89,7 @@ async function runStep(body) {
 function hintFor(message) {
 	if (/→ 401|→ 403/.test(message))
 		return "token invalid or lacks scope — regenerate at https://sentry.io/settings/account/api/auth-tokens/ with org:read + project:read + project:write";
-	if (/→ 404/.test(message))
-		return "org not found — verify the slug matches your Sentry organization URL";
+	if (/→ 404/.test(message)) return "org not found — verify the slug matches your Sentry organization URL";
 	if (/fetch failed|status: 0|network/i.test(message)) return "network error — check sentry.io reachable";
 	if (/→ 5\d\d/.test(message)) return "server error — check https://status.sentry.io";
 	return null;
