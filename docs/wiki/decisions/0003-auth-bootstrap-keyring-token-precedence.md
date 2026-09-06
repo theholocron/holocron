@@ -5,7 +5,7 @@ status: accepted
 date: 2026-08-17
 owners: []
 specs:
-  - .notes/archive/tech-auth-bootstrap.spec.md
+  - docs/wiki/specifications/tech-auth-bootstrap.spec.md
 discussion:
   github:
 supersedes: []

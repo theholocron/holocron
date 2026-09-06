@@ -2,7 +2,7 @@
 /**
  * Read-only smoke test for @theholocron/holocron-plugin-doppler
  * against a live Doppler account. Same convention as the other
- * plugins — see `.notes/tool-plugin-create.spec.md` and
+ * plugins — see `docs/wiki/specifications/tool-plugin-create.spec.md` and
  * `packages/holocron-plugin-infisical/scripts/validate.mjs`.
  *
  * READ-ONLY. Never calls write() or bootstrap methods.

@@ -8,7 +8,7 @@
  *   auth check <provider>         re-verify a stored token
  *   auth list                     every provider with a stored entry
  *
- * See `.notes/tech-auth-bootstrap.spec.md`.
+ * See `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
  *
  * Verification lives in each plugin as a top-level `verifyToken(token)`
  * export. The auth command dynamically imports

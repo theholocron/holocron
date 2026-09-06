@@ -18,7 +18,7 @@ pnpm add -D @theholocron/holocron-plugin-${inputs.slug}@alpha
 ## Auth
 
 Token resolution order (matches the standard 4-step precedence set by
-\`.notes/tech-auth-bootstrap.spec.md\`):
+\`docs/wiki/specifications/tech-auth-bootstrap.spec.md\`):
 
 1. \`--token <TOKEN>\` flag on the holocron invocation
 2. \`${inputs.tokenEnv}\` env var (preferred — explicit intent)

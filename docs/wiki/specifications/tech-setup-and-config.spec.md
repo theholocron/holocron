@@ -1,5 +1,5 @@
 ---
-status: proposed # draft → proposed (issue filed) → approved (milestone attached) → archived
+status: archived
 issue: 82
 blocked-by: []
 ---

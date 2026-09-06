@@ -230,21 +230,21 @@ design docs.
   use it as default).
 - **#77** `holocron plugin create` CLI command (promote the
   scaffolding skill to a first-class CLI feature) — spec at
-  `.notes/tool-plugin-create.spec.md` (Phase 1 unblocked).
+  `docs/wiki/specifications/tool-plugin-create.spec.md` (Phase 1 unblocked).
 - **#78** CLI-transport sibling skill — still motivated (same
   reason as #76).
 - **#79** ~~Multi-plugin `--token` disambiguation~~ — shipped in alpha.74
 - **#80** Real Svix HMAC verification in `parseWebhook`
 - **#82** Extend `holocron setup` with repo policy + branch
-  protection — spec at `.notes/tech-setup-and-config.spec.md`
+  protection — spec at `docs/wiki/specifications/tech-setup-and-config.spec.md`
   (also covers `project.repo` config field + capability-factory
   lazy-load pattern discovered during v2 alpha migration).
 
 Additional session-derived design docs (not on GitHub yet — file
 issues when the work is scheduled):
 
-- `.notes/tech-auth-bootstrap.spec.md` — keyring-backed bootstrap
-  credentials + `holocron auth` subcommand. Foundation shipped in
+- `docs/wiki/specifications/tech-auth-bootstrap.spec.md` — keyring-backed
+  bootstrap credentials + `holocron auth` subcommand. Foundation shipped in
   PR #94; ongoing pattern for future plugins.
-- `.notes/tech-vault-choice.spec.md` — Doppler + Infisical adoption,
-  1P deprecation roadmap.
+- `docs/wiki/specifications/tech-vault-choice.spec.md` — Doppler + Infisical
+  adoption, 1P deprecation roadmap.

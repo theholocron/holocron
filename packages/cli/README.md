@@ -214,4 +214,4 @@ Axiom credentials (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`,
 
 Published on npm under the `alpha` dist-tag. APIs may still shift before
 stable v2.0.0. Design in
-[`.notes/archive/tech-architecture.spec.md`](../../.notes/archive/tech-architecture.spec.md).
+[`docs/wiki/specifications/tech-architecture.spec.md`](../../docs/wiki/specifications/tech-architecture.spec.md).

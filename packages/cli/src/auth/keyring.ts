@@ -7,7 +7,7 @@
  * subcommands; consulted at position 4 in every plugin's auth
  * precedence chain (after --token / HOLOCRON_<X>_TOKEN / <native>_TOKEN).
  *
- * See `.notes/tech-auth-bootstrap.spec.md` for the design rationale.
+ * See `docs/wiki/specifications/tech-auth-bootstrap.spec.md` for the design rationale.
  *
  * Failure model: keyring access is best-effort. Platforms without a
  * supported credential store (some Linux CI images, sandboxed

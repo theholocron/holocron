@@ -1,5 +1,5 @@
 ---
-status: archived # draft → proposed (issue filed) → approved (milestone attached) → archived (shipped)
+status: archived
 ---
 
 <!-- Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix) -->

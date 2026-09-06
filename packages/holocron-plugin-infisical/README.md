@@ -161,7 +161,7 @@ Set the `baseUrl` option in `holocron.config.json`:
 ## Status
 
 **`v2.0.0-alpha.1`** — scaffolded via `holocron plugin create` (see
-`.notes/tool-plugin-create.spec.md` — this is the first real
+`docs/wiki/specifications/tool-plugin-create.spec.md` — this is the first real
 production use of that command, doubling as its acceptance test in
 a live scenario). Not yet published on npm; capability methods are
 implemented but not yet validated against a live Infisical account.

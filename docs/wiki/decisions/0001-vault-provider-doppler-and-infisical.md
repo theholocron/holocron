@@ -5,7 +5,7 @@ status: accepted
 date: 2026-08-12
 owners: []
 specs:
-  - .notes/archive/tech-vault-choice.spec.md
+  - docs/wiki/specifications/tech-vault-choice.spec.md
 discussion:
   github:
 supersedes: []
