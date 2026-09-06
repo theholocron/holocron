@@ -6,6 +6,7 @@
  * Files are overwritten on each setup run — they are generated artifacts.
  */
 
+import { getLogger } from "../../logger.js";
 import auditYml from "./workflows/audit.yml";
 import bookkeepingYml from "./workflows/bookkeeping.yml";
 import dependenciesYml from "./workflows/dependencies.yml";
@@ -138,7 +139,7 @@ export function generateThinCallerContent(
 		.join("\n");
 	const injected = result.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
 	if (injected === result) {
-		console.warn(`[generateThinCallerContent] could not inject with: overrides into "${name}" template`);
+		getLogger().warn({ template: name }, "generateThinCallerContent: could not inject `with:` overrides");
 	}
 	return injected;
 }

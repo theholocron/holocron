@@ -8,7 +8,11 @@ import { env } from "./env.js";
 const DSN: string = "https://95cbb72ad5636c94e119a5405ee8f55f@o4508238154104832.ingest.us.sentry.io/4511810950791168";
 
 function isEnabled(): boolean {
-	return !env.get("NO_HOLOCRON_TELEMETRY") && DSN !== "";
+	// `HOLOCRON_TELEMETRY=false` is the going-forward opt-out, shared with
+	// `@theholocron/logger`'s Axiom transport. `NO_HOLOCRON_TELEMETRY` (any
+	// truthy value) is kept for back-compat.
+	const optedOut = env.get("HOLOCRON_TELEMETRY") === "false" || Boolean(env.get("NO_HOLOCRON_TELEMETRY"));
+	return !optedOut && DSN !== "";
 }
 
 export function init(version: string): void {

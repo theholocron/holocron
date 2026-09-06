@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import * as logger from "../logger.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import {
 	extractPreviewConfig,
@@ -574,17 +575,21 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("enable-auto-commit: false");
 	});
 
-	it("emits a console.warn and returns base unchanged when no injection pattern matches", () => {
+	it("logs a warning and returns base unchanged when no injection pattern matches", () => {
 		const sentinel = "__test_no_pattern__";
 		WORKFLOW_TEMPLATES[sentinel] = "name: Test\n\njobs:\n  test:\n    uses: some/action@v1\n";
-		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const warn = vi.fn();
+		vi.spyOn(logger, "getLogger").mockReturnValue({ warn } as unknown as ReturnType<typeof logger.getLogger>);
 		try {
 			const result = generateThinCallerContent(sentinel, { key: "val" });
-			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("could not inject"));
+			expect(warn).toHaveBeenCalledWith(
+				expect.objectContaining({ template: sentinel }),
+				expect.stringContaining("could not inject")
+			);
 			expect(result).toBe(WORKFLOW_TEMPLATES[sentinel]);
 		} finally {
 			delete WORKFLOW_TEMPLATES[sentinel];
-			warnSpy.mockRestore();
+			vi.restoreAllMocks();
 		}
 	});
 

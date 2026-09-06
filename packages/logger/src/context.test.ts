@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { detectEnv, generateRunId, isCI, isTelemetryDisabled, parseLogLevel, resolveLevel } from "./context.js";
+import {
+	detectEnv,
+	generateRunId,
+	isCI,
+	isTelemetryDisabled,
+	parseLogLevel,
+	resolveAxiomFromEnv,
+	resolveLevel,
+} from "./context.js";
 
 describe("generateRunId", () => {
 	it("returns a v4 UUID", () => {
@@ -72,5 +80,35 @@ describe("isTelemetryDisabled", () => {
 		expect(isTelemetryDisabled({ HOLOCRON_TELEMETRY: "false" })).toBe(true);
 		expect(isTelemetryDisabled({ HOLOCRON_TELEMETRY: "true" })).toBe(false);
 		expect(isTelemetryDisabled({})).toBe(false);
+	});
+});
+
+describe("resolveAxiomFromEnv", () => {
+	it("returns the credentials when both token and dataset are present", () => {
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "xaat-t", HOLOCRON_AXIOM_DATASET: "holocron-ci" })).toEqual({
+			token: "xaat-t",
+			dataset: "holocron-ci",
+		});
+	});
+
+	it("falls back to the vendor-native env vars", () => {
+		expect(resolveAxiomFromEnv({ AXIOM_TOKEN: "t", AXIOM_DATASET: "d" })).toEqual({ token: "t", dataset: "d" });
+	});
+
+	it("prefers the HOLOCRON_-prefixed vars over the vendor-native ones", () => {
+		expect(
+			resolveAxiomFromEnv({
+				HOLOCRON_AXIOM_TOKEN: "hlc",
+				AXIOM_TOKEN: "vendor",
+				HOLOCRON_AXIOM_DATASET: "hlc-ds",
+				AXIOM_DATASET: "vendor-ds",
+			})
+		).toEqual({ token: "hlc", dataset: "hlc-ds" });
+	});
+
+	it("returns undefined unless BOTH a token and a dataset are set", () => {
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "t" })).toBeUndefined();
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_DATASET: "d" })).toBeUndefined();
+		expect(resolveAxiomFromEnv({})).toBeUndefined();
 	});
 });
