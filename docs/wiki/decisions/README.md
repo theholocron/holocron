@@ -33,3 +33,4 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 | [ADR-0002](0002-interactive-menu-spawn-over-reparse.md)     | Interactive CLI menu — spawn over re-parse                   | accepted |
 | [ADR-0003](0003-auth-bootstrap-keyring-token-precedence.md) | Auth bootstrap — OS keyring as fourth-precedence token layer | accepted |
 | [ADR-0004](0004-adr-home-repo-over-wiki.md)                 | ADR home — Git repository over GitHub Wiki                   | accepted |
+| [ADR-0005](0005-npm-publishing-strategy-oidc-over-staged.md) | npm publishing strategy — OIDC Trusted Publishers over staged publishing | accepted |
