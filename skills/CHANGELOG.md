@@ -1,3 +1,14 @@
+## [1.10.0](https://github.com/theholocron/skills/compare/v1.9.2...v1.10.0) (2026-09-06)
+
+### Features
+
+* ✨ add wiki navbar links ([#90](https://github.com/theholocron/skills/issues/90)) ([aad74e2](https://github.com/theholocron/skills/commit/aad74e2283b93ada36fee283a9bb86e20a9ac6f1))
+
+### Chores
+
+* ✨ add wiki icon to fern provider options ([#87](https://github.com/theholocron/skills/issues/87)) ([c035f5d](https://github.com/theholocron/skills/commit/c035f5d1f175da8a7c4baa7389d1e803d69919bb))
+* 🗑️ remove orphaned workflow files ([#86](https://github.com/theholocron/skills/issues/86)) ([a743699](https://github.com/theholocron/skills/commit/a743699fb17086b5051d774f3cd0495faccb7f37))
+
 ## [1.9.2](https://github.com/theholocron/skills/compare/v1.9.1...v1.9.2) (2026-09-02)
 
 ### Chores
