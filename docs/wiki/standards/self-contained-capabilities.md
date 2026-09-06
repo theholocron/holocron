@@ -22,10 +22,13 @@ Self-contained capabilities are **env-var-activated**. The runtime checks for
 specific env vars at startup and activates the capability immediately, before
 any config is loaded:
 
-| Capability | Provider | Env vars that activate it       |
-| ---------- | -------- | ------------------------------- |
-| `errors`   | `sentry` | `SENTRY_DSN`                    |
-| `logs`     | `axiom`  | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+| Capability | Provider | Primary env vars                                     | Fallback                        |
+| ---------- | -------- | ---------------------------------------------------- | ------------------------------- |
+| `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN`                                | `SENTRY_DSN`                    |
+| `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`    | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+
+`HOLOCRON_AXIOM_DATASET` is one env var set to different values per environment:
+`holocron-ci` in CI (org secret) or `holocron-local` locally (shell profile).
 
 The provider entry in `holocron.config` serves a separate, optional purpose:
 
@@ -47,9 +50,9 @@ This means `errors` and `logs` work in any repo — including repos with no
 
 ## Opting out
 
-Remove the env vars. If `SENTRY_DSN` is absent, `errors` is inactive. If
-`AXIOM_TOKEN` or `AXIOM_DATASET` is absent, `logs` is inactive. No config
-change required.
+Remove the env vars. If `HOLOCRON_SENTRY_DSN` (and its fallback `SENTRY_DSN`)
+is absent, `errors` is inactive. If `HOLOCRON_AXIOM_TOKEN` or
+`HOLOCRON_AXIOM_DATASET` is absent, `logs` is inactive. No config change required.
 
 Additionally, `HOLOCRON_TELEMETRY=false` disables the `logs` Axiom transport
 while leaving local logging intact — useful when running offline or in an
