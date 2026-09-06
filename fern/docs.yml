@@ -47,6 +47,8 @@ navigation:
             path: ../docs/wiki/decisions/0005-npm-publishing-strategy-oidc-over-staged.md
           - page: ADR-0006 — wiki navbar auto-broadcast
             path: ../docs/wiki/decisions/0006-wiki-navbar-auto-broadcast.md
+          - page: ADR-0007 — structured logging Pino + Axiom
+            path: ../docs/wiki/decisions/0007-structured-logging-pino-axiom.md
 
   - tab: standards
     layout:
