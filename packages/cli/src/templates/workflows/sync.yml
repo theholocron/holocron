@@ -14,6 +14,11 @@ on: # yamllint disable-line rule:truthy
       HOLOCRON_ADMIN_TOKEN:
         description: Fine-grained PAT with admin scopes (labels, properties, teams).
         required: false
+      HOLOCRON_AXIOM_TOKEN:
+        description: >
+          Axiom API token. When set alongside the HOLOCRON_AXIOM_DATASET
+          repo/org variable, the CLI ships this run's structured logs to Axiom.
+        required: false
       HOLOCRON_DEPLOY_TOKEN:
         description: Fine-grained PAT for GitHub Pages configuration.
         required: false
@@ -64,6 +69,8 @@ jobs:
           fi
         env:
           HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
+          HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN }}
+          HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
           HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
           HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
           HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
