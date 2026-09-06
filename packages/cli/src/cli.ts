@@ -886,7 +886,7 @@ try {
 					.option("capability", {
 						type: "string",
 						describe:
-							"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|observability",
+							"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|errors|logs|wiki|workers",
 					})
 					.option("token-env", {
 						type: "string",

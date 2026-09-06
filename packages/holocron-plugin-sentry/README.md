@@ -2,7 +2,7 @@
 
 # `@theholocron/holocron-plugin-sentry`
 
-Sentry plugin for [Holocron](../cli). Implements the `observability`
+Sentry plugin for [Holocron](../cli). Implements the `errors`
 capability against the [Sentry management API](https://docs.sentry.io/api/).
 
 ## Install
@@ -33,7 +33,7 @@ user-owned and org-owned tokens are accepted.
 ```jsonc
 {
   "providers": {
-    "observability": ["sentry", { "org": "my-org-slug", "team": "my-team" }],
+    "errors": ["sentry", { "org": "my-org-slug", "team": "my-team" }],
   },
 }
 
@@ -51,6 +51,8 @@ user-owned and org-owned tokens are accepted.
 | `whoami`        | Fetches the org by slug to verify the token and confirm the org exists.                                                                                      |
 | `ensureProject` | Looks up the project by slug (derived from `name`); creates it under the configured team if absent. Returns the DSN and an `alreadyExists` flag. Idempotent. |
 
-`holocron setup` calls `ensureProject` and pushes both `SENTRY_DSN` and
-`NEXT_PUBLIC_SENTRY_DSN` to GitHub Secrets (same DSN value, both keys
-required by the Sentry Next.js SDK).
+A provider entry in `holocron.config` is only needed to enable `holocron
+setup` provisioning (`ensureProject` + pushing `SENTRY_DSN` /
+`NEXT_PUBLIC_SENTRY_DSN` to Secrets) and `holocron doctor` connectivity
+checks — not for runtime error reporting, which the CLI activates directly
+from `HOLOCRON_SENTRY_DSN` (fallback `SENTRY_DSN`).

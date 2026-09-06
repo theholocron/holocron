@@ -96,11 +96,14 @@ makes that work **declarative, swappable, and re-runnable**.
     // Source of truth for secrets (required)
     "vault": ["1password", { "vault": "my-app" }],
 
+    // Error + log providers (single; also env-var-activated)
+    "errors": "sentry",
+    "logs": "axiom",
+
     // Multi-provider
     "tooling": ["postman", "storybook"],
     "notifications": ["slack", "discord"],
     "analytics": ["google"],
-    "observability": ["sentry"],
   },
 }
 
@@ -168,7 +171,7 @@ packages/
   holocron-plugin-slack/          — @theholocron/holocron-plugin-slack      (notifications)
   holocron-plugin-postman/        — @theholocron/holocron-plugin-postman    (tooling)
   holocron-plugin-posthog/        — @theholocron/holocron-plugin-posthog   (analytics)
-  holocron-plugin-sentry/         — @theholocron/holocron-plugin-sentry     (observability)
+  holocron-plugin-sentry/         — @theholocron/holocron-plugin-sentry     (errors)
 holocron.config.ts                — this repo's own holocron config (self-hosted)
 .notes/                           — design specs (draft → proposed → approved)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins

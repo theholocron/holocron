@@ -15,6 +15,8 @@ describe("CARDINALITY", () => {
 			"auth",
 			"vault",
 			"dns",
+			"errors",
+			"logs",
 			"wiki",
 			"workers",
 		] as const;
@@ -24,14 +26,14 @@ describe("CARDINALITY", () => {
 	});
 
 	it("marks multi-provider capabilities as many", () => {
-		const multis = ["tooling", "notifications", "analytics", "observability"] as const;
+		const multis = ["tooling", "notifications", "analytics"] as const;
 		for (const key of multis) {
 			expect(CARDINALITY[key]).toBe("many");
 		}
 	});
 
 	it("covers every capability key", () => {
-		expect(Object.keys(CARDINALITY)).toHaveLength(16);
+		expect(Object.keys(CARDINALITY)).toHaveLength(17);
 	});
 });
 
@@ -46,12 +48,13 @@ describe("isMulti", () => {
 		expect(isMulti("source")).toBe(false);
 		expect(isMulti("vault")).toBe(false);
 		expect(isMulti("wiki")).toBe(false);
+		expect(isMulti("errors")).toBe(false);
+		expect(isMulti("logs")).toBe(false);
 	});
 
 	it("returns true for many-cardinality capabilities", () => {
 		expect(isMulti("tooling")).toBe(true);
 		expect(isMulti("notifications")).toBe(true);
 		expect(isMulti("analytics")).toBe(true);
-		expect(isMulti("observability")).toBe(true);
 	});
 });
