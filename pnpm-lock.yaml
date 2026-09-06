@@ -195,6 +195,9 @@ importers:
       '@theholocron/holocron-plugin-1password':
         specifier: workspace:*
         version: link:packages/holocron-plugin-1password
+      '@theholocron/holocron-plugin-axiom':
+        specifier: workspace:*
+        version: link:packages/holocron-plugin-axiom
       '@theholocron/holocron-plugin-clerk':
         specifier: workspace:*
         version: link:packages/holocron-plugin-clerk
