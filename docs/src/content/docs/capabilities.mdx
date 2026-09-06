@@ -158,7 +158,7 @@ DNS record management. Implemented by: [Cloudflare](./plugins/cloudflare).
 
 Error tracking — project provisioning and DSN retrieval. Implemented by: [Sentry](./plugins/sentry).
 
-**Self-contained:** activates automatically when `SENTRY_DSN` is present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
+**Self-contained:** activates automatically when `HOLOCRON_SENTRY_DSN` (fallback: `SENTRY_DSN`) is present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
 
 | Method                 | Description                                        |
 | ---------------------- | -------------------------------------------------- |
@@ -170,7 +170,7 @@ Error tracking — project provisioning and DSN retrieval. Implemented by: [Sent
 
 Log aggregation — ships structured log output to an external service. Implemented by: Axiom (coming in `@theholocron/holocron-plugin-axiom`).
 
-**Self-contained:** activates automatically when `AXIOM_TOKEN` and `AXIOM_DATASET` are present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
+**Self-contained:** activates automatically when `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` (fallbacks: `AXIOM_TOKEN` + `AXIOM_DATASET`) are present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
 
 | Method            | Description                                         |
 | ----------------- | --------------------------------------------------- |
