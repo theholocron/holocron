@@ -63,6 +63,11 @@ export default defineConfig({
 		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
 		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},
+	// Logs: ship local runs to the shared holocron-local Axiom dataset. Needs an
+	// Axiom token in the keyring (`holocron auth set axiom.theholocron <TOKEN>`)
+	// or HOLOCRON_AXIOM_TOKEN. CI overrides the dataset to holocron-ci via the
+	// HOLOCRON_AXIOM_DATASET variable (env wins over config).
+	log: { axiom: { dataset: "holocron-local" } },
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
 } satisfies HolocronConfig);
