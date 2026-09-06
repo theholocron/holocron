@@ -92,13 +92,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
 
-      - name: Propagate wiki nav to all repos
+      - name: Broadcast wiki sync if navbar changed
         if: >-
           steps.auto-commit.outputs.changes-detected == 'true' &&
+          github.event_name == 'push' &&
           (inputs.steps == '' || contains(inputs.steps, 'wiki'))
         run: |
-          gh workflow run sync-dispatch.yml \
-            --repo theholocron/.github \
-            --field "steps=wiki"
+          if git diff HEAD~1 --name-only | grep -q 'fern/docs.yml'; then
+            gh workflow run sync-dispatch.yml \
+              --repo theholocron/.github \
+              --field "steps=wiki" \
+            || echo "skipping broadcast — insufficient permissions"
+          fi
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
