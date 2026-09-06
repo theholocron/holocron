@@ -334,9 +334,9 @@ const level = argv.verbose
 `runId` is returned from `createLogger` alongside the logger instance:
 
 ```ts
-const { logger, runId } = createLogger({ level, axiom: resolvedAxiomConfig })
+const { logger, runId } = createLogger({ level, axiom: resolvedAxiomConfig });
 // ...
-if (argv.debug || argv.verbose) print(`Run ID: ${runId}`)
+if (argv.debug || argv.verbose) print(`Run ID: ${runId}`);
 ```
 
 ---
@@ -373,10 +373,10 @@ Total migration: ~32 substitutions, all mechanical once `@theholocron/logger` ex
 
 Two separate Axiom datasets — one per environment:
 
-| Dataset | Env var | When used | Retention suggestion |
-|---|---|---|---|
-| `holocron-ci` | `AXIOM_CI_DATASET` | `CI=true` | 90 days — operational truth, correlates with releases and incidents |
-| `holocron-local` | `AXIOM_LOCAL_DATASET` | `CI` absent/falsy | 7 days — ephemeral dev noise; optional |
+| Dataset          | Env var               | When used         | Retention suggestion                                                |
+| ---------------- | --------------------- | ----------------- | ------------------------------------------------------------------- |
+| `holocron-ci`    | `AXIOM_CI_DATASET`    | `CI=true`         | 90 days — operational truth, correlates with releases and incidents |
+| `holocron-local` | `AXIOM_LOCAL_DATASET` | `CI` absent/falsy | 7 days — ephemeral dev noise; optional                              |
 
 **Local runs may omit Axiom entirely.** Since `pino-pretty` fully covers the local
 dev experience, shipping local logs to Axiom is optional. If `AXIOM_LOCAL_DATASET`
