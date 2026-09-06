@@ -34,6 +34,12 @@ export default defineConfig({
 				],
 			},
 			{
+				label: "Workflows",
+				items: [
+					{ label: "stale", slug: "workflows/stale" },
+				],
+			},
+			{
 				label: "Plugins",
 				items: [
 					{ label: "Overview", slug: "plugins/overview" },
