@@ -1,4 +1,5 @@
 import type { LoadedConfig } from "../../config/load-config.js";
+import { getLogger } from "../../logger.js";
 import { ProviderApiError } from "../../plugin/capabilities.js";
 import type { RuntimeContext } from "../../plugin/loader.js";
 import { PluginLoader } from "../../plugin/loader.js";
@@ -35,6 +36,22 @@ export interface RunSetupInput {
 }
 
 export async function runStep(
+	capability: string,
+	step: string,
+	dryRun: boolean,
+	body: () => Promise<string | void>,
+	opts: { skipCodes?: number[] } = {}
+): Promise<SetupStepResult> {
+	const result = await execStep(capability, step, dryRun, body, opts);
+	const { status, message, reason } = result;
+	getLogger()[status === "fail" ? "warn" : "info"](
+		{ capability, step, status, ...(message ? { detail: message } : {}), ...(reason ? { reason } : {}) },
+		`${capability}.${step}`
+	);
+	return result;
+}
+
+async function execStep(
 	capability: string,
 	step: string,
 	dryRun: boolean,

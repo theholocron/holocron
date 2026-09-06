@@ -32,24 +32,38 @@ export function resolveLogLevel(
 
 let root: { logger: Logger; runId: string } | undefined;
 let rootLevel: LogLevel | undefined;
+let rootCommand: string | undefined;
+
+export interface BuildCliLoggerOpts {
+	/** Active command name — bound on the root as `command` for every line. */
+	command?: string;
+	/** `holocron.config` `log.level`, from a handler that has loaded a config. */
+	configLevel?: LogLevel;
+}
 
 /**
  * The process-wide root logger. Built once (from `cli.ts`'s middleware,
- * with flags + env only). Rebuilt at most once more when a command's
- * handler supplies its `holocron.config` `log.level` — a case the
- * flag/env-only first pass could not have known — as long as no
+ * with the command name + flags + env). Rebuilt at most once more when a
+ * command's handler supplies its `holocron.config` `log.level` — a case
+ * the flag/env-only first pass could not have known — as long as no
  * higher-priority `--verbose` / `--quiet` already fixed the level. That
  * rebuild generates a fresh `runId`, which is harmless: nothing logs
  * between the middleware and the handler.
  */
 export function buildCliLogger(
 	argv: { verbose?: boolean; quiet?: boolean },
-	configLevel?: LogLevel
+	opts: BuildCliLoggerOpts = {}
 ): { logger: Logger; runId: string } {
+	const { command, configLevel } = opts;
+	if (command) rootCommand = command;
 	const level = resolveLogLevel(argv, configLevel);
 	const rebuildForConfig = configLevel !== undefined && level !== rootLevel && !argv.verbose && !argv.quiet;
 	if (!root || rebuildForConfig) {
-		root = createLogger(level ? { level } : {});
+		const built = createLogger(level ? { level } : {});
+		root = {
+			logger: rootCommand ? built.logger.child({ command: rootCommand }) : built.logger,
+			runId: built.runId,
+		};
 		rootLevel = level;
 	}
 	return root;
@@ -69,4 +83,5 @@ export function getRunId(): string | undefined {
 export function resetCliLogger(): void {
 	root = undefined;
 	rootLevel = undefined;
+	rootCommand = undefined;
 }

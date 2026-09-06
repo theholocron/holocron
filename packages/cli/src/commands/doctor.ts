@@ -16,6 +16,7 @@
  */
 
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { Auth, Ci, Errors, Issues, Logs, Secrets, Source, Vault } from "../plugin/capabilities.js";
 import { CARDINALITY } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
@@ -85,8 +86,13 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 		}
 	}
 
+	const log = getLogger();
 	// Render rows
 	for (const row of rows) {
+		log[row.status === "fail" ? "warn" : "info"](
+			{ capability: row.capability, provider: row.provider, status: row.status, detail: row.message },
+			`doctor: ${row.capability}`
+		);
 		const label = `${pad(row.capability, 14)} via ${pad(row.provider, 14)}  ${row.message}`;
 		if (row.status === "ok") print(`  ${style.success(label)}`);
 		else if (row.status === "fail") print(`  ${style.fail(label)}`);
