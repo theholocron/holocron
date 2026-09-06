@@ -63,7 +63,7 @@ describe("PluginLoader — single cardinality", () => {
 		expect(() => loader.get("source")).toThrow(/holocron\.config\.json/);
 	});
 
-	it("throws LoaderError when the package cannot be imported", async () => {
+	it("records a load failure when the package cannot be imported — other plugins still load", async () => {
 		const { loader } = loaderWith(
 			{
 				name: "demo",
@@ -71,10 +71,17 @@ describe("PluginLoader — single cardinality", () => {
 			},
 			{ "@theholocron/holocron-plugin-1password": makePlugin("1password", { vault: {} }) }
 		);
-		await expect(loader.load()).rejects.toThrow(/failed to import/);
+		await loader.load();
+		expect(loader.has("vault")).toBe(true);
+		expect(loader.has("source")).toBe(false);
+		expect(loader.loadFailures()).toHaveLength(1);
+		expect(loader.loadFailures()[0]).toMatchObject({ key: "source", provider: "gitlab" });
+		expect(loader.loadFailures()[0]!.error.message).toMatch(/failed to import/);
+		// get() re-surfaces the original error, not a generic "not loaded"
+		expect(() => loader.get("source")).toThrow(/failed to import/);
 	});
 
-	it("throws when the package does not export createPlugin", async () => {
+	it("records a load failure when the package does not export createPlugin", async () => {
 		const { loader } = loaderWith(
 			{
 				name: "demo",
@@ -85,10 +92,11 @@ describe("PluginLoader — single cardinality", () => {
 				"@theholocron/holocron-plugin-broken": { somethingElse: true },
 			}
 		);
-		await expect(loader.load()).rejects.toThrow(/createPlugin/);
+		await loader.load();
+		expect(loader.loadFailures()[0]!.error.message).toMatch(/createPlugin/);
 	});
 
-	it("throws when the plugin does not implement the requested capability", async () => {
+	it("records a load failure when the plugin does not implement the requested capability", async () => {
 		const { loader } = loaderWith(
 			{
 				name: "demo",
@@ -100,7 +108,25 @@ describe("PluginLoader — single cardinality", () => {
 				"@theholocron/holocron-plugin-github": makePlugin("github", { issues: {} }),
 			}
 		);
-		await expect(loader.load()).rejects.toThrow(/does not implement the `source` capability/);
+		await loader.load();
+		expect(loader.loadFailures()[0]!.error.message).toMatch(/does not implement the `source` capability/);
+	});
+
+	it("wraps a non-Error thrown by a plugin factory into an Error", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { source: "github" } },
+			{
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => {
+						throw "boom"; // exercising the non-Error path
+					},
+				},
+			}
+		);
+		await loader.load();
+		const [failure] = loader.loadFailures();
+		expect(failure!.error).toBeInstanceOf(Error);
+		expect(failure!.error.message).toBe("boom");
 	});
 
 	it("merges plugin tuple options with the runtime context", async () => {
@@ -381,6 +407,49 @@ describe("PluginLoader — many cardinality", () => {
 		const impls = loader.get("notifications");
 		expect(impls).toEqual([slackImpl, discordImpl]);
 	});
+
+	it("keeps the working providers when one of a multi-cardinality set fails to load", async () => {
+		const slackImpl = { key: "notifications", providerName: "slack" };
+		const { loader } = loaderWith(
+			{
+				name: "demo",
+				providers: { notifications: ["slack", "discord"] },
+			},
+			{
+				"@theholocron/holocron-plugin-slack": makePlugin("slack", { notifications: slackImpl }),
+				// discord plugin absent → load failure for that entry
+			}
+		);
+
+		await loader.load();
+		expect(loader.get("notifications")).toEqual([slackImpl]);
+		expect(loader.loadFailures()).toMatchObject([{ key: "notifications", provider: "discord" }]);
+	});
+
+	it("does not register a multi-cardinality capability when every provider fails", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { notifications: ["slack", "discord"] } },
+			{} // neither plugin present
+		);
+
+		await loader.load();
+		expect(loader.has("notifications")).toBe(false);
+		expect(loader.loadFailures()).toHaveLength(2);
+	});
+});
+
+describe("PluginLoader — sparse providers map", () => {
+	it("skips an undefined provider entry", async () => {
+		// resolveConfig strips these, but the `Partial<Record>` type permits
+		// them — the guard keeps a hand-built config from throwing.
+		const config = resolveConfig({ name: "demo", providers: {} });
+		(config.providers as Record<string, unknown>).source = undefined;
+		const loader = new PluginLoader(config, { repoRoot: "/tmp" });
+
+		await loader.load();
+		expect(loader.loadedKeys()).toEqual([]);
+		expect(loader.loadFailures()).toEqual([]);
+	});
 });
 
 describe("PluginLoader.loadedKeys", () => {
@@ -482,9 +551,10 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 				// @theholocron/holocron-plugin-missing-vault is intentionally absent
 			}
 		);
-		const err = await loader.load().catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(LoaderError);
-		expect((err as Error).message).toMatch(/failed to import/);
+		await loader.load();
+		const [failure] = loader.loadFailures();
+		expect(failure!.error).toBeInstanceOf(LoaderError);
+		expect(failure!.error.message).toMatch(/failed to import/);
 	});
 
 	it("errors when a package exports neither createPlugin nor a capability config", async () => {
@@ -497,9 +567,10 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 				"@theholocron/holocron-plugin-broken": { somethingElse: true },
 			}
 		);
-		const err = await loader.load().catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(LoaderError);
-		expect((err as Error).message).toMatch(/createPlugin/);
+		await loader.load();
+		const [failure] = loader.loadFailures();
+		expect(failure!.error).toBeInstanceOf(LoaderError);
+		expect(failure!.error.message).toMatch(/createPlugin/);
 	});
 });
 
@@ -530,7 +601,8 @@ describe("PluginLoader — defaultImporter (cwd resolution)", () => {
 
 		const config = resolveConfig({ name: "test", providers: { wiki: "fern" } });
 		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
-		await expect(loader.load()).rejects.toThrow(LoaderError);
+		await loader.load();
+		expect(loader.loadFailures()[0]!.error).toBeInstanceOf(LoaderError);
 		expect(mockResolve).toHaveBeenCalledWith("@theholocron/holocron-plugin-fern");
 		vi.mocked(createRequire).mockRestore();
 	});
@@ -539,6 +611,7 @@ describe("PluginLoader — defaultImporter (cwd resolution)", () => {
 		// A provider that does not exist anywhere — covers the catch branch.
 		const config = resolveConfig({ name: "test", providers: { source: "no-such-provider-xz9" as "github" } });
 		const loader = new PluginLoader(config, { repoRoot: "/tmp", repo: "test/test" });
-		await expect(loader.load()).rejects.toThrow(LoaderError);
+		await loader.load();
+		expect(loader.loadFailures()[0]!.error).toBeInstanceOf(LoaderError);
 	});
 });

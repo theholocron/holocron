@@ -69,6 +69,33 @@ describe("runDoctor", () => {
 		expect(lines.join("\n")).toContain("Holocron doctor — demo");
 	});
 
+	it("reports a fail row for a provider that failed to load", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github", dns: "cloudflare" },
+		});
+		// cloudflare plugin is absent from the module map → load failure
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: { whoami: async () => ({ login: "iamnewton" }) },
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const dnsRow = report.rows.find((r) => r.capability === "dns");
+		expect(dnsRow).toMatchObject({ status: "fail", provider: "cloudflare" });
+		expect(dnsRow?.message).toMatch(/failed to import/);
+		// the working provider is still reported
+		expect(report.rows.find((r) => r.capability === "source")?.status).toBe("ok");
+		expect(report.summary.fail).toBe(1);
+	});
+
 	it("reports fail when a smoke check throws", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

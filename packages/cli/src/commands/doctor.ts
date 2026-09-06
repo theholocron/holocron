@@ -59,6 +59,17 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 	print(style.dim(`  config: ${input.loaded.filepath}`));
 	print("");
 
+	// Providers that never loaded (missing token, package not installed) —
+	// the most actionable rows in the report.
+	for (const failure of loader.loadFailures()) {
+		rows.push({
+			capability: failure.key,
+			provider: failure.provider,
+			status: "fail",
+			message: failure.error.message,
+		});
+	}
+
 	for (const key of loader.loadedKeys()) {
 		const cardinality = CARDINALITY[key];
 		const entry = config.providers[key];

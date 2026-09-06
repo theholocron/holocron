@@ -10,10 +10,10 @@ import type { RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.js";
 import { runSyncReadme } from "./sync-readme.js";
 
 vi.mock("../commands/sync-readme.js", () => ({
-	runSyncReadme: vi.fn(
-		async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> =>
-			input.context.dryRun ? { status: "dry-run", updated: false } : { status: "ok", updated: true }
-	),
+	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> => {
+		if (input.context.dryRun) return { status: "dry-run", updated: false };
+		return { status: "ok", updated: true };
+	}),
 }));
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
@@ -580,7 +580,7 @@ describe("runSync", () => {
 			expect(step?.message).toContain("no package.json");
 		});
 
-		it("still writes keywords when loader.load() throws AuthError (no provider token)", async () => {
+		it("still writes keywords when the provider plugin fails to load (no token)", async () => {
 			await writeFile(
 				join(tmpDir, "package.json"),
 				JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n"
@@ -614,7 +614,7 @@ describe("runSync", () => {
 			expect(pkg.keywords).toEqual(["cli", "typescript"]);
 		});
 
-		it("re-throws non-AuthError load failures even for local-only steps", async () => {
+		it("soft-skips a plugin that fails to load — local steps still run", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
 				repo: { topics: ["cli"] },
@@ -628,9 +628,17 @@ describe("runSync", () => {
 				},
 			});
 
-			await expect(
-				runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["keywords"], print: () => {} })
-			).rejects.toThrow();
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
+
+			// did not throw; the local keywords step ran; the failure is recorded
+			expect(report.steps.find((s) => s.step === "sync keywords")).toBeDefined();
+			expect(loader.loadFailures()[0]?.error.message).toMatch(/corrupted/);
 		});
 	});
 
@@ -1172,7 +1180,6 @@ describe("runSync", () => {
 		it("works without a provider token (local-only step)", async () => {
 			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
 			const loader = makeLoaderWith(loaded, {});
-			vi.spyOn(loader, "load").mockRejectedValue(new AuthError("no token"));
 
 			const report = await runSync({
 				loaded,

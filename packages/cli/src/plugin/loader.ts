@@ -94,8 +94,17 @@ export class LoaderError extends Error {
 	override name = "LoaderError";
 }
 
+/** A provider that could not be loaded — missing token, bad package, unimplemented capability. */
+export interface PluginLoadFailure {
+	key: CapabilityKey;
+	provider: string;
+	packageName: string;
+	error: Error;
+}
+
 export class PluginLoader {
 	private readonly registry = new Map<CapabilityKey, unknown>();
+	private readonly failures: PluginLoadFailure[] = [];
 
 	constructor(
 		private readonly config: ResolvedHolocronConfig,
@@ -103,7 +112,17 @@ export class PluginLoader {
 		private readonly importer: PluginImporter = defaultImporter
 	) {}
 
-	/** Imports every configured plugin and builds the capability registry. */
+	/**
+	 * Imports every configured plugin and builds the capability registry.
+	 *
+	 * Never throws for a single plugin's failure — a missing vendor token,
+	 * an uninstalled package, or an unimplemented capability records a
+	 * {@link PluginLoadFailure} and the load continues. This is the
+	 * "soft-skip over hard-fail" contract: a command that needs a
+	 * capability learns it is absent via `has()` / `get()` (which
+	 * re-surfaces the original error), and orchestrators report the skip
+	 * in their summary. Inspect {@link loadFailures} for the full list.
+	 */
 	async load(): Promise<void> {
 		const entries = Object.entries(this.config.providers) as Array<
 			[CapabilityKey, ResolvedHolocronConfig["providers"][CapabilityKey]]
@@ -112,15 +131,37 @@ export class PluginLoader {
 		for (const [key, entry] of entries) {
 			if (!entry) continue;
 			if (entry.cardinality === "single") {
-				this.registry.set(key, await this.loadOne(key, entry.tuple));
-			} else {
-				const impls = [];
-				for (const tuple of entry.tuples) {
-					impls.push(await this.loadOne(key, tuple));
+				try {
+					this.registry.set(key, await this.loadOne(key, entry.tuple));
+				} catch (err) {
+					this.recordFailure(key, entry.tuple, err);
 				}
-				this.registry.set(key, impls);
+			} else {
+				const impls: unknown[] = [];
+				for (const tuple of entry.tuples) {
+					try {
+						impls.push(await this.loadOne(key, tuple));
+					} catch (err) {
+						this.recordFailure(key, tuple, err);
+					}
+				}
+				if (impls.length > 0) this.registry.set(key, impls);
 			}
 		}
+	}
+
+	private recordFailure(key: CapabilityKey, tuple: ResolvedTuple, err: unknown): void {
+		this.failures.push({
+			key,
+			provider: tuple.provider,
+			packageName: tuple.packageName,
+			error: err instanceof Error ? err : new Error(String(err)),
+		});
+	}
+
+	/** Providers that failed to load during {@link load}. Empty on a clean load. */
+	loadFailures(): readonly PluginLoadFailure[] {
+		return this.failures;
 	}
 
 	/**
@@ -131,6 +172,12 @@ export class PluginLoader {
 	get<K extends CapabilityKey>(key: K): ResolvedCapability<K> {
 		const impl = this.registry.get(key);
 		if (impl === undefined) {
+			// If the plugin was configured but failed to load, re-surface the
+			// original error (e.g. `AuthError: no Vercel token found`) rather
+			// than a generic "not loaded" — single-capability commands then
+			// give the operator an actionable message.
+			const failure = this.failures.find((f) => f.key === key);
+			if (failure) throw failure.error;
 			throw new LoaderError(`capability \`${key}\` is not loaded — is it declared in holocron.config.json?`);
 		}
 		return impl as ResolvedCapability<K>;

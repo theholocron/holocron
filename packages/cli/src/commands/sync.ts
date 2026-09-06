@@ -1,10 +1,9 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { AuthError } from "../auth/auth-resolver.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import type { Source } from "../plugin/capabilities.js";
-import { LoaderError, PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { createHeader } from "../utils/create-header.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
@@ -58,25 +57,11 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const requestedSteps = input.steps;
 	const steps: SetupStepResult[] = [];
 
-	// Remote steps (labels, properties, topics) always need a provider token.
-	// Local steps (keywords, description) write to disk and only optionally
-	// push to GitHub. Load plugins eagerly when remote steps are requested;
-	// for local-only runs, attempt a load for the optional GitHub sync but
-	// swallow auth errors so the command works without a token.
-	const needsProvider = !requestedSteps || requestedSteps.some((s) => !LOCAL_STEPS.has(s as SyncStep));
-	if (needsProvider) {
-		await loader.load();
-	} else {
-		try {
-			await loader.load();
-		} catch (err) {
-			// Swallow auth errors (missing token) and loader errors (plugin
-			// package not installed). Both mean optional remote push is
-			// unavailable; local file writes still proceed. Any other failure
-			// is re-thrown so the operator sees it.
-			if (!(err instanceof AuthError) && !(err instanceof LoaderError)) throw err;
-		}
-	}
+	// `load()` soft-skips any plugin it can't load (missing token, package
+	// not installed). Remote steps then push a `skip` result when
+	// `source` is absent; local steps (keywords, description, readme…)
+	// write to disk regardless.
+	await loader.load();
 
 	print(`Holocron sync — ${config.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
