@@ -267,6 +267,93 @@ describe("runSetup", () => {
 		expect(ensuredName).toBe("my-app");
 	});
 
+	it("provisions the errors project and pushes its DSN to repo secrets", async () => {
+		const setSecrets: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "my-app",
+			providers: { errors: "sentry", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"] }),
+					ensureProject: async (input: { name: string }) => ({
+						dsn: `https://k@o.ingest.sentry.io/${input.name}`,
+						alreadyExists: false,
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("github", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string, value: string) => {
+						setSecrets.push([name, value]);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const rows = report.steps.filter((s) => s.capability === "errors");
+		expect(rows.map((r) => r.step)).toEqual([
+			"ensureProject my-app",
+			"secrets set SENTRY_DSN",
+			"secrets set NEXT_PUBLIC_SENTRY_DSN",
+		]);
+		expect(rows.every((r) => r.status === "ok")).toBe(true);
+		expect(setSecrets).toEqual([
+			["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
+			["NEXT_PUBLIC_SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
+		]);
+	});
+
+	it("does nothing for an errors provider that has no ensureProject", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: { describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }) },
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.steps.filter((s) => s.capability === "errors")).toEqual([]);
+	});
+
+	it("skips the secrets push when no secrets provider is configured", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }),
+					ensureProject: async () => ({ dsn: "https://x@o.ingest.sentry.io/1", alreadyExists: true }),
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const rows = report.steps.filter((s) => s.capability === "errors");
+		expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app"]);
+		expect(rows[0]?.message).toContain("exists");
+	});
+
 	it("provisions the holocron-ci and holocron-local datasets for the logs capability", async () => {
 		const ensured: string[] = [];
 		const loaded = loadedFrom({
