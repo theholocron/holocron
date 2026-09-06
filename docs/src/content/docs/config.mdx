@@ -81,10 +81,11 @@ export default defineConfig({
     logs: "axiom",
   },
 
-  // Structured-logging config — level only. Lowest-priority level source:
-  // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. Axiom
-  // credentials never live here; they come from env vars.
-  log: { level: "info" },
+  // Structured-logging config. `level` is the lowest-priority level source:
+  // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. `axiom.dataset`
+  // opts local runs into Axiom shipping without exporting HOLOCRON_AXIOM_DATASET
+  // — the token still comes from an env var or the OS keyring, never here.
+  log: { level: "info", axiom: { dataset: "holocron-local" } },
 });
 ```
 

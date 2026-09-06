@@ -188,10 +188,12 @@ export default defineConfig({
 });
 ```
 
-Axiom credentials (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`,
-`HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET`) come from env vars only.
-`HOLOCRON_TELEMETRY=false` disables the Axiom transport (and Sentry). See the
-[logging guide](https://docs.theholocron.dev/holocron/logging/).
+Axiom shipping activates when a token (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`
+→ OS keyring `axiom.<org>` → `axiom`) **and** a dataset
+(`HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET` → `log.axiom.dataset` in
+`holocron.config`) both resolve; env vars win. The token is never read from a
+config file. `HOLOCRON_TELEMETRY=false` disables the Axiom transport (and
+Sentry). See the [logging guide](https://docs.theholocron.dev/holocron/logging/).
 
 ## What's in here
 

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { input, select } from "@inquirer/prompts";
+import type { LogLevel } from "@theholocron/logger";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -26,7 +27,7 @@ import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
-import { buildCliLogger, getLogger, getRunId } from "./logger.js";
+import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 import { checkForUpdates } from "./update-notifier.js";
@@ -49,6 +50,22 @@ let printRunId = false;
  */
 function resolveOrg(argv: { org?: string }, config: { org?: string }): string | undefined {
 	return argv.org ?? env.get("HOLOCRON_ORG") ?? config.org;
+}
+
+/**
+ * `buildCliLogger` options derived from a loaded `holocron.config` — the
+ * level, the Axiom dataset, and the resolved org for a keyring-backed
+ * Axiom token. Used by every handler that has already called `loadConfig`.
+ */
+function cliLoggerOpts(
+	argv: { org?: string; verbose?: boolean; quiet?: boolean },
+	resolved: { org?: string; log?: { level?: LogLevel; axiom?: { dataset?: string } } }
+): BuildCliLoggerOpts {
+	return {
+		configLevel: resolved.log?.level,
+		configAxiomDataset: resolved.log?.axiom?.dataset,
+		org: resolveOrg(argv, resolved),
+	};
 }
 
 /** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */
@@ -125,8 +142,8 @@ try {
 			printRunId = Boolean(argv.debug || argv.verbose);
 			// Establish the root logger (command name + flags + env). Handlers
 			// that load a config call `buildCliLogger(argv, { configLevel })`
-			// again to fold in the lowest-priority level source.
-			buildCliLogger(argv, { command: name });
+			// again to fold in the lowest-priority level + Axiom-dataset sources.
+			buildCliLogger(argv, { command: name, org: argv.org });
 		})
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
@@ -183,7 +200,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runDoctor({
 					loaded,
 					context: {
@@ -211,7 +228,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runSetup({
 					loaded,
 					context: {
@@ -312,7 +329,7 @@ try {
 				const scopeArg = argv.scope as string;
 				const scope = parseScope(scopeArg);
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runSecretSet({
 					loaded,
 					context: {
@@ -355,7 +372,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runSecretsSync({
 					loaded,
 					context: {
@@ -397,7 +414,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runDeploy({
 					loaded,
 					context: {
@@ -438,7 +455,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runCleanupPreview({
 					loaded,
 					context: {
@@ -530,7 +547,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runSync({
 					loaded,
 					context: {
@@ -616,7 +633,7 @@ try {
 				}),
 			async (argv) => {
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, { configLevel: loaded.resolved.log?.level });
+				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
 				const report = await runSyncReadme({
 					loaded,
 					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
