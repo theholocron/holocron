@@ -129,6 +129,12 @@ describe("resolveConfig", () => {
 		expect(resolveConfig({ ...minimal, log: { level: "debug" } }).log).toEqual({ level: "debug" });
 	});
 
+	it("passes the log.axiom.dataset opt-in through", () => {
+		expect(resolveConfig({ ...minimal, log: { axiom: { dataset: "holocron-local" } } }).log).toEqual({
+			axiom: { dataset: "holocron-local" },
+		});
+	});
+
 	it("throws when docs is set but build is absent", () => {
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow(ConfigError);
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow("`docs.build` is required");

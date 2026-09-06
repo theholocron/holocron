@@ -35,13 +35,25 @@ import {
 	type TeamPermission,
 } from "../plugin/capabilities.js";
 
-/** Structured-logging config — level only; credentials never live in config. */
+/** Structured-logging config. The Axiom **token** never lives here — only in
+ *  env vars or the OS keyring — but the non-secret dataset name may. */
 export interface LogConfig {
 	/**
 	 * Default log level. The lowest-priority level source: `--verbose` /
 	 * `--quiet` and `HOLOCRON_LOG_LEVEL` both outrank it.
 	 */
 	level?: LogLevel;
+	/**
+	 * Axiom log-shipping. Set `axiom.dataset` to opt local runs into Axiom
+	 * without exporting `HOLOCRON_AXIOM_DATASET` — the CLI then pairs it with
+	 * the token from `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` or the OS keyring
+	 * (`holocron auth set axiom[.<org>] <TOKEN>`). Env vars still win. In CI,
+	 * prefer the `HOLOCRON_AXIOM_DATASET` variable.
+	 */
+	axiom?: {
+		/** Target Axiom dataset, e.g. `"holocron-local"`. */
+		dataset?: string;
+	};
 }
 
 // ───────────────────────────────────────────────────────────────────────

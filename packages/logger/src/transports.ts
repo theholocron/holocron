@@ -2,7 +2,8 @@ import type { TransportMultiOptions, TransportSingleOptions, TransportTargetOpti
 
 import type { LogLevel } from "./interface.js";
 
-/** Axiom credentials — never read from `holocron.config`, only from env vars. */
+/** Axiom credentials. The token comes from env vars or the OS keyring — never
+ *  a committed config file; the dataset name may come from config. */
 export interface AxiomTransportConfig {
 	dataset: string;
 	token: string;

@@ -105,8 +105,14 @@ Two datasets, selected by the single `HOLOCRON_AXIOM_DATASET` value:
 | `holocron-ci`    | CI             |
 | `holocron-local` | local — opt-in |
 
-If `HOLOCRON_AXIOM_DATASET` is unset, runs write only to their console
-transport and never attempt an Axiom connection.
+The transport activates only when **both** a token and a dataset resolve.
+With no dataset, runs write only to their console transport and never
+attempt an Axiom connection.
+
+The token resolves from `HOLOCRON_AXIOM_TOKEN` → `AXIOM_TOKEN` → the OS
+keyring (`axiom.<org>`, then bare `axiom`). The dataset resolves from
+`HOLOCRON_AXIOM_DATASET` → `AXIOM_DATASET` → `holocron.config`
+`log.axiom.dataset`. Env vars always win.
 
 #### CI
 
@@ -120,15 +126,19 @@ without removing the secret.
 
 #### Local
 
-`holocron auth set axiom.theholocron <TOKEN>` stores the token in the OS
-keyring — this is what `holocron setup` and `holocron doctor` use to
-provision and check the datasets (the `logs` capability).
+Store the token in the OS keyring once:
 
-The **logger's Axiom transport reads env vars only**, not the keyring. To
-ship your local runs to Axiom, export `HOLOCRON_AXIOM_TOKEN` and
-`HOLOCRON_AXIOM_DATASET=holocron-local` in your shell. Leaving
-`HOLOCRON_AXIOM_DATASET` unset (the default) keeps local runs on
-`pino-pretty` only.
+```bash
+holocron auth set axiom.theholocron <TOKEN>
+```
+
+That token backs both `holocron setup` / `holocron doctor` (the `logs`
+capability, which provisions and checks the datasets) **and** the logger's
+Axiom transport. Then opt local runs into shipping by naming the dataset in
+`holocron.config` — `log: { axiom: { dataset: "holocron-local" } }`.
+
+Leave `log.axiom.dataset` unset (and `HOLOCRON_AXIOM_DATASET` unexported)
+to keep local runs on `pino-pretty` only.
 
 ### Opting out
 
@@ -152,9 +162,10 @@ import { defineConfig } from "@theholocron/holocron-config";
 export default defineConfig({
   log: {
     level: "info", // "debug" | "info" | "warn" | "error"
+    axiom: { dataset: "holocron-local" }, // opt local runs into Axiom shipping
   },
 });
 ```
 
-Only the level belongs in config. Axiom credentials come from env vars — secrets do
-not belong in a committed file.
+Only the level and the non-secret Axiom **dataset** name belong in config. The
+Axiom **token** never does — it comes from an env var or the OS keyring.

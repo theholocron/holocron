@@ -27,9 +27,10 @@ export interface LoggerConfig {
 	/**
 	 * Axiom credentials. Resolved from env vars by default
 	 * (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` /
-	 * `AXIOM_DATASET`) — pass this only to override, and only from env vars,
-	 * never from a config file. The transport is also skipped entirely when
-	 * `HOLOCRON_TELEMETRY=false`.
+	 * `AXIOM_DATASET`). Pass this only to override — e.g. `@theholocron/cli`
+	 * pairs an OS-keyring token with a `holocron.config` dataset. The
+	 * **token** must never come from a committed config file. The transport
+	 * is also skipped entirely when `HOLOCRON_TELEMETRY=false`.
 	 */
 	axiom?: AxiomTransportConfig;
 }
