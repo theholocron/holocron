@@ -1,0 +1,100 @@
+---
+title: "stale"
+description: Mark and close stale issues and pull requests on a daily schedule.
+---
+
+The `stale` workflow runs every day at 01:30 UTC. It marks issues and PRs inactive
+after a configurable period, then closes them if no activity follows.
+
+By default anything actively tracked is protected: issues and PRs assigned to a
+milestone or project, and issues labelled `in-progress` or `wip`, are never marked stale.
+
+## Enabling
+
+Add `"stale"` to `workflows` in `holocron.config.ts`:
+
+```ts
+workflows: ["stale"],
+```
+
+With overrides:
+
+```ts
+workflows: [
+  {
+    name: "stale",
+    with: {
+      "days-before-stale": 60,
+      "days-before-close": 14,
+      "exempt-issue-labels": "in-progress,wip,blocked",
+    },
+  },
+],
+```
+
+## Inputs
+
+### Thresholds
+
+| Input | Default | Description |
+|---|---|---|
+| `days-before-stale` | `30` | Days of inactivity before an issue **or** PR is marked stale. Applies to both unless a type-specific value is set. |
+| `days-before-close` | `5` | Days after the stale label is applied before the item is closed. Applies to both unless a type-specific value is set. |
+| `days-before-issue-stale` | `-1` | Issue-specific stale threshold. `-1` inherits from `days-before-stale`. |
+| `days-before-issue-close` | `-1` | Issue-specific close threshold. `-1` inherits from `days-before-close`. |
+| `days-before-pr-stale` | `-1` | PR-specific stale threshold. `-1` inherits from `days-before-stale`. |
+| `days-before-pr-close` | `-1` | PR-specific close threshold. `-1` inherits from `days-before-close`. |
+
+### Issue exemptions
+
+| Input | Default | Description |
+|---|---|---|
+| `exempt-issue-labels` | `"in-progress,wip"` | Comma-separated labels. Issues carrying any of these are never marked stale. |
+| `exempt-all-issue-milestones` | `true` | Issues assigned to any milestone are never marked stale. |
+| `exempt-all-issue-projects` | `true` | Issues assigned to any project board are never marked stale. |
+
+### PR exemptions
+
+| Input | Default | Description |
+|---|---|---|
+| `exempt-pr-labels` | `""` | Comma-separated labels. PRs carrying any of these are never marked stale. Empty by default. |
+| `exempt-all-pr-milestones` | `true` | PRs assigned to any milestone are never marked stale. |
+| `exempt-all-pr-projects` | `true` | PRs assigned to any project board are never marked stale. |
+
+## Examples
+
+**Issues go stale slower than PRs:**
+
+```ts
+with: {
+  "days-before-stale": 30,       // PR default
+  "days-before-issue-stale": 90, // issues get more runway
+  "days-before-close": 7,
+}
+```
+
+**Extended thresholds with extra exempt labels:**
+
+```ts
+with: {
+  "days-before-stale": 60,
+  "days-before-close": 14,
+  "exempt-issue-labels": "in-progress,wip,blocked,needs-review",
+}
+```
+
+**Turn off project exemption for PRs** (rare — project membership alone shouldn't keep PRs open):
+
+```ts
+with: {
+  "exempt-all-pr-projects": false,
+}
+```
+
+## What is not configurable
+
+| Value | Why |
+|---|---|
+| Cron schedule (`30 1 * * *`) | Daily frequency is appropriate for all repos. |
+| `stale-issue-label` / `stale-pr-label` | Hardcoded to `wontfix` — org convention. |
+| Stale and close messages | Consistent wording across the org; derived from the threshold inputs. |
