@@ -26,6 +26,7 @@ import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
+import { buildCliLogger, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 import { checkForUpdates } from "./update-notifier.js";
@@ -36,6 +37,9 @@ const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN",
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
 };
+
+/** Whether to print the correlation id at command end (`--debug` / `--verbose`). */
+let printRunId = false;
 
 /**
  * Resolves the active org in priority order:
@@ -54,7 +58,7 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 		return parseTokenArgs(rawTokens);
 	} catch (err) {
 		if (err instanceof TokenParseError) {
-			console.error(`--token: ${err.message}`);
+			getLogger().error(`--token: ${err.message}`);
 			process.exitCode = 1;
 			return null;
 		}
@@ -69,10 +73,6 @@ let finishCommand: (ok: boolean) => void = () => {};
 
 try {
 	await yargs(hideBin(process.argv))
-		.middleware((argv) => {
-			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
-			finishCommand = startCommand(name);
-		})
 		.scriptName("")
 		.usage("holocron <command> [options]")
 		// ── global options (apply to every subcommand) ──────────────────────
@@ -104,6 +104,30 @@ try {
 			default: process.cwd(),
 			describe: "Directory to search for holocron.config.json",
 		})
+		.option("verbose", {
+			type: "boolean",
+			default: false,
+			describe: "Set the log level to debug — full structured operational output.",
+		})
+		.option("debug", {
+			type: "boolean",
+			default: false,
+			describe: "Print the run ID at command end for Axiom lookup. Does not change the log level.",
+		})
+		.option("quiet", {
+			type: "boolean",
+			default: false,
+			describe: "Set the log level to error — suppress info and warn.",
+		})
+		.middleware((argv) => {
+			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
+			finishCommand = startCommand(name);
+			printRunId = Boolean(argv.debug || argv.verbose);
+			// Establish the root logger from flags + env. Handlers that load a
+			// config call `buildCliLogger(argv, config.log?.level)` again to fold
+			// in the lowest-priority level source.
+			buildCliLogger(argv);
+		})
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
 			"version",
@@ -134,7 +158,7 @@ try {
 				try {
 					token = resolveCloneToken({ cliToken: tokens.cliTokens?.["github"] ?? tokens.cliToken });
 				} catch (err) {
-					console.error(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
+					getLogger().error(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
 					process.exitCode = 1;
 					return;
 				}
@@ -159,6 +183,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runDoctor({
 					loaded,
 					context: {
@@ -186,6 +211,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runSetup({
 					loaded,
 					context: {
@@ -286,6 +312,7 @@ try {
 				const scopeArg = argv.scope as string;
 				const scope = parseScope(scopeArg);
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runSecretSet({
 					loaded,
 					context: {
@@ -328,6 +355,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runSecretsSync({
 					loaded,
 					context: {
@@ -369,6 +397,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runDeploy({
 					loaded,
 					context: {
@@ -409,6 +438,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runCleanupPreview({
 					loaded,
 					context: {
@@ -500,6 +530,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runSync({
 					loaded,
 					context: {
@@ -555,7 +586,7 @@ try {
 					try {
 						token = resolveSyncToken({ cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken });
 					} catch (err) {
-						console.error(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
+						getLogger().error(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -585,6 +616,7 @@ try {
 				}),
 			async (argv) => {
 				const loaded = await loadConfig(argv.cwd);
+				buildCliLogger(argv, loaded.resolved.log?.level);
 				const report = await runSyncReadme({
 					loaded,
 					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
@@ -828,12 +860,12 @@ try {
 					}
 
 					if (!type) {
-						console.error("new: template type is required");
+						getLogger().error("new: template type is required");
 						process.exitCode = 1;
 						return;
 					}
 					if (!name) {
-						console.error("new: repo name is required");
+						getLogger().error("new: repo name is required");
 						process.exitCode = 1;
 						return;
 					}
@@ -864,7 +896,7 @@ try {
 					if (report.status === "fail") process.exitCode = 1;
 				} catch (err) {
 					if (err instanceof NewError) {
-						console.error(`new: ${err.message}`);
+						getLogger().error(`new: ${err.message}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -948,7 +980,7 @@ try {
 					if (report.status === "fail") process.exitCode = 1;
 				} catch (err) {
 					if (err instanceof PluginCreateError) {
-						console.error(`plugin create: ${err.message}`);
+						getLogger().error(`plugin create: ${err.message}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -985,8 +1017,7 @@ try {
 								const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
 								const cfg = JSON.parse(raw) as Record<string, unknown>;
 								const upgradeNode = (cfg.upgrade as Record<string, unknown> | undefined)?.node as
-									| Record<string, unknown>
-									| undefined;
+									Record<string, unknown> | undefined;
 								if (Array.isArray(upgradeNode?.extra)) {
 									extra = upgradeNode.extra as string[];
 								}
@@ -1002,7 +1033,7 @@ try {
 								extra,
 							});
 							if (report.status === "fail") {
-								if (report.message) console.error(`upgrade node: ${report.message}`);
+								if (report.message) getLogger().error(`upgrade node: ${report.message}`);
 								process.exitCode = 1;
 							}
 						}
@@ -1073,6 +1104,10 @@ try {
 
 finishCommand(!process.exitCode);
 endSession();
+// `--debug` / `--verbose`: surface the correlation id for Axiom lookup. This is
+// user-facing reference output (print semantics); cli.ts has no `print` injection.
+const rid = getRunId();
+if (printRunId && rid) console.log(`Run ID: ${rid}`);
 const notify = await updateCheckPromise;
 notify?.();
 await flush();

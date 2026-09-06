@@ -24,7 +24,7 @@ function lastSpan(): MockSpan {
 const originalEnv = process.env;
 
 beforeEach(() => {
-	process.env = { ...originalEnv, NO_HOLOCRON_TELEMETRY: undefined, CI: undefined };
+	process.env = { ...originalEnv, NO_HOLOCRON_TELEMETRY: undefined, HOLOCRON_TELEMETRY: undefined, CI: undefined };
 	vi.clearAllMocks();
 });
 
@@ -63,6 +63,36 @@ describe("when NO_HOLOCRON_TELEMETRY is set", () => {
 	it("flush: skips Sentry.close", async () => {
 		await flush();
 		expect(Sentry.close).not.toHaveBeenCalled();
+	});
+});
+
+describe("when HOLOCRON_TELEMETRY=false", () => {
+	beforeEach(() => {
+		process.env["HOLOCRON_TELEMETRY"] = "false";
+	});
+
+	it("init: skips Sentry.init", () => {
+		init("1.0.0");
+		expect(Sentry.init).not.toHaveBeenCalled();
+	});
+
+	it("startCommand: returns a no-op and skips span creation", () => {
+		const finish = startCommand("setup");
+		expect(Sentry.startInactiveSpan).not.toHaveBeenCalled();
+		expect(() => finish(true)).not.toThrow();
+	});
+
+	it("captureException: skips Sentry.captureException", () => {
+		captureException(new Error("boom"));
+		expect(Sentry.captureException).not.toHaveBeenCalled();
+	});
+});
+
+describe("when HOLOCRON_TELEMETRY is any other value", () => {
+	it("init: still initialises Sentry (only the exact string 'false' opts out)", () => {
+		process.env["HOLOCRON_TELEMETRY"] = "true";
+		init("1.0.0");
+		expect(Sentry.init).toHaveBeenCalled();
 	});
 });
 

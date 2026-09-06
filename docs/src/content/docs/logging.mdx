@@ -14,11 +14,6 @@ They are not a hierarchy. `logger` does not wrap or replace `print`. This page c
 `logger`, implemented by the [`@theholocron/logger`](https://www.npmjs.com/package/@theholocron/logger)
 package.
 
-> **Note.** The `@theholocron/logger` package ships now. Wiring it through the CLI —
-> the `--verbose` / `--debug` / `--quiet` flags, the `holocron.config` `log` key, and
-> the migration of existing `console.*` call sites — lands alongside that migration.
-> Until then, set the level with `HOLOCRON_LOG_LEVEL`.
-
 ## The `Logger` interface
 
 Every command and plugin imports `Logger` — never Pino directly. Pino is an
@@ -60,15 +55,15 @@ Child loggers inherit every binding from their parent and add their own, so pass
 
 ## Standard context fields
 
-| Field     | Set by                | Value                                          |
-| --------- | --------------------- | --------------------------------------------- |
-| `runId`   | root logger (startup) | UUID, unique per command invocation           |
-| `env`     | root logger (startup) | `"ci"` when CI is detected, else `"local"`     |
-| `command` | command child logger  | active holocron command name                  |
-| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`      |
-| `repo`    | command child logger  | `"owner/name"` when available                  |
-| `level`   | Pino                  | level name string                             |
-| `time`    | Pino                  | ISO 8601 timestamp                            |
+| Field     | Set by                | Value                                      |
+| --------- | --------------------- | ------------------------------------------ |
+| `runId`   | root logger (startup) | UUID, unique per command invocation        |
+| `env`     | root logger (startup) | `"ci"` when CI is detected, else `"local"` |
+| `command` | command child logger  | active holocron command name               |
+| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`  |
+| `repo`    | command child logger  | `"owner/name"` when available              |
+| `level`   | Pino                  | level name string                          |
+| `time`    | Pino                  | ISO 8601 timestamp                         |
 
 ## Log level
 
@@ -81,17 +76,17 @@ Resolved in priority order:
 
 The resolved level applies to every transport — there is no separate Axiom gate.
 
-`--debug` is distinct from `--verbose`: it does **not** change the level. It only
-prints the `runId` at the end of the command so you have a reference for querying
-Axiom, without the full debug trace.
+`--debug` is distinct from `--verbose`: it does **not** change the level. It prints
+one line — `Run ID: <uuid>` — at the end of the command so you have a reference for
+querying Axiom, without the full debug trace. (`--verbose` prints it too.)
 
 ## Transports
 
-| Environment       | Output                                       |
-| ----------------- | -------------------------------------------- |
-| Local, on a TTY   | `pino-pretty` — colourised, human-readable   |
-| CI (`CI` truthy)  | newline-delimited JSON to stdout             |
-| Axiom configured  | Axiom, in a non-blocking Pino worker thread  |
+| Environment      | Output                                      |
+| ---------------- | ------------------------------------------- |
+| Local, on a TTY  | `pino-pretty` — colourised, human-readable  |
+| CI (`CI` truthy) | newline-delimited JSON to stdout            |
+| Axiom configured | Axiom, in a non-blocking Pino worker thread |
 
 ### Axiom
 
@@ -105,10 +100,10 @@ The Axiom transport is added when Axiom credentials are present **and**
 
 Two datasets, selected by the single `HOLOCRON_AXIOM_DATASET` value:
 
-| Value            | When                       |
-| ---------------- | -------------------------- |
+| Value            | When                           |
+| ---------------- | ------------------------------ |
 | `holocron-ci`    | CI — set once as an org secret |
-| `holocron-local` | local — optional           |
+| `holocron-local` | local — optional               |
 
 If `HOLOCRON_AXIOM_DATASET` is unset locally, local runs write only to
 `pino-pretty` and never attempt an Axiom connection.

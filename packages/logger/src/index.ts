@@ -1,9 +1,17 @@
-import { detectEnv, generateRunId, isCI, isTelemetryDisabled, resolveLevel } from "./context.js";
+import { detectEnv, generateRunId, isCI, isTelemetryDisabled, resolveAxiomFromEnv, resolveLevel } from "./context.js";
 import type { Logger, LogLevel } from "./interface.js";
 import { createPinoInstance, PinoLogger } from "./pino.js";
 import type { AxiomTransportConfig } from "./transports.js";
 
-export { detectEnv, generateRunId, isCI, isTelemetryDisabled, parseLogLevel, resolveLevel } from "./context.js";
+export {
+	detectEnv,
+	generateRunId,
+	isCI,
+	isTelemetryDisabled,
+	parseLogLevel,
+	resolveAxiomFromEnv,
+	resolveLevel,
+} from "./context.js";
 export type { LogEnv, Logger, LogLevel } from "./interface.js";
 export { LOG_LEVELS } from "./interface.js";
 export { REDACT_CENSOR, REDACTED_PATHS } from "./redact.js";
@@ -17,9 +25,11 @@ export interface LoggerConfig {
 	 */
 	level?: LogLevel;
 	/**
-	 * Axiom credentials. Supply only from env vars (`HOLOCRON_AXIOM_TOKEN` /
-	 * `HOLOCRON_AXIOM_DATASET`) — never from config files. Omit to skip the
-	 * Axiom transport. Also skipped when `HOLOCRON_TELEMETRY=false`.
+	 * Axiom credentials. Resolved from env vars by default
+	 * (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` /
+	 * `AXIOM_DATASET`) — pass this only to override, and only from env vars,
+	 * never from a config file. The transport is also skipped entirely when
+	 * `HOLOCRON_TELEMETRY=false`.
 	 */
 	axiom?: AxiomTransportConfig;
 }
@@ -50,10 +60,11 @@ export function createLogger(config: LoggerConfig = {}): CreateLoggerResult {
 	const runId = generateRunId();
 	const env = detectEnv();
 	const level = resolveLevel(config.level);
+	const axiom = config.axiom ?? resolveAxiomFromEnv();
 
 	const instance = createPinoInstance({
 		level,
-		axiom: config.axiom,
+		axiom,
 		ci: isCI(),
 		tty: Boolean(process.stdout.isTTY),
 		telemetryDisabled: isTelemetryDisabled(),
