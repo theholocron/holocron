@@ -51,6 +51,9 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
+      - run: pnpm build
+        name: Build CLI
+
       - name: Run holocron sync
         run: |
           if [ -n "$STEPS" ]; then
