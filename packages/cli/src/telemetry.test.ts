@@ -24,7 +24,14 @@ function lastSpan(): MockSpan {
 const originalEnv = process.env;
 
 beforeEach(() => {
-	process.env = { ...originalEnv, NO_HOLOCRON_TELEMETRY: undefined, HOLOCRON_TELEMETRY: undefined, CI: undefined };
+	process.env = {
+		...originalEnv,
+		NO_HOLOCRON_TELEMETRY: undefined,
+		HOLOCRON_TELEMETRY: undefined,
+		HOLOCRON_SENTRY_DSN: undefined,
+		SENTRY_DSN: undefined,
+		CI: undefined,
+	};
 	vi.clearAllMocks();
 });
 
@@ -136,6 +143,28 @@ describe("init", () => {
 	it("calls Sentry.startSession after init", () => {
 		init("1.0.0");
 		expect(Sentry.startSession).toHaveBeenCalled();
+	});
+
+	it("uses the built-in fallback DSN when no env var is set", () => {
+		init("1.0.0");
+		expect(Sentry.init).toHaveBeenCalledWith(
+			expect.objectContaining({ dsn: expect.stringContaining("ingest.us.sentry.io") })
+		);
+	});
+
+	it("prefers SENTRY_DSN over the fallback", () => {
+		process.env["SENTRY_DSN"] = "https://vendor@o1.ingest.sentry.io/1";
+		init("1.0.0");
+		expect(Sentry.init).toHaveBeenCalledWith(
+			expect.objectContaining({ dsn: "https://vendor@o1.ingest.sentry.io/1" })
+		);
+	});
+
+	it("prefers HOLOCRON_SENTRY_DSN over SENTRY_DSN", () => {
+		process.env["HOLOCRON_SENTRY_DSN"] = "https://hlc@o2.ingest.sentry.io/2";
+		process.env["SENTRY_DSN"] = "https://vendor@o1.ingest.sentry.io/1";
+		init("1.0.0");
+		expect(Sentry.init).toHaveBeenCalledWith(expect.objectContaining({ dsn: "https://hlc@o2.ingest.sentry.io/2" }));
 	});
 });
 
