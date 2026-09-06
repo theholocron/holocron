@@ -54,9 +54,6 @@ export default defineConfig({
 	],
 	providers: {
 		...providers,
-		// Vault: Doppler holds all project secrets (tokens, keys, credentials)
-		vault: ["doppler", { project: "holocron", config: "dev" }],
-		// Secrets: sync vault secrets to GitHub Actions secrets via holocron setup
 		secrets: "github",
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
