@@ -200,7 +200,7 @@ export class PluginLoader {
 	/**
 	 * Project-level defaults that get merged into every plugin's options
 	 * unless overridden by the CLI context or per-plugin tuple options.
-	 * See `.notes/tech-setup-and-config.spec.md` §Design.
+	 * See `docs/wiki/specifications/tech-setup-and-config.spec.md` §Design.
 	 */
 	private projectDefaults(): Partial<RuntimeContext> {
 		const defaults: Partial<RuntimeContext> = {};

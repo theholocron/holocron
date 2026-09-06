@@ -1,5 +1,5 @@
 ---
-status: archived # draft → proposed (issue filed) → approved (milestone attached) → archived
+status: archived
 issue:
 blocked-by: []
 ---
@@ -168,7 +168,7 @@ the new CLI so #77 gets a real-world acceptance test.
   `--token → HOLOCRON_DOPPLER_TOKEN → DOPPLER_TOKEN`, base URL
   `https://api.doppler.com/v3`. Ship as its own PR.
 - **Phase 2**: Ship #77 Phase 1 (`holocron plugin create` REST-only).
-  See `.notes/tool-plugin-create.spec.md`.
+  See [`tool-plugin-create.spec.md`](./tool-plugin-create.spec.md).
 - **Phase 3** (shipped): Built `@theholocron/holocron-plugin-infisical`
   via `holocron plugin create infisical Infisical --capability vault
 --vendor-env INFISICAL_TOKEN --base-url https://app.infisical.com/api`.

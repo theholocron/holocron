@@ -71,6 +71,28 @@ navigation:
         contents:
           - page: Overview
             path: ../docs/wiki/specifications/README.md
+          - page: Holocron v2 architecture
+            path: ../docs/wiki/specifications/tech-architecture.spec.md
+          - page: holocron sync command
+            path: ../docs/wiki/specifications/tech-sync-command.spec.md
+          - page: Extend holocron setup — repo policy + branch protection
+            path: ../docs/wiki/specifications/tech-setup-and-config.spec.md
+          - page: Unified repo metadata config
+            path: ../docs/wiki/specifications/tech-repo-metadata.spec.md
+          - page: Unified org-wide label management
+            path: ../docs/wiki/specifications/ci-label-unification.spec.md
+          - page: Smoke-test synced actions in sync-github
+            path: ../docs/wiki/specifications/ci-sync-github-smoke-test.spec.md
+          - page: Bootstrap credentials — keyring-backed token store
+            path: ../docs/wiki/specifications/tech-auth-bootstrap.spec.md
+          - page: Vault provider — Doppler + Infisical
+            path: ../docs/wiki/specifications/tech-vault-choice.spec.md
+          - page: holocron plugin create
+            path: ../docs/wiki/specifications/tool-plugin-create.spec.md
+          - page: "@theholocron/logger — structured logging package"
+            path: ../docs/wiki/specifications/logger.spec.md
+          - page: New plugins — observability, notifications, dns, analytics
+            path: ../docs/wiki/specifications/plugin-observability-notifications-dns-analytics.spec.md
 
 navbar-links:
   - type: github

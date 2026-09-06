@@ -7,7 +7,7 @@
  * `CardinalityFor<K>` so config resolution + command code can branch
  * statically.
  *
- * See `.notes/archive/tech-architecture.spec.md` for the design narrative
+ * See `docs/wiki/specifications/tech-architecture.spec.md` for the design narrative
  * (issue: #74).
  */
 

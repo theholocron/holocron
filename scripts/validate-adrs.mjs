@@ -3,7 +3,7 @@
  * Validates frontmatter in ADR and spec files.
  *
  * ADRs: docs/architecture/adr/*.md (excluding template.md)
- * Specs: .notes/*.spec.md
+ * Specs: .notes/*.spec.md (in-progress) + docs/wiki/specifications/*.spec.md (archived)
  *
  * Usage:
  *   node scripts/validate-adrs.mjs           # validate all files
@@ -18,6 +18,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 
 const ADR_DIR = resolve(root, "docs/decisions");
 const NOTES_DIR = resolve(root, ".notes");
+const SPEC_ARCHIVE_DIR = resolve(root, "docs/wiki/specifications");
 
 const ADR_STATUSES = new Set(["proposed", "accepted", "rejected", "deprecated", "superseded"]);
 const SPEC_STATUSES = new Set(["draft", "proposed", "accepted", "archived", "superseded"]);
@@ -135,14 +136,20 @@ const adrFiles =
 			? readdirSync(ADR_DIR).map((f) => resolve(ADR_DIR, f))
 			: [];
 
+function readSpecDir(dir) {
+	return existsSync(dir)
+		? readdirSync(dir)
+				.filter((f) => f.endsWith(".spec.md"))
+				.map((f) => resolve(dir, f))
+		: [];
+}
+
 const specFiles =
 	args.length > 0
-		? args.filter((f) => f.includes(".notes/") && f.endsWith(".spec.md"))
-		: existsSync(NOTES_DIR)
-			? readdirSync(NOTES_DIR)
-					.filter((f) => f.endsWith(".spec.md"))
-					.map((f) => resolve(NOTES_DIR, f))
-			: [];
+		? args.filter(
+				(f) => (f.includes(".notes/") || f.includes("docs/wiki/specifications/")) && f.endsWith(".spec.md")
+			)
+		: [...readSpecDir(NOTES_DIR), ...readSpecDir(SPEC_ARCHIVE_DIR)];
 
 if (adrFiles.length > 0) {
 	console.log(`\nValidating ${adrFiles.length} ADR file(s)…`);

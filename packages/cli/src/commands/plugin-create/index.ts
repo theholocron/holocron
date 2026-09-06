@@ -2,7 +2,7 @@
  * `holocron plugin create <slug> <vendor>` — scaffold a new plugin
  * package matching the proven template.
  *
- * Design: see `.notes/tool-plugin-create.spec.md`.
+ * Design: see `docs/wiki/specifications/tool-plugin-create.spec.md`.
  *
  * Flow:
  *   1. Preflight — verify CWD is a workspace root (pnpm-workspace.yaml
