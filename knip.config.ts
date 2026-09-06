@@ -29,6 +29,11 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
+		"packages/logger": {
+			// src/index.ts auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 	},
 	ignoreDependencies: [
 		// Loaded at runtime by the CLI plugin loader — not statically imported
@@ -64,6 +69,10 @@ const config: KnipConfig = {
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
 		"husky",
+		// Pino transport targets in @theholocron/logger — referenced by string
+		// name in transports.ts and loaded by Pino at runtime, never imported
+		"@axiomhq/pino",
+		"pino-pretty",
 	],
 	// commitlint binary comes transitively via @theholocron/commitlint-config; not a direct dep
 	ignoreBinaries: ["commitlint"],
