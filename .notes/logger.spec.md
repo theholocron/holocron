@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: approved
 issue: theholocron/holocron#522
 blocked-by: []
 related:
