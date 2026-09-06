@@ -22,10 +22,10 @@ Self-contained capabilities are **env-var-activated**. The runtime checks for
 specific env vars at startup and activates the capability immediately, before
 any config is loaded:
 
-| Capability | Provider | Env vars that activate it |
-|---|---|---|
-| `errors` | `sentry` | `SENTRY_DSN` |
-| `logs` | `axiom` | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+| Capability | Provider | Env vars that activate it       |
+| ---------- | -------- | ------------------------------- |
+| `errors`   | `sentry` | `SENTRY_DSN`                    |
+| `logs`     | `axiom`  | `AXIOM_TOKEN` + `AXIOM_DATASET` |
 
 The provider entry in `holocron.config` serves a separate, optional purpose:
 
@@ -36,11 +36,11 @@ providers: {
 }
 ```
 
-| What it enables | Without the entry |
-|---|---|
-| `holocron setup` provisions the Sentry project / Axiom dataset | Must provision manually |
-| `holocron doctor` checks connectivity | Check skipped |
-| Runtime activation | **Unaffected — env vars alone are sufficient** |
+| What it enables                                                | Without the entry                              |
+| -------------------------------------------------------------- | ---------------------------------------------- |
+| `holocron setup` provisions the Sentry project / Axiom dataset | Must provision manually                        |
+| `holocron doctor` checks connectivity                          | Check skipped                                  |
+| Runtime activation                                             | **Unaffected — env vars alone are sufficient** |
 
 This means `errors` and `logs` work in any repo — including repos with no
 `holocron.config` — as long as the env vars are set as org secrets.
@@ -57,13 +57,13 @@ environment where outbound network calls should be suppressed.
 
 ## Contrast with standard capabilities
 
-| | Standard capability | Self-contained capability |
-|---|---|---|
-| **Activation gate** | Provider entry in config | Env var present at startup |
-| **Works without config file** | No | Yes |
-| **Purpose of config entry** | Activation + setup | Setup + doctor only |
-| **Opt-out** | Remove config entry | Remove env var |
-| **Examples** | `deployment`, `vault`, `storage` | `errors`, `logs` |
+|                               | Standard capability              | Self-contained capability  |
+| ----------------------------- | -------------------------------- | -------------------------- |
+| **Activation gate**           | Provider entry in config         | Env var present at startup |
+| **Works without config file** | No                               | Yes                        |
+| **Purpose of config entry**   | Activation + setup               | Setup + doctor only        |
+| **Opt-out**                   | Remove config entry              | Remove env var             |
+| **Examples**                  | `deployment`, `vault`, `storage` | `errors`, `logs`           |
 
 ## Adding a new self-contained capability
 

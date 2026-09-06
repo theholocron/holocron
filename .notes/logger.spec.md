@@ -84,15 +84,15 @@ Every call site imports `Logger` from `@theholocron/logger`. No call site import
 
 ```ts
 export interface Logger {
-  debug(obj: Record<string, unknown>, msg?: string): void
-  debug(msg: string): void
-  info(obj: Record<string, unknown>, msg?: string): void
-  info(msg: string): void
-  warn(obj: Record<string, unknown>, msg?: string): void
-  warn(msg: string): void
-  error(obj: Record<string, unknown>, msg?: string): void
-  error(msg: string): void
-  child(bindings: Record<string, unknown>): Logger
+  debug(obj: Record<string, unknown>, msg?: string): void;
+  debug(msg: string): void;
+  info(obj: Record<string, unknown>, msg?: string): void;
+  info(msg: string): void;
+  warn(obj: Record<string, unknown>, msg?: string): void;
+  warn(msg: string): void;
+  error(obj: Record<string, unknown>, msg?: string): void;
+  error(msg: string): void;
+  child(bindings: Record<string, unknown>): Logger;
 }
 ```
 
@@ -109,14 +109,14 @@ Callers never instantiate `PinoLogger` directly.
 
 ```ts
 export interface LoggerConfig {
-  level?: 'debug' | 'info' | 'warn' | 'error'
+  level?: "debug" | "info" | "warn" | "error";
   axiom?: {
-    dataset: string
-    token: string
-  }
+    dataset: string;
+    token: string;
+  };
 }
 
-export function createLogger(config?: LoggerConfig): Logger
+export function createLogger(config?: LoggerConfig): Logger;
 ```
 
 ### Level resolution (inside `createLogger`)
@@ -146,6 +146,7 @@ locally only.
 `process.stdout.isTTY` is true.
 
 Output format:
+
 ```
 [10:42:01] INFO (sync-github): sync complete
     repo: "theholocron/configs"
@@ -164,12 +165,12 @@ Added when `config.axiom` is provided and `HOLOCRON_TELEMETRY !== 'false'`.
 Only `info` and above is sent — `debug` stays local.
 
 ```ts
-import { axiom } from '@axiomhq/pino'
+import { axiom } from "@axiomhq/pino";
 
 transport = axiom({
   dataset: config.axiom.dataset,
   token: config.axiom.token,
-})
+});
 ```
 
 The transport runs in a Pino worker thread — Axiom writes are non-blocking
@@ -204,15 +205,15 @@ from `runSyncGithub` automatically carries `command`, `repo`, `runId`, and
 These fields appear on every log line. Some are set on the root logger at
 startup; others are added by child loggers.
 
-| Field | Set by | Value |
-|---|---|---|
-| `runId` | Root logger (startup) | UUID v4, unique per command invocation |
-| `env` | Root logger (startup) | `"ci"` when `CI=true`, else `"local"` |
-| `command` | Command child logger | Active holocron command name |
-| `module` | Module child logger | e.g. `"sync-github"`, `"setup-workflows"` |
-| `repo` | Command child logger | `"owner/name"` when available |
-| `level` | Pino | Level name string |
-| `time` | Pino | ISO 8601 timestamp |
+| Field     | Set by                | Value                                     |
+| --------- | --------------------- | ----------------------------------------- |
+| `runId`   | Root logger (startup) | UUID v4, unique per command invocation    |
+| `env`     | Root logger (startup) | `"ci"` when `CI=true`, else `"local"`     |
+| `command` | Command child logger  | Active holocron command name              |
+| `module`  | Module child logger   | e.g. `"sync-github"`, `"setup-workflows"` |
+| `repo`    | Command child logger  | `"owner/name"` when available             |
+| `level`   | Pino                  | Level name string                         |
+| `time`    | Pino                  | ISO 8601 timestamp                        |
 
 ---
 
@@ -224,14 +225,14 @@ sees raw values.
 
 ```ts
 export const REDACTED_PATHS = [
-  'token',
-  'secret',
-  'password',
-  'apiKey',
-  'secrets[*].value',
-  'headers.authorization',
+  "token",
+  "secret",
+  "password",
+  "apiKey",
+  "secrets[*].value",
+  "headers.authorization",
   'headers["x-api-key"]',
-]
+];
 ```
 
 Redacted values are replaced with `[Redacted]` in output.
@@ -243,10 +244,10 @@ Redacted values are replaced with `[Redacted]` in output.
 `errors` and `logs` are split from the former `observability` bucket into two
 dedicated single-cardinality capabilities:
 
-| Capability | Provider | Cardinality | Purpose |
-|---|---|---|---|
-| `errors` | `sentry` | single | Error tracking |
-| `logs` | `axiom` | single | Log aggregation |
+| Capability | Provider | Cardinality | Purpose         |
+| ---------- | -------- | ----------- | --------------- |
+| `errors`   | `sentry` | single      | Error tracking  |
+| `logs`     | `axiom`  | single      | Log aggregation |
 
 ### Self-contained activation
 
@@ -254,10 +255,10 @@ Both capabilities are **env-var-activated** — the runtime does not require a
 provider entry in `holocron.config` to function. Activation is automatic when
 the relevant env vars are present:
 
-| Capability | Env vars required |
-|---|---|
-| `errors` (Sentry) | `SENTRY_DSN` |
-| `logs` (Axiom) | `AXIOM_TOKEN` + `AXIOM_DATASET` |
+| Capability        | Env vars required               |
+| ----------------- | ------------------------------- |
+| `errors` (Sentry) | `SENTRY_DSN`                    |
+| `logs` (Axiom)    | `AXIOM_TOKEN` + `AXIOM_DATASET` |
 
 This makes them cross-cutting infrastructure rather than opt-in features. Error
 tracking and log aggregation activate wherever the env vars are set — including
@@ -284,8 +285,8 @@ Add a top-level `log` key (not under `providers`) for level configuration:
 export interface HolocronConfig {
   // ... existing fields
   log?: {
-    level?: 'debug' | 'info' | 'warn' | 'error'
-  }
+    level?: "debug" | "info" | "warn" | "error";
+  };
 }
 ```
 
@@ -314,11 +315,11 @@ Add `--verbose` and `--quiet` to the global yargs option definitions in `cli.ts`
 Level resolution in the command layer:
 
 ```ts
-const level = argv.verbose ? 'debug'
-  : argv.quiet ? 'error'
-  : process.env.HOLOCRON_LOG_LEVEL as LogLevel | undefined
-  ?? config.log?.level
-  ?? 'info'
+const level = argv.verbose
+  ? "debug"
+  : argv.quiet
+    ? "error"
+    : ((process.env.HOLOCRON_LOG_LEVEL as LogLevel | undefined) ?? config.log?.level ?? "info");
 ```
 
 ---

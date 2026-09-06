@@ -162,10 +162,10 @@ redact: ["token", "secret", "password", "secrets[*].value", "headers.authorizati
 The former `observability` capability (many cardinality) is replaced by two
 dedicated single-cardinality capabilities:
 
-| Capability | Provider | Activation |
-|---|---|---|
-| `errors` | `sentry` | `SENTRY_DSN` env var |
-| `logs` | `axiom` | `AXIOM_TOKEN` + `AXIOM_DATASET` env vars |
+| Capability | Provider | Activation                               |
+| ---------- | -------- | ---------------------------------------- |
+| `errors`   | `sentry` | `SENTRY_DSN` env var                     |
+| `logs`     | `axiom`  | `AXIOM_TOKEN` + `AXIOM_DATASET` env vars |
 
 Both are **env-var-activated** — the runtime does not require a provider entry
 in `holocron.config` to function. They activate wherever their env vars are
