@@ -138,12 +138,13 @@ try {
 		})
 		.middleware((argv) => {
 			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
-			finishCommand = startCommand(name);
 			printRunId = Boolean(argv.debug || argv.verbose);
-			// Establish the root logger (command name + flags + env). Handlers
-			// that load a config call `buildCliLogger(argv, { configLevel })`
-			// again to fold in the lowest-priority level + Axiom-dataset sources.
+			// Establish the root logger first (command name + flags + env) so its
+			// `runId` is available to tag telemetry events. Handlers that load a
+			// config call `buildCliLogger(argv, { configLevel })` again to fold in
+			// the lowest-priority level + Axiom-dataset sources.
 			buildCliLogger(argv, { command: name, org: argv.org });
+			finishCommand = startCommand(name);
 		})
 		// ── commands ────────────────────────────────────────────────────────
 		.command(

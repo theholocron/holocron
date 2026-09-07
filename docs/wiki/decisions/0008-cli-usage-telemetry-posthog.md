@@ -46,14 +46,17 @@ key, and never goes through the plugin loader.
 ### Activation mirrors the Sentry DSN pattern
 
 ```
-HOLOCRON_POSTHOG_KEY  →  POSTHOG_KEY  →  built-in fallback (Holocron's own project write key)
-HOLOCRON_POSTHOG_HOST →  POSTHOG_HOST →  https://us.i.posthog.com
+HOLOCRON_POSTHOG_PROJECT_TOKEN  →  POSTHOG_PROJECT_TOKEN  →  built-in fallback (Holocron's own project write key)
+HOLOCRON_POSTHOG_HOST →  POSTHOG_HOST           →  https://us.i.posthog.com
 ```
 
-The built-in fallback is a **project write key** (`phc_…`) — it can only
-ingest events, never read data — so shipping it in the published package
-carries the same risk profile as the hard-coded Sentry DSN (ADR-0007,
-#533). `HOLOCRON_TELEMETRY=false` (and the legacy `NO_HOLOCRON_TELEMETRY`)
+`POSTHOG_PROJECT_TOKEN` is the vendor-native name a consumer repo sets —
+as a plain **variable**, not a secret, since a `phc_…` key is publishable
+by design. The built-in fallback is a **project write key** (`phc_…`) —
+it can only ingest events, never read data — so shipping it in the
+published package carries the same risk profile as the hard-coded Sentry
+DSN (ADR-0007, #533), and usage telemetry is on by default.
+`HOLOCRON_TELEMETRY=false` (and the legacy `NO_HOLOCRON_TELEMETRY`)
 disables **all three** sinks; that is the single kill switch.
 
 ### Anonymous, pseudonymous `distinctId`

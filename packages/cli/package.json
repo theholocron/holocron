@@ -60,6 +60,7 @@
     "@theholocron/registry-doc": "^1.10.0",
     "chalk": "catalog:",
     "ora": "catalog:",
+    "posthog-node": "catalog:",
     "tsx": "catalog:",
     "yargs": "catalog:"
   },

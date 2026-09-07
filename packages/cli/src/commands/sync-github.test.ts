@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import * as logger from "../logger.js";
+import * as telemetry from "../telemetry.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { fakeLogger } from "../test-utils/fake-logger.js";
 import {
@@ -139,6 +140,32 @@ describe("runSyncGithub", () => {
 		expect(treeCreate).toHaveLength(1);
 		expect(commitCreate).toHaveLength(1);
 		expect(refUpdate).toHaveLength(1);
+	});
+
+	it("emits a sync_github_run telemetry event once, with counts and no token", async () => {
+		const spy = vi.spyOn(telemetry, "event").mockImplementation(() => {});
+		const { fn } = makeFetch();
+		await runSyncGithub({
+			token: "ghp_abc123XYZ", // gitleaks:allow — fake fixture, asserted absent from the event below
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+			logger: fakeLogger(),
+		});
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy).toHaveBeenCalledWith(
+			"sync_github_run",
+			expect.objectContaining({
+				repo: "theholocron/.github",
+				branch: "chore/sync",
+				status: "ok",
+				repos_targeted: 1,
+				pr_opened: false,
+			})
+		);
+		expect(JSON.stringify(spy.mock.calls)).not.toContain("ghp_abc123XYZ");
+		spy.mockRestore();
 	});
 
 	it("writes nothing to secondary repos — thin callers are managed by holocron sync", async () => {
