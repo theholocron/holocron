@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runClone } from "./clone.js";
 
 function makeRepo(name: string, org = "test-org") {
@@ -48,6 +49,7 @@ describe("runClone", () => {
 
 	it("clones all repos into the target directory", async () => {
 		const repos = [makeRepo("alpha"), makeRepo("beta")];
+		const log = fakeLogger();
 		const report = await runClone({
 			org: "test-org",
 			dir: tmpDir,
@@ -55,10 +57,16 @@ describe("runClone", () => {
 			fetch: makeFetch(repos),
 			exec,
 			print,
+			logger: log,
 		});
 
 		expect(report.status).toBe("ok");
 		expect(report.cloned).toBe(2);
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ org: "test-org" }), "clone: start");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ cloned: 2, status: "ok" }),
+			"clone: done"
+		);
 		expect(report.skipped).toBe(0);
 		expect(report.failed).toBe(0);
 		expect(exec).toHaveBeenCalledTimes(2);

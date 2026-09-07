@@ -9,6 +9,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, existsSync: vi.fn(() => false), mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import {
 	deriveVariants,
 	generateHolocronConfig,
@@ -129,14 +130,18 @@ describe("deriveVariants", () => {
 describe("runNew — dry-run", () => {
 	it("returns dry-run status and calls no exec", async () => {
 		const { exec, calls } = makeExec();
+		const log = fakeLogger();
 		const report = await runNew({
 			...BASE,
 			dryRun: true,
 			exec,
 			print: () => {},
+			logger: log,
 		});
 		expect(report.status).toBe("dry-run");
 		expect(calls).toHaveLength(0);
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ template: expect.any(String) }), "new: start");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "dry-run" }), "new: done");
 	});
 
 	it("prints what would happen including the template repo", async () => {

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runSecretSet } from "./secret-set.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -64,6 +65,7 @@ describe("runSecretSet — value sourcing", () => {
 			}),
 		});
 
+		const log = fakeLogger();
 		const report = await runSecretSet({
 			loaded,
 			context: { repoRoot: "/tmp/test" },
@@ -71,10 +73,17 @@ describe("runSecretSet — value sourcing", () => {
 			value: "npm_explicit_xxx",
 			loader,
 			print: () => {},
+			logger: log,
 		});
 
 		expect(report.status).toBe("ok");
 		expect(calls).toEqual([{ name: "NPM_TOKEN", value: "npm_explicit_xxx" }]);
+		// logs the key name + outcome, never the value
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ key: "NPM_TOKEN", status: "ok" }),
+			"secret set: NPM_TOKEN"
+		);
+		expect(JSON.stringify(log.info.mock.calls)).not.toContain("npm_explicit_xxx");
 	});
 
 	it("falls back to env var matching the secret name", async () => {

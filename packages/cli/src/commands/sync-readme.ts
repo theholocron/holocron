@@ -3,9 +3,11 @@ import { join } from "node:path";
 
 import type { PackagesRegistry } from "@theholocron/components-doc/markdown";
 import { generateReadme } from "@theholocron/components-doc/markdown";
+import type { Logger } from "@theholocron/logger";
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { RuntimeContext } from "../plugin/loader.js";
 import { style } from "../ui/style.js";
 
@@ -35,6 +37,8 @@ export interface RunSyncReadmeInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	readFileFn?: (path: string, encoding: BufferEncoding) => Promise<string>;
 	writeFileFn?: (path: string, content: string, encoding: BufferEncoding) => Promise<void>;
 }
@@ -165,6 +169,7 @@ async function updateIndexMdxDescription(
 
 export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncReadmeReport> {
 	const { loaded, context, print = console.log, readFileFn = readFile, writeFileFn = writeFile } = input;
+	const logger = input.logger ?? getLogger();
 
 	const { repoRoot, dryRun = false } = context;
 
@@ -181,6 +186,7 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 		const raw = await readFileFn(join(repoRoot, "package.json"), "utf8");
 		pkg = JSON.parse(raw) as PackageJson;
 	} catch {
+		logger.warn({ repoRoot, reason: "could not read package.json" }, "sync readme: done");
 		return { status: "fail", updated: false, message: "Could not read package.json" };
 	}
 
@@ -203,6 +209,7 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 
 	if (!updated) {
 		print(style.warn("README.md not found or has no writable location for installation block"));
+		logger.warn({ repoRoot, reason: "README.md not found / no marker block" }, "sync readme: done");
 		return { status: "fail", updated: false, message: "README.md update failed" };
 	}
 
@@ -212,5 +219,7 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 	}
 
 	print(dryRun ? style.hint("  would update README.md") : style.success("  updated README.md"));
-	return { status: dryRun ? "dry-run" : "ok", updated };
+	const status = dryRun ? "dry-run" : "ok";
+	logger.info({ repoRoot, status, updated }, "sync readme: done");
+	return { status, updated };
 }

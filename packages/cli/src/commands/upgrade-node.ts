@@ -1,6 +1,10 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
+import { getLogger } from "../logger.js";
+
 // Directories to skip when walking the repo tree
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "coverage", "build", ".turbo", ".next", "out"]);
 
@@ -156,6 +160,8 @@ export interface RunUpgradeNodeInput {
 	 */
 	extra?: string[];
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Injectable for testing. */
 	readFile?: (path: string) => string;
 	writeFile?: (path: string, content: string) => void;
@@ -172,6 +178,7 @@ export interface UpgradeNodeReport {
 
 export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<UpgradeNodeReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
 	const { to, dryRun = false, extra = [] } = input;
 	const _readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
@@ -180,15 +187,16 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 
 	const from = input.from ?? detectFrom(cwd, _readFile);
 	if (from === null) {
-		return {
-			status: "fail",
-			updated: [],
-			message: "could not detect current Node version — pass --from <major>",
-		};
+		const message = "could not detect current Node version — pass --from <major>";
+		logger.warn({ to, reason: message }, "upgrade node: done");
+		return { status: "fail", updated: [], message };
 	}
+
+	logger.info({ from, to, dryRun: dryRun || undefined }, "upgrade node: start");
 
 	if (from === to) {
 		print(`Already at Node.js ${to} — nothing to do.`);
+		logger.info({ from, to, updated: 0, status: "ok" }, "upgrade node: done");
 		return { status: "ok", updated: [] };
 	}
 
@@ -215,6 +223,7 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 		const rel = abs.startsWith(cwd + "/") ? abs.slice(cwd.length + 1) : abs;
 		if (!dryRun) _writeFile(abs, patched);
 		print(`  ${dryRun ? "~" : "✓"} ${rel}`);
+		logger.debug({ file: rel, from, to }, "upgrade node: patched");
 		updated.push(rel);
 	}
 
@@ -222,5 +231,7 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 		print(`  · no files contained Node.js ${from} pins`);
 	}
 
-	return { status: dryRun ? "dry-run" : "ok", updated };
+	const status = dryRun ? "dry-run" : "ok";
+	logger.info({ from, to, updated: updated.length, status }, "upgrade node: done");
+	return { status, updated };
 }
