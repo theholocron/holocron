@@ -1,7 +1,6 @@
 ---
-status: proposed
-issues:
-  - theholocron/holocron#453
+status: archived
+issue: theholocron/holocron#453
 blocked-by: []
 ---
 

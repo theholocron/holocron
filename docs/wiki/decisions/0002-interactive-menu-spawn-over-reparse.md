@@ -5,7 +5,7 @@ status: accepted
 date: 2026-08-27
 owners: []
 specs:
-  - .notes/tool-interactive-cli-menu.spec.md
+  - docs/wiki/specifications/tool-interactive-cli-menu.spec.md
 discussion:
   github:
 supersedes: []

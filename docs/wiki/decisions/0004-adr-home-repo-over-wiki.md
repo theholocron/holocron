@@ -5,8 +5,8 @@ status: accepted
 date: 2026-08-28
 owners: []
 specs:
-  - .notes/docs-architecture.spec.md
-  - .notes/knowledge-system.spec.md
+  - docs/wiki/specifications/docs-architecture.spec.md
+  - docs/wiki/specifications/knowledge-system.spec.md
 discussion:
   github:
 supersedes: []

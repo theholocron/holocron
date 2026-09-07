@@ -1,11 +1,11 @@
 ---
-status: draft
-issue:
+status: accepted
+issue: theholocron/holocron#440
 blocked-by: []
 related:
   - theholocron/holocron#440
   - theholocron/.github-private#65
-  - theholocron/holocron/.notes/ai-engineering-workflow.spec.md
+  - theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md
 ---
 
 # Documentation architecture — Astro docs, README, Wiki, and Issues
@@ -200,9 +200,10 @@ records why a decision was made; it is not invalidated by implementation
 changes unless a new superseding decision is made. That makes the Wiki the
 right home.
 
-The accepted spec (`.notes/ai-engineering-workflow.spec.md`) and this
-document are both candidates to graduate from `.notes/` to the Wiki once
-accepted. theholocron/holocron#440 tracks the format decision.
+The AI-engineering-workflow spec
+(`docs/wiki/specifications/ai-engineering-workflow.spec.md`) and this
+document have both graduated from `.notes/` to the Wiki. theholocron/holocron#440
+tracks the format decision.
 
 ---
 
@@ -267,7 +268,7 @@ as defined in §Canonical Wiki structure above.
 the Wiki as the home for accepted ADRs based on the repo-vs-Wiki rule in
 §ADRs. Format (MADR vs Nygard vs other) remains open in that issue.
 
-**theholocron/holocron/.notes/ai-engineering-workflow.spec.md** — the
+**theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md** — the
 "Where documentation lives" section of that spec is the condensed version
 of what is defined here. This spec is the authoritative, detailed version.
 

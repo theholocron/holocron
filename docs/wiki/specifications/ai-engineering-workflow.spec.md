@@ -1,6 +1,6 @@
 ---
-status: draft
-issue:
+status: accepted
+issue: theholocron/holocron#440
 blocked-by: []
 related:
   - theholocron/holocron#440

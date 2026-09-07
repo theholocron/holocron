@@ -1,6 +1,6 @@
 ---
 status: archived
-issue: 82
+issue: theholocron/holocron#82
 blocked-by: []
 ---
 
