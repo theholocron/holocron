@@ -8,6 +8,22 @@ A pluggable, capability-based CLI for spinning up and operating software project
 
 <!-- /holocron:description -->
 
+<!-- holocron:installation -->
+
+## Installation
+
+```bash
+pnpm install @theholocron/holocron
+```
+
+## Usage
+
+```typescript
+import {} from "@theholocron/holocron";
+```
+
+<!-- /holocron:installation -->
+
 ## Quickstart
 
 <!-- prettier-ignore -->

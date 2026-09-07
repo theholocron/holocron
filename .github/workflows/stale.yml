@@ -1,7 +1,7 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/setup-workflows.ts
-# Tool:    holocron sync-github
-# Changes: edit source in theholocron/holocron and push to alpha or main.
+# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
 name: Stale
 
 on: # yamllint disable-line rule:truthy
@@ -16,4 +16,9 @@ permissions:
 jobs:
   stale:
     uses: theholocron/.github/.github/workflows/stale.yml@main
+    with:
+      exempt-issue-labels: "in-progress,wip"
+      exempt-all-issue-milestones: true
+      exempt-all-issue-projects: true
+      exempt-all-pr-projects: true
     secrets: inherit
