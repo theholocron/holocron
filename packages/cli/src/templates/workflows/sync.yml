@@ -18,6 +18,10 @@ on: # yamllint disable-line rule:truthy
         description: >
           Axiom API token. When set alongside the HOLOCRON_AXIOM_DATASET
           repo/org variable, the CLI ships this run's structured logs to Axiom.
+          Falls back to the vendor-native AXIOM_TOKEN secret.
+        required: false
+      AXIOM_TOKEN:
+        description: Vendor-native fallback for HOLOCRON_AXIOM_TOKEN.
         required: false
       HOLOCRON_DEPLOY_TOKEN:
         description: Fine-grained PAT for GitHub Pages configuration.
@@ -72,8 +76,8 @@ jobs:
           fi
         env:
           HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
-          HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN }}
-          HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
+          HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
+          HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}
           HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
           HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
           HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
