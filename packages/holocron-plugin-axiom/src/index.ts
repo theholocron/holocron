@@ -21,18 +21,29 @@ export interface AxiomPluginOptions extends ResolveTokenInput, AxiomLogsOptions 
 
 export interface PluginContext {
 	options: AxiomPluginOptions & { dataset?: string };
-	client: AxiomRestClient;
+	/**
+	 * Lazily builds (and memoizes) the REST client. The token is resolved
+	 * on first call, not at plugin load — a capability whose method needs
+	 * no auth (`describe`) works without a token, and the loader never
+	 * aborts on a plugin whose token happens to be absent.
+	 */
+	client: () => AxiomRestClient;
 }
 
 export function createContext(options: AxiomPluginOptions): PluginContext {
-	const token = resolveToken(options);
 	const env = options.env ?? process.env;
 	// `HOLOCRON_AXIOM_DATASET` is not a secret — resolve it like the token's
 	// fallback chain but independently. Config (`dataset`) wins when set.
 	const dataset = options.dataset ?? env.HOLOCRON_AXIOM_DATASET ?? env.AXIOM_DATASET;
+	let client: AxiomRestClient | undefined;
 	return {
 		options: { ...options, dataset },
-		client: createAxiomClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createAxiomClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

@@ -3,8 +3,13 @@ import { describe, expect, it } from "vitest";
 import { AuthError, ClerkAuth, createPlugin } from "../index.js";
 
 describe("createPlugin", () => {
-	it("throws AuthError when no token is found", () => {
-		expect(() => createPlugin({ env: {} })).toThrow(AuthError);
+	it("defers the missing-token AuthError to the first authenticated call", async () => {
+		// createPlugin + the capability factory never touch the token…
+		const auth = createPlugin({ env: {} }).capabilities.auth();
+		// …`describe()` needs no client, so it still works…
+		await expect(auth.describe()).resolves.toBeDefined();
+		// …but a method that talks to Clerk resolves the token lazily and fails.
+		await expect(auth.whoami!()).rejects.toBeInstanceOf(AuthError);
 	});
 
 	it("wires the auth capability", () => {

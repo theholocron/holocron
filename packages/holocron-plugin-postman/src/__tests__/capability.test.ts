@@ -22,7 +22,7 @@ function makeTooling(
 ) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createPostmanClient({ token: "pmak-test", fetch });
-	const tooling = new PostmanTooling(client, { workspaceId: "ws-id", ...opts });
+	const tooling = new PostmanTooling(() => client, { workspaceId: "ws-id", ...opts });
 	return { tooling, calls };
 }
 
@@ -39,7 +39,7 @@ describe("PostmanTooling identity", () => {
 
 	it("throws when workspaceId is missing", () => {
 		const client = createPostmanClient({ token: "t" });
-		expect(() => new PostmanTooling(client, { workspaceId: "" })).toThrow(/workspaceId/);
+		expect(() => new PostmanTooling(() => client, { workspaceId: "" })).toThrow(/workspaceId/);
 	});
 });
 

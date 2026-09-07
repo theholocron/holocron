@@ -30,8 +30,12 @@ export class AxiomLogs implements Logs {
 	readonly key = "logs" as const;
 	readonly providerName = "axiom";
 
+	/**
+	 * `client` is a thunk — the token is resolved on first call, so
+	 * `describe()` (which needs no auth) works without one.
+	 */
 	constructor(
-		private readonly client: AxiomRestClient,
+		private readonly client: () => AxiomRestClient,
 		private readonly opts: AxiomLogsOptions
 	) {}
 
@@ -50,20 +54,20 @@ export class AxiomLogs implements Logs {
 			);
 		}
 		// Fetching the dataset verifies both the token and the dataset's reachability.
-		await this.client.getDataset(dataset);
+		await this.client().getDataset(dataset);
 		return { ok: true, dataset };
 	}
 
 	async ensureDataset(name: string): Promise<{ alreadyExists: boolean }> {
 		try {
-			await this.client.getDataset(name);
+			await this.client().getDataset(name);
 			return { alreadyExists: true };
 		} catch (err) {
 			// 404 means the dataset doesn't exist yet — proceed to create.
 			if (!(err instanceof ProviderApiError) || err.status !== 404) throw err;
 		}
 
-		await this.client.createDataset({ name, description: "Managed by holocron" });
+		await this.client().createDataset({ name, description: "Managed by holocron" });
 		return { alreadyExists: false };
 	}
 }

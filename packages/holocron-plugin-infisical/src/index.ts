@@ -21,14 +21,19 @@ export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaul
 
 export interface PluginContext {
 	options: InfisicalPluginOptions;
-	client: InfisicalClient;
+	client: () => InfisicalClient;
 }
 
 export function createContext(options: InfisicalPluginOptions): PluginContext {
-	const token = resolveToken(options);
+	let client: InfisicalClient | undefined;
 	return {
 		options,
-		client: createInfisicalClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createInfisicalClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

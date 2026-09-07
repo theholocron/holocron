@@ -24,19 +24,20 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: VercelPluginOptions;
-	client: VercelClient;
+	client: () => VercelClient;
 }
 
 export function createContext(options: VercelPluginOptions = {}): PluginContext {
-	const token = resolveToken(options);
+	let client: VercelClient | undefined;
 	return {
 		options,
-		client: createVercelClient({
-			token,
-			teamId: options.teamId,
-			baseUrl: options.baseUrl,
-			fetch: options.fetch,
-		}),
+		client: () =>
+			(client ??= createVercelClient({
+				token: resolveToken(options),
+				teamId: options.teamId,
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 
