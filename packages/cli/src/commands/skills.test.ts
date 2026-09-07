@@ -9,6 +9,7 @@ vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { fakeLogger } from "../test-utils/fake-logger.js";
+import * as setupIndex from "./setup/index.js";
 import { installSkills } from "./setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./skills.js";
 
@@ -458,6 +459,20 @@ describe("runSkillsInstall", () => {
 		expect(output).toContain("Installing");
 		expect(output).toContain("failed to auto-install @theholocron/skills");
 		// Must not throw — error is caught and printed
+	});
+
+	it("stringifies a non-Error thrown by installSkills", async () => {
+		const spy = vi.spyOn(setupIndex, "installSkills").mockRejectedValue("kaboom");
+		const lines: string[] = [];
+		const log = fakeLogger();
+		const loaded = loadedFrom({ name: "test", providers: {}, agent: "claude", skills: ["git-safety"] });
+		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l), logger: log });
+		expect(lines.join("\n")).toContain("✗ kaboom");
+		expect(log.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ reason: "kaboom", status: "fail" }),
+			"skills install: done"
+		);
+		spy.mockRestore();
 	});
 });
 
