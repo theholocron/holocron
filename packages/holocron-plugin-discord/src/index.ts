@@ -13,24 +13,24 @@ export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotifica
 export interface PluginContext {
 	options: DiscordPluginOptions;
 	client: DiscordClient;
-	defaultWebhookUrl: string;
+	/**
+	 * Memoized — the resolved "token" IS Discord's default webhook URL, and it is
+	 * resolved on first `send()`, not at plugin load. `describe()` never calls it.
+	 */
+	defaultWebhookUrl: () => string;
 }
 
 export function createContext(options: DiscordPluginOptions = {}): PluginContext {
-	// The resolved token IS the default webhook URL for Discord.
-	const defaultWebhookUrl = resolveToken(options);
+	let url: string | undefined;
 	return {
 		options,
 		client: createDiscordClient({ baseUrl: options.baseUrl, fetch: options.fetch }),
-		defaultWebhookUrl,
+		defaultWebhookUrl: () => (url ??= resolveToken(options)),
 	};
 }
 
 export function notifications(ctx: PluginContext): Notifications {
-	return new DiscordNotifications(ctx.client, {
-		...ctx.options,
-		defaultChannel: ctx.options.defaultChannel ?? ctx.defaultWebhookUrl,
-	});
+	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl);
 }
 
 export function createPlugin(options: DiscordPluginOptions = {}) {

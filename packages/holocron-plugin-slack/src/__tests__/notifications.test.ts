@@ -11,7 +11,7 @@ const TOKEN = "xoxb-test";
 function makeNotifs(responses: Parameters<typeof stubFetch>[0], opts: { defaultChannel?: string } = {}) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createSlackClient({ token: TOKEN, baseUrl: BASE, fetch });
-	return { notifs: new SlackNotifications(client, opts), calls };
+	return { notifs: new SlackNotifications(() => client, opts), calls };
 }
 
 describe("SlackNotifications.send", () => {

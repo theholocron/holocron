@@ -19,17 +19,25 @@ export interface CloudflarePluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: CloudflarePluginOptions;
-	client: CloudflareClient;
+	/** Memoized client — the token is resolved on first use, not at plugin load. */
+	client: () => CloudflareClient;
+	/** Memoized token resolver — shared by the client and the Workers capability. */
+	token: () => string;
 }
 
 export function createContext(options: CloudflarePluginOptions = {}): PluginContext {
-	const token = resolveToken(options);
 	// CLOUDFLARE_ACCOUNT_ID is the standard Cloudflare env var; fall back so
 	// `deployment: "cloudflare"` works without repeating the ID in every config.
 	const accountId = options.accountId ?? process.env.CLOUDFLARE_ACCOUNT_ID;
+	const opts = { ...options, accountId };
+	let token: string | undefined;
+	let client: CloudflareClient | undefined;
+	const resolve = () => (token ??= resolveToken(opts));
 	return {
-		options: { ...options, accountId },
-		client: createCloudflareClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		options: opts,
+		token: resolve,
+		client: () =>
+			(client ??= createCloudflareClient({ token: resolve(), baseUrl: opts.baseUrl, fetch: opts.fetch })),
 	};
 }
 
@@ -54,9 +62,8 @@ export function workersCapability(ctx: PluginContext): Workers {
 				"set accountId in the plugin options or CLOUDFLARE_ACCOUNT_ID env var"
 		);
 	}
-	const token = resolveToken(ctx.options);
-	return new CloudflareWorkers(ctx.client.zones, ctx.options.accountId, {
-		token,
+	return new CloudflareWorkers(() => ctx.client().zones, ctx.options.accountId, {
+		token: ctx.token,
 		baseUrl: ctx.options.baseUrl,
 		fetch: ctx.options.fetch,
 	});

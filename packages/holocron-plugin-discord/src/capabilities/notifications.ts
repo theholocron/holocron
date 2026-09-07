@@ -21,11 +21,13 @@ export class DiscordNotifications implements Notifications {
 
 	constructor(
 		private readonly client: DiscordClient,
-		private readonly opts: DiscordNotificationsOptions
+		private readonly opts: DiscordNotificationsOptions,
+		/** Memoized thunk — resolves the default webhook URL on the first `send()`. */
+		private readonly defaultWebhookUrl: () => string
 	) {}
 
 	async send(channel: string, message: string): Promise<void> {
-		const webhookUrl = this.resolve(channel || (this.opts.defaultChannel ?? ""));
+		const webhookUrl = this.resolve(channel || this.opts.defaultChannel || "");
 		const { id, token } = parseWebhookUrl(webhookUrl);
 		await this.client.webhooks.execute(id, token, message);
 	}
@@ -36,11 +38,10 @@ export class DiscordNotifications implements Notifications {
 		if (alias) return alias;
 		// 2. Raw webhook URL
 		if (channel.startsWith("https://")) return channel;
-		// 3. defaultChannel (may itself be an alias or raw URL)
+		// 3. defaultChannel option (may itself be an alias or raw URL)
 		const def = this.opts.defaultChannel;
 		if (def) return this.opts.webhooks?.[def] ?? def;
-		throw new Error(
-			`DiscordNotifications.send: unknown channel "${channel}" — pass a webhook URL, an alias key, or set defaultChannel`
-		);
+		// 4. the resolved token (the Discord webhook URL) — resolved lazily here
+		return this.defaultWebhookUrl();
 	}
 }

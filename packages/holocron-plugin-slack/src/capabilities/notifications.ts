@@ -12,13 +12,14 @@ export class SlackNotifications implements Notifications {
 	readonly providerName = "slack";
 
 	constructor(
-		private readonly client: SlackClient,
+		/** Memoized client thunk — resolves the token on first authenticated call. */
+		private readonly client: () => SlackClient,
 		private readonly opts: SlackNotificationsOptions
 	) {}
 
 	async send(channel: string, message: string): Promise<void> {
 		const ch = channel || this.opts.defaultChannel;
 		if (!ch) throw new Error("SlackNotifications.send: channel required (pass a channel id or set defaultChannel)");
-		await this.client.chat.postMessage(ch, message);
+		await this.client().chat.postMessage(ch, message);
 	}
 }

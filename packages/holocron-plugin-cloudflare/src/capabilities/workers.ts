@@ -26,12 +26,13 @@ export class CloudflareWorkers implements Workers {
 	private readonly zoneCache = new Map<string, string>();
 	private readonly baseUrl: string;
 	private readonly fetchImpl: typeof fetch;
-	private readonly token: string;
+	/** Memoized token thunk — resolved on the first authenticated request. */
+	private readonly token: () => string;
 
 	constructor(
-		private readonly zones: ZonesClient,
+		private readonly zones: () => ZonesClient,
 		private readonly accountId: string,
-		opts: Pick<CloudflareClientOptions, "token" | "baseUrl" | "fetch">
+		opts: { token: () => string } & Pick<CloudflareClientOptions, "baseUrl" | "fetch">
 	) {
 		this.token = opts.token;
 		this.baseUrl = opts.baseUrl ?? "https://api.cloudflare.com/client/v4";
@@ -70,7 +71,7 @@ export class CloudflareWorkers implements Workers {
 		const path = `/accounts/${this.accountId}/workers/scripts/${encodeURIComponent(scriptName)}`;
 		const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
 			method: "PUT",
-			headers: { authorization: `Bearer ${this.token}` },
+			headers: { authorization: `Bearer ${this.token()}` },
 			body: form,
 		});
 		if (!res.ok) {
@@ -93,7 +94,7 @@ export class CloudflareWorkers implements Workers {
 
 	private async cfRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
 		const headers: Record<string, string> = {
-			authorization: `Bearer ${this.token}`,
+			authorization: `Bearer ${this.token()}`,
 			accept: "application/json",
 		};
 		const init: RequestInit = { method, headers };
@@ -124,7 +125,7 @@ export class CloudflareWorkers implements Workers {
 		const parts = domain.split(".");
 		for (let i = 0; i < parts.length - 1; i++) {
 			const candidate = parts.slice(i).join(".");
-			const zones = await this.zones.list({ name: candidate });
+			const zones = await this.zones().list({ name: candidate });
 			if (zones.length > 0) {
 				this.zoneCache.set(domain, zones[0]!.id);
 				return zones[0]!.id;

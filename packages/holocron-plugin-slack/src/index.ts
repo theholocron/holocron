@@ -12,14 +12,20 @@ export interface SlackPluginOptions extends ResolveTokenInput, SlackNotification
 
 export interface PluginContext {
 	options: SlackPluginOptions;
-	client: SlackClient;
+	/** Memoized client — the token is resolved on first use, not at plugin load. */
+	client: () => SlackClient;
 }
 
 export function createContext(options: SlackPluginOptions = {}): PluginContext {
-	const token = resolveToken(options);
+	let client: SlackClient | undefined;
 	return {
 		options,
-		client: createSlackClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createSlackClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

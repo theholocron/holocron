@@ -30,17 +30,21 @@ export interface ${inputs.vendorName}PluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: ${inputs.vendorName}PluginOptions;
-	rest: ${clientClass};
+	/** Memoized client — the token is resolved on first use, not at plugin load. */
+	rest: () => ${clientClass};
 }
 
 export function createContext(options: ${inputs.vendorName}PluginOptions): PluginContext {
-	const token = resolveToken(options);
-	const restOpts: ConstructorParameters<typeof ${clientClass}>[0] = { token };
-	if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-	if (options.fetch !== undefined) restOpts.fetch = options.fetch;
+	let rest: ${clientClass} | undefined;
 	return {
 		options,
-		rest: new ${clientClass}(restOpts),
+		rest: () => {
+			if (rest) return rest;
+			const restOpts: ConstructorParameters<typeof ${clientClass}>[0] = { token: resolveToken(options) };
+			if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
+			if (options.fetch !== undefined) restOpts.fetch = options.fetch;
+			return (rest = new ${clientClass}(restOpts));
+		},
 	};
 }
 

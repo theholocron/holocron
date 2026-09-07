@@ -25,7 +25,7 @@ function makeWorkers(responses: Parameters<typeof stubFetch>[0]) {
 	const zones = {
 		list: vi.fn().mockResolvedValue([zone]),
 	};
-	const workers = new CloudflareWorkers(zones, ACCOUNT, { token: TOKEN, baseUrl: BASE, fetch });
+	const workers = new CloudflareWorkers(() => zones, ACCOUNT, { token: () => TOKEN, baseUrl: BASE, fetch });
 	return { workers, calls, zones };
 }
 
@@ -76,7 +76,7 @@ describe("CloudflareWorkers.upsertProxy — zone resolution", () => {
 	it("walks up to apex zone when subdomain is not a direct zone", async () => {
 		const { fetch } = stubFetch([{ status: 200 }, cfOk([]), cfOk(route)]);
 		const zones = { list: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([zone]) };
-		const workers = new CloudflareWorkers(zones, ACCOUNT, { token: TOKEN, baseUrl: BASE, fetch });
+		const workers = new CloudflareWorkers(() => zones, ACCOUNT, { token: () => TOKEN, baseUrl: BASE, fetch });
 		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
 		expect(zones.list).toHaveBeenCalledTimes(2);
 		expect(zones.list).toHaveBeenLastCalledWith({ name: "example.com" });
@@ -85,14 +85,14 @@ describe("CloudflareWorkers.upsertProxy — zone resolution", () => {
 	it("throws ProviderApiError when no zone is found", async () => {
 		const { fetch } = stubFetch([{ status: 200 }]);
 		const zones = { list: vi.fn().mockResolvedValue([]) };
-		const workers = new CloudflareWorkers(zones, ACCOUNT, { token: TOKEN, baseUrl: BASE, fetch });
+		const workers = new CloudflareWorkers(() => zones, ACCOUNT, { token: () => TOKEN, baseUrl: BASE, fetch });
 		await expect(workers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(ProviderApiError);
 	});
 
 	it("uses cached zone id on second call", async () => {
 		const { fetch } = stubFetch([{ status: 200 }, cfOk([route]), { status: 200 }, cfOk([route])]);
 		const zones = { list: vi.fn().mockResolvedValue([zone]) };
-		const workers = new CloudflareWorkers(zones, ACCOUNT, { token: TOKEN, baseUrl: BASE, fetch });
+		const workers = new CloudflareWorkers(() => zones, ACCOUNT, { token: () => TOKEN, baseUrl: BASE, fetch });
 		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
 		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
 		expect(zones.list).toHaveBeenCalledTimes(1);
@@ -127,7 +127,7 @@ describe("CloudflareWorkers — error handling", () => {
 		vi.stubGlobal("fetch", mockFetch);
 		try {
 			const zones = { list: vi.fn().mockResolvedValue([zone]) };
-			const workers = new CloudflareWorkers(zones, ACCOUNT, { token: TOKEN });
+			const workers = new CloudflareWorkers(() => zones, ACCOUNT, { token: () => TOKEN });
 			await workers.upsertProxy(HOSTNAME, PROXY_CONFIG).catch(() => {});
 			expect(mockFetch).toHaveBeenCalled();
 			expect(mockFetch.mock.calls[0]?.[0]).toContain("https://api.cloudflare.com/client/v4");

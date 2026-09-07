@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlugin, dns } from "../index.js";
+import { createContext, createPlugin, dns } from "../index.js";
 import { cfOk, stubFetch } from "./helpers.js";
 
 describe("createPlugin", () => {
-	it("throws when no token is resolvable", () => {
-		expect(() => createPlugin({ env: {}, keyring: () => null })).toThrow();
+	it("does not resolve the token at load — defers the error to the first authenticated call", async () => {
+		const plugin = createPlugin({ env: {}, keyring: () => null });
+		expect(typeof plugin.capabilities.dns).toBe("function");
+		await expect(plugin.capabilities.dns().listRecords("example.com")).rejects.toThrow(/token/i);
 	});
 
 	it("returns a plugin with a dns capability factory", () => {
@@ -44,13 +46,9 @@ describe("createPlugin", () => {
 });
 
 describe("dns()", () => {
-	it("instantiates CloudflareDns bound to the client", () => {
+	it("instantiates CloudflareDns bound to the context's client thunk", () => {
 		const { fetch } = stubFetch([cfOk([])]);
-		const plugin = createPlugin({ cliToken: "cf-tok", fetch });
-		const cap = dns({
-			options: { cliToken: "cf-tok", fetch },
-			client: plugin.capabilities.dns()["client" as never] as never,
-		});
+		const cap = dns(createContext({ cliToken: "cf-tok", fetch }));
 		expect(cap.key).toBe("dns");
 		expect(cap.providerName).toBe("cloudflare");
 	});

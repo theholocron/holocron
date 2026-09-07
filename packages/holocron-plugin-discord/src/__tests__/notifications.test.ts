@@ -1,4 +1,4 @@
-import { ProviderApiError } from "@theholocron/cli";
+import { AuthError, ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
 import { DiscordNotifications } from "../capabilities/notifications.js";
@@ -12,11 +12,14 @@ const TOKEN = "abc123";
 
 function makeNotifs(
 	responses: Parameters<typeof stubFetch>[0],
-	opts: ConstructorParameters<typeof DiscordNotifications>[1] = {}
+	opts: ConstructorParameters<typeof DiscordNotifications>[1] = {},
+	defaultWebhookUrl: () => string = () => {
+		throw new AuthError("no Discord webhook URL found");
+	}
 ) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createDiscordClient({ baseUrl: BASE, fetch });
-	return { notifs: new DiscordNotifications(client, opts), calls };
+	return { notifs: new DiscordNotifications(client, opts, defaultWebhookUrl), calls };
 }
 
 describe("DiscordNotifications.send — raw webhook URL", () => {
@@ -51,8 +54,14 @@ describe("DiscordNotifications.send — defaultChannel", () => {
 		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
 	});
 
-	it("throws when channel is unknown and no defaultChannel", async () => {
+	it("defers the missing-webhook AuthError to send() when nothing resolves the channel", async () => {
 		const { notifs } = makeNotifs([]);
-		await expect(notifs.send("unknown-alias", "msg")).rejects.toThrow("unknown channel");
+		await expect(notifs.send("unknown-alias", "msg")).rejects.toBeInstanceOf(AuthError);
+	});
+
+	it("falls back to the resolved webhook URL when no channel and no defaultChannel", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }], {}, () => WEBHOOK);
+		await notifs.send("", "hello");
+		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
 	});
 });
