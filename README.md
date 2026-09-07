@@ -12,15 +12,8 @@ A pluggable, capability-based CLI for spinning up and operating software project
 
 ## Installation
 
-```bash
-pnpm install @theholocron/holocron
-```
-
-## Usage
-
-```typescript
-import {} from "@theholocron/holocron";
-```
+This repository is a workspace root — it is not published. See the
+packages under [`packages/`](./packages) for the tools it ships.
 
 <!-- /holocron:installation -->
 

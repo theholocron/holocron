@@ -27,6 +27,9 @@ const REGISTRY_MAP: Record<string, () => PackagesRegistry> = {
 interface PackageJson {
 	name?: string;
 	homepage?: string;
+	private?: boolean;
+	main?: string;
+	exports?: unknown;
 	bin?: Record<string, string> | string;
 	peerDependencies?: Record<string, string>;
 	scripts?: Record<string, string>;
@@ -49,13 +52,25 @@ export interface SyncReadmeReport {
 	message?: string;
 }
 
-function generateInstallBlock(pkg: PackageJson): string {
+function generateInstallBlock(pkg: PackageJson, homepage = ""): string {
 	const { name = "", bin, peerDependencies = {} } = pkg;
 	const isCli = Boolean(bin);
 	const isReact = Boolean(peerDependencies["react"]);
+	// A private package with no bin and nothing importable (no `main`, no
+	// `exports`) is a workspace root or template — not something to `pnpm
+	// install` or `import` from.
+	const isConsumable = isCli || !pkg.private || Boolean(pkg.main) || pkg.exports !== undefined;
 	const lines: string[] = [];
 
 	lines.push("## Installation", "");
+
+	if (!isConsumable) {
+		lines.push(
+			"This repository is a workspace root — it is not published. See the",
+			"packages under [`packages/`](./packages) for the tools it ships."
+		);
+		return lines.join("\n");
+	}
 
 	if (isCli) {
 		lines.push("```bash", `npm install --global ${name}`, "```");
@@ -74,9 +89,13 @@ function generateInstallBlock(pkg: PackageJson): string {
 		}
 		lines.push("```");
 	} else if (isReact) {
-		lines.push("```tsx", `import { } from "${name}";`, "", "function App() {", `  return <></>;`, "}", "```");
+		lines.push("```tsx", `import {} from "${name}";`, "", "function App() {", `  return <></>;`, "}", "```");
+	} else if (homepage) {
+		// Exports aren't known at sync time — link the docs rather than emit a
+		// meaningless empty-brace import.
+		lines.push(`See the [documentation](${homepage}) for the API.`);
 	} else {
-		lines.push("```typescript", `import { } from "${name}";`, "```");
+		lines.push("See the package documentation for the API.");
 	}
 
 	return lines.join("\n");
@@ -204,7 +223,7 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 	};
 
 	// Single read-write pass for all README changes
-	const installBlock = generateInstallBlock(pkg);
+	const installBlock = generateInstallBlock(pkg, homepage);
 	const updated = await updateReadme(repoRoot, installBlock, markerSections, dryRun, readFileFn, writeFileFn);
 
 	if (!updated) {
