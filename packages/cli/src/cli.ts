@@ -138,12 +138,13 @@ try {
 		})
 		.middleware((argv) => {
 			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
-			finishCommand = startCommand(name);
 			printRunId = Boolean(argv.debug || argv.verbose);
-			// Establish the root logger (command name + flags + env). Handlers
-			// that load a config call `buildCliLogger(argv, { configLevel })`
-			// again to fold in the lowest-priority level + Axiom-dataset sources.
+			// Establish the root logger first (command name + flags + env) so its
+			// `runId` is available to tag telemetry events. Handlers that load a
+			// config call `buildCliLogger(argv, { configLevel })` again to fold in
+			// the lowest-priority level + Axiom-dataset sources.
 			buildCliLogger(argv, { command: name, org: argv.org });
+			finishCommand = startCommand(name);
 		})
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
@@ -1034,8 +1035,7 @@ try {
 								const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
 								const cfg = JSON.parse(raw) as Record<string, unknown>;
 								const upgradeNode = (cfg.upgrade as Record<string, unknown> | undefined)?.node as
-									| Record<string, unknown>
-									| undefined;
+									Record<string, unknown> | undefined;
 								if (Array.isArray(upgradeNode?.extra)) {
 									extra = upgradeNode.extra as string[];
 								}

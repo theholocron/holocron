@@ -7,6 +7,7 @@ import { ProviderApiError } from "@theholocron/http-client";
 import type { Logger } from "@theholocron/logger";
 
 import { getLogger } from "../logger.js";
+import { event as telemetryEvent } from "../telemetry.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { createHeader } from "../utils/create-header.js";
 import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows/index.js";
@@ -281,6 +282,14 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			},
 			"sync-github: done"
 		);
+		telemetryEvent("sync_github_run", {
+			repo,
+			status: r.status,
+			...(branch ? { branch } : {}),
+			repos_targeted: 1,
+			files_changed: r.created + r.updated,
+			pr_opened: Boolean(r.prUrl),
+		});
 		return r;
 	};
 

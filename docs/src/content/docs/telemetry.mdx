@@ -1,0 +1,90 @@
+---
+title: Telemetry
+description: What the Holocron CLI reports about itself — errors to Sentry, logs to Axiom, usage to PostHog — and the single switch that turns it all off.
+---
+
+The CLI reports on its own operation through three independent sinks. Each one
+answers a different question, each activates from an environment variable with a
+built-in fallback, and one switch — `HOLOCRON_TELEMETRY=false` — turns off all
+three.
+
+| Sink                  | Concern                                                | Activation                                                                  |
+| --------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------- |
+| **Sentry** (`errors`) | error tracking + performance spans                     | `HOLOCRON_SENTRY_DSN` → `SENTRY_DSN` → built-in DSN                         |
+| **Axiom** (`logs`)    | structured operational logs                            | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` (see [Logging](/logging)) |
+| **PostHog** (usage)   | product analytics — adoption, frequency, failure rates | `HOLOCRON_POSTHOG_PROJECT_TOKEN` → `POSTHOG_PROJECT_TOKEN` → built-in key   |
+
+:::note
+This is the CLI reporting on **itself**. It is unrelated to the
+[`analytics` capability](/plugins/posthog) / `@theholocron/holocron-plugin-posthog`,
+which provisions a PostHog project **for a consuming repo's application** —
+different project, different key, different audience.
+:::
+
+## Opting out
+
+```bash
+export HOLOCRON_TELEMETRY=false
+```
+
+Disables Sentry, the Axiom transport, and PostHog for the run. `NO_HOLOCRON_TELEMETRY`
+(any value) is kept as a back-compat alias. Nothing is initialised and no
+network connection is attempted.
+
+In a workflow, set it once at the job or step level — the secret can stay in
+place.
+
+## PostHog — CLI usage analytics
+
+Answers "which commands are actually used, how often, by how many machines,
+which fail most" — the questions Sentry spans are the wrong tool for. Decided in
+[ADR-0008](https://wiki.theholocron.dev/holocron/decisions/0008-cli-usage-telemetry-posthog).
+
+### Activation
+
+```
+HOLOCRON_POSTHOG_PROJECT_TOKEN  →  POSTHOG_PROJECT_TOKEN  →  built-in fallback key
+HOLOCRON_POSTHOG_HOST →  POSTHOG_HOST →  https://us.i.posthog.com
+```
+
+The built-in fallback is Holocron's own **ingest-only project write key**
+(`phc_…`) — it can capture events, never read data — so it ships in the
+published package and usage telemetry is on by default, the same risk model as
+the hard-coded Sentry DSN. Nothing needs configuring.
+
+A consumer repo can route its CLI usage to its own project by setting
+`POSTHOG_PROJECT_TOKEN` (a plain variable, not a secret — the key is
+publishable). In CI, the `sync` and `sync-github` reusable workflows forward
+that variable when it's set; unset, they fall through to the built-in key.
+
+### Identity
+
+Events are attributed to `sha256(hostname + username)`, truncated — a one-way
+per-machine fingerprint. No raw hostname, username, repo path, token, or file
+content is ever transmitted. Person properties are limited to `{ ci, os, node, org }`.
+
+### Events
+
+| Event               | When                          | Properties                                                                          |
+| ------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| `command_started`   | command begins                | `command`, `ci`, `dry_run`, `runId`                                                 |
+| `command_completed` | command returns ok            | `command`, `duration_ms`, `status: "ok"`, `runId`                                   |
+| `command_failed`    | command returns non-ok        | `command`, `duration_ms`, `error_type`, `runId`                                     |
+| `sync_github_run`   | each `sync-github` invocation | `repo`, `branch`, `status`, `repos_targeted`, `files_changed`, `pr_opened`, `runId` |
+
+`error_type` is the error constructor name only (`AuthError`, `ProviderApiError`,
+…) — never the message. Every event carries the logger's `runId`, so a PostHog
+event pivots straight to the full [Axiom](/logging) trace for that run. Every
+`properties` object is run through the same token scrubber Sentry uses before it
+leaves the process.
+
+## Sentry — errors
+
+See the [Sentry plugin](/plugins/sentry) page. `HOLOCRON_SENTRY_DSN` → `SENTRY_DSN`
+→ built-in DSN; error payloads are scrubbed of token-shaped strings via
+`beforeSend`.
+
+## Axiom — logs
+
+See [Logging](/logging) for the full token / dataset resolution and what each
+command emits.
