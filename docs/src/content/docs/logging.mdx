@@ -65,6 +65,18 @@ Child loggers inherit every binding from their parent and add their own, so pass
 | `level`   | Pino                  | level name string                          |
 | `time`    | Pino                  | ISO 8601 timestamp                         |
 
+## What the commands emit
+
+`setup`, `doctor`, `sync`, `secrets sync`, `deploy`, and `cleanup-preview`
+emit a structured line per unit of work — a `<command>: start`, one line
+per step / row / file (with `capability`, `step`, `status`, `detail`), and
+a `<command>: done` carrying the `ok` / `fail` / `skip` counts. Pull a
+whole run back out of Axiom by its `runId`:
+
+```kusto
+['holocron-ci'] | where runId == "<uuid>" | sort by _time asc
+```
+
 ## Log level
 
 Resolved in priority order:

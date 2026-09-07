@@ -18,6 +18,7 @@ vi.mock("../commands/sync-readme.js", () => ({
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -79,9 +80,24 @@ describe("runSync", () => {
 			}),
 		});
 
-		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const log = fakeLogger();
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+			logger: log,
+		});
 
 		expect(called).toEqual(["labels", "properties", "topics"]);
+
+		// structured logging: a start line, one line per step, a done summary
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ config: "demo", steps: "all" }), "sync: start");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ capability: "source", step: "sync labels", status: "ok" }),
+			"sync: sync labels"
+		);
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
 		expect(report.steps).toHaveLength(10);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(6);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
@@ -628,17 +644,24 @@ describe("runSync", () => {
 				},
 			});
 
+			const log = fakeLogger();
 			const report = await runSync({
 				loaded,
 				context: { repoRoot: tmpDir },
 				loader,
 				steps: ["keywords"],
 				print: () => {},
+				logger: log,
 			});
 
 			// did not throw; the local keywords step ran; the failure is recorded
 			expect(report.steps.find((s) => s.step === "sync keywords")).toBeDefined();
 			expect(loader.loadFailures()[0]?.error.message).toMatch(/corrupted/);
+			// the load failure is surfaced as a structured warning
+			expect(log.warn).toHaveBeenCalledWith(
+				expect.objectContaining({ provider: "github", reason: expect.stringMatching(/corrupted/) }),
+				expect.stringContaining("unavailable")
+			);
 		});
 	});
 

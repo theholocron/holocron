@@ -4,7 +4,9 @@ import { dirname, join } from "node:path";
 
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
+import type { Logger } from "@theholocron/logger";
 
+import { getLogger } from "../logger.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { createHeader } from "../utils/create-header.js";
 import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows/index.js";
@@ -42,6 +44,8 @@ export interface RunSyncGithubInput {
 	 */
 	outputDir?: string;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Injectable for testing. */
 	fetch?: typeof globalThis.fetch;
 }
@@ -249,6 +253,7 @@ export function gitBlobSha(content: string): string {
 
 export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGithubReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const repo = input.repo ?? DEFAULT_REPO;
 	const { token, dryRun = false, branch, createPr = false } = input;
 	const message = input.message ?? `chore: sync from theholocron/holocron`;
@@ -260,6 +265,25 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	if (branch) print(`  branch: ${branch}`);
 	print("");
 
+	logger.info({ repo, branch, createPr: createPr || undefined, dryRun: dryRun || undefined }, "sync-github: start");
+
+	/** Single exit point — one structured line per invocation, whatever the path. */
+	const done = (r: SyncGithubReport): SyncGithubReport => {
+		logger[r.status === "fail" ? "warn" : "info"](
+			{
+				repo,
+				status: r.status,
+				created: r.created,
+				updated: r.updated,
+				unchanged: r.unchanged,
+				...(r.message ? { reason: r.message } : {}),
+				...(r.prUrl ? { pr: r.prUrl } : {}),
+			},
+			"sync-github: done"
+		);
+		return r;
+	};
+
 	// ── output-dir: write all files to disk without any API calls ───────────
 	if (input.outputDir) {
 		const batch = buildBatch(repo);
@@ -269,7 +293,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			writeFileSync(dest, file.content, "utf8");
 		}
 		print(`  ${batch.length} files written to ${input.outputDir}`);
-		return { status: "ok", created: batch.length, updated: 0, unchanged: 0 };
+		return done({ status: "ok", created: batch.length, updated: 0, unchanged: 0 });
 	}
 
 	// ── 1. Resolve target branch ─────────────────────────────────────────────
@@ -283,7 +307,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		} catch {
 			const msg = "failed to fetch repo metadata";
 			print(`  ✗ ${msg}`);
-			return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
+			return done({ status: "fail", created: 0, updated: 0, unchanged: 0, message: msg });
 		}
 	}
 
@@ -302,7 +326,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : `Branch ${baseBranch} not found`;
 		print(`  ✗ ${msg}`);
-		return { status: "fail", created: 0, updated: 0, unchanged: 0, message: msg };
+		return done({ status: "fail", created: 0, updated: 0, unchanged: 0, message: msg });
 	}
 
 	// ── 3. Build file batch ─────────────────────────────────────────────────
@@ -324,10 +348,12 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			unchanged++;
 		} else if (existingSha) {
 			print(`  ${dryRun ? "~" : "✓"} updated  ${file.path}`);
+			logger.debug({ file: file.path, change: "updated" }, "sync-github: file");
 			updated++;
 			if (!dryRun) changedFiles.push(file);
 		} else {
 			print(`  ${dryRun ? "~" : "✓"} created  ${file.path}`);
+			logger.debug({ file: file.path, change: "created" }, "sync-github: file");
 			created++;
 			if (!dryRun) changedFiles.push(file);
 		}
@@ -337,7 +363,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	print(`  ${created} created, ${updated} updated, ${unchanged} unchanged`);
 
 	if (dryRun || changedFiles.length === 0) {
-		return { status: dryRun ? "dry-run" : "ok", created, updated, unchanged };
+		return done({ status: dryRun ? "dry-run" : "ok", created, updated, unchanged });
 	}
 
 	// ── 6. Create blobs for changed files ────────────────────────────────────
@@ -349,7 +375,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		} catch (err) {
 			const msg = `failed to create blob for ${file.path}: ${err instanceof Error ? err.message : String(err)}`;
 			print(`  ✗ ${msg}`);
-			return { status: "fail", created, updated, unchanged, message: msg };
+			return done({ status: "fail", created, updated, unchanged, message: msg });
 		}
 	}
 
@@ -361,7 +387,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	} catch (err) {
 		const msg = `failed to create tree: ${err instanceof Error ? err.message : String(err)}`;
 		print(`  ✗ ${msg}`);
-		return { status: "fail", created, updated, unchanged, message: msg };
+		return done({ status: "fail", created, updated, unchanged, message: msg });
 	}
 
 	// ── 8. Create commit ─────────────────────────────────────────────────────
@@ -372,7 +398,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	} catch (err) {
 		const msg = `failed to create commit: ${err instanceof Error ? err.message : String(err)}`;
 		print(`  ✗ ${msg}`);
-		return { status: "fail", created, updated, unchanged, message: msg };
+		return done({ status: "fail", created, updated, unchanged, message: msg });
 	}
 
 	// ── 9. Update (or create) branch ref ────────────────────────────────────
@@ -391,7 +417,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	} catch (err) {
 		const msg = `failed to update ref: ${err instanceof Error ? err.message : String(err)}`;
 		print(`  ✗ ${msg}`);
-		return { status: "fail", created, updated, unchanged, message: msg };
+		return done({ status: "fail", created, updated, unchanged, message: msg });
 	}
 
 	// ── 10. Open PR if requested ─────────────────────────────────────────────
@@ -417,5 +443,5 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		}
 	}
 
-	return { status: "ok", created, updated, unchanged, prUrl };
+	return done({ status: "ok", created, updated, unchanged, prUrl });
 }

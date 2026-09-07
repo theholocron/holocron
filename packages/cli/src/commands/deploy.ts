@@ -11,7 +11,10 @@
  * the wiring without spinning up a build.
  */
 
+import type { Logger } from "@theholocron/logger";
+
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { Deployment, DeploymentRecord, DeploymentTrigger } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { withSpinner } from "../ui/progress.js";
@@ -30,6 +33,8 @@ export interface RunDeployInput {
 	target?: DeploymentTrigger;
 	loader?: PluginLoader;
 	print?: DeployPrintLine;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export interface DeployReport {
@@ -41,10 +46,20 @@ export interface DeployReport {
 
 export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
 
 	const dryRun = input.context.dryRun ?? false;
+	logger.info(
+		{
+			branch: input.branch,
+			target: input.target ?? "preview",
+			projectId: input.projectId,
+			dryRun: dryRun || undefined,
+		},
+		"deploy: start"
+	);
 
 	print(
 		style.header(
@@ -78,10 +93,12 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 			})
 		);
 		print(`  ${style.success(`${record.status} — ${record.url}`)}`);
+		logger.info({ status: record.status, url: record.url, id: record.id }, "deploy: triggered");
 		return { deployment: record, status: "ok" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		print(`  ${style.fail(message)}`);
+		logger.warn({ branch: input.branch, reason: message }, "deploy: failed");
 		return { deployment: null, status: "fail", message };
 	}
 }

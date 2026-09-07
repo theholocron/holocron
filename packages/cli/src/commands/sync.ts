@@ -1,7 +1,10 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { createHeader } from "../utils/create-header.js";
@@ -46,10 +49,13 @@ export interface RunSyncInput {
 	steps?: string[];
 	loader?: PluginLoader;
 	print?: SetupPrintLine;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 
 	const config = input.loaded.resolved;
@@ -57,11 +63,19 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const requestedSteps = input.steps;
 	const steps: SetupStepResult[] = [];
 
+	logger.info({ config: config.name, steps: requestedSteps ?? "all", dryRun: dryRun || undefined }, "sync: start");
+
 	// `load()` soft-skips any plugin it can't load (missing token, package
 	// not installed). Remote steps then push a `skip` result when
 	// `source` is absent; local steps (keywords, description, readme…)
 	// write to disk regardless.
 	await loader.load();
+	for (const failure of loader.loadFailures()) {
+		logger.warn(
+			{ capability: failure.key, provider: failure.provider, reason: failure.error.message },
+			`sync: plugin ${failure.provider} unavailable`
+		);
+	}
 
 	print(`Holocron sync — ${config.name}${dryRun ? " (dry-run)" : ""}`);
 	print(`  config: ${input.loaded.filepath}`);
@@ -386,6 +400,13 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 	}
 
+	for (const s of steps) {
+		logger[s.status === "fail" ? "warn" : "info"](
+			{ capability: s.capability, step: s.step, status: s.status, ...(s.message ? { detail: s.message } : {}) },
+			`sync: ${s.step}`
+		);
+	}
+
 	const summary = steps.reduce(
 		(acc, s) => {
 			if (s.status === "ok") acc.ok += 1;
@@ -396,6 +417,8 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		},
 		{ ok: 0, fail: 0, skip: 0, dryRun: 0 }
 	);
+
+	logger[summary.fail > 0 ? "warn" : "info"]({ ...summary }, "sync: done");
 
 	print("");
 	print(

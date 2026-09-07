@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runDeploy } from "./deploy.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -60,6 +61,7 @@ describe("runDeploy", () => {
 			}),
 		});
 
+		const log = fakeLogger();
 		const report = await runDeploy({
 			loaded,
 			context: { repoRoot: "/tmp/test" },
@@ -67,6 +69,7 @@ describe("runDeploy", () => {
 			branch: "feat/x",
 			loader,
 			print: () => {},
+			logger: log,
 		});
 
 		expect(triggerCalls).toHaveLength(1);
@@ -76,6 +79,12 @@ describe("runDeploy", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.deployment?.url).toBe("demo-abc.vercel.app");
+
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ branch: "feat/x" }), "deploy: start");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ status: "queued", url: "demo-abc.vercel.app" }),
+			"deploy: triggered"
+		);
 	});
 
 	it("passes named target through (production / staging)", async () => {

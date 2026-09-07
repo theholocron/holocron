@@ -21,7 +21,10 @@
  * individually via `holocron secret set` (also planned for v5.1).
  */
 
+import type { Logger } from "@theholocron/logger";
+
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { Deployment, DeploymentTarget, Secrets, Vault } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { withSpinner } from "../ui/progress.js";
@@ -56,12 +59,20 @@ export interface RunSecretsSyncInput {
 	projectId?: string;
 	loader?: PluginLoader;
 	print?: SyncPrintLine;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
+
+	logger.info(
+		{ environment: input.environmentId, dryRun: (input.context.dryRun ?? false) || undefined },
+		"secrets sync: start"
+	);
 
 	const dryRun = input.context.dryRun ?? false;
 	const targets = input.targets ?? (["production", "preview"] as DeploymentTarget[]);
@@ -129,6 +140,21 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		}
 	}
 
+	for (const r of rows) {
+		// `key` is a secret NAME, never a value — safe to log. The logger also
+		// redacts `secrets[*].value` shapes as defence in depth.
+		logger[r.status === "fail" ? "warn" : "info"](
+			{
+				destination: r.destination,
+				scope: r.scope,
+				key: r.key,
+				status: r.status,
+				...(r.message ? { detail: r.message } : {}),
+			},
+			`secrets sync: ${r.key} → ${r.destination}`
+		);
+	}
+
 	const summary = rows.reduce(
 		(acc, r) => {
 			if (r.status === "ok") acc.ok += 1;
@@ -139,6 +165,8 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		},
 		{ ok: 0, fail: 0, skip: 0, dryRun: 0 }
 	);
+
+	logger[summary.fail > 0 ? "warn" : "info"]({ ...summary, keys: rows.length }, "secrets sync: done");
 
 	print("");
 	const summaryLine = `${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
