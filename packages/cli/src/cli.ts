@@ -531,14 +531,14 @@ try {
 		)
 		.command(
 			"sync [steps..]",
-			"Sync state from config to the provider and local files (labels, properties, topics, keywords, description, homepage, readme, workflows)",
+			"Sync state from config to the provider and local files (labels, properties, topics, keywords, description, homepage, scripts, readme, workflows)",
 			(y) =>
 				y
 					.positional("steps", {
 						type: "string",
 						array: true,
 						describe:
-							"Steps to run: labels, properties, topics, keywords, description, homepage, readme, workflows (default: all)",
+							"Steps to run: labels, properties, topics, keywords, description, homepage, scripts, readme, workflows (default: all)",
 					})
 					.option("repo", {
 						type: "string",
@@ -1035,8 +1035,7 @@ try {
 								const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
 								const cfg = JSON.parse(raw) as Record<string, unknown>;
 								const upgradeNode = (cfg.upgrade as Record<string, unknown> | undefined)?.node as
-									| Record<string, unknown>
-									| undefined;
+									Record<string, unknown> | undefined;
 								if (Array.isArray(upgradeNode?.extra)) {
 									extra = upgradeNode.extra as string[];
 								}

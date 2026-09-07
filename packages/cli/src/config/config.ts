@@ -387,6 +387,15 @@ export interface HolocronConfig {
 	 * { level: "debug" }
 	 */
 	log?: LogConfig;
+	/**
+	 * `package.json` scripts `holocron sync` keeps in sync. Only the listed keys
+	 * are reconciled — every other script in `package.json` is left untouched.
+	 * A repo with no `package.json` skips the step.
+	 *
+	 * @example
+	 * { holocron: "holocron" }
+	 */
+	scripts?: Record<string, string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -401,8 +410,7 @@ export interface ResolvedTuple {
 }
 
 export type ResolvedProviderEntry =
-	| { cardinality: "single"; tuple: ResolvedTuple }
-	| { cardinality: "many"; tuples: ResolvedTuple[] };
+	{ cardinality: "single"; tuple: ResolvedTuple } | { cardinality: "many"; tuples: ResolvedTuple[] };
 
 export type ResolvedProvidersConfig = Partial<Record<CapabilityKey, ResolvedProviderEntry>>;
 
@@ -423,6 +431,8 @@ export interface ResolvedHolocronConfig {
 	docs?: PagesConfig;
 	env?: EnvConfig;
 	log?: LogConfig;
+	/** `package.json` scripts `holocron sync` reconciles (merge, not clobber). */
+	scripts?: Record<string, string>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -562,5 +572,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		docs,
 		env: raw.env,
 		log: raw.log,
+		scripts: raw.scripts,
 	};
 }

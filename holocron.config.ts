@@ -72,6 +72,9 @@ export default defineConfig({
 	// or HOLOCRON_AXIOM_TOKEN. CI overrides the dataset to holocron-ci via the
 	// HOLOCRON_AXIOM_DATASET variable (env wins over config).
 	log: { axiom: { dataset: "holocron-local" } },
+	// Scripts sync keeps current. This repo runs the CLI from its own build;
+	// consuming repos use `"holocron": "holocron"` (the published bin).
+	scripts: { holocron: "node packages/cli/dist/cli.mjs" },
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
 } satisfies HolocronConfig);

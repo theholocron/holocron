@@ -34,6 +34,7 @@ export const SYNC_STEPS = [
 	"keywords",
 	"description",
 	"homepage",
+	"scripts",
 	"readme",
 	"workflows",
 	"wiki",
@@ -41,7 +42,15 @@ export const SYNC_STEPS = [
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
-const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme", "workflows", "wiki"]);
+const LOCAL_STEPS = new Set<SyncStep>([
+	"keywords",
+	"description",
+	"homepage",
+	"scripts",
+	"readme",
+	"workflows",
+	"wiki",
+]);
 
 export interface RunSyncInput {
 	loaded: LoadedConfig;
@@ -229,7 +238,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// files and optionally push to GitHub when source is loaded. They run
 	// outside the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows", "wiki"] as const) {
+	for (const stepName of ["keywords", "description", "homepage", "scripts", "readme", "workflows", "wiki"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -313,6 +322,32 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						if (pkgWrote) parts.push("package.json");
 						if (source?.syncHomepage) parts.push("GitHub");
 						return parts.length > 0 ? parts.join(", ") + " updated" : "homepage synced";
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "scripts") {
+			const scripts = config.scripts ?? {};
+			if (Object.keys(scripts).length === 0) {
+				steps.push({
+					capability: "local",
+					step: "sync scripts",
+					status: "skip",
+					message: "no scripts configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				steps.push(
+					await runSyncStep("local", "sync scripts", dryRun, async () => {
+						const result = await mergePackageJsonScripts(input.context.repoRoot, scripts);
+						if (result === "no-package-json") return "no package.json";
+						const { written } = result;
+						const total = Object.keys(scripts).length;
+						return written.length > 0
+							? `${written.join(", ")} ${written.length === 1 ? "script" : "scripts"} set`
+							: `${total} ${total === 1 ? "script" : "scripts"} already current`;
 					})
 				);
 				print(formatSyncStep(steps[steps.length - 1]!));
@@ -472,6 +507,37 @@ async function writePackageJsonField(repoRoot: string, field: string, value: unk
 	pkg[field] = value;
 	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
 	return true;
+}
+
+/**
+ * Reconcile an allowlist of `package.json` scripts — sets only the listed keys,
+ * leaves every other script untouched. Returns which keys were added or changed
+ * (`written`), or `"no-package-json"` when the repo has none.
+ */
+async function mergePackageJsonScripts(
+	repoRoot: string,
+	scripts: Record<string, string>
+): Promise<{ written: string[] } | "no-package-json"> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return "no-package-json";
+	}
+	const pkg = JSON.parse(content) as { scripts?: Record<string, string> };
+	const current = pkg.scripts ?? {};
+	const written: string[] = [];
+	for (const [key, value] of Object.entries(scripts)) {
+		if (current[key] !== value) {
+			current[key] = value;
+			written.push(key);
+		}
+	}
+	if (written.length === 0) return { written };
+	pkg.scripts = current;
+	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	return { written };
 }
 
 const README_DESC_START = "<!-- holocron:description -->";

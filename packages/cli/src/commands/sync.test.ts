@@ -98,10 +98,11 @@ describe("runSync", () => {
 			"sync: sync labels"
 		);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
-		expect(report.steps).toHaveLength(10);
+		expect(report.steps).toHaveLength(11);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(6);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 6, fail: 0, skip: 4 });
+		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("skip");
+		expect(report.summary).toMatchObject({ ok: 6, fail: 0, skip: 5 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -662,6 +663,110 @@ describe("runSync", () => {
 				expect.objectContaining({ provider: "github", reason: expect.stringMatching(/corrupted/) }),
 				expect.stringContaining("unavailable")
 			);
+		});
+	});
+
+	it("skips sync scripts when none are configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["scripts"],
+			print: () => {},
+		});
+
+		const step = report.steps.find((s) => s.step === "sync scripts");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no scripts configured");
+	});
+
+	describe("sync scripts — package.json merge", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runScripts(scripts: Record<string, string>) {
+			const loaded = loadedFrom({ name: "demo", scripts, providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["scripts"],
+				print: () => {},
+			});
+			return report.steps.find((s) => s.step === "sync scripts");
+		}
+
+		it("adds listed scripts and leaves the rest untouched", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { test: "vitest", build: "tsdown" } }, null, 2) + "\n"
+			);
+
+			const step = await runScripts({ holocron: "holocron" });
+
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("holocron script set");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({ test: "vitest", build: "tsdown", holocron: "holocron" });
+		});
+
+		it("updates a script whose value drifted", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { holocron: "stale" } }, null, 2) + "\n"
+			);
+
+			const step = await runScripts({ holocron: "holocron" });
+
+			expect(step?.status).toBe("ok");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts.holocron).toBe("holocron");
+		});
+
+		it("is a no-op when every listed script already matches", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { holocron: "holocron" } }, null, 2) + "\n"
+			);
+
+			const step = await runScripts({ holocron: "holocron" });
+
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toBe("1 script already current");
+		});
+
+		it("creates the scripts block when package.json has none", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+
+			await runScripts({ holocron: "holocron" });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({ holocron: "holocron" });
+		});
+
+		it("succeeds gracefully when package.json is absent", async () => {
+			const step = await runScripts({ holocron: "holocron" });
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("no package.json");
 		});
 	});
 

@@ -135,6 +135,13 @@ describe("resolveConfig", () => {
 		});
 	});
 
+	it("passes the scripts allowlist through", () => {
+		expect(resolveConfig(minimal).scripts).toBeUndefined();
+		expect(resolveConfig({ ...minimal, scripts: { holocron: "holocron" } }).scripts).toEqual({
+			holocron: "holocron",
+		});
+	});
+
 	it("throws when docs is set but build is absent", () => {
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow(ConfigError);
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow("`docs.build` is required");
