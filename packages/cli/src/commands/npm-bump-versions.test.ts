@@ -54,7 +54,10 @@ describe("runNpmBumpVersions", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.bumped).toEqual(["root", "packages/pkg-a", "packages/pkg-b"]);
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ version: "4.2.0" }), "npm bump-versions: start");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ version: "4.2.0" }),
+			"npm bump-versions: start"
+		);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ bumped: 3, status: "ok" }),
 			"npm bump-versions: done"

@@ -54,8 +54,14 @@ describe("runPluginCreate — orchestrator", () => {
 		expect(report.status).toBe("ok");
 		expect(report.filesWritten).toHaveLength(18);
 		expect(fs.size()).toBe(18);
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ slug: BASE_INPUT.slug }), "plugin create: start");
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ files: 18, status: "ok" }), "plugin create: done");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ slug: BASE_INPUT.slug }),
+			"plugin create: start"
+		);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ files: 18, status: "ok" }),
+			"plugin create: done"
+		);
 	});
 
 	it("resolves {{capability}} in paths to the chosen capability key", () => {

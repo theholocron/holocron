@@ -391,10 +391,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	const templateRepo = `${org}/${input.type}-template`;
 	const newRepo = `${org}/${input.name}`;
 	const repoDir = path.join(cwd, input.name);
-	logger.info(
-		{ repo: newRepo, template: templateRepo, dryRun: input.dryRun || undefined },
-		"new: start"
-	);
+	logger.info({ repo: newRepo, template: templateRepo, dryRun: input.dryRun || undefined }, "new: start");
 
 	if (input.dryRun) {
 		print(`  Would create ${newRepo} from template ${templateRepo}`);

@@ -63,10 +63,7 @@ describe("runClone", () => {
 		expect(report.status).toBe("ok");
 		expect(report.cloned).toBe(2);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ org: "test-org" }), "clone: start");
-		expect(log.info).toHaveBeenCalledWith(
-			expect.objectContaining({ cloned: 2, status: "ok" }),
-			"clone: done"
-		);
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ cloned: 2, status: "ok" }), "clone: done");
 		expect(report.skipped).toBe(0);
 		expect(report.failed).toBe(0);
 		expect(exec).toHaveBeenCalledTimes(2);

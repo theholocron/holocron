@@ -63,7 +63,15 @@ describe("auto-detect from", () => {
 			"package.json": pkg(),
 		});
 		const log = fakeLogger();
-		const report = await runUpgradeNode({ to: 22, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles, logger: log });
+		const report = await runUpgradeNode({
+			to: 22,
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			walkFiles,
+			logger: log,
+		});
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/--from/);
 		expect(log.warn).toHaveBeenCalledWith(

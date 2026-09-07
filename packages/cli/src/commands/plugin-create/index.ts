@@ -248,7 +248,12 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 	}
 
 	logger.info(
-		{ slug: inputs.slug, capability: inputs.capability, files: filesWritten.length, status: input.dryRun ? "dry-run" : "ok" },
+		{
+			slug: inputs.slug,
+			capability: inputs.capability,
+			files: filesWritten.length,
+			status: input.dryRun ? "dry-run" : "ok",
+		},
 		"plugin create: done"
 	);
 	return { status: "ok", packagePath: packageDir, filesWritten };
