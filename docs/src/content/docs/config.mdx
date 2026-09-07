@@ -20,6 +20,10 @@ export default defineConfig({
   // Project homepage. Synced to package.json#homepage and the GitHub repo's website field.
   homepage: "https://github.com/my-org/my-project",
 
+  // package.json scripts `holocron sync` keeps current. Only these keys are
+  // reconciled (merge, not clobber) — every other script is left alone.
+  scripts: { holocron: "holocron" },
+
   // Repository identity and metadata.
   repo: {
     // "owner/name" — injected into every plugin's context so --repo isn't needed on every call.

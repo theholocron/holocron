@@ -18,17 +18,23 @@ holocron sync                               # run all steps
 holocron sync labels properties             # run only labels and properties
 ```
 
-| Step          | What it syncs                                             | Requires provider token      |
-| ------------- | --------------------------------------------------------- | ---------------------------- |
-| `labels`      | GitHub labels — upserts canonical set, deletes stale ones | Yes (`HOLOCRON_ADMIN_TOKEN`) |
-| `properties`  | Org-level custom properties (`repo.properties`)           | Yes                          |
-| `teams`       | Team repository access (`repo.teams`)                     | Yes                          |
-| `topics`      | GitHub topics (`repo.topics`)                             | Yes                          |
-| `keywords`    | `package.json#keywords` — set from `repo.topics`          | No                           |
-| `description` | `package.json#description` and GitHub repo description    | No (local) / Yes (GitHub)    |
-| `homepage`    | `package.json#homepage` and GitHub repo website field     | No (local) / Yes (GitHub)    |
+| Step          | What it syncs                                                                         | Requires provider token      |
+| ------------- | ------------------------------------------------------------------------------------- | ---------------------------- |
+| `labels`      | GitHub labels — upserts canonical set, deletes stale ones                             | Yes (`HOLOCRON_ADMIN_TOKEN`) |
+| `properties`  | Org-level custom properties (`repo.properties`)                                       | Yes                          |
+| `teams`       | Team repository access (`repo.teams`)                                                 | Yes                          |
+| `topics`      | GitHub topics (`repo.topics`)                                                         | Yes                          |
+| `keywords`    | `package.json#keywords` — set from `repo.topics`                                      | No                           |
+| `description` | `package.json#description` and GitHub repo description                                | No (local) / Yes (GitHub)    |
+| `homepage`    | `package.json#homepage` and GitHub repo website field                                 | No (local) / Yes (GitHub)    |
+| `scripts`     | `package.json#scripts` — reconciles the keys in `config.scripts` (merge, not clobber) | No                           |
+| `readme`      | README Installation/Usage block from `package.json`                                   | No                           |
+| `workflows`   | `.github/workflows/*.yml` thin callers from `config.workflows`                        | No                           |
+| `wiki`        | Fern wiki `products:` switcher (`config.providers.wiki`)                              | No                           |
 
-Local steps (`keywords`, `description`, `homepage`) write to the local filesystem. If a `source` plugin is also configured, they additionally push to GitHub. Running without a token skips the GitHub push but still updates local files.
+Local steps (`keywords`, `description`, `homepage`, `scripts`, `readme`, `workflows`, `wiki`) write to the local filesystem. If a `source` plugin is also configured, the metadata steps additionally push to GitHub. Running without a token skips the GitHub push but still updates local files.
+
+The `scripts` step only touches the keys you list in `config.scripts` — every other script in `package.json` is left alone. A repo with no `package.json` skips it.
 
 ## Options
 
@@ -48,7 +54,7 @@ holocron sync
 holocron sync labels topics
 
 # Update local package.json fields without touching GitHub
-holocron sync description homepage keywords
+holocron sync description homepage keywords scripts
 
 # Dry-run all
 holocron sync --dry-run
