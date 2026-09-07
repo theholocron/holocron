@@ -1035,7 +1035,8 @@ try {
 								const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
 								const cfg = JSON.parse(raw) as Record<string, unknown>;
 								const upgradeNode = (cfg.upgrade as Record<string, unknown> | undefined)?.node as
-									Record<string, unknown> | undefined;
+									| Record<string, unknown>
+									| undefined;
 								if (Array.isArray(upgradeNode?.extra)) {
 									extra = upgradeNode.extra as string[];
 								}
