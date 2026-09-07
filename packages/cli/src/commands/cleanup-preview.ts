@@ -1,6 +1,8 @@
 import { checkbox } from "@inquirer/prompts";
+import type { Logger } from "@theholocron/logger";
 
 import type { LoadedConfig } from "../config/load-config.js";
+import { getLogger } from "../logger.js";
 import type { Deployment, DeploymentRecord, PullRequest, Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { style } from "../ui/style.js";
@@ -19,6 +21,8 @@ export interface RunCleanupPreviewInput {
 	project: string;
 	loader?: PluginLoader;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export interface CleanupPreviewReport {
@@ -39,9 +43,11 @@ function prStateLabel(pr: PullRequest): string {
 
 export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<CleanupPreviewReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	// c8 ignore next -- real PluginLoader construction is integration-level; unit tests always supply loader
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
+	logger.info({ pr: input.prNumber, project: input.project }, "cleanup-preview: start");
 
 	// ── 1. Look up the PR ───────────────────────────────────────────────
 	if (!loader.has("source")) {
@@ -92,6 +98,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 
 	if (deployments.length === 0) {
 		print(style.dim(`No deployments found for branch ${branch}.`));
+		logger.info({ pr: pr.number, branch, found: 0, deleted: 0, status: "none" }, "cleanup-preview: done");
 		return { pr, branch, found: 0, deleted: 0, status: "none" };
 	}
 
@@ -141,10 +148,18 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	try {
 		const count = await deploy.deletePreviewDeployments(input.project, selected);
 		print(style.success(`Deleted ${count} deployment${count === 1 ? "" : "s"}.`));
+		logger.info(
+			{ pr: pr.number, branch, found: deployments.length, deleted: count, status: "ok" },
+			"cleanup-preview: done"
+		);
 		return { pr, branch, found: deployments.length, deleted: count, status: "ok" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		print(style.fail(message));
+		logger.warn(
+			{ pr: pr.number, branch, found: deployments.length, reason: message, status: "fail" },
+			"cleanup-preview: done"
+		);
 		return { pr, branch, found: deployments.length, deleted: 0, status: "fail", message };
 	}
 }

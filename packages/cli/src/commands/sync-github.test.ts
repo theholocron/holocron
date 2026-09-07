@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import * as logger from "../logger.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import {
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -109,15 +110,26 @@ function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unkn
 describe("runSyncGithub", () => {
 	it(`pushes all ${PRIMARY_FILE_COUNT} files in a single commit to the primary .github repo`, async () => {
 		const { fn, calls } = makeFetch();
+		const log = fakeLogger();
 		const report = await runSyncGithub({
 			token: "ghp_test",
 			branch: "chore/sync",
 			dryRun: false,
 			print: () => {},
 			fetch: fn,
+			logger: log,
 		});
 		expect(report.status).toBe("ok");
 		expect(report.created).toBe(PRIMARY_FILE_COUNT);
+
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ repo: "theholocron/.github", branch: "chore/sync" }),
+			"sync-github: start"
+		);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ status: "ok", created: PRIMARY_FILE_COUNT }),
+			"sync-github: done"
+		);
 		// One blob per file + one tree + one commit + one ref update
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		const treeCreate = calls.filter((c) => c.method === "POST" && c.url.includes("/git/trees"));

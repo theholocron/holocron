@@ -5,6 +5,7 @@ import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import type { DeploymentRecord, PullRequest } from "../plugin/capabilities.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runCleanupPreview } from "./cleanup-preview.js";
 
 vi.mock("@inquirer/prompts", () => ({
@@ -271,6 +272,7 @@ describe("runCleanupPreview", () => {
 	it("deletes selected deployments and returns status=ok", async () => {
 		mockCheckbox.mockResolvedValueOnce([DEPLOYMENT.id]);
 		const { loaded, loader, deployment } = makePlugins(PR_MERGED);
+		const log = fakeLogger();
 		const report = await runCleanupPreview({
 			loaded,
 			context: { repoRoot: "/tmp/test" },
@@ -278,10 +280,17 @@ describe("runCleanupPreview", () => {
 			project: "my-project",
 			loader,
 			print: () => {},
+			logger: log,
 		});
 		expect(deployment.deletePreviewDeployments).toHaveBeenCalledWith("my-project", [DEPLOYMENT.id]);
 		expect(report.status).toBe("ok");
 		expect(report.deleted).toBe(1);
+
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ pr: 42 }), "cleanup-preview: start");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ deleted: 1, status: "ok" }),
+			"cleanup-preview: done"
+		);
 	});
 
 	it("returns status=aborted when nothing is selected", async () => {

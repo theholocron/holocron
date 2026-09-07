@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runSecretsSync } from "./secrets-sync.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -83,18 +84,29 @@ describe("runSecretsSync", () => {
 			}),
 		});
 
+		const log = fakeLogger();
 		const report = await runSecretsSync({
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
 			loader,
 			print: () => {},
+			logger: log,
 		});
 
 		expect(setSecretCalls).toHaveLength(2);
 		expect(setSecretCalls.map((c) => c.name).sort()).toEqual(["CLERK_SECRET_KEY", "NEON_DATABASE_URL"]);
 		expect(report.summary.ok).toBe(2);
 		expect(report.summary.fail).toBe(0);
+
+		// per-secret lines log the KEY name, never the value
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ key: "CLERK_SECRET_KEY", status: "ok" }),
+			expect.stringContaining("CLERK_SECRET_KEY")
+		);
+		const logged = JSON.stringify(log.info.mock.calls);
+		expect(logged).not.toContain("sk_test_xxx");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ keys: 2 }), "secrets sync: done");
 	});
 
 	it("skips deployment sync when projectId is missing", async () => {
