@@ -41,7 +41,7 @@
   ],
   "scripts": {
     "build": "tsdown --config-loader tsx",
-    "start": "tsx ./src/cli.ts",
+    "start": "node ./dist/cli.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
