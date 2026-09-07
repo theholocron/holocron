@@ -1,6 +1,6 @@
 ---
-status: draft
-issue: 369
+status: archived
+issue: theholocron/holocron#369
 blocked-by: []
 ---
 

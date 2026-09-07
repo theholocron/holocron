@@ -3,7 +3,7 @@
  * Validates frontmatter in ADR and spec files.
  *
  * ADRs: docs/architecture/adr/*.md (excluding template.md)
- * Specs: .notes/*.spec.md (in-progress) + docs/wiki/specifications/*.spec.md (archived)
+ * Specs: .notes/*.spec.md (in-progress) + docs/wiki/specifications/*.spec.md (settled: accepted / archived / superseded)
  *
  * Usage:
  *   node scripts/validate-adrs.mjs           # validate all files
@@ -120,8 +120,9 @@ function validateSpec(filepath) {
 		error(name, `invalid status "${fm.status}" — must be one of: ${[...SPEC_STATUSES].join(", ")}`);
 	}
 
-	// issue field must be populated (process rule)
-	if (!fm.issue) {
+	// issue field must be populated (process rule) — exempt archived/superseded
+	// specs; many predate the issue-first process or conclude before it applied.
+	if (!fm.issue && fm.status !== "archived" && fm.status !== "superseded") {
 		warn(name, "missing `issue` field — every spec must have a companion GitHub issue");
 	}
 }

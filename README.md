@@ -190,7 +190,7 @@ packages/
   holocron-plugin-posthog/        — @theholocron/holocron-plugin-posthog   (analytics)
   holocron-plugin-sentry/         — @theholocron/holocron-plugin-sentry     (errors)
 holocron.config.ts                — this repo's own holocron config (self-hosted)
-.notes/                           — design specs (draft → proposed → approved)
+.notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
 
 ```

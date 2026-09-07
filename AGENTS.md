@@ -100,9 +100,13 @@ not object destructuring.
 ## Workflow
 
 - **Discuss → `.notes/<topic>.spec.md` → GitHub issue.** Non-trivial
-  decisions get a spec file in `.notes/` before acting. Same lifecycle
-  as Rando (`draft → proposed → approved → archived`). Spec name
+  decisions get a spec file in `.notes/` before acting. Lifecycle:
+  `draft → proposed → accepted → archived` (or `superseded`). Spec name
   prefixes: `tech-` / `tool-` / `process-` / `ci-` / `security-`.
+  Once the design is settled the spec **moves to
+  `docs/wiki/specifications/`** (`accepted` for living reference docs,
+  `archived`/`superseded` for shipped or dropped work); `.notes/` holds
+  only in-progress specs. `scripts/validate-adrs.mjs` checks both dirs.
 - **File issues for non-trivial work** and reference in commits/PRs
   (`Closes #N` / `Refs #N`). Cross-check against `.notes/*.spec.md`
   before starting; several already have design docs. Skip for typo fixes.
@@ -210,41 +214,21 @@ packages/
   holocron-plugin-infisical/      — vault (REST)
   holocron-plugin-postman/        — tooling
 holocron.config.ts                — this repo's own config (self-hosted)
-.notes/                           — design specs (draft → proposed → approved → archived)
+.notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-skill-plugin/ — scaffolding skill for new plugins
 .github/workflows/                — ci.yml (PR), release.yml (main), codeql.yml, etc.
 scripts/bump-versions.mjs         — lockstep version bump invoked by semantic-release
 
 ```
 
-## What's deliberately out of scope (for now)
+## Backlog
 
-These are real future work captured as tracking issues — DO NOT
-build them speculatively; pick up the issue when ready. Cross-check
-against `.notes/*.spec.md` before starting; several already have
-design docs.
+Scheduled-but-not-started work lives on the **[`v4.0` milestone](https://github.com/theholocron/holocron/milestone/3)**
+as tracking issues — DO NOT build them speculatively; pick up an issue when
+ready. Several have a design doc in `docs/wiki/specifications/` (status
+`proposed` there, or `.notes/` while still being drafted) — cross-check
+before starting.
 
-- **#76** Per-plugin `transport: 'rest' | 'cli'` option. Still
-  grounded: 1P plugin is the reference CLI-transport case
-  (see #96 — plugin stays published even though this repo doesn't
-  use it as default).
-- **#77** `holocron plugin create` CLI command (promote the
-  scaffolding skill to a first-class CLI feature) — spec at
-  `docs/wiki/specifications/tool-plugin-create.spec.md` (Phase 1 unblocked).
-- **#78** CLI-transport sibling skill — still motivated (same
-  reason as #76).
-- **#79** ~~Multi-plugin `--token` disambiguation~~ — shipped in alpha.74
-- **#80** Real Svix HMAC verification in `parseWebhook`
-- **#82** Extend `holocron setup` with repo policy + branch
-  protection — spec at `docs/wiki/specifications/tech-setup-and-config.spec.md`
-  (also covers `project.repo` config field + capability-factory
-  lazy-load pattern discovered during v2 alpha migration).
-
-Additional session-derived design docs (not on GitHub yet — file
-issues when the work is scheduled):
-
-- `docs/wiki/specifications/tech-auth-bootstrap.spec.md` — keyring-backed
-  bootstrap credentials + `holocron auth` subcommand. Foundation shipped in
-  PR #94; ongoing pattern for future plugins.
-- `docs/wiki/specifications/tech-vault-choice.spec.md` — Doppler + Infisical
-  adoption, 1P deprecation roadmap.
+In-progress specs (`draft` / `proposed`) sit in `.notes/`; once settled they
+move to `docs/wiki/specifications/`. The entire v2-alpha issue backlog
+(#74–#96) shipped; the specs that drove it are archived there for reference.

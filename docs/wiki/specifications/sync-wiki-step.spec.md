@@ -1,10 +1,10 @@
 ---
-status: proposed
+status: archived
 issue: theholocron/holocron#503
 blocked-by: []
 related:
-  - theholocron/holocron/.notes/wiki-capability.spec.md
-  - theholocron/holocron/.notes/knowledge-system.spec.md
+  - theholocron/holocron/docs/wiki/specifications/wiki-capability.spec.md
+  - theholocron/holocron/docs/wiki/specifications/knowledge-system.spec.md
   - theholocron/.github-private#65
 ---
 

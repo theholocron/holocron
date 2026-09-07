@@ -1,9 +1,6 @@
 ---
-status: proposed
-issues:
-  - theholocron/clients#300
-  - theholocron/holocron#419
-  - theholocron/holocron#420
+status: archived
+issue: theholocron/holocron#420
 blocked-by: []
 ---
 

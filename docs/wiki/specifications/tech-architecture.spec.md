@@ -1,6 +1,6 @@
 ---
 status: archived
-issue: 74
+issue: theholocron/holocron#74
 ---
 
 <!-- editorconfig-checker-disable-file -->

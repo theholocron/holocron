@@ -1,10 +1,10 @@
 ---
-status: draft
-issue:
+status: accepted
+issue: theholocron/holocron#440
 blocked-by: []
 related:
-  - theholocron/holocron/.notes/ai-engineering-workflow.spec.md
-  - theholocron/holocron/.notes/knowledge-system.spec.md
+  - theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md
+  - theholocron/holocron/docs/wiki/specifications/knowledge-system.spec.md
 ---
 
 # Process enforcement — three-layer feedback loop
@@ -114,7 +114,7 @@ The agent works through the checklist before declaring the task done.
 
 The `/implement` prompt in the AI engineering workflow should also include a
 post-implementation checklist covering docs, registry, and branch state. See
-`.notes/ai-engineering-workflow.spec.md`.
+`docs/wiki/specifications/ai-engineering-workflow.spec.md`.
 
 ---
 

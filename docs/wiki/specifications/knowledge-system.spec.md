@@ -1,14 +1,14 @@
 ---
-status: draft
-issue:
+status: accepted
+issue: theholocron/holocron#440
 blocked-by: []
 related:
   - theholocron/holocron#440
   - theholocron/holocron#442
   - theholocron/skills#66
   - theholocron/.github-private#65
-  - theholocron/holocron/.notes/docs-architecture.spec.md
-  - theholocron/holocron/.notes/ai-engineering-workflow.spec.md
+  - theholocron/holocron/docs/wiki/specifications/docs-architecture.spec.md
+  - theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md
 ---
 
 # Engineering knowledge system — Git-canonical ADRs with Fern presentation
@@ -18,7 +18,7 @@ engineering knowledge (ideas, specs, ADRs) across the theholocron org.
 Git is the canonical store; a hosted docs platform (Fern preferred) provides
 human and agent discovery.
 
-> **Refines `.notes/docs-architecture.spec.md`** on one point: accepted ADRs
+> **Refines `docs/wiki/specifications/docs-architecture.spec.md`** on one point: accepted ADRs
 > and specs live in the repository as Markdown, not in the GitHub Wiki. The
 > Wiki boundary table in that spec remains correct for everything else. This
 > spec is authoritative on ADR and spec home going forward.

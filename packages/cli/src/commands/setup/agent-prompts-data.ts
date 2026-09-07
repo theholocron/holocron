@@ -5,7 +5,7 @@
  * configured. Paths are gitignored and regenerated on every setup run so the
  * content always reflects the current CLI version.
  *
- * Source: .notes/ai-engineering-workflow.spec.md
+ * Source: docs/wiki/specifications/ai-engineering-workflow.spec.md
  */
 
 import decisionsTemplate from "../../templates/decisions-template.md";

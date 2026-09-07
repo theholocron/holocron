@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#474
 blocked-by: []
 related:
@@ -7,7 +7,7 @@ related:
   - theholocron/holocron#445
   - theholocron/holocron#446
   - theholocron/.github-private#65
-  - theholocron/holocron/.notes/knowledge-system.spec.md
+  - theholocron/holocron/docs/wiki/specifications/knowledge-system.spec.md
 research:
   - Fern docs.yml JSON schema: https://schema.buildwithfern.dev/docs-yml.json
   - Fern multi-source example: NVIDIA/OpenShell fern/docs.yml
