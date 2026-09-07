@@ -3,6 +3,9 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
+import { getLogger } from "../logger.js";
 import { style } from "../ui/style.js";
 
 function encodeTokenForGitHttpAuth(token: string): string {
@@ -33,6 +36,8 @@ export interface RunCloneInput {
 	fetch?: typeof globalThis.fetch;
 	exec?: ExecFn;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export interface CloneReport {
@@ -72,9 +77,11 @@ async function listOrgRepos(org: string, token: string, fetchFn: typeof globalTh
 
 export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const fetchFn = input.fetch ?? globalThis.fetch;
 	const dryRun = input.dryRun ?? false;
 	const targetDir = resolve(input.dir ?? join(homedir(), "Code", input.org));
+	logger.info({ org: input.org, targetDir, dryRun: dryRun || undefined }, "clone: start");
 	const exec: ExecFn =
 		input.exec ??
 		((cmd, args, opts) => {
@@ -96,13 +103,9 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	try {
 		repos = await listOrgRepos(input.org, input.token, fetchFn);
 	} catch (err) {
-		return {
-			status: "fail",
-			cloned: 0,
-			skipped: 0,
-			failed: 0,
-			message: err instanceof Error ? err.message : String(err),
-		};
+		const message = err instanceof Error ? err.message : String(err);
+		logger.warn({ org: input.org, reason: message }, "clone: failed to list org repos");
+		return { status: "fail", cloned: 0, skipped: 0, failed: 0, message };
 	}
 
 	let cloned = 0;
@@ -166,10 +169,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 				: style.success(`\n  ${summary}`)
 	);
 
-	return {
-		status: dryRun ? "dry-run" : failed > 0 ? "fail" : "ok",
-		cloned,
-		skipped,
-		failed,
-	};
+	const status = dryRun ? "dry-run" : failed > 0 ? "fail" : "ok";
+	logger[failed > 0 ? "warn" : "info"]({ org: input.org, status, cloned, skipped, failed }, "clone: done");
+	return { status, cloned, skipped, failed };
 }

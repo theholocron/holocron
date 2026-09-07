@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { type PublishExecResult, runNpmPublishInitial } from "./npm-publish-initial.js";
 
 function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {
@@ -52,6 +53,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton\n", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
+		const log = fakeLogger();
 		const report = await runNpmPublishInitial({
 			cwd: "/tmp/test",
 			env: baseEnv,
@@ -59,10 +61,12 @@ describe("runNpmPublishInitial", () => {
 			repoName: TEST_REPO,
 			print: () => {},
 			exec,
+			logger: log,
 		});
 		expect(report.status).toBe("ok");
 		expect(calls[0]?.cmd).toBe("npm");
 		expect(calls[0]?.args).toEqual(["whoami"]);
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "ok" }), "npm publish-initial: done");
 	});
 
 	it("fails fast when npm whoami exits non-zero", async () => {

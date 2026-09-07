@@ -8,6 +8,7 @@ vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }
 
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { installSkills } from "./setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./skills.js";
 
@@ -439,10 +440,13 @@ describe("runSkillsInstall", () => {
 		);
 
 		const lines: string[] = [];
+		const log = fakeLogger();
 		const loaded = loadedFrom({ name: "test", providers: {}, agent: "claude", skills: ["git-safety"] });
-		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l) });
+		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l), logger: log });
 		expect(lines.join("\n")).toContain("Installing 1");
 		expect(lines.join("\n")).toContain("installed 1");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ agent: "claude" }), "skills install: start");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "ok" }), "skills install: done");
 	});
 
 	it("prints a graceful error message when @theholocron/skills cannot be installed", async () => {

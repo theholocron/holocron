@@ -9,6 +9,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
+import { fakeLogger } from "../../test-utils/fake-logger.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./index.js";
 
 // In-memory fs so tests don't touch the real workspace.
@@ -43,14 +44,24 @@ const BASE_INPUT = {
 describe("runPluginCreate — orchestrator", () => {
 	it("emits exactly 18 files (5 config + 1 readme + 5 source + 6 tests + 1 script)", () => {
 		const fs = makeFakeFs();
+		const log = fakeLogger();
 		const report = runPluginCreate({
 			...BASE_INPUT,
 			writeFile: fs.writeFile,
 			print: () => {},
+			logger: log,
 		});
 		expect(report.status).toBe("ok");
 		expect(report.filesWritten).toHaveLength(18);
 		expect(fs.size()).toBe(18);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ slug: BASE_INPUT.slug }),
+			"plugin create: start"
+		);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ files: 18, status: "ok" }),
+			"plugin create: done"
+		);
 	});
 
 	it("resolves {{capability}} in paths to the chosen capability key", () => {

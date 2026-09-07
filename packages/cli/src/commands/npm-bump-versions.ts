@@ -1,6 +1,10 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
+import { getLogger } from "../logger.js";
+
 export interface RunNpmBumpVersionsInput {
 	/** Next version string (e.g., "4.2.0" or "2.0.0-alpha.1"). */
 	version: string;
@@ -9,6 +13,8 @@ export interface RunNpmBumpVersionsInput {
 	/** Print what would change without writing anything. */
 	dryRun?: boolean;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Injectable for testing. */
 	readFile?: (path: string) => string;
 	writeFile?: (path: string, content: string) => void;
@@ -27,6 +33,7 @@ export interface NpmBumpVersionsReport {
 
 export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promise<NpmBumpVersionsReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
 	const { version, dryRun = false } = input;
 	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
@@ -38,6 +45,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const skipped: string[] = [];
 
 	print(`Bumping monorepo to ${version}${dryRun ? " (dry-run)" : ""}…`);
+	logger.info({ version, dryRun: dryRun || undefined }, "npm bump-versions: start");
 
 	function bumpFile(absPath: string, label: string): void {
 		let pkg: Record<string, unknown>;
@@ -65,7 +73,9 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		entries = listDir(packagesDir);
 	} catch {
 		// No packages/ dir — single-package repo; root bump is sufficient.
-		return { status: dryRun ? "dry-run" : "ok", bumped, skipped };
+		const status = dryRun ? "dry-run" : "ok";
+		logger.info({ version, status, bumped: bumped.length, skipped: skipped.length }, "npm bump-versions: done");
+		return { status, bumped, skipped };
 	}
 
 	for (const entry of entries) {
@@ -91,5 +101,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		bumpFile(pkgFile, `packages/${entry}`);
 	}
 
-	return { status: dryRun ? "dry-run" : "ok", bumped, skipped };
+	const status = dryRun ? "dry-run" : "ok";
+	logger.info({ version, status, bumped: bumped.length, skipped: skipped.length }, "npm bump-versions: done");
+	return { status, bumped, skipped };
 }

@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runUpgradeNode } from "./upgrade-node.js";
 
 const CWD = "/repo";
@@ -61,9 +62,22 @@ describe("auto-detect from", () => {
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"package.json": pkg(),
 		});
-		const report = await runUpgradeNode({ to: 22, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles });
+		const log = fakeLogger();
+		const report = await runUpgradeNode({
+			to: 22,
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			walkFiles,
+			logger: log,
+		});
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/--from/);
+		expect(log.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ reason: expect.stringMatching(/detect/) }),
+			"upgrade node: done"
+		);
 	});
 
 	it("no-ops when from === to", async () => {

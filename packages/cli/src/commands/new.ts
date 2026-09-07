@@ -22,7 +22,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
 import { env } from "../env.js";
+import { getLogger } from "../logger.js";
 
 // ── Public API ────────────────────────────────────────────────────────
 
@@ -58,6 +61,8 @@ export interface RunNewInput {
 	/** Parent directory where the repo will be cloned. Default: process.cwd(). */
 	cwd?: string;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Injectable subprocess runner for testing. */
 	exec?: (cmd: string, args: string[], opts: { cwd: string; stdio: "inherit"; env?: Record<string, string> }) => void;
 	/** Injectable file writer for testing. */
@@ -375,6 +380,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	const cwd = input.cwd ?? process.cwd();
 	const org = input.org ?? "theholocron";
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const execFn = input.exec ?? defaultExec;
 	const readFn = input.readFile ?? defaultReadFile;
 	const writeFn = input.writeFile ?? defaultWriteFile;
@@ -385,6 +391,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	const templateRepo = `${org}/${input.type}-template`;
 	const newRepo = `${org}/${input.name}`;
 	const repoDir = path.join(cwd, input.name);
+	logger.info({ repo: newRepo, template: templateRepo, dryRun: input.dryRun || undefined }, "new: start");
 
 	if (input.dryRun) {
 		print(`  Would create ${newRepo} from template ${templateRepo}`);
@@ -394,6 +401,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		if (input.homepage) print(`  Would replace <homepage> → "${input.homepage}"`);
 		if (input.runtimeEnvironment) print(`  Would replace <runtime_environment> → "${input.runtimeEnvironment}"`);
 		print(`  Would generate holocron.config.ts`);
+		logger.info({ repo: newRepo, status: "dry-run" }, "new: done");
 		return { status: "dry-run" };
 	}
 
@@ -586,5 +594,6 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		print(`    2. git push -u origin HEAD`);
 	}
 
+	logger.info({ repo: newRepo, repoDir, filesPatched, status: "ok" }, "new: done");
 	return { status: "ok", repoDir, filesPatched };
 }

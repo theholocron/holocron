@@ -2,6 +2,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runNpmBumpVersions } from "./npm-bump-versions.js";
 
 const CWD = "/repo";
@@ -40,6 +41,7 @@ describe("runNpmBumpVersions", () => {
 			"packages/pkg-a/package.json": { name: "@acme/pkg-a", version: "4.1.0" },
 			"packages/pkg-b/package.json": { name: "@acme/pkg-b", version: "4.1.0" },
 		});
+		const log = fakeLogger();
 		const report = await runNpmBumpVersions({
 			version: "4.2.0",
 			cwd: CWD,
@@ -48,9 +50,18 @@ describe("runNpmBumpVersions", () => {
 			writeFile,
 			listDir,
 			isDir,
+			logger: log,
 		});
 		expect(report.status).toBe("ok");
 		expect(report.bumped).toEqual(["root", "packages/pkg-a", "packages/pkg-b"]);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ version: "4.2.0" }),
+			"npm bump-versions: start"
+		);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ bumped: 3, status: "ok" }),
+			"npm bump-versions: done"
+		);
 		expect(JSON.parse(written[join(CWD, "packages/pkg-a/package.json")]!).version).toBe("4.2.0");
 		expect(JSON.parse(written[join(CWD, "packages/pkg-b/package.json")]!).version).toBe("4.2.0");
 	});

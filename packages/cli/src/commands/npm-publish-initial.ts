@@ -28,7 +28,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
 import { type CliEnv, makeEnv } from "../env.js";
+import { getLogger } from "../logger.js";
 
 export type PublishInitialPrint = (line: string) => void;
 
@@ -53,6 +56,8 @@ export interface RunNpmPublishInitialInput {
 	 */
 	otp?: string;
 	print?: PublishInitialPrint;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/**
 	 * Injectable command runner. Defaults to `spawnSync` with
 	 * `stdio: ['inherit', 'pipe', 'pipe']` so interactive prompts
@@ -87,6 +92,7 @@ export interface NpmPublishInitialReport {
 
 export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}): Promise<NpmPublishInitialReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
 	const tag = input.tag ?? "alpha";
 	const dryRun = input.dryRun ?? false;
@@ -111,6 +117,7 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 	print(`Holocron npm publish-initial${dryRun ? " (dry-run)" : ""}`);
 	print(`  cwd: ${cwd}`);
 	print(`  tag: ${tag}`);
+	logger.info({ tag, dryRun: dryRun || undefined }, "npm publish-initial: start");
 	if (otp) print(`  otp: <${otp.length} chars>`);
 	print("");
 
@@ -122,6 +129,7 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 			"npm is not authenticated. Run `npm login --auth-type=web` (browser flow, no token stored) or `npm login`, then re-run this command.";
 		print(`  ✗ ${message}`);
 		const packageNames = input.packages ?? discoverPublicPackages(cwd);
+		logger.warn({ reason: "npm not authenticated" }, "npm publish-initial: done");
 		return { status: "fail", message, packageNames };
 	}
 	const whoamiName = whoami.stdout.trim() || "<unknown>";
@@ -137,6 +145,7 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 		print("  … (dry-run) skipping actual publish");
 		print(`    would run: pnpm ${publishArgs.join(" ")}`);
 		printNextSteps(print, env, packageNames, repoName);
+		logger.info({ tag, status: "dry-run", packages: packageNames.length }, "npm publish-initial: done");
 		return { status: "dry-run", message: "dry-run — no publish executed", packageNames };
 	}
 
@@ -152,12 +161,14 @@ export async function runNpmPublishInitial(input: RunNpmPublishInitialInput = {}
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
 			print(`    pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp <6-digit-code>`);
 		}
+		logger.warn({ tag, reason: message }, "npm publish-initial: done");
 		return { status: "fail", message, packageNames };
 	}
 	print("    ✓ publish complete");
 
 	// ── 4. Next-step reminders ──────────────────────────────────────────
 	printNextSteps(print, env, packageNames, repoName);
+	logger.info({ tag, status: "ok", packages: packageNames.length }, "npm publish-initial: done");
 	return { status: "ok", packageNames };
 }
 
