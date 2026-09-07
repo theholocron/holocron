@@ -13,7 +13,7 @@ const PROJECT_NAME = "my-docs";
 function makeDeployment(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch });
-	return { dep: new CloudflareDeployment(client, ACCOUNT), calls };
+	return { dep: new CloudflareDeployment(() => client, ACCOUNT), calls };
 }
 
 const project = {

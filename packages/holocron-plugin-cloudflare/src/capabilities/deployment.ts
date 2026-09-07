@@ -16,14 +16,14 @@ export class CloudflareDeployment implements Deployment {
 	readonly providerName = "cloudflare";
 
 	constructor(
-		private readonly client: CloudflareClient,
+		private readonly client: () => CloudflareClient,
 		private readonly accountId: string
 	) {}
 
 	// ── projects ────────────────────────────────────────────────────────
 
 	async listProjects(): Promise<DeploymentProject[]> {
-		const projects = await this.client.pages.listProjects(this.accountId);
+		const projects = await this.client().pages.listProjects(this.accountId);
 		return projects.map(mapProject);
 	}
 
@@ -36,7 +36,7 @@ export class CloudflareDeployment implements Deployment {
 		const existing = await this.getProjectByName(input.name);
 		if (existing) return existing;
 
-		const created = await this.client.pages.createProject(this.accountId, {
+		const created = await this.client().pages.createProject(this.accountId, {
 			name: input.name,
 			production_branch: "main",
 		});
@@ -47,28 +47,28 @@ export class CloudflareDeployment implements Deployment {
 		// CF Pages has no direct "disable preview deployments" flag in the REST API;
 		// ignore unknown settings and return current project state.
 		void settings;
-		const project = await this.client.pages.getProject(this.accountId, projectId);
+		const project = await this.client().pages.getProject(this.accountId, projectId);
 		return mapProject(project);
 	}
 
 	// ── env vars ────────────────────────────────────────────────────────
 
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
-		const project = await this.client.pages.getProject(this.accountId, projectId);
+		const project = await this.client().pages.getProject(this.accountId, projectId);
 		const envConfig =
 			target === "production" ? project.deployment_configs.production : project.deployment_configs.preview;
 		return Object.keys(envConfig.env_vars);
 	}
 
 	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
-		const project = await this.client.pages.getProject(this.accountId, projectId);
+		const project = await this.client().pages.getProject(this.accountId, projectId);
 		const cfg = project.deployment_configs;
 		const scope = target === "production" ? "production" : "preview";
 		const updated = {
 			...cfg[scope].env_vars,
 			[name]: { value, type: "plain_text" as const },
 		};
-		await this.client.pages.updateProject(this.accountId, projectId, {
+		await this.client().pages.updateProject(this.accountId, projectId, {
 			deployment_configs: {
 				...cfg,
 				[scope]: { env_vars: updated },
@@ -83,7 +83,7 @@ export class CloudflareDeployment implements Deployment {
 		branch: string;
 		target?: DeploymentTrigger;
 	}): Promise<DeploymentRecord> {
-		const raw = await this.client.pages.createDeployment(this.accountId, input.projectId, input.branch);
+		const raw = await this.client().pages.createDeployment(this.accountId, input.projectId, input.branch);
 		// Encode projectId into id so getDeployment can retrieve it without a
 		// separate lookup — CF's API requires both projectName and deploymentId.
 		return mapDeployment(raw, input.projectId, input.branch, input.target);
@@ -100,14 +100,14 @@ export class CloudflareDeployment implements Deployment {
 		}
 		const projectName = deploymentId.slice(0, sep);
 		const cfDeployId = deploymentId.slice(sep + 1);
-		const raw = await this.client.pages.getDeployment(this.accountId, projectName, cfDeployId);
+		const raw = await this.client().pages.getDeployment(this.accountId, projectName, cfDeployId);
 		return mapDeployment(raw, projectName, raw.deployment_trigger.metadata.branch, undefined);
 	}
 
 	// ── preview cleanup ─────────────────────────────────────────────────
 
 	async listPreviewDeployments(projectId: string, branch: string): Promise<DeploymentRecord[]> {
-		const all = await this.client.pages.listDeployments(this.accountId, projectId);
+		const all = await this.client().pages.listDeployments(this.accountId, projectId);
 		return all
 			.filter((d) => d.deployment_trigger.metadata.branch === branch)
 			.map((d) => mapDeployment(d, projectId, d.deployment_trigger.metadata.branch, undefined));
@@ -117,7 +117,7 @@ export class CloudflareDeployment implements Deployment {
 		await Promise.all(
 			deploymentIds.map((id) => {
 				const cfId = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
-				return this.client.pages.deleteDeployment(this.accountId, projectId, cfId);
+				return this.client().pages.deleteDeployment(this.accountId, projectId, cfId);
 			})
 		);
 		return deploymentIds.length;
@@ -126,16 +126,16 @@ export class CloudflareDeployment implements Deployment {
 	// ── custom domains ──────────────────────────────────────────────────
 
 	async ensureCustomDomain(projectId: string, hostname: string): Promise<void> {
-		const existing = await this.client.pages.listDomains(this.accountId, projectId);
+		const existing = await this.client().pages.listDomains(this.accountId, projectId);
 		if (existing.some((d) => d.name === hostname)) return;
-		await this.client.pages.addDomain(this.accountId, projectId, hostname);
+		await this.client().pages.addDomain(this.accountId, projectId, hostname);
 	}
 
 	// ── internals ───────────────────────────────────────────────────────
 
 	private async getProjectByName(name: string): Promise<DeploymentProject | null> {
 		try {
-			const result = await this.client.pages.getProject(this.accountId, name);
+			const result = await this.client().pages.getProject(this.accountId, name);
 			return mapProject(result);
 		} catch (err) {
 			if (err instanceof ProviderApiError && err.status === 404) return null;

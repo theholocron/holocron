@@ -22,12 +22,13 @@ export class ${inputs.capabilityClass} {
 	readonly key = "${inputs.capability}" as const;
 	readonly providerName = "${inputs.slug}";
 
-	constructor(private readonly rest: ${clientClass}) {}
+	constructor(private readonly rest: () => ${clientClass}) {}
 
 	// TODO: implement the ${capabilityInterface} interface methods
 	// (see \`packages/cli/src/capabilities/index.ts\`). Each method
 	// should hit a specific ${inputs.vendorName} REST endpoint via
-	// \`this.rest.request(...)\`. Once methods are stubbed, add
+	// \`this.rest().request(...)\` — call the thunk so the token is
+	// resolved lazily. Once methods are stubbed, add
 	// \`implements ${capabilityInterface}\` to the class declaration
 	// above and remove the \`as unknown as\` cast in src/index.ts.
 }

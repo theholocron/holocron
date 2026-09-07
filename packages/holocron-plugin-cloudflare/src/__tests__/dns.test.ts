@@ -12,7 +12,7 @@ const ZONE_NAME = "example.com";
 function makeDns(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch });
-	return { dns: new CloudflareDns(client), calls };
+	return { dns: new CloudflareDns(() => client), calls };
 }
 
 const zone = { id: ZONE_ID, name: ZONE_NAME, status: "active" };

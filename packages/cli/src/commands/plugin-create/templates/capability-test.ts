@@ -13,7 +13,7 @@ import { stubFetch } from "./helpers.js";
 function makeCapability() {
 	const stub = stubFetch([]);
 	const rest = new ${clientClass}({ token: "t", fetch: stub.fetch });
-	return new ${inputs.capabilityClass}(rest);
+	return new ${inputs.capabilityClass}(() => rest);
 }
 
 describe("${inputs.capabilityClass}", () => {

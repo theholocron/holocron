@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlugin } from "../index.js";
+import { createContext, createPlugin } from "../index.js";
 
 describe("createPlugin", () => {
 	it("returns a plugin with a notifications capability factory", () => {
@@ -14,5 +14,16 @@ describe("createPlugin", () => {
 		const cap = plugin.capabilities.notifications();
 		expect(cap.key).toBe("notifications");
 		expect(cap.providerName).toBe("slack");
+	});
+});
+
+describe("createContext — lazy client", () => {
+	it("does not resolve the token at construction (no token → no throw)", () => {
+		expect(() => createContext({})).not.toThrow();
+	});
+
+	it("memoizes the client across calls", () => {
+		const ctx = createContext({ cliToken: "xoxb-test", baseUrl: "https://slack.test/api" });
+		expect(ctx.client()).toBe(ctx.client());
 	});
 });
