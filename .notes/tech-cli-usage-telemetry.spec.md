@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 issue: theholocron/holocron#452
 blocked-by: []
 related:
@@ -134,7 +134,7 @@ PostHog event can be pivoted to the full Axiom trace for that run.
 
 Captured in **ADR-0008 — CLI usage telemetry: PostHog**
 (`docs/wiki/decisions/0008-cli-usage-telemetry-posthog.md`, status
-`proposed`): PostHog as a third sink vs. extending Sentry, the shipped
+`accepted`): PostHog as a third sink vs. extending Sentry, the shipped
 ingest-key risk model, the hashed-machine-id choice (resolving this
 spec's open question — a one-way fingerprint is not PII under our rule),
 and the single `HOLOCRON_TELEMETRY` kill switch across all three sinks.

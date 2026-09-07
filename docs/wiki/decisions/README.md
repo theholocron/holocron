@@ -36,4 +36,4 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 | [ADR-0005](0005-npm-publishing-strategy-oidc-over-staged.md) | npm publishing strategy — OIDC Trusted Publishers over staged publishing | accepted |
 | [ADR-0006](0006-wiki-navbar-auto-broadcast.md)               | Auto-broadcast wiki navbar sync on push                                  | proposed |
 | [ADR-0007](0007-structured-logging-pino-axiom.md)            | Structured logging — Pino + Axiom                                        | accepted |
-| [ADR-0008](0008-cli-usage-telemetry-posthog.md)              | CLI usage telemetry — PostHog                                            | proposed |
+| [ADR-0008](0008-cli-usage-telemetry-posthog.md)              | CLI usage telemetry — PostHog                                            | accepted |
