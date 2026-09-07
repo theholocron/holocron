@@ -103,12 +103,47 @@ PostHog event can be pivoted to the full Axiom trace for that run. All
 - A shipped ingest key means anyone can send events to Holocron's PostHog
   project. Acceptable: write-only, no data exposure, rate-limited by
   PostHog's free tier (1M events/month), same as the Sentry DSN.
-- `holocron.config` gains nothing — the CLI's telemetry is not
-  user-configurable beyond the kill switch and the env-var overrides.
+- ~~`holocron.config` gains nothing — the CLI's telemetry is not
+  user-configurable beyond the kill switch and the env-var overrides.~~
+  Amended — see below.
+
+## Amendment (2026-09-07) — a small `telemetry` config surface
+
+The original "no config surface" line was an oversight. There is no
+committed, version-controlled way for a repo to opt out or redirect its
+CLI-usage analytics — an env var is invisible to a contributor reading
+the repo. Adding a minimal `telemetry` block to `holocron.config`:
+
+```ts
+telemetry: {
+  enabled?: boolean;               // repo-level opt-out — committed peer of HOLOCRON_TELEMETRY=false
+  analytics?: "posthog" | "none";  // provider selector (meaningful once a second AnalyticsSink exists)
+}
+```
+
+What does **not** change:
+
+- **No credentials in config.** No DSN, no `phc_` key. The env-var chain
+  (`HOLOCRON_POSTHOG_PROJECT_TOKEN` / `POSTHOG_PROJECT_TOKEN`) and the
+  shipped fallback still own activation. `phc_` being publishable does not
+  make it a precedent for every future provider's key.
+- **The config field is an override layer, not the primary mechanism.**
+  A published `@theholocron/cli` on a bare machine has no config and is
+  unaffected — it falls through to env + hard-coded, exactly as before.
+
+Precedence, each layer overriding the one below:
+
+1. `HOLOCRON_TELEMETRY=false` / `NO_HOLOCRON_TELEMETRY` env
+2. `config.telemetry.enabled`
+3. built-in default (**on**)
+
+The `analytics` selector pairs with the adapter refactor (#574) —
+`"none"` resolves to a `NoopSink`. Tracked in #575.
 
 ## References
 
 - Issues: #452 (PostHog telemetry), #454 (logger migration), #537 (orchestrator logging), #533 (errors capability)
+- Follow-ups: #574 (`ErrorSink` / `AnalyticsSink` adapters), #575 (`telemetry` config block)
 - Spec: `docs/wiki/specifications/tech-cli-usage-telemetry.spec.md`
 - ADR-0007 — structured logging (the Sentry/Axiom precedent this extends)
 - `posthog-node`: https://posthog.com/docs/libraries/node
