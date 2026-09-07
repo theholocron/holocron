@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/cli",
-  "version": "3.62.0",
+  "version": "3.62.1",
   "description": "The Holocron CLI — a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "keywords": [
     "cli",
@@ -41,7 +41,7 @@
   ],
   "scripts": {
     "build": "tsdown --config-loader tsx",
-    "start": "tsx ./src/cli.ts",
+    "start": "node ./dist/cli.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

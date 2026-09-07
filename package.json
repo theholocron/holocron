@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron",
-  "version": "3.62.0",
+  "version": "3.62.1",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
   "keywords": [
@@ -21,7 +21,7 @@
     "audit": "knip",
     "build": "turbo run build",
     "format": "prettier --write .",
-    "holocron": "tsx packages/cli/src/cli.ts",
+    "holocron": "node packages/cli/dist/cli.mjs",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
