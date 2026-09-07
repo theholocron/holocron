@@ -15,7 +15,7 @@ function makeDeployment(
 	const client = createVercelClient(clientOpts);
 	const deploymentOpts: ConstructorParameters<typeof VercelDeployment>[1] = {};
 	if (opts.defaultFramework !== undefined) deploymentOpts.defaultFramework = opts.defaultFramework;
-	const deployment = new VercelDeployment(client, deploymentOpts);
+	const deployment = new VercelDeployment(() => client, deploymentOpts);
 	return { deployment, calls };
 }
 

@@ -8,7 +8,7 @@ import { stubFetch } from "./helpers.js";
 function makeAuth(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createClerkClient({ token: "sk_test_pat", fetch });
-	const auth = new ClerkAuth(client);
+	const auth = new ClerkAuth(() => client);
 	return { auth, calls };
 }
 
@@ -152,7 +152,7 @@ describe("ClerkAuth.ensureWebhookApp — non-string details", () => {
 				},
 			},
 		};
-		const auth = new ClerkAuth(mockClient as unknown as import("../rest.js").ClerkClient);
+		const auth = new ClerkAuth(() => mockClient as unknown as import("../rest.js").ClerkClient);
 		await expect(auth.ensureWebhookApp!()).rejects.toBeInstanceOf(ProviderApiError);
 	});
 });

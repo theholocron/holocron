@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { AuthError, createPlugin, VercelDeployment } from "../index.js";
 
 describe("createPlugin", () => {
-	it("throws AuthError when no token is found", () => {
-		expect(() => createPlugin({ env: {} })).toThrow(AuthError);
+	it("defers the missing-token AuthError to the first authenticated call", async () => {
+		const deployment = createPlugin({ env: {} }).capabilities.deployment();
+		await expect(deployment.listProjects()).rejects.toBeInstanceOf(AuthError);
 	});
 
 	it("wires the deployment capability", () => {

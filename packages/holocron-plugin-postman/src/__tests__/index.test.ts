@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, createPlugin, PostmanTooling } from "../index.js";
+import { createPlugin, PostmanTooling } from "../index.js";
 
 describe("createPlugin", () => {
-	it("throws AuthError when no token is found", () => {
-		expect(() => createPlugin({ workspaceId: "ws-id", env: {} })).toThrow(AuthError);
+	it("defers the missing-token failure to the first authenticated call", async () => {
+		// createPlugin + the factory never resolve the token; `doctor()` does,
+		// lazily, and folds the AuthError into its report.
+		const tooling = createPlugin({ workspaceId: "ws-id", env: {} }).capabilities.tooling();
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(false);
+		expect(report.message).toMatch(/token/i);
 	});
 
 	it("throws when workspaceId is missing", () => {

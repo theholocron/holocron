@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { AuthError, createPlugin, NeonStorage } from "../index.js";
 
 describe("createPlugin", () => {
-	it("throws AuthError when no token is found", () => {
-		expect(() => createPlugin({ projectId: "p1", env: {} })).toThrow(AuthError);
+	it("defers the missing-token AuthError to the first authenticated call", async () => {
+		const storage = createPlugin({ projectId: "p1", env: {} }).capabilities.storage();
+		await expect(storage.getConnectionString("main")).rejects.toBeInstanceOf(AuthError);
 	});
 
 	it("throws when projectId is missing", () => {

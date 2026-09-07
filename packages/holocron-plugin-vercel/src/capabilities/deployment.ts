@@ -40,7 +40,7 @@ export class VercelDeployment implements Deployment {
 	private readonly defaultFramework: string;
 
 	constructor(
-		private readonly client: VercelClient,
+		private readonly client: () => VercelClient,
 		opts: DeploymentOptions = {}
 	) {
 		this.defaultFramework = opts.defaultFramework ?? "nextjs";
@@ -49,7 +49,7 @@ export class VercelDeployment implements Deployment {
 	// ── projects ────────────────────────────────────────────────────────
 
 	async listProjects(): Promise<DeploymentProject[]> {
-		const { projects } = await this.client.projects.list();
+		const { projects } = await this.client().projects.list();
 		return projects.map(mapProject);
 	}
 
@@ -62,7 +62,7 @@ export class VercelDeployment implements Deployment {
 		const existing = await this.getProjectByName(input.name);
 		if (existing) return existing;
 
-		const result = await this.client.projects.create({
+		const result = await this.client().projects.create({
 			name: input.name,
 			framework: input.framework ?? this.defaultFramework,
 			repo: input.repo,
@@ -72,7 +72,7 @@ export class VercelDeployment implements Deployment {
 	}
 
 	async updateProjectSettings(projectId: string, settings: DeploymentProjectSettings): Promise<DeploymentProject> {
-		const result = await this.client.projects.update(projectId, {
+		const result = await this.client().projects.update(projectId, {
 			previewDeploymentsDisabled: settings.previewDeploymentsDisabled,
 			// createDeployments accepts boolean at runtime; client type is narrower than needed
 			gitProviderOptions:
@@ -88,14 +88,14 @@ export class VercelDeployment implements Deployment {
 	// ── env vars ────────────────────────────────────────────────────────
 
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
-		const { envs } = await this.client.env.list(projectId);
+		const { envs } = await this.client().env.list(projectId);
 		return envs
 			.filter((e) => e.target.includes(target as "production" | "preview" | "development"))
 			.map((e) => e.key);
 	}
 
 	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
-		await this.client.env.set(projectId, target as "production" | "preview" | "development", name, value);
+		await this.client().env.set(projectId, target as "production" | "preview" | "development", name, value);
 	}
 
 	// ── deployments ─────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ export class VercelDeployment implements Deployment {
 		branch: string;
 		target?: DeploymentTrigger;
 	}): Promise<DeploymentRecord> {
-		const project = await this.client.projects.get(input.projectId);
+		const project = await this.client().projects.get(input.projectId);
 		const repoId = project.link?.repoId;
 		if (!repoId) {
 			throw new ProviderApiError(
@@ -114,7 +114,7 @@ export class VercelDeployment implements Deployment {
 				undefined
 			);
 		}
-		const raw = await this.client.deployments.trigger({
+		const raw = await this.client().deployments.trigger({
 			projectName: project.name,
 			branch: input.branch,
 			repoId,
@@ -124,7 +124,7 @@ export class VercelDeployment implements Deployment {
 	}
 
 	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
-		const raw = await this.client.deployments.get(deploymentId);
+		const raw = await this.client().deployments.get(deploymentId);
 		return mapDeployment(raw, raw.meta?.githubCommitRef ?? null);
 	}
 
@@ -132,7 +132,7 @@ export class VercelDeployment implements Deployment {
 
 	private async getProjectByName(name: string): Promise<DeploymentProject | null> {
 		try {
-			const result = await this.client.projects.get(name);
+			const result = await this.client().projects.get(name);
 			return mapProject(result);
 		} catch (err) {
 			if (err instanceof ProviderApiError && err.status === 404) return null;

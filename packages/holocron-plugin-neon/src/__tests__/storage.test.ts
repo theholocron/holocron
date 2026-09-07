@@ -11,7 +11,7 @@ const BASE = `https://console.neon.tech/api/v2/projects/${PROJECT_ID}`;
 function makeStorage(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createNeonClient({ token: "neon-test-pat", fetch });
-	const storage = new NeonStorage(client, { projectId: PROJECT_ID });
+	const storage = new NeonStorage(() => client, { projectId: PROJECT_ID });
 	return { storage, calls };
 }
 
@@ -180,6 +180,6 @@ describe("NeonStorage.enableExtension", () => {
 describe("NeonStorage construction", () => {
 	it("throws when projectId is missing", () => {
 		const client = createNeonClient({ token: "neon-test-pat" });
-		expect(() => new NeonStorage(client, { projectId: "" })).toThrow(/projectId/);
+		expect(() => new NeonStorage(() => client, { projectId: "" })).toThrow(/projectId/);
 	});
 });

@@ -18,14 +18,19 @@ export interface SentryPluginOptions extends ResolveTokenInput, SentryErrorsOpti
 
 export interface PluginContext {
 	options: SentryPluginOptions;
-	client: SentryClient;
+	client: () => SentryClient;
 }
 
 export function createContext(options: SentryPluginOptions): PluginContext {
-	const token = resolveToken(options);
+	let client: SentryClient | undefined;
 	return {
 		options,
-		client: createSentryClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createSentryClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

@@ -20,14 +20,19 @@ export interface ClerkPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: ClerkPluginOptions;
-	client: ClerkClient;
+	client: () => ClerkClient;
 }
 
 export function createContext(options: ClerkPluginOptions = {}): PluginContext {
-	const token = resolveToken(options);
+	let client: ClerkClient | undefined;
 	return {
 		options,
-		client: createClerkClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createClerkClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 
