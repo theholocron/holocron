@@ -37,6 +37,7 @@ vi.mock("@napi-rs/keyring", () => {
 
 const { runAuthCheck, runAuthList, runAuthSet, runAuthUnset, resolveAuthSetToken } =
 	await import("../commands/auth.js");
+const { fakeLogger } = await import("../test-utils/fake-logger.js");
 
 function reset() {
 	store.clear();
@@ -89,6 +90,7 @@ describe("runAuthSet", () => {
 
 	it("stores + reports subject when verifyToken returns ok", async () => {
 		const { print, lines } = collect();
+		const log = fakeLogger();
 		const result = await runAuthSet({
 			provider: "doppler",
 			positional: "dp.pt.abc",
@@ -97,9 +99,16 @@ describe("runAuthSet", () => {
 				verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }),
 			}),
 			print,
+			logger: log,
 		});
 		expect(result.status).toBe("ok");
 		expect(lines.join("\n")).toMatch(/stored doppler token \(workplace: acme\)/);
+		// logs the outcome — provider + keyring key + verified, never the token
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ provider: "doppler", keyringKey: "doppler", verified: true, status: "ok" }),
+			"auth set: doppler"
+		);
+		expect(JSON.stringify(log.info.mock.calls)).not.toContain("dp.pt.abc");
 	});
 
 	it("fails + does NOT store when verifyToken rejects", async () => {
@@ -274,9 +283,14 @@ describe("runAuthUnset", () => {
 	it("removes a stored token", () => {
 		store.set("com.theholocron.cli::doppler", "abc");
 		const { print, lines } = collect();
-		const result = runAuthUnset({ provider: "doppler", print });
+		const log = fakeLogger();
+		const result = runAuthUnset({ provider: "doppler", print, logger: log });
 		expect(result.status).toBe("ok");
 		expect(lines.join("\n")).toMatch(/removed doppler/);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ provider: "doppler", status: "ok" }),
+			"auth unset: doppler"
+		);
 	});
 
 	it("is a no-op skip when nothing was stored", () => {
@@ -315,13 +329,20 @@ describe("runAuthCheck", () => {
 	it("reports ok + subject when the stored token verifies", async () => {
 		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
 		const { print, lines } = collect();
+		const log = fakeLogger();
 		const result = await runAuthCheck({
 			provider: "doppler",
 			importer: async () => ({ verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }) }),
 			print,
+			logger: log,
 		});
 		expect(result.status).toBe("ok");
 		expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ provider: "doppler", verified: true, status: "ok" }),
+			"auth check: doppler"
+		);
+		expect(JSON.stringify(log.info.mock.calls)).not.toContain("dp.pt.abc");
 	});
 
 	it("reports fail + hint when the stored token is rejected", async () => {
@@ -528,8 +549,10 @@ describe("runAuthList", () => {
 		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
 		store.set("com.theholocron.cli::infisical", "inf.stale");
 		const { print, lines } = collect();
+		const log = fakeLogger();
 		await runAuthList({
 			print,
+			logger: log,
 			importer: async (pkg: string) => {
 				if (pkg.includes("doppler"))
 					return { verifyToken: async () => ({ ok: true as const, subject: "workplace: acme" }) };
@@ -539,6 +562,10 @@ describe("runAuthList", () => {
 		const joined = lines.join("\n");
 		expect(joined).toMatch(/✓ doppler — workplace: acme/);
 		expect(joined).toMatch(/✗ infisical — expired/);
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ providers: 2, ok: 1, fail: 1 }),
+			"auth list: done"
+		);
 	});
 
 	it("renders a skip bullet for a provider whose token cannot be retrieved", async () => {

@@ -20,9 +20,12 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
+import type { Logger } from "@theholocron/logger";
+
 import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/keyring.js";
 import { resolvePluginPackage } from "../config/config.js";
 import { makeEnv } from "../env.js";
+import { getLogger } from "../logger.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
@@ -95,12 +98,15 @@ export interface RunAuthSetInput {
 	env?: NodeJS.ProcessEnv;
 	importer?: AuthImporter;
 	print?: AuthPrint;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** When set, stores the token under `<provider>.<org>` in the keyring. */
 	org?: string;
 }
 
 export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandStatus> {
 	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
 	const { provider } = input;
 	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
@@ -124,6 +130,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 				print(style.hint(`  hint: ${hint}`));
 			}
 		}
+		logger.warn({ provider, keyringKey, reason: "no token supplied" }, `auth set: ${keyringKey}`);
 		return { status: "fail", message: "no token supplied" };
 	}
 
@@ -137,6 +144,10 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 				if (!verified.ok) {
 					print(style.fail(`token rejected by ${provider}: ${verified.message}`));
 					if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
+					logger.warn(
+						{ provider, keyringKey, verified: false, reason: verified.message },
+						`auth set: ${keyringKey}`
+					);
 					return { status: "fail", message: verified.message };
 				}
 				subject = verified.subject;
@@ -155,26 +166,36 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	const stored = setToken(keyringKey, token);
 	if (!stored) {
 		print(style.fail(`keyring unavailable — token not stored. Use env vars instead.`));
+		logger.warn({ provider, keyringKey, reason: "keyring unavailable" }, `auth set: ${keyringKey}`);
 		return { status: "fail", message: "keyring unavailable" };
 	}
 
 	print(style.success(`stored ${keyringKey} token${subject ? ` (${subject})` : ""}`));
+	logger.info(
+		{ provider, keyringKey, verified: subject !== undefined, ...(subject ? { subject } : {}), status: "ok" },
+		`auth set: ${keyringKey}`
+	);
 	return { status: "ok", ...(subject ? { message: subject } : {}) };
 }
 
 export interface RunAuthUnsetInput {
 	provider: string;
 	print?: AuthPrint;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export function runAuthUnset(input: RunAuthUnsetInput): AuthCommandStatus {
 	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
 	const removed = deleteToken(input.provider);
 	if (removed) {
 		print(style.success(`removed ${input.provider} token`));
+		logger.info({ provider: input.provider, status: "ok" }, `auth unset: ${input.provider}`);
 		return { status: "ok" };
 	}
 	print(style.dim(`no stored token for ${input.provider}`));
+	logger.info({ provider: input.provider, status: "skip" }, `auth unset: ${input.provider}`);
 	return { status: "skip", message: "nothing to remove" };
 }
 
@@ -182,6 +203,8 @@ export interface RunAuthCheckInput {
 	provider: string;
 	importer?: AuthImporter;
 	print?: AuthPrint;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Set to false to suppress the ora spinner (e.g. when called from runAuthList). */
 	showSpinner?: boolean;
 	/** When set, checks the token stored under `<provider>.<org>` in the keyring. */
@@ -190,6 +213,7 @@ export interface RunAuthCheckInput {
 
 export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthCommandStatus> {
 	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
 	const { provider } = input;
 	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
@@ -197,6 +221,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	const token = getToken(keyringKey);
 	if (!token) {
 		print(style.dim(`no stored token for ${keyringKey}`));
+		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `auth check: ${keyringKey}`);
 		return { status: "skip", message: "no stored token" };
 	}
 
@@ -218,14 +243,23 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 			input.showSpinner !== false ? await withSpinner(`Verifying ${keyringKey} token…`, verify) : await verify();
 		if (verified.ok) {
 			print(style.success(`${keyringKey}: ok — ${verified.subject}`));
+			logger.info(
+				{ provider, keyringKey, verified: true, subject: verified.subject, status: "ok" },
+				`auth check: ${keyringKey}`
+			);
 			return { status: "ok", message: verified.subject };
 		}
 		print(style.fail(`${keyringKey}: rejected — ${verified.message}`));
 		if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
+		logger.warn(
+			{ provider, keyringKey, verified: false, reason: verified.message, status: "fail" },
+			`auth check: ${keyringKey}`
+		);
 		return { status: "fail", message: verified.message };
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
 		print(style.fail(`${keyringKey}: cannot verify — ${msg}`));
+		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `auth check: ${keyringKey}`);
 		return { status: "fail", message: msg };
 	}
 }
@@ -233,26 +267,37 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 export interface RunAuthListInput {
 	importer?: AuthImporter;
 	print?: AuthPrint;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCommandStatus> {
 	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
 	const providers = listStoredProviders();
 
 	if (providers.length === 0) {
 		print(style.dim("no stored tokens."));
 		print(style.hint("run: holocron auth set <provider> <token>"));
+		logger.info({ providers: 0 }, "auth list: done");
 		return { status: "ok", message: "none" };
 	}
 
+	let ok = 0;
+	let fail = 0;
 	for (const provider of providers.sort()) {
-		const check = await runAuthCheck({ provider, importer, print: () => {}, showSpinner: false });
+		const check = await runAuthCheck({ provider, importer, print: () => {}, logger, showSpinner: false });
 		const label = `${provider}${check.message ? ` — ${check.message}` : ""}`;
-		if (check.status === "ok") print(`  ${style.success(label)}`);
-		else if (check.status === "fail") print(`  ${style.fail(label)}`);
-		else print(`  ${style.dim(`· ${label}`)}`);
+		if (check.status === "ok") {
+			ok += 1;
+			print(`  ${style.success(label)}`);
+		} else if (check.status === "fail") {
+			fail += 1;
+			print(`  ${style.fail(label)}`);
+		} else print(`  ${style.dim(`· ${label}`)}`);
 	}
+	logger.info({ providers: providers.length, ok, fail }, "auth list: done");
 	return { status: "ok" };
 }
 
