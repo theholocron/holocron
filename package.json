@@ -3,6 +3,14 @@
   "version": "3.58.1",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
+  "keywords": [
+    "automation",
+    "cli",
+    "developer-tools",
+    "holocron",
+    "nodejs",
+    "typescript"
+  ],
   "homepage": "https://docs.theholocron.dev/holocron/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": "github:theholocron/holocron",
@@ -83,13 +91,5 @@
       "cookie": "^2.0.1",
       "tsx": "4.22.4"
     }
-  },
-  "keywords": [
-    "automation",
-    "cli",
-    "developer-tools",
-    "holocron",
-    "nodejs",
-    "typescript"
-  ]
+  }
 }
