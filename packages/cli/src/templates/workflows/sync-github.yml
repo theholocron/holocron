@@ -51,6 +51,10 @@ on: # yamllint disable-line rule:truthy
         description: >
           Axiom API token. When set alongside the HOLOCRON_AXIOM_DATASET
           repo/org variable, the CLI ships this run's structured logs to Axiom.
+          Falls back to the vendor-native AXIOM_TOKEN secret.
+        required: false
+      AXIOM_TOKEN:
+        description: Vendor-native fallback for HOLOCRON_AXIOM_TOKEN.
         required: false
       TURBO_TOKEN:
         required: false
@@ -65,8 +69,8 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-      HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN }}
-      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
+      HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
+      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
