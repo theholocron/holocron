@@ -59,12 +59,15 @@ functions.
 ### Activation (mirror the Sentry DSN pattern from #533)
 
 ```
-HOLOCRON_POSTHOG_KEY  →  POSTHOG_KEY  →  built-in fallback (Holocron's own project write key)
-HOLOCRON_POSTHOG_HOST →  POSTHOG_HOST →  https://us.i.posthog.com
+HOLOCRON_POSTHOG_PROJECT_TOKEN  →  POSTHOG_PROJECT_TOKEN  →  built-in fallback (Holocron's own project write key)
+HOLOCRON_POSTHOG_HOST →  POSTHOG_HOST           →  https://us.i.posthog.com
 ```
 
 - `resolvePostHogKey()` / `resolvePostHogHost()` helpers, matching
-  `resolveDsn()`.
+  `resolveDsn()`. `POSTHOG_PROJECT_TOKEN` is the vendor-native name (a
+  plain variable — the `phc_…` key is publishable); CI reads it from the
+  `POSTHOG_PROJECT_TOKEN` variable, forwarded by the `sync` /
+  `sync-github` reusable workflows.
 - The built-in fallback key is a **project write key** (`phc_…`), not a
   personal API key — it can only ingest events, never read data, so it is
   safe to ship in the published package (same risk profile as the
@@ -150,9 +153,26 @@ and the single `HOLOCRON_TELEMETRY` kill switch across all three sinks.
 
 ## Rollout
 
-1. ADR-0008.
-2. `telemetry.ts` + `posthog-node` dep + tests.
-3. `sync_github_run` wiring in `runSyncGithub` (with or after #537).
-4. Docs: `docs/telemetry` (or a section in `docs/logging`), a note in
-   `packages/cli/README.md`, and the `HOLOCRON_TELEMETRY` kill switch
-   documented as covering all three sinks.
+1. ~~ADR-0008.~~ — merged (#562).
+2. ~~`telemetry.ts` + `posthog-node` dep + tests.~~ — done (#452 PR). PostHog
+   added as a third sink alongside Sentry: `resolvePostHogKey()` /
+   `resolvePostHogHost()`, `machineId()` hashed fingerprint, `event()` export,
+   `identify()` on init, `shutdown()` in `flush()`. `command_started` /
+   `command_completed` / `command_failed` fire from `startCommand`'s lifecycle
+   hook. Shipped `FALLBACK_POSTHOG_PROJECT_TOKEN` is Holocron's real ingest-only `phc_…`
+   project key (US cloud) — usage telemetry is on by default.
+3. ~~`sync_github_run` wiring in `runSyncGithub`.~~ — done, emitted from the
+   `done()` single-exit helper in `sync-github.ts` (one event per invocation,
+   carries `repo` / `branch` / `status` / `repos_targeted` / `files_changed` /
+   `pr_opened` / `runId`).
+4. ~~Docs.~~ — done: new `docs/src/content/docs/telemetry.mdx` (canonical
+   three-sink page + kill switch), cross-links from `logging.mdx`, a Telemetry
+   subsection in `packages/cli/README.md`.
+5. ~~CI: `sync` / `sync-github` templates forward the `POSTHOG_PROJECT_TOKEN`
+   variable~~ — done (the downstream-override path). Holocron itself sets no
+   variable — CI uses the shipped `FALLBACK_POSTHOG_PROJECT_TOKEN`, same as local.
+
+All shipped in #452 PR. Decision: DSN + PostHog key live in `telemetry.ts`
+as constants (not GitHub vars) — they are publishable ingest-only keys and a
+distributed CLI has no deploy-time config-injection point; env overrides
+(`HOLOCRON_*` / vendor-native) still take precedence.

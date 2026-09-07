@@ -154,8 +154,9 @@ to keep local runs on `pino-pretty` only.
 
 ### Opting out
 
-`HOLOCRON_TELEMETRY=false` disables the Axiom transport only. The logger keeps
-working — it just writes locally.
+`HOLOCRON_TELEMETRY=false` disables the Axiom transport (the logger keeps working
+— it just writes locally). The same switch also turns off Sentry and PostHog —
+see [Telemetry](/telemetry) for all three sinks.
 
 ## Redaction
 
