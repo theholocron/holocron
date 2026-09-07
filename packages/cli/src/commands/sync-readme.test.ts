@@ -270,8 +270,60 @@ describe("runSyncReadme", () => {
 			readFileFn,
 			writeFileFn,
 		});
-		expect(written["/tmp/test/README.md"]).toContain("pnpm install");
-		expect(written["/tmp/test/README.md"]).toContain("```typescript");
+		const readme = written["/tmp/test/README.md"]!;
+		expect(readme).toContain("pnpm install");
+		// never an empty-brace import — link the docs instead (#553)
+		expect(readme).not.toMatch(/import \{ ?\}/);
+		expect(readme).toContain("package documentation");
+	});
+
+	it("links the homepage in Usage for a library that has one", async () => {
+		const { readFileFn, writeFileFn, written } = makeFs({
+			"/tmp/test/package.json": JSON.stringify({ name: "@scope/lib", homepage: "https://lib.example" }),
+			"/tmp/test/README.md": README_WITH_MARKERS,
+		});
+		await runSyncReadme({
+			loaded: makeLoaded(),
+			context: { repoRoot: "/tmp/test" },
+			print: () => {},
+			readFileFn,
+			writeFileFn,
+		});
+		expect(written["/tmp/test/README.md"]).toContain("[documentation](https://lib.example)");
+	});
+
+	it("emits a workspace-root note (no install / no Usage) for a private root package", async () => {
+		const { readFileFn, writeFileFn, written } = makeFs({
+			"/tmp/test/package.json": JSON.stringify({ name: "@theholocron/holocron", private: true }),
+			"/tmp/test/README.md": README_WITH_MARKERS,
+		});
+		await runSyncReadme({
+			loaded: makeLoaded(),
+			context: { repoRoot: "/tmp/test" },
+			print: () => {},
+			readFileFn,
+			writeFileFn,
+		});
+		const readme = written["/tmp/test/README.md"]!;
+		expect(readme).toContain("workspace root");
+		expect(readme).not.toMatch(/import \{ ?\}/);
+		expect(readme).not.toContain("## Usage");
+		expect(readme).not.toContain("pnpm install @theholocron/holocron");
+	});
+
+	it("still generates a real Usage block for a private package that ships a bin", async () => {
+		const { readFileFn, writeFileFn, written } = makeFs({
+			"/tmp/test/package.json": JSON.stringify({ name: "@scope/cli", private: true, bin: { cli: "./x.mjs" } }),
+			"/tmp/test/README.md": README_WITH_MARKERS,
+		});
+		await runSyncReadme({
+			loaded: makeLoaded(),
+			context: { repoRoot: "/tmp/test" },
+			print: () => {},
+			readFileFn,
+			writeFileFn,
+		});
+		expect(written["/tmp/test/README.md"]).toContain("cli --help");
 	});
 
 	it("generates tsx snippet for React library repos (react peer dep)", async () => {
