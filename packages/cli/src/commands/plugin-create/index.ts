@@ -21,6 +21,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import type { Logger } from "@theholocron/logger";
+
+import { getLogger } from "../../logger.js";
 import type { CapabilityKey } from "../../plugin/capabilities.js";
 import { CARDINALITY } from "../../plugin/capabilities.js";
 import { deriveDefaults, type TemplateInputs } from "./template-inputs.js";
@@ -99,6 +102,8 @@ export interface RunPluginCreateInput {
 	writeFile?: (filepath: string, content: string) => void;
 	/** Print fn — captures orchestrator output. Defaults to console.log. */
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Injectable subprocess runner for testing. Defaults to execFileSync. */
 	exec?: (cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }) => void;
 }
@@ -158,6 +163,7 @@ function resolvePath(template: string, inputs: TemplateInputs): string {
 export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport {
 	const cwd = input.cwd ?? process.cwd();
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const write = input.writeFile ?? defaultWrite;
 
 	preflight(cwd);
@@ -193,6 +199,10 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 	const filesWritten: string[] = [];
 	print(`Scaffolding @theholocron/holocron-plugin-${inputs.slug}${input.dryRun ? " (dry-run)" : ""}`);
 	print(`  → ${packageDir}`);
+	logger.info(
+		{ slug: inputs.slug, capability: inputs.capability, dryRun: input.dryRun || undefined },
+		"plugin create: start"
+	);
 	for (const template of TEMPLATES) {
 		const resolvedPath = resolvePath(template.path, inputs);
 		const filepath = path.join(packageDir, resolvedPath);
@@ -218,7 +228,12 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 			execFn("pnpm", ["--filter", pkg, "test"], { cwd, stdio: "inherit" });
 			print("  ✓ scaffold verified");
 		} catch (err) {
-			print(`  ✗ verify failed — ${err instanceof Error ? err.message : String(err)}`);
+			const message = err instanceof Error ? err.message : String(err);
+			print(`  ✗ verify failed — ${message}`);
+			logger.warn(
+				{ slug: inputs.slug, files: filesWritten.length, reason: message, status: "fail" },
+				"plugin create: done"
+			);
 			return {
 				status: "fail",
 				packagePath: packageDir,
@@ -232,6 +247,10 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 		printNextSteps(print, inputs);
 	}
 
+	logger.info(
+		{ slug: inputs.slug, capability: inputs.capability, files: filesWritten.length, status: input.dryRun ? "dry-run" : "ok" },
+		"plugin create: done"
+	);
 	return { status: "ok", packagePath: packageDir, filesWritten };
 }
 

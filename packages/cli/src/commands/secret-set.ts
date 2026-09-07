@@ -17,8 +17,11 @@
  * Errors clearly when no value can be sourced.
  */
 
+import type { Logger } from "@theholocron/logger";
+
 import type { LoadedConfig } from "../config/load-config.js";
 import { env } from "../env.js";
+import { getLogger } from "../logger.js";
 import type { Secrets, SecretScope } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 
@@ -39,6 +42,8 @@ export interface RunSecretSetInput {
 	scope?: SecretScope;
 	loader?: PluginLoader;
 	print?: SecretSetPrint;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 	/** Lets tests inject a stdin reader. Defaults to reading process.stdin. */
 	readStdin?: () => Promise<string>;
 }
@@ -52,6 +57,7 @@ export interface SecretSetReport {
 
 export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
 
@@ -82,10 +88,16 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 		const secrets = loader.get("secrets") as Secrets;
 		await secrets.setSecret(scope, input.name, value);
 		print(`  ✓ set ${input.name} via ${secrets.providerName}`);
+		// `name` is a secret NAME, never the value.
+		logger.info(
+			{ key: input.name, scope: describeScope(scope), provider: secrets.providerName, status: "ok" },
+			`secret set: ${input.name}`
+		);
 		return { status: "ok", name: input.name, scope };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		print(`  ✗ ${message}`);
+		logger.warn({ key: input.name, scope: describeScope(scope), reason: message }, `secret set: ${input.name}`);
 		return { status: "fail", name: input.name, scope, message };
 	}
 }

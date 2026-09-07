@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
+import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runSyncReadme } from "./sync-readme.js";
 
 function makeLoaded(overrides: Partial<Parameters<typeof resolveConfig>[0]> = {}): LoadedConfig {
@@ -81,14 +82,20 @@ const README_WITH_SECTIONS = [
 describe("runSyncReadme", () => {
 	it("returns fail when package.json cannot be read", async () => {
 		const { readFileFn, writeFileFn } = makeFs({});
+		const log = fakeLogger();
 		const report = await runSyncReadme({
 			loaded: makeLoaded(),
 			context: { repoRoot: "/tmp/test" },
 			print: () => {},
 			readFileFn,
 			writeFileFn,
+			logger: log,
 		});
 		expect(report).toMatchObject({ status: "fail", updated: false });
+		expect(log.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ reason: expect.stringMatching(/package\.json/) }),
+			"sync readme: done"
+		);
 	});
 
 	it("returns fail when README.md cannot be read or has no anchor", async () => {

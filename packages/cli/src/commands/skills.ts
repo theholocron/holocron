@@ -34,14 +34,18 @@ export interface RunSkillsInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
 	print?: (line: string) => void;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
 }
 
 export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
 	const config = input.loaded.resolved;
 
 	if (!config.agent || !config.skills?.length) {
 		print("Nothing to install — set `agent` and `skills` in holocron.config.ts");
+		logger.info({ status: "skip", reason: "no agent/skills configured" }, "skills install: done");
 		return;
 	}
 
@@ -50,10 +54,12 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 		for (const name of config.skills) {
 			print(`  → would install: ${name}`);
 		}
+		logger.info({ agent: config.agent, skills: config.skills, status: "dry-run" }, "skills install: done");
 		return;
 	}
 
 	print(`Installing ${config.skills.length} skill(s) for agent: ${config.agent}`);
+	logger.info({ agent: config.agent, count: config.skills.length }, "skills install: start");
 	try {
 		const result = await installSkills({
 			agent: config.agent,
@@ -61,8 +67,11 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 			repoRoot: input.context.repoRoot,
 		});
 		print(`  → ${result}`);
+		logger.info({ agent: config.agent, skills: config.skills, status: "ok" }, "skills install: done");
 	} catch (err) {
-		print(`  ✗ ${err instanceof Error ? err.message : String(err)}`);
+		const message = err instanceof Error ? err.message : String(err);
+		print(`  ✗ ${message}`);
+		logger.warn({ agent: config.agent, reason: message, status: "fail" }, "skills install: done");
 	}
 }
 
