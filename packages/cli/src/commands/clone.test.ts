@@ -165,6 +165,28 @@ describe("runClone", () => {
 		expect(report.message).toMatch(/403/);
 	});
 
+	it("stringifies a non-Error rejection from the org-repo listing", async () => {
+		const badFetch = vi.fn().mockRejectedValue("network exploded") as unknown as typeof globalThis.fetch;
+		const log = fakeLogger();
+
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: badFetch,
+			exec,
+			print,
+			logger: log,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("network exploded");
+		expect(log.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ org: "test-org", reason: "network exploded" }),
+			"clone: failed to list org repos"
+		);
+	});
+
 	it("strips leading dot from repo name so hidden repos are visible in Finder", async () => {
 		const repos = [makeRepo(".github"), makeRepo(".github-private")];
 		const report = await runClone({

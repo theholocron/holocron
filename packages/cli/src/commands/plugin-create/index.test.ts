@@ -333,6 +333,27 @@ describe("runPluginCreate — post-scaffold verify", () => {
 		expect(lines.join("\n")).toContain("✗ verify failed");
 	});
 
+	it("stringifies a non-Error thrown by a verify step", () => {
+		const fs = makeFakeFs();
+		const lines: string[] = [];
+		const log = fakeLogger();
+		const report = runPluginCreate({
+			...BASE_INPUT,
+			writeFile: fs.writeFile,
+			print: (l) => lines.push(l),
+			logger: log,
+			exec: (_, args) => {
+				if (args.includes("test")) throw "boom";
+			},
+		});
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toContain("✗ verify failed — boom");
+		expect(log.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ reason: "boom", status: "fail" }),
+			"plugin create: done"
+		);
+	});
+
 	it("defaultWrite delegates to mkdirSync + writeFileSync when no writeFile is injected", async () => {
 		const { mkdirSync, writeFileSync } = await import("node:fs");
 		const mkdirMock = vi.mocked(mkdirSync);
