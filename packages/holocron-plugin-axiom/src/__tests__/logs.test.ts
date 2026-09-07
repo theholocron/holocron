@@ -10,7 +10,7 @@ const BASE = "https://api.axiom.test";
 function makeLogs(responses: Parameters<typeof stubFetch>[0], opts: { dataset?: string } = {}) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createAxiomClient({ token: "xaat-tok", baseUrl: BASE, fetch });
-	return { logs: new AxiomLogs(client, opts), calls };
+	return { logs: new AxiomLogs(() => client, opts), calls };
 }
 
 const dataset = { id: "d1", name: "holocron-ci", description: "Managed by holocron" };
@@ -21,6 +21,14 @@ describe("AxiomLogs.describe", () => {
 		const result = await logs.describe();
 		expect(result.provider).toBe("axiom");
 		expect(result.envKeys).toEqual(["HOLOCRON_AXIOM_TOKEN", "HOLOCRON_AXIOM_DATASET"]);
+	});
+
+	it("does not touch the client (no token needed)", async () => {
+		const client = () => {
+			throw new Error("client should not be built for describe()");
+		};
+		const logs = new AxiomLogs(client, {});
+		await expect(logs.describe()).resolves.toMatchObject({ provider: "axiom" });
 	});
 });
 

@@ -57,7 +57,7 @@ export class PostmanTooling implements Tooling {
 	private readonly repoRoot: string;
 
 	constructor(
-		private readonly client: PostmanClient,
+		private readonly client: () => PostmanClient,
 		opts: PostmanToolingOptions
 	) {
 		if (!opts.workspaceId) {
@@ -156,26 +156,26 @@ export class PostmanTooling implements Tooling {
 	// ── Postman-specific methods ───────────────────────────────────────
 
 	async getMyself(): Promise<PostmanUser> {
-		const res = await this.client.me.get();
+		const res = await this.client().me.get();
 		return res.user ?? {};
 	}
 
 	async listWorkspaces(): Promise<PostmanWorkspace[]> {
-		const { workspaces } = await this.client.workspaces.list();
+		const { workspaces } = await this.client().workspaces.list();
 		return workspaces;
 	}
 
 	async findCollectionByName(input: { workspaceId: string; name: string }): Promise<PostmanCollection | null> {
-		const { collections } = await this.client.collections.list(input.workspaceId);
+		const { collections } = await this.client().collections.list(input.workspaceId);
 		return collections.find((c) => c.name === input.name) ?? null;
 	}
 
 	async deleteCollection(uid: string): Promise<void> {
-		await this.client.collections.delete(uid);
+		await this.client().collections.delete(uid);
 	}
 
 	async importOpenApi(input: { workspaceId: string; spec: unknown }): Promise<PostmanCollection> {
-		const { collections } = await this.client.import.openapi(input.workspaceId, input.spec);
+		const { collections } = await this.client().import.openapi(input.workspaceId, input.spec);
 		const created = collections[0];
 		if (!created) {
 			throw new ProviderApiError(
@@ -188,7 +188,7 @@ export class PostmanTooling implements Tooling {
 	}
 
 	async listEnvironments(input: { workspaceId: string }): Promise<PostmanEnvironment[]> {
-		const { environments } = await this.client.environments.list(input.workspaceId);
+		const { environments } = await this.client().environments.list(input.workspaceId);
 		return environments;
 	}
 
@@ -198,17 +198,17 @@ export class PostmanTooling implements Tooling {
 	}
 
 	async createEnvironment(input: { workspaceId: string; environment: unknown }): Promise<PostmanEnvironment> {
-		const { environment } = await this.client.environments.create(input.workspaceId, input.environment);
+		const { environment } = await this.client().environments.create(input.workspaceId, input.environment);
 		return environment;
 	}
 
 	async updateEnvironment(input: { uid: string; environment: unknown }): Promise<PostmanEnvironment> {
-		const { environment } = await this.client.environments.update(input.uid, input.environment);
+		const { environment } = await this.client().environments.update(input.uid, input.environment);
 		return environment;
 	}
 
 	async findSpecByName(input: { workspaceId: string; name: string }): Promise<PostmanSpec | null> {
-		const { specs } = await this.client.specs.list(input.workspaceId);
+		const { specs } = await this.client().specs.list(input.workspaceId);
 		return specs.find((s) => s.name === input.name) ?? null;
 	}
 
@@ -219,7 +219,7 @@ export class PostmanTooling implements Tooling {
 		filePath?: string;
 		fileContent: string;
 	}): Promise<PostmanSpec> {
-		return this.client.specs.create(input.workspaceId, {
+		return this.client().specs.create(input.workspaceId, {
 			name: input.name,
 			type: input.type,
 			filePath: input.filePath,
@@ -228,6 +228,6 @@ export class PostmanTooling implements Tooling {
 	}
 
 	async upsertSpecFile(input: { specId: string; filePath: string; content: string }): Promise<void> {
-		await this.client.specs.updateFile(input.specId, input.filePath, input.content);
+		await this.client().specs.updateFile(input.specId, input.filePath, input.content);
 	}
 }
