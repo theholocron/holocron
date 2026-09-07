@@ -43,7 +43,7 @@ export class ClerkAuth implements Auth {
 	readonly providerName = "clerk";
 
 	constructor(
-		private readonly client: ClerkClient,
+		private readonly client: () => ClerkClient,
 		_opts: ClerkAuthOptions = {}
 	) {}
 
@@ -59,7 +59,7 @@ export class ClerkAuth implements Auth {
 	// ── whoami ──────────────────────────────────────────────────────────
 
 	async whoami(): Promise<AuthIdentity> {
-		const result = await this.client.users.count();
+		const result = await this.client().users.count();
 		return {
 			provider: "clerk",
 			details: { userCount: result.total_count },
@@ -70,7 +70,7 @@ export class ClerkAuth implements Auth {
 
 	async ensureWebhookApp(): Promise<{ alreadyExists: boolean }> {
 		try {
-			await this.client.webhooks.ensureSvixApp();
+			await this.client().webhooks.ensureSvixApp();
 			return { alreadyExists: false };
 		} catch (err) {
 			if (err instanceof ProviderApiError && isAlreadyExistsError(err)) {
@@ -81,7 +81,7 @@ export class ClerkAuth implements Auth {
 	}
 
 	async getWebhookDashboardUrl(): Promise<WebhookDashboardInfo> {
-		const body = await this.client.webhooks.getSvixUrl();
+		const body = await this.client().webhooks.getSvixUrl();
 		const url = body.url ?? body.svix_url;
 		if (!url) {
 			throw new ProviderApiError("Clerk POST /webhooks/svix_url returned 200 but no `url` field", 500, undefined);
@@ -92,7 +92,7 @@ export class ClerkAuth implements Auth {
 	// ── users ───────────────────────────────────────────────────────────
 
 	async createUser(input: CreateAuthUserInput): Promise<AuthUser> {
-		const user = await this.client.users.create({
+		const user = await this.client().users.create({
 			email_address: [input.email],
 			password: input.password,
 			...(input.firstName ? { first_name: input.firstName } : {}),

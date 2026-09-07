@@ -30,7 +30,7 @@ export class NeonStorage implements Storage {
 	readonly providerName = "neon";
 
 	constructor(
-		private readonly client: NeonClient,
+		private readonly client: () => NeonClient,
 		private readonly opts: StorageOptions
 	) {
 		if (!opts.projectId) {
@@ -42,7 +42,7 @@ export class NeonStorage implements Storage {
 
 	async getConnectionString(scope: string, options: ConnectionStringOptions = {}): Promise<string> {
 		const db = await this.firstDatabase(scope);
-		const { uri } = await this.client.connection.uri(this.opts.projectId, {
+		const { uri } = await this.client().connection.uri(this.opts.projectId, {
 			branch_id: scope,
 			database_name: db.name,
 			role_name: db.owner_name,
@@ -54,14 +54,14 @@ export class NeonStorage implements Storage {
 	// ── branch ops ──────────────────────────────────────────────────────
 
 	async listBranches(): Promise<StorageBranch[]> {
-		const { branches } = await this.client.branches.list(this.opts.projectId);
+		const { branches } = await this.client().branches.list(this.opts.projectId);
 		return branches.map(mapBranch);
 	}
 
 	async createBranch(input: { name: string; from?: string }): Promise<StorageBranch> {
 		// Provision a read_write endpoint inline. Without it, /connection_uri
 		// returns "endpoint not found" on a freshly-created branch.
-		const { branch } = await this.client.branches.create(this.opts.projectId, {
+		const { branch } = await this.client().branches.create(this.opts.projectId, {
 			name: input.name,
 			...(input.from ? { parent_id: input.from } : {}),
 			endpoints: [{ type: "read_write" }],
@@ -70,18 +70,18 @@ export class NeonStorage implements Storage {
 	}
 
 	async destroyBranch(branch: string): Promise<void> {
-		await this.client.branches.destroy(this.opts.projectId, branch);
+		await this.client().branches.destroy(this.opts.projectId, branch);
 	}
 
 	async resetBranch(input: { branch: string; from: string }): Promise<void> {
 		// Neon's "Restore branch" endpoint resets the target branch to match
 		// the state of another branch. Reversible via Neon's auto-backup.
-		await this.client.branches.restore(this.opts.projectId, input.branch, input.from);
+		await this.client().branches.restore(this.opts.projectId, input.branch, input.from);
 	}
 
 	async enableExtension(input: { branch: string; extension: string }): Promise<void> {
 		const db = await this.firstDatabase(input.branch);
-		await this.client.databases.runSql(
+		await this.client().databases.runSql(
 			this.opts.projectId,
 			input.branch,
 			db.name,
@@ -97,7 +97,7 @@ export class NeonStorage implements Storage {
 	 * means it was created without an endpoint and needs initialization).
 	 */
 	private async firstDatabase(branchId: string): Promise<NeonDatabase> {
-		const { databases } = await this.client.databases.list(this.opts.projectId, branchId);
+		const { databases } = await this.client().databases.list(this.opts.projectId, branchId);
 		const db = databases[0];
 		if (!db) {
 			throw new ProviderApiError(

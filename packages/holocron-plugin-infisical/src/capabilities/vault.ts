@@ -43,7 +43,7 @@ export class InfisicalVault implements Vault {
 	private readonly workspaceIdCache = new Map<string, string>();
 
 	constructor(
-		private readonly client: InfisicalClient,
+		private readonly client: () => InfisicalClient,
 		opts: InfisicalVaultOptions
 	) {
 		if (!opts.workspace) {
@@ -60,7 +60,7 @@ export class InfisicalVault implements Vault {
 
 	async read(reference: string): Promise<string> {
 		const parsed = parseReference(reference);
-		const { secret } = await this.client.secrets.get(parsed.name, {
+		const { secret } = await this.client().secrets.get(parsed.name, {
 			workspaceId: parsed.workspace,
 			environment: parsed.environment,
 			secretPath: "/",
@@ -77,15 +77,15 @@ export class InfisicalVault implements Vault {
 			secretValue: value,
 		};
 		try {
-			await this.client.secrets.create(parsed.name, { ...scope, type: "shared" });
+			await this.client().secrets.create(parsed.name, { ...scope, type: "shared" });
 		} catch (err) {
 			if (!isConflict(err)) throw err;
-			await this.client.secrets.update(parsed.name, scope);
+			await this.client().secrets.update(parsed.name, scope);
 		}
 	}
 
 	async list(): Promise<string[]> {
-		const { secrets } = await this.client.secrets.list({
+		const { secrets } = await this.client().secrets.list({
 			workspaceId: this.workspace,
 			environment: this.environment,
 			secretPath: "/",
@@ -96,12 +96,12 @@ export class InfisicalVault implements Vault {
 	// ── environments ────────────────────────────────────────────────────
 
 	async environments(): Promise<string[]> {
-		const { workspace } = await this.client.workspaces.get(this.workspace);
+		const { workspace } = await this.client().workspaces.get(this.workspace);
 		return (workspace?.environments ?? []).map((e) => e.slug ?? e.name ?? "").filter(Boolean);
 	}
 
 	async readEnvironment(environmentId: string): Promise<Record<string, string>> {
-		const { secrets } = await this.client.secrets.list({
+		const { secrets } = await this.client().secrets.list({
 			workspaceId: this.workspace,
 			environment: environmentId,
 			secretPath: "/",
@@ -119,7 +119,7 @@ export class InfisicalVault implements Vault {
 
 	async ensureProject(name: string): Promise<EnsureResult> {
 		try {
-			await this.client.workspaces.create(name, name);
+			await this.client().workspaces.create(name, name);
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };
@@ -130,7 +130,7 @@ export class InfisicalVault implements Vault {
 	async ensureEnvironment(project: string, name: string): Promise<EnsureResult> {
 		const workspaceId = await this.resolveWorkspaceId(project);
 		try {
-			await this.client.workspaces.createEnvironment(workspaceId, name, name);
+			await this.client().workspaces.createEnvironment(workspaceId, name, name);
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };
@@ -143,7 +143,7 @@ export class InfisicalVault implements Vault {
 		if (cached) return cached;
 
 		try {
-			const { workspaces } = await this.client.workspaces.list();
+			const { workspaces } = await this.client().workspaces.list();
 			const match = (workspaces ?? []).find((w) => w.name === nameOrId || w.slug === nameOrId);
 			const resolvedId = match?._id ?? match?.id;
 			if (resolvedId) {

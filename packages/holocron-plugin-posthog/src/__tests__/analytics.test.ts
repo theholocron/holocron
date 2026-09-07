@@ -13,7 +13,7 @@ const project = { id: 1, name: "my-app", api_token: "phc_abc123" };
 function makeAnalytics(responses: Parameters<typeof stubFetch>[0], opts: { host?: string } = {}) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createPostHogClient({ token: TOKEN, baseUrl: BASE, fetch });
-	return { analytics: new PostHogAnalytics(client, opts), calls };
+	return { analytics: new PostHogAnalytics(() => client, opts), calls };
 }
 
 describe("PostHogAnalytics.describe", () => {

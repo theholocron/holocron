@@ -43,7 +43,7 @@ export class DopplerVault implements Vault {
 	private readonly config: string;
 
 	constructor(
-		private readonly client: DopplerClient,
+		private readonly client: () => DopplerClient,
 		opts: DopplerVaultOptions
 	) {
 		if (!opts.project) {
@@ -60,29 +60,29 @@ export class DopplerVault implements Vault {
 
 	async read(reference: string): Promise<string> {
 		const parsed = parseReference(reference);
-		const res = await this.client.secrets.get(parsed.project, parsed.config, parsed.name);
+		const res = await this.client().secrets.get(parsed.project, parsed.config, parsed.name);
 		return res.value?.computed ?? res.value?.raw ?? "";
 	}
 
 	async write(reference: string, value: string): Promise<void> {
 		const parsed = parseReference(reference);
-		await this.client.secrets.update(parsed.project, parsed.config, { [parsed.name]: value });
+		await this.client().secrets.update(parsed.project, parsed.config, { [parsed.name]: value });
 	}
 
 	async list(): Promise<string[]> {
-		const res = await this.client.secrets.list(this.project, this.config);
+		const res = await this.client().secrets.list(this.project, this.config);
 		return Object.keys(res.secrets ?? {});
 	}
 
 	// ── environments ────────────────────────────────────────────────────
 
 	async environments(): Promise<string[]> {
-		const res = await this.client.environments.list(this.project);
+		const res = await this.client().environments.list(this.project);
 		return (res.environments ?? []).map((e) => e.slug ?? e.name ?? "").filter(Boolean);
 	}
 
 	async readEnvironment(environmentId: string): Promise<Record<string, string>> {
-		const res = await this.client.secrets.download(this.project, environmentId);
+		const res = await this.client().secrets.download(this.project, environmentId);
 		// Filter out any non-string entries defensively.
 		const out: Record<string, string> = {};
 		for (const [k, v] of Object.entries(res)) {
@@ -95,7 +95,7 @@ export class DopplerVault implements Vault {
 
 	async ensureProject(name: string): Promise<EnsureResult> {
 		try {
-			await this.client.projects.create(name, "Managed by holocron");
+			await this.client().projects.create(name, "Managed by holocron");
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };
@@ -105,7 +105,7 @@ export class DopplerVault implements Vault {
 
 	async ensureEnvironment(project: string, name: string): Promise<EnsureResult> {
 		try {
-			await this.client.environments.create(project, name, name);
+			await this.client().environments.create(project, name, name);
 			return { alreadyExists: false };
 		} catch (err) {
 			if (isConflict(err)) return { alreadyExists: true };

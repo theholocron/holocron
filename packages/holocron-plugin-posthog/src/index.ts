@@ -18,14 +18,20 @@ export interface PostHogPluginOptions extends ResolveTokenInput, PostHogAnalytic
 
 export interface PluginContext {
 	options: PostHogPluginOptions;
-	client: PostHogClient;
+	client: () => PostHogClient;
 }
 
 export function createContext(options: PostHogPluginOptions = {}): PluginContext {
-	const token = resolveToken(options);
+	let client: PostHogClient | undefined;
 	return {
 		options,
-		client: createPostHogClient({ token, host: options.host, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createPostHogClient({
+				token: resolveToken(options),
+				host: options.host,
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

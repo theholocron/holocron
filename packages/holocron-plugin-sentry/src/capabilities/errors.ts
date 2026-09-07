@@ -15,7 +15,7 @@ export class SentryErrors implements Errors {
 	readonly providerName = "sentry";
 
 	constructor(
-		private readonly client: SentryClient,
+		private readonly client: () => SentryClient,
 		private readonly opts: SentryErrorsOptions
 	) {}
 
@@ -27,7 +27,7 @@ export class SentryErrors implements Errors {
 	}
 
 	async whoami() {
-		const org = await this.client.auth.getOrg(this.requireOrg());
+		const org = await this.client().auth.getOrg(this.requireOrg());
 		return { org: org.slug };
 	}
 
@@ -37,8 +37,8 @@ export class SentryErrors implements Errors {
 
 		// Try fetching the project directly — cheaper than listing all projects.
 		try {
-			const existing = await this.client.projects.get(org, slug);
-			const keys = await this.client.projects.keys(org, existing.slug);
+			const existing = await this.client().projects.get(org, slug);
+			const keys = await this.client().projects.keys(org, existing.slug);
 			const dsn = keys[0]?.dsn.public;
 			/* c8 ignore next */
 			if (!dsn) throw new ProviderApiError(`Sentry project ${slug} has no keys`, 404, undefined);
@@ -49,11 +49,11 @@ export class SentryErrors implements Errors {
 		}
 
 		const team = this.opts.team ?? org;
-		const project = await this.client.projects.create(org, team, {
+		const project = await this.client().projects.create(org, team, {
 			name: input.name,
 			platform: input.platform ?? "node",
 		});
-		const keys = await this.client.projects.keys(org, project.slug);
+		const keys = await this.client().projects.keys(org, project.slug);
 		const dsn = keys[0]?.dsn.public;
 		/* c8 ignore next */
 		if (!dsn)

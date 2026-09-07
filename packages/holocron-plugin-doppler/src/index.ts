@@ -21,14 +21,19 @@ export interface DopplerPluginOptions extends ResolveTokenInput, DopplerVaultOpt
 
 export interface PluginContext {
 	options: DopplerPluginOptions;
-	client: DopplerClient;
+	client: () => DopplerClient;
 }
 
 export function createContext(options: DopplerPluginOptions): PluginContext {
-	const token = resolveToken(options);
+	let client: DopplerClient | undefined;
 	return {
 		options,
-		client: createDopplerClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createDopplerClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

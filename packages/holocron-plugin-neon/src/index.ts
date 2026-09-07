@@ -22,17 +22,22 @@ export interface NeonPluginOptions extends ResolveTokenInput {
 
 export interface PluginContext {
 	options: NeonPluginOptions;
-	client: NeonClient;
+	client: () => NeonClient;
 }
 
 export function createContext(options: NeonPluginOptions): PluginContext {
 	if (!options.projectId) {
 		throw new Error("@theholocron/holocron-plugin-neon requires `projectId` in options");
 	}
-	const token = resolveToken(options);
+	let client: NeonClient | undefined;
 	return {
 		options,
-		client: createNeonClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createNeonClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

@@ -22,17 +22,22 @@ export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingO
 
 export interface PluginContext {
 	options: PostmanPluginOptions;
-	client: PostmanClient;
+	client: () => PostmanClient;
 }
 
 export function createContext(options: PostmanPluginOptions): PluginContext {
 	if (!options.workspaceId) {
 		throw new Error("@theholocron/holocron-plugin-postman requires `workspaceId` in options");
 	}
-	const token = resolveToken(options);
+	let client: PostmanClient | undefined;
 	return {
 		options,
-		client: createPostmanClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }),
+		client: () =>
+			(client ??= createPostmanClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 

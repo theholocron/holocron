@@ -11,7 +11,7 @@ export class PostHogAnalytics implements Analytics {
 	readonly providerName = "posthog";
 
 	constructor(
-		private readonly client: PostHogClient,
+		private readonly client: () => PostHogClient,
 		private readonly opts: PostHogAnalyticsOptions
 	) {}
 
@@ -23,15 +23,15 @@ export class PostHogAnalytics implements Analytics {
 	}
 
 	async whoami() {
-		const user = await this.client.users.me();
+		const user = await this.client().users.me();
 		return { org: user.organization.slug };
 	}
 
 	async ensureProject(name: string): Promise<{ token: string; alreadyExists: boolean }> {
-		const { results } = await this.client.projects.list();
+		const { results } = await this.client().projects.list();
 		const found = results.find((p) => p.name === name);
 		if (found) return { token: found.api_token, alreadyExists: true };
-		const project = await this.client.projects.create({ name });
+		const project = await this.client().projects.create({ name });
 		return { token: project.api_token, alreadyExists: false };
 	}
 

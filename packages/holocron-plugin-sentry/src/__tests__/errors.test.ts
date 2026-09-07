@@ -11,7 +11,7 @@ const ORG = "my-org";
 function makeErrors(responses: Parameters<typeof stubFetch>[0], opts: { org?: string; team?: string } = { org: ORG }) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createSentryClient({ token: "sntryu_tok", baseUrl: BASE, fetch });
-	return { errors: new SentryErrors(client, opts), calls };
+	return { errors: new SentryErrors(() => client, opts), calls };
 }
 
 const project = { id: "p1", slug: "my-project", name: "My Project", platform: "node" };
