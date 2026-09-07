@@ -1,11 +1,12 @@
 ---
-status: draft
+status: proposed
 issue: theholocron/holocron#452
 blocked-by: []
 related:
   - theholocron/holocron#454
   - theholocron/holocron#537
   - theholocron/holocron/docs/wiki/decisions/0007-structured-logging-pino-axiom.md
+  - theholocron/holocron/docs/wiki/decisions/0008-cli-usage-telemetry-posthog.md
 ---
 
 # CLI usage telemetry — PostHog
@@ -94,9 +95,10 @@ No PII, no tokens, no repo paths. Candidates:
    truncated. Per-machine granularity, still anonymous. Preferred.
 3. Random per-run id — no cross-run correlation, useless for retention.
 
-Proposal: option 2, with `$set` person properties `{ ci, os, node, org }`.
-Open question for the ADR: is a hashed hostname acceptable under our own
-"no PII" rule, or is option 1 the safe floor?
+**Decided (ADR-0008): option 2** — `sha256(hostname + username)` truncated,
+with `$set` person properties `{ ci, os, node, org }`. A one-way
+fingerprint transmits no raw hostname/username and is not personal data
+under this spec's rule.
 
 ### Events
 
@@ -130,11 +132,12 @@ PostHog event can be pivoted to the full Axiom trace for that run.
 
 ## ADR
 
-This introduces a new external data sink and a shipped ingestion key —
-an architectural decision ADR-0007 does not cover. Needs **ADR-0008 —
-CLI usage telemetry (PostHog)** capturing: PostHog vs. extending Sentry,
-the shipped-key risk model, the anonymous-id choice, and the single
-`HOLOCRON_TELEMETRY` kill switch across all three sinks.
+Captured in **ADR-0008 — CLI usage telemetry: PostHog**
+(`docs/wiki/decisions/0008-cli-usage-telemetry-posthog.md`, status
+`proposed`): PostHog as a third sink vs. extending Sentry, the shipped
+ingest-key risk model, the hashed-machine-id choice (resolving this
+spec's open question — a one-way fingerprint is not PII under our rule),
+and the single `HOLOCRON_TELEMETRY` kill switch across all three sinks.
 
 ## Test plan
 

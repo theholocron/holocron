@@ -49,6 +49,8 @@ navigation:
             path: ../docs/wiki/decisions/0006-wiki-navbar-auto-broadcast.md
           - page: ADR-0007 — structured logging Pino + Axiom
             path: ../docs/wiki/decisions/0007-structured-logging-pino-axiom.md
+          - page: ADR-0008 — CLI usage telemetry PostHog
+            path: ../docs/wiki/decisions/0008-cli-usage-telemetry-posthog.md
 
   - tab: standards
     layout:

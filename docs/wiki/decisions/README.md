@@ -34,3 +34,6 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 | [ADR-0003](0003-auth-bootstrap-keyring-token-precedence.md)  | Auth bootstrap — OS keyring as fourth-precedence token layer             | accepted |
 | [ADR-0004](0004-adr-home-repo-over-wiki.md)                  | ADR home — Git repository over GitHub Wiki                               | accepted |
 | [ADR-0005](0005-npm-publishing-strategy-oidc-over-staged.md) | npm publishing strategy — OIDC Trusted Publishers over staged publishing | accepted |
+| [ADR-0006](0006-wiki-navbar-auto-broadcast.md)               | Auto-broadcast wiki navbar sync on push                                  | proposed |
+| [ADR-0007](0007-structured-logging-pino-axiom.md)            | Structured logging — Pino + Axiom                                        | accepted |
+| [ADR-0008](0008-cli-usage-telemetry-posthog.md)              | CLI usage telemetry — PostHog                                            | proposed |
