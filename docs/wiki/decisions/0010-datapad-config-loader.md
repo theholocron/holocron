@@ -96,14 +96,30 @@ Not this package. `holonet` (the galaxy's comms network) is reserved for
 a future cross-repo sync / broadcast layer (wiki navbar broadcast,
 `sync-github`, Discord logging) if that machinery is ever consolidated.
 
+## Amendment (2026-09-08) — ported, not `unconfig`
+
+Implementation (#582) revised the "wrap `unconfig`" decision:
+
+- `unconfig-core` (the package already in the tree) has **no** built-in TS
+  loading — each source needs a hand-written `parser`, i.e. the same code.
+- Full `unconfig` bundles `jiti` + `@antfu/utils`, heavier than the win,
+  and would swap the proven `tsx` path for `jiti`.
+
+So datapad **ports** the existing ~90-line loader and generalises it.
+`tsx` stays — moved from `@theholocron/cli`'s `dependencies` to
+`@theholocron/datapad`'s (`cli` keeps it as a devDependency for its
+build). The TS loader uses `tsx`'s persistent `register()` rather than the
+one-off `tsImport()`, which is not reentrant across the multiple TS
+configs a single `loadLayered` run can touch.
+
 ## Consequences
 
 - One more package in the lockstep release (Trusted Publisher,
   `codecov.yml` component, docs-theme registry) — but versioned in step
   with the other nine, so no independent release cadence.
-- `tsx` drops out of the CLI runtime dependencies (datapad brings `jiti`
-  via `unconfig`); one loader implementation, one place to fix an unwrap
-  bug or bump the TS loader.
+- `tsx` moves from `@theholocron/cli`'s runtime dependencies into
+  `@theholocron/datapad`; one loader implementation, one place to fix an
+  unwrap bug or bump the TS loader.
 - `@theholocron/cli` and `@theholocron/astromech` both depend on
   `@theholocron/datapad`; the `overrides:` block in `pnpm-workspace.yaml`
   already collapses shared `@theholocron/*` deps to one version, so no
