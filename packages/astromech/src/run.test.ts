@@ -113,6 +113,22 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/vitest"), ["run", "--coverage"], { cwd: CWD });
 	});
 
+	it("forwards `-- <passthrough>` to a package.json script", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG({ scripts: { test: "vitest" } }),
+			"pnpm-lock.yaml": "",
+		});
+		call("test", { passthrough: ["--watch"] });
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "test", "--", "--watch"], { cwd: CWD });
+	});
+
+	it("resolves a registry task with no package.json at all", () => {
+		const { call, exec } = makeRun({ "node_modules/.bin/eslint": "" });
+		const report = call("lint");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/eslint"), ["."], { cwd: CWD });
+	});
+
 	it("detects the package manager from the lockfile when packageManager is absent", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG({ scripts: { lint: "biome check" } }),
