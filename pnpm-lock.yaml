@@ -247,8 +247,8 @@ importers:
         specifier: catalog:configs
         version: 7.32.1(prettier@3.9.6)
       '@theholocron/registry-doc':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.12.0
+        version: 1.12.0
       '@theholocron/semantic-release-config':
         specifier: catalog:configs
         version: 7.32.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.3.0)(semantic-release@25.0.9(typescript@5.9.3))
@@ -394,8 +394,8 @@ importers:
         specifier: workspace:*
         version: link:../logger
       '@theholocron/registry-doc':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.12.0
+        version: 1.12.0
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
@@ -3563,8 +3563,8 @@ packages:
     peerDependencies:
       prettier: ^3
 
-  '@theholocron/registry-doc@1.11.0':
-    resolution: {integrity: sha512-C/8nGKzl7TRyu9fnX9kWTcf06K26XugnsgVMsy+MnSLT900cH618/UtuVv3VF3hwZZLeZ4NtLNtp+MjfTDkUrA==}
+  '@theholocron/registry-doc@1.12.0':
+    resolution: {integrity: sha512-fQiuQpM8f95D+qHQWdEnU5VlwHqStcZnV89+NhCj0FS8sfftJYe+2ZfHkjl+EMVkUqolqb56RGYBRfCDz7je6g==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/semantic-release-config@7.32.1':
@@ -10109,7 +10109,7 @@ snapshots:
     dependencies:
       prettier: 3.9.6
 
-  '@theholocron/registry-doc@1.11.0': {}
+  '@theholocron/registry-doc@1.12.0': {}
 
   '@theholocron/semantic-release-config@7.32.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.3.0)(semantic-release@25.0.9(typescript@5.9.3))':
     dependencies:
