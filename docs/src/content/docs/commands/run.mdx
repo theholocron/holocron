@@ -1,0 +1,64 @@
+---
+title: "run"
+description: Run a task locally — holocron figures out turbo vs the tool vs the package manager.
+---
+
+```bash
+holocron run <task> [-- <passthrough>]
+```
+
+`holocron run test` runs your tests. You don't tell it whether the repo uses
+turbo, pnpm, npm, or which test runner — it works that out.
+
+## Tasks
+
+| Task        | Runs                                                                             |
+| ----------- | -------------------------------------------------------------------------------- |
+| `test`      | `vitest run --coverage`                                                          |
+| `typecheck` | `tsc --noEmit`                                                                   |
+| `lint`      | `eslint .`                                                                       |
+| `build`     | `tsdown` / `vite build` / `rollup -c` / `tsc -b` — whichever config the repo has |
+| `sync`      | `holocron sync`                                                                  |
+| `wiki`      | `holocron sync-wiki`                                                             |
+
+The task set matches the CI workflow names. Adding a task is a one-line change
+in the CLI — every repo gets it.
+
+## How a task resolves
+
+```
+1. turbo.json defines the task   → turbo run <task>          (monorepo root)
+2. package.json has a <task> script (and it isn't `holocron run …`)
+                                 → <detected pm> run <task>
+3. the task registry has a local runner
+                                 → <tool> <args> <org-flags>  (e.g. --coverage)
+4. known task, nothing to run    → "no <task> task for this repo", exit 0
+5. unknown task                  → error, exit 1
+```
+
+An explicit `package.json` script always wins over the registry default — if
+you wrote `"lint": "biome check"`, that's what runs.
+
+## Options
+
+| Option       | Description                                                     |
+| ------------ | --------------------------------------------------------------- |
+| `--dry-run`  | Print the resolved command without running it                   |
+| `--required` | Exit 1 (instead of 0) if this repo has no such task             |
+| `-- <args>`  | Everything after `--` is forwarded to the tool / turbo / script |
+
+## Examples
+
+```bash
+holocron run test                      # vitest run --coverage (or turbo run test at a root)
+holocron run test -- --watch           # forward --watch to vitest
+holocron run build --dry-run           # show what would run
+holocron run e2e --required            # fail if the repo has no e2e task
+holocron run test -- --filter web      # passthrough turbo's --filter at a monorepo root
+```
+
+## Monorepos
+
+At a turbo root, `holocron run test` is `turbo run test` — turbo's cache and
+dependency graph are untouched. Inside a package, it runs the tool directly.
+`turbo.json` doesn't change.

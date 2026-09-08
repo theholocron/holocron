@@ -31,6 +31,11 @@ component_management:
       paths:
         - packages/cli/**
 
+    - component_id: astromech
+      name: "astromech"
+      paths:
+        - packages/astromech/**
+
     - component_id: datapad
       name: "datapad"
       paths:
