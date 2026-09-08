@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/cli",
   "version": "3.65.0",
-  "description": "The Holocron CLI \u2014 a pluggable, capability-based orchestrator for spinning up and operating software projects.",
+  "description": "The Holocron CLI - a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "keywords": [
     "cli",
     "devops",

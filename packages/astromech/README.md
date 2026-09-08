@@ -23,9 +23,9 @@ pnpm add @theholocron/astromech
 ```ts
 import { createAstromech } from "@theholocron/astromech";
 
-const astro = createAstromech({ cwd });
+const astromech = createAstromech({ cwd });
 
-const report = astro.run("test", { passthrough: ["--watch"] });
+const report = astromech.run("test", { passthrough: ["--watch"] });
 // → { status: "ok" | "fail" | "skip" | "dry-run" | "unknown", command?, message? }
 ```
 
