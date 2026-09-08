@@ -176,3 +176,11 @@ All shipped in #452 PR. Decision: DSN + PostHog key live in `telemetry.ts`
 as constants (not GitHub vars) — they are publishable ingest-only keys and a
 distributed CLI has no deploy-time config-injection point; env overrides
 (`HOLOCRON_*` / vendor-native) still take precedence.
+
+## Follow-ups (post-#452)
+
+- **#574** — put Sentry + PostHog behind `ErrorSink` / `AnalyticsSink` adapter
+  interfaces (all third-party observability SDKs isolated to one module each).
+- **#575** — small `telemetry` config block (`enabled`, `analytics` selector).
+  See the ADR-0008 amendment (2026-09-07); overrides env only as an extra
+  layer, never carries credentials.
