@@ -43,10 +43,7 @@ describe("loadTasksConfig", () => {
 
 	it("merges the dedicated file over the holocron.config tasks key, arrays concatenating", async () => {
 		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: ["a"] }));
-		await writeFile(
-			join(cwd, "astromech.config.json"),
-			JSON.stringify({ tasks: ["b"], syncScripts: false })
-		);
+		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ tasks: ["b"], syncScripts: false }));
 		expect(await loadTasksConfig(cwd)).toEqual({ tasks: ["a", "b"], syncScripts: false });
 	});
 });

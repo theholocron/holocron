@@ -52,7 +52,9 @@ export interface TasksConfig {
 }
 
 /** Normalise a `TaskConfigItem` to a full {@link TaskEntry} with defaults applied. */
-export function normalizeTaskEntry(item: TaskConfigItem): Required<Pick<TaskEntry, "name" | "ci" | "local">> & TaskEntry {
+export function normalizeTaskEntry(
+	item: TaskConfigItem
+): Required<Pick<TaskEntry, "name" | "ci" | "local">> & TaskEntry {
 	const entry = typeof item === "string" ? { name: item } : item;
 	return { ci: true, local: true, ...entry };
 }
