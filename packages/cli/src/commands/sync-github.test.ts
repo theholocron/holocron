@@ -15,12 +15,7 @@ import {
 	generateThinCallerContent,
 	WORKFLOW_TEMPLATES,
 } from "./setup-workflows/index.js";
-import {
-	gitBlobSha as _gitBlobSha,
-	parseOrgContextFromTs,
-	parseTasksFromTs,
-	runSyncGithub,
-} from "./sync-github.js";
+import { gitBlobSha as _gitBlobSha, parseOrgContextFromTs, parseTasksFromTs, runSyncGithub } from "./sync-github.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
 // to the primary .github repo. WORKFLOW_TEMPLATE_PROPERTIES adds one
