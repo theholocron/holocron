@@ -27,8 +27,21 @@ holocron sync labels properties             # run only labels and properties
 | `keywords`    | `package.json#keywords` — set from `repo.topics`          | No                           |
 | `description` | `package.json#description` and GitHub repo description    | No (local) / Yes (GitHub)    |
 | `homepage`    | `package.json#homepage` and GitHub repo website field     | No (local) / Yes (GitHub)    |
+| `readme`      | Regenerates the README Installation/Usage block           | No                           |
+| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`       | No                           |
+| `scripts`     | `package.json#scripts` — the `holocron` entry + `holocron run <task>` wrappers from `tasks` | No |
+| `wiki`        | Publishes engineering docs to the wiki                    | No                           |
 
-Local steps (`keywords`, `description`, `homepage`) write to the local filesystem. If a `source` plugin is also configured, they additionally push to GitHub. Running without a token skips the GitHub push but still updates local files.
+Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
+
+### `scripts`
+
+Merges into `package.json#scripts` — only the managed keys are touched, every other script is left alone:
+
+- `holocron` → the value of `holocronScript` (default `"holocron"`, the installed bin)
+- one `"<task>": "holocron run <task>"` per runnable task in `tasks`
+
+Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely (the Holocron repo itself does this — its root scripts must stay bootstrap-safe).
 
 ## Options
 
@@ -48,7 +61,7 @@ holocron sync
 holocron sync labels topics
 
 # Update local package.json fields without touching GitHub
-holocron sync description homepage keywords
+holocron sync description homepage keywords scripts
 
 # Dry-run all
 holocron sync --dry-run

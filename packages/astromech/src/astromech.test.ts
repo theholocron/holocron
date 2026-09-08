@@ -136,12 +136,13 @@ describe("createAstromech().thinCallers", () => {
 });
 
 describe("createAstromech().packageScripts", () => {
-	it("emits `holocron run <task>` for runnable registry tasks", () => {
+	it("emits the holocron entry plus `holocron run <task>` for runnable registry tasks", () => {
 		const astromech = createAstromech({
 			cwd: "/repo",
 			config: { tasks: ["lint", "test", "typecheck", "build"] },
 		});
 		expect(astromech.packageScripts()).toEqual({
+			holocron: "holocron",
 			lint: "holocron run lint",
 			test: "holocron run test",
 			typecheck: "holocron run typecheck",
@@ -154,10 +155,27 @@ describe("createAstromech().packageScripts", () => {
 			cwd: "/repo",
 			config: { tasks: [{ name: "test", local: false }, "release", "codeql", "lint"] },
 		});
-		expect(astromech.packageScripts()).toEqual({ lint: "holocron run lint" });
+		expect(astromech.packageScripts()).toEqual({ holocron: "holocron", lint: "holocron run lint" });
+	});
+
+	it("honours a custom holocronScript", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["test"], holocronScript: "node packages/cli/dist/cli.mjs" },
+		});
+		expect(astromech.packageScripts()).toEqual({
+			holocron: "node packages/cli/dist/cli.mjs",
+			test: "holocron run test",
+		});
 	});
 
 	it("returns {} with no config", () => {
 		expect(createAstromech({ cwd: "/repo" }).packageScripts()).toEqual({});
+	});
+
+	it("returns {} when syncScripts is false", () => {
+		expect(
+			createAstromech({ cwd: "/repo", config: { tasks: ["test"], syncScripts: false } }).packageScripts()
+		).toEqual({});
 	});
 });

@@ -47,6 +47,12 @@ export interface TasksConfig {
 	/** Opt out of the `package.json` script writes. Default `true`. */
 	syncScripts?: boolean;
 	/**
+	 * The command the synced `"holocron"` `package.json` script runs. Default
+	 * `"holocron"` (the installed bin). The source repo overrides it to run
+	 * its own build, e.g. `"node packages/cli/dist/cli.mjs"`.
+	 */
+	holocronScript?: string;
+	/**
 	 * Required status-check contexts not backed by a task — DCO, semantic
 	 * PR title, …
 	 */

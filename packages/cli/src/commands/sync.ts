@@ -2,6 +2,7 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+	createAstromech,
 	deriveDeployPaths,
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -9,6 +10,7 @@ import {
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
 } from "@theholocron/astromech";
+import type { TasksConfig } from "@theholocron/astromech/config";
 import type { Logger } from "@theholocron/logger";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -36,12 +38,21 @@ export const SYNC_STEPS = [
 	"homepage",
 	"readme",
 	"workflows",
+	"scripts",
 	"wiki",
 ] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
 
 // Steps that write to the local filesystem only — no provider token needed.
-const LOCAL_STEPS = new Set<SyncStep>(["keywords", "description", "homepage", "readme", "workflows", "wiki"]);
+const LOCAL_STEPS = new Set<SyncStep>([
+	"keywords",
+	"description",
+	"homepage",
+	"readme",
+	"workflows",
+	"scripts",
+	"wiki",
+]);
 
 export interface RunSyncInput {
 	loaded: LoadedConfig;
@@ -229,7 +240,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// files and optionally push to GitHub when source is loaded. They run
 	// outside the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows", "wiki"] as const) {
+	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows", "scripts", "wiki"] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -393,6 +404,35 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			}
 		}
 
+		if (stepName === "scripts") {
+			if (config.syncScripts === false) {
+				steps.push({
+					capability: "local",
+					step: "sync scripts",
+					status: "skip",
+					message: "syncScripts: false",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+				if (config.holocronScript !== undefined) tasksConfig.holocronScript = config.holocronScript;
+				const desired = createAstromech({
+					cwd: input.context.repoRoot,
+					config: tasksConfig,
+				}).packageScripts();
+
+				steps.push(
+					await runSyncStep("local", "sync scripts", dryRun, async () => {
+						const changed = await mergePackageJsonScripts(input.context.repoRoot, desired);
+						if (changed === null) return "no package.json";
+						if (changed.length === 0) return `${Object.keys(desired).length} scripts already current`;
+						return `${changed.join(", ")} set`;
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
 		if (stepName === "wiki") {
 			const result = await runSyncWiki({ loaded: input.loaded, context: input.context });
 			steps.push(result);
@@ -472,6 +512,34 @@ async function writePackageJsonField(repoRoot: string, field: string, value: unk
 	pkg[field] = value;
 	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
 	return true;
+}
+
+/**
+ * Merge `desired` script entries into `package.json#scripts` — sets only the
+ * listed keys, never touches the rest. Returns the sorted list of keys that
+ * drifted (empty when all current), or `null` when there is no `package.json`.
+ */
+async function mergePackageJsonScripts(repoRoot: string, desired: Record<string, string>): Promise<string[] | null> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return null;
+	}
+	const pkg = JSON.parse(content) as Record<string, unknown>;
+	const scripts = (pkg.scripts ?? {}) as Record<string, string>;
+	const changed: string[] = [];
+	for (const [name, command] of Object.entries(desired)) {
+		if (scripts[name] !== command) {
+			scripts[name] = command;
+			changed.push(name);
+		}
+	}
+	if (changed.length === 0) return [];
+	pkg.scripts = scripts;
+	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	return changed.sort();
 }
 
 const README_DESC_START = "<!-- holocron:description -->";
