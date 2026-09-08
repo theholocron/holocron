@@ -98,10 +98,11 @@ describe("runSync", () => {
 			"sync: sync labels"
 		);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
-		expect(report.steps).toHaveLength(10);
-		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(6);
+		expect(report.steps).toHaveLength(11);
+		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(7);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 6, fail: 0, skip: 4 });
+		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
+		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 4 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -245,7 +246,7 @@ describe("runSync", () => {
 
 		expect(called).toBe(false);
 		expect(report.steps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
-		expect(report.summary.dryRun).toBe(6);
+		expect(report.summary.dryRun).toBe(7);
 	});
 
 	it("reports skip when provider does not implement syncLabels", async () => {
@@ -662,6 +663,110 @@ describe("runSync", () => {
 				expect.objectContaining({ provider: "github", reason: expect.stringMatching(/corrupted/) }),
 				expect.stringContaining("unavailable")
 			);
+		});
+	});
+
+	describe("sync scripts — package.json merge", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runScriptsStep(rawConfig: Parameters<typeof resolveConfig>[0]) {
+			const loaded = loadedFrom(rawConfig);
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["scripts"], print: () => {} });
+		}
+
+		it("merges task scripts + the holocron entry without disturbing other scripts", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { start: "node ." } }, null, 2) + "\n"
+			);
+
+			const report = await runScriptsStep({
+				name: "demo",
+				tasks: ["test", "lint"],
+				providers: {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("set");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({
+				start: "node .",
+				holocron: "holocron",
+				test: "holocron run test",
+				lint: "holocron run lint",
+			});
+		});
+
+		it("updates a drifted value and is a no-op when already current", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { holocron: "holocron", test: "vitest" } }, null, 2) + "\n"
+			);
+			const raw = { name: "demo", tasks: ["test"], providers: {} } as Parameters<typeof resolveConfig>[0];
+
+			const first = await runScriptsStep(raw);
+			expect(first.steps.find((s) => s.step === "sync scripts")?.message).toBe("test set");
+
+			const second = await runScriptsStep(raw);
+			expect(second.steps.find((s) => s.step === "sync scripts")?.message).toBe("2 scripts already current");
+		});
+
+		it("honours a custom holocronScript", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+
+			await runScriptsStep({
+				name: "demo",
+				tasks: ["test"],
+				holocronScript: "node packages/cli/dist/cli.mjs",
+				providers: {},
+			});
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts.holocron).toBe("node packages/cli/dist/cli.mjs");
+			expect(pkg.scripts.test).toBe("holocron run test");
+		});
+
+		it("succeeds gracefully when package.json is absent", async () => {
+			const report = await runScriptsStep({ name: "demo", tasks: ["test"], providers: {} });
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toBe("no package.json");
+		});
+
+		it("skips when syncScripts is false", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+			const report = await runScriptsStep({
+				name: "demo",
+				tasks: ["test"],
+				syncScripts: false,
+				providers: {},
+			});
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("syncScripts: false");
+		});
+
+		it("writes only the holocron entry when no tasks are configured", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+			const report = await runScriptsStep({ name: "demo", providers: {} });
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("ok");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({ holocron: "holocron" });
 		});
 	});
 

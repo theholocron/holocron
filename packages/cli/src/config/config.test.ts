@@ -135,6 +135,18 @@ describe("resolveConfig", () => {
 		});
 	});
 
+	it("passes syncScripts and holocronScript through", () => {
+		expect(resolveConfig(minimal).syncScripts).toBeUndefined();
+		expect(resolveConfig(minimal).holocronScript).toBeUndefined();
+		const resolved = resolveConfig({
+			...minimal,
+			syncScripts: false,
+			holocronScript: "node packages/cli/dist/cli.mjs",
+		});
+		expect(resolved.syncScripts).toBe(false);
+		expect(resolved.holocronScript).toBe("node packages/cli/dist/cli.mjs");
+	});
+
 	it("throws when docs is set but build is absent", () => {
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow(ConfigError);
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow("`docs.build` is required");

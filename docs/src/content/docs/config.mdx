@@ -56,6 +56,13 @@ export default defineConfig({
   //            "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit"
   tasks: ["lint", "test", "typecheck", { name: "release", with: { "run-build": false } }, "stale", "greetings"],
 
+  // `holocron sync` reconciles package.json#scripts (merge, never clobber): the
+  // `holocron` entry + a `holocron run <task>` wrapper per runnable task.
+  // `syncScripts: false` disables it; `holocronScript` sets the `holocron`
+  // entry's command (default "holocron", the installed bin).
+  // syncScripts: false,
+  // holocronScript: "node packages/cli/dist/cli.mjs",
+
   // Agent runtime — determines where skills are installed.
   // "claude" → .claude/skills/<name>  (symlinks to .agents/skills/<name>)
   agent: "claude",

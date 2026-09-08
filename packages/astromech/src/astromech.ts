@@ -66,9 +66,11 @@ export interface Astromech {
 	 */
 	thinCallers(): Map<string, string>;
 	/**
-	 * `package.json` scripts for this repo's manifest — `"<task>": "holocron
-	 * run <task>"` for every `config.tasks` item that is a runnable registry
-	 * task and not `local: false`. Merge into `package.json`; never clobber.
+	 * `package.json` scripts for this repo's manifest — the `"holocron"` entry
+	 * (`config.holocronScript ?? "holocron"`) plus `"<task>": "holocron run
+	 * <task>"` for every `config.tasks` item that is a runnable registry task
+	 * and not `local: false`. Merge into `package.json`; never clobber. Empty
+	 * when there is no config or `syncScripts: false`.
 	 */
 	packageScripts(): Record<string, string>;
 }
@@ -136,6 +138,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 		packageScripts: () => {
 			const out: Record<string, string> = {};
+			if (!options.config || options.config.syncScripts === false) return out;
+			out.holocron = options.config.holocronScript ?? "holocron";
 			for (const entry of items()) {
 				if (entry.local === false || !KNOWN_TASKS.has(entry.name) || TASKS[entry.name]?.local === null)
 					continue;

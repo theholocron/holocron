@@ -79,20 +79,27 @@ export default defineConfig({
 | `with`                   | per-repo overrides on the reusable-workflow channel         |
 | `linters` (`lint` only)  | explicit linter list; omitted → auto-detect                 |
 
+Top-level keys: `syncScripts: false` disables the `package.json` script
+writes entirely; `holocronScript` sets the command the synced `"holocron"`
+script runs (default `"holocron"`).
+
 ### Generated surfaces
 
 ```ts
 const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
-astromech.packageScripts(); // { lint: "holocron run lint", … }  — runnable, local-enabled tasks
+astromech.packageScripts(); // { holocron: "holocron", lint: "holocron run lint", … }
 ```
 
 `thinCallers()` returns the raw `.github/workflows/*.yml` content (no
 generated-by header — the caller prefixes its own). `deploy` with
 `preview:` shorthand produces the combined push-to-Pages / PR-to-preview
-workflow. `packageScripts()` skips `local: false` entries and tasks with
-no local runner (`codeql`, `deploy`).
+workflow. `packageScripts()` emits the `holocron` entry
+(`holocronScript ?? "holocron"`) plus one `"<task>": "holocron run <task>"`
+per runnable task; it skips `local: false` entries and tasks with no local
+runner (`codeql`, `deploy`), and returns `{}` when `syncScripts: false` or
+there is no config.
 
 `holocron run` itself does not read the config yet — that (and
 `holocron ci`) come in later phases (epic #581).

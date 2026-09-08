@@ -55,6 +55,12 @@ export default defineConfig({
 		// Wiki: publish engineering docs to wiki.theholocron.dev/holocron
 		"wiki",
 	],
+	// Source repo opts out of `holocron sync`'s package.json script writes: its
+	// root scripts (`build`, `test`, …) must stay bootstrap-safe raw commands
+	// because `holocron` here IS the local build artifact (`node
+	// packages/cli/dist/cli.mjs`), not an installed bin. Consumer repos let
+	// sync manage the `holocron` entry + `holocron run <task>` wrappers.
+	syncScripts: false,
 	providers: {
 		...providers,
 		secrets: "github",

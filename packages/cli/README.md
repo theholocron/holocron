@@ -75,6 +75,24 @@ Additional `repo` fields recognised by `holocron setup`:
 | `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron setup`.                                                                                                                      |
 | `repo.properties` | `RepoProperties`                        | Org-level custom property values synced to the GitHub dashboard.                                                                                                           |
 
+### Task scripts
+
+`holocron sync` reconciles `package.json#scripts` from the `tasks` manifest
+(merge, never clobber — only the managed keys are touched):
+
+```ts
+export default defineConfig({
+  tasks: ["test", "lint", "typecheck"],
+  // syncScripts: false,                              // disable the step
+  // holocronScript: "node packages/cli/dist/cli.mjs", // override the "holocron" entry
+  providers: { source: "github" },
+});
+```
+
+Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one
+`"<task>": "holocron run <task>"` per runnable task. `syncScripts: false`
+opts out entirely.
+
 ### Skills installer
 
 `holocron setup` can install shared skills from `@theholocron/skills` into the local repo:

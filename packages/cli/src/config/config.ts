@@ -343,6 +343,16 @@ export interface HolocronConfig {
 	 * { "name": "deploy", "with": { "docs": true } }
 	 */
 	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
+	/**
+	 * Opt out of `holocron sync`'s `package.json` script writes. Default `true`.
+	 */
+	syncScripts?: boolean;
+	/**
+	 * The command the synced `"holocron"` `package.json` script runs. Default
+	 * `"holocron"` (the installed bin). This repo overrides it to run its own
+	 * build (`"node packages/cli/dist/cli.mjs"`).
+	 */
+	holocronScript?: string;
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -416,6 +426,8 @@ export interface ResolvedHolocronConfig {
 	domain?: string;
 	repo?: RepoConfig;
 	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
+	syncScripts?: boolean;
+	holocronScript?: string;
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
@@ -556,6 +568,8 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		domain: raw.domain,
 		repo: raw.repo,
 		tasks: raw.tasks,
+		syncScripts: raw.syncScripts,
+		holocronScript: raw.holocronScript,
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},
