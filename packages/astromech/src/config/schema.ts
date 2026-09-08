@@ -34,6 +34,8 @@ export interface TaskEntry {
 	 * from the config files present.
 	 */
 	linters?: string[];
+	/** Extra `on.push.paths` entries for the generated CI workflow. */
+	paths?: string[];
 }
 
 /** A task is either its bare name (all defaults) or an entry object. */
