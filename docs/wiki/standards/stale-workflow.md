@@ -9,10 +9,10 @@ never marked stale regardless of age.
 
 ## Configuring per repo
 
-Pass `with:` overrides via the `workflows` array in `holocron.config.ts`:
+Pass `with:` overrides via the `tasks` array in `holocron.config.ts`:
 
 ```ts
-workflows: [
+tasks: [
   {
     name: "stale",
     with: {

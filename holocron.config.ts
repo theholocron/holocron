@@ -2,11 +2,11 @@ import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
 import { nodeDocs } from "@theholocron/holocron-config";
 
-// nodeDocs() provides: org, domain, docs, strict repo protection, standard
-// Node.js workflows (lint, test, codeql, review, stale, greetings, dependencies,
-// bookkeeping, typecheck, deploy), and base providers (source, ci, issues,
-// deployment, dns, workers).
-const { repo, workflows, providers, org, domain, docs } = nodeDocs();
+// nodeDocs() provides: org, domain, docs, strict repo protection, and base
+// providers (source, ci, issues, deployment, dns, workers). The standard
+// Node.js task set is inlined below until `@theholocron/holocron-config`
+// re-publishes with the `workflows` → `tasks` rename (Phase 2c, #593).
+const { repo, providers, org, domain, docs } = nodeDocs();
 
 export default defineConfig({
 	description:
@@ -42,8 +42,18 @@ export default defineConfig({
 			"codecov/patch/holocron-plugin-vercel",
 		],
 	},
-	workflows: [
-		...workflows,
+	tasks: [
+		// Standard Node.js task set — mirrors nodeDocs() until the preset re-publishes (#593).
+		"lint",
+		"test",
+		"security",
+		"review",
+		"stale",
+		"greetings",
+		"dependencies",
+		"bookkeeping",
+		"typecheck",
+		{ name: "deploy", with: { docs: true, preview: true } },
 		// Audit: enable Knip dead-code analysis on top of the standard bundle audit
 		{ name: "audit", with: { "run-knip": true } },
 		// Release: tag Sentry releases for the CLI package
