@@ -104,7 +104,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		if (runner) {
 			const flags = def.flags?.[runner.tool] ?? [];
 			const bin = resolveBin(cwd, runner.tool, fileExists);
-			return run(bin, [...(runner.args ?? []), ...flags, ...passthrough]);
+			return run(bin, [...runner.args, ...flags, ...passthrough]);
 		}
 		// registry knows the task but nothing in this repo matches — fall through
 	}
@@ -123,25 +123,29 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-/** Resolve `{ tool, args }` for a runner, applying `detect[]` against repo files. */
+const mkRunner = (tool: string, args: string[] = []): { tool: string; args: string[] } => ({ tool, args });
+
+/**
+ * Resolve `{ tool, args }` for a runner, applying `detect[]` against repo
+ * files. Only called for `tool` / `detect` runners — the caller handles
+ * `command` runners itself, so `local.detect` is present whenever
+ * `local.tool` is not.
+ */
 function resolveRunner(
 	local: LocalRunner,
 	cwd: string,
 	listDir: (p: string) => string[]
-): { tool: string; args?: string[] } | undefined {
-	if (local.tool) return { tool: local.tool, ...(local.args ? { args: local.args } : {}) };
-	if (local.detect) {
-		let files: string[];
-		try {
-			files = listDir(cwd);
-		} catch {
-			return undefined;
-		}
-		for (const candidate of local.detect) {
-			if (files.some((f) => candidate.when.test(f))) {
-				return { tool: candidate.tool, ...(candidate.args ? { args: candidate.args } : {}) };
-			}
-		}
+): { tool: string; args: string[] } | undefined {
+	if (local.tool) return mkRunner(local.tool, local.args);
+
+	let files: string[];
+	try {
+		files = listDir(cwd);
+	} catch {
+		return undefined;
+	}
+	for (const candidate of local.detect!) {
+		if (files.some((f) => candidate.when.test(f))) return mkRunner(candidate.tool, candidate.args);
 	}
 	return undefined;
 }
