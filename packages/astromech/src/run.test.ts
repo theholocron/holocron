@@ -141,6 +141,26 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith("bun", ["run", "lint"], { cwd: CWD });
 	});
 
+	it("defaults the package manager to pnpm with no field and no lockfile", () => {
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { lint: "biome check" } }) });
+		call("lint");
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "lint"], { cwd: CWD });
+	});
+
+	it("treats a listDir failure as 'no runner' for a detect[] task", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "tsdown.config.ts": "" },
+			{
+				listDir: () => {
+					throw new Error("EACCES");
+				},
+			}
+		);
+		const report = call("build");
+		expect(report.status).toBe("skip");
+		expect(exec).not.toHaveBeenCalled();
+	});
+
 	it("skips (exit 0) a known task the repo can't run", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // no build tooling, no script
 		const report = call("build");
