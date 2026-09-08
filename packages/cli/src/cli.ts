@@ -588,8 +588,8 @@ try {
 					}),
 			(argv) => {
 				const { logger } = buildCliLogger(argv, { command: "run" });
-				const astro = createAstromech({ cwd: argv.cwd, logger });
-				const report = astro.run(argv.task as string, {
+				const astromech = createAstromech({ cwd: argv.cwd, logger });
+				const report = astromech.run(argv.task as string, {
 					passthrough: (argv.passthrough as string[] | undefined) ?? [],
 					dryRun: argv.dryRun,
 					required: argv.required,

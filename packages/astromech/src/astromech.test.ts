@@ -27,34 +27,34 @@ function fs(files: Record<string, string>) {
 describe("createAstromech().run", () => {
 	it("delegates to the registry runner and returns the report", () => {
 		const exec = vi.fn(() => ({ exitCode: 0 }));
-		const astro = createAstromech({
+		const astromech = createAstromech({
 			...fs({ "package.json": PKG, "node_modules/.bin/vitest": "" }),
 			exec,
 			print: () => {},
 		});
-		const report = astro.run("test");
+		const report = astromech.run("test");
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith("/repo/node_modules/.bin/vitest", ["run", "--coverage"], { cwd: "/repo" });
 	});
 
 	it("forwards passthrough / dryRun / required through to the runner", () => {
 		const lines: string[] = [];
-		const astro = createAstromech({
+		const astromech = createAstromech({
 			...fs({ "package.json": PKG }),
 			print: (l) => lines.push(l),
 		});
-		const report = astro.run("build", { dryRun: true, required: true });
+		const report = astromech.run("build", { dryRun: true, required: true });
 		expect(report.status).toBe("fail"); // no build tooling + required
 	});
 
 	it("routes a structured logger through to run lines", () => {
 		const warn = vi.fn();
-		const astro = createAstromech({
+		const astromech = createAstromech({
 			...fs({ "package.json": PKG }),
 			logger: { debug: () => {}, warn },
 			print: () => {},
 		});
-		astro.run("frobnicate");
+		astromech.run("frobnicate");
 		expect(warn).toHaveBeenCalledWith(expect.objectContaining({ status: "unknown" }), expect.any(String));
 	});
 });
