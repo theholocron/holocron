@@ -8,14 +8,14 @@ const node = (): Capability => ({
 	id: "node",
 	providers: { source: "github", ci: "github" },
 	repo: { protection: "strict", properties: { lifecycle: "active" } },
-	workflows: ["lint", "test", "codeql"],
+	tasks: ["lint", "test", "codeql"],
 	requiredChecks: ["Lint / Conclusion", "Test / Conclusion"],
 });
 
 const typecheck = (): Capability => ({
 	id: "typecheck",
 	requires: ["node"],
-	workflows: ["typecheck"],
+	tasks: ["typecheck"],
 	requiredChecks: ["Typecheck / Conclusion"],
 });
 
@@ -26,34 +26,34 @@ const docs = (): Capability => ({
 	domain: "theholocron.dev",
 	docs: { build: "workflow", https: true },
 	providers: { deployment: "cloudflare" },
-	workflows: [{ name: "deploy", with: { docs: true, preview: true } }],
+	tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
 	requiredChecks: ["codecov/patch", "codecov/project"],
 });
 
 const audit = (): Capability => ({
 	id: "audit",
 	requires: ["node"],
-	workflows: ["audit"],
+	tasks: ["audit"],
 	requiredChecks: ["audit / Conclusion"],
 });
 
 describe("compose()", () => {
-	it("merges workflows from multiple capabilities", () => {
+	it("merges tasks from multiple capabilities", () => {
 		const preset = compose(node(), typecheck());
-		expect(preset.workflows).toContainEqual("lint");
-		expect(preset.workflows).toContainEqual("test");
-		expect(preset.workflows).toContainEqual("typecheck");
+		expect(preset.tasks).toContainEqual("lint");
+		expect(preset.tasks).toContainEqual("test");
+		expect(preset.tasks).toContainEqual("typecheck");
 	});
 
-	it("deduplicates workflows by name — last writer wins", () => {
+	it("deduplicates tasks by name — last writer wins", () => {
 		const override: Capability = {
 			id: "override",
-			workflows: [{ name: "test", with: { "run-unit": false } }],
+			tasks: [{ name: "test", with: { "run-unit": false } }],
 		};
 		const preset = compose(node(), override);
-		const testEntry = preset.workflows.find((w) => (typeof w === "string" ? w : w.name) === "test");
+		const testEntry = preset.tasks.find((w) => (typeof w === "string" ? w : w.name) === "test");
 		expect(testEntry).toEqual({ name: "test", with: { "run-unit": false } });
-		expect(preset.workflows.filter((w) => (typeof w === "string" ? w : w.name) === "test")).toHaveLength(1);
+		expect(preset.tasks.filter((w) => (typeof w === "string" ? w : w.name) === "test")).toHaveLength(1);
 	});
 
 	it("unions requiredChecks without duplicates", () => {
@@ -112,11 +112,11 @@ describe("compose()", () => {
 	});
 
 	it("deduplicates capabilities by id — last wins", () => {
-		const first: Capability = { id: "x", workflows: ["lint"], requiredChecks: ["Lint / Conclusion"] };
-		const second: Capability = { id: "x", workflows: ["test"], requiredChecks: ["Test / Conclusion"] };
+		const first: Capability = { id: "x", tasks: ["lint"], requiredChecks: ["Lint / Conclusion"] };
+		const second: Capability = { id: "x", tasks: ["test"], requiredChecks: ["Test / Conclusion"] };
 		const preset = compose(first, second);
-		expect(preset.workflows).toContainEqual("test");
-		expect(preset.workflows).not.toContainEqual("lint");
+		expect(preset.tasks).toContainEqual("test");
+		expect(preset.tasks).not.toContainEqual("lint");
 		expect(preset.repo.requiredChecks).toContain("Test / Conclusion");
 		expect(preset.repo.requiredChecks).not.toContain("Lint / Conclusion");
 	});
@@ -124,8 +124,8 @@ describe("compose()", () => {
 	it("flattens nested Capability[] from bundle presets", () => {
 		const bundle = (): Capability[] => [typecheck(), audit()];
 		const preset = compose(node(), bundle());
-		expect(preset.workflows).toContainEqual("typecheck");
-		expect(preset.workflows).toContainEqual("audit");
+		expect(preset.tasks).toContainEqual("typecheck");
+		expect(preset.tasks).toContainEqual("audit");
 	});
 
 	it("throws ConfigError listing all unmet dependencies at once", () => {

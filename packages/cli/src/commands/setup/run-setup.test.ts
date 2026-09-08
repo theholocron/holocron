@@ -392,7 +392,7 @@ describe("runSetup", () => {
 			name: "my-docs",
 			org: "acme",
 			docs: { build: "workflow", domain: "acme.dev", https: true },
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
@@ -447,7 +447,7 @@ describe("runSetup", () => {
 			name: "my-docs",
 			org: "acme",
 			domain: "acme.dev",
-			workflows: [{ name: "deploy", with: { docs: true, preview: true } }],
+			tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
 			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -496,7 +496,7 @@ describe("runSetup", () => {
 		const customDomainCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			tasks: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
 			providers: { vault: "1password", deployment: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -522,7 +522,7 @@ describe("runSetup", () => {
 		const domainCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
@@ -551,7 +551,7 @@ describe("runSetup", () => {
 		const dnsCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
@@ -580,7 +580,7 @@ describe("runSetup", () => {
 		const customDomainCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			workflows: ["deploy"],
+			tasks: ["deploy"],
 			providers: { vault: "1password", deployment: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -764,7 +764,7 @@ describe("runSetup", () => {
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "codeql"],
+			tasks: ["lint", "codeql"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -802,7 +802,7 @@ describe("runSetup", () => {
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint"],
+			tasks: ["lint"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -917,7 +917,7 @@ describe("runSetup", () => {
 	it("skips disableDefaultCodeScanning when the API returns 403 plan restriction", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["codeql"],
+			tasks: ["codeql"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -993,12 +993,12 @@ describe("runSetup", () => {
 		expect(policySteps[0]?.status).toBe("ok");
 	});
 
-	it("derives required_status_checks from configured workflows when repo.protection is 'strict'", async () => {
+	it("derives required_status_checks from configured tasks when repo.protection is 'strict'", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			workflows: ["lint", "test", "typecheck"],
+			tasks: ["lint", "test", "typecheck"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1043,7 +1043,7 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict", requiredChecks: ["some-extra-check"] },
-			workflows: ["lint"],
+			tasks: ["lint"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1085,8 +1085,8 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			// "test" appears as both a plain string and an override object — simulates ...workflows spread + explicit override
-			workflows: ["test", { name: "test", with: { "run-unit": true } }],
+			// "test" appears as both a plain string and an override object — simulates ...tasks spread + explicit override
+			tasks: ["test", { name: "test", with: { "run-unit": true } }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1199,7 +1199,7 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			workflows: ["lint", "test"],
+			tasks: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1226,7 +1226,7 @@ describe("runSetup", () => {
 		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
 		expect(rulesetStep?.status).toBe("ok");
 		expect(rulesetStep?.message).toBe("classic protection on main");
-		// strict + workflows → required_status_checks should be set (covers buildClassicProtectionPayload with checks)
+		// strict + tasks → required_status_checks should be set (covers buildClassicProtectionPayload with checks)
 		expect((classicPayload as unknown as Record<string, unknown>)?.required_status_checks).not.toBeNull();
 	});
 
@@ -1358,11 +1358,11 @@ describe("runSetup", () => {
 		expect(settingsCalled).toBe(false);
 	});
 
-	it("writes thin wrapper files for each workflow listed in project.workflows", async () => {
+	it("writes thin wrapper files for each workflow listed in project.tasks", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "test", "typecheck"],
+			tasks: ["lint", "test", "typecheck"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1401,7 +1401,7 @@ describe("runSetup", () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [{ name: "deploy", with: { docs: true } }],
+			tasks: [{ name: "deploy", with: { docs: true } }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1434,7 +1434,7 @@ describe("runSetup", () => {
 			name: "my-docs",
 			org: "acme",
 			docs: { build: "workflow", domain: "acme.dev", https: true },
-			workflows: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			tasks: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1462,7 +1462,7 @@ describe("runSetup", () => {
 		expect(written["deploy.yml"]).toContain("cloudflare-project: acme-preview");
 	});
 
-	it("skips workflow writing when project.workflows is absent", async () => {
+	it("skips workflow writing when project.tasks is absent", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1493,7 +1493,7 @@ describe("runSetup", () => {
 	it("reports skip for an unknown workflow name", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "not-a-real-workflow"],
+			tasks: ["lint", "not-a-real-workflow"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1526,7 +1526,7 @@ describe("runSetup", () => {
 	it("throws ConfigError when test workflow has both run-unit and run-storybook set to false", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [{ name: "test", with: { "run-unit": false, "run-storybook": false } }],
+			tasks: [{ name: "test", with: { "run-unit": false, "run-storybook": false } }],
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1550,7 +1550,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [{ name: "test", with: { "run-unit": true, "run-storybook": false } }],
+			tasks: [{ name: "test", with: { "run-unit": true, "run-storybook": false } }],
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1577,7 +1577,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "test",
 					with: {
@@ -1621,7 +1621,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "test",
 					with: {
@@ -1667,7 +1667,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "release",
 					with: { "run-build": true, "extra-tags": ["v1", "latest"] as unknown as boolean },
@@ -1699,7 +1699,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: {
@@ -1740,7 +1740,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: {
@@ -1783,7 +1783,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: true },
@@ -1819,7 +1819,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: {
@@ -1855,7 +1855,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: {
@@ -1890,7 +1890,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { storybook: [{ name: "app" }] },
@@ -1924,7 +1924,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { storybook: [{ name: "ui", path: "" }] },
@@ -1957,7 +1957,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: true },
@@ -1991,7 +1991,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: { path: "packages/site" } },
@@ -2024,7 +2024,7 @@ describe("runSetup", () => {
 		const writtenFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: [
+			tasks: [
 				{
 					name: "deploy",
 					with: { docs: { path: "." } },
@@ -2056,7 +2056,7 @@ describe("runSetup", () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "test"],
+			tasks: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -2172,7 +2172,7 @@ describe("runSetup", () => {
 		const workflowFiles: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "bookkeeping"],
+			tasks: ["lint", "bookkeeping"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -2212,7 +2212,7 @@ describe("runSetup", () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			workflows: ["lint", "test"],
+			tasks: ["lint", "test"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -3033,7 +3033,7 @@ describe("setup: write codecov.yml", () => {
 		});
 
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
@@ -3075,7 +3075,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -3132,7 +3132,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -3156,7 +3156,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -3180,7 +3180,7 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", workflows: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
