@@ -1,3 +1,13 @@
+## [8.0.0](https://github.com/theholocron/configs/compare/v7.33.0...v8.0.0) (2026-09-08)
+
+### ⚠ BREAKING CHANGES
+
+* ✨ rename capability workflows → tasks (@theholocron/cli >=4) (#442)
+
+### Features
+
+* ✨ rename capability workflows → tasks (@theholocron/cli >=4) ([#442](https://github.com/theholocron/configs/issues/442)) ([276589d](https://github.com/theholocron/configs/commit/276589de0083602c175342d91d31615f02c65462)), closes [theholocron/holocron#594](https://github.com/theholocron/holocron/issues/594) [theholocron/holocron#593](https://github.com/theholocron/holocron/issues/593)
+
 ## [7.33.0](https://github.com/theholocron/configs/compare/v7.32.2...v7.33.0) (2026-09-06)
 
 ### Features
