@@ -143,6 +143,13 @@ describe("loadConfig", () => {
 		expect(resolved.name).toBe(basename(cwd));
 	});
 
+	it("falls back to directory basename when package.json has no name", async () => {
+		await writeFile(join(cwd, "package.json"), JSON.stringify({ version: "1.0.0" }));
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ providers: { source: "github" } }));
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe(basename(cwd));
+	});
+
 	it("does not override name when explicitly set in config", async () => {
 		await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "from-package-json" }));
 		await writeFile(
@@ -195,5 +202,16 @@ describe("loadConfig", () => {
 		);
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.repo?.name).toBe("theholocron/explicit");
+	});
+
+	it("leaves repo.name absent for a non-GitHub remote", async () => {
+		execSync("git init", { cwd });
+		execSync("git remote add origin https://gitlab.com/theholocron/my-app.git", { cwd });
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", repo: {}, providers: { source: "github" } })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.repo?.name).toBeUndefined();
 	});
 });

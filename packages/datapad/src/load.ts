@@ -103,12 +103,9 @@ async function loadFile<T>(filepath: string, ext: string): Promise<T> {
 }
 
 async function loadJson<T>(filepath: string): Promise<T> {
-	let text: string;
-	try {
-		text = await readFile(filepath, "utf8");
-	} catch (err) {
-		throw new ConfigFileError(`could not read ${filepath}: ${message(err)}`, filepath);
-	}
+	// `loadConfigFile` has already confirmed the file exists; a read failure
+	// here is a genuine race — let it surface as-is.
+	const text = await readFile(filepath, "utf8");
 	try {
 		return JSON.parse(text) as T;
 	} catch (err) {
@@ -126,25 +123,20 @@ async function importModule(filepath: string): Promise<unknown> {
 
 let tsRegistered: Promise<void> | undefined;
 
+async function registerTsx(): Promise<void> {
+	const { register } = await import("tsx/esm/api");
+	register();
+}
+
 /**
- * Register `tsx`'s ESM loader once per process (lazily — only when a `.ts`
- * config is actually loaded), then load through a plain dynamic import.
- * `register()` is used over `tsImport()` because a single run may load
- * several TS configs (`loadLayered` reads a dedicated file *and* a parent
- * file) and `tsImport`'s one-off register/unregister cycle is not
- * reentrant.
+ * Load a `.ts` config. `tsx`'s ESM loader is registered once per process
+ * (lazily — only when a `.ts` config is actually loaded). `register()` is
+ * used over `tsImport()` because a single run may load several TS configs
+ * (`loadLayered` reads a dedicated file *and* a parent file) and
+ * `tsImport`'s one-off register/unregister cycle is not reentrant.
  */
 async function importTs(filepath: string): Promise<unknown> {
-	if (!tsRegistered) {
-		tsRegistered = import("tsx/esm/api")
-			.then(({ register }) => {
-				register();
-			})
-			.catch((err: unknown) => {
-				tsRegistered = undefined;
-				throw new ConfigFileError(`tsx is required to load ${filepath}: ${message(err)}`, filepath);
-			});
-	}
+	tsRegistered ??= registerTsx();
 	await tsRegistered;
 	try {
 		return (await import(pathToFileURL(filepath).href)) as unknown;

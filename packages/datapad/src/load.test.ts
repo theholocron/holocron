@@ -43,7 +43,15 @@ describe("loadConfigFile", () => {
 		expect((await loadConfigFile<{ name: string }>({ cwd, name: "app" }))?.config).toEqual({ name: "cjs" });
 	});
 
-	it("loads a .ts config via tsImport", async () => {
+	it("unwraps the __esModule double-wrap a CJS transform produces", async () => {
+		await writeFile(
+			join(cwd, "app.config.cjs"),
+			`module.exports = { __esModule: true, default: { name: "esm" } };`
+		);
+		expect((await loadConfigFile<{ name: string }>({ cwd, name: "app" }))?.config).toEqual({ name: "esm" });
+	});
+
+	it("loads a .ts config via tsx", async () => {
 		await writeFile(join(cwd, "app.config.ts"), `export default { name: "ts" } as const;`);
 		expect((await loadConfigFile<{ name: string }>({ cwd, name: "app" }))?.config).toEqual({ name: "ts" });
 	});
@@ -94,6 +102,13 @@ describe("loadConfigFile", () => {
 		const err = await loadConfigFile({ cwd, name: "app" }).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigFileError);
 		expect((err as ConfigFileError).message).toMatch(/could not load/);
+	});
+
+	it("stringifies a non-Error throw in the failure message", async () => {
+		await writeFile(join(cwd, "app.config.ts"), `throw "plain string boom";`);
+		const err = await loadConfigFile({ cwd, name: "app" }).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ConfigFileError);
+		expect((err as ConfigFileError).message).toMatch(/plain string boom/);
 	});
 });
 
