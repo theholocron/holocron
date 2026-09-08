@@ -1,5 +1,5 @@
 ---
-status: archived
+status: proposed
 issue: theholocron/holocron#438
 blocked-by: []
 ---
