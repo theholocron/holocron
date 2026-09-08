@@ -209,13 +209,15 @@ all three. See the [telemetry guide](https://docs.theholocron.dev/holocron/telem
   implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`
-- `src/load-config.ts` — `loadConfig` — reads JSON/JS/TS config files
+- `src/config/load-config.ts` — `loadConfig` — reads `holocron.config.*`
+  (file discovery via [`@theholocron/datapad`](../datapad))
 - `src/define-config.ts` — `defineConfig` typed pass-through
 - `src/logger.ts` — CLI-side `@theholocron/logger` wiring (`buildCliLogger`,
   `resolveLogLevel`)
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
-- `src/cli.ts` — yargs entry, dispatches subcommands
+- `src/cli.ts` — yargs entry, dispatches subcommands. `holocron run` is
+  delegated to [`@theholocron/astromech`](../astromech) (`createAstromech`).
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
   `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
   `plugin create`, `auth`

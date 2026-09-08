@@ -1279,13 +1279,13 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflows");
 			expect(step?.status).toBe("skip");
-			expect(step?.message).toBe("no workflows configured");
+			expect(step?.message).toBe("no tasks configured");
 		});
 
 		it("writes a plain workflow thin caller to .github/workflows/", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				workflows: ["lint"],
+				tasks: ["lint"],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1308,7 +1308,7 @@ describe("runSync", () => {
 		it("writes a plain deploy thin caller when deploy has with: but no preview", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				workflows: [{ name: "deploy", with: { type: "storybook" } }],
+				tasks: [{ name: "deploy", with: { type: "storybook" } }],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1333,7 +1333,7 @@ describe("runSync", () => {
 				name: "demo",
 				org: "theholocron",
 				domain: "theholocron.dev",
-				workflows: [{ name: "deploy", with: { docs: true, preview: true } }],
+				tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1358,7 +1358,7 @@ describe("runSync", () => {
 		it("skips unknown workflow names", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				workflows: ["nonexistent"],
+				tasks: ["nonexistent"],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1379,7 +1379,7 @@ describe("runSync", () => {
 		it("reports dry-run status without writing files", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				workflows: ["lint"],
+				tasks: ["lint"],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1400,7 +1400,7 @@ describe("runSync", () => {
 		it("runs without a provider token (is a local step)", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				workflows: ["lint"],
+				tasks: ["lint"],
 				providers: { source: "github" },
 			});
 			// Loader throws AuthError — simulates missing provider token.

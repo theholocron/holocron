@@ -51,6 +51,10 @@ navigation:
             path: ../docs/wiki/decisions/0007-structured-logging-pino-axiom.md
           - page: ADR-0008 — CLI usage telemetry PostHog
             path: ../docs/wiki/decisions/0008-cli-usage-telemetry-posthog.md
+          - page: ADR-0009 — astromech task-runner package
+            path: ../docs/wiki/decisions/0009-astromech-task-runner-package.md
+          - page: ADR-0010 — datapad config loader
+            path: ../docs/wiki/decisions/0010-datapad-config-loader.md
 
   - tab: standards
     layout:

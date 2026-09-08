@@ -2,11 +2,11 @@ import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
 import { nodeDocs } from "@theholocron/holocron-config";
 
-// nodeDocs() provides: org, domain, docs, strict repo protection, standard
-// Node.js workflows (lint, test, codeql, review, stale, greetings, dependencies,
-// bookkeeping, typecheck, deploy), and base providers (source, ci, issues,
-// deployment, dns, workers).
-const { repo, workflows, providers, org, domain, docs } = nodeDocs();
+// nodeDocs() provides: org, domain, docs, strict repo protection, the standard
+// Node.js task set (lint, test, security, review, stale, greetings,
+// dependencies, bookkeeping, typecheck, deploy), and base providers (source,
+// ci, issues, deployment, dns, workers).
+const { repo, tasks: presetTasks, providers, org, domain, docs } = nodeDocs();
 
 export default defineConfig({
 	description:
@@ -24,7 +24,9 @@ export default defineConfig({
 			// tsdown build check — every workspace package must compile
 			"tsdown (every workspace)",
 			// per-package Codecov coverage gates
+			"codecov/patch/astromech",
 			"codecov/patch/cli",
+			"codecov/patch/datapad",
 			"codecov/patch/holocron-plugin-1password",
 			"codecov/patch/holocron-plugin-axiom",
 			"codecov/patch/holocron-plugin-clerk",
@@ -42,8 +44,8 @@ export default defineConfig({
 			"codecov/patch/holocron-plugin-vercel",
 		],
 	},
-	workflows: [
-		...workflows,
+	tasks: [
+		...presetTasks,
 		// Audit: enable Knip dead-code analysis on top of the standard bundle audit
 		{ name: "audit", with: { "run-knip": true } },
 		// Release: tag Sentry releases for the CLI package

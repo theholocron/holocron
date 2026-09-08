@@ -282,9 +282,11 @@ export interface HolocronConfig {
 	 */
 	repo?: RepoConfig;
 	/**
-	 * CI workflow names to install as thin wrappers during `holocron setup`.
-	 * Each name maps to a reusable workflow in `theholocron/.github`.
-	 * Use the object form to pass `with:` inputs to the reusable workflow.
+	 * The task manifest — what this repo runs. Each entry is a task name
+	 * (backed by a reusable workflow in `theholocron/.github`), or the object
+	 * form to pass `with:` inputs. `@theholocron/astromech` reads this as the
+	 * single source for `holocron run` / `holocron ci` / the generated CI
+	 * workflows / `package.json` scripts.
 	 *
 	 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
 	 *   "release" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit" |
@@ -340,7 +342,7 @@ export interface HolocronConfig {
 	 * ["lint", { "name": "release", "with": { "run-build": false } }]
 	 * { "name": "deploy", "with": { "docs": true } }
 	 */
-	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
+	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -413,7 +415,7 @@ export interface ResolvedHolocronConfig {
 	org?: string;
 	domain?: string;
 	repo?: RepoConfig;
-	workflows?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
+	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
@@ -553,7 +555,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		org: raw.org,
 		domain: raw.domain,
 		repo: raw.repo,
-		workflows: raw.workflows,
+		tasks: raw.tasks,
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},

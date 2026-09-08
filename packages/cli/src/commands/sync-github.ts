@@ -62,15 +62,15 @@ export interface SyncGithubReport {
 }
 
 type FileBatch = Array<{ path: string; content: string }>;
-type WorkflowEntry = { name: string; with?: Record<string, unknown> };
+type TaskEntry = { name: string; with?: Record<string, unknown> };
 
 /**
- * Extracts the `workflows` array from a `holocron.config.ts` source string.
+ * Extracts the `tasks` array from a `holocron.config.ts` source string.
  * Handles both plain string entries and `{ name, with }` object entries.
  * Falls back to an empty array if the array cannot be found or parsed.
  */
-export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
-	const keyMatch = source.match(/\bworkflows\s*:\s*\[/);
+export function parseTasksFromTs(source: string): TaskEntry[] {
+	const keyMatch = source.match(/\btasks\s*:\s*\[/);
 	if (!keyMatch) return [];
 
 	// Walk forward to find the matching ]
@@ -84,12 +84,12 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 	}
 	const body = source.slice(start, i - 1);
 
-	// Detect spread operators like ...workflows (from node() / react() presets).
-	// When present, all known workflows are included as defaults so the sync
-	// doesn't silently skip workflows that come from the preset.
+	// Detect spread operators like ...tasks (from node() / react() presets).
+	// When present, all known tasks are included as defaults so the sync
+	// doesn't silently skip tasks that come from the preset.
 	const hasPresetSpread = /\.\.\.[a-zA-Z_$][a-zA-Z0-9_$]*/.test(body);
 
-	const explicit: Array<{ pos: number; entry: WorkflowEntry }> = [];
+	const explicit: Array<{ pos: number; entry: TaskEntry }> = [];
 	const objSpans: Array<[number, number]> = [];
 
 	// Pass 1: extract top-level { ... } objects using bracket counting so that
@@ -149,7 +149,7 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 		explicit.push({ pos: objStart, entry: { name, ...(withObj && { with: withObj }) } });
 	}
 
-	// Pass 2: simple string entries — "workflowname" — skip chars inside object spans
+	// Pass 2: simple string entries — "taskname" — skip chars inside object spans
 	const strRe = /"([^"]+)"/g;
 	let m: RegExpExecArray | null;
 	while ((m = strRe.exec(body)) !== null) {
@@ -163,9 +163,9 @@ export function parseWorkflowsFromTs(source: string): WorkflowEntry[] {
 
 	if (!hasPresetSpread) return explicitEntries;
 
-	// Spread detected: seed with all known workflows, then let explicit entries
+	// Spread detected: seed with all known tasks, then let explicit entries
 	// override (e.g. to carry their with: overrides).
-	const merged = new Map<string, WorkflowEntry>([...KNOWN_WORKFLOWS].map((name) => [name, { name }]));
+	const merged = new Map<string, TaskEntry>([...KNOWN_WORKFLOWS].map((name) => [name, { name }]));
 	for (const entry of explicitEntries) {
 		merged.set(entry.name, entry);
 	}
@@ -181,9 +181,9 @@ export function parseOrgContextFromTs(source: string): OrgContext {
 	// Match top-level `domain: "..."` — the org canonical domain from which preview
 	// subdomains are derived (e.g. "theholocron.dev" → preview.theholocron.dev).
 	const domainMatch = source.match(/\bdomain\s*:\s*["']([^"']+)["']/);
-	// Match `name: "..."` only before `workflows:` so workflow-entry names are excluded.
-	const beforeWorkflows = source.split(/\bworkflows\s*:/)[0]!;
-	const nameMatch = beforeWorkflows.match(/\bname\s*:\s*["']([^"']+)["']/);
+	// Match `name: "..."` only before `tasks:` so task-entry names are excluded.
+	const beforeTasks = source.split(/\btasks\s*:/)[0]!;
+	const nameMatch = beforeTasks.match(/\bname\s*:\s*["']([^"']+)["']/);
 	return {
 		org: orgMatch?.[1],
 		domain: domainMatch?.[1],
