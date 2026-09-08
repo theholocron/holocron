@@ -317,17 +317,18 @@ inherit`, `with:` overrides applied.
 
 Tracking epic: **#581**.
 
-| #    | Scope                                                                                                                                                                                   | Issue |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| 1 ✅ | `tasks.ts` + `holocron run <task>` in `packages/cli` (test / typecheck / lint / build), resolution 3–4–6 + 8–9, PM + turbo detection, tests, docs.                                      | #590  |
-| 2a   | Extract `@theholocron/datapad` (ADR-0010) — generic config loader; `@theholocron/cli` migrates `holocron.config.*` loading to it.                                                       | #582  |
-| 2b   | Scaffold `@theholocron/astromech` + `/config`; move `tasks.ts` + `run.ts`; schema + `defineConfig` on top of datapad; CLI calls `createAstromech`. `config.workflows` → `config.tasks`. | #583  |
-| 3    | Move `setup-workflows/` + templates; `astro.thinCallers()` / `astro.packageScripts()`; `holocron sync` script step; supersede #566 / #570.                                              | #584  |
-| 4    | Lint parity: linter manifest + auto-detect; `astro.superLinterConfig()`; `holocron run lint` runs the set natively.                                                                     | #585  |
-| 5    | `holocron ci` + `astro.ci()`; `required` flags; `astro.requiredChecks()` feeds `holocron setup`; `pre-push` hook; CLAUDE.md + skill step.                                               | #586  |
-| 6    | Move `sync-github` template-push core; `.github` becomes a pure target.                                                                                                                 | #587  |
-| 7    | `holocron run <task> <job>` + `audit` sub-jobs (step 7).                                                                                                                                | #588  |
-| 8    | CI reusable-workflow run steps call `holocron run` / `holocron ci`.                                                                                                                     | #589  |
+| #    | Scope                                                                                                                                                                                                                                                                    | Issue |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| 1 ✅ | `tasks.ts` + `holocron run <task>` in `packages/cli` (test / typecheck / lint / build), resolution 3–4–6 + 8–9, PM + turbo detection, tests, docs.                                                                                                                       | #590  |
+| 2a   | Extract `@theholocron/datapad` (ADR-0010) — generic config loader; `@theholocron/cli` migrates `holocron.config.*` loading to it.                                                                                                                                        | #582  |
+| 2b   | Scaffold `@theholocron/astromech` + `/config`; move `tasks.ts` → `registry.ts` + `commands/run.ts` → `run.ts`; `TasksConfig` schema + `defineConfig` + `loadTasksConfig` on top of datapad; `createAstromech({ cwd })` → `{ run }`; CLI's `run` command delegates.       | #583  |
+| 2c   | `config.workflows` → `config.tasks` hard rename — `HolocronConfig` schema, `compose.ts`, `holocron.config.ts`, and the `@theholocron/holocron-config` preset (companion PR in `theholocron/configs`). Wire `loadTasksConfig` into the resolver (`local: false`, `with`). | #583  |
+| 3    | Move `setup-workflows/` + templates; `astro.thinCallers()` / `astro.packageScripts()`; `holocron sync` script step; supersede #566 / #570.                                                                                                                               | #584  |
+| 4    | Lint parity: linter manifest + auto-detect; `astro.superLinterConfig()`; `holocron run lint` runs the set natively.                                                                                                                                                      | #585  |
+| 5    | `holocron ci` + `astro.ci()`; `required` flags; `astro.requiredChecks()` feeds `holocron setup`; `pre-push` hook; CLAUDE.md + skill step.                                                                                                                                | #586  |
+| 6    | Move `sync-github` template-push core; `.github` becomes a pure target.                                                                                                                                                                                                  | #587  |
+| 7    | `holocron run <task> <job>` + `audit` sub-jobs (step 7).                                                                                                                                                                                                                 | #588  |
+| 8    | CI reusable-workflow run steps call `holocron run` / `holocron ci`.                                                                                                                                                                                                      | #589  |
 
 ## Test plan
 

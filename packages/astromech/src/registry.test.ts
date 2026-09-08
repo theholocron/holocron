@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { KNOWN_TASKS, TASKS } from "./tasks.js";
+import { KNOWN_TASKS, TASKS } from "./registry.js";
 
 describe("TASKS registry", () => {
 	it("keys are lower-case task names matching workflow templates", () => {

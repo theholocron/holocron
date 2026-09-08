@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { input, select } from "@inquirer/prompts";
+import { createAstromech } from "@theholocron/astromech";
 import type { LogLevel } from "@theholocron/logger";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -17,7 +18,6 @@ import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runTask } from "./commands/run.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -587,11 +587,10 @@ try {
 						describe: "Fail (exit 1) if this repo has no such task, instead of skipping.",
 					}),
 			(argv) => {
-				buildCliLogger(argv, { command: "run" });
-				const report = runTask({
-					task: argv.task as string,
+				const { logger } = buildCliLogger(argv, { command: "run" });
+				const astro = createAstromech({ cwd: argv.cwd, logger });
+				const report = astro.run(argv.task as string, {
 					passthrough: (argv.passthrough as string[] | undefined) ?? [],
-					cwd: argv.cwd,
 					dryRun: argv.dryRun,
 					required: argv.required,
 				});

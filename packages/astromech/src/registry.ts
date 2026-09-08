@@ -1,14 +1,11 @@
 /**
- * The task registry — how each `config.workflows` entry runs *locally*,
- * without GitHub Actions. `holocron run <task>` and `holocron ci` resolve
- * against this; adding a task here gives every repo that task.
+ * The task registry — how each task runs *locally*, without GitHub
+ * Actions. `holocron run <task>` and `holocron ci` resolve against this;
+ * adding a task here gives every repo that task.
  *
- * Keyed identically to `WORKFLOW_TEMPLATES` in
- * `commands/setup-workflows/index.ts` — a task IS a workflow.
+ * Keyed identically to the workflow templates — a task IS a workflow.
  *
  * Spec: `.notes/tech-astromech-task-runner.spec.md` (epic #581).
- * Phase 1 — this lives in `packages/cli` for now; it moves into
- * `@theholocron/astromech` at Phase 2b (#583).
  */
 
 /** How to run one task (or job) locally. */
@@ -66,5 +63,5 @@ export const TASKS: Record<string, TaskDef> = {
 	deploy: { local: null },
 };
 
-/** Every task name the registry knows — the `config.workflows` names too. */
+/** Every task name the registry knows. */
 export const KNOWN_TASKS = new Set(Object.keys(TASKS));

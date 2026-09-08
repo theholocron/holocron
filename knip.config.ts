@@ -39,6 +39,11 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
+		"packages/astromech": {
+			// src/index.ts + src/config/index.ts auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 	},
 	ignoreDependencies: [
 		// Loaded at runtime by the CLI plugin loader — not statically imported

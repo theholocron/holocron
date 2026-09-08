@@ -1,11 +1,12 @@
 /**
  * `holocron run <task> [-- <passthrough>]` — run a registry task locally.
  *
- * Resolution (Phase 1, spec `.notes/tech-astromech-task-runner.spec.md`, epic #581):
+ * Resolution:
  *
  *   1. turbo.json defines the task            → `turbo run <task>`
- *   2. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
- *   3. package.json has a `<task>` script     → `<pm> run <task>`
+ *   2. package.json has a `<task>` script     → `<pm> run <task>`
+ *      (unless it's the `holocron run …` thin caller — that recurses)
+ *   3. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
  *   4. known task, nothing to run             → "no <task> task" (exit 0, or 1 with --required)
  *   5. unknown task                           → "unknown task" (exit 1)
  */
@@ -14,12 +15,17 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { Logger } from "@theholocron/logger";
+import { KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
 
-import { getLogger } from "../logger.js";
-import { KNOWN_TASKS, type LocalRunner, TASKS } from "../tasks.js";
+/** Minimal structural logger — `@theholocron/logger`'s `Logger` satisfies it. */
+export interface RunLogger {
+	debug(obj: Record<string, unknown>, msg?: string): void;
+	warn(obj: Record<string, unknown>, msg?: string): void;
+}
 
-type ExecFn = (cmd: string, args: string[], opts: { cwd: string }) => { exitCode: number };
+const noopLogger: RunLogger = { debug() {}, warn() {} };
+
+export type ExecFn = (cmd: string, args: string[], opts: { cwd: string }) => { exitCode: number };
 
 const defaultExec: ExecFn = (cmd, args, opts) => {
 	const result = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
@@ -39,7 +45,7 @@ export interface RunTaskInput {
 	required?: boolean;
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. */
-	logger?: Logger;
+	logger?: RunLogger;
 	/** Injectable subprocess runner. */
 	exec?: ExecFn;
 	/** Injectable for tests. */
@@ -57,7 +63,7 @@ export interface RunTaskReport {
 
 export function runTask(input: RunTaskInput): RunTaskReport {
 	const print = input.print ?? ((line: string) => console.log(line));
-	const logger = input.logger ?? getLogger();
+	const logger = input.logger ?? noopLogger;
 	const exec = input.exec ?? defaultExec;
 	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
 	const fileExists = input.fileExists ?? ((p: string) => existsSync(p));
