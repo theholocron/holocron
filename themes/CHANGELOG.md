@@ -1,3 +1,10 @@
+## [1.10.1](https://github.com/theholocron/themes/compare/v1.10.0...v1.10.1) (2026-09-08)
+
+### Chores
+
+* **deps:** Bump @types/node from 24.13.3 to 26.4.1 ([#101](https://github.com/theholocron/themes/issues/101)) ([3be9e0a](https://github.com/theholocron/themes/commit/3be9e0a50b07d455e06dee79baef22c33c77d5a5))
+* **deps:** Bump globals from 15.15.0 to 17.12.0 ([#99](https://github.com/theholocron/themes/issues/99)) ([b9499e0](https://github.com/theholocron/themes/commit/b9499e0d3c64b937af535294871963de9ca34420))
+
 ## [1.10.0](https://github.com/theholocron/themes/compare/v1.9.3...v1.10.0) (2026-09-06)
 
 ### Features
