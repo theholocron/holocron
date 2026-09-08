@@ -18,7 +18,7 @@ import {
 import {
 	gitBlobSha as _gitBlobSha,
 	parseOrgContextFromTs,
-	parseWorkflowsFromTs,
+	parseTasksFromTs,
 	runSyncGithub,
 } from "./sync-github.js";
 
@@ -696,22 +696,22 @@ describe("generateThinCallerContent", () => {
 	});
 });
 
-describe("parseWorkflowsFromTs", () => {
+describe("parseTasksFromTs", () => {
 	it("returns explicit string and object entries when no spread", () => {
 		const source = `export default defineConfig({
-	workflows: ["lint", { name: "release", with: { "run-build": true } }],
+	tasks: ["lint", { name: "release", with: { "run-build": true } }],
 });`;
-		const result = parseWorkflowsFromTs(source);
+		const result = parseTasksFromTs(source);
 		expect(result.map((e) => e.name)).toEqual(["lint", "release"]);
 		expect(result.find((e) => e.name === "release")?.with).toEqual({ "run-build": true });
 	});
 
-	it("includes all known workflows when spread is present", () => {
-		const source = `const { workflows } = node();
+	it("includes all known tasks when spread is present", () => {
+		const source = `const { tasks } = node();
 export default defineConfig({
-	workflows: [...workflows, "audit", { name: "deploy", with: { docs: true } }],
+	tasks: [...tasks, "audit", { name: "deploy", with: { docs: true } }],
 });`;
-		const result = parseWorkflowsFromTs(source);
+		const result = parseTasksFromTs(source);
 		const names = result.map((e) => e.name);
 		expect(names).toContain("lint");
 		expect(names).toContain("test");
@@ -721,11 +721,11 @@ export default defineConfig({
 	});
 
 	it("explicit overrides take precedence over spread defaults when spread present", () => {
-		const source = `const { workflows } = node();
+		const source = `const { tasks } = node();
 export default defineConfig({
-	workflows: [...workflows, { name: "test", with: { "run-unit": false } }],
+	tasks: [...tasks, { name: "test", with: { "run-unit": false } }],
 });`;
-		const result = parseWorkflowsFromTs(source);
+		const result = parseTasksFromTs(source);
 		const testEntry = result.find((e) => e.name === "test");
 		expect(testEntry?.with).toEqual({ "run-unit": false });
 	});
@@ -736,7 +736,7 @@ export default defineConfig({
 		// The key-quoting regex handles unquoted keys; trailing comma stripping is needed
 		// because TS allows trailing commas but JSON.parse does not.
 		const source = `export default defineConfig({
-	workflows: [
+	tasks: [
 		{
 			name: "test",
 			with: {
@@ -749,7 +749,7 @@ export default defineConfig({
 		},
 	],
 });`;
-		const result = parseWorkflowsFromTs(source);
+		const result = parseTasksFromTs(source);
 		const testEntry = result.find((e) => e.name === "test");
 		expect(testEntry?.with).toEqual({
 			"run-unit": false,
@@ -860,7 +860,7 @@ describe("parseOrgContextFromTs", () => {
 	name: "holocron",
 	org: "theholocron",
 	domain: "theholocron.dev",
-	workflows: [
+	tasks: [
 		{ name: "deploy", with: { docs: true } },
 	],
 });`;
@@ -872,7 +872,7 @@ describe("parseOrgContextFromTs", () => {
 
 	it("does not pick up workflow entry names as repoName", () => {
 		const source = `export default defineConfig({
-	workflows: [
+	tasks: [
 		{ name: "deploy", with: { docs: true } },
 	],
 });`;

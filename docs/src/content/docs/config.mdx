@@ -49,11 +49,12 @@ export default defineConfig({
     },
   },
 
-  // CI workflow thin callers written by `holocron setup`.
-  // String form: use default inputs. Object form: pass custom `with:` inputs.
+  // The task manifest — what this repo runs. `@theholocron/astromech` reads it
+  // for `holocron run` / `holocron ci` / the generated CI workflow thin callers.
+  // String form: default inputs. Object form: pass custom `with:` inputs.
   // Supported: "lint" | "test" | "typecheck" | "codeql" | "review" |
   //            "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit"
-  workflows: ["lint", "test", "typecheck", { name: "release", with: { "run-build": false } }, "stale", "greetings"],
+  tasks: ["lint", "test", "typecheck", { name: "release", with: { "run-build": false } }, "stale", "greetings"],
 
   // Agent runtime — determines where skills are installed.
   // "claude" → .claude/skills/<name>  (symlinks to .agents/skills/<name>)

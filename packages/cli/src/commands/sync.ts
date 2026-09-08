@@ -331,17 +331,17 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "workflows") {
-			const workflowEntries = config.workflows ?? [];
-			if (workflowEntries.length === 0) {
+			const taskEntries = config.tasks ?? [];
+			if (taskEntries.length === 0) {
 				steps.push({
 					capability: "local",
 					step: "sync workflows",
 					status: "skip",
-					message: "no workflows configured",
+					message: "no tasks configured",
 				});
 				print(formatSyncStep(steps[steps.length - 1]!));
 			} else {
-				for (const entry of workflowEntries) {
+				for (const entry of taskEntries) {
 					const name = typeof entry === "string" ? entry : entry.name;
 					const rawWith = typeof entry === "object" ? entry.with : undefined;
 					const normalized = rawWith ? normalizeWorkflowWith(rawWith as Record<string, unknown>) : undefined;
