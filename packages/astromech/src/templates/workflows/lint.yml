@@ -1,0 +1,21 @@
+name: Lint
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  issues: write
+  statuses: write
+
+jobs:
+  lint:
+    name: Lint
+    uses: theholocron/.github/.github/workflows/lint.yml@main
+    secrets: inherit
