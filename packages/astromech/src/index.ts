@@ -24,3 +24,15 @@
 export { type Astromech, type AstromechOptions, createAstromech, type RunOptions } from "./astromech.js";
 export { KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
+export {
+	deriveDeployPaths,
+	extractPreviewConfig,
+	generateCombinedDeployContent,
+	generateThinCallerContent,
+	KNOWN_WORKFLOWS,
+	normalizeWorkflowWith,
+	type OrgContext,
+	type PreviewConfig,
+	WORKFLOW_CHECK_CONTEXTS,
+	WORKFLOW_TEMPLATES,
+} from "./thin-callers.js";

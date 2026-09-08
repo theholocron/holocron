@@ -324,6 +324,9 @@ importers:
       '@theholocron/eslint-config':
         specifier: catalog:configs
         version: 8.0.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.11.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
+      '@theholocron/rollup-plugin-transform-template':
+        specifier: workspace:*
+        version: link:../rollup-plugin-transform-template
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.0.0(typescript@5.9.3)
