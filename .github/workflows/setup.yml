@@ -10,7 +10,8 @@ on: # yamllint disable-line rule:truthy
       - alpha
       - main
     paths:
-      - packages/cli/src/commands/setup-workflows/**
+      - packages/astromech/src/templates/workflows/**
+      - packages/cli/src/commands/sync-github.ts
       - packages/cli/src/templates/**
   workflow_dispatch:
 

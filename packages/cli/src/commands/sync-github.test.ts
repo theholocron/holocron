@@ -3,18 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { WORKFLOW_TEMPLATES } from "@theholocron/astromech";
 import { describe, expect, it, vi } from "vitest";
 
-import * as logger from "../logger.js";
 import * as telemetry from "../telemetry.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { fakeLogger } from "../test-utils/fake-logger.js";
-import {
-	extractPreviewConfig,
-	generateCombinedDeployContent,
-	generateThinCallerContent,
-	WORKFLOW_TEMPLATES,
-} from "./setup-workflows/index.js";
 import { gitBlobSha as _gitBlobSha, parseOrgContextFromTs, parseTasksFromTs, runSyncGithub } from "./sync-github.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
@@ -562,135 +556,6 @@ describe("runSyncGithub", () => {
 	});
 });
 
-describe("generateThinCallerContent", () => {
-	it("returns empty string for unknown workflow name", () => {
-		expect(generateThinCallerContent("nonexistent-workflow")).toBe("");
-	});
-
-	it("returns base template unchanged when withOverrides is empty", () => {
-		const base = generateThinCallerContent("test", {});
-		expect(base).toContain("name: Test");
-		expect(base).toContain("secrets: inherit");
-	});
-
-	it("returns base template unchanged when withOverrides is omitted", () => {
-		const base = generateThinCallerContent("test");
-		expect(base).toContain("name: Test");
-		expect(base).toContain("secrets: inherit");
-	});
-
-	it("injects boolean true, boolean false, and string overrides into the with block", () => {
-		// The `test` template already has a `with:` block so overrides are merged in
-		const content = generateThinCallerContent("test", {
-			enable: true,
-			debug: false,
-			version: "1.2.3",
-		});
-		expect(content).toContain("with:");
-		expect(content).toContain("enable: true");
-		expect(content).toContain("debug: false");
-		expect(content).toContain("version: 1.2.3");
-		expect(content).toContain("secrets: inherit");
-	});
-
-	it("injects overrides before secrets: inherit when lint template has no with: block", () => {
-		// The lint template no longer hardcodes enable-auto-commit: true — the
-		// default is injected by the caller (sync.ts / run-setup.ts), not here.
-		const content = generateThinCallerContent("lint", { "yaml-config": "custom.yml" });
-		expect(content).toContain("yaml-config: custom.yml");
-		expect(content).not.toContain("enable-auto-commit");
-	});
-
-	it("replaces an existing key when the override matches it (lint template)", () => {
-		const content = generateThinCallerContent("lint", { "enable-auto-commit": false });
-		// Should have exactly one occurrence of enable-auto-commit, set to false
-		const matches = content.match(/enable-auto-commit:/g);
-		expect(matches).toHaveLength(1);
-		expect(content).toContain("enable-auto-commit: false");
-	});
-
-	it("logs a warning and returns base unchanged when no injection pattern matches", () => {
-		const sentinel = "__test_no_pattern__";
-		WORKFLOW_TEMPLATES[sentinel] = "name: Test\n\njobs:\n  test:\n    uses: some/action@v1\n";
-		const warn = vi.fn();
-		vi.spyOn(logger, "getLogger").mockReturnValue({ warn } as unknown as ReturnType<typeof logger.getLogger>);
-		try {
-			const result = generateThinCallerContent(sentinel, { key: "val" });
-			expect(warn).toHaveBeenCalledWith(
-				expect.objectContaining({ template: sentinel }),
-				expect.stringContaining("could not inject")
-			);
-			expect(result).toBe(WORKFLOW_TEMPLATES[sentinel]);
-		} finally {
-			delete WORKFLOW_TEMPLATES[sentinel];
-			vi.restoreAllMocks();
-		}
-	});
-
-	it("generates bookkeeping thin-caller with pull_request trigger only", () => {
-		const content = generateThinCallerContent("bookkeeping");
-		expect(content).toContain("pull_request:");
-		expect(content).toContain("issues: write");
-		expect(content).toContain("pull-requests: write");
-		expect(content).toContain("secrets: inherit");
-	});
-
-	it("inserts a paths block when the template has none", () => {
-		const content = generateThinCallerContent("deploy", undefined, ["docs/**"]);
-		expect(content).toContain("    paths:");
-		expect(content).toContain("      - docs/**");
-	});
-
-	it("inserts multiple paths in order when the template has none", () => {
-		const content = generateThinCallerContent("deploy", undefined, ["src/**", ".storybook/**"]);
-		expect(content).toContain("- src/**");
-		expect(content).toContain("- .storybook/**");
-		const srcIdx = content.indexOf("- src/**");
-		const sbIdx = content.indexOf("- .storybook/**");
-		expect(srcIdx).toBeLessThan(sbIdx);
-	});
-
-	it("returns template unchanged when additionalPaths is empty", () => {
-		const base = generateThinCallerContent("deploy");
-		const withEmpty = generateThinCallerContent("deploy", undefined, []);
-		expect(withEmpty).toBe(base);
-	});
-
-	it("applies both additionalPaths and withOverrides together", () => {
-		const content = generateThinCallerContent("deploy", { type: "docs", name: "configs" }, ["docs/**"]);
-		expect(content).toContain("- docs/**");
-		expect(content).toContain("type: docs");
-		expect(content).toContain("name: configs");
-		expect(content).toContain("secrets: inherit");
-	});
-
-	it("appends additionalPaths to an existing paths block", () => {
-		const sentinel = "__test_with_paths__";
-		WORKFLOW_TEMPLATES[sentinel] =
-			`name: Test\n\non: # yamllint disable-line rule:truthy\n  push:\n    branches: [main]\n    paths:\n      - docs/**\n  workflow_dispatch:\n\njobs:\n  test:\n    uses: some/action@v1\n    secrets: inherit\n`;
-		try {
-			const content = generateThinCallerContent(sentinel, undefined, ["extra/**"]);
-			expect(content).toContain("- docs/**");
-			expect(content).toContain("- extra/**");
-		} finally {
-			delete WORKFLOW_TEMPLATES[sentinel];
-		}
-	});
-
-	it("deduplicates additionalPaths already present in an existing paths block", () => {
-		const sentinel = "__test_with_paths_dedup__";
-		WORKFLOW_TEMPLATES[sentinel] =
-			`name: Test\n\non: # yamllint disable-line rule:truthy\n  push:\n    branches: [main]\n    paths:\n      - docs/**\n  workflow_dispatch:\n\njobs:\n  test:\n    uses: some/action@v1\n    secrets: inherit\n`;
-		try {
-			const content = generateThinCallerContent(sentinel, undefined, ["docs/**"]);
-			const matches = [...content.matchAll(/- docs\/\*\*/g)];
-			expect(matches).toHaveLength(1);
-		} finally {
-			delete WORKFLOW_TEMPLATES[sentinel];
-		}
-	});
-});
-
 describe("parseTasksFromTs", () => {
 	it("returns explicit string and object entries when no spread", () => {
 		const source = `export default defineConfig({
@@ -753,99 +618,6 @@ export default defineConfig({
 				projects: [{ tokenName: "default", workingDir: ".", buildScript: "build:storybook:chromatic" }],
 			},
 		});
-	});
-});
-
-describe("extractPreviewConfig", () => {
-	it("returns null when preview is absent", () => {
-		expect(extractPreviewConfig({})).toBeNull();
-		expect(extractPreviewConfig({ docs: true })).toBeNull();
-	});
-
-	it("returns null when preview: true and no org context", () => {
-		expect(extractPreviewConfig({ preview: true }, {})).toBeNull();
-	});
-
-	it("returns null when preview is a non-object, non-boolean primitive", () => {
-		expect(extractPreviewConfig({ preview: 42 })).toBeNull();
-		expect(extractPreviewConfig({ preview: "invalid" })).toBeNull();
-	});
-
-	it("derives project and domain from org context when preview: true", () => {
-		const cfg = extractPreviewConfig({ preview: true }, { org: "acme", domain: "acme.dev" });
-		expect(cfg).toEqual({ project: "acme-preview", domain: "preview.acme.dev" });
-	});
-
-	it("derives project only when domain is absent", () => {
-		const cfg = extractPreviewConfig({ preview: true }, { org: "acme" });
-		expect(cfg).toEqual({ project: "acme-preview" });
-	});
-
-	it("uses explicit project when provided as object", () => {
-		const cfg = extractPreviewConfig({ preview: { project: "my-preview" } }, { org: "acme", domain: "acme.dev" });
-		expect(cfg).toEqual({ project: "my-preview", domain: "preview.acme.dev" });
-	});
-
-	it("uses explicit domain when provided", () => {
-		const cfg = extractPreviewConfig(
-			{ preview: { project: "my-preview", domain: "custom.preview.dev" } },
-			{ org: "acme", domain: "acme.dev" }
-		);
-		expect(cfg).toEqual({ project: "my-preview", domain: "custom.preview.dev" });
-	});
-
-	it("returns null when object form has no project and no org context", () => {
-		expect(extractPreviewConfig({ preview: {} }, {})).toBeNull();
-	});
-
-	it("falls back to derived project when object has no project but org is set", () => {
-		const cfg = extractPreviewConfig({ preview: {} }, { org: "acme" });
-		expect(cfg).toEqual({ project: "acme-preview" });
-	});
-});
-
-describe("generateCombinedDeployContent", () => {
-	it("includes both push and pull_request triggers", () => {
-		const content = generateCombinedDeployContent({}, [], { project: "my-preview" });
-		expect(content).toContain("push:");
-		expect(content).toContain("pull_request:");
-	});
-
-	it("includes paths block in both triggers when paths are provided", () => {
-		const content = generateCombinedDeployContent({}, ["docs/**", "astro.config.ts"], { project: "my-preview" });
-		const pathsBlocks = [...content.matchAll(/paths:/g)];
-		expect(pathsBlocks.length).toBeGreaterThanOrEqual(2);
-		expect(content).toContain("- docs/**");
-	});
-
-	it("forwards cloudflare-project to the preview job with: block", () => {
-		const content = generateCombinedDeployContent({}, [], { project: "acme-preview" });
-		expect(content).toContain("cloudflare-project: acme-preview");
-	});
-
-	it("includes deploy with: block when deployWith is non-empty", () => {
-		const content = generateCombinedDeployContent({ type: "docs", name: "acme" }, [], { project: "p" });
-		expect(content).toContain("type: docs");
-		expect(content).toContain("name: acme");
-	});
-
-	it("omits with: block from deploy job when deployWith is empty but preview job still has cloudflare-project", () => {
-		const content = generateCombinedDeployContent({}, [], { project: "p" });
-		const lines = content.split("\n");
-		const previewIdx = lines.findIndex((l) => l.includes("name: Preview"));
-		const previewSection = lines.slice(previewIdx).join("\n");
-		expect(previewSection).toContain("cloudflare-project: p");
-	});
-
-	it("serialises boolean true/false and array values correctly", () => {
-		const content = generateCombinedDeployContent(
-			{ "run-unit": true, "run-storybook": false, "storybook-projects": '["a","b"]' },
-			[],
-			{ project: "p" }
-		);
-		expect(content).toContain("run-unit: true");
-		expect(content).toContain("run-storybook: false");
-		expect(content).toContain('storybook-projects: \'["a","b"]\'');
 	});
 });
 

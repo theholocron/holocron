@@ -29,9 +29,7 @@ export default defineConfig({
 				"src/plugin/rest-client.ts",
 				// Pure barrel re-exports — no executable logic, v8 tracks 0%.
 				"src/commands/setup/index.ts",
-				"src/commands/setup-workflows/index.ts",
 				// yml/md template files — string content only, no executable logic.
-				"src/commands/setup-workflows/workflows/**",
 				"src/templates/**",
 				// setup template files — raw text content only, no executable logic.
 				"src/templates/configs/**",
