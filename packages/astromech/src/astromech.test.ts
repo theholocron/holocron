@@ -82,3 +82,82 @@ describe("createAstromech().run", () => {
 		}
 	});
 });
+
+describe("createAstromech().thinCallers", () => {
+	it("returns one thin caller per templated task, keyed by <name>.yml", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["lint", "test", { name: "release", with: { "run-build": false } }] },
+		});
+		const callers = astromech.thinCallers();
+		expect([...callers.keys()].sort()).toEqual(["lint.yml", "release.yml", "test.yml"]);
+		expect(callers.get("test.yml")).toContain("secrets: inherit");
+		expect(callers.get("release.yml")).toContain("run-build: false");
+	});
+
+	it("skips tasks with ci: false and tasks with no template", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "audit", ci: false }, "build", "lint"] },
+		});
+		expect([...astromech.thinCallers().keys()]).toEqual(["lint.yml"]);
+	});
+
+	it("injects enable-auto-commit: true for the lint caller", () => {
+		const astromech = createAstromech({ cwd: "/repo", config: { tasks: ["lint"] } });
+		expect(astromech.thinCallers().get("lint.yml")).toContain("enable-auto-commit: true");
+	});
+
+	it("emits the combined deploy+preview caller when preview resolves", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			orgContext: { org: "acme", domain: "acme.dev" },
+			config: { tasks: [{ name: "deploy", with: { docs: true, preview: true } }] },
+		});
+		const deploy = astromech.thinCallers().get("deploy.yml")!;
+		expect(deploy).toContain("pull_request:");
+		expect(deploy).toContain("cloudflare-project: acme-preview");
+		expect(deploy).toContain("- docs/**");
+	});
+
+	it("emits a plain deploy caller when preview is absent", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "deploy", with: { docs: true } }] },
+		});
+		const deploy = astromech.thinCallers().get("deploy.yml")!;
+		expect(deploy).not.toContain("pull_request:");
+		expect(deploy).toContain("- docs/**");
+	});
+
+	it("returns an empty map with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).thinCallers().size).toBe(0);
+	});
+});
+
+describe("createAstromech().packageScripts", () => {
+	it("emits `holocron run <task>` for runnable registry tasks", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["lint", "test", "typecheck", "build"] },
+		});
+		expect(astromech.packageScripts()).toEqual({
+			lint: "holocron run lint",
+			test: "holocron run test",
+			typecheck: "holocron run typecheck",
+			build: "holocron run build",
+		});
+	});
+
+	it("skips local: false, non-registry, and local: null tasks", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "test", local: false }, "release", "codeql", "lint"] },
+		});
+		expect(astromech.packageScripts()).toEqual({ lint: "holocron run lint" });
+	});
+
+	it("returns {} with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).packageScripts()).toEqual({});
+	});
+});
