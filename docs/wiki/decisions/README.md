@@ -27,13 +27,15 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 
 ## Index
 
-| ID                                                           | Title                                                                    | Status   |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------ | -------- |
-| [ADR-0001](0001-vault-provider-doppler-and-infisical.md)     | Vault provider — Doppler and Infisical over 1Password                    | accepted |
-| [ADR-0002](0002-interactive-menu-spawn-over-reparse.md)      | Interactive CLI menu — spawn over re-parse                               | accepted |
-| [ADR-0003](0003-auth-bootstrap-keyring-token-precedence.md)  | Auth bootstrap — OS keyring as fourth-precedence token layer             | accepted |
-| [ADR-0004](0004-adr-home-repo-over-wiki.md)                  | ADR home — Git repository over GitHub Wiki                               | accepted |
-| [ADR-0005](0005-npm-publishing-strategy-oidc-over-staged.md) | npm publishing strategy — OIDC Trusted Publishers over staged publishing | accepted |
-| [ADR-0006](0006-wiki-navbar-auto-broadcast.md)               | Auto-broadcast wiki navbar sync on push                                  | proposed |
-| [ADR-0007](0007-structured-logging-pino-axiom.md)            | Structured logging — Pino + Axiom                                        | accepted |
-| [ADR-0008](0008-cli-usage-telemetry-posthog.md)              | CLI usage telemetry — PostHog                                            | accepted |
+| ID                                                           | Title                                                                      | Status   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------- | -------- |
+| [ADR-0001](0001-vault-provider-doppler-and-infisical.md)     | Vault provider — Doppler and Infisical over 1Password                      | accepted |
+| [ADR-0002](0002-interactive-menu-spawn-over-reparse.md)      | Interactive CLI menu — spawn over re-parse                                 | accepted |
+| [ADR-0003](0003-auth-bootstrap-keyring-token-precedence.md)  | Auth bootstrap — OS keyring as fourth-precedence token layer               | accepted |
+| [ADR-0004](0004-adr-home-repo-over-wiki.md)                  | ADR home — Git repository over GitHub Wiki                                 | accepted |
+| [ADR-0005](0005-npm-publishing-strategy-oidc-over-staged.md) | npm publishing strategy — OIDC Trusted Publishers over staged publishing   | accepted |
+| [ADR-0006](0006-wiki-navbar-auto-broadcast.md)               | Auto-broadcast wiki navbar sync on push                                    | proposed |
+| [ADR-0007](0007-structured-logging-pino-axiom.md)            | Structured logging — Pino + Axiom                                          | accepted |
+| [ADR-0008](0008-cli-usage-telemetry-posthog.md)              | CLI usage telemetry — PostHog                                              | accepted |
+| [ADR-0009](0009-astromech-task-runner-package.md)            | Astromech — the task-runner + CI-parity package (`@theholocron/astromech`) | proposed |
+| [ADR-0010](0010-datapad-config-loader.md)                    | Datapad — the shared config loader (`@theholocron/datapad`)                | proposed |
