@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/rollup-plugin-transform-template",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "Rollup/Vite/Rolldown plugin that transforms template files into default-exported strings.",
   "keywords": [
     "rollup",
