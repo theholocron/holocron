@@ -1,6 +1,14 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import {
+	deriveDeployPaths,
+	extractPreviewConfig,
+	generateCombinedDeployContent,
+	generateThinCallerContent,
+	KNOWN_WORKFLOWS,
+	normalizeWorkflowWith,
+} from "@theholocron/astromech";
 import type { Logger } from "@theholocron/logger";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -10,14 +18,6 @@ import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { createHeader } from "../utils/create-header.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
-import {
-	deriveDeployPaths,
-	extractPreviewConfig,
-	generateCombinedDeployContent,
-	generateThinCallerContent,
-	KNOWN_WORKFLOWS,
-	normalizeWorkflowWith,
-} from "./setup-workflows/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/sync.ts",

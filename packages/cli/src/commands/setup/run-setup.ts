@@ -21,6 +21,16 @@
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import {
+	deriveDeployPaths,
+	extractPreviewConfig,
+	generateCombinedDeployContent,
+	generateThinCallerContent,
+	KNOWN_WORKFLOWS,
+	normalizeWorkflowWith,
+	WORKFLOW_CHECK_CONTEXTS,
+} from "@theholocron/astromech";
+
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
 import { ConfigError } from "../../config/config.js";
 import type {
@@ -58,15 +68,6 @@ import labelerConfig from "../../templates/labeler.yml";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
 import { createHeader } from "../../utils/create-header.js";
-import {
-	deriveDeployPaths,
-	extractPreviewConfig,
-	generateCombinedDeployContent,
-	generateThinCallerContent,
-	KNOWN_WORKFLOWS,
-	normalizeWorkflowWith,
-	WORKFLOW_CHECK_CONTEXTS,
-} from "../setup-workflows/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import { installEngineeringStructure } from "./engineering.js";

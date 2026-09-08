@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "@theholocron/astromech";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import type { Logger } from "@theholocron/logger";
@@ -10,7 +11,6 @@ import { getLogger } from "../logger.js";
 import { event as telemetryEvent } from "../telemetry.js";
 import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { createHeader } from "../utils/create-header.js";
-import { KNOWN_WORKFLOWS, type OrgContext, WORKFLOW_TEMPLATES } from "./setup-workflows/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/sync-github.ts",
