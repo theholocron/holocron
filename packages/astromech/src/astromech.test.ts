@@ -1,4 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const spawnSync = vi.fn((_cmd: string, _args: string[], _opts: unknown) => ({ status: null as number | null }));
+vi.mock("node:child_process", () => ({
+	spawnSync: (...a: unknown[]) => spawnSync(...(a as [string, string[], unknown])),
+}));
 
 import { createAstromech } from "./astromech.js";
 
@@ -24,6 +33,8 @@ function fs(files: Record<string, string>) {
 	};
 }
 
+afterEach(() => spawnSync.mockClear());
+
 describe("createAstromech().run", () => {
 	it("delegates to the registry runner and returns the report", () => {
 		const exec = vi.fn(() => ({ exitCode: 0 }));
@@ -38,11 +49,7 @@ describe("createAstromech().run", () => {
 	});
 
 	it("forwards passthrough / dryRun / required through to the runner", () => {
-		const lines: string[] = [];
-		const astromech = createAstromech({
-			...fs({ "package.json": PKG }),
-			print: (l) => lines.push(l),
-		});
+		const astromech = createAstromech({ ...fs({ "package.json": PKG }), print: () => {} });
 		const report = astromech.run("build", { dryRun: true, required: true });
 		expect(report.status).toBe("fail"); // no build tooling + required
 	});
@@ -56,5 +63,22 @@ describe("createAstromech().run", () => {
 		});
 		astromech.run("frobnicate");
 		expect(warn).toHaveBeenCalledWith(expect.objectContaining({ status: "unknown" }), expect.any(String));
+	});
+
+	it("wires real node:fs / console.log / spawnSync when nothing is injected", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" })); // real readFile
+		await writeFile(join(dir, "tsdown.config.ts"), ""); // real listDir → detect
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const report = createAstromech({ cwd: dir }).run("build");
+			// real listDir finds tsdown.config.ts → tsdown → mocked spawnSync → status null → exit -1
+			expect(report.status).toBe("fail");
+			expect(spawnSync).toHaveBeenCalledWith("tsdown", [], { cwd: dir, stdio: "inherit" });
+			expect(log).toHaveBeenCalled();
+		} finally {
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
 	});
 });

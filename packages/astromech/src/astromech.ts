@@ -4,8 +4,11 @@
  * `ci` / workflow-generation commands to it (like `@theholocron/logger`).
  */
 
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+
 import type { TasksConfig } from "./config/schema.js";
-import { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
+import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./run.js";
 
 export interface AstromechOptions {
 	/** Repo root. */
@@ -16,13 +19,13 @@ export interface AstromechOptions {
 	 * Load it with `loadTasksConfig` from `@theholocron/astromech/config`.
 	 */
 	config?: TasksConfig;
-	/** Structured-logging sink. */
+	/** Structured-logging sink. Defaults to a no-op. */
 	logger?: RunLogger;
 	/** User-facing line printer. Defaults to `console.log`. */
 	print?: (line: string) => void;
-	/** Injectable subprocess runner (tests). */
+	/** Injectable subprocess runner (tests). Defaults to `spawnSync` (stdio inherit). */
 	exec?: ExecFn;
-	/** Injectable fs (tests). */
+	/** Injectable fs (tests). Default to `node:fs`. */
 	readFile?: (path: string) => string;
 	fileExists?: (path: string) => boolean;
 	listDir?: (path: string) => string[];
@@ -42,24 +45,29 @@ export interface Astromech {
 	run(task: string, opts?: RunOptions): RunTaskReport;
 }
 
+const noopLogger: RunLogger = { debug() {}, warn() {} };
+
+const realExec: ExecFn = (cmd, args, opts) => {
+	const result = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
+	return { exitCode: result.status ?? -1 };
+};
+
 export function createAstromech(options: AstromechOptions): Astromech {
-	// `runTask` treats every `undefined` field as "use the default", so the
-	// options pass straight through.
-	const base: Omit<RunTaskInput, "task"> = {
-		cwd: options.cwd,
-		logger: options.logger,
-		print: options.print,
-		exec: options.exec,
-		readFile: options.readFile,
-		fileExists: options.fileExists,
-		listDir: options.listDir,
+	const deps: RunDeps = {
+		print: options.print ?? ((line: string) => console.log(line)),
+		logger: options.logger ?? noopLogger,
+		exec: options.exec ?? realExec,
+		readFile: options.readFile ?? ((path: string) => readFileSync(path, "utf8")),
+		fileExists: options.fileExists ?? ((path: string) => existsSync(path)),
+		listDir: options.listDir ?? ((path: string) => readdirSync(path) as string[]),
 	};
 
 	return {
 		run: (task, opts = {}) =>
 			runTask({
-				...base,
+				...deps,
 				task,
+				cwd: options.cwd,
 				passthrough: opts.passthrough ?? [],
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,

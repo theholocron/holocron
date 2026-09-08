@@ -1,13 +1,12 @@
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-const spawnSync = vi.fn(() => ({ status: 0 }));
-vi.mock("node:child_process", () => ({ spawnSync: (...a: unknown[]) => spawnSync(...(a as [])) }));
-
-import { runTask, type RunTaskInput } from "./run.js";
+import { type RunLogger, runTask, type RunTaskInput } from "./run.js";
 
 const CWD = "/repo";
+
+const noopLogger: RunLogger = { debug() {}, warn() {} };
 
 /** Build injectable fs helpers from a flat file map (paths relative to CWD). */
 function makeFs(files: Record<string, string>) {
@@ -38,6 +37,7 @@ function makeRun(files: Record<string, string>, overrides: Partial<RunTaskInput>
 			task,
 			cwd: CWD,
 			print: (l) => lines.push(l),
+			logger: noopLogger,
 			exec,
 			readFile: fs.readFile,
 			fileExists: fs.fileExists,
@@ -50,26 +50,7 @@ function makeRun(files: Record<string, string>, overrides: Partial<RunTaskInput>
 
 const PKG = (extra: Record<string, unknown> = {}) => JSON.stringify({ name: "@scope/x", ...extra });
 
-afterEach(() => spawnSync.mockClear());
-
 describe("runTask", () => {
-	it("defaults to spawnSync (stdio inherit) when no exec is injected", () => {
-		const fs = makeFs({ "package.json": PKG(), "node_modules/.bin/eslint": "" });
-		const report = runTask({
-			task: "lint",
-			cwd: CWD,
-			print: () => {},
-			readFile: fs.readFile,
-			fileExists: fs.fileExists,
-			listDir: fs.listDir,
-		});
-		expect(report.status).toBe("ok");
-		expect(spawnSync).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/eslint"), ["."], {
-			cwd: CWD,
-			stdio: "inherit",
-		});
-	});
-
 	it("delegates to turbo at a monorepo root", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),

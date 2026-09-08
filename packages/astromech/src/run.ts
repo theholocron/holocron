@@ -11,8 +11,6 @@
  *   5. unknown task                           → "unknown task" (exit 1)
  */
 
-import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
@@ -23,35 +21,34 @@ export interface RunLogger {
 	warn(obj: Record<string, unknown>, msg?: string): void;
 }
 
-const noopLogger: RunLogger = { debug() {}, warn() {} };
-
 export type ExecFn = (cmd: string, args: string[], opts: { cwd: string }) => { exitCode: number };
 
-const defaultExec: ExecFn = (cmd, args, opts) => {
-	const result = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
-	return { exitCode: result.status ?? -1 };
-};
+/**
+ * Everything `runTask` needs from the outside world. `createAstromech`
+ * fills these with real implementations (or the caller's injected ones);
+ * `runTask` never reaches for a global itself, so it has no default
+ * branches to leave untested.
+ */
+export interface RunDeps {
+	print: (line: string) => void;
+	logger: RunLogger;
+	exec: ExecFn;
+	readFile: (path: string) => string;
+	fileExists: (path: string) => boolean;
+	listDir: (path: string) => string[];
+}
 
-export interface RunTaskInput {
+export interface RunTaskInput extends RunDeps {
 	/** Registry task name, e.g. `"test"`. */
 	task: string;
-	/** Args after `--` on the command line, forwarded to the tool / turbo / script. */
-	passthrough?: string[];
 	/** Directory to run in. */
 	cwd: string;
+	/** Args after `--` on the command line, forwarded to the tool / turbo / script. */
+	passthrough?: string[];
 	/** Print the resolved command without running it. */
 	dryRun?: boolean;
 	/** Turn "no such task for this repo" (normally exit 0) into a failure. */
 	required?: boolean;
-	print?: (line: string) => void;
-	/** Structured-logging sink — sibling of `print`. */
-	logger?: RunLogger;
-	/** Injectable subprocess runner. */
-	exec?: ExecFn;
-	/** Injectable for tests. */
-	readFile?: (path: string) => string;
-	fileExists?: (path: string) => boolean;
-	listDir?: (path: string) => string[];
 }
 
 export interface RunTaskReport {
@@ -62,13 +59,7 @@ export interface RunTaskReport {
 }
 
 export function runTask(input: RunTaskInput): RunTaskReport {
-	const print = input.print ?? ((line: string) => console.log(line));
-	const logger = input.logger ?? noopLogger;
-	const exec = input.exec ?? defaultExec;
-	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
-	const fileExists = input.fileExists ?? ((p: string) => existsSync(p));
-	const listDir = input.listDir ?? ((p: string) => readdirSync(p) as string[]);
-	const { task, cwd } = input;
+	const { print, logger, exec, readFile, fileExists, listDir, task, cwd } = input;
 	const passthrough = input.passthrough ?? [];
 	const dryRun = input.dryRun ?? false;
 
