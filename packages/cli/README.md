@@ -216,7 +216,9 @@ all three. See the [telemetry guide](https://docs.theholocron.dev/holocron/telem
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands
-- `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
+- `src/tasks.ts` — the task registry: how each `config.workflows` name runs
+  locally (`holocron run`). Add a task here → every repo gets it.
+- `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `run`, `secret set`,
   `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
   `plugin create`, `auth`
 

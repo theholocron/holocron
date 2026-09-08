@@ -17,6 +17,7 @@ import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
+import { runTask } from "./commands/run.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -563,6 +564,38 @@ try {
 				if (report.summary.fail > 0) {
 					process.exitCode = 1;
 				}
+			}
+		)
+		.command(
+			"run <task> [passthrough..]",
+			"Run a task locally (test, typecheck, lint, build) — figures out turbo / the tool / the package manager",
+			(y) =>
+				y
+					.positional("task", {
+						type: "string",
+						demandOption: true,
+						describe: "Task name (test, typecheck, lint, build). See `holocron run --help`.",
+					})
+					.positional("passthrough", {
+						type: "string",
+						array: true,
+						describe: "Args forwarded to the tool — put them after `--`.",
+					})
+					.option("required", {
+						type: "boolean",
+						default: false,
+						describe: "Fail (exit 1) if this repo has no such task, instead of skipping.",
+					}),
+			(argv) => {
+				buildCliLogger(argv, { command: "run" });
+				const report = runTask({
+					task: argv.task as string,
+					passthrough: (argv.passthrough as string[] | undefined) ?? [],
+					cwd: argv.cwd,
+					dryRun: argv.dryRun,
+					required: argv.required,
+				});
+				if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
 			}
 		)
 		.command(
