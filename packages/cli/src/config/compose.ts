@@ -1,7 +1,7 @@
 import type { DocsConfig, HolocronConfig, RawProvidersConfig, RepoConfig } from "./config.js";
 import { ConfigError } from "./config.js";
 
-type WorkflowEntry = NonNullable<HolocronConfig["workflows"]>[number];
+type TaskEntry = NonNullable<HolocronConfig["tasks"]>[number];
 
 /** A single composable capability fragment. */
 export interface Capability {
@@ -9,8 +9,8 @@ export interface Capability {
 	id: string;
 	/** Other capability IDs that must be present in the same compose() call. */
 	requires?: string[];
-	/** Workflow entries contributed by this capability. Merged by name; last writer wins. */
-	workflows?: WorkflowEntry[];
+	/** Task entries contributed by this capability. Merged by name; last writer wins. */
+	tasks?: TaskEntry[];
 	/** Provider config. Shallow-merged at the top level; later capabilities override per-key. */
 	providers?: RawProvidersConfig;
 	/** CI check names that must pass. Unioned across all capabilities. */
@@ -27,7 +27,7 @@ export interface Capability {
 
 /** The merged result of a compose() call. Spreads into defineConfig(). */
 export interface ComposedPreset {
-	workflows: WorkflowEntry[];
+	tasks: TaskEntry[];
 	providers: RawProvidersConfig;
 	repo: Partial<Omit<RepoConfig, "name">> & { requiredChecks: string[] };
 	org?: string;
@@ -35,7 +35,7 @@ export interface ComposedPreset {
 	docs?: DocsConfig;
 }
 
-function workflowName(e: WorkflowEntry): string {
+function taskName(e: TaskEntry): string {
 	return typeof e === "string" ? e : e.name;
 }
 
@@ -84,11 +84,11 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 		throw new ConfigError(`compose(): unmet dependencies — ${errors.join(", ")}`);
 	}
 
-	// Merge workflows — deduplicate by name, last writer wins
-	const workflowMap = new Map<string, WorkflowEntry>();
+	// Merge tasks — deduplicate by name, last writer wins
+	const taskMap = new Map<string, TaskEntry>();
 	for (const cap of caps) {
-		for (const entry of cap.workflows ?? []) {
-			workflowMap.set(workflowName(entry), entry);
+		for (const entry of cap.tasks ?? []) {
+			taskMap.set(taskName(entry), entry);
 		}
 	}
 
@@ -141,7 +141,7 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 	}
 
 	return {
-		workflows: [...workflowMap.values()],
+		tasks: [...taskMap.values()],
 		providers,
 		repo: { ...repo, requiredChecks },
 		...(org !== undefined ? { org } : {}),

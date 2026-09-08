@@ -3,26 +3,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ConfigError } from "./config.js";
 import { ConfigFileError, loadConfig } from "./load-config.js";
-
-// In production, tsx CJS-transforms `export default x` into `exports.default = x`,
-// so dynamic import produces { default: { __esModule: true, default: x } }.
-// In vitest's module system tsImport adds a further outer { default: ... } wrap,
-// so we strip one layer here to match the production double-wrap shape that
-// extractAndResolve now handles.
-vi.mock("tsx/esm/api", async (importOriginal) => {
-	const real = await importOriginal<typeof import("tsx/esm/api")>();
-	return {
-		...real,
-		tsImport: async (...args: Parameters<typeof real.tsImport>) => {
-			const result = (await real.tsImport(...args)) as Record<string, unknown>;
-			return "default" in result ? (result.default as Record<string, unknown>) : result;
-		},
-	};
-});
 
 describe("loadConfig", () => {
 	let cwd: string;
@@ -57,7 +41,7 @@ describe("loadConfig", () => {
 
 	it("errors with a clear message when the JSON is malformed", async () => {
 		await writeFile(join(cwd, "holocron.config.json"), "{ not valid json");
-		await expect(loadConfig(cwd)).rejects.toBeInstanceOf(ConfigError);
+		await expect(loadConfig(cwd)).rejects.toBeInstanceOf(ConfigFileError);
 		await expect(loadConfig(cwd)).rejects.toThrow(/not valid JSON/);
 	});
 
@@ -115,6 +99,28 @@ describe("loadConfig", () => {
 		expect((err as Error).message).toMatch(/default export/);
 	});
 
+	// ── Probe order ───────────────────────────────────────────────────────
+
+	it("prefers .ts over .json when both exist (TS-first probe order)", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ name: "json-loses", providers: {} }));
+		await writeFile(
+			join(cwd, "holocron.config.ts"),
+			`export default { name: "ts-wins", providers: { source: "github" } } as const;`
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe("ts-wins");
+	});
+
+	it("prefers .js over .json when both exist (no .ts)", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ name: "json-loses", providers: {} }));
+		await writeFile(
+			join(cwd, "holocron.config.js"),
+			`export default { name: "js-wins", providers: { source: "github" } };`
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe("js-wins");
+	});
+
 	// ── name derivation ───────────────────────────────────────────────────
 
 	it("derives name from package.json when absent from config", async () => {
@@ -132,6 +138,13 @@ describe("loadConfig", () => {
 	});
 
 	it("falls back to directory basename when no package.json exists", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ providers: { source: "github" } }));
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.name).toBe(basename(cwd));
+	});
+
+	it("falls back to directory basename when package.json has no name", async () => {
+		await writeFile(join(cwd, "package.json"), JSON.stringify({ version: "1.0.0" }));
 		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ providers: { source: "github" } }));
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.name).toBe(basename(cwd));
@@ -191,25 +204,14 @@ describe("loadConfig", () => {
 		expect(resolved.repo?.name).toBe("theholocron/explicit");
 	});
 
-	// ── Priority ──────────────────────────────────────────────────────────
-
-	it("prefers .json over .js when both exist", async () => {
-		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ name: "json-wins", providers: {} }));
-		await writeFile(join(cwd, "holocron.config.js"), `export default { name: "js-loses", providers: {} };`);
-		const { resolved } = await loadConfig(cwd);
-		expect(resolved.name).toBe("json-wins");
-	});
-
-	it("prefers .js over .ts when both exist (no .json)", async () => {
+	it("leaves repo.name absent for a non-GitHub remote", async () => {
+		execSync("git init", { cwd });
+		execSync("git remote add origin https://gitlab.com/theholocron/my-app.git", { cwd });
 		await writeFile(
-			join(cwd, "holocron.config.js"),
-			`export default { name: "js-wins", providers: { source: "github" } };`
-		);
-		await writeFile(
-			join(cwd, "holocron.config.ts"),
-			`export default { name: "ts-loses", providers: { source: "github" } } as const;`
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", repo: {}, providers: { source: "github" } })
 		);
 		const { resolved } = await loadConfig(cwd);
-		expect(resolved.name).toBe("js-wins");
+		expect(resolved.repo?.name).toBeUndefined();
 	});
 });

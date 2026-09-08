@@ -125,7 +125,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const usesAdvancedCodeQL = (config.workflows ?? [])
+		const usesAdvancedCodeQL = (config.tasks ?? [])
 			.map((e) => (typeof e === "string" ? e : e.name))
 			.includes("codeql");
 		steps.push(
@@ -153,7 +153,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 
 			const configuredWorkflowNames = [
-				...new Set((config.workflows ?? []).map((entry) => (typeof entry === "string" ? entry : entry.name))),
+				...new Set((config.tasks ?? []).map((entry) => (typeof entry === "string" ? entry : entry.name))),
 			];
 			const requiredChecks =
 				effectivePreset === "strict"
@@ -172,11 +172,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: workflow thin wrappers ──────────────────────────────────
-	const workflows = config.workflows;
-	if (loader.has("source") && workflows && workflows.length > 0) {
+	const tasks = config.tasks;
+	if (loader.has("source") && tasks && tasks.length > 0) {
 		const source = loader.get("source") as Source;
 		print(style.step("workflows"));
-		for (const entry of workflows) {
+		for (const entry of tasks) {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const rawWith = typeof entry === "object" ? entry.with : undefined;
 			const normalized = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
@@ -246,7 +246,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: labeler config ───────────────────────────────────────────
 	if (
 		loader.has("source") &&
-		(config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping")
+		(config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping")
 	) {
 		const source = loader.get("source") as Source;
 		steps.push(
@@ -320,7 +320,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		);
 		print(formatStep(steps[steps.length - 1]!));
 		{
-			const configuredWorkflowNames = (config.workflows ?? []).map((e) => (typeof e === "string" ? e : e.name));
+			const configuredWorkflowNames = (config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name));
 			const hasTestWorkflow = configuredWorkflowNames.includes("test");
 			const packages = await readWorkspacePackages(input.context.repoRoot);
 			const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
@@ -522,7 +522,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const deploy = loader.get("deployment") as Deployment;
 		print(style.step("deployment"));
 
-		const deployEntry = (config.workflows ?? [])
+		const deployEntry = (config.tasks ?? [])
 			.map((e) => (typeof e === "string" ? { name: e } : e))
 			.find((e) => e.name === "deploy");
 		const previewCfg = deployEntry?.with
