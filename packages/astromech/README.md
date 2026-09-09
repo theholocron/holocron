@@ -111,17 +111,17 @@ One linter list drives both CI and local — no asymmetry. Source: the
 present. The `linter name → super-linter VALIDATE_* keys` mapping lives in
 one place, `src/linters.ts`.
 
-| linter | `VALIDATE_*` | always-on | local binary |
-| ------ | ----------- | --------- | ------------ |
-| `eslint` | `JAVASCRIPT_ES`, `TYPESCRIPT_ES` | on `eslint.config.*` / `.eslintrc*` | `eslint .` |
-| `prettier` | `*_PRETTIER` (JS/JSX/TS/TSX/MD) + `FIX_*` | yes | `prettier --check .` |
-| `yamllint` | `YAML` | yes | `yamllint .` (usually CI-only) |
-| `actionlint` | `GITHUB_ACTIONS` | yes | `actionlint` (usually CI-only) |
-| `gitleaks` | `GITLEAKS` | yes | `gitleaks dir` (usually CI-only) |
-| `editorconfig` | `EDITORCONFIG` | yes | `editorconfig-checker` (usually CI-only) |
-| `commitlint` | `GIT_COMMITLINT` | yes | `commitlint --last` |
-| `git-merge-conflict-markers` | `GIT_MERGE_CONFLICT_MARKERS` | yes | — (CI only) |
-| `markdownlint` | `MARKDOWN` | on `.markdownlint*` | `markdownlint-cli2` |
+| linter                       | `VALIDATE_*`                              | always-on                           | local binary                             |
+| ---------------------------- | ----------------------------------------- | ----------------------------------- | ---------------------------------------- |
+| `eslint`                     | `JAVASCRIPT_ES`, `TYPESCRIPT_ES`          | on `eslint.config.*` / `.eslintrc*` | `eslint .`                               |
+| `prettier`                   | `*_PRETTIER` (JS/JSX/TS/TSX/MD) + `FIX_*` | yes                                 | `prettier --check .`                     |
+| `yamllint`                   | `YAML`                                    | yes                                 | `yamllint .` (usually CI-only)           |
+| `actionlint`                 | `GITHUB_ACTIONS`                          | yes                                 | `actionlint` (usually CI-only)           |
+| `gitleaks`                   | `GITLEAKS`                                | yes                                 | `gitleaks dir` (usually CI-only)         |
+| `editorconfig`               | `EDITORCONFIG`                            | yes                                 | `editorconfig-checker` (usually CI-only) |
+| `commitlint`                 | `GIT_COMMITLINT`                          | yes                                 | `commitlint --last`                      |
+| `git-merge-conflict-markers` | `GIT_MERGE_CONFLICT_MARKERS`              | yes                                 | — (CI only)                              |
+| `markdownlint`               | `MARKDOWN`                                | on `.markdownlint*`                 | `markdownlint-cli2`                      |
 
 ```ts
 import { superLinterConfig, resolveLinters } from "@theholocron/astromech";

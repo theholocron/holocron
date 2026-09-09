@@ -24,7 +24,7 @@ describe("superLinterConfig", () => {
 		expect(configInputs).toEqual({ "prettier-config": true, "yaml-config": true });
 	});
 
-	it("every env value is the string \"true\"", () => {
+	it('every env value is the string "true"', () => {
 		const { env } = superLinterConfig({ explicit: ["eslint", "prettier", "yamllint"], rootFiles: [] });
 		expect(Object.values(env).every((v) => v === "true")).toBe(true);
 	});
