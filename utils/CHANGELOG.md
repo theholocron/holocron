@@ -1,3 +1,9 @@
+## [1.7.1](https://github.com/theholocron/utils/compare/v1.7.0...v1.7.1) (2026-09-09)
+
+### Chores
+
+* **deps:** Bump the all-dependencies group with 25 updates ([#268](https://github.com/theholocron/utils/issues/268)) ([ffee2b3](https://github.com/theholocron/utils/commit/ffee2b391cdb6f2c358b73f905460335bf125f97))
+
 ## [1.7.0](https://github.com/theholocron/utils/compare/v1.6.0...v1.7.0) (2026-09-06)
 
 ### Features
