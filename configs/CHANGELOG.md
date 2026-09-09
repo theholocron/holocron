@@ -1,3 +1,9 @@
+## [8.1.1](https://github.com/theholocron/configs/compare/v8.1.0...v8.1.1) (2026-09-09)
+
+### Chores
+
+* **deps:** Bump the all-dependencies group with 5 updates ([#443](https://github.com/theholocron/configs/issues/443)) ([af15a26](https://github.com/theholocron/configs/commit/af15a261b9a6eacfd9a60647392c7d38e31e7d85))
+
 ## [8.1.0](https://github.com/theholocron/configs/compare/v8.0.0...v8.1.0) (2026-09-09)
 
 ### Features
