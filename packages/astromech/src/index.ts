@@ -13,8 +13,8 @@
  * ```ts
  * import { createAstromech } from "@theholocron/astromech";
  *
- * const astro = createAstromech({ cwd });
- * const report = astro.run("test", { passthrough: ["--watch"] });
+ * const astromech = createAstromech({ cwd });
+ * const report = astromech.run("test", { passthrough: ["--watch"] });
  * ```
  *
  * The config surface (`defineConfig`, `TasksConfig`, `loadTasksConfig`)

@@ -2,7 +2,10 @@
 
 ## Status
 
-Proposed
+Accepted
+
+`@theholocron/datapad` shipped in Phase 2a (#582); `@theholocron/cli` and
+`@theholocron/astromech` both load their config through it.
 
 ## Context
 

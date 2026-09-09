@@ -17,7 +17,7 @@ export interface Capability {
 	 * Required status-check contexts **not** backed by a `required` task
 	 * (codecov gates, `Storybook Publish`, …). Unioned across all capabilities
 	 * onto the top-level `extraRequiredChecks`. Task-backed checks come from
-	 * `{ required: true }` task entries via `astro.requiredChecks()`.
+	 * `{ required: true }` task entries via `astromech.requiredChecks()`.
 	 */
 	extraRequiredChecks?: string[];
 	/** Repo config fragment. Scalar fields: last writer wins. properties/topics/teams: merged. */

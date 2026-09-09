@@ -1,5 +1,5 @@
 /**
- * `holocron ci` / `astro.ci()` — run the merge-gating checks locally, in CI
+ * `holocron ci` / `astromech.ci()` — run the merge-gating checks locally, in CI
  * order, and exit non-zero on the first failure. The "will CI pass?" command a
  * `pre-push` hook and the agent skills point at.
  *

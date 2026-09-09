@@ -16,6 +16,14 @@ prs:
 
 # Spec: Unified repo metadata config
 
+> **Superseded in part (2026-09, ADR-0009 Phase 5):** `RepoConfig.requiredChecks`
+> was **removed**. Branch-protection required status checks are now derived from
+> the task manifest — every `{ required: true }` task's `… / Conclusion` check
+> context (in `CI_ORDER`) plus the top-level `extraRequiredChecks`, with `"DCO"`
+> hard-prepended by `holocron setup` for `protection: "strict"`. See
+> `astromech.requiredChecks()` in `@theholocron/astromech` and
+> `tech-astromech-task-runner.spec.md`.
+
 ## Problem
 
 Repo metadata in `holocron.config.ts` is fragmented and incomplete:
