@@ -25,7 +25,12 @@ export { type Astromech, type AstromechOptions, createAstromech, type RunOptions
 export { LINTER_NAMES, type LinterDef, LINTERS, resolveLinters } from "./linters.js";
 export { KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
-export { baselineSuperLinterEnv, type SuperLinterConfig, superLinterConfig } from "./super-linter.js";
+export {
+	baselineSuperLinterEnv,
+	lintThinCallerWith,
+	type SuperLinterConfig,
+	superLinterConfig,
+} from "./super-linter.js";
 export {
 	deriveDeployPaths,
 	extractPreviewConfig,

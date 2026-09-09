@@ -57,3 +57,31 @@ export function superLinterConfig(opts: {
 export function baselineSuperLinterEnv(): Record<string, string> {
 	return superLinterConfig({ rootFiles: [] }).env;
 }
+
+/**
+ * The `lint` thin caller's `with:` overrides + the `# linters: …` comment,
+ * from the resolved linter set. Shared by `createAstromech().thinCallers()`
+ * and the CLI's `sync` / `setup` workflow writers so the three stay in step.
+ *
+ * @param opts.explicit  the `lint` task's `linters` list, if any
+ * @param opts.rootFiles  repo-root filenames (auto-detect fallback)
+ * @param opts.extra  per-repo `with:` overrides that win over the defaults
+ */
+export function lintThinCallerWith(opts: {
+	explicit?: string[];
+	rootFiles: string[];
+	extra?: Record<string, unknown>;
+}): {
+	withOverrides: Record<string, unknown>;
+	comments: Record<string, string>;
+} {
+	const sl = superLinterConfig({ explicit: opts.explicit, rootFiles: opts.rootFiles });
+	return {
+		withOverrides: {
+			"enable-auto-commit": true,
+			"super-linter-env": JSON.stringify(sl.env),
+			...(opts.extra ?? {}),
+		},
+		comments: { "super-linter-env": `linters: ${sl.linters.join(", ")}` },
+	};
+}

@@ -1391,10 +1391,43 @@ describe("runSetup", () => {
 
 		expect(Object.keys(written)).toEqual(["lint.yml", "test.yml", "typecheck.yml"]);
 		expect(written["lint.yml"]).toContain("lint.yml@main");
+		expect(written["lint.yml"]).toContain("enable-auto-commit: true");
+		expect(written["lint.yml"]).toMatch(/# linters: prettier, yamllint/);
+		expect(written["lint.yml"]).toMatch(/super-linter-env: '\{.*"VALIDATE_YAML":"true".*\}'/);
 		expect(written["test.yml"]).toContain("test.yml@main");
 		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
 		expect(workflowSteps).toHaveLength(3);
 		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);
+	});
+
+	it("bakes an explicit linters list into the lint thin caller (setup)", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		// a repo root that does not exist — auto-detect would fall back, but the
+		// explicit list wins regardless
+		await runSetup({ loaded, context: { repoRoot: "/nonexistent-holocron-test" }, loader, print: () => {} });
+
+		expect(written["lint.yml"]).toContain("# linters: eslint, prettier");
+		expect(written["lint.yml"]).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
+		expect(written["lint.yml"]).not.toContain('"VALIDATE_YAML"');
 	});
 
 	it("writes standard deploy.yml (no preview job) when deploy has no preview: key", async () => {

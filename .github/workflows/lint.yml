@@ -24,4 +24,6 @@ jobs:
     uses: theholocron/.github/.github/workflows/lint.yml@main
     with:
       enable-auto-commit: true
+      # linters: eslint, prettier, yamllint, actionlint, gitleaks, editorconfig, commitlint, git-merge-conflict-markers
+      super-linter-env: '{"VALIDATE_JAVASCRIPT_ES":"true","VALIDATE_TYPESCRIPT_ES":"true","VALIDATE_JAVASCRIPT_PRETTIER":"true","VALIDATE_JSX_PRETTIER":"true","VALIDATE_TYPESCRIPT_PRETTIER":"true","VALIDATE_TSX":"true","VALIDATE_MARKDOWN_PRETTIER":"true","FIX_JAVASCRIPT_PRETTIER":"true","FIX_JSX_PRETTIER":"true","FIX_TYPESCRIPT_PRETTIER":"true","FIX_TSX":"true","FIX_MARKDOWN_PRETTIER":"true","VALIDATE_YAML":"true","VALIDATE_GITHUB_ACTIONS":"true","VALIDATE_GITLEAKS":"true","VALIDATE_EDITORCONFIG":"true","VALIDATE_GIT_COMMITLINT":"true","VALIDATE_GIT_MERGE_CONFLICT_MARKERS":"true"}'
     secrets: inherit

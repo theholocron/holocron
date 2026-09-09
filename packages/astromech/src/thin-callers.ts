@@ -74,7 +74,13 @@ export function generateThinCallerContent(
 	withOverrides?: Record<string, unknown>,
 	additionalPaths?: string[],
 	/** Optional sink for the "could not inject `with:`" warning. */
-	logger?: { warn(obj: Record<string, unknown>, msg: string): void }
+	logger?: { warn(obj: Record<string, unknown>, msg: string): void },
+	/**
+	 * `with:` key → a `# comment` line rendered immediately above that entry.
+	 * Only honored when injecting a fresh `with:` block (no template today
+	 * ships one), which is the path `lint` takes.
+	 */
+	comments?: Record<string, string>
 ): string {
 	const base = WORKFLOW_TEMPLATES[name];
 	if (!base) return "";
@@ -87,7 +93,10 @@ export function generateThinCallerContent(
 		const s = String(v);
 		return s.startsWith("[") || s.startsWith("{") ? `'${s}'` : s;
 	};
-	const fmt = (k: string, v: unknown) => `      ${k}: ${yamlScalar(v)}`;
+	const fmt = (k: string, v: unknown) => {
+		const line = `      ${k}: ${yamlScalar(v)}`;
+		return comments?.[k] ? `      # ${comments[k]}\n${line}` : line;
+	};
 
 	let result = base;
 
@@ -121,6 +130,7 @@ export function generateThinCallerContent(
 			existingMatch[2]
 				.split("\n")
 				.filter(Boolean)
+				.filter((line) => !line.trim().startsWith("#"))
 				.map((line) => {
 					const m = line.match(/^ {6}([^:]+):\s*(.*)/);
 					return m ? ([m[1].trim(), m[2].trim()] as [string, string]) : null;

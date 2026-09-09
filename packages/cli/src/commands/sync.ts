@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -8,6 +9,7 @@ import {
 	generateCombinedDeployContent,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
+	lintThinCallerWith,
 	normalizeWorkflowWith,
 } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
@@ -356,8 +358,19 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const name = typeof entry === "string" ? entry : entry.name;
 					const rawWith = typeof entry === "object" ? entry.with : undefined;
 					const normalized = rawWith ? normalizeWorkflowWith(rawWith as Record<string, unknown>) : undefined;
-					const withOverrides =
-						name === "lint" ? { "enable-auto-commit": true, ...(normalized ?? {}) } : normalized;
+
+					let withOverrides = normalized;
+					let comments: Record<string, string> | undefined;
+					if (name === "lint") {
+						const lint = lintThinCallerWith({
+							explicit: typeof entry === "object" ? entry.linters : undefined,
+							rootFiles: safeReaddir(input.context.repoRoot),
+							extra: normalized,
+						});
+						withOverrides = lint.withOverrides;
+						comments = lint.comments;
+					}
+
 					const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
 					const additionalPaths =
 						explicitPaths ??
@@ -395,7 +408,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 
 					steps.push(
 						await runSyncStep("local", `sync workflow ${name}`, dryRun, async () => {
-							const content = `${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths)}`;
+							const content = `${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths, undefined, comments)}`;
 							await writeWorkflowFile(input.context.repoRoot, `${name}.yml`, content);
 						})
 					);
@@ -498,6 +511,15 @@ function formatSyncStep(step: SetupStepResult): string {
 	const icon = step.status === "ok" ? "✓" : step.status === "fail" ? "✗" : step.status === "dry-run" ? "…" : "·";
 	const detail = step.message ? `  (${step.message})` : "";
 	return `    ${icon} ${step.step}${detail}`;
+}
+
+/** Repo-root filenames for linter auto-detection; `[]` when the dir is unreadable. */
+function safeReaddir(dir: string): string[] {
+	try {
+		return readdirSync(dir);
+	} catch {
+		return [];
+	}
 }
 
 async function writePackageJsonField(repoRoot: string, field: string, value: unknown): Promise<boolean> {

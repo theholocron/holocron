@@ -11,6 +11,11 @@ import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/s
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./run.js";
 import {
+	lintThinCallerWith,
+	type SuperLinterConfig,
+	superLinterConfig as resolveSuperLinterConfig,
+} from "./super-linter.js";
+import {
 	deriveDeployPaths,
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -73,6 +78,14 @@ export interface Astromech {
 	 * when there is no config or `syncScripts: false`.
 	 */
 	packageScripts(): Record<string, string>;
+	/**
+	 * The resolved super-linter env for this repo's `lint` task — the CI half
+	 * of lint parity. `thinCallers()` already bakes `env` into the `lint` thin
+	 * caller's `super-linter-env` input; this method exposes the full result
+	 * for `holocron doctor` / diagnostics. Driven by the `lint` entry's
+	 * `linters` list, else auto-detection from the repo's config files.
+	 */
+	superLinterConfig(): SuperLinterConfig;
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
@@ -94,6 +107,19 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
 
+	const rootFiles = (): string[] => {
+		try {
+			return deps.listDir(options.cwd);
+		} catch {
+			return [];
+		}
+	};
+
+	const lintEntry = (): TaskEntry | undefined =>
+		items()
+			.filter((e) => e.name === "lint")
+			.at(-1);
+
 	return {
 		run: (task, opts = {}) =>
 			runTask({
@@ -112,8 +138,19 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				if (entry.ci === false || !KNOWN_WORKFLOWS.has(entry.name)) continue;
 				const rawWith = entry.with;
 				const normalized = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
-				const withOverrides =
-					entry.name === "lint" ? { "enable-auto-commit": true, ...(normalized ?? {}) } : normalized;
+
+				let withOverrides = normalized;
+				let comments: Record<string, string> | undefined;
+				if (entry.name === "lint") {
+					const lint = lintThinCallerWith({
+						explicit: entry.linters,
+						rootFiles: rootFiles(),
+						extra: normalized,
+					});
+					withOverrides = lint.withOverrides;
+					comments = lint.comments;
+				}
+
 				const additionalPaths =
 					entry.paths ?? (entry.name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined);
 
@@ -130,7 +167,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				}
 				out.set(
 					`${entry.name}.yml`,
-					generateThinCallerContent(entry.name, withOverrides, additionalPaths, deps.logger)
+					generateThinCallerContent(entry.name, withOverrides, additionalPaths, deps.logger, comments)
 				);
 			}
 			return out;
@@ -147,5 +184,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			}
 			return out;
 		},
+
+		superLinterConfig: () => resolveSuperLinterConfig({ explicit: lintEntry()?.linters, rootFiles: rootFiles() }),
 	};
 }
