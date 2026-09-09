@@ -2,7 +2,7 @@
 
 ### Features
 
-* ✨ node() preset carries the org linter list on the lint task ([#444](https://github.com/theholocron/configs/issues/444)) ([8808a61](https://github.com/theholocron/configs/commit/8808a6124cb7f902c6c0268dc646aa36ec7edbe3)), closes [theholocron/holocron#585](https://github.com/theholocron/holocron/issues/585)
+- ✨ node() preset carries the org linter list on the lint task ([#444](https://github.com/theholocron/configs/issues/444)) ([8808a61](https://github.com/theholocron/configs/commit/8808a6124cb7f902c6c0268dc646aa36ec7edbe3)), closes [theholocron/holocron#585](https://github.com/theholocron/holocron/issues/585)
 
 ## [8.0.0](https://github.com/theholocron/configs/compare/v7.33.0...v8.0.0) (2026-09-08)
 
