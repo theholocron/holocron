@@ -30,6 +30,12 @@ export interface TaskDef {
 	jobs?: Record<string, { local: LocalRunner | null }>;
 	/** Org-default flags injected by tool name. Removed by a repo override. */
 	flags?: Record<string, string[]>;
+	/**
+	 * This task is the linter aggregate: `holocron run lint` resolves the
+	 * linter set (`config.tasks` `linters` or auto-detect) and runs each
+	 * natively instead of using `local`. See `linters.ts` / `super-linter.ts`.
+	 */
+	linters?: boolean;
 }
 
 export const TASKS: Record<string, TaskDef> = {
@@ -42,6 +48,7 @@ export const TASKS: Record<string, TaskDef> = {
 	},
 	lint: {
 		local: { tool: "eslint", args: ["."] },
+		linters: true,
 	},
 	build: {
 		local: {
