@@ -17,6 +17,14 @@ description: Pull request workflow rules. INVOKE WHEN: opening a PR, merging, cl
 - **File issues for non-trivial work** and reference them in commits/PRs
   (`Closes #N` / `Refs #N`). Skip for typo fixes.
 
+## before pushing
+
+Run **`holocron ci`** — it runs exactly the merge-gating checks locally, in CI
+order, and exits non-zero on the first failure. Finding failures after pushing
+wastes a review round trip. (Equivalent: `pnpm typecheck && pnpm lint && pnpm
+test && pnpm build`.) In `protection: "strict"` repos a `pre-push` git hook runs
+it automatically; `git push --no-verify` bypasses that hook for one push.
+
 ## opening a PR
 
 1. Create a branch from the correct base (usually `main`; `alpha` in holocron)
@@ -51,5 +59,6 @@ PR without deleting the branch or the next sync run will silently fail.
 - [ ] Package entry added to registry (if applicable)
 - [ ] Docs page added or updated in the same PR (if adding a new capability)
 - [ ] Tests written for new behavior
+- [ ] `holocron ci` passes locally (or `pnpm typecheck && pnpm lint && pnpm test && pnpm build`)
 - [ ] PR title follows Conventional Commits
 - [ ] CI green before requesting review
