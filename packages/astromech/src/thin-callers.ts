@@ -43,17 +43,19 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
 
 /**
- * GitHub check context name each CI workflow produces on a PR.
+ * The GitHub status-check context a `required` task contributes to branch
+ * protection. Format: `"{workflow name} / {job name}"`.
  *
- * The format is "{caller-workflow-name} / {reusable-job-name}". The caller
- * job's own `name:` field does NOT appear in the external check name — only
- * the calling workflow's top-level `name:` and the inner reusable-workflow
- * job name matter. Only workflows that gate merges are listed here.
+ * These name the **aggregate `Conclusion` job** (fan-in, `if: always()`), not
+ * an individual inner job — `test` has several conditionally-run sub-jobs, so
+ * `"Test / Conclusion"` is the only stable gate. Only merge-gating workflows
+ * are listed. `astro.requiredChecks()` reads this for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
-	lint: "Lint / Lint entire codebase",
-	test: "Test / Run tests and collect coverage",
-	typecheck: "Typecheck / tsc --noEmit",
+	lint: "Lint / Conclusion",
+	test: "Test / Conclusion",
+	typecheck: "Typecheck / Conclusion",
+	audit: "audit / Conclusion",
 };
 
 /**

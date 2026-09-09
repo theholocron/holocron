@@ -65,10 +65,21 @@ export const TASKS: Record<string, TaskDef> = {
 	sync: { local: { command: "sync" } },
 	wiki: { local: { command: "sync-wiki" } },
 
-	// No local equivalent — `holocron ci` reports these as skipped.
+	// No local equivalent (yet) — `holocron ci` reports these as skipped.
+	// `audit`'s sub-jobs (knip / bundle-size / performance) gain local runners
+	// in a later phase (#588).
+	audit: { local: null },
 	codeql: { local: null },
 	deploy: { local: null },
 };
 
 /** Every task name the registry knows. */
 export const KNOWN_TASKS = new Set(Object.keys(TASKS));
+
+/**
+ * The order `holocron ci` runs tasks in — cheapest / fastest signal first, so
+ * an agent or a `pre-push` hook fails early. Tasks not listed here run last, in
+ * manifest order. (The generated thin callers carry no `needs:` — cross-workflow
+ * ordering lives in `theholocron/.github` — so `holocron ci` declares its own.)
+ */
+export const CI_ORDER: string[] = ["typecheck", "lint", "test", "build", "audit", "codeql", "deploy"];

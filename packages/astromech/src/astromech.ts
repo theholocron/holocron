@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
+import { requiredChecks as resolveRequiredChecks } from "./required-checks.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./run.js";
 import {
 	lintThinCallerWith,
@@ -89,6 +90,13 @@ export interface Astromech {
 	 * `linters` list, else auto-detection from the repo's config files.
 	 */
 	superLinterConfig(): SuperLinterConfig;
+	/**
+	 * The branch-protection required-status-check contexts for this repo —
+	 * every `required: true` task's check context plus `extraRequiredChecks`,
+	 * ordered and de-duplicated. `holocron setup` prepends `"DCO"` and applies
+	 * the list; this method is policy-free (manifest only).
+	 */
+	requiredChecks(): string[];
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
@@ -201,5 +209,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		},
 
 		superLinterConfig: () => resolveSuperLinterConfig({ explicit: lintEntry()?.linters, rootFiles: rootFiles() }),
+
+		requiredChecks: () => resolveRequiredChecks(options.config ?? {}),
 	};
 }

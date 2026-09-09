@@ -1031,9 +1031,9 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Lint / Lint entire codebase" },
-				{ context: "Test / Run tests and collect coverage" },
-				{ context: "Typecheck / tsc --noEmit" },
+				{ context: "Lint / Conclusion" },
+				{ context: "Test / Conclusion" },
+				{ context: "Typecheck / Conclusion" },
 			],
 		});
 	});
@@ -1074,7 +1074,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Lint / Lint entire codebase" },
+				{ context: "Lint / Conclusion" },
 				{ context: "some-extra-check" },
 			],
 		});
@@ -1117,7 +1117,7 @@ describe("runSetup", () => {
 		const contexts = (
 			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
 		)?.required_status_checks.map((c) => c.context);
-		expect(contexts?.filter((c) => c === "Test / Run tests and collect coverage")).toHaveLength(1);
+		expect(contexts?.filter((c) => c === "Test / Conclusion")).toHaveLength(1);
 	});
 
 	it("updates an existing ruleset instead of creating a new one", async () => {

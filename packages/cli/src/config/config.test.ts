@@ -147,6 +147,17 @@ describe("resolveConfig", () => {
 		expect(resolved.holocronScript).toBe("node packages/cli/dist/cli.mjs");
 	});
 
+	it("passes extraRequiredChecks and required task entries through", () => {
+		expect(resolveConfig(minimal).extraRequiredChecks).toBeUndefined();
+		const resolved = resolveConfig({
+			...minimal,
+			extraRequiredChecks: ["codecov/patch", "tsdown (every workspace)"],
+			tasks: [{ name: "lint", required: true }, "test"],
+		});
+		expect(resolved.extraRequiredChecks).toEqual(["codecov/patch", "tsdown (every workspace)"]);
+		expect(resolved.tasks).toEqual([{ name: "lint", required: true }, "test"]);
+	});
+
 	it("throws when docs is set but build is absent", () => {
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow(ConfigError);
 		expect(() => resolveConfig({ ...minimal, docs: {} })).toThrow("`docs.build` is required");

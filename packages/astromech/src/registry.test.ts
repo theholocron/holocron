@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { KNOWN_TASKS, TASKS } from "./registry.js";
+import { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry.js";
 
 describe("TASKS registry", () => {
 	it("keys are lower-case task names matching workflow templates", () => {
@@ -36,5 +36,11 @@ describe("TASKS registry", () => {
 	it("lint is marked as the linter aggregate", () => {
 		expect(TASKS.lint!.linters).toBe(true);
 		expect(KNOWN_TASKS.has("lint")).toBe(true);
+	});
+
+	it("CI_ORDER lists known tasks, cheapest first", () => {
+		for (const name of CI_ORDER) expect(KNOWN_TASKS.has(name)).toBe(true);
+		expect(CI_ORDER.indexOf("typecheck")).toBeLessThan(CI_ORDER.indexOf("test"));
+		expect(CI_ORDER.indexOf("lint")).toBeLessThan(CI_ORDER.indexOf("test"));
 	});
 });
