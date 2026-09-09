@@ -133,6 +133,21 @@ Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one
 `"<task>": "holocron run <task>"` per runnable task. `syncScripts: false`
 opts out entirely.
 
+### `holocron run`
+
+```bash
+holocron run <task> [job] [--required] [--filter <pkg>] [--dry-run] [-- <passthrough>]
+```
+
+Runs one task locally — resolving turbo vs the package manager vs the tool
+itself. A `job` argument targets a sub-job of tasks that have them: `holocron
+run audit performance` runs Lighthouse CI, `holocron run audit knip` runs Knip,
+`holocron run audit` (no job) runs every audit sub-job in declared order. A
+sub-job whose tool isn't installed, or that has no local equivalent
+(`bundle-size`), is skipped with a note — `--required` makes that a failure. For
+a task with no sub-jobs the `job` slot is the first passthrough arg
+(`holocron run build src/`).
+
 ### `holocron ci`
 
 ```bash
@@ -146,7 +161,9 @@ first failure — the "will my PR be green?" pre-flight, and what the
 `--all` forces the full set; `--filter` is a `turbo --filter=` passthrough.
 Order comes from the `CI_ORDER` constant in `@theholocron/astromech`
 (`typecheck → lint → test → build → …`). Tasks with no local equivalent
-(`audit`, `codeql`, `deploy`) are reported as enforced-in-CI, never failures.
+(`codeql`, `deploy`) are reported as enforced-in-CI, never failures; `audit`
+expands into its sub-jobs (each under its own `audit / …` check context)
+unless the repo ships its own `"audit"` script.
 
 ### Lint parity
 

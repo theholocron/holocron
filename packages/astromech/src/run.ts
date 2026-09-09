@@ -1,16 +1,24 @@
 /**
- * `holocron run <task> [-- <passthrough>]` — run a registry task locally.
+ * `holocron run <task> [job] [-- <passthrough>]` — run a registry task (or one
+ * of its sub-jobs) locally.
+ *
+ * A `job` argument only applies to tasks that declare `jobs` (today: `audit`);
+ * for any other task it is folded back into the passthrough (`holocron run
+ * build src/`). `holocron run audit performance` runs one job; `holocron run
+ * audit` runs every job in declared order.
  *
  * Resolution:
  *
- *   0. task === "lint"                        → the linter aggregate (see below)
+ *   0. task === "lint" (no job)               → the linter aggregate (see below)
+ *   J. job given                              → TASKS[task].jobs[job].local (unknown job → exit 1)
  *   1. turbo.json defines the task            → `turbo run <task>`
  *   2. package.json has a `<task>` script     → `<pm> run <task>`
  *      (unless it's the `holocron run …` thin caller — that recurses)
  *   3. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
- *   4. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
- *   4b. known task, nothing resolved          → "no <task> task" (exit 0, or 1 with --required)
- *   5. unknown task                           → "unknown task" (exit 1)
+ *   4. TASKS[task].jobs has entries           → run each job in declared order
+ *   5. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
+ *   5b. known task, nothing resolved          → "no <task> task" (exit 0, or 1 with --required)
+ *   6. unknown task                           → "unknown task" (exit 1)
  *
  * `lint` runs the resolved linter set (`config.tasks` `linters`, else
  * auto-detected): the eslint slot goes through the standard turbo / script /
@@ -22,7 +30,7 @@
 import { join } from "node:path";
 
 import { resolveLinters } from "./linters.js";
-import { KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
+import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
 
 /** Minimal structural logger — `@theholocron/logger`'s `Logger` satisfies it. */
 export interface RunLogger {
@@ -52,6 +60,11 @@ export interface RunDeps {
 export interface RunTaskInput extends RunDeps {
 	/** Registry task name, e.g. `"test"`. */
 	task: string;
+	/**
+	 * Sub-job within the task, e.g. `"performance"` in `holocron run audit
+	 * performance`. Ignored (folded into `passthrough`) for tasks with no `jobs`.
+	 */
+	job?: string;
 	/** Directory to run in. */
 	cwd: string;
 	/** Args after `--` on the command line, forwarded to the tool / turbo / script. */
@@ -94,11 +107,34 @@ function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTa
 
 export function runTask(input: RunTaskInput): RunTaskReport {
 	const { print, logger, readFile, fileExists, listDir, task, cwd } = input;
-	const passthrough = input.passthrough ?? [];
+	const def = TASKS[task];
+
+	// A `job` argument only means something for tasks that declare `jobs`;
+	// otherwise it's just the first passthrough token (`holocron run build src/`).
+	let job = input.job;
+	let passthrough = input.passthrough ?? [];
+	if (job !== undefined && !def?.jobs) {
+		passthrough = [job, ...passthrough];
+		job = undefined;
+	}
+
+	// ── J. an explicit sub-job → resolve against TASKS[task].jobs ──────
+	if (job !== undefined) {
+		const jobDef = def!.jobs![job];
+		if (!jobDef) {
+			const known = Object.keys(def!.jobs!).join(", ");
+			print(`✗ unknown job "${job}" for "${task}" (known: ${known})`);
+			logger.warn({ task, job, status: "unknown" }, `run: ${task} ${job}`);
+			return { status: "unknown", message: `unknown job "${task} ${job}"` };
+		}
+		const label = `${task} ${job}`;
+		return runUnit(input, label, jobDef.local, makeRunOne({ ...input, task: label }), passthrough);
+	}
+
 	const run = makeRunOne(input);
 
 	// ── 0. lint aggregate ─────────────────────────────────────────────
-	if (task === "lint") return runLintAggregate(input);
+	if (task === "lint") return runLintAggregate(input, passthrough);
 
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
 	if (turboDefinesTask(cwd, task, readFile, fileExists)) {
@@ -106,8 +142,6 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		const args = ["run", task, ...filterArg, ...(passthrough.length ? ["--", ...passthrough] : [])];
 		return run(resolveBin(cwd, "turbo", fileExists), args);
 	}
-
-	const def = TASKS[task];
 
 	// ── 2. an explicit package.json script wins ────────────────────────
 	// (unless it's the `holocron run <task>` thin caller — that would recurse)
@@ -133,8 +167,14 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		// registry knows the task but nothing in this repo matches — fall through
 	}
 
-	// ── 4. no local equivalent by design (`local: null` — codeql, deploy,
-	// audit's server/baseline jobs) ────────────────────────────────────
+	// ── 4. the task is a container of sub-jobs (`audit`) — run them all ─
+	// Only when steps 1–3 found nothing: an explicit `"audit"` script / turbo
+	// task still wins.
+	if (def?.jobs && Object.keys(def.jobs).length > 0) {
+		return runAllJobs(input, def.jobs, passthrough);
+	}
+
+	// ── 5. no local equivalent by design (`local: null` — codeql, deploy) ─
 	// Steps 1–2 already had their chance, so an explicit repo script still
 	// wins. Reaching here means the registry offers nothing and the repo
 	// added nothing — that is CI-enforced, never a *local* failure.
@@ -158,13 +198,87 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 }
 
 /**
+ * Run one registry unit — a task's own runner or a single sub-job. Resolution
+ * is registry-only (`turbo` / `package.json` scripts are keyed by task, not
+ * `task/job`). `label` names the unit in messages (`audit performance`).
+ *
+ * `local: null` → CI-only by design, always a skip (never a failure, even with
+ * `--required`). A declared runner with no matching repo file, or whose tool
+ * isn't installed locally → a skip (`--required` turns it into a failure — the
+ * repo claims a check it can't back). Mirrors the lint aggregate: run what's
+ * here, flag the rest, let CI enforce.
+ */
+function runUnit(
+	input: RunTaskInput,
+	label: string,
+	local: LocalRunner | null,
+	run: (cmd: string, args: string[]) => RunTaskReport,
+	passthrough: string[]
+): RunTaskReport {
+	const { print, logger, listDir, lookPath, cwd } = input;
+
+	const skip = (msg: string): RunTaskReport => {
+		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
+		logger[input.required ? "warn" : "debug"](
+			{ task: label, status: input.required ? "fail" : "skip" },
+			`run: ${label}`
+		);
+		return { status: input.required ? "fail" : "skip", message: msg };
+	};
+
+	// Jobs are always `tool` / `detect` runners — no `command` (holocron-subcommand)
+	// form; add that branch here if a future job needs it.
+	if (local) {
+		const runner = resolveRunner(local, cwd, listDir);
+		if (!runner) return skip(`no ${label} runner for this repo`);
+		const found = lookPath(cwd, runner.tool);
+		if (!found) return skip(`${runner.tool} not installed locally for ${label} — enforced in CI`);
+		return run(found, [...runner.args, ...passthrough]);
+	}
+
+	const msg = `no local equivalent for ${label} — enforced in CI`;
+	print(`· ${msg}`);
+	logger.debug({ task: label, status: "skip" }, `run: ${label}`);
+	return { status: "skip", message: msg };
+}
+
+/**
+ * `holocron run <task>` for a task that is a container of sub-jobs (`audit`) —
+ * run each job in declared order. Status precedence: any `fail` → `fail`; else
+ * any `ok` → `ok`; else any `dry-run` → `dry-run`; else `skip` (nothing ran).
+ */
+function runAllJobs(input: RunTaskInput, jobs: Record<string, JobDef>, passthrough: string[]): RunTaskReport {
+	const { print, task } = input;
+	// The task-level `… / Conclusion` check is what gates a `required` task;
+	// an individual sub-job that can't run locally (`bundle-size`, `performance`
+	// with no lighthouse config) must not turn `holocron run audit` / `holocron
+	// ci` into a failure.
+	const perJob: RunTaskInput = { ...input, required: false };
+	const reports: RunTaskReport[] = [];
+	for (const [name, jobDef] of Object.entries(jobs)) {
+		const label = `${task} ${name}`;
+		print(`▶ ${jobDef.checkContext}`);
+		reports.push(runUnit(perJob, label, jobDef.local, makeRunOne({ ...perJob, task: label }), passthrough));
+	}
+
+	const command = reports
+		.map((r) => r.command)
+		.filter((c): c is string => Boolean(c))
+		.join(" && ");
+	const statuses = new Set(reports.map((r) => r.status));
+	if (statuses.has("fail")) return { status: "fail", command, message: `one or more ${task} jobs failed` };
+	if (statuses.has("ok")) return { status: "ok", command };
+	if (statuses.has("dry-run")) return { status: "dry-run", command };
+	return { status: "skip", message: `no ${task} job has a local equivalent — enforced in CI` };
+}
+
+/**
  * `holocron run lint` — the resolved linter set, run natively. The eslint
  * slot reuses turbo / the `lint` script / `eslint .`; the rest run their
  * `localBin` when it resolves on PATH. Worst exit code wins.
  */
-function runLintAggregate(input: RunTaskInput): RunTaskReport {
+function runLintAggregate(input: RunTaskInput, passthrough: string[]): RunTaskReport {
 	const { print, logger, readFile, fileExists, listDir, lookPath, cwd } = input;
-	const passthrough = input.passthrough ?? [];
 	const dryRun = input.dryRun ?? false;
 	const runOne = makeRunOne(input);
 	const pass = passthrough.length ? ["--", ...passthrough] : [];

@@ -112,6 +112,29 @@ describe("runCi", () => {
 		expect(audit.message).toMatch(/enforced in CI/);
 	});
 
+	it("expands audit into its sub-jobs, each under its own check context", () => {
+		const { run, exec, lines } = makeCi(
+			{ "package.json": PKG, "lighthouse.config.cjs": "" },
+			{ lookPath: (_c: string, bin: string) => (bin === "knip" || bin === "lhci" ? `/bin/${bin}` : null) }
+		);
+		const report = run({ tasks: [{ name: "audit", required: true }] });
+		expect(report.status).toBe("ok");
+		const out = lines.join("\n");
+		expect(out).toContain("▶ audit / Knip");
+		expect(out).toContain("▶ audit / Audit the performance");
+		expect(exec.mock.calls.map((c) => c[0])).toEqual(["/bin/knip", "/bin/lhci"]);
+		// still one task-level row in the report
+		expect(report.jobs.find((j) => j.task === "audit")!.status).toBe("ok");
+	});
+
+	it("does not fail `holocron ci` when audit is required but no sub-job runs locally", () => {
+		const { run, exec } = makeCi({ "package.json": PKG }); // nothing on PATH, no lighthouse config
+		const report = run({ tasks: [{ name: "audit", required: true }] });
+		expect(report.status).toBe("ok");
+		expect(exec).not.toHaveBeenCalled();
+		expect(report.jobs.find((j) => j.task === "audit")!.status).toBe("skip");
+	});
+
 	it("runs a local:null task via an explicit package.json script (audit → knip)", () => {
 		const { run, exec } = makeCi({
 			"package.json": JSON.stringify({ name: "@scope/x", scripts: { audit: "knip" } }),

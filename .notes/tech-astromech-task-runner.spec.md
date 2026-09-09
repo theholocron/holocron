@@ -136,17 +136,19 @@ export interface LocalRunner {
 export interface TaskDef {
   local: LocalRunner | null; // null → no local equivalent
   checkContext?: string; // CI status-check name (WORKFLOW_CHECK_CONTEXTS)
-  jobs?: Record<string, { local: LocalRunner | null; checkContext?: string }>;
+  jobs?: Record<string, { local: LocalRunner | null; checkContext: string }>;
   flags?: Record<string, string[]>; // org-default flags by tool name
   linters?: boolean; // this task is the linter aggregate (`lint`)
 }
 ```
 
-> **As-built (Phase 5):** the per-task / per-job `checkContext?` fields stay
-> unimplemented — the check context lives in the standalone
+> **As-built (Phase 5 → 7):** the task-level `checkContext?` field stays
+> unimplemented — the task check context lives in the standalone
 > `WORKFLOW_CHECK_CONTEXTS` map in `thin-callers.ts` (`lint` / `test` /
-> `typecheck` / `audit` → `… / Conclusion`). They land only once Phase 7
-> introduces job-level check contexts.
+> `typecheck` / `audit` → `… / Conclusion`). Phase 7 added `JobDef.checkContext`
+> — **required** on every sub-job (each one is a CI job): `audit / Knip`,
+> `audit / Audit the performance`, `audit / Audit the bundle size`. `holocron
+run audit` and `holocron ci` print each sub-job under it.
 
 Built-in defaults cover `test` / `typecheck` / `lint` / `build` / `audit`
 (+ `knip` / `bundle-size` / `performance` jobs) / `sync` / `wiki` /
@@ -210,6 +212,15 @@ key = job ? `${task}/${job}` : task
 steps 3–4–6 (turbo → explicit script → registry) plus 8–9. Steps 1, 2, 5,
 7 arrive with the package and later phases. Explicit-script-wins (4 before 6) is intentional — `"lint": "biome check"` gets biome.
 
+**As-built (Phase 7):** the job branch (`key = task/job`) resolves against
+`TASKS[task].jobs[job]` only — turbo / `package.json` scripts are keyed by task,
+not `task/job`. A `job` argument for a task with no `jobs` is folded back into
+the passthrough (`holocron run build src/`). Step 7 (no job + `jobs` present)
+runs each job in declared order; a job whose tool is absent or that is
+`local: null` is a skip, not a failure — `--required` on the explicit
+single-job form still forces exit 1. Steps 1–2, 5 (`config.tasks`
+`local: false` / `with` overrides) remain deferred.
+
 ### Package-manager / tool detection
 
 - **PM**: `packageManager` field → definitive. Else lockfile
@@ -233,8 +244,10 @@ CLAUDE.md "definition of done" has one command for _"will CI pass?"_
   `needs:` parsing (thin callers carry no `needs:` — that lives in
   `theholocron/.github`). Resolves open question #3.
 - Each line prefixed with the CI check-context name (`▶ Lint / Conclusion`).
-  `local: null` jobs (`audit`, `codeql`, `deploy`) print
-  `· no local equivalent — enforced in CI` and never fail the run.
+  `local: null` tasks (`codeql`, `deploy`) print
+  `· no local equivalent — enforced in CI` and never fail the run. `audit`
+  expands into its sub-jobs — `▶ audit / Knip`, `▶ audit / Audit the
+performance`, … — unless the repo ships its own `"audit"` script.
 - Exit non-zero on any failure. `--dry-run` prints the plan; `--filter
 <pkg>` is a turbo passthrough.
 - A `required` task whose local runner can't run is a **failure** (the
@@ -358,7 +371,7 @@ Tracking epic: **#581**.
 | 4 ✅ | Lint parity: `LINTERS` registry + auto-detect + `resolveLinters` / `superLinterConfig()` (PR 4.1); reusable `lint.yml` `super-linter-env` input (4.2); `thinCallers()` / sync / setup emit it (4.3); `holocron run lint` runs the set natively (4.4).                                                                                                                                                                                                                   | #585  |
 | 5 ✅ | `astromech.requiredChecks()` + `CI_ORDER` + `… / Conclusion` contexts (PR 5.1); `holocron ci` + `astromech.ci()` + `--filter` (5.2); branch-protection cutover — `repo.requiredChecks` removed, `Capability.extraRequiredChecks` (5.3); `hooks` field + `.husky/pre-push` template + `setup --hooks` (5.4); CLAUDE.md "definition of done" + spec + ADR-0009/0010 → Accepted (5.5).                                                                                     | #586  |
 | 6 ✅ | `astromech.reusableTemplates()` + move the 18 reusable workflows + 4 actions to `src/templates/reusable/`; `sync-github` shrinks to a `reusableTemplates()` consumer, dead `parseTasksFromTs`/`parseOrgContextFromTs` + the `# Synced:` timestamp dropped (PR 6.1); `sync` / `setup` consume `astromech.thinCallers()` — the deferred #584 item (PR 6.2); spec + `AGENTS.md` "pure sync target" (PR 6.3). Companion notes in `theholocron/.github` + `.github-private`. | #587  |
-| 7    | `holocron run <task> <job>` + `audit` sub-jobs (step 7).                                                                                                                                                                                                                                                                                                                                                                                                                | #588  |
+| 7 ✅ | `holocron run <task> <job>` + `audit` sub-jobs (`bundle-size` / `knip` / `performance`); `JobDef.checkContext`; `holocron run audit` runs every job in order; `holocron ci` expands `audit` into per-job check-context lines; job-position arg folds into passthrough for job-less tasks.                                                                                                                                                                               | #588  |
 | 8    | CI reusable-workflow run steps call `holocron run` / `holocron ci`.                                                                                                                                                                                                                                                                                                                                                                                                     | #589  |
 
 ## Test plan

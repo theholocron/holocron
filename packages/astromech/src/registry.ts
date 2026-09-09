@@ -20,6 +20,19 @@ export interface LocalRunner {
 	command?: string;
 }
 
+/** One sub-job of a task — `performance` in `holocron run audit performance`. */
+export interface JobDef {
+	/** How the job runs locally; `null` → no local equivalent (enforced in CI). */
+	local: LocalRunner | null;
+	/**
+	 * The CI status-check context this job reports as (`audit / Knip`) — every
+	 * sub-job is a CI job. `holocron run audit` and `holocron ci` label each job
+	 * line with it; the task-level `… / Conclusion` context lives in
+	 * `WORKFLOW_CHECK_CONTEXTS`.
+	 */
+	checkContext: string;
+}
+
 export interface TaskDef {
 	/**
 	 * `null` — the registry has no built-in runner (CodeQL, deploys, audit's
@@ -29,8 +42,11 @@ export interface TaskDef {
 	 * is `required` (a CI-only check isn't a local one).
 	 */
 	local: LocalRunner | null;
-	/** Sub-jobs, keyed by slug — `holocron run audit performance`. */
-	jobs?: Record<string, { local: LocalRunner | null }>;
+	/**
+	 * Sub-jobs, keyed by slug — `holocron run audit performance`. Declared order
+	 * is run order: `holocron run audit` (no job) runs each in turn.
+	 */
+	jobs?: Record<string, JobDef>;
 	/** Org-default flags injected by tool name. Removed by a repo override. */
 	flags?: Record<string, string[]>;
 	/**
@@ -68,11 +84,29 @@ export const TASKS: Record<string, TaskDef> = {
 	sync: { local: { command: "sync" } },
 	wiki: { local: { command: "sync-wiki" } },
 
-	// No built-in local runner. `holocron run` / `holocron ci` still honour an
-	// explicit turbo task or `package.json` script (e.g. `"audit": "knip"` runs
-	// knip for the audit slot); with neither they skip cleanly, never fail.
-	// `audit`'s knip / bundle-size / performance sub-jobs get proper runners in #588.
-	audit: { local: null },
+	// No built-in top-level runner. `holocron run audit` / `holocron ci` still
+	// honour an explicit turbo task or `package.json` script (e.g. `"audit":
+	// "knip"`); with neither, `holocron run audit` runs each sub-job in declared
+	// order — `bundle-size` (CI-only), `knip`, `performance`.
+	audit: {
+		local: null,
+		jobs: {
+			// Build + upload bundle stats to Codecov — no meaningful local equivalent.
+			"bundle-size": { local: null, checkContext: "audit / Audit the bundle size" },
+			// Dead-code / unused-dependency analysis.
+			knip: { local: { tool: "knip" }, checkContext: "audit / Knip" },
+			// Lighthouse CI — only runnable with a lighthouse config in the repo root.
+			performance: {
+				local: {
+					detect: [
+						{ when: /^lighthouse\.config\.(cjs|js|mjs|ts)$/, tool: "lhci", args: ["autorun"] },
+						{ when: /^lighthouserc\.(cjs|js|mjs|json|yml|yaml)$/, tool: "lhci", args: ["autorun"] },
+					],
+				},
+				checkContext: "audit / Audit the performance",
+			},
+		},
+	},
 	codeql: { local: null },
 	deploy: { local: null },
 };
