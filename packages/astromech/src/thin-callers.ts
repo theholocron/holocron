@@ -49,7 +49,7 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * These name the **aggregate `Conclusion` job** (fan-in, `if: always()`), not
  * an individual inner job — `test` has several conditionally-run sub-jobs, so
  * `"Test / Conclusion"` is the only stable gate. Only merge-gating workflows
- * are listed. `astro.requiredChecks()` reads this for every `required` task.
+ * are listed. `astromech.requiredChecks()` reads this for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	lint: "Lint / Conclusion",

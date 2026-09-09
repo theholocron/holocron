@@ -21,7 +21,7 @@ prs:
 > the task manifest — every `{ required: true }` task's `… / Conclusion` check
 > context (in `CI_ORDER`) plus the top-level `extraRequiredChecks`, with `"DCO"`
 > hard-prepended by `holocron setup` for `protection: "strict"`. See
-> `astro.requiredChecks()` in `@theholocron/astromech` and
+> `astromech.requiredChecks()` in `@theholocron/astromech` and
 > `tech-astromech-task-runner.spec.md`.
 
 ## Problem

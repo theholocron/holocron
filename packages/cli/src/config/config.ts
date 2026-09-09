@@ -130,7 +130,7 @@ export interface RepoConfig {
 	 * no protection is applied and no `branch_protection_level` property is set.
 	 * Required-status-check contexts for `"strict"` are derived from the task
 	 * manifest — `{ required: true }` tasks + top-level `extraRequiredChecks`
-	 * (see `astro.requiredChecks()`).
+	 * (see `astromech.requiredChecks()`).
 	 */
 	protection?: RepoProtection;
 	/**
@@ -374,7 +374,7 @@ export interface HolocronConfig {
 	/**
 	 * Required status-check contexts not backed by a `required` task (codecov
 	 * gates, the bundle-build check, …). `holocron setup` appends these to the
-	 * task-derived list from `astro.requiredChecks()`.
+	 * task-derived list from `astromech.requiredChecks()`.
 	 */
 	extraRequiredChecks?: string[];
 	/**

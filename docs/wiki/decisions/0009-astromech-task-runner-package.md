@@ -86,27 +86,27 @@ borrowing the plugin ergonomic without the plugin plumbing:
 ```ts
 import { createAstromech } from "@theholocron/astromech";
 
-const astro = createAstromech({
+const astromech = createAstromech({
   cwd,
   // config is loaded by the package (see "Config system"); or pass one in.
   // exec / readFile / fileExists / listDir / env — injectable for tests;
   // the package ships real defaults (spawnSync w/ stdio inherit, node:fs).
 });
 
-await astro.run(task, { job, passthrough, dryRun, required }); // holocron run
-await astro.ci({ dryRun, filter, scope }); // holocron ci
-astro.requiredChecks(); // string[]  — branch-protection check contexts
-astro.thinCallers(); // Map<filename, yaml>   — .github/workflows/*.yml
-astro.packageScripts(); // Record<string,string> — { test: "holocron run test", … }
-astro.reusableTemplates(); // Map<path, content>  — what sync-github pushes
-astro.superLinterConfig(); // { env, linterFiles } — CI super-linter, from the manifest
-astro.plan(); // resolved task table — holocron doctor / config show
+await astromech.run(task, { job, passthrough, dryRun, required }); // holocron run
+await astromech.ci({ dryRun, filter, scope }); // holocron ci
+astromech.requiredChecks(); // string[]  — branch-protection check contexts
+astromech.thinCallers(); // Map<filename, yaml>   — .github/workflows/*.yml
+astromech.packageScripts(); // Record<string,string> — { test: "holocron run test", … }
+astromech.reusableTemplates(); // Map<path, content>  — what sync-github pushes
+astromech.superLinterConfig(); // { env, linterFiles } — CI super-linter, from the manifest
+astromech.plan(); // resolved task table — holocron doctor / config show
 ```
 
 The CLI's `run` / `ci` / `setup` / `sync` handlers shrink to: parse argv →
 `createAstromech(...)` → call one method → set the exit code. GitHub I/O
-stays in `holocron-plugin-github` — `astro.reusableTemplates()` and
-`astro.requiredChecks()` return _what_ to push / enforce; the CLI hands
+stays in `holocron-plugin-github` — `astromech.reusableTemplates()` and
+`astromech.requiredChecks()` return _what_ to push / enforce; the CLI hands
 them to the `source` capability.
 
 ### Config system — vite/vitest-style
@@ -171,7 +171,7 @@ skill gains a `holocron ci` step.
 **explicit linter list**: `["eslint", "prettier", "actionlint",
 "markdownlint", "yamllint", "gitleaks", …]`. From that one list:
 
-- **CI**: `astro.superLinterConfig()` generates super-linter's
+- **CI**: `astromech.superLinterConfig()` generates super-linter's
   `VALIDATE_*` env and `.github/linters/` passthrough so the container
   runs **exactly that set** — super-linter stays the CI transport (no
   per-linter install in CI) but is no longer "everything".
