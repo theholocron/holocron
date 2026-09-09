@@ -1,3 +1,9 @@
+## [8.2.0](https://github.com/theholocron/configs/compare/v8.1.1...v8.2.0) (2026-09-09)
+
+### Features
+
+* ✨ manifest-derived required checks (holocron[#586](https://github.com/theholocron/configs/issues/586)) ([#447](https://github.com/theholocron/configs/issues/447)) ([f108e12](https://github.com/theholocron/configs/commit/f108e12cdc36bab04b70875c7d998fe19babb9a5)), closes [#446](https://github.com/theholocron/configs/issues/446)
+
 ## [8.1.1](https://github.com/theholocron/configs/compare/v8.1.0...v8.1.1) (2026-09-09)
 
 ### Chores
