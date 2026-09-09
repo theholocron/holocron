@@ -377,6 +377,13 @@ export interface HolocronConfig {
 	 * task-derived list from `astro.requiredChecks()`.
 	 */
 	extraRequiredChecks?: string[];
+	/**
+	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
+	 * `.husky/pre-push` (runs `holocron ci` before every push); `false` /
+	 * `{ prePush: false }` opts out. Omitted → on for `protection: "strict"`,
+	 * off otherwise. `--hooks` / `--no-hooks` on `holocron setup` override.
+	 */
+	hooks?: boolean | { prePush?: boolean };
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -453,6 +460,7 @@ export interface ResolvedHolocronConfig {
 	syncScripts?: boolean;
 	holocronScript?: string;
 	extraRequiredChecks?: string[];
+	hooks?: boolean | { prePush?: boolean };
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
@@ -596,6 +604,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		syncScripts: raw.syncScripts,
 		holocronScript: raw.holocronScript,
 		extraRequiredChecks: raw.extraRequiredChecks,
+		hooks: raw.hooks,
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},

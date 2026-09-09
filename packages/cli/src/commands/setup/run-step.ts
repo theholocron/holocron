@@ -33,6 +33,11 @@ export interface RunSetupInput {
 	print?: SetupPrintLine;
 	/** Injectable keyring backend. Tests pass `() => null` to skip real OS keychain lookups. */
 	keyring?: (key: string) => string | null;
+	/**
+	 * `--hooks` / `--no-hooks` override for git-hook installation. `undefined`
+	 * defers to `config.hooks`, then to `protection: "strict"`.
+	 */
+	hooks?: boolean;
 }
 
 export async function runStep(

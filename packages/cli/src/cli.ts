@@ -223,10 +223,16 @@ try {
 			"setup",
 			"Apply infra setup actions across every configured capability",
 			(y) =>
-				y.option("repo", {
-					type: "string",
-					describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
-				}),
+				y
+					.option("repo", {
+						type: "string",
+						describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
+					})
+					.option("hooks", {
+						type: "boolean",
+						describe:
+							"Install git hooks (.husky/pre-push → holocron ci). Default: on for protection:'strict'. --no-hooks to skip.",
+					}),
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
@@ -241,6 +247,7 @@ try {
 						...tokens,
 						org: resolveOrg(argv, loaded.resolved),
 					},
+					...(argv.hooks !== undefined ? { hooks: argv.hooks as boolean } : {}),
 				});
 				if (report.summary.fail > 0) {
 					process.exitCode = 1;

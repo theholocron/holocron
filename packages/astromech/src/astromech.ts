@@ -224,6 +224,10 @@ export function createAstromech(options: AstromechOptions): Astromech {
 					continue;
 				out[entry.name] = `holocron run ${entry.name}`;
 			}
+			// Enabled hooks need `husky` to run on install to register the hook path.
+			const hooks = options.config.hooks;
+			const hooksOn = hooks === true || (typeof hooks === "object" && hooks.prePush !== false);
+			if (hooksOn) out.prepare = "husky";
 			return out;
 		},
 

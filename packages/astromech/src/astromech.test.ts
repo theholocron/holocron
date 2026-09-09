@@ -252,6 +252,29 @@ describe("createAstromech().packageScripts", () => {
 			createAstromech({ cwd: "/repo", config: { tasks: ["test"], syncScripts: false } }).packageScripts()
 		).toEqual({});
 	});
+
+	it("adds prepare: husky when hooks is true", () => {
+		expect(
+			createAstromech({ cwd: "/repo", config: { tasks: ["test"], hooks: true } }).packageScripts()
+		).toMatchObject({ prepare: "husky" });
+	});
+
+	it("adds prepare: husky when hooks.prePush is not disabled", () => {
+		expect(createAstromech({ cwd: "/repo", config: { tasks: ["test"], hooks: {} } }).packageScripts().prepare).toBe(
+			"husky"
+		);
+	});
+
+	it("omits prepare when hooks is false or unset", () => {
+		expect(
+			createAstromech({ cwd: "/repo", config: { tasks: ["test"], hooks: false } }).packageScripts().prepare
+		).toBeUndefined();
+		expect(
+			createAstromech({ cwd: "/repo", config: { tasks: ["test"], hooks: { prePush: false } } }).packageScripts()
+				.prepare
+		).toBeUndefined();
+		expect(createAstromech({ cwd: "/repo", config: { tasks: ["test"] } }).packageScripts().prepare).toBeUndefined();
+	});
 });
 
 describe("createAstromech().superLinterConfig", () => {

@@ -4,7 +4,7 @@ description: Apply all infra setup actions across every configured capability.
 ---
 
 ```bash
-holocron setup [--repo owner/name] [--dry-run]
+holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 ```
 
 `setup` is the primary provisioning command. It applies a deterministic set of infrastructure actions for every configured capability. Each step is wrapped in a try/catch — failures are reported but don't abort subsequent steps. A summary at the end shows counts for ok, fail, and skip.
@@ -18,6 +18,7 @@ holocron setup [--repo owner/name] [--dry-run]
 | Write `.editorconfig`        | Canonical editor settings (tab indent, LF line endings, etc.)                                         |
 | Write `.alexrc.json`         | Shared inclusive-language allow-list                                                                  |
 | Write `commitlint.config.ts` | CommitLint config extending `@theholocron/commitlint-config`                                          |
+| Write `.husky/pre-push`      | When hooks are enabled — runs `holocron ci` before every push (see below)                             |
 | Update `codecov.yml`         | Syncs `individual_components` to match `packages/*/` workspace entries                                |
 | Install CI workflows         | Writes `.github/workflows/<name>.yml` for each entry in `workflows[]`                                 |
 | Install agent skills         | Downloads and installs each skill from `skills[]` into `.agents/skills/` with agent-specific symlinks |
@@ -46,6 +47,12 @@ holocron setup [--repo owner/name] [--dry-run]
 context (`Lint / Conclusion`, `Test / Conclusion`, …) in CI order, then the
 top-level `extraRequiredChecks`. No hand-maintained list.
 
+**Pre-push hook.** When hooks are enabled — on by default for
+`protection: "strict"`, gated by the `hooks` config field, overridable with
+`--hooks` / `--no-hooks` — `setup` writes `.husky/pre-push` (runs `holocron ci`)
+and sets `package.json#scripts.prepare` to `husky` (unless `syncScripts: false`).
+Run `pnpm install` once to activate it; bypass one push with `git push --no-verify`.
+
 ### `vault` capability
 
 | Action              | Notes                                                                  |
@@ -67,10 +74,11 @@ top-level `extraRequiredChecks`. No hand-maintained list.
 
 ## Options
 
-| Option              | Description                                                            |
-| ------------------- | ---------------------------------------------------------------------- |
-| `--repo owner/name` | Override the repo coordinate                                           |
-| `--dry-run`         | Print "would" lines for all mutating steps; read-only probes still run |
+| Option                   | Description                                                            |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `--repo owner/name`      | Override the repo coordinate                                           |
+| `--hooks` / `--no-hooks` | Force git-hook installation on or off (default: on for strict repos)   |
+| `--dry-run`              | Print "would" lines for all mutating steps; read-only probes still run |
 
 ## Example
 
