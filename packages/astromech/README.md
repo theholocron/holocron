@@ -104,6 +104,43 @@ there is no config.
 `holocron run` itself does not read the config yet — that (and
 `holocron ci`) come in later phases (epic #581).
 
+## Lint parity
+
+One linter list drives both CI and local — no asymmetry. Source: the
+`lint` task's `linters` array, or auto-detection from the config files
+present. The `linter name → super-linter VALIDATE_* keys` mapping lives in
+one place, `src/linters.ts`.
+
+| linter                       | `VALIDATE_*`                              | always-on                           | local binary                             |
+| ---------------------------- | ----------------------------------------- | ----------------------------------- | ---------------------------------------- |
+| `eslint`                     | `JAVASCRIPT_ES`, `TYPESCRIPT_ES`          | on `eslint.config.*` / `.eslintrc*` | `eslint .`                               |
+| `prettier`                   | `*_PRETTIER` (JS/JSX/TS/TSX/MD) + `FIX_*` | yes                                 | `prettier --check .`                     |
+| `yamllint`                   | `YAML`                                    | yes                                 | `yamllint .` (usually CI-only)           |
+| `actionlint`                 | `GITHUB_ACTIONS`                          | yes                                 | `actionlint` (usually CI-only)           |
+| `gitleaks`                   | `GITLEAKS`                                | yes                                 | `gitleaks dir` (usually CI-only)         |
+| `editorconfig`               | `EDITORCONFIG`                            | yes                                 | `editorconfig-checker` (usually CI-only) |
+| `commitlint`                 | `GIT_COMMITLINT`                          | yes                                 | `commitlint --last`                      |
+| `git-merge-conflict-markers` | `GIT_MERGE_CONFLICT_MARKERS`              | yes                                 | — (CI only)                              |
+| `markdownlint`               | `MARKDOWN`                                | on `.markdownlint*`                 | `markdownlint-cli2`                      |
+
+```ts
+import { superLinterConfig, resolveLinters } from "@theholocron/astromech";
+
+superLinterConfig({ explicit: ["eslint", "prettier"], rootFiles: fs.readdirSync(cwd) });
+// → { env: { VALIDATE_JAVASCRIPT_ES: "true", … }, linters: ["eslint","prettier"], configInputs: { … } }
+```
+
+`superLinterConfig().env` is the exact `VALIDATE_*`/`FIX_*` map the CI
+`lint` job needs — the CLI serializes it as the `super-linter-env` input on
+each repo's generated `lint` thin caller. Setting any `VALIDATE_*` puts
+super-linter in allow-list mode, so emitting only the enabled keys makes it
+run exactly the resolved set.
+
+`holocron run lint` (later phase) runs the same set natively: `turbo run
+lint` for the eslint portion (cached), then each other linter whose binary
+resolves; linters with a binary that is not on `PATH` are flagged with an
+install hint; the rest print "CI only".
+
 ## Development
 
 | Script               | Description             |
