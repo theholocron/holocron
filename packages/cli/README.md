@@ -306,9 +306,11 @@ all three. See the [telemetry guide](https://docs.theholocron.dev/holocron/telem
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands. `holocron run` / `ci` are
   delegated to [`@theholocron/astromech`](../astromech) (`createAstromech`).
-  `holocron sync-github` pushes the reusable `workflow_call` implementations +
-  composite actions from `astromech.reusableTemplates()` to `theholocron/.github`
-  (a pure sync target — never hand-edit its `.github/workflows/*`).
+  `holocron sync` / `holocron setup` write each repo's `.github/workflows/*.yml`
+  thin callers from `astromech.thinCallers()`; `holocron sync-github` pushes the
+  reusable `workflow_call` implementations + composite actions from
+  `astromech.reusableTemplates()` to `theholocron/.github` (a pure sync target —
+  never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
   `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
   `plugin create`, `auth`

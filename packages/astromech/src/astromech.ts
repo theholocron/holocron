@@ -200,6 +200,17 @@ export function createAstromech(options: AstromechOptions): Astromech {
 					comments = lint.comments;
 				}
 
+				if (
+					entry.name === "test" &&
+					withOverrides?.["run-unit"] === false &&
+					withOverrides?.["run-storybook"] === false
+				) {
+					throw new Error(
+						'test workflow: at least one of "run-unit" or "run-storybook" must be true. ' +
+							"Library repos use run-unit: true; UI/Storybook repos use run-storybook: true."
+					);
+				}
+
 				const additionalPaths =
 					entry.paths ?? (entry.name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined);
 

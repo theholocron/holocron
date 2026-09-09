@@ -18,24 +18,13 @@
  * one central place.
  */
 
-import { readdirSync } from "node:fs";
 import { access, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import {
-	createAstromech,
-	deriveDeployPaths,
-	extractPreviewConfig,
-	generateCombinedDeployContent,
-	generateThinCallerContent,
-	KNOWN_WORKFLOWS,
-	lintThinCallerWith,
-	normalizeWorkflowWith,
-} from "@theholocron/astromech";
+import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
-import { ConfigError } from "../../config/config.js";
 import type {
 	Auth,
 	Deployment,
@@ -183,47 +172,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (loader.has("source") && tasks && tasks.length > 0) {
 		const source = loader.get("source") as Source;
 		print(style.step("workflows"));
+
+		// astromech renders every thin caller from the manifest (lint linter set,
+		// deploy paths, deploy+preview) and validates it — a bad manifest throws
+		// here, aborting setup, same as before. Iterate the manifest (not the map)
+		// so step reporting keeps the config's order.
+		const files = createAstromech({
+			cwd: input.context.repoRoot,
+			config: { tasks: tasks as TasksConfig["tasks"] },
+			orgContext: { org: config.org, domain: config.domain },
+		}).thinCallers();
+
 		for (const entry of tasks) {
 			const name = typeof entry === "string" ? entry : entry.name;
-			const rawWith = typeof entry === "object" ? entry.with : undefined;
-			const normalized = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
-
-			let withOverrides = normalized;
-			let comments: Record<string, string> | undefined;
-			if (name === "lint") {
-				let rootFiles: string[] = [];
-				try {
-					rootFiles = readdirSync(input.context.repoRoot);
-				} catch {
-					/* unreadable repo root — auto-detect falls back to the always-on set */
-				}
-				const lint = lintThinCallerWith({
-					explicit: typeof entry === "object" ? entry.linters : undefined,
-					rootFiles,
-					extra: normalized,
-				});
-				withOverrides = lint.withOverrides;
-				comments = lint.comments;
-			}
-
-			const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
-			const additionalPaths =
-				explicitPaths ??
-				(name === "deploy" && rawWith ? deriveDeployPaths(rawWith as Record<string, unknown>) : undefined);
-
-			if (name === "test" && withOverrides) {
-				const runUnit = withOverrides["run-unit"];
-				const runStorybook = withOverrides["run-storybook"];
-				const unitDisabled = runUnit === false;
-				const storybookDisabled = runStorybook === false;
-				const neitherEnabled = unitDisabled && storybookDisabled;
-				if (neitherEnabled) {
-					throw new ConfigError(
-						'test workflow: at least one of "run-unit" or "run-storybook" must be true. ' +
-							"Library repos use run-unit: true; UI/Storybook repos use run-storybook: true."
-					);
-				}
-			}
 
 			if (!KNOWN_WORKFLOWS.has(name)) {
 				steps.push({
@@ -236,32 +197,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				continue;
 			}
 
-			if (name === "deploy" && rawWith) {
-				const previewCfg = extractPreviewConfig(rawWith as Record<string, unknown>, {
-					org: config.org,
-					domain: config.domain,
-				});
-				if (previewCfg) {
-					const paths = additionalPaths!;
-					steps.push(
-						await runStep("source", "write workflow deploy (with preview)", dryRun, async () => {
-							await source.writeWorkflowFile(
-								"deploy.yml",
-								`${workflowHeader()}${generateCombinedDeployContent(withOverrides!, paths, previewCfg)}`
-							);
-						})
-					);
-					print(formatStep(steps[steps.length - 1]!));
-					continue;
-				}
-			}
+			const filename = name === "deploy" ? "deploy.yml" : `${name}.yml`;
+			const content = files.get(filename);
+			if (content === undefined) continue; // ci: false — nothing to write
 
+			const withPreview = name === "deploy" && content.includes("workflows/preview.yml@main");
+			const step = withPreview ? "write workflow deploy (with preview)" : `write workflow ${name}`;
 			steps.push(
-				await runStep("source", `write workflow ${name}`, dryRun, async () => {
-					await source.writeWorkflowFile(
-						`${name}.yml`,
-						`${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths, undefined, comments)}`
-					);
+				await runStep("source", step, dryRun, async () => {
+					await source.writeWorkflowFile(filename, `${workflowHeader()}${content}`);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
