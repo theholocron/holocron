@@ -66,6 +66,18 @@ describe("createAstromech().run", () => {
 		});
 	});
 
+	it("threads a sub-job through to the registry — run('audit', { job })", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const report = createAstromech({
+			...fs({ "package.json": PKG }),
+			exec,
+			lookPath: (_cwd, bin) => (bin === "knip" ? `/usr/local/bin/${bin}` : null),
+			print: () => {},
+		}).run("audit", { job: "knip" });
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/knip", [], { cwd: "/repo" });
+	});
+
 	it("routes a structured logger through to run lines", () => {
 		const warn = vi.fn();
 		const astromech = createAstromech({

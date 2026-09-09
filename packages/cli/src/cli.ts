@@ -575,14 +575,19 @@ try {
 			}
 		)
 		.command(
-			"run <task> [passthrough..]",
-			"Run a task locally (test, typecheck, lint, build) — figures out turbo / the tool / the package manager",
+			"run <task> [job] [passthrough..]",
+			"Run a task locally (test, typecheck, lint, build, audit) — figures out turbo / the tool / the package manager",
 			(y) =>
 				y
 					.positional("task", {
 						type: "string",
 						demandOption: true,
-						describe: "Task name (test, typecheck, lint, build). See `holocron run --help`.",
+						describe: "Task name (test, typecheck, lint, build, audit). See `holocron run --help`.",
+					})
+					.positional("job", {
+						type: "string",
+						describe:
+							"Sub-job within the task (e.g. `holocron run audit performance`). Omit to run every job. Only `audit` has jobs today.",
 					})
 					.positional("passthrough", {
 						type: "string",
@@ -605,6 +610,7 @@ try {
 				const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
 				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
 				const report = astromech.run(argv.task as string, {
+					...(argv.job !== undefined ? { job: argv.job as string } : {}),
 					passthrough: (argv.passthrough as string[] | undefined) ?? [],
 					dryRun: argv.dryRun,
 					required: argv.required,
@@ -1107,12 +1113,10 @@ try {
 							let extra: string[] = [];
 							try {
 								const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
-								const cfg = JSON.parse(raw) as Record<string, unknown>;
-								const upgradeNode = (cfg.upgrade as Record<string, unknown> | undefined)?.node as
-									| Record<string, unknown>
-									| undefined;
-								if (Array.isArray(upgradeNode?.extra)) {
-									extra = upgradeNode.extra as string[];
+								const cfg = JSON.parse(raw) as { upgrade?: { node?: { extra?: unknown } } };
+								const extraRaw = cfg.upgrade?.node?.extra;
+								if (Array.isArray(extraRaw)) {
+									extra = extraRaw as string[];
 								}
 							} catch {
 								/* no config or no upgrade section — fine */

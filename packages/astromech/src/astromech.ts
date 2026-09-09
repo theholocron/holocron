@@ -58,6 +58,12 @@ export interface AstromechOptions {
 }
 
 export interface RunOptions {
+	/**
+	 * Sub-job within the task — `performance` in `holocron run audit
+	 * performance`. Only meaningful for tasks that declare `jobs` (`audit`);
+	 * ignored otherwise. Omit to run every job the task has.
+	 */
+	job?: string;
 	/** Args after `--`, forwarded to the tool / turbo / script. */
 	passthrough?: string[];
 	/** Print the resolved command without running it. */
@@ -69,7 +75,7 @@ export interface RunOptions {
 }
 
 export interface Astromech {
-	/** Run one task locally. */
+	/** Run one task — or one of its sub-jobs (`opts.job`) — locally. */
 	run(task: string, opts?: RunOptions): RunTaskReport;
 	/**
 	 * Run the merge-gating checks locally, in CI order — "will CI pass?".
@@ -164,11 +170,12 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				...deps,
 				task,
 				cwd: options.cwd,
+				...(opts.job !== undefined ? { job: opts.job } : {}),
 				passthrough: opts.passthrough ?? [],
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
-				...(task === "lint" ? { linters: lintEntry()?.linters } : {}),
+				...(task === "lint" && opts.job === undefined ? { linters: lintEntry()?.linters } : {}),
 			}),
 
 		ci: (opts = {}) =>

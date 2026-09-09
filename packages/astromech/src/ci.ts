@@ -73,10 +73,12 @@ export function runCi(input: CiInput): CiReport {
 		const context = WORKFLOW_CHECK_CONTEXTS[entry.name] ?? null;
 		print(`▶ ${context ?? entry.name}`);
 
-		// `local: null` tasks (codeql, deploy, audit's server/baseline jobs) have
-		// no built-in runner — but `runTask` steps 1–2 still honour an explicit
-		// turbo task / `package.json` script (holocron's `"audit": "knip"`), so
-		// don't short-circuit here. `runTask` returns "skip" when nothing runs.
+		// `local: null` tasks (codeql, deploy) have no built-in runner — but
+		// `runTask` steps 1–2 still honour an explicit turbo task / `package.json`
+		// script (holocron's `"audit": "knip"`), and a job-bearing task (`audit`)
+		// with no such script expands into its sub-jobs, each printed under its
+		// own `▶ audit / <Job>` check context. `runTask` returns "skip" when
+		// nothing runs.
 		const r = runTask({
 			print: (line) => print(`  ${line}`),
 			logger: input.logger,

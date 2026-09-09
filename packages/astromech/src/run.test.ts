@@ -251,6 +251,125 @@ describe("runTask", () => {
 	});
 });
 
+describe("runTask — sub-jobs", () => {
+	const onPath =
+		(...bins: string[]) =>
+		(_cwd: string, bin: string): string | null =>
+			bins.includes(bin) ? `/usr/local/bin/${bin}` : null;
+
+	it("runs one named job — `audit knip` → knip", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("knip") });
+		const report = call("audit", { job: "knip" });
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/knip", [], { cwd: CWD });
+	});
+
+	it("forwards passthrough args to the job's tool", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("knip") });
+		call("audit", { job: "knip", passthrough: ["--reporter", "json"] });
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/knip", ["--reporter", "json"], { cwd: CWD });
+	});
+
+	it("detects a lighthouse config for `audit performance` → lhci autorun", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "lighthouse.config.cjs": "" },
+			{ lookPath: onPath("lhci") }
+		);
+		const report = call("audit", { job: "performance" });
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/lhci", ["autorun"], { cwd: CWD });
+	});
+
+	it("skips `audit performance` when the repo has no lighthouse config", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("lhci") });
+		const report = call("audit", { job: "performance" });
+		expect(report.status).toBe("skip");
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/no audit performance runner/);
+	});
+
+	it("skips a job whose tool isn't installed locally — enforced in CI", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // nothing on PATH
+		const report = call("audit", { job: "knip" });
+		expect(report.status).toBe("skip");
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/knip not installed locally.*enforced in CI/);
+	});
+
+	it("--required turns a missing job tool into a failure", () => {
+		const { call } = makeRun({ "package.json": PKG() });
+		const report = call("audit", { job: "knip", required: true });
+		expect(report.status).toBe("fail");
+	});
+
+	it("rejects an unknown job with the known list, exit 1", () => {
+		const { call, lines } = makeRun({ "package.json": PKG() });
+		const report = call("audit", { job: "frobnicate" });
+		expect(report.status).toBe("unknown");
+		expect(report.message).toBe('unknown job "audit frobnicate"');
+		expect(lines.join("\n")).toMatch(/known: bundle-size, knip, performance/);
+	});
+
+	it("`holocron run audit` with no job runs every job in declared order", () => {
+		const { call, exec, lines } = makeRun(
+			{ "package.json": PKG(), "lighthouse.config.cjs": "" },
+			{ lookPath: onPath("knip", "lhci") }
+		);
+		const report = call("audit");
+		expect(report.status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[0])).toEqual(["/usr/local/bin/knip", "/usr/local/bin/lhci"]);
+		const out = lines.join("\n");
+		expect(out.indexOf("audit / Knip")).toBeLessThan(out.indexOf("audit / Audit the performance"));
+		expect(out).toMatch(/audit bundle-size — enforced in CI/);
+	});
+
+	it("`holocron run audit --dry-run` plans every job and runs nothing", () => {
+		const { call, exec, lines } = makeRun(
+			{ "package.json": PKG(), "lighthouse.config.cjs": "" },
+			{ lookPath: onPath("knip", "lhci") }
+		);
+		const report = call("audit", { dryRun: true });
+		expect(report.status).toBe("dry-run");
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/would run: .*knip[\s\S]*would run: .*lhci autorun/);
+	});
+
+	it("`holocron run audit` is a clean skip when no job is runnable locally", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		const report = call("audit");
+		expect(report.status).toBe("skip");
+		expect(exec).not.toHaveBeenCalled();
+		expect(report.message).toMatch(/no audit job has a local equivalent/);
+	});
+
+	it("`holocron run audit` fails the run when one job fails", () => {
+		const { call } = makeRun(
+			{ "package.json": PKG() },
+			{ lookPath: onPath("knip"), exec: () => ({ exitCode: 1 }) }
+		);
+		const report = call("audit");
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/one or more audit jobs failed/);
+	});
+
+	it("folds a job-position arg into passthrough for a task with no jobs (`build src/`)", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG(),
+			"tsdown.config.ts": "",
+			"node_modules/.bin/tsdown": "",
+		});
+		call("build", { job: "src/" });
+		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsdown"), ["src/"], { cwd: CWD });
+	});
+
+	it("an explicit `audit` script still wins over job expansion", () => {
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { audit: "knip" } }) });
+		const report = call("audit");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "audit"], { cwd: CWD });
+	});
+});
+
 describe("runTask — lint aggregate", () => {
 	const onPath =
 		(...bins: string[]) =>
