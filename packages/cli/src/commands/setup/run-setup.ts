@@ -18,6 +18,7 @@
  * one central place.
  */
 
+import { readdirSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -27,6 +28,7 @@ import {
 	generateCombinedDeployContent,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
+	lintThinCallerWith,
 	normalizeWorkflowWith,
 	WORKFLOW_CHECK_CONTEXTS,
 } from "@theholocron/astromech";
@@ -181,7 +183,25 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			const name = typeof entry === "string" ? entry : entry.name;
 			const rawWith = typeof entry === "object" ? entry.with : undefined;
 			const normalized = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
-			const withOverrides = name === "lint" ? { "enable-auto-commit": true, ...(normalized ?? {}) } : normalized;
+
+			let withOverrides = normalized;
+			let comments: Record<string, string> | undefined;
+			if (name === "lint") {
+				let rootFiles: string[] = [];
+				try {
+					rootFiles = readdirSync(input.context.repoRoot);
+				} catch {
+					/* unreadable repo root — auto-detect falls back to the always-on set */
+				}
+				const lint = lintThinCallerWith({
+					explicit: typeof entry === "object" ? entry.linters : undefined,
+					rootFiles,
+					extra: normalized,
+				});
+				withOverrides = lint.withOverrides;
+				comments = lint.comments;
+			}
+
 			const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
 			const additionalPaths =
 				explicitPaths ??
@@ -236,7 +256,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				await runStep("source", `write workflow ${name}`, dryRun, async () => {
 					await source.writeWorkflowFile(
 						`${name}.yml`,
-						`${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths)}`
+						`${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths, undefined, comments)}`
 					);
 				})
 			);

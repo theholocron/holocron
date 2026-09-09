@@ -1408,6 +1408,50 @@ describe("runSync", () => {
 			const content = await readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("lint.yml@main");
+			expect(content).toContain("enable-auto-commit: true");
+			expect(content).toMatch(/# linters: prettier, yamllint/);
+			expect(content).toMatch(/super-linter-env: '\{.*"VALIDATE_YAML":"true".*\}'/);
+		});
+
+		it("falls back to the always-on linter set when the repo root is unreadable", async () => {
+			const loaded = loadedFrom({ name: "demo", tasks: ["lint"], providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			const missing = join(tmpDir, "missing");
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: missing },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			expect(report.steps.find((s) => s.step === "sync workflow lint")?.status).toBe("ok");
+			const content = await readFile(join(missing, ".github", "workflows", "lint.yml"), "utf8");
+			expect(content).toMatch(/# linters: prettier, yamllint/);
+			expect(content).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
+		});
+
+		it("bakes an explicit linters list into the lint thin caller's super-linter-env", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const content = await readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8");
+			expect(content).toContain("# linters: eslint, prettier");
+			expect(content).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
+			expect(content).not.toContain('"VALIDATE_YAML"');
 		});
 
 		it("writes a plain deploy thin caller when deploy has with: but no preview", async () => {
