@@ -93,6 +93,21 @@ Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one
 `"<task>": "holocron run <task>"` per runnable task. `syncScripts: false`
 opts out entirely.
 
+### Lint parity
+
+The `lint` task takes an optional `linters` array — one list that drives
+**both** the CI `lint` job (super-linter's `VALIDATE_*` env, baked into the
+generated `.github/workflows/lint.yml` thin caller as a `super-linter-env`
+input) **and** `holocron run lint` locally. Omitted → auto-detected from the
+config files present plus the org always-on set.
+
+```ts
+export default defineConfig({
+  tasks: [{ name: "lint", linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] }],
+  providers: { source: "github" },
+});
+```
+
 ### Skills installer
 
 `holocron setup` can install shared skills from `@theholocron/skills` into the local repo:

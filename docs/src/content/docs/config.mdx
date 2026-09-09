@@ -54,7 +54,19 @@ export default defineConfig({
   // String form: default inputs. Object form: pass custom `with:` inputs.
   // Supported: "lint" | "test" | "typecheck" | "codeql" | "review" |
   //            "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit"
-  tasks: ["lint", "test", "typecheck", { name: "release", with: { "run-build": false } }, "stale", "greetings"],
+  // The `lint` entry takes an optional `linters` array — the one list that
+  // drives both the CI super-linter env and `holocron run lint` locally.
+  // Omitted → auto-detected from the config files present (eslint.config.*,
+  // .markdownlint*, …) plus the org always-on set (prettier, yamllint,
+  // actionlint, gitleaks, editorconfig, commitlint, merge-conflict-markers).
+  tasks: [
+    { name: "lint", linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] },
+    "test",
+    "typecheck",
+    { name: "release", with: { "run-build": false } },
+    "stale",
+    "greetings",
+  ],
 
   // `holocron sync` reconciles package.json#scripts (merge, never clobber): the
   // `holocron` entry + a `holocron run <task>` wrapper per runnable task.

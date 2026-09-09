@@ -67,6 +67,17 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain(`config: '{"key":"val"}'`);
 	});
 
+	it("renders a # comment line above a with: entry when given", () => {
+		const content = generateThinCallerContent(
+			"lint",
+			{ "super-linter-env": '{"VALIDATE_YAML":"true"}' },
+			undefined,
+			undefined,
+			{ "super-linter-env": "linters: yamllint" }
+		);
+		expect(content).toContain("      # linters: yamllint\n      super-linter-env:");
+	});
+
 	it("skips a malformed line when merging into an existing with: block", () => {
 		const sentinel = "__test_with_malformed__";
 		WORKFLOW_TEMPLATES[sentinel] =

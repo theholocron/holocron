@@ -103,9 +103,34 @@ describe("createAstromech().thinCallers", () => {
 		expect([...astromech.thinCallers().keys()]).toEqual(["lint.yml"]);
 	});
 
-	it("injects enable-auto-commit: true for the lint caller", () => {
+	it("injects enable-auto-commit + the super-linter-env manifest for the lint caller", () => {
 		const astromech = createAstromech({ cwd: "/repo", config: { tasks: ["lint"] } });
-		expect(astromech.thinCallers().get("lint.yml")).toContain("enable-auto-commit: true");
+		const lint = astromech.thinCallers().get("lint.yml")!;
+		expect(lint).toContain("enable-auto-commit: true");
+		// no fs available for /repo → auto-detect gives the always-on baseline
+		expect(lint).toMatch(/# linters: prettier, yamllint, .*gitleaks/);
+		expect(lint).toMatch(/super-linter-env: '\{.*"VALIDATE_YAML":"true".*\}'/);
+		expect(lint).not.toContain('"VALIDATE_JAVASCRIPT_ES"'); // eslint is detect-gated
+	});
+
+	it("honours an explicit linters list on the lint caller", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "lint", linters: ["eslint", "prettier"] }] },
+		});
+		const lint = astromech.thinCallers().get("lint.yml")!;
+		expect(lint).toContain("# linters: eslint, prettier");
+		expect(lint).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
+		expect(lint).not.toContain('"VALIDATE_YAML"');
+	});
+
+	it("detects eslint from a repo config file", () => {
+		const astromech = createAstromech({
+			...fs({ "package.json": PKG, "eslint.config.ts": "" }),
+			config: { tasks: ["lint"] },
+		});
+		const lint = astromech.thinCallers().get("lint.yml")!;
+		expect(lint).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
 	});
 
 	it("emits the combined deploy+preview caller when preview resolves", () => {
@@ -177,5 +202,31 @@ describe("createAstromech().packageScripts", () => {
 		expect(
 			createAstromech({ cwd: "/repo", config: { tasks: ["test"], syncScripts: false } }).packageScripts()
 		).toEqual({});
+	});
+});
+
+describe("createAstromech().superLinterConfig", () => {
+	it("resolves the always-on baseline with no lint entry", () => {
+		const sl = createAstromech({ cwd: "/repo", config: { tasks: ["test"] } }).superLinterConfig();
+		expect(sl.linters).toContain("prettier");
+		expect(sl.linters).not.toContain("eslint");
+		expect(sl.env["VALIDATE_YAML"]).toBe("true");
+	});
+
+	it("honours the lint entry's explicit linters list", () => {
+		const sl = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "lint", linters: ["eslint", "yamllint"] }] },
+		}).superLinterConfig();
+		expect(sl.linters).toEqual(["eslint", "yamllint"]);
+		expect(sl.env["VALIDATE_JAVASCRIPT_ES"]).toBe("true");
+	});
+
+	it("auto-detects eslint from repo files when linters is omitted", () => {
+		const sl = createAstromech({
+			...fs({ "eslint.config.ts": "" }),
+			config: { tasks: ["lint"] },
+		}).superLinterConfig();
+		expect(sl.linters[0]).toBe("eslint");
 	});
 });

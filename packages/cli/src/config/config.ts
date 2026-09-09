@@ -342,7 +342,7 @@ export interface HolocronConfig {
 	 * ["lint", { "name": "release", "with": { "run-build": false } }]
 	 * { "name": "deploy", "with": { "docs": true } }
 	 */
-	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
+	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[]; linters?: string[] }>;
 	/**
 	 * Opt out of `holocron sync`'s `package.json` script writes. Default `true`.
 	 */
@@ -425,7 +425,7 @@ export interface ResolvedHolocronConfig {
 	org?: string;
 	domain?: string;
 	repo?: RepoConfig;
-	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[] }>;
+	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[]; linters?: string[] }>;
 	syncScripts?: boolean;
 	holocronScript?: string;
 	providers: ResolvedProvidersConfig;
