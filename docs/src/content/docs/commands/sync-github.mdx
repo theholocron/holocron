@@ -44,5 +44,6 @@ When `--output-dir` is set, no GitHub API calls are made and no token is require
 
 ## Notes
 
+- The reusable `lint.yml` takes a `super-linter-env` input — a JSON map of super-linter `VALIDATE_*`/`FIX_*` keys produced by `@theholocron/astromech`'s `superLinterConfig()` and written into each repo's generated `lint` thin caller by `holocron sync`. It defaults to the org always-on baseline, so a thin caller that has not been re-synced behaves exactly as before.
 - If the target repo has branch protection on its default branch, use `--branch` + `--pr` to create a pull request that can be reviewed before merging.
 - A closed-but-existing branch blocks future PR creation. If you close a sync PR without merging, delete the branch as well: `gh pr close <n> --delete-branch`.

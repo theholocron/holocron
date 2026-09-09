@@ -33,6 +33,25 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      super-linter-env:
+        description: >
+          JSON object of super-linter VALIDATE_*/FIX_* keys to enable, produced
+          by @theholocron/astromech superLinterConfig() and written into each
+          repo's generated lint thin caller. Replaces file-based feature
+          detection. The default is the org always-on baseline, so a thin caller
+          that has not been re-synced behaves exactly as before. Never empty —
+          an empty object would put super-linter in run-everything mode.
+        type: string
+        required: false
+        default: >-
+          {"VALIDATE_JAVASCRIPT_PRETTIER":"true","VALIDATE_JSX_PRETTIER":"true",
+          "VALIDATE_TYPESCRIPT_PRETTIER":"true","VALIDATE_TSX":"true",
+          "VALIDATE_MARKDOWN_PRETTIER":"true","FIX_JAVASCRIPT_PRETTIER":"true",
+          "FIX_JSX_PRETTIER":"true","FIX_TYPESCRIPT_PRETTIER":"true",
+          "FIX_TSX":"true","FIX_MARKDOWN_PRETTIER":"true","VALIDATE_YAML":"true",
+          "VALIDATE_GITHUB_ACTIONS":"true","VALIDATE_GITLEAKS":"true",
+          "VALIDATE_EDITORCONFIG":"true","VALIDATE_GIT_COMMITLINT":"true",
+          "VALIDATE_GIT_MERGE_CONFLICT_MARKERS":"true"}
     secrets:
       SUPER_LINTER_APP_ID:
         required: false
@@ -96,69 +115,34 @@ jobs:
         name: Setup
         if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
 
-      - name: Detect project features
-        # Writes VALIDATE_*/FIX_* to GITHUB_ENV only when the feature exists.
-        # Also writes step outputs for values referenced in expression context
-        # (GITHUB_ENV is not readable via steps.*.outputs — they need GITHUB_OUTPUT).
-        # All values written are hardcoded 'true' — no user input in the script.
-        # Config file paths (inputs.*) stay in GH Actions expression context in
-        # the super-linter env: block below, never shell-evaluated (CWE-78).
-        id: detect
+      - name: Expand linter matrix
+        # The enabled super-linter VALIDATE_*/FIX_* set comes from
+        # `inputs.super-linter-env` — a JSON object produced by
+        # @theholocron/astromech and written into this repo's lint thin caller.
+        # SL_ENV is read via the env: block, never interpolated into the script
+        # (CWE-78). jq / find take no user input.
+        id: linters
+        env:
+          SL_ENV: ${{ inputs.super-linter-env }}
         run: |
-          has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
+          printf '%s' "$SL_ENV" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
 
-          if { has 'eslint.config.ts' || has 'eslint.config.mjs' || has 'eslint.config.js' || has '.eslintrc.json' || has '.eslintrc.yml'; }; then
+          # eslint output feeds the *_ES_CONFIG_FILE passthrough below. When the
+          # manifest set it explicitly, honor that; otherwise (thin caller not
+          # yet re-synced with an explicit linter list) fall back to today's
+          # "eslint runs iff an eslint config is present" behavior.
+          eslint=false
+          if printf '%s' "$SL_ENV" | jq -e 'has("VALIDATE_JAVASCRIPT_ES")' >/dev/null; then
+            eslint=true
+          elif find . -not -path '*/node_modules/*' \
+            \( -name 'eslint.config.*' -o -name '.eslintrc*' \) -print -quit | grep -q .; then
             {
               echo "VALIDATE_JAVASCRIPT_ES=true"
               echo "VALIDATE_TYPESCRIPT_ES=true"
             } >> "$GITHUB_ENV"
-            echo "eslint=true" >> "$GITHUB_OUTPUT"
+            eslint=true
           fi
-
-          if { has '*.js' || has '*.jsx' || has '*.mjs' || has '*.cjs' || has '*.ts' || has '*.tsx'; }; then
-            {
-              echo "VALIDATE_JAVASCRIPT_PRETTIER=true"
-              echo "VALIDATE_JSX_PRETTIER=true"
-              echo "VALIDATE_TYPESCRIPT_PRETTIER=true"
-              echo "VALIDATE_TSX=true"
-              echo "FIX_JAVASCRIPT_PRETTIER=true"
-              echo "FIX_JSX_PRETTIER=true"
-              echo "FIX_TYPESCRIPT_PRETTIER=true"
-              echo "FIX_TSX=true"
-            } >> "$GITHUB_ENV"
-          fi
-
-          if { has '*.css' || has '*.scss' || has 'stylelint.config.ts' || has 'stylelint.config.mjs' || has 'stylelint.config.js'; }; then
-            {
-              echo "VALIDATE_CSS=true"
-              echo "STYLELINT_CONFIG_FILE=stylelint.config.ts"
-            } >> "$GITHUB_ENV"
-          fi
-
-          if { has '*.graphql' || has '*.gql'; }; then
-            {
-              echo "VALIDATE_GRAPHQL_PRETTIER=true"
-              echo "FIX_GRAPHQL_PRETTIER=true"
-            } >> "$GITHUB_ENV"
-          fi
-
-          if { has '*.html' || has '*.htm'; }; then
-            {
-              echo "VALIDATE_HTML_PRETTIER=true"
-              echo "FIX_HTML_PRETTIER=true"
-            } >> "$GITHUB_ENV"
-          fi
-
-          if { has '.env' || has '.env.example' || has '.env.local'; }; then
-            {
-              echo "VALIDATE_ENV=true"
-              echo "FIX_ENV=true"
-            } >> "$GITHUB_ENV"
-          fi
-
-          if { has 'Dockerfile' || has '*.Dockerfile'; }; then
-            echo "VALIDATE_DOCKERFILE=true" >> "$GITHUB_ENV"
-          fi
+          echo "eslint=$eslint" >> "$GITHUB_OUTPUT"
 
       - uses: super-linter/super-linter/slim@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         name: Run Super Linter
@@ -171,21 +155,14 @@ jobs:
           LINTER_RULES_PATH: /
           EDITORCONFIG_FILE_NAME: ".editorconfig-checker.json"
           # Config file paths — inputs stay in expression context, never shell-evaluated.
-          # When VALIDATE_JAVASCRIPT_ES is not set by detect, ESLint doesn't run so
-          # the empty-string fallback (→ eslint.config.mjs in container) is safe.
-          JAVASCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
-          TYPESCRIPT_ES_CONFIG_FILE: ${{ steps.detect.outputs.eslint == 'true' && inputs.eslint-config || '' }}
+          # When VALIDATE_JAVASCRIPT_ES is not enabled, ESLint doesn't run so the
+          # empty-string fallback (→ eslint.config.mjs in container) is safe.
+          JAVASCRIPT_ES_CONFIG_FILE: ${{ steps.linters.outputs.eslint == 'true' && inputs.eslint-config || '' }}
+          TYPESCRIPT_ES_CONFIG_FILE: ${{ steps.linters.outputs.eslint == 'true' && inputs.eslint-config || '' }}
           PRETTIER_CONFIG: ${{ inputs.prettier-config }}
           YAML_CONFIG_FILE: ${{ inputs.yaml-config }}
-          # Always-on linters
-          FIX_MARKDOWN_PRETTIER: true
-          VALIDATE_EDITORCONFIG: true
-          VALIDATE_GIT_COMMITLINT: true
-          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
-          VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_GITLEAKS: true
-          VALIDATE_MARKDOWN_PRETTIER: true
-          VALIDATE_YAML: true
+          # The VALIDATE_*/FIX_* set is written to $GITHUB_ENV by the
+          # "Expand linter matrix" step above, from inputs.super-linter-env.
 
       - name: Validate ADR and spec frontmatter
         if: hashFiles('scripts/validate-adrs.mjs') != ''
