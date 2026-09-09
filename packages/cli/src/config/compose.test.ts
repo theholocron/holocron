@@ -9,14 +9,14 @@ const node = (): Capability => ({
 	providers: { source: "github", ci: "github" },
 	repo: { protection: "strict", properties: { lifecycle: "active" } },
 	tasks: ["lint", "test", "codeql"],
-	requiredChecks: ["Lint / Conclusion", "Test / Conclusion"],
+	extraRequiredChecks: ["Lint / Conclusion", "Test / Conclusion"],
 });
 
 const typecheck = (): Capability => ({
 	id: "typecheck",
 	requires: ["node"],
 	tasks: ["typecheck"],
-	requiredChecks: ["Typecheck / Conclusion"],
+	extraRequiredChecks: ["Typecheck / Conclusion"],
 });
 
 const docs = (): Capability => ({
@@ -27,14 +27,14 @@ const docs = (): Capability => ({
 	docs: { build: "workflow", https: true },
 	providers: { deployment: "cloudflare" },
 	tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
-	requiredChecks: ["codecov/patch", "codecov/project"],
+	extraRequiredChecks: ["codecov/patch", "codecov/project"],
 });
 
 const audit = (): Capability => ({
 	id: "audit",
 	requires: ["node"],
 	tasks: ["audit"],
-	requiredChecks: ["audit / Conclusion"],
+	extraRequiredChecks: ["audit / Conclusion"],
 });
 
 describe("compose()", () => {
@@ -56,9 +56,9 @@ describe("compose()", () => {
 		expect(preset.tasks.filter((w) => (typeof w === "string" ? w : w.name) === "test")).toHaveLength(1);
 	});
 
-	it("unions requiredChecks without duplicates", () => {
+	it("unions extraRequiredChecks without duplicates", () => {
 		const preset = compose(node(), typecheck(), docs(), audit());
-		expect(preset.repo.requiredChecks).toEqual([
+		expect(preset.extraRequiredChecks).toEqual([
 			"Lint / Conclusion",
 			"Test / Conclusion",
 			"Typecheck / Conclusion",
@@ -68,10 +68,10 @@ describe("compose()", () => {
 		]);
 	});
 
-	it("always returns requiredChecks even when no capability sets them", () => {
+	it("always returns extraRequiredChecks even when no capability sets them", () => {
 		const cap: Capability = { id: "bare" };
 		const preset = compose(cap);
-		expect(preset.repo.requiredChecks).toEqual([]);
+		expect(preset.extraRequiredChecks).toEqual([]);
 	});
 
 	it("shallow-merges providers — later capability overrides per-key", () => {
@@ -112,13 +112,13 @@ describe("compose()", () => {
 	});
 
 	it("deduplicates capabilities by id — last wins", () => {
-		const first: Capability = { id: "x", tasks: ["lint"], requiredChecks: ["Lint / Conclusion"] };
-		const second: Capability = { id: "x", tasks: ["test"], requiredChecks: ["Test / Conclusion"] };
+		const first: Capability = { id: "x", tasks: ["lint"], extraRequiredChecks: ["Lint / Conclusion"] };
+		const second: Capability = { id: "x", tasks: ["test"], extraRequiredChecks: ["Test / Conclusion"] };
 		const preset = compose(first, second);
 		expect(preset.tasks).toContainEqual("test");
 		expect(preset.tasks).not.toContainEqual("lint");
-		expect(preset.repo.requiredChecks).toContain("Test / Conclusion");
-		expect(preset.repo.requiredChecks).not.toContain("Lint / Conclusion");
+		expect(preset.extraRequiredChecks).toContain("Test / Conclusion");
+		expect(preset.extraRequiredChecks).not.toContain("Lint / Conclusion");
 	});
 
 	it("flattens nested Capability[] from bundle presets", () => {
@@ -187,10 +187,10 @@ describe("compose()", () => {
 		expect(preset.repo.teams).toContain("admins");
 	});
 
-	it("deduplicates requiredChecks appearing in multiple capabilities", () => {
-		const a: Capability = { id: "a", requiredChecks: ["Lint / Conclusion", "Test / Conclusion"] };
-		const b: Capability = { id: "b", requiredChecks: ["Lint / Conclusion", "codecov/patch"] };
+	it("deduplicates extraRequiredChecks appearing in multiple capabilities", () => {
+		const a: Capability = { id: "a", extraRequiredChecks: ["Lint / Conclusion", "Test / Conclusion"] };
+		const b: Capability = { id: "b", extraRequiredChecks: ["Lint / Conclusion", "codecov/patch"] };
 		const preset = compose(a, b);
-		expect(preset.repo.requiredChecks).toEqual(["Lint / Conclusion", "Test / Conclusion", "codecov/patch"]);
+		expect(preset.extraRequiredChecks).toEqual(["Lint / Conclusion", "Test / Conclusion", "codecov/patch"]);
 	});
 });

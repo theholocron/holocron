@@ -23,6 +23,7 @@ import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+	createAstromech,
 	deriveDeployPaths,
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -30,8 +31,8 @@ import {
 	KNOWN_WORKFLOWS,
 	lintThinCallerWith,
 	normalizeWorkflowWith,
-	WORKFLOW_CHECK_CONTEXTS,
 } from "@theholocron/astromech";
+import type { TasksConfig } from "@theholocron/astromech/config";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
 import { ConfigError } from "../../config/config.js";
@@ -155,19 +156,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			);
 			print(formatStep(steps[steps.length - 1]!));
 
-			const configuredWorkflowNames = [
-				...new Set((config.tasks ?? []).map((entry) => (typeof entry === "string" ? entry : entry.name))),
-			];
+			const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 			const requiredChecks =
 				effectivePreset === "strict"
-					? [
-							"DCO",
-							...configuredWorkflowNames.flatMap((name) => {
-								const ctx = WORKFLOW_CHECK_CONTEXTS[name];
-								return ctx ? [ctx] : [];
-							}),
-							...(repo?.requiredChecks ?? []),
-						]
+					? ["DCO", ...createAstromech({ cwd: input.context.repoRoot, config: tasksConfig }).requiredChecks()]
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
 			print(formatStep(steps[steps.length - 1]!));

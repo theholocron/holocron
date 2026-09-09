@@ -13,8 +13,13 @@ export interface Capability {
 	tasks?: TaskEntry[];
 	/** Provider config. Shallow-merged at the top level; later capabilities override per-key. */
 	providers?: RawProvidersConfig;
-	/** CI check names that must pass. Unioned across all capabilities. */
-	requiredChecks?: string[];
+	/**
+	 * Required status-check contexts **not** backed by a `required` task
+	 * (codecov gates, `Storybook Publish`, …). Unioned across all capabilities
+	 * onto the top-level `extraRequiredChecks`. Task-backed checks come from
+	 * `{ required: true }` task entries via `astro.requiredChecks()`.
+	 */
+	extraRequiredChecks?: string[];
 	/** Repo config fragment. Scalar fields: last writer wins. properties/topics/teams: merged. */
 	repo?: Partial<Omit<RepoConfig, "name">>;
 	/** Org name. Last writer wins. */
@@ -29,7 +34,9 @@ export interface Capability {
 export interface ComposedPreset {
 	tasks: TaskEntry[];
 	providers: RawProvidersConfig;
-	repo: Partial<Omit<RepoConfig, "name">> & { requiredChecks: string[] };
+	repo: Partial<Omit<RepoConfig, "name">>;
+	/** Non-task required-check contexts, unioned across capabilities. */
+	extraRequiredChecks: string[];
 	org?: string;
 	domain?: string;
 	docs?: DocsConfig;
@@ -98,14 +105,14 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 		if (cap.providers) providers = { ...providers, ...cap.providers };
 	}
 
-	// Union requiredChecks (preserve insertion order, deduplicate)
+	// Union extraRequiredChecks (preserve insertion order, deduplicate)
 	const checksSeen = new Set<string>();
-	const requiredChecks: string[] = [];
+	const extraRequiredChecks: string[] = [];
 	for (const cap of caps) {
-		for (const check of cap.requiredChecks ?? []) {
+		for (const check of cap.extraRequiredChecks ?? []) {
 			if (!checksSeen.has(check)) {
 				checksSeen.add(check);
-				requiredChecks.push(check);
+				extraRequiredChecks.push(check);
 			}
 		}
 	}
@@ -143,7 +150,8 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 	return {
 		tasks: [...taskMap.values()],
 		providers,
-		repo: { ...repo, requiredChecks },
+		repo,
+		extraRequiredChecks,
 		...(org !== undefined ? { org } : {}),
 		...(domain !== undefined ? { domain } : {}),
 		...(docs !== undefined ? { docs } : {}),

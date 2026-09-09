@@ -27,12 +27,12 @@ export default defineConfig({
 
     // Branch protection preset applied by `holocron setup`.
     // "balanced" — squash merge only, delete branch on merge, no force-push.
-    // "strict"   — same + required status checks (from requiredChecks[]).
+    // "strict"   — same + required status checks. The required-check list is
+    //              derived from the manifest: every `{ required: true }` task's
+    //              workflow check context (in CI order), plus `extraRequiredChecks`
+    //              below and a hard-prepended "DCO". No hand-maintained list.
     // "none"     — no protection applied.
     protection: "balanced",
-
-    // Status check names required when protection is "strict".
-    requiredChecks: ["Test / Run tests", "Typecheck / tsc --noEmit"],
 
     // GitHub teams granted repo access. String shorthand → push (Write) permission.
     teams: ["my-org/engineers", { slug: "my-org/bots", permission: "push" }],
@@ -59,14 +59,22 @@ export default defineConfig({
   // Omitted → auto-detected from the config files present (eslint.config.*,
   // .markdownlint*, …) plus the org always-on set (prettier, yamllint,
   // actionlint, gitleaks, editorconfig, commitlint, merge-conflict-markers).
+  // `required: true` marks a task merge-gating: `holocron ci` runs it by
+  // default and `holocron setup` (strict) adds its workflow check context to
+  // branch protection.
   tasks: [
-    { name: "lint", linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] },
-    "test",
-    "typecheck",
+    { name: "lint", required: true, linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] },
+    { name: "test", required: true },
+    { name: "typecheck", required: true },
     { name: "release", with: { "run-build": false } },
     "stale",
     "greetings",
   ],
+
+  // Required status-check contexts **not** backed by a `{ required: true }` task
+  // — codecov gates, a docs/storybook publish job, etc. `holocron setup`
+  // (strict) appends these to the task-derived list.
+  extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
   // `holocron sync` reconciles package.json#scripts (merge, never clobber): the
   // `holocron` entry + a `holocron run <task>` wrapper per runnable task.

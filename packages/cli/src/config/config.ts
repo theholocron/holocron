@@ -128,10 +128,11 @@ export interface RepoConfig {
 	/**
 	 * Branch protection preset applied by `holocron setup`. When omitted,
 	 * no protection is applied and no `branch_protection_level` property is set.
+	 * Required-status-check contexts for `"strict"` are derived from the task
+	 * manifest — `{ required: true }` tasks + top-level `extraRequiredChecks`
+	 * (see `astro.requiredChecks()`).
 	 */
 	protection?: RepoProtection;
-	/** CI check context names required on the default branch (only used when `protection` is "strict"). */
-	requiredChecks?: string[];
 	/**
 	 * GitHub teams granted repository access. Synced by `holocron setup`, which
 	 * also writes `.github/CODEOWNERS` for teams with write-or-higher permission.

@@ -19,36 +19,46 @@ export default defineConfig({
 		...repo,
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
-		requiredChecks: [
-			...repo.requiredChecks,
-			// tsdown build check — every workspace package must compile
-			"tsdown (every workspace)",
-			// per-package Codecov coverage gates
-			"codecov/patch/astromech",
-			"codecov/patch/cli",
-			"codecov/patch/datapad",
-			"codecov/patch/holocron-plugin-1password",
-			"codecov/patch/holocron-plugin-axiom",
-			"codecov/patch/holocron-plugin-clerk",
-			"codecov/patch/holocron-plugin-cloudflare",
-			"codecov/patch/holocron-plugin-fern",
-			"codecov/patch/holocron-plugin-discord",
-			"codecov/patch/holocron-plugin-doppler",
-			"codecov/patch/holocron-plugin-github",
-			"codecov/patch/holocron-plugin-infisical",
-			"codecov/patch/holocron-plugin-neon",
-			"codecov/patch/holocron-plugin-posthog",
-			"codecov/patch/holocron-plugin-postman",
-			"codecov/patch/holocron-plugin-sentry",
-			"codecov/patch/holocron-plugin-slack",
-			"codecov/patch/holocron-plugin-vercel",
-		],
 	},
+	// Required status checks not backed by a task. `holocron setup` appends these
+	// to the `{ required: true }` task contexts from `astro.requiredChecks()`.
+	extraRequiredChecks: [
+		// TEMP: inline until @theholocron/holocron-config >= 8.2.0 ships these via
+		// the preset's extraRequiredChecks (Phase 5 R2 restores `...preset` reliance).
+		"Lint / Conclusion",
+		"Test / Conclusion",
+		"Typecheck / Conclusion",
+		"audit / Conclusion",
+		"codecov/patch",
+		"codecov/project",
+		// genuinely repo-specific — stays after R2:
+		"tsdown (every workspace)",
+		"codecov/patch/astromech",
+		"codecov/patch/cli",
+		"codecov/patch/datapad",
+		"codecov/patch/holocron-plugin-1password",
+		"codecov/patch/holocron-plugin-axiom",
+		"codecov/patch/holocron-plugin-clerk",
+		"codecov/patch/holocron-plugin-cloudflare",
+		"codecov/patch/holocron-plugin-fern",
+		"codecov/patch/holocron-plugin-discord",
+		"codecov/patch/holocron-plugin-doppler",
+		"codecov/patch/holocron-plugin-github",
+		"codecov/patch/holocron-plugin-infisical",
+		"codecov/patch/holocron-plugin-neon",
+		"codecov/patch/holocron-plugin-posthog",
+		"codecov/patch/holocron-plugin-postman",
+		"codecov/patch/holocron-plugin-sentry",
+		"codecov/patch/holocron-plugin-slack",
+		"codecov/patch/holocron-plugin-vercel",
+	],
 	tasks: [
-		...presetTasks.filter((t) => (typeof t === "string" ? t : t.name) !== "lint"),
-		// Lint: the one list that drives both CI super-linter and `holocron run lint`
+		...presetTasks.filter((t) => !["lint", "test", "typecheck"].includes(typeof t === "string" ? t : t.name)),
+		// TEMP: mark the gating tasks `required` inline — @theholocron/holocron-config
+		// >= 8.2.0 carries `required: true` on these (Phase 5 R2).
 		{
 			name: "lint",
+			required: true,
 			linters: [
 				"eslint",
 				"prettier",
@@ -60,8 +70,10 @@ export default defineConfig({
 				"git-merge-conflict-markers",
 			],
 		},
-		// Audit: enable Knip dead-code analysis on top of the standard bundle audit
-		{ name: "audit", with: { "run-knip": true } },
+		{ name: "test", required: true },
+		{ name: "typecheck", required: true },
+		// Audit: Knip dead-code analysis on top of the standard bundle audit; gates merges
+		{ name: "audit", required: true, with: { "run-knip": true } },
 		// Release: tag Sentry releases for the CLI package
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
 		// Sync: keep generated files (workflows, labels, etc.) current on push to main

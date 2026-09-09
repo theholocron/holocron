@@ -24,22 +24,27 @@ holocron setup [--repo owner/name] [--dry-run]
 
 ### `source` capability (GitHub plugin)
 
-| Action                                 | Notes                                                       |
-| -------------------------------------- | ----------------------------------------------------------- |
-| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge |
-| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks  |
-| Enable vulnerability alerts            | Dependabot alerts                                           |
-| Enable automated security fixes        | Dependabot auto-PRs                                         |
-| Enable secret scanning                 | Secret scanning alerts                                      |
-| Enable private vulnerability reporting | Private advisories                                          |
-| Enable dependency graph                | Dependency graph + snapshot submission                      |
-| Enable CodeQL                          | Default setup with extended query suite                     |
-| Configure Dependabot                   | Writes `.github/dependabot.yml`                             |
-| Sync labels                            | Upserts canonical labels; removes stale ones                |
-| Sync properties                        | Sets org-level custom properties from `repo.properties`     |
-| Sync topics                            | Sets GitHub topics from `repo.topics`                       |
-| Sync teams                             | Grants team access from `repo.teams`                        |
-| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission         |
+| Action                                 | Notes                                                                  |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge            |
+| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks (see below) |
+| Enable vulnerability alerts            | Dependabot alerts                                                      |
+| Enable automated security fixes        | Dependabot auto-PRs                                                    |
+| Enable secret scanning                 | Secret scanning alerts                                                 |
+| Enable private vulnerability reporting | Private advisories                                                     |
+| Enable dependency graph                | Dependency graph + snapshot submission                                 |
+| Enable CodeQL                          | Default setup with extended query suite                                |
+| Configure Dependabot                   | Writes `.github/dependabot.yml`                                        |
+| Sync labels                            | Upserts canonical labels; removes stale ones                           |
+| Sync properties                        | Sets org-level custom properties from `repo.properties`                |
+| Sync topics                            | Sets GitHub topics from `repo.topics`                                  |
+| Sync teams                             | Grants team access from `repo.teams`                                   |
+| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                    |
+
+**Required checks** (`protection: "strict"`) are derived from the task manifest —
+`"DCO"` (hard-prepended), then every `{ required: true }` task's workflow check
+context (`Lint / Conclusion`, `Test / Conclusion`, …) in CI order, then the
+top-level `extraRequiredChecks`. No hand-maintained list.
 
 ### `vault` capability
 
