@@ -993,12 +993,17 @@ describe("runSetup", () => {
 		expect(policySteps[0]?.status).toBe("ok");
 	});
 
-	it("derives required_status_checks from configured tasks when repo.protection is 'strict'", async () => {
+	it("derives required_status_checks from required tasks when repo.protection is 'strict'", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			tasks: ["lint", "test", "typecheck"],
+			tasks: [
+				{ name: "lint", required: true },
+				{ name: "test", required: true },
+				{ name: "typecheck", required: true },
+				"security", // not required → no context
+			],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1031,19 +1036,20 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
+				{ context: "Typecheck / Conclusion" },
 				{ context: "Lint / Conclusion" },
 				{ context: "Test / Conclusion" },
-				{ context: "Typecheck / Conclusion" },
 			],
 		});
 	});
 
-	it("appends extra requiredChecks from config to the auto-derived list", async () => {
+	it("appends extraRequiredChecks from config to the task-derived list", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
 			name: "demo",
-			repo: { name: "theholocron/demo", protection: "strict", requiredChecks: ["some-extra-check"] },
-			tasks: ["lint"],
+			repo: { name: "theholocron/demo", protection: "strict" },
+			extraRequiredChecks: ["some-extra-check"],
+			tasks: [{ name: "lint", required: true }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1085,8 +1091,11 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			// "test" appears as both a plain string and an override object — simulates ...tasks spread + explicit override
-			tasks: ["test", { name: "test", with: { "run-unit": true } }],
+			// "test" appears twice — simulates ...tasks spread + explicit override; dedup by name
+			tasks: [
+				{ name: "test", required: true },
+				{ name: "test", required: true, with: { "run-unit": true } },
+			],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
