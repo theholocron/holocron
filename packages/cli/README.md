@@ -145,7 +145,7 @@ run audit performance` runs Lighthouse CI, `holocron run audit knip` runs Knip,
 `holocron run audit` (no job) runs every audit sub-job in declared order. A
 sub-job whose tool isn't installed, or that has no local equivalent
 (`bundle-size`), is skipped with a note — `--required` makes that a failure. For
-a task with no sub-jobs the `job` slot is just the first passthrough arg
+a task with no sub-jobs the `job` slot is the first passthrough arg
 (`holocron run build src/`).
 
 ### `holocron ci`
