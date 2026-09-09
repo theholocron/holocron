@@ -3,10 +3,11 @@ import { defineConfig } from "@theholocron/cli";
 import { nodeDocs } from "@theholocron/holocron-config";
 
 // nodeDocs() provides: org, domain, docs, strict repo protection, the standard
-// Node.js task set (lint, test, security, review, stale, greetings,
-// dependencies, bookkeeping, typecheck, deploy), and base providers (source,
-// ci, issues, deployment, dns, workers).
-const { repo, tasks: presetTasks, providers, org, domain, docs } = nodeDocs();
+// Node.js task set (lint/test/typecheck marked `required`, security, review,
+// stale, greetings, dependencies, bookkeeping, deploy), the base providers
+// (source, ci, issues, deployment, dns, workers), and `extraRequiredChecks`
+// (codecov/patch, codecov/project, "audit / Conclusion").
+const { repo, tasks: presetTasks, providers, org, domain, docs, extraRequiredChecks: presetChecks } = nodeDocs();
 
 export default defineConfig({
 	description:
@@ -20,18 +21,12 @@ export default defineConfig({
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 	},
-	// Required status checks not backed by a task. `holocron setup` appends these
-	// to the `{ required: true }` task contexts from `astro.requiredChecks()`.
+	// Required status checks not backed by a `{ required: true }` task.
+	// `holocron setup` appends these to the task-derived contexts from
+	// `astromech.requiredChecks()`. The preset supplies codecov/patch,
+	// codecov/project and "audit / Conclusion"; the rest are repo-specific.
 	extraRequiredChecks: [
-		// TEMP: inline until @theholocron/holocron-config >= 8.2.0 ships these via
-		// the preset's extraRequiredChecks (Phase 5 R2 restores `...preset` reliance).
-		"Lint / Conclusion",
-		"Test / Conclusion",
-		"Typecheck / Conclusion",
-		"audit / Conclusion",
-		"codecov/patch",
-		"codecov/project",
-		// genuinely repo-specific — stays after R2:
+		...presetChecks,
 		"tsdown (every workspace)",
 		"codecov/patch/astromech",
 		"codecov/patch/cli",
@@ -53,26 +48,12 @@ export default defineConfig({
 		"codecov/patch/holocron-plugin-vercel",
 	],
 	tasks: [
-		...presetTasks.filter((t) => !["lint", "test", "typecheck"].includes(typeof t === "string" ? t : t.name)),
-		// TEMP: mark the gating tasks `required` inline — @theholocron/holocron-config
-		// >= 8.2.0 carries `required: true` on these (Phase 5 R2).
-		{
-			name: "lint",
-			required: true,
-			linters: [
-				"eslint",
-				"prettier",
-				"yamllint",
-				"actionlint",
-				"gitleaks",
-				"editorconfig",
-				"commitlint",
-				"git-merge-conflict-markers",
-			],
-		},
-		{ name: "test", required: true },
-		{ name: "typecheck", required: true },
-		// Audit: Knip dead-code analysis on top of the standard bundle audit; gates merges
+		// lint (+ the org linter set), test and typecheck arrive from the preset
+		// already marked `{ required: true }`.
+		...presetTasks,
+		// Audit: Knip dead-code analysis on top of the standard bundle audit; gates
+		// merges + runs in `holocron ci`. The preset carries "audit / Conclusion"
+		// as an extra check; this adds the actual task with the repo's knip option.
 		{ name: "audit", required: true, with: { "run-knip": true } },
 		// Release: tag Sentry releases for the CLI package
 		{ name: "release", with: { "sentry-project": "holocron-cli" } },
