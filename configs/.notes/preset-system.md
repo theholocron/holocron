@@ -5,7 +5,18 @@ issue: 398
 status: accepted
 ---
 
-`@theholocron/holocron-config` ships a set of presets that encode the standard configuration for each class of `theholocron/*` repository. Each preset returns a fragment — `providers`, `repo`, `workflows` — that you spread into `defineConfig()` and extend with only the fields unique to your repo.
+> **Update (holocron#586 / configs#446, `@theholocron/cli` 4.10, preset ≥ 8.2):**
+> `config.workflows` is now `config.tasks`, and `requiredChecks` is gone.
+> Branch-protection checks are **derived from the manifest** — capabilities mark
+> `lint` / `test` / `typecheck` / `audit` as `{ required: true }` tasks and
+> `holocron setup` turns each into its `… / Conclusion` check context. Checks
+> **not** backed by a task (codecov gates, `Storybook Publish`, …) go in a
+> top-level `extraRequiredChecks: string[]`, on capabilities and on the final
+> `defineConfig()`. `compose()` returns `extraRequiredChecks` alongside `tasks` /
+> `repo` / `providers`. Older tables/examples below saying `workflows` /
+> `requiredChecks` should be read as `tasks` / `extraRequiredChecks`.
+
+`@theholocron/holocron-config` ships a set of presets that encode the standard configuration for each class of `theholocron/*` repository. Each preset returns a fragment — `providers`, `repo`, `tasks`, `extraRequiredChecks` — that you spread into `defineConfig()` and extend with only the fields unique to your repo.
 
 ## Why presets?
 
@@ -69,24 +80,24 @@ Extends `node()` for repos that publish a documentation site and deploy previews
 
 **Adds on top of `node()`:**
 
-| Field                  | Value                                                                                                                                    |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `org`                  | `"theholocron"`                                                                                                                          |
-| `domain`               | `"theholocron.dev"`                                                                                                                      |
-| `docs`                 | `{ build: "workflow", https: true }`                                                                                                     |
-| `providers.deployment` | `"cloudflare"`                                                                                                                           |
-| `providers.dns`        | `"cloudflare"`                                                                                                                           |
-| `workflows`            | `{ name: "deploy", with: { docs: true, preview: true } }`                                                                                |
-| `requiredChecks`       | `"Lint / Conclusion"`, `"Test / Conclusion"`, `"Typecheck / Conclusion"`, `"audit / Conclusion"`, `"codecov/patch"`, `"codecov/project"` |
+| Field                  | Value                                                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `org`                  | `"theholocron"`                                                                                                                    |
+| `domain`               | `"theholocron.dev"`                                                                                                                |
+| `docs`                 | `{ build: "workflow", https: true }`                                                                                               |
+| `providers.deployment` | `"cloudflare"`                                                                                                                     |
+| `providers.dns`        | `"cloudflare"`                                                                                                                     |
+| `tasks`                | `lint`/`test`/`typecheck` `{ required: true }` + `{ name: "deploy", with: { docs: true, preview: true } }`                         |
+| `extraRequiredChecks`  | `"audit / Conclusion"`, `"codecov/patch"`, `"codecov/project"` — the `Lint`/`Test`/`Typecheck` `… / Conclusion` checks are derived |
 
-**Per-repo still provides:** `description`, `homepage`, `repo.name/topics/teams`, `requiredChecks` extensions (`codecov/patch/<package>` per package), extra providers (`vault`, `secrets`, `environments`), extra workflow options (`release`, `audit`, `test` choices).
+**Per-repo still provides:** `description`, `homepage`, `repo.name/topics/teams`, `extraRequiredChecks` extensions (`codecov/project/<package>` per package), extra providers (`vault`, `secrets`, `environments`), extra task options (`release`, `audit`, `test` choices).
 
 **Usage:**
 
 ```ts
 import { nodeDocs } from "@theholocron/holocron-config";
 
-const { repo, workflows, providers, org, domain, docs } = nodeDocs();
+const { repo, tasks, providers, org, domain, docs, extraRequiredChecks } = nodeDocs();
 export default defineConfig({
   description: "...",
   homepage: "https://docs.theholocron.dev/my-lib/",
@@ -97,9 +108,9 @@ export default defineConfig({
     ...repo,
     name: "theholocron/my-lib",
     topics: ["typescript", "library"],
-    requiredChecks: [...repo.requiredChecks, "codecov/patch/my-package", "codecov/project/my-package"],
   },
-  workflows: [...workflows, "audit", { name: "release", with: { "run-build": true } }],
+  extraRequiredChecks: [...extraRequiredChecks, "codecov/project/my-package"],
+  tasks: [...tasks, { name: "audit", required: true }, { name: "release", with: { "run-build": true } }],
   providers: { ...providers, secrets: "github" },
 });
 ```
