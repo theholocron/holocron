@@ -45,7 +45,21 @@ export default defineConfig({
 		],
 	},
 	tasks: [
-		...presetTasks,
+		...presetTasks.filter((t) => (typeof t === "string" ? t : t.name) !== "lint"),
+		// Lint: the one list that drives both CI super-linter and `holocron run lint`
+		{
+			name: "lint",
+			linters: [
+				"eslint",
+				"prettier",
+				"yamllint",
+				"actionlint",
+				"gitleaks",
+				"editorconfig",
+				"commitlint",
+				"git-merge-conflict-markers",
+			],
+		},
 		// Audit: enable Knip dead-code analysis on top of the standard bundle audit
 		{ name: "audit", with: { "run-knip": true } },
 		// Release: tag Sentry releases for the CLI package

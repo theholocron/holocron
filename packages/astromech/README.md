@@ -119,7 +119,7 @@ one place, `src/linters.ts`.
 | `actionlint`                 | `GITHUB_ACTIONS`                          | yes                                 | `actionlint` (usually CI-only)           |
 | `gitleaks`                   | `GITLEAKS`                                | yes                                 | `gitleaks dir` (usually CI-only)         |
 | `editorconfig`               | `EDITORCONFIG`                            | yes                                 | `editorconfig-checker` (usually CI-only) |
-| `commitlint`                 | `GIT_COMMITLINT`                          | yes                                 | `commitlint --last`                      |
+| `commitlint`                 | `GIT_COMMITLINT`                          | yes                                 | — (commit-msg hook + CI)                 |
 | `git-merge-conflict-markers` | `GIT_MERGE_CONFLICT_MARKERS`              | yes                                 | — (CI only)                              |
 | `markdownlint`               | `MARKDOWN`                                | on `.markdownlint*`                 | `markdownlint-cli2`                      |
 

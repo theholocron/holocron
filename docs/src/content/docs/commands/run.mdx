@@ -16,7 +16,7 @@ turbo, pnpm, npm, or which test runner — it works that out.
 | ----------- | -------------------------------------------------------------------------------- |
 | `test`      | `vitest run --coverage`                                                          |
 | `typecheck` | `tsc --noEmit`                                                                   |
-| `lint`      | `eslint .`                                                                       |
+| `lint`      | the resolved linter set — see below                                              |
 | `build`     | `tsdown` / `vite build` / `rollup -c` / `tsc -b` — whichever config the repo has |
 | `sync`      | `holocron sync`                                                                  |
 | `wiki`      | `holocron sync-wiki`                                                             |
@@ -27,17 +27,46 @@ in the CLI — every repo gets it.
 ## How a task resolves
 
 ```
-1. turbo.json defines the task   → turbo run <task>          (monorepo root)
+0. task === "lint"               → the resolved linter set        (see below)
+1. turbo.json defines the task   → turbo run <task>               (monorepo root)
 2. package.json has a <task> script (and it isn't `holocron run …`)
                                  → <detected pm> run <task>
 3. the task registry has a local runner
-                                 → <tool> <args> <org-flags>  (e.g. --coverage)
+                                 → <tool> <args> <org-flags>       (e.g. --coverage)
 4. known task, nothing to run    → "no <task> task for this repo", exit 0
 5. unknown task                  → error, exit 1
 ```
 
 An explicit `package.json` script always wins over the registry default — if
 you wrote `"lint": "biome check"`, that's what runs.
+
+## `holocron run lint`
+
+`lint` doesn't map to a single command — it runs the **resolved linter set**
+(the `lint` task's `linters` list in `holocron.config`, else auto-detected from
+the config files present plus the org always-on set). Locally:
+
+- the **eslint slot** goes through the normal resolution above — `turbo run
+lint` at a monorepo root (cache kept), else the `lint` script, else `eslint .`
+- every other linter (`prettier --check .`, `yamllint`, `actionlint`, …) runs
+  its own binary when it's in `node_modules/.bin` or on `PATH`
+- a linter whose binary isn't found is flagged with an install hint
+  (`! actionlint — actionlint not on PATH. brew install actionlint`); one with
+  no local equivalent prints `· <name> (CI only)`. CI enforces them regardless.
+- the exit code is the worst of the lot
+
+```
+$ holocron run lint
+→ turbo run lint
+→ prettier --check .
+→ yamllint .
+! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
+· commitlint (CI only)
+· git-merge-conflict-markers (CI only)
+```
+
+Install the missing binaries (`brew install actionlint gitleaks yamllint …`) to
+run the full CI set locally.
 
 ## Options
 
