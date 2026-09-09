@@ -303,6 +303,15 @@ describe("createAstromech().superLinterConfig", () => {
 	});
 });
 
+describe("createAstromech().reusableTemplates", () => {
+	it("delegates to the bare reusableTemplates() — config-independent", async () => {
+		const { reusableTemplates } = await import("./reusable.js");
+		const viaFactory = createAstromech({ cwd: "/repo" }).reusableTemplates();
+		expect([...viaFactory.entries()]).toEqual([...reusableTemplates().entries()]);
+		expect(viaFactory.has(".github/workflows/lint.yml")).toBe(true);
+	});
+});
+
 describe("createAstromech().requiredChecks", () => {
 	it("returns [] with no config", () => {
 		expect(createAstromech({ cwd: "/repo" }).requiredChecks()).toEqual([]);
