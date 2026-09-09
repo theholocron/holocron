@@ -32,6 +32,8 @@ function makeRun(files: Record<string, string>, overrides: Partial<RunTaskInput>
 	const exec = vi.fn((_cmd: string, _args: string[], _o: { cwd: string }) => ({ exitCode: 0 }));
 	const lines: string[] = [];
 	const fs = makeFs(files);
+	/** By default nothing is on PATH; per-test `lookPath` overrides opt bins in. */
+	const lookPath = vi.fn((_cwd: string, _bin: string): string | null => null);
 	const call = (task: string, extra: Partial<RunTaskInput> = {}) =>
 		runTask({
 			task,
@@ -42,10 +44,11 @@ function makeRun(files: Record<string, string>, overrides: Partial<RunTaskInput>
 			readFile: fs.readFile,
 			fileExists: fs.fileExists,
 			listDir: fs.listDir,
+			lookPath,
 			...overrides,
 			...extra,
 		});
-	return { call, exec, lines };
+	return { call, exec, lines, lookPath };
 }
 
 const PKG = (extra: Record<string, unknown> = {}) => JSON.stringify({ name: "@scope/x", ...extra });
@@ -123,25 +126,25 @@ describe("runTask", () => {
 	});
 
 	it("resolves a registry task with no package.json at all", () => {
-		const { call, exec } = makeRun({ "node_modules/.bin/eslint": "" });
-		const report = call("lint");
+		const { call, exec } = makeRun({ "node_modules/.bin/tsc": "" });
+		const report = call("typecheck");
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/eslint"), ["."], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsc"), ["--noEmit"], { cwd: CWD });
 	});
 
 	it("detects the package manager from the lockfile when packageManager is absent", () => {
 		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { lint: "biome check" } }),
+			"package.json": PKG({ scripts: { typecheck: "tsc -p ." } }),
 			"bun.lockb": "",
 		});
-		call("lint");
-		expect(exec).toHaveBeenCalledWith("bun", ["run", "lint"], { cwd: CWD });
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith("bun", ["run", "typecheck"], { cwd: CWD });
 	});
 
 	it("defaults the package manager to pnpm with no field and no lockfile", () => {
-		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { lint: "biome check" } }) });
-		call("lint");
-		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "lint"], { cwd: CWD });
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { typecheck: "tsc -p ." } }) });
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "typecheck"], { cwd: CWD });
 	});
 
 	it("treats a listDir failure as 'no runner' for a detect[] task", () => {
@@ -220,11 +223,11 @@ describe("runTask", () => {
 		const { call, exec } = makeRun({
 			"package.json": "{ not json",
 			"turbo.json": "{ also not json",
-			"node_modules/.bin/eslint": "",
+			"node_modules/.bin/tsc": "",
 		});
-		const report = call("lint");
+		const report = call("typecheck");
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/eslint"), ["."], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsc"), ["--noEmit"], { cwd: CWD });
 	});
 
 	it("--dry-run prints the resolved command and runs nothing", () => {
@@ -236,5 +239,112 @@ describe("runTask", () => {
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/would run: .*turbo run test/);
+	});
+});
+
+describe("runTask — lint aggregate", () => {
+	const onPath =
+		(...bins: string[]) =>
+		(_cwd: string, bin: string) =>
+			bins.includes(bin) ? `/usr/local/bin/${bin}` : null;
+
+	it("runs `turbo run lint` for the eslint slot + the other linters natively", () => {
+		const { call, exec, lines } = makeRun(
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }), "eslint.config.ts": "" },
+			{ lookPath: onPath("prettier") }
+		);
+		const report = call("lint");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith("turbo", ["run", "lint"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", "."], { cwd: CWD });
+		expect(lines.join("\n")).toMatch(/! actionlint — actionlint not on PATH\. brew install actionlint/);
+		expect(lines.join("\n")).toMatch(/· git-merge-conflict-markers \(CI only\)/);
+	});
+
+	it("runs `eslint .` directly when turbo does not define lint", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "eslint.config.ts": "" },
+			{ lookPath: onPath("eslint") }
+		);
+		call("lint");
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
+	});
+
+	it("honours an explicit linters list", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }) },
+			{ lookPath: onPath("prettier"), linters: ["eslint", "prettier"] }
+		);
+		call("lint");
+		expect(exec).toHaveBeenCalledWith("turbo", ["run", "lint"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", "."], { cwd: CWD });
+		// yamllint is always-on but excluded by the explicit list
+		expect(exec).not.toHaveBeenCalledWith("/usr/local/bin/yamllint", expect.anything(), expect.anything());
+	});
+
+	it("reports fail when any linter exits non-zero (and treats an unreadable root as no config files)", () => {
+		const exec = vi.fn((_c: string, _a: string[], _o: { cwd: string }) => ({ exitCode: 1 }));
+		const report = runTask({
+			task: "lint",
+			cwd: CWD,
+			print: () => {},
+			logger: noopLogger,
+			exec,
+			readFile: () => {
+				throw new Error("none");
+			},
+			fileExists: () => false,
+			listDir: () => {
+				throw new Error("EACCES");
+			},
+			lookPath: onPath("prettier"),
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("one or more linters failed");
+	});
+
+	it("skips (or fails with --required) when every resolved linter is CI-only", () => {
+		const base = { "package.json": PKG() };
+		const skip = makeRun(base).call("lint", { linters: ["gitleaks", "git-merge-conflict-markers"] });
+		expect(skip.status).toBe("skip");
+		const fail = makeRun(base).call("lint", {
+			linters: ["gitleaks", "git-merge-conflict-markers"],
+			required: true,
+		});
+		expect(fail.status).toBe("fail");
+	});
+
+	it("--dry-run lists every command and runs nothing", () => {
+		const { call, exec, lines } = makeRun(
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }), "eslint.config.ts": "" },
+			{ lookPath: onPath("prettier") }
+		);
+		const report = call("lint", { dryRun: true });
+		expect(report.status).toBe("dry-run");
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/would run: .*turbo run lint/);
+		expect(lines.join("\n")).toMatch(/would run: .*prettier --check \./);
+	});
+
+	it("forwards passthrough to turbo (with --) and to each linter (raw)", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }), "eslint.config.ts": "" },
+			{ lookPath: onPath("prettier") }
+		);
+		call("lint", { passthrough: ["--cache"] });
+		expect(exec).toHaveBeenCalledWith("turbo", ["run", "lint", "--", "--cache"], {
+			cwd: CWD,
+		});
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", ".", "--cache"], { cwd: CWD });
+	});
+
+	it("an explicit non-holocron `lint` script fills the eslint slot", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG({ scripts: { lint: "biome check" } }), "eslint.config.ts": "" },
+			{ lookPath: onPath("eslint", "prettier") }
+		);
+		call("lint");
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "lint"], { cwd: CWD });
+		expect(exec).not.toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
 	});
 });

@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { input, select } from "@inquirer/prompts";
 import { createAstromech } from "@theholocron/astromech";
+import { loadTasksConfig } from "@theholocron/astromech/config";
 import type { LogLevel } from "@theholocron/logger";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -586,9 +587,12 @@ try {
 						default: false,
 						describe: "Fail (exit 1) if this repo has no such task, instead of skipping.",
 					}),
-			(argv) => {
+			async (argv) => {
 				const { logger } = buildCliLogger(argv, { command: "run" });
-				const astromech = createAstromech({ cwd: argv.cwd, logger });
+				// The task manifest drives `lint`'s linter set; other tasks are
+				// filesystem-driven and ignore it. Missing / unparseable config → undefined.
+				const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
+				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
 				const report = astromech.run(argv.task as string, {
 					passthrough: (argv.passthrough as string[] | undefined) ?? [],
 					dryRun: argv.dryRun,

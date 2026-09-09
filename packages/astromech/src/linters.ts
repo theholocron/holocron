@@ -114,10 +114,11 @@ export const LINTERS: Record<string, LinterDef> = {
 		installHint: "brew install editorconfig-checker",
 	},
 	commitlint: {
+		// A commit-message check, not a file linter — enforced at commit time
+		// (the `commit-msg` hook) and in CI (super-linter, PR range). No local
+		// slot in `holocron run lint`.
 		validate: ["VALIDATE_GIT_COMMITLINT"],
 		always: true,
-		localBin: "commitlint",
-		localArgs: ["--last"],
 	},
 	"git-merge-conflict-markers": {
 		validate: ["VALIDATE_GIT_MERGE_CONFLICT_MARKERS"],

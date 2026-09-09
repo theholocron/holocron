@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -79,6 +79,43 @@ describe("createAstromech().run", () => {
 		} finally {
 			log.mockRestore();
 			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("resolves a linter binary via the real node_modules/.bin then PATH", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-lint-"));
+		const binDir = await mkdtemp(join(tmpdir(), "astromech-bin-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
+		await mkdir(join(dir, "node_modules", ".bin"), { recursive: true });
+		await writeFile(join(dir, "node_modules", ".bin", "eslint"), "#!/bin/sh\nexit 0\n"); // node_modules/.bin hit
+		await writeFile(join(binDir, "prettier"), "#!/bin/sh\nexit 0\n"); // PATH hit
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const savedPath = process.env["PATH"];
+		process.env["PATH"] = `${binDir}:${savedPath ?? ""}`;
+		try {
+			const report = createAstromech({
+				cwd: dir,
+				// eslint → node_modules/.bin; prettier → PATH; markdownlint → not installed → null
+				config: { tasks: [{ name: "lint", linters: ["eslint", "prettier", "markdownlint"] }] },
+			}).run("lint", { dryRun: true });
+			expect(report.status).toBe("dry-run");
+			expect(report.command).toContain(join(dir, "node_modules", ".bin", "eslint"));
+			expect(report.command).toContain(join(binDir, "prettier"));
+			expect(report.command).not.toContain("markdownlint");
+
+			// PATH unset → lookup still resolves node_modules/.bin, PATH walk is skipped
+			delete process.env["PATH"];
+			const noPath = createAstromech({
+				cwd: dir,
+				config: { tasks: [{ name: "lint", linters: ["eslint", "prettier"] }] },
+			}).run("lint", { dryRun: true });
+			expect(noPath.command).toContain(join(dir, "node_modules", ".bin", "eslint"));
+			expect(noPath.command).not.toContain("prettier"); // not on the (empty) PATH now
+		} finally {
+			process.env["PATH"] = savedPath;
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+			await rm(binDir, { recursive: true, force: true });
 		}
 	});
 });

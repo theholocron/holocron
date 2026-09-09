@@ -3,16 +3,24 @@
  *
  * Resolution:
  *
+ *   0. task === "lint"                        → the linter aggregate (see below)
  *   1. turbo.json defines the task            → `turbo run <task>`
  *   2. package.json has a `<task>` script     → `<pm> run <task>`
  *      (unless it's the `holocron run …` thin caller — that recurses)
  *   3. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
  *   4. known task, nothing to run             → "no <task> task" (exit 0, or 1 with --required)
  *   5. unknown task                           → "unknown task" (exit 1)
+ *
+ * `lint` runs the resolved linter set (`config.tasks` `linters`, else
+ * auto-detected): the eslint slot goes through the standard turbo / script /
+ * `eslint .` resolution (so turbo caching is kept); every other linter runs
+ * its `localBin` when found on PATH. Missing tools are flagged; the exit code
+ * is the worst of the lot.
  */
 
 import { join } from "node:path";
 
+import { resolveLinters } from "./linters.js";
 import { KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
 
 /** Minimal structural logger — `@theholocron/logger`'s `Logger` satisfies it. */
@@ -36,6 +44,8 @@ export interface RunDeps {
 	readFile: (path: string) => string;
 	fileExists: (path: string) => boolean;
 	listDir: (path: string) => string[];
+	/** `node_modules/.bin/<bin>` or a PATH entry; `null` when not runnable. */
+	lookPath: (cwd: string, bin: string) => string | null;
 }
 
 export interface RunTaskInput extends RunDeps {
@@ -49,6 +59,8 @@ export interface RunTaskInput extends RunDeps {
 	dryRun?: boolean;
 	/** Turn "no such task for this repo" (normally exit 0) into a failure. */
 	required?: boolean;
+	/** The `lint` task's explicit linter list from `config.tasks`, if any. */
+	linters?: string[];
 }
 
 export interface RunTaskReport {
@@ -58,12 +70,11 @@ export interface RunTaskReport {
 	message?: string;
 }
 
-export function runTask(input: RunTaskInput): RunTaskReport {
-	const { print, logger, exec, readFile, fileExists, listDir, task, cwd } = input;
-	const passthrough = input.passthrough ?? [];
+/** The per-command runner — `runTask` and `runLintAggregate` share it. */
+function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTaskReport {
+	const { print, logger, exec, task, cwd } = input;
 	const dryRun = input.dryRun ?? false;
-
-	const run = (cmd: string, args: string[]): RunTaskReport => {
+	return (cmd, args) => {
 		const command = [cmd, ...args].join(" ");
 		if (dryRun) {
 			print(`would run: ${command}`);
@@ -76,6 +87,15 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		logger[status === "fail" ? "warn" : "debug"]({ task, command, exitCode, status }, `run: ${task}`);
 		return { status, command, ...(status === "fail" ? { message: `\`${command}\` exited ${exitCode}` } : {}) };
 	};
+}
+
+export function runTask(input: RunTaskInput): RunTaskReport {
+	const { print, logger, readFile, fileExists, listDir, task, cwd } = input;
+	const passthrough = input.passthrough ?? [];
+	const run = makeRunOne(input);
+
+	// ── 0. lint aggregate ─────────────────────────────────────────────
+	if (task === "lint") return runLintAggregate(input);
 
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
 	if (turboDefinesTask(cwd, task, readFile, fileExists)) {
@@ -119,6 +139,79 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	print(`✗ unknown task "${task}"`);
 	logger.warn({ task, status: "unknown" }, `run: ${task}`);
 	return { status: "unknown", message: `unknown task "${task}"` };
+}
+
+/**
+ * `holocron run lint` — the resolved linter set, run natively. The eslint
+ * slot reuses turbo / the `lint` script / `eslint .`; the rest run their
+ * `localBin` when it resolves on PATH. Worst exit code wins.
+ */
+function runLintAggregate(input: RunTaskInput): RunTaskReport {
+	const { print, logger, readFile, fileExists, listDir, lookPath, cwd } = input;
+	const passthrough = input.passthrough ?? [];
+	const dryRun = input.dryRun ?? false;
+	const runOne = makeRunOne(input);
+	const pass = passthrough.length ? ["--", ...passthrough] : [];
+
+	let rootFiles: string[];
+	try {
+		rootFiles = listDir(cwd);
+	} catch {
+		rootFiles = [];
+	}
+	const resolved = resolveLinters({ explicit: input.linters, rootFiles });
+	const reports: RunTaskReport[] = [];
+
+	/** Run one linter's `localBin` natively, or flag it. */
+	const runLinter = (name: string, bin: string | undefined, args: string[], hint?: string): void => {
+		if (!bin) {
+			print(`· ${name} (CI only)`);
+			return;
+		}
+		const found = lookPath(cwd, bin);
+		if (!found) {
+			print(`! ${name} — ${bin} not on PATH${hint ? `. ${hint}` : ""} (enforced in CI)`);
+			return;
+		}
+		reports.push(runOne(found, [...args, ...passthrough]));
+	};
+
+	// eslint slot — through the standard resolution so turbo caching is kept
+	if (resolved.some((r) => r.name === "eslint")) {
+		const script = packageJsonScript(cwd, "lint", readFile, fileExists);
+		if (turboDefinesTask(cwd, "lint", readFile, fileExists)) {
+			reports.push(runOne(resolveBin(cwd, "turbo", fileExists), ["run", "lint", ...pass]));
+		} else if (script && !/^holocron run\b/.test(script.trim())) {
+			reports.push(runOne(packageManager(cwd, readFile, fileExists), ["run", "lint", ...pass]));
+		} else {
+			runLinter("eslint", "eslint", ["."]);
+		}
+	}
+
+	// every other resolved linter, natively
+	for (const { name, def } of resolved) {
+		if (name === "eslint") continue;
+		runLinter(name, def.localBin, def.localArgs ?? [], def.installHint);
+	}
+
+	if (reports.length === 0) {
+		const msg = "no lint tooling available locally — every resolved linter is CI-only here";
+		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
+		logger[input.required ? "warn" : "debug"](
+			{ task: "lint", status: input.required ? "fail" : "skip" },
+			"run: lint"
+		);
+		return { status: input.required ? "fail" : "skip", message: msg };
+	}
+
+	const command = reports
+		.map((r) => r.command)
+		.filter((c): c is string => Boolean(c))
+		.join(" && ");
+	if (dryRun) return { status: "dry-run", command };
+	return reports.some((r) => r.status === "fail")
+		? { status: "fail", command, message: "one or more linters failed" }
+		: { status: "ok", command };
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

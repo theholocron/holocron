@@ -6,6 +6,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
@@ -49,6 +50,8 @@ export interface AstromechOptions {
 	readFile?: (path: string) => string;
 	fileExists?: (path: string) => boolean;
 	listDir?: (path: string) => string[];
+	/** Injectable binary lookup (tests). Default checks `node_modules/.bin` then `PATH`. */
+	lookPath?: (cwd: string, bin: string) => string | null;
 }
 
 export interface RunOptions {
@@ -95,6 +98,16 @@ const realExec: ExecFn = (cmd, args, opts) => {
 	return { exitCode: result.status ?? -1 };
 };
 
+/** `node_modules/.bin/<bin>`, else the first `PATH` entry that has it, else `null`. */
+const realLookPath = (cwd: string, bin: string): string | null => {
+	const local = join(cwd, "node_modules", ".bin", bin);
+	if (existsSync(local)) return local;
+	for (const dir of (process.env["PATH"] ?? "").split(":")) {
+		if (dir && existsSync(join(dir, bin))) return join(dir, bin);
+	}
+	return null;
+};
+
 export function createAstromech(options: AstromechOptions): Astromech {
 	const deps: RunDeps = {
 		print: options.print ?? ((line: string) => console.log(line)),
@@ -103,6 +116,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		readFile: options.readFile ?? ((path: string) => readFileSync(path, "utf8")),
 		fileExists: options.fileExists ?? ((path: string) => existsSync(path)),
 		listDir: options.listDir ?? ((path: string) => readdirSync(path) as string[]),
+		lookPath: options.lookPath ?? realLookPath,
 	};
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
@@ -129,6 +143,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				passthrough: opts.passthrough ?? [],
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
+				...(task === "lint" ? { linters: lintEntry()?.linters } : {}),
 			}),
 
 		thinCallers: () => {

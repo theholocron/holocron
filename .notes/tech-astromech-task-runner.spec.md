@@ -299,8 +299,10 @@ inherit`, `with:` overrides applied.
 1. **Leaf-package scripts in a monorepo** — thin callers everywhere, or
    leaves stay raw with shared configs carrying the flags? Leaning: raw
    leaves.
-2. **Linters with no local binary** (some super-linter validators) —
-   `npx`, container, or skip-with-warning locally?
+2. **Linters with no local binary** — RESOLVED (Phase 4): `holocron run lint`
+   runs whatever resolves in `node_modules/.bin` or on `PATH`; anything missing
+   is flagged with an install hint (`brew install …`) and left to CI. No `npx`,
+   no container. Install the binaries to run the full set locally.
 3. **Job dependency order for `holocron ci`** — parse `needs:` from
    generated workflows, or declare in `registry.ts`?
 4. **`config show` repo-awareness** (#576) — confirm before `astro.plan()`
@@ -323,8 +325,8 @@ Tracking epic: **#581**.
 | 2a   | Extract `@theholocron/datapad` (ADR-0010) — generic config loader; `@theholocron/cli` migrates `holocron.config.*` loading to it.                                                                                                                                        | #582  |
 | 2b   | Scaffold `@theholocron/astromech` + `/config`; move `tasks.ts` → `registry.ts` + `commands/run.ts` → `run.ts`; `TasksConfig` schema + `defineConfig` + `loadTasksConfig` on top of datapad; `createAstromech({ cwd })` → `{ run }`; CLI's `run` command delegates.       | #583  |
 | 2c   | `config.workflows` → `config.tasks` hard rename — `HolocronConfig` schema, `compose.ts`, `holocron.config.ts`, and the `@theholocron/holocron-config` preset (companion PR in `theholocron/configs`). Wire `loadTasksConfig` into the resolver (`local: false`, `with`). | #583  |
-| 3 🚧 | Move `setup-workflows/` + templates (#597); `astro.thinCallers()` / `astro.packageScripts()` (#598); cli consumes astromech (#599); `holocron sync` `scripts` step + `syncScripts` / `holocronScript` config, supersede #566 / #570.                                     | #584  |
-| 4    | Lint parity: linter manifest + auto-detect; `astro.superLinterConfig()`; `holocron run lint` runs the set natively.                                                                                                                                                      | #585  |
+| 3 ✅ | Move `setup-workflows/` + templates (#597); `astro.thinCallers()` / `astro.packageScripts()` (#598); cli consumes astromech (#599); `holocron sync` `scripts` step + `syncScripts` / `holocronScript` config, supersede #566 / #570.                                     | #584  |
+| 4 ✅ | Lint parity: `LINTERS` registry + auto-detect + `resolveLinters` / `superLinterConfig()` (PR 4.1); reusable `lint.yml` `super-linter-env` input (4.2); `thinCallers()` / sync / setup emit it (4.3); `holocron run lint` runs the set natively (4.4).                    | #585  |
 | 5    | `holocron ci` + `astro.ci()`; `required` flags; `astro.requiredChecks()` feeds `holocron setup`; `pre-push` hook; CLAUDE.md + skill step.                                                                                                                                | #586  |
 | 6    | Move `sync-github` template-push core; `.github` becomes a pure target.                                                                                                                                                                                                  | #587  |
 | 7    | `holocron run <task> <job>` + `audit` sub-jobs (step 7).                                                                                                                                                                                                                 | #588  |
