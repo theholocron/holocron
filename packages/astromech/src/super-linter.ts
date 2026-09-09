@@ -67,7 +67,11 @@ export function baselineSuperLinterEnv(): Record<string, string> {
  * @param opts.rootFiles  repo-root filenames (auto-detect fallback)
  * @param opts.extra  per-repo `with:` overrides that win over the defaults
  */
-export function lintThinCallerWith(opts: { explicit?: string[]; rootFiles: string[]; extra?: Record<string, unknown> }): {
+export function lintThinCallerWith(opts: {
+	explicit?: string[];
+	rootFiles: string[];
+	extra?: Record<string, unknown>;
+}): {
 	withOverrides: Record<string, unknown>;
 	comments: Record<string, string>;
 } {

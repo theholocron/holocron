@@ -115,7 +115,10 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		}
 	};
 
-	const lintEntry = (): TaskEntry | undefined => items().filter((e) => e.name === "lint").at(-1);
+	const lintEntry = (): TaskEntry | undefined =>
+		items()
+			.filter((e) => e.name === "lint")
+			.at(-1);
 
 	return {
 		run: (task, opts = {}) =>
@@ -182,7 +185,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			return out;
 		},
 
-		superLinterConfig: () =>
-			resolveSuperLinterConfig({ explicit: lintEntry()?.linters, rootFiles: rootFiles() }),
+		superLinterConfig: () => resolveSuperLinterConfig({ explicit: lintEntry()?.linters, rootFiles: rootFiles() }),
 	};
 }
