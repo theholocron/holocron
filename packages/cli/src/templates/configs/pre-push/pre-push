@@ -1,0 +1,8 @@
+# Run the merge-gating checks locally before pushing — the same set CI runs.
+# Bypass once with:  git push --no-verify
+
+# CI runners (semantic-release, super-linter auto-commit, bots) push without a
+# built dev environment — the hook has nothing to add there.
+[ -n "$CI" ] && exit 0
+
+__HOLOCRON_SCRIPT__ ci

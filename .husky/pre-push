@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/templates/configs/pre-push/create-config.ts
+# Tool:    holocron setup
+# Changes: edit source in theholocron/holocron
+
+# Run the merge-gating checks locally before pushing — the same set CI runs.
+# Bypass once with:  git push --no-verify
+
+# CI runners (semantic-release, super-linter auto-commit, bots) push without a
+# built dev environment — the hook has nothing to add there.
+[ -n "$CI" ] && exit 0
+
+node packages/cli/dist/cli.mjs ci

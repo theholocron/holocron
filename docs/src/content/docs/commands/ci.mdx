@@ -59,7 +59,8 @@ Exit code is `1` if any check fails, `0` otherwise.
 
 `holocron setup` installs `.husky/pre-push` running `holocron ci` for
 `protection: "strict"` repos (opt out with `hooks: false` in `holocron.config`,
-or `holocron setup --no-hooks`). Skip a single push with:
+or `holocron setup --no-hooks`). It also sets `package.json#scripts.prepare` to
+`husky` — run `pnpm install` once to activate the hook. Skip a single push with:
 
 ```bash
 git push --no-verify

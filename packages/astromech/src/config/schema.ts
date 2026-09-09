@@ -59,6 +59,13 @@ export interface TasksConfig {
 	 * `required`-task contexts. (`DCO` is prepended by `holocron setup` itself.)
 	 */
 	extraRequiredChecks?: string[];
+	/**
+	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
+	 * `.husky/pre-push` (runs `holocron ci`); `false` / `{ prePush: false }`
+	 * opts out. Omitted → on for `protection: "strict"` repos, off otherwise.
+	 * When enabled, `packageScripts()` also emits `prepare: "husky"`.
+	 */
+	hooks?: boolean | { prePush?: boolean };
 }
 
 /** Normalise a `TaskConfigItem` to a full {@link TaskEntry} with defaults applied. */

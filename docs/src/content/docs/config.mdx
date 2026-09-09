@@ -83,6 +83,14 @@ export default defineConfig({
   // syncScripts: false,
   // holocronScript: "node packages/cli/dist/cli.mjs",
 
+  // Git hooks installed by `holocron setup`. `true` / `{ prePush: true }`
+  // writes `.husky/pre-push` (runs `holocron ci` before every push) and adds
+  // `prepare: "husky"` to package.json; `false` / `{ prePush: false }` opts out.
+  // Omitted → on for `protection: "strict"`, off otherwise. `holocron setup
+  // --hooks` / `--no-hooks` override per-run. Bypass a single push with
+  // `git push --no-verify`.
+  // hooks: true,
+
   // Agent runtime — determines where skills are installed.
   // "claude" → .claude/skills/<name>  (symlinks to .agents/skills/<name>)
   agent: "claude",

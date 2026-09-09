@@ -19,7 +19,7 @@
  */
 
 import { readdirSync } from "node:fs";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -64,6 +64,7 @@ import {
 import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
 import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
 import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
+import { createConfig as createPrePush } from "../../templates/configs/pre-push/index.js";
 import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
 import dcoConfig from "../../templates/dco.yml";
 import dependabotConfig from "../../templates/dependabot.yml";
@@ -95,6 +96,16 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const steps: SetupStepResult[] = [];
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
+
+	// Git hooks: `--hooks`/`--no-hooks` wins, then `config.hooks`, then default
+	// on for `protection: "strict"`.
+	const hooksEnabled =
+		input.hooks ??
+		(typeof config.hooks === "boolean"
+			? config.hooks
+			: typeof config.hooks === "object"
+				? config.hooks.prePush !== false
+				: effectivePreset === "strict");
 
 	print(style.header(`Holocron setup — ${config.name}${dryRun ? " (dry-run)" : ""}`));
 	print(style.dim(`  config: ${input.loaded.filepath}`));
@@ -333,6 +344,33 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
+		if (hooksEnabled) {
+			steps.push(
+				await runStep("source", "write .husky/pre-push", dryRun, async () => {
+					await source.writeRepoFile(".husky/pre-push", createPrePush(config.holocronScript));
+					return "runs `holocron ci` before push — bypass with `git push --no-verify`";
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+			if (config.syncScripts !== false) {
+				steps.push(
+					await runStep("source", "set package.json prepare script", dryRun, async () => {
+						return (await ensurePrepareScript(input.context.repoRoot))
+							? 'prepare = "husky"'
+							: "already set";
+					})
+				);
+				print(formatStep(steps[steps.length - 1]!));
+			}
+		} else {
+			steps.push({
+				capability: "source",
+				step: "write .husky/pre-push",
+				status: "skip",
+				message: "git hooks disabled",
+			});
+			print(formatStep(steps[steps.length - 1]!));
+		}
 		{
 			const configuredWorkflowNames = (config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name));
 			const hasTestWorkflow = configuredWorkflowNames.includes("test");
@@ -833,4 +871,26 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	return { steps, summary };
+}
+
+/**
+ * Ensure `package.json#scripts.prepare` is `"husky"` so git hooks register on
+ * install. Merge-only: leaves every other script untouched. Returns `true` when
+ * it wrote a change, `false` when already set or there is no `package.json`.
+ */
+async function ensurePrepareScript(repoRoot: string): Promise<boolean> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return false;
+	}
+	const pkg = JSON.parse(content) as { scripts?: Record<string, string> };
+	const scripts = pkg.scripts ?? {};
+	if (scripts.prepare === "husky") return false;
+	scripts.prepare = "husky";
+	pkg.scripts = scripts;
+	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	return true;
 }

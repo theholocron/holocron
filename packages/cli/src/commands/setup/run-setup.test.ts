@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -1127,6 +1127,221 @@ describe("runSetup", () => {
 			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
 		)?.required_status_checks.map((c) => c.context);
 		expect(contexts?.filter((c) => c === "Test / Conclusion")).toHaveLength(1);
+	});
+
+	function hookLoader(loaded: LoadedConfig, repoFiles: Array<[string, string]>): PluginLoader {
+		return makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						repoFiles.push([path, content]);
+					},
+				},
+			}),
+		});
+	}
+
+	it("writes .husky/pre-push by default for protection: 'strict'", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			holocronScript: "node packages/cli/dist/cli.mjs",
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		const [, body] = repoFiles.find(([p]) => p === ".husky/pre-push") ?? [];
+		expect(body).toBeDefined();
+		expect(body).toContain("node packages/cli/dist/cli.mjs ci");
+		expect(body).toContain("git push --no-verify");
+	});
+
+	it("skips .husky/pre-push for a non-strict preset", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(false);
+		expect(report.steps.find((s) => s.step === "write .husky/pre-push")?.status).toBe("skip");
+	});
+
+	it("hooks: false opts a strict repo out", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			hooks: false,
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(false);
+	});
+
+	it("--hooks (input.hooks true) forces the hook on a non-strict preset", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			hooks: true,
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(true);
+	});
+
+	it("--no-hooks (input.hooks false) wins over hooks: true in config", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			hooks: true,
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			hooks: false,
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(false);
+	});
+
+	it("sets package.json prepare = husky when installing hooks, without clobbering", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "demo", scripts: { build: "tsc" } }), "utf8");
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8")) as {
+			scripts: Record<string, string>;
+		};
+		expect(pkg.scripts.prepare).toBe("husky");
+		expect(pkg.scripts.build).toBe("tsc");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("adds a scripts block when package.json has none", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "demo" }), "utf8");
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8")) as {
+			scripts?: Record<string, string>;
+		};
+		expect(pkg.scripts?.prepare).toBe("husky");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("honours hooks: { prePush } object form", async () => {
+		const off: Array<[string, string]> = [];
+		const offLoaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			hooks: { prePush: false },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded: offLoaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(offLoaded, off),
+			print: () => {},
+		});
+		expect(off.some(([p]) => p === ".husky/pre-push")).toBe(false);
+
+		const on: Array<[string, string]> = [];
+		const onLoaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			hooks: { prePush: true },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded: onLoaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(onLoaded, on),
+			print: () => {},
+		});
+		expect(on.some(([p]) => p === ".husky/pre-push")).toBe(true);
+	});
+
+	it("leaves package.json prepare untouched when already husky", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { prepare: "husky" } }),
+			"utf8"
+		);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: dir },
+			loader: hookLoader(loaded, []),
+			print: () => {},
+		});
+		expect(report.steps.find((s) => s.step === "set package.json prepare script")?.message).toBe("already set");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("skips the prepare-script write when syncScripts is false", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			syncScripts: false,
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(report.steps.some((s) => s.step === "set package.json prepare script")).toBe(false);
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(true);
 	});
 
 	it("updates an existing ruleset instead of creating a new one", async () => {
