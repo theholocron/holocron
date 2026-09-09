@@ -115,9 +115,10 @@ not object destructuring.
 
 - **Definition of done: code + tests + docs + green checks.** A change
   is not done until all four are true:
-  1. `pnpm typecheck && pnpm lint && pnpm test` pass (same set CI runs
-     plus `pnpm build` — finding failures after pushing wastes a round
-     trip).
+  1. `holocron ci` passes — it runs exactly the merge-gating checks, in
+     CI order, one non-zero exit on the first failure. (Equivalent:
+     `pnpm typecheck && pnpm lint && pnpm test && pnpm build` — the same
+     set CI runs. Finding failures after pushing wastes a round trip.)
   2. Tests cover the new behavior (new path → new test; bug fix → test
      that would have caught it).
   3. Docs are updated: `packages/cli/README.md` for any public API or
@@ -172,9 +173,11 @@ not object destructuring.
   is only for non-conventional _file paths_ (unusual locations for known
   file types); it is not a substitute for adding a new pattern.
 - **PR checks must be green before merge.** `pnpm typecheck`,
-  `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. CodeQL
-  runs separately. DCO checks the Signed-off-by trailer per commit
-  (use `-s`). Don't merge through red checks.
+  `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. Run
+  `holocron ci` as the local pre-flight (a `pre-push` hook runs it
+  automatically in `protection: "strict"` repos; `git push --no-verify`
+  bypasses one push). CodeQL runs separately. DCO checks the Signed-off-by
+  trailer per commit (use `-s`). Don't merge through red checks.
 
 ## Releases (automated)
 

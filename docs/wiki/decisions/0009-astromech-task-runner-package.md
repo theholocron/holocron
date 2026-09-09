@@ -2,7 +2,22 @@
 
 ## Status
 
-Proposed
+Accepted
+
+Phases 1–5 shipped (`@theholocron/astromech` + `/config`, `holocron run`,
+`holocron ci`, thin callers, `packageScripts()`, lint parity, and
+manifest-derived branch-protection checks). As-built notes:
+
+- `holocron ci` job order comes from a declared `CI_ORDER` constant in
+  `registry.ts`, not `needs:` parsing.
+- The check context standardized to the aggregate `… / Conclusion` fan-in
+  job. `repo.requiredChecks` was removed with no alias;
+  `Capability.requiredChecks` → `Capability.extraRequiredChecks`.
+- `holocron setup` installs a `.husky/pre-push` hook running `holocron ci`
+  (on by default for `protection: "strict"`, gated by the `hooks` field).
+
+Phases 6–8 (template-push core, `holocron run <task> <job>` sub-jobs, CI
+run steps calling `holocron`) remain scheduled.
 
 ## Context
 

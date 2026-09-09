@@ -72,8 +72,48 @@ Additional `repo` fields recognised by `holocron setup`:
 | ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `repo.teams`      | `Array<string \| { slug, permission }>` | GitHub teams granted repo access. String shorthand defaults to `push` (Write). `holocron setup` also writes `.github/CODEOWNERS` for teams with `push`/`maintain`/`admin`. |
 | `repo.topics`     | `string[]`                              | GitHub topics set on the repository.                                                                                                                                       |
-| `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron setup`.                                                                                                                      |
+| `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron setup`. For `"strict"`, the required status checks are derived from the task manifest — see below.                           |
 | `repo.properties` | `RepoProperties`                        | Org-level custom property values synced to the GitHub dashboard.                                                                                                           |
+
+### Required status checks (`protection: "strict"`)
+
+`holocron setup` builds the branch-protection required-check list from the
+manifest, not a hand-maintained array:
+
+- `"DCO"` (hard-prepended), then
+- every `{ required: true }` task's workflow check context (`Lint / Conclusion`,
+  `Test / Conclusion`, `Typecheck / Conclusion`, `audit / Conclusion`), walked
+  in CI order, then
+- the top-level `extraRequiredChecks` (codecov gates, a bundle-build check, …).
+
+```ts
+export default defineConfig({
+  tasks: [
+    { name: "lint", required: true },
+    { name: "test", required: true },
+    { name: "typecheck", required: true },
+  ],
+  extraRequiredChecks: ["codecov/patch", "codecov/project"],
+  repo: { name: "acme/app", protection: "strict" },
+  providers: { source: "github" },
+});
+```
+
+### Git hooks
+
+```ts
+export default defineConfig({
+  hooks: true, // or { prePush: true }
+  repo: { protection: "strict" },
+  providers: { source: "github" },
+});
+```
+
+`holocron setup` writes `.husky/pre-push` (runs `holocron ci` before every
+push) and sets `package.json#scripts.prepare` to `husky`. On by default for
+`protection: "strict"`; `false` / `{ prePush: false }` opts out. `holocron
+setup --hooks` / `--no-hooks` override per run. Bypass one push with `git push
+--no-verify`.
 
 ### Task scripts
 
@@ -92,6 +132,21 @@ export default defineConfig({
 Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one
 `"<task>": "holocron run <task>"` per runnable task. `syncScripts: false`
 opts out entirely.
+
+### `holocron ci`
+
+```bash
+holocron ci [--all] [--filter <pkg>] [--dry-run]
+```
+
+Runs the merge-gating checks locally, in CI order, exiting non-zero on the
+first failure — the "will my PR be green?" pre-flight, and what the
+`pre-push` hook runs. Default scope is every `{ required: true }` task
+(falling back to every `ci: true` task when nothing is marked required).
+`--all` forces the full set; `--filter` is a `turbo --filter=` passthrough.
+Order comes from the `CI_ORDER` constant in `@theholocron/astromech`
+(`typecheck → lint → test → build → …`). Tasks with no local equivalent
+(`audit`, `codeql`, `deploy`) are reported as enforced-in-CI, never failures.
 
 ### Lint parity
 

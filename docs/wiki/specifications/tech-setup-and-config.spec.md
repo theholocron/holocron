@@ -168,6 +168,14 @@ should read the same field for consistency.
   `holocron.config.json` now uses `preset: "strict"` with the four
   CI job names as required checks.
 
+  > **Superseded (2026-09, ADR-0009 Phase 5):** `repo.requiredChecks` was
+  > removed. The `"strict"` required-check list is derived from the task
+  > manifest — `{ required: true }` task check contexts (`… / Conclusion`,
+  > in `CI_ORDER`) + `extraRequiredChecks`, with `"DCO"` hard-prepended by
+  > `holocron setup`. Phase 5 also added a `hooks` config field:
+  > `holocron setup` writes `.husky/pre-push` (runs `holocron ci`) — on by
+  > default for `protection: "strict"`, `--hooks` / `--no-hooks` override.
+
 Phase 2 and 3 are independent quick wins that can ship separately.
 
 ## Open questions
