@@ -267,3 +267,20 @@ describe("createAstromech().superLinterConfig", () => {
 		expect(sl.linters[0]).toBe("eslint");
 	});
 });
+
+describe("createAstromech().requiredChecks", () => {
+	it("returns [] with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks()).toEqual([]);
+	});
+
+	it("derives contexts from required tasks + extraRequiredChecks", () => {
+		const checks = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "lint", required: true }, { name: "test", required: true }, "typecheck"],
+				extraRequiredChecks: ["codecov/patch"],
+			},
+		}).requiredChecks();
+		expect(checks).toEqual(["Lint / Conclusion", "Test / Conclusion", "codecov/patch"]);
+	});
+});

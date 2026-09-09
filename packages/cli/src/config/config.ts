@@ -255,6 +255,23 @@ export type WorkflowWithConfig = Record<string, unknown> & {
 	storybook?: StorybookDeployProject[];
 };
 
+/**
+ * A `tasks` manifest entry in object form. A bare string entry is shorthand
+ * for `{ name, ci: true, local: true }`.
+ */
+export interface TaskEntryConfig {
+	name: string;
+	with?: WorkflowWithConfig;
+	paths?: string[];
+	linters?: string[];
+	/** Emit a `.github/workflows/<name>.yml` thin caller + include in `holocron ci`. Default `true`. */
+	ci?: boolean;
+	/** Write a `package.json` script + let `holocron run <name>` resolve the task. Default `true`. */
+	local?: boolean;
+	/** The task's CI check context is a required status check + part of `holocron ci`'s default run. */
+	required?: boolean;
+}
+
 export interface HolocronConfig {
 	/** Project name. Derived from package.json when absent. */
 	name?: string;
@@ -342,7 +359,7 @@ export interface HolocronConfig {
 	 * ["lint", { "name": "release", "with": { "run-build": false } }]
 	 * { "name": "deploy", "with": { "docs": true } }
 	 */
-	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[]; linters?: string[] }>;
+	tasks?: Array<string | TaskEntryConfig>;
 	/**
 	 * Opt out of `holocron sync`'s `package.json` script writes. Default `true`.
 	 */
@@ -353,6 +370,12 @@ export interface HolocronConfig {
 	 * build (`"node packages/cli/dist/cli.mjs"`).
 	 */
 	holocronScript?: string;
+	/**
+	 * Required status-check contexts not backed by a `required` task (codecov
+	 * gates, the bundle-build check, …). `holocron setup` appends these to the
+	 * task-derived list from `astro.requiredChecks()`.
+	 */
+	extraRequiredChecks?: string[];
 	providers: RawProvidersConfig;
 	apps?: AppConfig[];
 	doctor?: DoctorConfig;
@@ -425,9 +448,10 @@ export interface ResolvedHolocronConfig {
 	org?: string;
 	domain?: string;
 	repo?: RepoConfig;
-	tasks?: Array<string | { name: string; with?: WorkflowWithConfig; paths?: string[]; linters?: string[] }>;
+	tasks?: Array<string | TaskEntryConfig>;
 	syncScripts?: boolean;
 	holocronScript?: string;
+	extraRequiredChecks?: string[];
 	providers: ResolvedProvidersConfig;
 	apps: AppConfig[];
 	doctor: DoctorConfig;
@@ -570,6 +594,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		tasks: raw.tasks,
 		syncScripts: raw.syncScripts,
 		holocronScript: raw.holocronScript,
+		extraRequiredChecks: raw.extraRequiredChecks,
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},

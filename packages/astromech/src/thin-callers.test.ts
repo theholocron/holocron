@@ -23,10 +23,13 @@ describe("WORKFLOW_TEMPLATES", () => {
 		}
 	});
 
-	it("check contexts point at real workflow names", () => {
-		for (const name of Object.keys(WORKFLOW_CHECK_CONTEXTS)) {
+	it("check contexts point at real workflow names and use the Conclusion aggregate job", () => {
+		for (const [name, context] of Object.entries(WORKFLOW_CHECK_CONTEXTS)) {
 			expect(KNOWN_WORKFLOWS.has(name)).toBe(true);
+			expect(context).toMatch(/ \/ Conclusion$/);
 		}
+		expect(WORKFLOW_CHECK_CONTEXTS["lint"]).toBe("Lint / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["audit"]).toBe("audit / Conclusion");
 	});
 });
 

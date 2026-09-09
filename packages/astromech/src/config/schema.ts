@@ -22,8 +22,9 @@ export interface TaskEntry {
 	 */
 	local?: boolean;
 	/**
-	 * The task's CI check context is a required status check (branch
-	 * protection) and part of `holocron ci`'s default run.
+	 * The task's CI check context (from `WORKFLOW_CHECK_CONTEXTS`) is a
+	 * required status check in branch protection (`astro.requiredChecks()`)
+	 * and part of `holocron ci`'s default run.
 	 */
 	required?: boolean;
 	/** Per-repo overrides on the same channel the reusable workflow reads. */
@@ -53,8 +54,9 @@ export interface TasksConfig {
 	 */
 	holocronScript?: string;
 	/**
-	 * Required status-check contexts not backed by a task — DCO, semantic
-	 * PR title, …
+	 * Required status-check contexts not backed by a task — codecov gates,
+	 * a bundle-build check, … Appended to `astro.requiredChecks()` after the
+	 * `required`-task contexts. (`DCO` is prepended by `holocron setup` itself.)
 	 */
 	extraRequiredChecks?: string[];
 }

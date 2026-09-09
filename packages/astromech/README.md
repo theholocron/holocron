@@ -90,6 +90,7 @@ const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
 astromech.packageScripts(); // { holocron: "holocron", lint: "holocron run lint", … }
+astromech.requiredChecks(); // ["Lint / Conclusion", "codecov/patch", …]  — branch-protection contexts
 ```
 
 `thinCallers()` returns the raw `.github/workflows/*.yml` content (no
@@ -100,6 +101,16 @@ workflow. `packageScripts()` emits the `holocron` entry
 per runnable task; it skips `local: false` entries and tasks with no local
 runner (`codeql`, `deploy`), and returns `{}` when `syncScripts: false` or
 there is no config.
+
+### Required checks
+
+`requiredChecks()` derives the branch-protection required-status-check list
+from the manifest: every `{ required: true }` task's check context (the
+`… / Conclusion` aggregate job, from `WORKFLOW_CHECK_CONTEXTS`), ordered by
+`CI_ORDER`, then `config.extraRequiredChecks` (codecov gates, the
+bundle-build check, …), de-duplicated. `holocron setup` prepends `"DCO"` and
+applies the list for `protection: "strict"` repos. Policy-free — manifest
+only.
 
 `holocron run` itself does not read the config yet — that (and
 `holocron ci`) come in later phases (epic #581).

@@ -23,7 +23,8 @@
 
 export { type Astromech, type AstromechOptions, createAstromech, type RunOptions } from "./astromech.js";
 export { LINTER_NAMES, type LinterDef, LINTERS, resolveLinters } from "./linters.js";
-export { KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
+export { CI_ORDER, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
+export { requiredChecks } from "./required-checks.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
 export {
 	baselineSuperLinterEnv,
