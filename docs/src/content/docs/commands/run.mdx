@@ -70,11 +70,14 @@ run the full CI set locally.
 
 ## Options
 
-| Option       | Description                                                     |
-| ------------ | --------------------------------------------------------------- |
-| `--dry-run`  | Print the resolved command without running it                   |
-| `--required` | Exit 1 (instead of 0) if this repo has no such task             |
-| `-- <args>`  | Everything after `--` is forwarded to the tool / turbo / script |
+| Option           | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `--dry-run`      | Print the resolved command without running it                   |
+| `--required`     | Exit 1 (instead of 0) if this repo has no such task             |
+| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                   |
+| `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
+
+See also [`holocron ci`](/holocron/commands/ci/) — run every required check at once.
 
 ## Examples
 

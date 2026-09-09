@@ -586,6 +586,10 @@ try {
 						type: "boolean",
 						default: false,
 						describe: "Fail (exit 1) if this repo has no such task, instead of skipping.",
+					})
+					.option("filter", {
+						type: "string",
+						describe: "turbo --filter=<pkg> passthrough (monorepo).",
 					}),
 			async (argv) => {
 				const { logger } = buildCliLogger(argv, { command: "run" });
@@ -597,8 +601,35 @@ try {
 					passthrough: (argv.passthrough as string[] | undefined) ?? [],
 					dryRun: argv.dryRun,
 					required: argv.required,
+					...(argv.filter ? { filter: argv.filter as string } : {}),
 				});
 				if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
+			}
+		)
+		.command(
+			"ci",
+			"Run the merge-gating checks locally, in CI order — 'will CI pass?'",
+			(y) =>
+				y
+					.option("all", {
+						type: "boolean",
+						default: false,
+						describe: "Run every `ci: true` task, not just the required ones.",
+					})
+					.option("filter", {
+						type: "string",
+						describe: "turbo --filter=<pkg> passthrough (monorepo).",
+					}),
+			async (argv) => {
+				const { logger } = buildCliLogger(argv, { command: "ci" });
+				const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
+				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
+				const report = astromech.ci({
+					dryRun: argv.dryRun,
+					scope: argv.all ? "all" : "required",
+					...(argv.filter ? { filter: argv.filter as string } : {}),
+				});
+				if (report.status === "fail") process.exitCode = 1;
 			}
 		)
 		.command(

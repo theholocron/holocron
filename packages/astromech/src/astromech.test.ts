@@ -54,6 +54,18 @@ describe("createAstromech().run", () => {
 		expect(report.status).toBe("fail"); // no build tooling + required
 	});
 
+	it("forwards --filter to turbo", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		createAstromech({
+			...fs({ "package.json": PKG, "turbo.json": JSON.stringify({ tasks: { test: {} } }) }),
+			exec,
+			print: () => {},
+		}).run("test", { filter: "@scope/x" });
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test", "--filter=@scope/x"], {
+			cwd: "/repo",
+		});
+	});
+
 	it("routes a structured logger through to run lines", () => {
 		const warn = vi.fn();
 		const astromech = createAstromech({
@@ -282,5 +294,26 @@ describe("createAstromech().requiredChecks", () => {
 			},
 		}).requiredChecks();
 		expect(checks).toEqual(["Lint / Conclusion", "Test / Conclusion", "codecov/patch"]);
+	});
+});
+
+describe("createAstromech().ci", () => {
+	it("returns ok with no config (nothing to run)", () => {
+		const report = createAstromech({ cwd: "/repo", print: () => {} }).ci();
+		expect(report.status).toBe("ok");
+		expect(report.jobs).toEqual([]);
+	});
+
+	it("runs the required tasks and forwards the lint linters", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const report = createAstromech({
+			...fs({ "package.json": PKG, "turbo.json": JSON.stringify({ tasks: { typecheck: {} } }) }),
+			exec,
+			print: () => {},
+			config: { tasks: [{ name: "typecheck", required: true }] },
+		}).ci();
+		expect(report.status).toBe("ok");
+		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck"]);
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "typecheck"], { cwd: "/repo" });
 	});
 });

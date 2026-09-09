@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { type CiOptions, type CiReport, runCi } from "./ci.js";
 import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { requiredChecks as resolveRequiredChecks } from "./required-checks.js";
@@ -62,11 +63,19 @@ export interface RunOptions {
 	dryRun?: boolean;
 	/** Fail (exit 1) instead of skipping when the repo has no such task. */
 	required?: boolean;
+	/** `turbo --filter=<pkg>` passthrough (monorepo). */
+	filter?: string;
 }
 
 export interface Astromech {
 	/** Run one task locally. */
 	run(task: string, opts?: RunOptions): RunTaskReport;
+	/**
+	 * Run the merge-gating checks locally, in CI order — "will CI pass?".
+	 * Default scope: `required: true` tasks (falls back to every `ci: true`
+	 * task when nothing is marked required). Exit non-zero on any failure.
+	 */
+	ci(opts?: CiOptions): CiReport;
 	/**
 	 * The `.github/workflows/*.yml` thin callers for this repo's manifest —
 	 * `filename` → YAML content (no generated-by header; the caller adds it).
@@ -151,7 +160,17 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				passthrough: opts.passthrough ?? [],
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
+				...(opts.filter ? { filter: opts.filter } : {}),
 				...(task === "lint" ? { linters: lintEntry()?.linters } : {}),
+			}),
+
+		ci: (opts = {}) =>
+			runCi({
+				...deps,
+				cwd: options.cwd,
+				config: options.config ?? {},
+				linters: lintEntry()?.linters,
+				...opts,
 			}),
 
 		thinCallers: () => {

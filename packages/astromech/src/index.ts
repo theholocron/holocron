@@ -22,6 +22,7 @@
  */
 
 export { type Astromech, type AstromechOptions, createAstromech, type RunOptions } from "./astromech.js";
+export { type CiJobReport, type CiOptions, type CiReport, runCi } from "./ci.js";
 export { LINTER_NAMES, type LinterDef, LINTERS, resolveLinters } from "./linters.js";
 export { CI_ORDER, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
 export { requiredChecks } from "./required-checks.js";

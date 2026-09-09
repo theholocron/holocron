@@ -22,8 +22,11 @@ export interface LocalRunner {
 
 export interface TaskDef {
 	/**
-	 * `null` — no local equivalent (CodeQL, deploys). `holocron ci` reports
-	 * it as skipped; `holocron run` treats it as "nothing to do".
+	 * `null` — the registry has no built-in runner (CodeQL, deploys, audit's
+	 * server / baseline jobs). An explicit turbo task or `package.json` script
+	 * still runs (resolution steps 1–2); with neither, `holocron run` does
+	 * nothing and `holocron ci` skips it — never a failure, even when the task
+	 * is `required` (a CI-only check isn't a local one).
 	 */
 	local: LocalRunner | null;
 	/** Sub-jobs, keyed by slug — `holocron run audit performance`. */
@@ -65,9 +68,10 @@ export const TASKS: Record<string, TaskDef> = {
 	sync: { local: { command: "sync" } },
 	wiki: { local: { command: "sync-wiki" } },
 
-	// No local equivalent (yet) — `holocron ci` reports these as skipped.
-	// `audit`'s sub-jobs (knip / bundle-size / performance) gain local runners
-	// in a later phase (#588).
+	// No built-in local runner. `holocron run` / `holocron ci` still honour an
+	// explicit turbo task or `package.json` script (e.g. `"audit": "knip"` runs
+	// knip for the audit slot); with neither they skip cleanly, never fail.
+	// `audit`'s knip / bundle-size / performance sub-jobs get proper runners in #588.
 	audit: { local: null },
 	codeql: { local: null },
 	deploy: { local: null },
