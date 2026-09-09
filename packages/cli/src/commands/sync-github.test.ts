@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { WORKFLOW_TEMPLATES } from "@theholocron/astromech";
+import { baselineSuperLinterEnv, WORKFLOW_TEMPLATES } from "@theholocron/astromech";
 import { describe, expect, it, vi } from "vitest";
 
 import * as telemetry from "../telemetry.js";
@@ -658,5 +658,28 @@ describe("parseOrgContextFromTs", () => {
 		const ctx = parseOrgContextFromTs(`export default defineConfig({ org: "acme" });`);
 		expect(ctx.org).toBe("acme");
 		expect(ctx.domain).toBeUndefined();
+	});
+});
+
+describe("REUSABLE_WORKFLOWS.lint — super-linter-env", () => {
+	const lint = REUSABLE_WORKFLOWS["lint"]!;
+
+	it("declares the super-linter-env input and expands it, not file detection", () => {
+		expect(lint).toMatch(/^ {6}super-linter-env:$/m);
+		expect(lint).toContain("Expand linter matrix");
+		expect(lint).not.toContain("Detect project features");
+	});
+
+	it("no longer hard-codes the always-on VALIDATE_* block in the super-linter step", () => {
+		const superLinterEnv = lint.slice(lint.indexOf("Run Super Linter"));
+		expect(superLinterEnv).not.toContain("# Always-on linters");
+	});
+
+	it("the input default is the astromech always-on baseline", () => {
+		const raw = lint.match(/super-linter-env:[\s\S]*?default: >-\n([\s\S]*?)\n {4}secrets:/)?.[1];
+		expect(raw).toBeDefined();
+		const parsed = JSON.parse(raw!.replace(/\n\s+/g, "")) as Record<string, string>;
+		expect(Object.keys(parsed).sort()).toEqual(Object.keys(baselineSuperLinterEnv()).sort());
+		expect(Object.values(parsed).every((v) => v === "true")).toBe(true);
 	});
 });
