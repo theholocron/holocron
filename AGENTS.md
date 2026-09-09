@@ -27,6 +27,18 @@ Three repos, one rule per concern:
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
   `createPlugin()`.
+- **Task manifest → `@theholocron/astromech`** (ADR-0009, epic #581). One
+  `tasks` array in `holocron.config` drives every workflow surface:
+  `holocron run` / `holocron ci`, each repo's `.github/workflows/*.yml`
+  thin callers (`astromech.thinCallers()`, consumed by `holocron sync` /
+  `holocron setup`), `package.json` scripts, the linter set, the
+  branch-protection required checks, and the reusable `workflow_call`
+  implementations pushed to `theholocron/.github`
+  (`astromech.reusableTemplates()`, consumed by `holocron sync-github`).
+  **`theholocron/.github` and `.github-private` are pure sync targets** —
+  their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
+  are generated from `packages/astromech/src/templates/` and pushed by
+  `holocron sync-github`; edit the source here, never those repos directly.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
     commands branch at the orchestrator layer, not in capabilities.
@@ -208,6 +220,9 @@ publish-initial` (chicken-and-egg: trusted publishing needs the
 ```
 packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
+  astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
+  datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
+  logger/                         — @theholocron/logger                    (Pino + Axiom structured logging — ADR-0007)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
   holocron-plugin-neon/           — storage
