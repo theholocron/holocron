@@ -197,7 +197,10 @@ function runLintAggregate(input: RunTaskInput): RunTaskReport {
 	if (reports.length === 0) {
 		const msg = "no lint tooling available locally — every resolved linter is CI-only here";
 		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
-		logger[input.required ? "warn" : "debug"]({ task: "lint", status: input.required ? "fail" : "skip" }, "run: lint");
+		logger[input.required ? "warn" : "debug"](
+			{ task: "lint", status: input.required ? "fail" : "skip" },
+			"run: lint"
+		);
 		return { status: input.required ? "fail" : "skip", message: msg };
 	}
 
