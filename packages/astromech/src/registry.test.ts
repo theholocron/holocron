@@ -32,4 +32,9 @@ describe("TASKS registry", () => {
 	it("test carries the --coverage org default for vitest", () => {
 		expect(TASKS.test!.flags?.vitest).toEqual(["--coverage"]);
 	});
+
+	it("lint is marked as the linter aggregate", () => {
+		expect(TASKS.lint!.linters).toBe(true);
+		expect(KNOWN_TASKS.has("lint")).toBe(true);
+	});
 });
