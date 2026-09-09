@@ -54,7 +54,7 @@ function makeRun(files: Record<string, string>, overrides: Partial<RunTaskInput>
 const PKG = (extra: Record<string, unknown> = {}) => JSON.stringify({ name: "@scope/x", ...extra });
 
 describe("runTask", () => {
-	it("delegates to turbo at a monorepo root", () => {
+	it("delegates to turbo at a monorepo root, forwarding the org-default flags", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"turbo.json": JSON.stringify({ tasks: { test: {}, build: {} } }),
@@ -62,18 +62,33 @@ describe("runTask", () => {
 		});
 		const report = call("test");
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test"], { cwd: CWD });
+		// `test` carries `flags: { vitest: ["--coverage"] }` — forwarded through `--`
+		// so `holocron run test` at a turbo root still produces coverage.
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test", "--", "--coverage"], {
+			cwd: CWD,
+		});
 	});
 
-	it("forwards passthrough args to turbo after --", () => {
+	it("delegates a flag-less task to turbo with no trailing --", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG(),
+			"turbo.json": JSON.stringify({ tasks: { typecheck: {} } }),
+		});
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "typecheck"], { cwd: CWD });
+	});
+
+	it("forwards passthrough args to turbo after the org-default flags", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"turbo.json": JSON.stringify({ tasks: { test: {} } }),
 		});
 		call("test", { passthrough: ["--filter", "@scope/x"] });
-		expect(exec).toHaveBeenCalledWith(expect.any(String), ["run", "test", "--", "--filter", "@scope/x"], {
-			cwd: CWD,
-		});
+		expect(exec).toHaveBeenCalledWith(
+			expect.any(String),
+			["run", "test", "--", "--coverage", "--filter", "@scope/x"],
+			{ cwd: CWD }
+		);
 	});
 
 	it("runs the registry tool with org-default flags", () => {

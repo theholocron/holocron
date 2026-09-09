@@ -35,6 +35,10 @@ Three repos, one rule per concern:
   branch-protection required checks, and the reusable `workflow_call`
   implementations pushed to `theholocron/.github`
   (`astromech.reusableTemplates()`, consumed by `holocron sync-github`).
+  The loop closes both ways: the reusable `typecheck` / `test` / `audit`
+  workflows run their core step through the `holocron` composite action
+  (`holocron run <task> [job]`), so CI executes the same command a
+  contributor runs locally.
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
   are generated from `packages/astromech/src/templates/` and pushed by

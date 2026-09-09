@@ -137,9 +137,14 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	if (task === "lint") return runLintAggregate(input, passthrough);
 
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
+	// The org-default flags (`test` → `--coverage`) that step 3 injects for the
+	// registry tool are forwarded through `--` here too, so `holocron run test`
+	// at a turbo root produces coverage — the same command CI runs.
 	if (turboDefinesTask(cwd, task, readFile, fileExists)) {
 		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
-		const args = ["run", task, ...filterArg, ...(passthrough.length ? ["--", ...passthrough] : [])];
+		const orgFlags = def?.local && !def.local.command && def.local.tool ? (def.flags?.[def.local.tool] ?? []) : [];
+		const forwarded = [...orgFlags, ...passthrough];
+		const args = ["run", task, ...filterArg, ...(forwarded.length ? ["--", ...forwarded] : [])];
 		return run(resolveBin(cwd, "turbo", fileExists), args);
 	}
 

@@ -259,6 +259,21 @@ performance`, … — unless the repo ships its own `"audit"` script.
 --hooks` / `--no-hooks` override; `git push --no-verify` bypasses one
 push). The repo's agent skill gains a `holocron ci` step.
 
+> **As-built (Phase 8):** CI runs the _same_ command. The reusable
+> `typecheck` / `test` / `audit` workflows call a new `holocron` composite
+> action (`.github/actions/holocron`) whose body is `pnpm exec holocron run
+<task> [job]`; it first `pnpm build`s the workspace when
+> `node_modules/@theholocron/cli/dist/cli.mjs` is missing (the holocron repo's
+> `workspace:*` CLI — a no-op for consumers that install the published tarball).
+> `bundle-size` → `holocron run build` (keeps `CODECOV_TOKEN` at the job level);
+> `knip` / `performance` → `holocron run audit knip` / `… performance`. The
+> `build-script` / `knip-script` `audit.yml` inputs are now vestigial (kept so
+> callers don't error). `run.ts` step 1 forwards a task's registry org-default
+> flags through turbo's `--` (`holocron run test` at a monorepo root →
+> `turbo run test -- --coverage`). `holocron ci` itself is **not** used in a
+> workflow — each check stays a separate job so branch protection keeps its
+> distinct `… / Conclusion` contexts.
+
 ## Lint parity
 
 One linter list drives both sides — no CI/local asymmetry.
@@ -372,7 +387,7 @@ Tracking epic: **#581**.
 | 5 ✅ | `astromech.requiredChecks()` + `CI_ORDER` + `… / Conclusion` contexts (PR 5.1); `holocron ci` + `astromech.ci()` + `--filter` (5.2); branch-protection cutover — `repo.requiredChecks` removed, `Capability.extraRequiredChecks` (5.3); `hooks` field + `.husky/pre-push` template + `setup --hooks` (5.4); CLAUDE.md "definition of done" + spec + ADR-0009/0010 → Accepted (5.5).                                                                                     | #586  |
 | 6 ✅ | `astromech.reusableTemplates()` + move the 18 reusable workflows + 4 actions to `src/templates/reusable/`; `sync-github` shrinks to a `reusableTemplates()` consumer, dead `parseTasksFromTs`/`parseOrgContextFromTs` + the `# Synced:` timestamp dropped (PR 6.1); `sync` / `setup` consume `astromech.thinCallers()` — the deferred #584 item (PR 6.2); spec + `AGENTS.md` "pure sync target" (PR 6.3). Companion notes in `theholocron/.github` + `.github-private`. | #587  |
 | 7 ✅ | `holocron run <task> <job>` + `audit` sub-jobs (`bundle-size` / `knip` / `performance`); `JobDef.checkContext`; `holocron run audit` runs every job in order; `holocron ci` expands `audit` into per-job check-context lines; job-position arg folds into passthrough for job-less tasks.                                                                                                                                                                               | #588  |
-| 8    | CI reusable-workflow run steps call `holocron run` / `holocron ci`.                                                                                                                                                                                                                                                                                                                                                                                                     | #589  |
+| 8 ✅ | The reusable `typecheck` / `test` / `audit` workflows run their core step through a new `holocron` composite action (`holocron run <task> [job]`); `bundle-size` → `holocron run build`, `knip` → `holocron run audit knip`, `performance` → `holocron run audit performance`. `run.ts` turbo delegation forwards the registry's org-default flags (`test` → `--coverage`). `lint.yml` stays a super-linter Action (Phase-4 parity).                                    | #589  |
 
 ## Test plan
 
