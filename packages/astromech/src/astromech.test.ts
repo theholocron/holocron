@@ -207,6 +207,22 @@ describe("createAstromech().thinCallers", () => {
 	it("returns an empty map with no config", () => {
 		expect(createAstromech({ cwd: "/repo" }).thinCallers().size).toBe(0);
 	});
+
+	it("throws when the test caller disables both run-unit and run-storybook", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "test", with: { "run-unit": false, "run-storybook": false } }] },
+		});
+		expect(() => astromech.thinCallers()).toThrow(/at least one of "run-unit" or "run-storybook"/);
+	});
+
+	it("does not throw when the test caller keeps run-unit enabled", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "test", with: { "run-unit": true, "run-storybook": false } }] },
+		});
+		expect(() => astromech.thinCallers()).not.toThrow();
+	});
 });
 
 describe("createAstromech().packageScripts", () => {

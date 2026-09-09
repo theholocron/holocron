@@ -1,17 +1,7 @@
-import { readdirSync } from "node:fs";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import {
-	createAstromech,
-	deriveDeployPaths,
-	extractPreviewConfig,
-	generateCombinedDeployContent,
-	generateThinCallerContent,
-	KNOWN_WORKFLOWS,
-	lintThinCallerWith,
-	normalizeWorkflowWith,
-} from "@theholocron/astromech";
+import { createAstromech, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import type { Logger } from "@theholocron/logger";
 
@@ -354,29 +344,17 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				});
 				print(formatSyncStep(steps[steps.length - 1]!));
 			} else {
+				// astromech renders every thin caller from the manifest (lint linter
+				// set, deploy paths, deploy+preview). Iterate the manifest (not the
+				// map) so step reporting keeps the config's order.
+				const files = createAstromech({
+					cwd: input.context.repoRoot,
+					config: { tasks: config.tasks as TasksConfig["tasks"] },
+					orgContext: { org: config.org, domain: config.domain },
+				}).thinCallers();
+
 				for (const entry of taskEntries) {
 					const name = typeof entry === "string" ? entry : entry.name;
-					const rawWith = typeof entry === "object" ? entry.with : undefined;
-					const normalized = rawWith ? normalizeWorkflowWith(rawWith as Record<string, unknown>) : undefined;
-
-					let withOverrides = normalized;
-					let comments: Record<string, string> | undefined;
-					if (name === "lint") {
-						const lint = lintThinCallerWith({
-							explicit: typeof entry === "object" ? entry.linters : undefined,
-							rootFiles: safeReaddir(input.context.repoRoot),
-							extra: normalized,
-						});
-						withOverrides = lint.withOverrides;
-						comments = lint.comments;
-					}
-
-					const explicitPaths = typeof entry === "object" ? entry.paths : undefined;
-					const additionalPaths =
-						explicitPaths ??
-						(name === "deploy" && rawWith
-							? deriveDeployPaths(rawWith as Record<string, unknown>)
-							: undefined);
 
 					if (!KNOWN_WORKFLOWS.has(name)) {
 						steps.push({
@@ -389,27 +367,15 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						continue;
 					}
 
-					if (name === "deploy" && rawWith) {
-						const previewCfg = extractPreviewConfig(rawWith as Record<string, unknown>, {
-							org: config.org,
-							domain: config.domain,
-						});
-						if (previewCfg) {
-							steps.push(
-								await runSyncStep("local", "sync workflow deploy (with preview)", dryRun, async () => {
-									const content = `${workflowHeader()}${generateCombinedDeployContent(withOverrides!, additionalPaths!, previewCfg)}`;
-									await writeWorkflowFile(input.context.repoRoot, "deploy.yml", content);
-								})
-							);
-							print(formatSyncStep(steps[steps.length - 1]!));
-							continue;
-						}
-					}
+					const filename = name === "deploy" ? "deploy.yml" : `${name}.yml`;
+					const content = files.get(filename);
+					if (content === undefined) continue; // ci: false — nothing to write
 
+					const withPreview = name === "deploy" && content.includes("workflows/preview.yml@main");
+					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
 					steps.push(
-						await runSyncStep("local", `sync workflow ${name}`, dryRun, async () => {
-							const content = `${workflowHeader()}${generateThinCallerContent(name, withOverrides, additionalPaths, undefined, comments)}`;
-							await writeWorkflowFile(input.context.repoRoot, `${name}.yml`, content);
+						await runSyncStep("local", step, dryRun, async () => {
+							await writeWorkflowFile(input.context.repoRoot, filename, `${workflowHeader()}${content}`);
 						})
 					);
 					print(formatSyncStep(steps[steps.length - 1]!));
@@ -511,15 +477,6 @@ function formatSyncStep(step: SetupStepResult): string {
 	const icon = step.status === "ok" ? "✓" : step.status === "fail" ? "✗" : step.status === "dry-run" ? "…" : "·";
 	const detail = step.message ? `  (${step.message})` : "";
 	return `    ${icon} ${step.step}${detail}`;
-}
-
-/** Repo-root filenames for linter auto-detection; `[]` when the dir is unreadable. */
-function safeReaddir(dir: string): string[] {
-	try {
-		return readdirSync(dir);
-	} catch {
-		return [];
-	}
 }
 
 async function writePackageJsonField(repoRoot: string, field: string, value: unknown): Promise<boolean> {

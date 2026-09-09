@@ -1780,7 +1780,34 @@ describe("runSetup", () => {
 		expect(unknownStep?.message).toContain("unknown workflow");
 	});
 
-	it("throws ConfigError when test workflow has both run-unit and run-storybook set to false", async () => {
+	it("writes no workflow file and reports no step for a ci: false task", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["lint", { name: "test", ci: false }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string) => {
+						written.push(name);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written).not.toContain("test.yml");
+		expect(report.steps.some((s) => s.step === "write workflow test")).toBe(false);
+	});
+
+	it("rejects when the test workflow has both run-unit and run-storybook set to false", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			tasks: [{ name: "test", with: { "run-unit": false, "run-storybook": false } }],

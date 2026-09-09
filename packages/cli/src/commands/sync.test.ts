@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1523,6 +1524,27 @@ describe("runSync", () => {
 			const step = report.steps.find((s) => s.step === "sync workflow nonexistent");
 			expect(step?.status).toBe("skip");
 			expect(step?.message).toContain("unknown workflow");
+		});
+
+		it("writes no file and reports no step for a ci: false task", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["lint", { name: "test", ci: false }],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			expect(report.steps.some((s) => s.step.includes("test"))).toBe(false);
+			expect(existsSync(join(tmpDir, ".github/workflows/test.yml"))).toBe(false);
+			expect(report.steps.find((s) => s.step === "sync workflow lint")?.status).toBe("ok");
 		});
 
 		it("reports dry-run status without writing files", async () => {
