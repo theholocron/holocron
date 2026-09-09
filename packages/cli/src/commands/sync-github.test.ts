@@ -3,22 +3,26 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { baselineSuperLinterEnv, WORKFLOW_TEMPLATES } from "@theholocron/astromech";
+import {
+	REUSABLE_ACTIONS,
+	REUSABLE_WORKFLOWS,
+	reusableTemplates,
+	WORKFLOW_TEMPLATE_PROPERTIES,
+	WORKFLOW_TEMPLATES,
+} from "@theholocron/astromech";
 import { describe, expect, it, vi } from "vitest";
 
 import * as telemetry from "../telemetry.js";
-import { ACTIONS, REUSABLE_WORKFLOWS, WORKFLOW_TEMPLATE_PROPERTIES } from "../templates/index.js";
 import { fakeLogger } from "../test-utils/fake-logger.js";
-import { gitBlobSha as _gitBlobSha, parseOrgContextFromTs, parseTasksFromTs, runSyncGithub } from "./sync-github.js";
+import { gitBlobSha as _gitBlobSha, runSyncGithub } from "./sync-github.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
 // to the primary .github repo. WORKFLOW_TEMPLATE_PROPERTIES adds one
-// .properties.json per keyed template.
-// Secondary repos receive thin callers (one per reusable workflow that has a
-// corresponding thin-caller template).
+// .properties.json per keyed template. Secondary repos get nothing —
+// their thin callers are managed by `holocron sync --steps workflows`.
 const PROPS_COUNT = Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
 const PRIMARY_FILE_COUNT =
-	Object.keys(ACTIONS).length +
+	Object.keys(REUSABLE_ACTIONS).length +
 	Object.keys(REUSABLE_WORKFLOWS).length +
 	Object.keys(WORKFLOW_TEMPLATES).length +
 	PROPS_COUNT;
@@ -181,46 +185,44 @@ describe("runSyncGithub", () => {
 		expect(blobContents.some((c) => c.includes("runs-on:"))).toBe(false);
 	});
 
-	it("skips unchanged files and omits them from the commit tree", async () => {
-		// Pre-populate the tree with the actual git blob SHA for release.yml
-		// so sync treats it as unchanged.
-		const releaseContent = Object.entries(REUSABLE_WORKFLOWS).find(([k]) => k === "release")!;
-		// Build the content the same way sync-github does (with header)
-		const _header = [
-			"# AUTO-GENERATED — do not edit in theholocron/.github directly.",
-			`# Source:  theholocron/holocron · packages/cli/src/templates/index.ts`,
-		].join("\n");
-		// We only need a stable match: use gitBlobSha on known file content.
-		const _ = releaseContent; // used below
-		const unchangedSha = "fake-unchanged-sha";
-		// Provide a mismatched SHA so the file IS treated as changed (normal case),
-		// and separately verify that a matching SHA causes unchanged.
-		const { fn: fn1, calls: _calls1 } = makeFetch({ ".github/workflows/release.yml": unchangedSha });
-		const report1 = await runSyncGithub({
-			token: "ghp_test",
-			branch: "chore/sync",
-			dryRun: false,
-			print: () => {},
-			fetch: fn1,
-		});
-		// Mismatched SHA → still updated (not skipped)
-		expect(report1.unchanged).toBe(0);
+	it("skips a file whose existing blob SHA matches and omits it from the commit tree", async () => {
+		// The header carries no timestamp, so a template's content is deterministic
+		// run-to-run — seed the tree with the real git blob SHA of one file.
+		const releaseContent = reusableTemplates().get(".github/workflows/release.yml")!;
+		const releaseSha = _gitBlobSha(releaseContent);
 
-		// Now provide the REAL git blob SHA so the file is treated as unchanged.
-		// We need to build the full content exactly as sync-github does.
-		// Use the exported gitBlobSha to compute it.
-		const { fn: fn2, calls: calls2 } = makeFetch();
-		// All files new in this run → PRIMARY_FILE_COUNT blobs
-		const report2 = await runSyncGithub({
+		const { fn, calls } = makeFetch({ ".github/workflows/release.yml": releaseSha });
+		const report = await runSyncGithub({
 			token: "ghp_test",
 			branch: "chore/sync",
 			dryRun: false,
 			print: () => {},
-			fetch: fn2,
+			fetch: fn,
 		});
-		expect(report2.created).toBe(PRIMARY_FILE_COUNT);
-		const blobs2 = calls2.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		expect(blobs2).toHaveLength(PRIMARY_FILE_COUNT);
+
+		expect(report.unchanged).toBe(1);
+		expect(report.created).toBe(PRIMARY_FILE_COUNT - 1);
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		expect(blobs).toHaveLength(PRIMARY_FILE_COUNT - 1);
+		expect(blobs.some((c) => (c.body?.content as string)?.includes("Semantic release"))).toBe(false);
+	});
+
+	it("reports a file whose blob SHA differs as updated", async () => {
+		const { fn, calls } = makeFetch({
+			".github/workflows/release.yml": "0000000000000000000000000000000000000000",
+		});
+		const report = await runSyncGithub({
+			token: "ghp_test",
+			branch: "chore/sync",
+			dryRun: false,
+			print: () => {},
+			fetch: fn,
+		});
+		expect(report.updated).toBe(1);
+		expect(report.created).toBe(PRIMARY_FILE_COUNT - 1);
+		expect(report.unchanged).toBe(0);
+		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+		expect(blobs).toHaveLength(PRIMARY_FILE_COUNT);
 	});
 
 	it("dry-run reports changes without creating blobs, trees, or commits", async () => {
@@ -553,133 +555,5 @@ describe("runSyncGithub", () => {
 			fetch: fn,
 		});
 		expect(lines.some((l) => l.includes("PR creation failed"))).toBe(true);
-	});
-});
-
-describe("parseTasksFromTs", () => {
-	it("returns explicit string and object entries when no spread", () => {
-		const source = `export default defineConfig({
-	tasks: ["lint", { name: "release", with: { "run-build": true } }],
-});`;
-		const result = parseTasksFromTs(source);
-		expect(result.map((e) => e.name)).toEqual(["lint", "release"]);
-		expect(result.find((e) => e.name === "release")?.with).toEqual({ "run-build": true });
-	});
-
-	it("includes all known tasks when spread is present", () => {
-		const source = `const { tasks } = node();
-export default defineConfig({
-	tasks: [...tasks, "audit", { name: "deploy", with: { docs: true } }],
-});`;
-		const result = parseTasksFromTs(source);
-		const names = result.map((e) => e.name);
-		expect(names).toContain("lint");
-		expect(names).toContain("test");
-		expect(names).toContain("bookkeeping");
-		expect(names).toContain("audit");
-		expect(names).toContain("deploy");
-	});
-
-	it("explicit overrides take precedence over spread defaults when spread present", () => {
-		const source = `const { tasks } = node();
-export default defineConfig({
-	tasks: [...tasks, { name: "test", with: { "run-unit": false } }],
-});`;
-		const result = parseTasksFromTs(source);
-		const testEntry = result.find((e) => e.name === "test");
-		expect(testEntry?.with).toEqual({ "run-unit": false });
-	});
-
-	it("parses with: blocks that contain nested objects with unquoted keys and trailing commas", () => {
-		// Matches the real-world shape from react-template's holocron.config.ts where
-		// run-chromatic uses a nested { projects: [...] } TypeScript object literal.
-		// The key-quoting regex handles unquoted keys; trailing comma stripping is needed
-		// because TS allows trailing commas but JSON.parse does not.
-		const source = `export default defineConfig({
-	tasks: [
-		{
-			name: "test",
-			with: {
-				"run-unit": false,
-				"run-storybook": true,
-				"run-chromatic": {
-					projects: [{ tokenName: "default", workingDir: ".", buildScript: "build:storybook:chromatic" }],
-				},
-			},
-		},
-	],
-});`;
-		const result = parseTasksFromTs(source);
-		const testEntry = result.find((e) => e.name === "test");
-		expect(testEntry?.with).toEqual({
-			"run-unit": false,
-			"run-storybook": true,
-			"run-chromatic": {
-				projects: [{ tokenName: "default", workingDir: ".", buildScript: "build:storybook:chromatic" }],
-			},
-		});
-	});
-});
-
-describe("parseOrgContextFromTs", () => {
-	it("extracts org, domain, and repoName from config source", () => {
-		const source = `export default defineConfig({
-	name: "holocron",
-	org: "theholocron",
-	domain: "theholocron.dev",
-	tasks: [
-		{ name: "deploy", with: { docs: true } },
-	],
-});`;
-		const ctx = parseOrgContextFromTs(source);
-		expect(ctx.org).toBe("theholocron");
-		expect(ctx.domain).toBe("theholocron.dev");
-		expect(ctx.repoName).toBe("holocron");
-	});
-
-	it("does not pick up workflow entry names as repoName", () => {
-		const source = `export default defineConfig({
-	tasks: [
-		{ name: "deploy", with: { docs: true } },
-	],
-});`;
-		const ctx = parseOrgContextFromTs(source);
-		expect(ctx.repoName).toBeUndefined();
-	});
-
-	it("returns empty context when fields are absent", () => {
-		const ctx = parseOrgContextFromTs(`export default defineConfig({});`);
-		expect(ctx.org).toBeUndefined();
-		expect(ctx.domain).toBeUndefined();
-		expect(ctx.repoName).toBeUndefined();
-	});
-
-	it("handles org without domain", () => {
-		const ctx = parseOrgContextFromTs(`export default defineConfig({ org: "acme" });`);
-		expect(ctx.org).toBe("acme");
-		expect(ctx.domain).toBeUndefined();
-	});
-});
-
-describe("REUSABLE_WORKFLOWS.lint — super-linter-env", () => {
-	const lint = REUSABLE_WORKFLOWS["lint"]!;
-
-	it("declares the super-linter-env input and expands it, not file detection", () => {
-		expect(lint).toMatch(/^ {6}super-linter-env:$/m);
-		expect(lint).toContain("Expand linter matrix");
-		expect(lint).not.toContain("Detect project features");
-	});
-
-	it("no longer hard-codes the always-on VALIDATE_* block in the super-linter step", () => {
-		const superLinterEnv = lint.slice(lint.indexOf("Run Super Linter"));
-		expect(superLinterEnv).not.toContain("# Always-on linters");
-	});
-
-	it("the input default is the astromech always-on baseline", () => {
-		const raw = lint.match(/super-linter-env:[\s\S]*?default: >-\n([\s\S]*?)\n {4}secrets:/)?.[1];
-		expect(raw).toBeDefined();
-		const parsed = JSON.parse(raw!.replace(/\n\s+/g, "")) as Record<string, string>;
-		expect(Object.keys(parsed).sort()).toEqual(Object.keys(baselineSuperLinterEnv()).sort());
-		expect(Object.values(parsed).every((v) => v === "true")).toBe(true);
 	});
 });

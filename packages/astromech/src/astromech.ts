@@ -12,6 +12,7 @@ import { type CiOptions, type CiReport, runCi } from "./ci.js";
 import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { requiredChecks as resolveRequiredChecks } from "./required-checks.js";
+import { reusableTemplates as resolveReusableTemplates } from "./reusable.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./run.js";
 import {
 	lintThinCallerWith,
@@ -83,6 +84,12 @@ export interface Astromech {
 	 * not `ci: false`.
 	 */
 	thinCallers(): Map<string, string>;
+	/**
+	 * The complete reusable-workflow batch `holocron sync-github` pushes to
+	 * `theholocron/.github` — repo-relative path → content, "do not edit" header
+	 * already applied to the YAML. Config-independent (the same for every repo).
+	 */
+	reusableTemplates(): Map<string, string>;
 	/**
 	 * `package.json` scripts for this repo's manifest — the `"holocron"` entry
 	 * (`config.holocronScript ?? "holocron"`) plus `"<task>": "holocron run
@@ -232,6 +239,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		},
 
 		superLinterConfig: () => resolveSuperLinterConfig({ explicit: lintEntry()?.linters, rootFiles: rootFiles() }),
+
+		reusableTemplates: () => resolveReusableTemplates(),
 
 		requiredChecks: () => resolveRequiredChecks(options.config ?? {}),
 	};
