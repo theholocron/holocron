@@ -8,7 +8,8 @@
  *   2. package.json has a `<task>` script     → `<pm> run <task>`
  *      (unless it's the `holocron run …` thin caller — that recurses)
  *   3. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
- *   4. known task, nothing to run             → "no <task> task" (exit 0, or 1 with --required)
+ *   4. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
+ *   4b. known task, nothing resolved          → "no <task> task" (exit 0, or 1 with --required)
  *   5. unknown task                           → "unknown task" (exit 1)
  *
  * `lint` runs the resolved linter set (`config.tasks` `linters`, else
@@ -61,6 +62,8 @@ export interface RunTaskInput extends RunDeps {
 	required?: boolean;
 	/** The `lint` task's explicit linter list from `config.tasks`, if any. */
 	linters?: string[];
+	/** `turbo --filter=<pkg>` passthrough (monorepo). Ignored when the repo has no `turbo.json`. */
+	filter?: string;
 }
 
 export interface RunTaskReport {
@@ -99,7 +102,8 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
 	if (turboDefinesTask(cwd, task, readFile, fileExists)) {
-		const args = ["run", task, ...(passthrough.length ? ["--", ...passthrough] : [])];
+		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
+		const args = ["run", task, ...filterArg, ...(passthrough.length ? ["--", ...passthrough] : [])];
 		return run(resolveBin(cwd, "turbo", fileExists), args);
 	}
 
@@ -129,8 +133,20 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		// registry knows the task but nothing in this repo matches — fall through
 	}
 
-	// ── 4 / 5. nothing to run ──────────────────────────────────────────
-	if (KNOWN_TASKS.has(task) || def?.local === null) {
+	// ── 4. no local equivalent by design (`local: null` — codeql, deploy,
+	// audit's server/baseline jobs) ────────────────────────────────────
+	// Steps 1–2 already had their chance, so an explicit repo script still
+	// wins. Reaching here means the registry offers nothing and the repo
+	// added nothing — that is CI-enforced, never a *local* failure.
+	if (def?.local === null) {
+		const msg = `no local equivalent for ${task} — enforced in CI`;
+		print(`· ${msg}`);
+		logger.debug({ task, status: "skip" }, `run: ${task}`);
+		return { status: "skip", message: msg };
+	}
+
+	// ── 4b / 5. known task, nothing in this repo runs it ───────────────
+	if (KNOWN_TASKS.has(task)) {
 		const msg = `no ${task} task for this repo`;
 		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
 		logger[input.required ? "warn" : "debug"]({ task, status: input.required ? "fail" : "skip" }, `run: ${task}`);
@@ -179,8 +195,9 @@ function runLintAggregate(input: RunTaskInput): RunTaskReport {
 	// eslint slot — through the standard resolution so turbo caching is kept
 	if (resolved.some((r) => r.name === "eslint")) {
 		const script = packageJsonScript(cwd, "lint", readFile, fileExists);
+		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
 		if (turboDefinesTask(cwd, "lint", readFile, fileExists)) {
-			reports.push(runOne(resolveBin(cwd, "turbo", fileExists), ["run", "lint", ...pass]));
+			reports.push(runOne(resolveBin(cwd, "turbo", fileExists), ["run", "lint", ...filterArg, ...pass]));
 		} else if (script && !/^holocron run\b/.test(script.trim())) {
 			reports.push(runOne(packageManager(cwd, readFile, fileExists), ["run", "lint", ...pass]));
 		} else {

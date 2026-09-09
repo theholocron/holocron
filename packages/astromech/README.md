@@ -91,7 +91,14 @@ const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
 astromech.packageScripts(); // { holocron: "holocron", lint: "holocron run lint", … }
 astromech.requiredChecks(); // ["Lint / Conclusion", "codecov/patch", …]  — branch-protection contexts
+astromech.ci({ scope: "required" }); // CiReport — run the gating checks locally, in CI order
 ```
+
+`ci()` runs every `required: true` task (else every `ci: true` task) through the
+same resolution as `run()`, in `CI_ORDER`, and returns `{ status, jobs }`. A
+`required` task whose local runner can't run is a failure; `local: null` tasks
+(`audit` / `codeql` / `deploy`) are reported skipped. `holocron ci` sets the
+process exit code from `status`.
 
 `thinCallers()` returns the raw `.github/workflows/*.yml` content (no
 generated-by header — the caller prefixes its own). `deploy` with

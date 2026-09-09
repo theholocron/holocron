@@ -200,11 +200,20 @@ describe("runTask", () => {
 		});
 	});
 
-	it("reports a task with no local equivalent as skipped", () => {
-		const { call, exec } = makeRun({ "package.json": PKG() });
-		const report = call("codeql");
+	it("reports a task with no local equivalent as skipped — even when --required", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() });
+		const report = call("codeql", { required: true });
 		expect(report.status).toBe("skip");
+		expect(report.message).toMatch(/enforced in CI/);
+		expect(lines.join("\n")).not.toContain("✗");
 		expect(exec).not.toHaveBeenCalled();
+	});
+
+	it("still runs an explicit package.json script for a local:null task (audit → knip)", () => {
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { audit: "knip" } }) });
+		const report = call("audit", { required: true });
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "audit"], { cwd: CWD });
 	});
 
 	it.each([
@@ -336,6 +345,15 @@ describe("runTask — lint aggregate", () => {
 			cwd: CWD,
 		});
 		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", ".", "--cache"], { cwd: CWD });
+	});
+
+	it("forwards --filter to turbo for the eslint slot", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }), "eslint.config.ts": "" },
+			{ lookPath: onPath("prettier") }
+		);
+		call("lint", { filter: "@scope/cli" });
+		expect(exec).toHaveBeenCalledWith("turbo", ["run", "lint", "--filter=@scope/cli"], { cwd: CWD });
 	});
 
 	it("an explicit non-holocron `lint` script fills the eslint slot", () => {

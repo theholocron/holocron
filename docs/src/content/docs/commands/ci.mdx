@@ -1,0 +1,66 @@
+---
+title: "ci"
+description: Run the merge-gating checks locally, in CI order — "will CI pass?".
+---
+
+```bash
+holocron ci [--all] [--filter <pkg>] [--dry-run]
+```
+
+`holocron ci` runs the checks that gate a merge — locally, in the same order CI
+runs them, stopping with a non-zero exit on the first failure. It's the
+"will my PR be green?" pre-flight, and what the `pre-push` hook runs.
+
+## What it runs
+
+By default: every task marked `required: true` in `holocron.config`. If nothing
+is marked required, it falls back to every `ci: true` task (with a note).
+
+```
+$ holocron ci
+holocron ci — required checks (3)
+
+▶ Typecheck / Conclusion
+  → tsc --noEmit
+▶ Lint / Conclusion
+  → turbo run lint
+  → prettier --check .
+  ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
+▶ Test / Conclusion
+  → vitest run --coverage
+
+✓ 3 passed
+```
+
+- Each task runs through the same resolution as `holocron run <task>` (turbo →
+  a `package.json` script → the registry tool; `lint` runs its full linter set).
+- A **`required` task whose local runner can't run is a failure** — it claims a
+  CI check it can't back locally.
+- Tasks with **no built-in local runner** (`audit`, `codeql`, `deploy`) still
+  honour an explicit `package.json` script — e.g. `"audit": "knip"` makes
+  `holocron ci` run knip for the audit slot. With no script they print
+  `· no local equivalent — enforced in CI` and never fail the run, even when
+  marked `required` (a CI-only check isn't a _local_ failure). `audit`'s
+  bundle-size / performance jobs stay CI-only until sub-jobs land.
+- Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
+  first (`typecheck → lint → test → build → …`).
+
+## Options
+
+| Option           | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `--all`          | Run every `ci: true` task, not just the required ones             |
+| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough — scope the run to one package |
+| `--dry-run`      | Print the plan without running anything                           |
+
+Exit code is `1` if any check fails, `0` otherwise.
+
+## Pre-push hook
+
+`holocron setup` installs `.husky/pre-push` running `holocron ci` for
+`protection: "strict"` repos (opt out with `hooks: false` in `holocron.config`,
+or `holocron setup --no-hooks`). Skip a single push with:
+
+```bash
+git push --no-verify
+```
