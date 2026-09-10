@@ -194,6 +194,23 @@ export default defineConfig({
 		expect(m.content).not.toContain("extraRequiredChecks");
 		expect(m.transforms).toContain("dropped `...repo.requiredChecks`");
 	});
+
+	it("migrates a legacy `workflows:` with no `repo` block and no re-spread needed", () => {
+		// already has `const preset` + `...preset`, only the `workflows:` key is legacy
+		const src = `const preset = nodeDocs();
+export default defineConfig({
+	...preset,
+	description: "x",
+	workflows: [...workflows, "sync"],
+});
+`;
+		const m = migrateConfig(src);
+		expect(m.changed).toBe(true);
+		expect(m.content).toContain('tasks: [...preset.tasks, "sync"]');
+		expect(m.content).not.toContain("...repo"); // there was none
+		// `...preset` was already there — not injected twice
+		expect(m.content.match(/\.\.\.preset,/g)).toHaveLength(1);
+	});
 });
 
 describe("runUpgradeDeps", () => {
@@ -212,6 +229,24 @@ describe("runUpgradeDeps", () => {
 			},
 		};
 	};
+
+	it("accepts an injected logger and defaults cwd to process.cwd()", async () => {
+		// no `cwd` — the injected fake fs still matches on basename, so this
+		// exercises the `input.cwd ?? process.cwd()` fallback harmlessly.
+		const f = files({ "pnpm-workspace.yaml": "catalog:\n  '@theholocron/cli': ^3.45.0\n" });
+		const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() };
+		logger.child.mockReturnValue(logger);
+		await runUpgradeDeps({
+			pinsOnly: true,
+			readFile: f.readFile,
+			writeFile: f.writeFile,
+			fetchLatest: fakeLatest({ "@theholocron/cli": "4.15.0" }),
+			print: () => {},
+			logger: logger as never,
+		});
+		expect(logger.info).toHaveBeenCalledWith(expect.anything(), "upgrade deps: start");
+		expect(logger.info).toHaveBeenCalledWith(expect.anything(), "upgrade deps: done");
+	});
 
 	it("bumps pins + migrates the config and reports next steps", async () => {
 		const f = files({
