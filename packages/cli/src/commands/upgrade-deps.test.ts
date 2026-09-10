@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	bumpCatalogs,
@@ -30,6 +34,14 @@ describe("fetchLatestFromNpm", () => {
 		await expect(fetchLatestFromNpm("@theholocron/cli")).resolves.toBeNull();
 		spy.mockRestore();
 	});
+
+	it("returns null when the payload has dist-tags but no `latest`", async () => {
+		const spy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(new Response(JSON.stringify({ "dist-tags": { next: "5.0.0" } }), { status: 200 }));
+		await expect(fetchLatestFromNpm("@theholocron/cli")).resolves.toBeNull();
+		spy.mockRestore();
+	});
 });
 
 describe("gt", () => {
@@ -38,6 +50,11 @@ describe("gt", () => {
 		expect(gt("8.2.0", "8.2.0")).toBe(false);
 		expect(gt("8.1.9", "8.2.0")).toBe(false);
 		expect(gt("1.10.0", "1.9.0")).toBe(true);
+	});
+	it("treats missing version segments as 0", () => {
+		expect(gt("4.1", "4")).toBe(true);
+		expect(gt("4", "4.0.0")).toBe(false);
+		expect(gt("4.0.1", "4.0")).toBe(true);
 	});
 });
 
@@ -280,5 +297,74 @@ describe("runUpgradeDeps", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.bumps).toHaveLength(0);
+	});
+
+	it("pluralises the pin count and marks a dry-run migration with ~", async () => {
+		const f = files({
+			"pnpm-workspace.yaml": "catalog:\n  '@theholocron/cli': ^3.0.0\n  '@theholocron/holocron-config': ^7.0.0\n",
+			"holocron.config.ts":
+				"const { repo } = nodeDocs();\nexport default defineConfig({\n\trepo: { ...repo },\n\tworkflows: [...workflows],\n});\n",
+		});
+		const lines: string[] = [];
+		const report = await runUpgradeDeps({
+			cwd: "/repo",
+			dryRun: true,
+			readFile: f.readFile,
+			writeFile: f.writeFile,
+			fetchLatest: fakeLatest({ "@theholocron/cli": "4.15.0", "@theholocron/holocron-config": "8.2.0" }),
+			print: (l) => lines.push(l),
+		});
+		expect(report.status).toBe("dry-run");
+		expect(report.bumps).toHaveLength(2);
+		const out = lines.join("\n");
+		expect(out).toContain("2 pins");
+		expect(out).toContain("would migrate");
+		expect(out).toContain("~ `workflows:`");
+		expect(out).toContain("⚠");
+		expect(out).toContain("run without --dry-run");
+		// dry-run wrote nothing
+		expect(f.store["pnpm-workspace.yaml"]).toContain("^3.0.0");
+	});
+
+	describe("with the real filesystem + default helpers", () => {
+		let dir: string;
+		beforeEach(() => {
+			dir = mkdtempSync(join(tmpdir(), "upgrade-deps-"));
+		});
+		afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+		it("uses default readFile / writeFile / print / logger and writes both files", async () => {
+			const { writeFileSync } = await import("node:fs");
+			writeFileSync(join(dir, "pnpm-workspace.yaml"), "catalog:\n  '@theholocron/cli': ^3.0.0\n");
+			writeFileSync(
+				join(dir, "holocron.config.ts"),
+				"const { repo } = nodeDocs();\nexport default defineConfig({\n\trepo: { ...repo },\n});\n"
+			);
+			const fetchSpy = vi
+				.spyOn(globalThis, "fetch")
+				.mockResolvedValue(
+					new Response(JSON.stringify({ "dist-tags": { latest: "4.15.0" } }), { status: 200 })
+				);
+			const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+			const report = await runUpgradeDeps({ cwd: dir });
+
+			expect(report.status).toBe("ok");
+			expect(report.bumps).toHaveLength(1);
+			const { readFileSync } = await import("node:fs");
+			expect(readFileSync(join(dir, "pnpm-workspace.yaml"), "utf8")).toContain("^4.15.0");
+			expect(readFileSync(join(dir, "holocron.config.ts"), "utf8")).toContain("const preset =");
+			fetchSpy.mockRestore();
+			logSpy.mockRestore();
+		});
+
+		it("reports nothing to do for an empty directory (default helpers)", async () => {
+			const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+			const report = await runUpgradeDeps({ cwd: dir });
+			expect(report.status).toBe("ok");
+			expect(report.bumps).toHaveLength(0);
+			expect(report.configMigrated).toBe(false);
+			logSpy.mockRestore();
+		});
 	});
 });
