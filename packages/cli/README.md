@@ -275,6 +275,20 @@ export default acmeConfig;
 
 ```
 
+## Upgrading
+
+- **`holocron upgrade node <to>`** — patches every Node.js version pin
+  (`engines.node`, `.nvmrc`, `.node-version`, `.github/workflows/*`,
+  `Dockerfile`, `.tool-versions`) to a new major.
+- **`holocron upgrade deps`** — bumps every `@theholocron/*` pin in
+  `pnpm-workspace.yaml` (`catalog:` and every named `catalogs.*`) to its latest
+  published version, then migrates `holocron.config.ts` from the 7.x preset
+  shape (`const { repo, workflows } = node()` + `repo.requiredChecks` +
+  `workflows:`) to the current composed-preset API (`const preset = node()` +
+  `...preset` + `tasks:` + `extraRequiredChecks:`). Mechanical transforms only —
+  review the result, then `pnpm install && holocron ci`. `--pins-only` skips
+  the config migration; `--dry-run` prints without writing.
+
 ## Auth — fine-grained tokens
 
 Each GitHub capability resolves its own fine-grained PAT so a compromised
@@ -385,7 +399,7 @@ holds the orchestration + the Holocron-specific credential resolution
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
   `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
-  `plugin create`, `auth`
+  `upgrade deps`, `plugin create`, `auth`
 
 ## Status
 
