@@ -261,10 +261,13 @@ push). The repo's agent skill gains a `holocron ci` step.
 
 > **As-built (Phase 8):** CI runs the _same_ command. The reusable
 > `typecheck` / `test` / `audit` workflows call a new `holocron` composite
-> action (`.github/actions/holocron`) whose body is `pnpm exec holocron run
-<task> [job]`; it first `pnpm build`s the workspace when
+> action (`.github/actions/holocron`) whose body is `holocron run <task> [job]`;
+> it first `pnpm build`s the workspace when
 > `node_modules/@theholocron/cli/dist/cli.mjs` is missing (the holocron repo's
-> `workspace:*` CLI — a no-op for consumers that install the published tarball).
+> `workspace:*` CLI — a no-op for consumers that install the published tarball),
+> then invokes the built entry with `node` directly — `pnpm exec holocron`
+> relies on a `node_modules/.bin` shim pnpm does not create for an unbuilt
+> workspace package.
 > `bundle-size` → `holocron run build` (keeps `CODECOV_TOKEN` at the job level);
 > `knip` / `performance` → `holocron run audit knip` / `… performance`. The
 > `audit.yml` `build-script` / `knip-script` inputs are dropped — the command
