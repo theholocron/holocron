@@ -2,20 +2,20 @@
 
 ### Chores
 
-* **deps:** Bump @types/node from 24.13.3 to 26.4.1 ([#101](https://github.com/theholocron/themes/issues/101)) ([3be9e0a](https://github.com/theholocron/themes/commit/3be9e0a50b07d455e06dee79baef22c33c77d5a5))
-* **deps:** Bump globals from 15.15.0 to 17.12.0 ([#99](https://github.com/theholocron/themes/issues/99)) ([b9499e0](https://github.com/theholocron/themes/commit/b9499e0d3c64b937af535294871963de9ca34420))
+- **deps:** Bump @types/node from 24.13.3 to 26.4.1 ([#101](https://github.com/theholocron/themes/issues/101)) ([3be9e0a](https://github.com/theholocron/themes/commit/3be9e0a50b07d455e06dee79baef22c33c77d5a5))
+- **deps:** Bump globals from 15.15.0 to 17.12.0 ([#99](https://github.com/theholocron/themes/issues/99)) ([b9499e0](https://github.com/theholocron/themes/commit/b9499e0d3c64b937af535294871963de9ca34420))
 
 ## [1.10.0](https://github.com/theholocron/themes/compare/v1.9.3...v1.10.0) (2026-09-06)
 
 ### Features
 
-* ✨ add wiki navbar links ([#96](https://github.com/theholocron/themes/issues/96)) ([d6b4988](https://github.com/theholocron/themes/commit/d6b4988b4eb4aa6a53648b7e3813f5685cc75bb4))
+- ✨ add wiki navbar links ([#96](https://github.com/theholocron/themes/issues/96)) ([d6b4988](https://github.com/theholocron/themes/commit/d6b4988b4eb4aa6a53648b7e3813f5685cc75bb4))
 
 ### Chores
 
-* ✨ add wiki icon and bump Fern to 5.114.1 ([#93](https://github.com/theholocron/themes/issues/93)) ([5dc30a9](https://github.com/theholocron/themes/commit/5dc30a92d33ea1b71976d50d3ae2c68d1e30730e))
-* 🗑️ remove orphaned workflow files ([#92](https://github.com/theholocron/themes/issues/92)) ([ed07aa4](https://github.com/theholocron/themes/commit/ed07aa45241890c96ae7c466c2060d43594d0a95))
-* sync README and repo metadata ([#91](https://github.com/theholocron/themes/issues/91)) ([639407c](https://github.com/theholocron/themes/commit/639407c4204dd5c11b35fc4806cff235ee9e12b8))
+- ✨ add wiki icon and bump Fern to 5.114.1 ([#93](https://github.com/theholocron/themes/issues/93)) ([5dc30a9](https://github.com/theholocron/themes/commit/5dc30a92d33ea1b71976d50d3ae2c68d1e30730e))
+- 🗑️ remove orphaned workflow files ([#92](https://github.com/theholocron/themes/issues/92)) ([ed07aa4](https://github.com/theholocron/themes/commit/ed07aa45241890c96ae7c466c2060d43594d0a95))
+- sync README and repo metadata ([#91](https://github.com/theholocron/themes/issues/91)) ([639407c](https://github.com/theholocron/themes/commit/639407c4204dd5c11b35fc4806cff235ee9e12b8))
 
 ## [1.9.3](https://github.com/theholocron/themes/compare/v1.9.2...v1.9.3) (2026-09-02)
 

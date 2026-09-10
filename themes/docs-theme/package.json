@@ -25,15 +25,25 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./content": "./src/content.ts",
-    "./loader": "./src/loader.ts",
-    "./styles.css": "./src/styles.css"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./content": {
+      "types": "./dist/content.d.mts",
+      "import": "./dist/content.mjs",
+      "default": "./dist/content.mjs"
+    },
+    "./loader": {
+      "types": "./dist/loader.d.mts",
+      "import": "./dist/loader.mjs",
+      "default": "./dist/loader.mjs"
+    },
+    "./styles.css": "./dist/styles.css"
   },
-  "main": "./src/index.ts",
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsdown && cp src/styles.css dist/",
@@ -72,27 +82,7 @@
     "node": ">=22.0.0"
   },
   "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.mts",
-        "import": "./dist/index.mjs",
-        "default": "./dist/index.mjs"
-      },
-      "./content": {
-        "types": "./dist/content.d.mts",
-        "import": "./dist/content.mjs",
-        "default": "./dist/content.mjs"
-      },
-      "./loader": {
-        "types": "./dist/loader.d.mts",
-        "import": "./dist/loader.mjs",
-        "default": "./dist/loader.mjs"
-      },
-      "./styles.css": "./dist/styles.css"
-    },
-    "main": "./dist/index.mjs",
-    "types": "./dist/index.d.mts"
+    "access": "public"
   },
   "releases": "https://github.com/theholocron/themes/releases",
   "wiki": "https://github.com/theholocron/themes/wiki"
