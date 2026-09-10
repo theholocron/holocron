@@ -122,6 +122,15 @@ export default defineConfig({
   // opts local runs into Axiom shipping without exporting HOLOCRON_AXIOM_DATASET
   // — the token still comes from an env var or the OS keyring, never here.
   log: { level: "info", axiom: { dataset: "holocron-local" } },
+
+  // CLI self-telemetry override layer (see /telemetry). Env
+  // (HOLOCRON_TELEMETRY=false) still wins and is checked first; this is the
+  // committed way to opt a repo out or drop usage analytics only. No
+  // credentials here — the Sentry DSN / PostHog key come from env or ship as
+  // fallbacks.
+  //   enabled: false      → no-ops Sentry + PostHog for every command
+  //   analytics: "none"   → PostHog off, Sentry error reporting unaffected
+  telemetry: { enabled: true, analytics: "posthog" },
 });
 ```
 

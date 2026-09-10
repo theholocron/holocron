@@ -56,6 +56,27 @@ export interface LogConfig {
 	};
 }
 
+/**
+ * CLI self-telemetry config — the committed, reviewable override layer over the
+ * env-var + shipped-fallback activation (ADR-0007 / ADR-0008). No secret lives
+ * here; the Sentry DSN and PostHog key come from env vars or ship as fallbacks.
+ *
+ * Precedence: `HOLOCRON_TELEMETRY=false` (env) → `telemetry.enabled` (this) →
+ * default on. `enabled` never *re-enables* what the env var turned off.
+ */
+export interface TelemetryConfig {
+	/**
+	 * Repo-level opt-out — the committed peer of `HOLOCRON_TELEMETRY=false`.
+	 * `false` installs the no-op sinks for the whole run. Default on.
+	 */
+	enabled?: boolean;
+	/**
+	 * Usage-analytics provider. `"none"` disables PostHog usage analytics while
+	 * leaving error reporting (Sentry) untouched. Default `"posthog"`.
+	 */
+	analytics?: "posthog" | "none";
+}
+
 // ───────────────────────────────────────────────────────────────────────
 // Raw config (what users write in holocron.config.json)
 // ───────────────────────────────────────────────────────────────────────
@@ -430,6 +451,16 @@ export interface HolocronConfig {
 	 * { level: "debug" }
 	 */
 	log?: LogConfig;
+	/**
+	 * CLI self-telemetry override layer. Env var (`HOLOCRON_TELEMETRY=false`)
+	 * still wins; this is the committed way to opt a repo out or drop usage
+	 * analytics while keeping error reporting.
+	 *
+	 * @example
+	 * { enabled: false }
+	 * { analytics: "none" }
+	 */
+	telemetry?: TelemetryConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -470,6 +501,7 @@ export interface ResolvedHolocronConfig {
 	docs?: PagesConfig;
 	env?: EnvConfig;
 	log?: LogConfig;
+	telemetry?: TelemetryConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -613,5 +645,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		docs,
 		env: raw.env,
 		log: raw.log,
+		telemetry: raw.telemetry,
 	};
 }

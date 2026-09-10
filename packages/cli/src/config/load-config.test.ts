@@ -34,6 +34,19 @@ describe("loadConfig", () => {
 		expect(resolved.providers.vault?.cardinality).toBe("single");
 	});
 
+	it("carries the telemetry config block through to the resolved config", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({
+				name: "demo",
+				providers: { source: "github" },
+				telemetry: { enabled: false, analytics: "none" },
+			})
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.telemetry).toEqual({ enabled: false, analytics: "none" });
+	});
+
 	it("errors clearly when no holocron.config.* exists in the directory", async () => {
 		await expect(loadConfig(cwd)).rejects.toBeInstanceOf(ConfigFileError);
 		await expect(loadConfig(cwd)).rejects.toThrow(/no holocron\.config/);

@@ -1,28 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@sentry/node", () => ({
-	init: vi.fn(),
-	setTag: vi.fn(),
-	startSession: vi.fn(),
-	endSession: vi.fn(),
-	startInactiveSpan: vi.fn(() => ({ setStatus: vi.fn(), end: vi.fn() })),
-	captureException: vi.fn(),
-	close: vi.fn().mockResolvedValue(undefined),
-}));
-
-const { captureMock, identifyMock, shutdownMock, PostHogMock } = vi.hoisted(() => {
-	const captureMock = vi.fn();
-	const identifyMock = vi.fn();
-	const shutdownMock = vi.fn().mockResolvedValue(undefined);
-	const PostHogMock = vi.fn(function PostHog(this: Record<string, unknown>) {
-		this["capture"] = captureMock;
-		this["identify"] = identifyMock;
-		this["shutdown"] = shutdownMock;
-	});
-	return { captureMock, identifyMock, shutdownMock, PostHogMock };
+// Stub at the *sink* seam — no raw @sentry/node / posthog-node here. The sinks'
+// own SDK wiring is covered by telemetry/{sentry,posthog}-sink.test.ts.
+const { errorSink, analyticsSink, SentrySinkMock, PostHogSinkMock, resolveDsnMock, resolveKeyMock } = vi.hoisted(() => {
+	const span = { setStatus: vi.fn(), end: vi.fn() };
+	const errorSink = {
+		init: vi.fn(),
+		startSpan: vi.fn(() => span),
+		captureException: vi.fn(),
+		endSession: vi.fn(),
+		flush: vi.fn().mockResolvedValue(undefined),
+		__span: span,
+	};
+	const analyticsSink = {
+		identify: vi.fn(),
+		capture: vi.fn(),
+		shutdown: vi.fn().mockResolvedValue(undefined),
+	};
+	return {
+		errorSink,
+		analyticsSink,
+		SentrySinkMock: vi.fn(function SentrySink(this: Record<string, unknown>) {
+			Object.assign(this, errorSink);
+		}),
+		PostHogSinkMock: vi.fn(function PostHogSink(this: Record<string, unknown>) {
+			Object.assign(this, analyticsSink);
+		}),
+		resolveDsnMock: vi.fn(() => "https://x@o1.ingest.sentry.io/1"),
+		resolveKeyMock: vi.fn(() => "phc_test_key"),
+	};
 });
 
-vi.mock("posthog-node", () => ({ PostHog: PostHogMock }));
+vi.mock("./telemetry/sentry-sink.js", () => ({ SentrySink: SentrySinkMock, resolveDsn: resolveDsnMock }));
+vi.mock("./telemetry/posthog-sink.js", () => ({ PostHogSink: PostHogSinkMock, resolvePostHogKey: resolveKeyMock }));
 
 vi.mock("node:os", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:os")>();
@@ -31,27 +41,21 @@ vi.mock("node:os", async (importOriginal) => {
 
 import { userInfo } from "node:os";
 
-import * as Sentry from "@sentry/node";
-
 import * as loggerMod from "./logger.js";
-import { captureException, endSession, event, flush, init, resetTelemetry, startCommand } from "./telemetry.js";
+import {
+	applyConfig,
+	captureException,
+	endSession,
+	event,
+	flush,
+	init,
+	resetTelemetry,
+	startCommand,
+} from "./telemetry.js";
 
-/** Latest properties object handed to `posthog.capture` for `event`. */
-function lastCapture(): { distinctId: string; event: string; properties: Record<string, unknown> } {
-	const calls = captureMock.mock.calls;
-	return calls[calls.length - 1]?.[0] as ReturnType<typeof lastCapture>;
-}
-
-function capturedEvents(): string[] {
-	return captureMock.mock.calls.map((c) => (c[0] as { event: string }).event);
-}
-
-type MockSpan = { setStatus: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> };
-
-function lastSpan(): MockSpan {
-	const results = vi.mocked(Sentry.startInactiveSpan).mock.results;
-	return results[results.length - 1]?.value as MockSpan;
-}
+const lastCapture = (): { 0: string; 1: string; 2: Record<string, unknown> } =>
+	analyticsSink.capture.mock.calls.at(-1) as never;
+const capturedEvents = (): string[] => analyticsSink.capture.mock.calls.map((c) => c[1] as string);
 
 const originalEnv = process.env;
 
@@ -60,19 +64,14 @@ beforeEach(() => {
 		...originalEnv,
 		NO_HOLOCRON_TELEMETRY: undefined,
 		HOLOCRON_TELEMETRY: undefined,
-		HOLOCRON_SENTRY_DSN: undefined,
-		SENTRY_DSN: undefined,
-		HOLOCRON_POSTHOG_PROJECT_TOKEN: undefined,
-		POSTHOG_PROJECT_TOKEN: undefined,
-		HOLOCRON_POSTHOG_HOST: undefined,
-		POSTHOG_HOST: undefined,
 		HOLOCRON_ORG: undefined,
 		CI: undefined,
 	};
 	vi.clearAllMocks();
+	resolveDsnMock.mockReturnValue("https://x@o1.ingest.sentry.io/1");
+	resolveKeyMock.mockReturnValue("phc_test_key");
 	resetTelemetry();
 });
-
 afterEach(() => {
 	process.env = originalEnv;
 	resetTelemetry();
@@ -80,381 +79,244 @@ afterEach(() => {
 
 // ── opt-out ──────────────────────────────────────────────────────────────────
 
-describe("when NO_HOLOCRON_TELEMETRY is set", () => {
+describe.each([
+	["NO_HOLOCRON_TELEMETRY", "1"],
+	["HOLOCRON_TELEMETRY", "false"],
+])("when %s=%s", (key, value) => {
 	beforeEach(() => {
-		process.env["NO_HOLOCRON_TELEMETRY"] = "1";
-		process.env["POSTHOG_PROJECT_TOKEN"] = "phc_explicit";
+		process.env[key] = value;
 	});
 
-	it("init: skips Sentry.init and PostHog", () => {
+	it("init installs neither real sink", () => {
 		init("1.0.0");
-		expect(Sentry.init).not.toHaveBeenCalled();
-		expect(PostHogMock).not.toHaveBeenCalled();
+		expect(SentrySinkMock).not.toHaveBeenCalled();
+		expect(PostHogSinkMock).not.toHaveBeenCalled();
 	});
 
-	it("startCommand: returns a no-op and skips span + event", () => {
+	it("startCommand / captureException / event are no-ops", () => {
 		const finish = startCommand("setup");
-		expect(Sentry.startInactiveSpan).not.toHaveBeenCalled();
-		expect(() => finish(true)).not.toThrow();
-		expect(captureMock).not.toHaveBeenCalled();
+		captureException(new Error("x"));
+		event("sync_github_run", { repo: "x" });
+		finish(false);
+		expect(errorSink.startSpan).not.toHaveBeenCalled();
+		expect(errorSink.captureException).not.toHaveBeenCalled();
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
 	});
 
-	it("captureException: skips Sentry.captureException", () => {
-		captureException(new Error("boom"));
-		expect(Sentry.captureException).not.toHaveBeenCalled();
-	});
-
-	it("endSession: skips Sentry.endSession", () => {
-		endSession();
-		expect(Sentry.endSession).not.toHaveBeenCalled();
-	});
-
-	it("flush: skips Sentry.close", async () => {
-		await flush();
-		expect(Sentry.close).not.toHaveBeenCalled();
+	it("flush resolves without touching a real sink", async () => {
+		await expect(flush()).resolves.toBeUndefined();
+		expect(errorSink.flush).not.toHaveBeenCalled();
 	});
 });
 
-describe("when HOLOCRON_TELEMETRY=false", () => {
-	beforeEach(() => {
-		process.env["HOLOCRON_TELEMETRY"] = "false";
-		process.env["POSTHOG_PROJECT_TOKEN"] = "phc_explicit";
-	});
-
-	it("init: skips Sentry.init and PostHog", () => {
-		init("1.0.0");
-		expect(Sentry.init).not.toHaveBeenCalled();
-		expect(PostHogMock).not.toHaveBeenCalled();
-	});
-
-	it("startCommand: returns a no-op and skips span + event", () => {
-		const finish = startCommand("setup");
-		expect(Sentry.startInactiveSpan).not.toHaveBeenCalled();
-		expect(() => finish(true)).not.toThrow();
-		expect(captureMock).not.toHaveBeenCalled();
-	});
-
-	it("captureException: skips Sentry.captureException", () => {
-		captureException(new Error("boom"));
-		expect(Sentry.captureException).not.toHaveBeenCalled();
-	});
-});
-
-describe("when HOLOCRON_TELEMETRY is any other value", () => {
-	it("init: still initialises Sentry (only the exact string 'false' opts out)", () => {
-		process.env["HOLOCRON_TELEMETRY"] = "true";
-		init("1.0.0");
-		expect(Sentry.init).toHaveBeenCalled();
-	});
+it("HOLOCRON_TELEMETRY set to anything but the exact string 'false' stays on", () => {
+	process.env["HOLOCRON_TELEMETRY"] = "true";
+	init("1.0.0");
+	expect(SentrySinkMock).toHaveBeenCalled();
+	expect(PostHogSinkMock).toHaveBeenCalled();
 });
 
 // ── init ─────────────────────────────────────────────────────────────────────
 
 describe("init", () => {
-	it("calls Sentry.init with release and tracesSampleRate", () => {
+	it("installs SentrySink with release + environment + os/node/ci tags", () => {
 		init("1.2.3");
-		expect(Sentry.init).toHaveBeenCalledWith(
-			expect.objectContaining({
-				release: "holocron@1.2.3",
-				tracesSampleRate: 1.0,
-			})
-		);
+		expect(errorSink.init).toHaveBeenCalledWith({
+			release: "holocron@1.2.3",
+			environment: "local",
+			tags: { os: process.platform, node: process.version, ci: "false" },
+		});
 	});
 
-	it("sets environment to 'ci' when CI is set", () => {
+	it("uses environment 'ci' and ci tag 'true' under CI", () => {
 		process.env["CI"] = "true";
 		init("1.0.0");
-		expect(Sentry.init).toHaveBeenCalledWith(expect.objectContaining({ environment: "ci" }));
+		expect(errorSink.init).toHaveBeenCalledWith(
+			expect.objectContaining({ environment: "ci", tags: expect.objectContaining({ ci: "true" }) })
+		);
 	});
 
-	it("sets environment to 'local' when CI is not set", () => {
+	it("skips SentrySink when the resolved DSN is empty", () => {
+		resolveDsnMock.mockReturnValue("");
 		init("1.0.0");
-		expect(Sentry.init).toHaveBeenCalledWith(expect.objectContaining({ environment: "local" }));
+		expect(SentrySinkMock).not.toHaveBeenCalled();
+		expect(PostHogSinkMock).toHaveBeenCalled(); // independent
 	});
 
-	it("sets os, node, and ci tags", () => {
+	it("skips PostHogSink when the resolved key is empty", () => {
+		resolveKeyMock.mockReturnValue("");
 		init("1.0.0");
-		expect(Sentry.setTag).toHaveBeenCalledWith("os", process.platform);
-		expect(Sentry.setTag).toHaveBeenCalledWith("node", process.version);
-		expect(Sentry.setTag).toHaveBeenCalledWith("ci", "false");
+		expect(PostHogSinkMock).not.toHaveBeenCalled();
+		expect(SentrySinkMock).toHaveBeenCalled();
 	});
 
-	it("sets ci tag to 'true' when CI env is set", () => {
+	it("identifies the machine with anonymous props — no raw hostname/username", () => {
 		process.env["CI"] = "true";
-		init("1.0.0");
-		expect(Sentry.setTag).toHaveBeenCalledWith("ci", "true");
-	});
-
-	it("calls Sentry.startSession after init", () => {
-		init("1.0.0");
-		expect(Sentry.startSession).toHaveBeenCalled();
-	});
-
-	it("uses the built-in fallback DSN when no env var is set", () => {
-		init("1.0.0");
-		expect(Sentry.init).toHaveBeenCalledWith(
-			expect.objectContaining({ dsn: expect.stringContaining("ingest.us.sentry.io") })
+		process.env["HOLOCRON_ORG"] = "theholocron";
+		init("2.3.4");
+		const [distinctId, props] = analyticsSink.identify.mock.calls[0]! as [string, Record<string, unknown>];
+		expect(distinctId).toMatch(/^[0-9a-f]{32}$/);
+		expect(props).toEqual(
+			expect.objectContaining({ ci: true, os: process.platform, cli: "2.3.4", org: "theholocron" })
 		);
+		expect(JSON.stringify(props)).not.toContain(process.env["USER"] ?? "no-such-user");
 	});
 
-	it("prefers SENTRY_DSN over the fallback", () => {
-		process.env["SENTRY_DSN"] = "https://vendor@o1.ingest.sentry.io/1";
+	it("falls back to a fixed distinctId when the machine identity can't be read", () => {
+		vi.mocked(userInfo).mockImplementationOnce(() => {
+			throw new Error("EPERM");
+		});
 		init("1.0.0");
-		expect(Sentry.init).toHaveBeenCalledWith(
-			expect.objectContaining({ dsn: "https://vendor@o1.ingest.sentry.io/1" })
-		);
-	});
-
-	it("prefers HOLOCRON_SENTRY_DSN over SENTRY_DSN", () => {
-		process.env["HOLOCRON_SENTRY_DSN"] = "https://hlc@o2.ingest.sentry.io/2";
-		process.env["SENTRY_DSN"] = "https://vendor@o1.ingest.sentry.io/1";
-		init("1.0.0");
-		expect(Sentry.init).toHaveBeenCalledWith(expect.objectContaining({ dsn: "https://hlc@o2.ingest.sentry.io/2" }));
+		expect(analyticsSink.identify).toHaveBeenCalledWith("unknown", expect.anything());
 	});
 });
 
-// ── startCommand ─────────────────────────────────────────────────────────────
+// ── command lifecycle ────────────────────────────────────────────────────────
 
 describe("startCommand", () => {
-	it("starts a span with command name and op", () => {
-		startCommand("setup");
-		expect(Sentry.startInactiveSpan).toHaveBeenCalledWith(
-			expect.objectContaining({ name: "setup", op: "holocron.command", forceTransaction: true })
+	beforeEach(() => init("1.0.0"));
+
+	it("opens a span and captures command_started", () => {
+		startCommand("sync-github");
+		expect(errorSink.startSpan).toHaveBeenCalledWith("sync-github");
+		expect(lastCapture()[1]).toBe("command_started");
+		expect(lastCapture()[2]).toEqual(expect.objectContaining({ command: "sync-github", ci: false }));
+	});
+
+	it("finish(true) → ok span status + command_completed with a duration", () => {
+		startCommand("setup")(true);
+		expect(errorSink.__span.setStatus).toHaveBeenCalledWith(true);
+		expect(errorSink.__span.end).toHaveBeenCalled();
+		expect(capturedEvents()).toEqual(["command_started", "command_completed"]);
+		expect(lastCapture()[2]).toEqual(
+			expect.objectContaining({ status: "ok", command: "setup", duration_ms: expect.any(Number) })
 		);
 	});
 
-	it("sets the command tag", () => {
-		startCommand("deploy main");
-		expect(Sentry.setTag).toHaveBeenCalledWith("command", "deploy main");
-	});
-
-	it("finish(true) sets ok status (code 1) and ends span", () => {
-		const finish = startCommand("setup");
-		finish(true);
-		const span = lastSpan();
-		expect(span.setStatus).toHaveBeenCalledWith({ code: 1 });
-		expect(span.end).toHaveBeenCalled();
-	});
-
-	it("finish(false) sets error status (code 2) and ends span", () => {
-		const finish = startCommand("setup");
+	it("finish(false) → error span status + command_failed with the error constructor name", () => {
+		class AuthError extends Error {}
+		const finish = startCommand("deploy");
+		captureException(new AuthError("no token"));
 		finish(false);
-		const span = lastSpan();
-		expect(span.setStatus).toHaveBeenCalledWith({ code: 2 });
-		expect(span.end).toHaveBeenCalled();
+		expect(errorSink.__span.setStatus).toHaveBeenCalledWith(false);
+		expect(lastCapture()[1]).toBe("command_failed");
+		expect(lastCapture()[2]).toEqual(expect.objectContaining({ status: "fail", error_type: "AuthError" }));
+	});
+
+	it("error_type is 'Error' for a non-Error throw, omitted when nothing was captured", () => {
+		const finish = startCommand("a");
+		captureException("string failure");
+		finish(false);
+		expect(lastCapture()[2]).toEqual(expect.objectContaining({ error_type: "Error" }));
+
+		vi.clearAllMocks();
+		startCommand("b")(false);
+		expect(lastCapture()[2]).not.toHaveProperty("error_type");
 	});
 });
-
-// ── captureException ─────────────────────────────────────────────────────────
 
 describe("captureException", () => {
-	it("forwards the error to Sentry", () => {
-		const err = new Error("something broke");
-		captureException(err);
-		expect(Sentry.captureException).toHaveBeenCalledWith(err);
-	});
-});
-
-// ── flush ────────────────────────────────────────────────────────────────────
-
-describe("flush", () => {
-	it("calls Sentry.close with a 2000ms timeout", async () => {
-		await flush();
-		expect(Sentry.close).toHaveBeenCalledWith(2_000);
-	});
-});
-
-// ── endSession ───────────────────────────────────────────────────────────────
-
-describe("endSession", () => {
-	it("calls Sentry.endSession", () => {
-		endSession();
-		expect(Sentry.endSession).toHaveBeenCalled();
-	});
-});
-
-// ── scrubError (via beforeSend) ───────────────────────────────────────────────
-
-describe("scrubError", () => {
-	function getBeforeSend() {
+	it("forwards the error to the error sink", () => {
 		init("1.0.0");
-		const options = vi.mocked(Sentry.init).mock.calls[0]?.[0] as {
-			beforeSend: (event: object, hint: object) => object;
-		};
-		return options.beforeSend;
-	}
-
-	it("redacts ghp_ tokens", () => {
-		const scrub = getBeforeSend();
-		const result = scrub({ message: "auth failed with ghp_abc123XYZ" }, {});
-		expect(JSON.stringify(result)).not.toContain("ghp_abc123");
-		expect(JSON.stringify(result)).toContain("[REDACTED]");
-	});
-
-	it("redacts SCREAMING_SNAKE_TOKEN= patterns", () => {
-		const scrub = getBeforeSend();
-		const result = scrub({ message: "GITHUB_TOKEN=ghs_secret456" }, {});
-		expect(JSON.stringify(result)).not.toContain("ghs_secret456");
-		expect(JSON.stringify(result)).toContain("[REDACTED]");
-	});
-
-	it("leaves non-token content intact", () => {
-		const scrub = getBeforeSend();
-		const result = scrub({ message: "config not found at ./holocron.config.ts" }, {});
-		expect(JSON.stringify(result)).toContain("config not found");
+		const err = new Error("broke");
+		captureException(err);
+		expect(errorSink.captureException).toHaveBeenCalledWith(err);
 	});
 });
 
-// ── PostHog (product analytics) ──────────────────────────────────────────────
+// ── event() ──────────────────────────────────────────────────────────────────
 
-describe("PostHog", () => {
-	beforeEach(() => {
-		process.env["POSTHOG_PROJECT_TOKEN"] = "phc_test_key";
+describe("event", () => {
+	beforeEach(() => init("1.0.0"));
+
+	it("merges base props and scrubs token-shaped values", () => {
+		startCommand("sync-github");
+		event("sync_github_run", { repo: "theholocron/.github", token: "ghp_abc123XYZ" }); // gitleaks:allow — fixture
+		const props = lastCapture()[2];
+		expect(props).toEqual(expect.objectContaining({ command: "sync-github", repo: "theholocron/.github" }));
+		expect(JSON.stringify(props)).not.toContain("ghp_abc123XYZ");
+		expect(JSON.stringify(props)).toContain("[REDACTED]");
 	});
 
-	describe("activation", () => {
-		it("uses the built-in fallback key when nothing is set", () => {
-			delete process.env["POSTHOG_PROJECT_TOKEN"];
-			init("1.0.0");
-			expect(PostHogMock).toHaveBeenCalledWith(expect.stringMatching(/^phc_/), {
-				host: "https://us.i.posthog.com",
-			});
-		});
-
-		it("initialises with POSTHOG_PROJECT_TOKEN and the default US host", () => {
-			init("1.0.0");
-			expect(PostHogMock).toHaveBeenCalledWith("phc_test_key", { host: "https://us.i.posthog.com" });
-		});
-
-		it("prefers HOLOCRON_POSTHOG_PROJECT_TOKEN over POSTHOG_PROJECT_TOKEN", () => {
-			process.env["HOLOCRON_POSTHOG_PROJECT_TOKEN"] = "phc_holocron";
-			init("1.0.0");
-			expect(PostHogMock).toHaveBeenCalledWith("phc_holocron", expect.anything());
-		});
-
-		it("honours HOLOCRON_POSTHOG_HOST", () => {
-			process.env["HOLOCRON_POSTHOG_HOST"] = "https://eu.i.posthog.com";
-			init("1.0.0");
-			expect(PostHogMock).toHaveBeenCalledWith(expect.any(String), { host: "https://eu.i.posthog.com" });
-		});
-
-		it("falls back to a fixed distinctId when the machine identity can't be read", () => {
-			vi.mocked(userInfo).mockImplementationOnce(() => {
-				throw new Error("EPERM");
-			});
-			init("1.0.0");
-			expect(identifyMock).toHaveBeenCalledWith(expect.objectContaining({ distinctId: "unknown" }));
-		});
-
-		it("identifies the machine with anonymous person properties (no raw hostname/username)", () => {
-			process.env["CI"] = "true";
-			process.env["HOLOCRON_ORG"] = "theholocron";
-			init("2.3.4");
-			expect(identifyMock).toHaveBeenCalledWith(
-				expect.objectContaining({
-					distinctId: expect.stringMatching(/^[0-9a-f]{32}$/),
-					properties: expect.objectContaining({
-						ci: true,
-						os: process.platform,
-						cli: "2.3.4",
-						org: "theholocron",
-					}),
-				})
-			);
-			const { distinctId, properties } = identifyMock.mock.calls[0]![0] as {
-				distinctId: string;
-				properties: Record<string, unknown>;
-			};
-			expect(distinctId).not.toContain(process.env["USER"] ?? "no-such-user");
-			expect(JSON.stringify(properties)).not.toContain(process.env["USER"] ?? "no-such-user");
-		});
+	it("is a no-op after resetTelemetry() (no sink)", () => {
+		resetTelemetry();
+		event("sync_github_run", { repo: "x" });
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
 	});
 
-	describe("command lifecycle events", () => {
-		beforeEach(() => init("1.0.0"));
+	it("carries the logger's runId so events pivot to the Axiom trace", () => {
+		const spy = vi.spyOn(loggerMod, "getRunId").mockReturnValue("11111111-2222-3333-4444-555555555555");
+		event("sync_github_run", { repo: "x" });
+		expect(lastCapture()[2]).toEqual(expect.objectContaining({ runId: "11111111-2222-3333-4444-555555555555" }));
+		spy.mockRestore();
+	});
+});
 
-		it("captures command_started on startCommand", () => {
-			startCommand("sync-github");
-			expect(lastCapture()).toEqual(
-				expect.objectContaining({
-					event: "command_started",
-					distinctId: expect.stringMatching(/^[0-9a-f]{32}$/),
-					properties: expect.objectContaining({ command: "sync-github", ci: false }),
-				})
-			);
-		});
+// ── applyConfig (the telemetry config block) ─────────────────────────────────
 
-		it("captures command_completed with a duration on finish(true)", () => {
-			const finish = startCommand("setup");
-			finish(true);
-			expect(capturedEvents()).toEqual(["command_started", "command_completed"]);
-			expect(lastCapture().properties).toEqual(
-				expect.objectContaining({ status: "ok", command: "setup", duration_ms: expect.any(Number) })
-			);
-		});
+describe("applyConfig", () => {
+	beforeEach(() => init("1.0.0"));
 
-		it("captures command_failed with the error constructor name on finish(false)", () => {
-			class AuthError extends Error {}
-			const finish = startCommand("deploy");
-			captureException(new AuthError("no token"));
-			finish(false);
-			expect(lastCapture()).toEqual(
-				expect.objectContaining({
-					event: "command_failed",
-					properties: expect.objectContaining({ status: "fail", error_type: "AuthError" }),
-				})
-			);
-		});
-
-		it("uses 'Error' as error_type for a non-Error throw", () => {
-			const finish = startCommand("deploy");
-			captureException("string failure");
-			finish(false);
-			expect(lastCapture().properties).toEqual(expect.objectContaining({ error_type: "Error" }));
-		});
-
-		it("omits error_type on failure when nothing was captured", () => {
-			const finish = startCommand("deploy");
-			finish(false);
-			expect(lastCapture().properties).not.toHaveProperty("error_type");
-		});
+	it("is a no-op when the config block is absent", () => {
+		applyConfig(undefined);
+		startCommand("setup");
+		expect(analyticsSink.capture).toHaveBeenCalled();
+		expect(errorSink.startSpan).toHaveBeenCalled();
 	});
 
-	describe("event()", () => {
-		beforeEach(() => init("1.0.0"));
-
-		it("merges base props and scrubs token-shaped values from properties", () => {
-			startCommand("sync-github");
-			event("sync_github_run", { repo: "theholocron/.github", branch: "chore/sync", token: "ghp_abc123XYZ" }); // gitleaks:allow — fake fixture
-			const { properties } = lastCapture();
-			expect(properties).toEqual(
-				expect.objectContaining({ command: "sync-github", repo: "theholocron/.github", branch: "chore/sync" })
-			);
-			expect(JSON.stringify(properties)).not.toContain("ghp_abc123XYZ");
-			expect(JSON.stringify(properties)).toContain("[REDACTED]");
-		});
-
-		it("is a no-op when PostHog is not initialised", () => {
-			resetTelemetry();
-			event("sync_github_run", { repo: "x" });
-			expect(captureMock).not.toHaveBeenCalled();
-		});
-
-		it("carries the logger's runId so events pivot to the Axiom trace", () => {
-			const spy = vi.spyOn(loggerMod, "getRunId").mockReturnValue("11111111-2222-3333-4444-555555555555");
-			event("sync_github_run", { repo: "x" });
-			expect(lastCapture().properties).toEqual(
-				expect.objectContaining({ runId: "11111111-2222-3333-4444-555555555555" })
-			);
-			spy.mockRestore();
-		});
+	it("enabled: false drops both sinks — every later call is a no-op", () => {
+		applyConfig({ enabled: false });
+		vi.clearAllMocks();
+		startCommand("setup");
+		captureException(new Error("x"));
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
+		expect(errorSink.captureException).not.toHaveBeenCalled();
+		expect(errorSink.startSpan).not.toHaveBeenCalled();
 	});
 
-	describe("flush", () => {
-		it("awaits posthog.shutdown()", async () => {
-			init("1.0.0");
-			await flush();
-			expect(shutdownMock).toHaveBeenCalled();
-		});
+	it("enabled: false drains a live sink before dropping it", () => {
+		applyConfig({ enabled: false });
+		expect(errorSink.flush).toHaveBeenCalled();
+		expect(analyticsSink.shutdown).toHaveBeenCalled();
+	});
+
+	it("enabled: false swallows a rejected drain rather than leaking an unhandled rejection", async () => {
+		errorSink.flush.mockRejectedValueOnce(new Error("close timed out"));
+		analyticsSink.shutdown.mockRejectedValueOnce(new Error("network down"));
+		expect(() => applyConfig({ enabled: false })).not.toThrow();
+		await Promise.resolve(); // let the swallowed rejections settle
+	});
+
+	it('analytics: "none" drops usage analytics but keeps error reporting', () => {
+		applyConfig({ analytics: "none" });
+		vi.clearAllMocks();
+		const err = new Error("still tracked");
+		captureException(err);
+		event("sync_github_run", { repo: "x" });
+		expect(errorSink.captureException).toHaveBeenCalledWith(err);
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
+	});
+
+	it("enabled: true is a no-op — it never re-enables what the env turned off", () => {
+		resetTelemetry();
+		process.env["HOLOCRON_TELEMETRY"] = "false";
+		init("1.0.0"); // env gate → Noop sinks
+		vi.clearAllMocks();
+		applyConfig({ enabled: true });
+		startCommand("setup");
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
+	});
+});
+
+// ── flush / endSession ───────────────────────────────────────────────────────
+
+describe("flush / endSession", () => {
+	it("flush awaits both sinks; endSession forwards", async () => {
+		init("1.0.0");
+		endSession();
+		await flush();
+		expect(errorSink.endSession).toHaveBeenCalled();
+		expect(errorSink.flush).toHaveBeenCalled();
+		expect(analyticsSink.shutdown).toHaveBeenCalled();
 	});
 });

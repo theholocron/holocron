@@ -338,7 +338,28 @@ The CLI reports on itself through three sinks: **Sentry** (errors), **Axiom**
 duration, failure rates, keyed to a one-way `sha256(hostname + username)`
 fingerprint). PostHog activates from `HOLOCRON_POSTHOG_PROJECT_TOKEN` → `POSTHOG_PROJECT_TOKEN`
 → a shipped ingest-only key (on by default). `HOLOCRON_TELEMETRY=false` disables
-all three. See the [telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
+all three.
+
+For a committed, repo-wide opt-out, add a `telemetry` block to `holocron.config`
+— the version-controlled peer of `HOLOCRON_TELEMETRY=false` (the env var still
+wins; this is an override layer applied after config loads):
+
+```ts
+import { defineConfig } from "@theholocron/cli";
+
+export default defineConfig({
+  // …
+  telemetry: {
+    enabled: false, // no-ops Sentry + PostHog for every command
+    // analytics: "none",  // alternative: PostHog off, Sentry error reporting kept
+  },
+});
+```
+
+Each SDK sits behind a Holocron-owned interface — `ErrorSink` (Sentry) /
+`AnalyticsSink` (PostHog) in `src/telemetry/sinks.ts`; `@sentry/node` and
+`posthog-node` are imported only from their adapter modules. See the
+[telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
 
 ## What's in here
 

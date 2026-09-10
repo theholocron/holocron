@@ -200,6 +200,10 @@ interface and `createLogger` factory — never Pino directly.
 - Discord thread logging (#521) attaches to the `Logger` interface output stream once this is in place
 - Swapping Pino for another library in the future requires only changing the `PinoLogger`
   implementation class — no call sites change
+- The same seam now covers the other two sinks: **#574** put Sentry behind an
+  `ErrorSink` interface and PostHog behind an `AnalyticsSink`
+  (`packages/cli/src/telemetry/sinks.ts`), so `@sentry/node` / `posthog-node`
+  are each confined to one adapter module — matching `PinoLogger`
 
 ## References
 

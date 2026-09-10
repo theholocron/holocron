@@ -34,6 +34,47 @@ network connection is attempted.
 In a workflow, set it once at the job or step level — the secret can stay in
 place.
 
+### Opting out in the repo, not the environment
+
+Sentry and PostHog both ship a built-in fallback DSN / key, so removing env vars
+does not turn them off — there is nothing to remove. For a committed,
+reviewable choice, add a `telemetry` block to `holocron.config`:
+
+```ts
+import { defineConfig } from "@theholocron/cli";
+
+export default defineConfig({
+  // …
+  telemetry: {
+    enabled: false, // no-ops Sentry + PostHog for every command in this repo
+  },
+});
+```
+
+Or keep error reporting and drop only usage analytics:
+
+```ts
+telemetry: {
+	analytics: "none", // PostHog off, Sentry unaffected
+}
+```
+
+**Precedence** — each layer overrides the one below:
+
+| Layer                                                    | Effect                                            |
+| -------------------------------------------------------- | ------------------------------------------------- |
+| `HOLOCRON_TELEMETRY=false` / `NO_HOLOCRON_TELEMETRY` env | all three sinks off, before anything initialises  |
+| `telemetry.enabled: false` in `holocron.config`          | Sentry + PostHog off (applied after config loads) |
+| `telemetry.analytics: "none"` in `holocron.config`       | PostHog off only                                  |
+| built-in default                                         | on                                                |
+
+The config block is an **override layer**, not the primary switch. It is
+applied after the CLI has loaded config, so it never re-enables what the env
+var turned off — and one event (`command_started`) is emitted before config
+loads, so a `telemetry.enabled: false` repo still sends that single event with
+no follow-up. If you need a guaranteed zero-leak opt-out, use
+`HOLOCRON_TELEMETRY=false` — it gates before the CLI emits anything.
+
 ## PostHog — CLI usage analytics
 
 Answers "which commands are actually used, how often, by how many machines,

@@ -27,11 +27,12 @@ import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
+import type { TelemetryConfig } from "./config/config.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
 import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
-import { captureException, endSession, flush, init, startCommand } from "./telemetry.js";
+import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
@@ -68,6 +69,25 @@ function cliLoggerOpts(
 		configAxiomDataset: resolved.log?.axiom?.dataset,
 		org: resolveOrg(argv, resolved),
 	};
+}
+
+/**
+ * Fold a loaded `holocron.config` into the running process: reconfigure the
+ * logger from `log:`, then apply the `telemetry:` override layer. Every handler
+ * that has called `loadConfig` runs this, so a repo's `telemetry.enabled: false`
+ * (or `analytics: "none"`) is honoured for that command. Env still wins —
+ * `applyConfig` only narrows what `init` already turned on.
+ */
+function applyResolvedConfig(
+	argv: { org?: string; verbose?: boolean; quiet?: boolean },
+	resolved: {
+		org?: string;
+		log?: { level?: LogLevel; axiom?: { dataset?: string } };
+		telemetry?: TelemetryConfig;
+	}
+): void {
+	buildCliLogger(argv, cliLoggerOpts(argv, resolved));
+	applyConfig(resolved.telemetry);
 }
 
 /** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */
@@ -203,7 +223,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runDoctor({
 					loaded,
 					context: {
@@ -237,7 +257,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runSetup({
 					loaded,
 					context: {
@@ -339,7 +359,7 @@ try {
 				const scopeArg = argv.scope as string;
 				const scope = parseScope(scopeArg);
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runSecretSet({
 					loaded,
 					context: {
@@ -382,7 +402,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runSecretsSync({
 					loaded,
 					context: {
@@ -424,7 +444,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runDeploy({
 					loaded,
 					context: {
@@ -465,7 +485,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runCleanupPreview({
 					loaded,
 					context: {
@@ -557,7 +577,7 @@ try {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runSync({
 					loaded,
 					context: {
@@ -714,7 +734,7 @@ try {
 				}),
 			async (argv) => {
 				const loaded = await loadConfig(argv.cwd);
-				buildCliLogger(argv, cliLoggerOpts(argv, loaded.resolved));
+				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runSyncReadme({
 					loaded,
 					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },

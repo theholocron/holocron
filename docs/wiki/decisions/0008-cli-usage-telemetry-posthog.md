@@ -97,6 +97,14 @@ PostHog event can be pivoted to the full Axiom trace for that run. All
   `isEnabled()` is unchanged (the existing opt-out covers PostHog).
 - Sentry and PostHog stay independent — no shared abstraction beyond
   `isEnabled()` and the redactor.
+- **(#574, as-built)** Each SDK now sits behind a Holocron-owned interface —
+  `ErrorSink` (Sentry) and `AnalyticsSink` (PostHog) in
+  `packages/cli/src/telemetry/sinks.ts`. `@sentry/node` and `posthog-node` are
+  imported **only** from `telemetry/sentry-sink.ts` / `telemetry/posthog-sink.ts`;
+  `telemetry.ts` is orchestration with no SDK import, and the opted-out /
+  no-credentials path is an explicit `NoopErrorSink` / `NoopAnalyticsSink`
+  rather than a scatter of `if (!enabled)` guards. Same seam
+  `@theholocron/logger` uses for Pino.
 - `sync_github_run` needs `runSyncGithub` to call a new `telemetry.event()`
   export — coordinate with #537's structured-logging pass over the same
   function so the call sites are touched once.
@@ -107,19 +115,26 @@ PostHog event can be pivoted to the full Axiom trace for that run. All
   user-configurable beyond the kill switch and the env-var overrides.~~
   Amended — see below.
 
-## Amendment (2026-09-07) — a small `telemetry` config surface
+## Amendment (2026-09-07, shipped #575) — a small `telemetry` config surface
 
-The original "no config surface" line was an oversight. There is no
+The original "no config surface" line was an oversight. There was no
 committed, version-controlled way for a repo to opt out or redirect its
 CLI-usage analytics — an env var is invisible to a contributor reading
-the repo. Adding a minimal `telemetry` block to `holocron.config`:
+the repo. `holocron.config` now carries a minimal `telemetry` block
+(`packages/cli/src/config/config.ts` → `TelemetryConfig`):
 
 ```ts
 telemetry: {
   enabled?: boolean;               // repo-level opt-out — committed peer of HOLOCRON_TELEMETRY=false
-  analytics?: "posthog" | "none";  // provider selector (meaningful once a second AnalyticsSink exists)
+  analytics?: "posthog" | "none";  // "none" drops usage analytics, keeps error reporting
 }
 ```
+
+`enabled: false` swaps both sinks to no-ops for the run; `analytics: "none"`
+swaps only the `AnalyticsSink`. It is applied by `applyConfig()` in each
+handler that loads config (via the `applyResolvedConfig` helper in `cli.ts`),
+**after** `init()` — so it can only ever narrow what the env chain already
+turned on, never re-enable.
 
 What does **not** change:
 
@@ -138,12 +153,20 @@ Precedence, each layer overriding the one below:
 3. built-in default (**on**)
 
 The `analytics` selector pairs with the adapter refactor (#574) —
-`"none"` resolves to a `NoopSink`. Tracked in #575.
+`"none"` installs a `NoopAnalyticsSink`.
+
+**Known gap — one-event leak on config opt-out.** `command_started` fires in
+the yargs middleware, before any handler loads config, so a repo that sets
+`telemetry.enabled: false` still emits that single event (no `command_completed`
+/ `command_failed` follows). This is acceptable: the config field is _an
+override layer, not the primary opt-out_. `HOLOCRON_TELEMETRY=false` gates
+inside `init()`, before the middleware runs, and leaks nothing — that is the
+zero-leak path for anyone who needs it.
 
 ## References
 
 - Issues: #452 (PostHog telemetry), #454 (logger migration), #537 (orchestrator logging), #533 (errors capability)
-- Follow-ups: #574 (`ErrorSink` / `AnalyticsSink` adapters), #575 (`telemetry` config block)
+- Follow-ups (shipped): #574 (`ErrorSink` / `AnalyticsSink` adapters), #575 (`telemetry` config block)
 - Spec: `docs/wiki/specifications/tech-cli-usage-telemetry.spec.md`
 - ADR-0007 — structured logging (the Sentry/Axiom precedent this extends)
 - `posthog-node`: https://posthog.com/docs/libraries/node

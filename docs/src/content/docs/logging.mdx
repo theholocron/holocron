@@ -158,6 +158,12 @@ to keep local runs on `pino-pretty` only.
 — it just writes locally). The same switch also turns off Sentry and PostHog —
 see [Telemetry](/telemetry) for all three sinks.
 
+For a committed, repo-wide choice rather than an environment variable, the
+`telemetry` block in `holocron.config` (`{ enabled: false }`, or
+`{ analytics: "none" }` to keep error reporting) is the version-controlled peer
+of `HOLOCRON_TELEMETRY=false`. The env var still wins — see
+[Telemetry → Opting out](/telemetry#opting-out).
+
 ## Redaction
 
 Sensitive field paths are stripped in Pino's serialisation layer, before any

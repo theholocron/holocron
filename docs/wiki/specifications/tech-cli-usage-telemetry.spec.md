@@ -177,10 +177,21 @@ as constants (not GitHub vars) — they are publishable ingest-only keys and a
 distributed CLI has no deploy-time config-injection point; env overrides
 (`HOLOCRON_*` / vendor-native) still take precedence.
 
-## Follow-ups (post-#452)
+## Follow-ups (post-#452) — shipped
 
-- **#574** — put Sentry + PostHog behind `ErrorSink` / `AnalyticsSink` adapter
-  interfaces (all third-party observability SDKs isolated to one module each).
-- **#575** — small `telemetry` config block (`enabled`, `analytics` selector).
-  See the ADR-0008 amendment (2026-09-07); overrides env only as an extra
-  layer, never carries credentials.
+- **#574** (done) — Sentry + PostHog now sit behind `ErrorSink` / `AnalyticsSink`
+  interfaces in `packages/cli/src/telemetry/sinks.ts`. `@sentry/node` and
+  `posthog-node` are imported only from `telemetry/sentry-sink.ts` /
+  `telemetry/posthog-sink.ts`; `telemetry.ts` is orchestration with no SDK
+  import; the opted-out / no-credentials path is an explicit `Noop*Sink`.
+- **#575** (done) — `holocron.config` carries a `telemetry` block
+  (`TelemetryConfig` in `packages/cli/src/config/config.ts`): `enabled: false`
+  no-ops both sinks, `analytics: "none"` no-ops usage analytics only. Applied by
+  `applyConfig()` after config load (via `applyResolvedConfig` in `cli.ts`),
+  strictly as an override layer — env (`HOLOCRON_TELEMETRY=false`) is checked
+  first and wins; the config field never re-enables. One documented edge:
+  `command_started` fires in yargs middleware before config loads, so a
+  `telemetry.enabled: false` repo leaks that single event (zero-leak path
+  stays `HOLOCRON_TELEMETRY=false`). No credentials in config.
+
+Both close the logger epic (#454).
