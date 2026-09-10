@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { input, select } from "@inquirer/prompts";
 import { createAstromech } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
-import type { LogLevel } from "@theholocron/logger";
+import type { LogLevel } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 

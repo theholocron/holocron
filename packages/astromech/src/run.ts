@@ -32,7 +32,7 @@ import { join } from "node:path";
 import { resolveLinters } from "./linters.js";
 import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
 
-/** Minimal structural logger — `@theholocron/logger`'s `Logger` satisfies it. */
+/** Minimal structural logger — `@theholocron/observability`'s `Logger` satisfies it. */
 export interface RunLogger {
 	debug(obj: Record<string, unknown>, msg?: string): void;
 	warn(obj: Record<string, unknown>, msg?: string): void;

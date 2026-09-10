@@ -21,7 +21,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../../logger.js";
 import type { CapabilityKey } from "../../plugin/capabilities.js";

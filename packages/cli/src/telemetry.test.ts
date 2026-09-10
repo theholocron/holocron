@@ -31,8 +31,8 @@ const { errorSink, analyticsSink, SentrySinkMock, PostHogSinkMock, resolveDsnMoc
 	};
 });
 
-vi.mock("./telemetry/sentry-sink.js", () => ({ SentrySink: SentrySinkMock }));
-vi.mock("./telemetry/posthog-sink.js", () => ({ PostHogSink: PostHogSinkMock }));
+vi.mock("@theholocron/observability/errors", () => ({ SentrySink: SentrySinkMock }));
+vi.mock("@theholocron/observability/analytics", () => ({ PostHogSink: PostHogSinkMock }));
 vi.mock("./telemetry/resolve.js", () => ({
 	resolveDsn: resolveDsnMock,
 	resolvePostHogKey: resolveKeyMock,

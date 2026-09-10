@@ -29,11 +29,6 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
-		"packages/logger": {
-			// src/index.ts auto-detected from package.json exports
-			entry: ["src/**/*.test.ts"],
-			project: ["src/**/*.ts"],
-		},
 		"packages/datapad": {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
@@ -79,10 +74,6 @@ const config: KnipConfig = {
 		"@theholocron/devmoji-config",
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
-		// Pino transport targets in @theholocron/logger — referenced by string
-		// name in transports.ts and loaded by Pino at runtime, never imported
-		"@axiomhq/pino",
-		"pino-pretty",
 	],
 	// commitlint binary comes transitively via @theholocron/commitlint-config; not a direct dep
 	ignoreBinaries: ["commitlint"],

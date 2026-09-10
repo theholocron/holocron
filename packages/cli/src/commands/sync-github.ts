@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { reusableTemplates } from "@theholocron/astromech";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
 import { event as telemetryEvent } from "../telemetry.js";

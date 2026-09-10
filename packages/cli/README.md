@@ -307,8 +307,8 @@ holocron auth list                # show all stored providers
 
 ## Logging
 
-Operational output goes through [`@theholocron/logger`](../logger) — separate from
-the user-facing `print` surface. Global flags:
+Operational output goes through `@theholocron/observability/logger` — separate
+from the user-facing `print` surface. Global flags:
 
 ```sh
 holocron doctor --verbose   # log level → debug (full structured output)
@@ -356,9 +356,11 @@ export default defineConfig({
 });
 ```
 
-Each SDK sits behind a Holocron-owned interface — `ErrorSink` (Sentry) /
-`AnalyticsSink` (PostHog) in `src/telemetry/sinks.ts`; `@sentry/node` and
-`posthog-node` are imported only from their adapter modules. See the
+Each SDK sits behind an interface from `@theholocron/observability` —
+`ErrorSink` (Sentry) / `AnalyticsSink` (PostHog); the adapters, and the only
+`@sentry/node` / `posthog-node` imports, live in that package. `telemetry.ts`
+holds the orchestration + the Holocron-specific credential resolution
+(`telemetry/resolve.ts`). See the
 [telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
 
 ## What's in here
@@ -370,8 +372,8 @@ Each SDK sits behind a Holocron-owned interface — `ErrorSink` (Sentry) /
 - `src/config/load-config.ts` — `loadConfig` — reads `holocron.config.*`
   (file discovery via [`@theholocron/datapad`](../datapad))
 - `src/define-config.ts` — `defineConfig` typed pass-through
-- `src/logger.ts` — CLI-side `@theholocron/logger` wiring (`buildCliLogger`,
-  `resolveLogLevel`)
+- `src/logger.ts` — CLI-side `@theholocron/observability/logger` wiring
+  (`buildCliLogger`, `resolveLogLevel`)
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands. `holocron run` / `ci` are

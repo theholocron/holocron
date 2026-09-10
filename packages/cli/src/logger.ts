@@ -1,19 +1,14 @@
 /**
- * CLI-side wiring for `@theholocron/logger`.
+ * CLI-side wiring for `@theholocron/observability/logger`.
  *
  * `logger` is the operational-output channel — internal state, debug
  * traces, errors, structured context that routes to Axiom. It runs in
  * parallel to `print` (user-facing UX output) and does not replace it.
  */
 
-import {
-	type AxiomTransportConfig,
-	createLogger,
-	type Logger,
-	type LogLevel,
-	parseLogLevel,
-	resolveAxiomFromEnv,
-} from "@theholocron/logger";
+import type { Logger, LogLevel } from "@theholocron/observability/core";
+import type { AxiomTransportConfig } from "@theholocron/observability/logger";
+import { createLogger, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
 import { getToken } from "./auth/keyring.js";
 import { env } from "./env.js";
@@ -62,7 +57,7 @@ export interface BuildCliLoggerOpts {
 
 /**
  * Resolve Axiom credentials for the CLI. Env vars win — same contract as
- * `@theholocron/logger`'s `resolveAxiomFromEnv`. Failing that, the CLI-only
+ * `@theholocron/observability`'s `resolveAxiomFromEnv`. Failing that, the CLI-only
  * bridge pairs the OS-keyring token (`axiom.<org>` then bare `axiom`) with a
  * dataset from `HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET` or
  * `holocron.config` `log.axiom.dataset`. Returns `undefined` unless both a

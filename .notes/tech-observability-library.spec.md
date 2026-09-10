@@ -13,6 +13,16 @@ related:
 
 # `@theholocron/observability` — extraction plan
 
+> **Phase A shipped (2026-09).** `theholocron/observability` created (public,
+> MIT); `@theholocron/observability@0.2.0` published with subpath exports
+> (`/core` `/logger` `/errors` `/analytics`); `ConsoleLogger` added;
+> `@theholocron/cli` migrated off `@theholocron/logger` + the local telemetry
+> adapters; `packages/logger` deleted; `@theholocron/logger` deprecated on npm.
+> Phase B (#637 browser/edge/RN adapters, #638 `clients` seam) remains.
+>
+> Secondary-repo tooling gaps surfaced during the work: #641 (`npm publish-initial`)
+> and #642 (`holocron new` drops `tasks` from the generated config).
+
 Epic #633. This spec covers **Phase A**: extract the three telemetry seams
 (logs / errors / analytics) plus the Node adapters into a standalone
 `@theholocron/observability` package, built so the browser / edge / React

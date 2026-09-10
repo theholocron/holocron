@@ -1,8 +1,8 @@
 /**
  * `logs` capability for Axiom.
  *
- * This plugin does NOT ship log lines — `@theholocron/logger`'s Axiom
- * transport reads `HOLOCRON_AXIOM_TOKEN` / `HOLOCRON_AXIOM_DATASET`
+ * This plugin does NOT ship log lines — `@theholocron/observability/logger`'s
+ * Axiom transport reads `HOLOCRON_AXIOM_TOKEN` / `HOLOCRON_AXIOM_DATASET`
  * directly at startup. The `logs` capability exists solely for the
  * management surface: `holocron setup` provisions the aggregation
  * datasets (`holocron-ci`, `holocron-local`) and `holocron doctor`

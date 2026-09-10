@@ -90,17 +90,17 @@ not object destructuring.
 
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
-- **No third-party observability / telemetry SDK is imported outside its own
-  adapter module.** `pino`, `@sentry/node`, `posthog-node` each sit behind a
-  Holocron-owned interface — `Logger` (`packages/logger/src/interface.ts`),
-  `ErrorSink` / `AnalyticsSink` (`packages/cli/src/telemetry/sinks.ts`) — with a
-  `Noop*` implementation for the opted-out / no-credentials path and one
-  concrete adapter (`PinoLogger`, `SentrySink`, `PostHogSink`) that is the sole
-  call site of the vendor package. `git grep -n "@sentry/node\|posthog-node"
-packages/cli/src` must return only `telemetry/sentry-sink.ts` /
-  `telemetry/posthog-sink.ts` (+ their tests). Orchestration
-  (`telemetry.ts`) holds no SDK import. A vendor swap or a test fake is one
-  file.
+- **No third-party observability / telemetry SDK is imported in this repo.**
+  `pino`, `@sentry/node`, `posthog-node` live behind
+  `@theholocron/observability` — the `Logger` / `ErrorSink` / `AnalyticsSink`
+  interfaces (with `Noop*` for the opted-out / no-credentials path) come from
+  `@theholocron/observability/core`; the `PinoLogger` / `SentrySink` /
+  `PostHogSink` adapters — the sole vendor call sites — from
+  `/logger`, `/errors`, `/analytics`. `git grep -nE "@sentry/node|posthog-node|
+from \"pino\"" packages/` must return **nothing** (source). The CLI's
+  `telemetry.ts` holds only orchestration + `telemetry/resolve.ts` (the
+  Holocron-specific DSN / key resolution, which stays here). A vendor swap or a
+  test fake is one file — in `theholocron/observability`.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The
   skill produces ~14 files in the right shape; only the capability
@@ -237,7 +237,6 @@ packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
-  logger/                         — @theholocron/logger                    (Pino + Axiom structured logging — ADR-0007)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
   holocron-plugin-neon/           — storage

@@ -1,11 +1,12 @@
 /**
  * CLI self-telemetry orchestration — errors (Sentry), usage analytics (PostHog).
  *
- * This module holds *no* vendor SDK import. Each concern sits behind a
- * Holocron-owned interface ({@link ErrorSink} / {@link AnalyticsSink}); the
- * concrete `SentrySink` / `PostHogSink` are the only `@sentry/node` /
- * `posthog-node` call sites, and a `Noop*Sink` is installed when telemetry is
- * off. Same seam `@theholocron/logger` uses for Pino.
+ * This module holds *no* vendor SDK import. Each concern sits behind an
+ * interface from `@theholocron/observability` ({@link ErrorSink} /
+ * {@link AnalyticsSink}); the `SentrySink` / `PostHogSink` adapters there are
+ * the only `@sentry/node` / `posthog-node` call sites, and a `Noop*Sink` is
+ * installed when telemetry is off. Same seam the package's `Logger` uses for
+ * Pino.
  *
  * Activation is env-var + shipped-fallback, resolved here (`telemetry/resolve.ts`)
  * and passed to the sink — the adapters read no environment. The single kill
@@ -16,20 +17,21 @@
 import { createHash } from "node:crypto";
 import { hostname, userInfo } from "node:os";
 
-import type { TelemetryConfig } from "./config/config.js";
-import { env } from "./env.js";
-import { getRunId } from "./logger.js";
-import { PostHogSink } from "./telemetry/posthog-sink.js";
-import { redactObject } from "./telemetry/redact.js";
-import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./telemetry/resolve.js";
-import { SentrySink } from "./telemetry/sentry-sink.js";
+import { PostHogSink } from "@theholocron/observability/analytics";
 import {
 	type AnalyticsSink,
 	type CommandSpan,
 	type ErrorSink,
 	NoopAnalyticsSink,
 	NoopErrorSink,
-} from "./telemetry/sinks.js";
+	redactObject,
+} from "@theholocron/observability/core";
+import { SentrySink } from "@theholocron/observability/errors";
+
+import type { TelemetryConfig } from "./config/config.js";
+import { env } from "./env.js";
+import { getRunId } from "./logger.js";
+import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./telemetry/resolve.js";
 
 // ── sinks ────────────────────────────────────────────────────────────────────
 

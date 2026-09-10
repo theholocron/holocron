@@ -17,7 +17,7 @@
  * Errors clearly when no value can be sourced.
  */
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
 import { env } from "../env.js";

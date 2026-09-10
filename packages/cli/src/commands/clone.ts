@@ -3,7 +3,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
 import { style } from "../ui/style.js";

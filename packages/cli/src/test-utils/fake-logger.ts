@@ -1,4 +1,4 @@
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 import { type Mock, vi } from "vitest";
 
 /** A {@link Logger} whose level methods are spies; `child()` returns itself. */

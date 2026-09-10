@@ -22,7 +22,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import { env } from "../env.js";
 import { getLogger } from "../logger.js";

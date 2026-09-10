@@ -1,7 +1,7 @@
 /**
  * `createAstromech(options)` — the self-contained task runner.
  * `@theholocron/cli` instantiates it once and delegates the `run` /
- * `ci` / workflow-generation commands to it (like `@theholocron/logger`).
+ * `ci` / workflow-generation commands to it (like `@theholocron/observability`).
  */
 
 import { spawnSync } from "node:child_process";

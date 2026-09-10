@@ -21,7 +21,7 @@
  * individually via `holocron secret set` (also planned for v5.1).
  */
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";

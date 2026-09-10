@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { createAstromech, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
