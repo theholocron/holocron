@@ -1,3 +1,9 @@
+## [0.2.0](https://github.com/theholocron/observability/compare/v0.1.0...v0.2.0) (2026-09-10)
+
+### Features
+
+* core interfaces + Node adapters + logger ([#2](https://github.com/theholocron/observability/issues/2)) ([9b4d47a](https://github.com/theholocron/observability/commit/9b4d47abf4e2f8ead3d33f84aff0971a1ecae150)), closes [theholocron/holocron#635](https://github.com/theholocron/holocron/issues/635) [theholocron/holocron#636](https://github.com/theholocron/holocron/issues/636)
+
 ## [1.7.0](https://github.com/theholocron/observability/compare/v1.6.0...v1.7.0) (2026-09-06)
 
 ### Features
