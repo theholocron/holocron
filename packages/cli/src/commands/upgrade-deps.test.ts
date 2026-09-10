@@ -124,6 +124,18 @@ describe("isLegacyConfig", () => {
 	it("passes an already-migrated config", () => {
 		expect(isLegacyConfig("const preset = nodeDocs();\n\t...preset,\n\ttasks: [...preset.tasks],")).toBe(false);
 	});
+
+	it("passes a `compose()` + `tasks:` + `extraRequiredChecks:` config that still destructures `{ repo, providers }`", () => {
+		const src = `const { repo, tasks, providers, org, domain, docs, extraRequiredChecks } = compose(nodeDocs(), wiki());
+export default defineConfig({
+	org, domain, docs,
+	repo: { ...repo, teams: [] },
+	extraRequiredChecks: [...extraRequiredChecks, "codecov/project/x"],
+	tasks: [...tasks, { name: "audit", required: true }],
+	providers: { ...providers, secrets: "github" },
+});`;
+		expect(isLegacyConfig(src)).toBe(false);
+	});
 });
 
 describe("migrateConfig", () => {
@@ -193,6 +205,26 @@ export default defineConfig({
 		expect(m.content).not.toContain("requiredChecks");
 		expect(m.content).not.toContain("extraRequiredChecks");
 		expect(m.transforms).toContain("dropped `...repo.requiredChecks`");
+	});
+
+	it("re-spreads every destructured binding off `preset`, not just repo/providers", () => {
+		const src = `const { repo, workflows, tasks, extraRequiredChecks, providers } = compose(nodeDocs());
+export default defineConfig({
+	repo: { ...repo },
+	extraRequiredChecks: [...extraRequiredChecks, "codecov/project/x"],
+	workflows: [...workflows, "sync"],
+	providers: { ...providers },
+});
+`;
+		const m = migrateConfig(src);
+		expect(m.content).toContain("const preset = compose(nodeDocs());");
+		expect(m.content).toContain("...preset.extraRequiredChecks");
+		expect(m.content).toContain("...preset.repo");
+		expect(m.content).toContain("...preset.providers");
+		// `workflows` still routes through the workflows→tasks rename
+		expect(m.content).toContain('tasks: [...preset.tasks, "sync"]');
+		expect(m.content).not.toMatch(/\.\.\.extraRequiredChecks\b/);
+		expect(m.content).not.toMatch(/\.\.\.workflows\b/);
 	});
 
 	it("migrates a legacy `workflows:` with no `repo` block and no re-spread needed", () => {
@@ -373,7 +405,7 @@ describe("runUpgradeDeps", () => {
 			writeFileSync(join(dir, "pnpm-workspace.yaml"), "catalog:\n  '@theholocron/cli': ^3.0.0\n");
 			writeFileSync(
 				join(dir, "holocron.config.ts"),
-				"const { repo } = nodeDocs();\nexport default defineConfig({\n\trepo: { ...repo },\n});\n"
+				'const { repo, workflows } = nodeDocs();\nexport default defineConfig({\n\trepo: { ...repo },\n\tworkflows: [...workflows, "sync"],\n});\n'
 			);
 			const fetchSpy = vi
 				.spyOn(globalThis, "fetch")

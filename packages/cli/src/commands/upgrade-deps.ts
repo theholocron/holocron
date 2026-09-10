@@ -116,10 +116,15 @@ export interface ConfigMigration {
 
 /** True if the file still uses the 7.x preset shape. */
 export function isLegacyConfig(content: string): boolean {
+	// Only the 7.x markers count: a `workflows:` key, a `...repo.requiredChecks`
+	// spread, or a preset destructure that pulls `workflows`. A config already on
+	// `compose()` + `tasks:` + `extraRequiredChecks:` that merely destructures
+	// `{ repo, providers }` is valid 8.x — touching it strands `...tasks` /
+	// `...extraRequiredChecks` on the removed binding.
 	return (
-		/const\s*\{[^}]*\b(repo|workflows|providers)\b[^}]*\}\s*=\s*(compose\(|[a-zA-Z]+\(\))/.test(content) ||
 		/\.\.\.repo\.requiredChecks/.test(content) ||
-		/^\s*workflows\s*:/m.test(content)
+		/^\s*workflows\s*:/m.test(content) ||
+		/const\s*\{[^}]*\bworkflows\b[^}]*\}\s*=\s*(compose\(|[a-zA-Z]+\()/.test(content)
 	);
 }
 
@@ -137,10 +142,29 @@ export function migrateConfig(content: string): ConfigMigration {
 	}
 
 	// `const { repo, workflows, ... } = <preset>;` → `const preset = <preset>;`
-	s = s.replace(/const\s*\{[^}]*\}\s*=\s*((?:compose\([\s\S]*?\)|[a-zA-Z]+\([\s\S]*?\)))\s*;/, (_m, expr: string) => {
-		transforms.push("destructured preset → `const preset = …`");
-		return `const preset = ${expr.trim()};`;
-	});
+	let destructured: string[] = [];
+	s = s.replace(
+		/const\s*\{([^}]*)\}\s*=\s*((?:compose\([\s\S]*?\)|[a-zA-Z]+\([\s\S]*?\)))\s*;/,
+		(_m, names: string, expr: string) => {
+			destructured = names
+				.split(",")
+				.map((n) => n.trim().split(":")[0]!.trim())
+				.filter(Boolean);
+			transforms.push("destructured preset → `const preset = …`");
+			return `const preset = ${expr.trim()};`;
+		}
+	);
+
+	// Any binding that was destructured and is still spread bare (`...tasks`,
+	// `...extraRequiredChecks`, …) now has to come off `preset`.
+	for (const name of destructured) {
+		if (name === "repo" || name === "providers" || name === "workflows") continue; // handled explicitly below
+		const bare = new RegExp(`\\.\\.\\.${name}\\b(?!\\.)`, "g");
+		if (bare.test(s)) {
+			s = s.replace(bare, `...preset.${name}`);
+			transforms.push(`\`...${name}\` → \`...preset.${name}\``);
+		}
+	}
 
 	// Inject `...preset,` as the first key of defineConfig({ … })
 	if (/const preset =/.test(s) && !/\.\.\.preset\b/.test(s)) {
