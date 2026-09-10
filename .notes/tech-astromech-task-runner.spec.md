@@ -267,8 +267,9 @@ push). The repo's agent skill gains a `holocron ci` step.
 > `workspace:*` CLI — a no-op for consumers that install the published tarball).
 > `bundle-size` → `holocron run build` (keeps `CODECOV_TOKEN` at the job level);
 > `knip` / `performance` → `holocron run audit knip` / `… performance`. The
-> `build-script` / `knip-script` `audit.yml` inputs are now vestigial (kept so
-> callers don't error). `run.ts` step 1 forwards a task's registry org-default
+> `audit.yml` `build-script` / `knip-script` inputs are dropped — the command
+> comes from the manifest and no caller passed them. `run.ts` step 1 forwards a
+> task's registry org-default
 > flags through turbo's `--` (`holocron run test` at a monorepo root →
 > `turbo run test -- --coverage`). `holocron ci` itself is **not** used in a
 > workflow — each check stays a separate job so branch protection keeps its

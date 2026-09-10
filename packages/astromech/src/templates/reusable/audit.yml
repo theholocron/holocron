@@ -3,14 +3,6 @@ name: Audit
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
-      build-script:
-        description: >
-          DEPRECATED — the bundle-size job now runs `holocron run build`
-          (resolved from the task manifest). Ignored; kept so existing callers
-          do not error.
-        type: string
-        required: false
-        default: pnpm build
       run-knip:
         description: Run Knip to detect unused files, exports, and dependencies
         type: boolean
@@ -29,13 +21,6 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
         default: lighthouse.config.cjs
-      knip-script:
-        description: >
-          DEPRECATED — the knip job now runs `holocron run audit knip` (resolved
-          from the task manifest). Ignored; kept so existing callers do not error.
-        type: string
-        required: false
-        default: pnpm run audit
     secrets:
       CODECOV_TOKEN:
         required: false

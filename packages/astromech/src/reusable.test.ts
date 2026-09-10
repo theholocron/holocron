@@ -82,6 +82,10 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).not.toContain('eval "$KNIP_SCRIPT"');
 		expect(wf).not.toContain('eval "$BUILD_SCRIPT"');
 		expect(wf).not.toContain("run: lhci autorun");
+		// the build-script / knip-script inputs are gone — the command comes from
+		// the manifest, and no caller passed them
+		expect(wf).not.toMatch(/^\s+build-script:/m);
+		expect(wf).not.toMatch(/^\s+knip-script:/m);
 		expect(wf).toMatch(/task: build/);
 		expect(wf).toMatch(/task: audit\n\s+job: knip/);
 		expect(wf).toMatch(/task: audit\n\s+job: performance\n\s+args: --config=/);
