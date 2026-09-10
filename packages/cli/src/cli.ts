@@ -26,6 +26,7 @@ import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/s
 import { runSync } from "./commands/sync.js";
 import { runSyncGithub } from "./commands/sync-github.js";
 import { runSyncReadme } from "./commands/sync-readme.js";
+import { runUpgradeDeps } from "./commands/upgrade-deps.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
 import type { TelemetryConfig } from "./config/config.js";
 import { loadConfig } from "./config/load-config.js";
@@ -1151,6 +1152,27 @@ try {
 							});
 							if (report.status === "fail") {
 								if (report.message) getLogger().error(`upgrade node: ${report.message}`);
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"deps",
+						"Bump every @theholocron/* pin to latest and migrate holocron.config.ts to the current preset API",
+						(yy) =>
+							yy.option("pins-only", {
+								type: "boolean",
+								default: false,
+								describe: "Only bump the catalog pins — skip the holocron.config.ts migration",
+							}),
+						async (argv) => {
+							const report = await runUpgradeDeps({
+								cwd: argv.cwd,
+								dryRun: argv.dryRun,
+								pinsOnly: argv.pinsOnly as boolean,
+							});
+							if (report.status === "fail") {
+								if (report.message) getLogger().error(`upgrade deps: ${report.message}`);
 								process.exitCode = 1;
 							}
 						}
