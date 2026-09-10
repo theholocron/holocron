@@ -1,49 +1,91 @@
 ---
 title: Getting Started
-description: How to use the Node template to start a new library.
+description: Wire logging, error tracking, and analytics into an application.
 ---
 
-## Use this template
-
-Use the [Holocron CLI](https://github.com/theholocron/holocron) to scaffold a new Node.js library. It clones the template, renames all placeholder references, and runs `holocron setup` in one step:
+## Install
 
 ```bash
-npx @theholocron/cli new node my-library \
-  --description "My library description" \
-  --homepage "https://my-library.example.com" \
-  --agent claude
+pnpm add @theholocron/observability
 ```
 
-This will:
+Then add the peer dependencies for the subpaths you use:
 
-1. Create `theholocron/my-library` from this template on GitHub
-2. Replace all `node-template` references with `my-library` throughout the repo
-3. Run `pnpm install`
-4. Run `holocron setup` to configure branch protection, labels, workflows, and repo settings
+| Subpath      | Peers                                  |
+| ------------ | -------------------------------------- |
+| `/core`      | none                                   |
+| `/logger`    | `pino`, `pino-pretty`, `@axiomhq/pino` |
+| `/errors`    | `@sentry/node`                         |
+| `/analytics` | `posthog-node`                         |
 
-### Manual clone
+## Code against the interface
 
-If you prefer to set things up yourself:
+Every module that logs or reports takes a `Logger` / `ErrorSink` /
+`AnalyticsSink` from `@theholocron/observability/core` — it never imports a
+concrete adapter.
 
-```bash
-git clone https://github.com/theholocron/node-template.git my-library
-cd my-library
-pnpm install
+```ts
+import type { Logger, ErrorSink } from "@theholocron/observability/core";
+
+export function deploy(deps: { logger: Logger; errors: ErrorSink }) {
+  deps.logger.info({ target: "production" }, "deploying");
+  try {
+    // …
+  } catch (err) {
+    deps.errors.captureException(err);
+    throw err;
+  }
+}
 ```
 
-## Development
+## Wire the adapters at the entry point
 
-```bash
-pnpm build     # compile the library
-pnpm test      # run tests
+Only the process entry point picks concrete implementations, and only it reads
+credentials.
+
+```ts
+import { createLogger } from "@theholocron/observability/logger";
+import { NoopErrorSink } from "@theholocron/observability/core";
+import { SentrySink } from "@theholocron/observability/errors";
+
+const { logger, runId } = createLogger({ level: process.env.LOG_LEVEL as never });
+
+const errors = process.env.SENTRY_DSN ? new SentrySink() : new NoopErrorSink();
+errors.init({
+  dsn: process.env.SENTRY_DSN ?? "",
+  release: `my-app@${process.env.APP_VERSION}`,
+  environment: process.env.CI ? "ci" : "local",
+  tags: { runId },
+});
+
+deploy({ logger, errors });
 ```
 
-## Scripts
+## Browser / edge / React Native
 
-| Script               | Description                  |
-| -------------------- | ---------------------------- |
-| `pnpm build`         | Compile the library          |
-| `pnpm test`          | Run tests                    |
-| `pnpm test:coverage` | Run tests with coverage      |
-| `pnpm typecheck`     | Run TypeScript type-checking |
-| `pnpm lint`          | Run ESLint                   |
+`@theholocron/observability/core` runs anywhere — it is interfaces and no-ops
+with zero dependencies. For a light logger without Pino, use `ConsoleLogger`
+from `/logger`:
+
+```ts
+import { ConsoleLogger } from "@theholocron/observability/logger";
+
+const logger = new ConsoleLogger({ level: "info" });
+```
+
+Environment-specific error / analytics adapters (`@sentry/nextjs`,
+`@sentry/react-native`, `posthog-js`, …) plug into the same interfaces.
+
+## Logging behaviour
+
+`createLogger()` picks its output from the environment:
+
+| Environment                                                                                                       | Output                           |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Local, TTY                                                                                                        | pretty-printed                   |
+| CI                                                                                                                | newline-delimited JSON to stdout |
+| Axiom credentials present (`HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`, or the `AXIOM_`-prefixed fallbacks) | also shipped to Axiom            |
+
+`HOLOCRON_TELEMETRY=false` disables the Axiom transport while leaving local
+logging intact. Sensitive fields (`token`, `secret`, `password`, `apiKey`,
+`headers.authorization`, …) are redacted before any transport sees a line.

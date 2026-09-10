@@ -1,36 +1,55 @@
 ---
-title: Node Template
-description: A modern Node.js library starter template with pre-configured tools, best practices, and CI/CD setup.
+title: Observability
+description: Logging, error tracking, and analytics — one interface, swappable backends.
 sidebar:
   hidden: true
 ---
 
-`@theholocron/node-template` is an opinionated starter for Node.js libraries. It ships with a full development, testing, and release pipeline ready to go.
+`@theholocron/observability` puts logging, error tracking, and product analytics
+behind one stable set of interfaces. Application code depends on the interface,
+never a vendor SDK — so the backend can be swapped, stubbed for tests, or turned
+off in a single file.
 
-## What's Included
+## Subpaths
 
-| Tool                                                    | Purpose                                                |
-| ------------------------------------------------------- | ------------------------------------------------------ |
-| [TypeScript](https://www.typescriptlang.org)            | Type safety via `@theholocron/tsconfig`                |
-| [ESLint](https://eslint.org)                            | Linting via `@theholocron/eslint-config`               |
-| [Prettier](https://prettier.io)                         | Formatting via `@theholocron/prettier-config`          |
-| [Vitest](https://vitest.dev)                            | Testing with coverage via `@theholocron/vitest-config` |
-| [semantic-release](https://semantic-release.gitbook.io) | Automated releases                                     |
-| [Husky](https://typicode.github.io/husky)               | Git hooks via `@theholocron/lint-staged-config`        |
-| Astro + Starlight                                       | Docs site                                              |
-| CI/CD                                                   | Reusable workflows from `theholocron/.github`          |
+| Import                                 | What it gives you                                                                                                                                                                       | Peer dependency                        |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `@theholocron/observability/core`      | `Logger` / `ErrorSink` / `AnalyticsSink` interfaces, their `Noop*` implementations, and the redaction helpers. **Zero dependencies** — safe in a browser, edge, or React Native bundle. | none                                   |
+| `@theholocron/observability/logger`    | `createLogger()` — a structured logger (pretty locally, NDJSON in CI, Axiom when credentials resolve) — plus a zero-dependency `ConsoleLogger`.                                         | `pino`, `pino-pretty`, `@axiomhq/pino` |
+| `@theholocron/observability/errors`    | `SentrySink` — error tracking and per-operation performance spans.                                                                                                                      | `@sentry/node`                         |
+| `@theholocron/observability/analytics` | `PostHogSink` — usage and adoption events.                                                                                                                                              | `posthog-node`                         |
 
-## Getting Started
+The vendor SDKs are **optional peer dependencies**: install only the ones for
+the subpaths you use. Adapters read no environment and hold no credentials —
+the caller resolves the DSN / key and passes it in.
+
+## Installation
 
 ```bash
-npx @theholocron/cli new node my-library \
-  --description "My library description" \
-  --homepage "https://my-library.example.com" \
-  --agent claude
+pnpm add @theholocron/observability
+# then the peers for the subpaths you use, e.g.
+pnpm add pino pino-pretty @sentry/node
 ```
 
-See [Getting Started](./getting-started) for the full walkthrough including manual setup and available scripts.
+## Usage
 
-## Quick links
+```ts
+import { createLogger } from "@theholocron/observability/logger";
+import { NoopErrorSink } from "@theholocron/observability/core";
+import { SentrySink } from "@theholocron/observability/errors";
 
-- [Getting started](./getting-started) — scaffold a new project with the Holocron CLI
+const { logger, runId } = createLogger({ level: "info" });
+const log = logger.child({ command: "deploy" });
+log.info({ target: "production" }, "starting");
+
+const errors = process.env.SENTRY_DSN ? new SentrySink() : new NoopErrorSink();
+errors.init({
+  dsn: process.env.SENTRY_DSN ?? "",
+  release: "my-app@1.0.0",
+  environment: "local",
+  tags: { runId },
+});
+```
+
+Code against `@theholocron/observability/core` everywhere; only the process
+entry point imports a concrete adapter subpath.
