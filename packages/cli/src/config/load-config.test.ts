@@ -214,4 +214,64 @@ describe("loadConfig", () => {
 		const { resolved } = await loadConfig(cwd);
 		expect(resolved.repo?.name).toBeUndefined();
 	});
+
+	// ── astromech.config.* task-manifest layering ─────────────────────────
+
+	it("merges a dedicated astromech.config on top of holocron.config's tasks", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({
+				name: "demo",
+				providers: { source: "github" },
+				tasks: ["lint", { name: "test", required: true }],
+				extraRequiredChecks: ["codecov/project"],
+			})
+		);
+		await writeFile(
+			join(cwd, "astromech.config.json"),
+			JSON.stringify({
+				tasks: [{ name: "audit", required: true, with: { "run-knip": true } }, "wiki"],
+				syncScripts: false,
+				holocronScript: "node dist/cli.mjs",
+				hooks: { prePush: true },
+				extraRequiredChecks: ["audit / Conclusion"],
+			})
+		);
+		const { resolved } = await loadConfig(cwd);
+		// task arrays concatenate, holocron.config first
+		expect((resolved.tasks ?? []).map((t) => (typeof t === "string" ? t : t.name))).toEqual([
+			"lint",
+			"test",
+			"audit",
+			"wiki",
+		]);
+		// scalars come from the dedicated file
+		expect(resolved.syncScripts).toBe(false);
+		expect(resolved.holocronScript).toBe("node dist/cli.mjs");
+		expect(resolved.hooks).toEqual({ prePush: true });
+		// extraRequiredChecks concatenate (holocron.config's, then the manifest's)
+		expect(resolved.extraRequiredChecks).toEqual(["codecov/project", "audit / Conclusion"]);
+	});
+
+	it("leaves holocron.config's tasks untouched when there is no astromech.config", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", providers: { source: "github" }, tasks: ["lint", "test"] })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.tasks).toEqual(["lint", "test"]);
+	});
+
+	it("takes the manifest's extraRequiredChecks verbatim when holocron.config sets none", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", providers: { source: "github" }, tasks: ["lint"] })
+		);
+		await writeFile(
+			join(cwd, "astromech.config.json"),
+			JSON.stringify({ extraRequiredChecks: ["audit / Conclusion"] })
+		);
+		const { resolved } = await loadConfig(cwd);
+		expect(resolved.extraRequiredChecks).toEqual(["audit / Conclusion"]);
+	});
 });

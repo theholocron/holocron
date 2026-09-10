@@ -15,6 +15,7 @@ import { readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { loadTasksConfig } from "@theholocron/astromech/config";
 import { ConfigFileError, loadConfigFile } from "@theholocron/datapad";
 
 const execFileAsync = promisify(execFile);
@@ -55,6 +56,21 @@ async function deriveDefaults(configDir: string, raw: HolocronConfig): Promise<H
 		const repoName = await readGitRemote(configDir);
 		if (repoName) result.repo = { ...result.repo, name: repoName };
 	}
+
+	// Layer in the task manifest. `holocron.config`'s `tasks` key is one input;
+	// a dedicated `astromech.config.{ts,js,mjs,json}` is merged on top (it wins
+	// on scalars, task arrays concatenate). Doing it here keeps `holocron setup`
+	// / `sync` / `doctor` on the same manifest that `holocron run` / `holocron
+	// ci` resolve directly via `loadTasksConfig`.
+	const manifest = await loadTasksConfig(configDir);
+	if (manifest.tasks) result.tasks = manifest.tasks;
+	if (manifest.syncScripts !== undefined) result.syncScripts = manifest.syncScripts;
+	if (manifest.holocronScript !== undefined) result.holocronScript = manifest.holocronScript;
+	if (manifest.hooks !== undefined) result.hooks = manifest.hooks;
+	if (manifest.extraRequiredChecks) {
+		result.extraRequiredChecks = [...(result.extraRequiredChecks ?? []), ...manifest.extraRequiredChecks];
+	}
+
 	return result;
 }
 

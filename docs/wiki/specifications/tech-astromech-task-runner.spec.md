@@ -123,6 +123,17 @@ layering). `@theholocron/cli`'s `defineConfig` re-exports the `TasksConfig`
 type so the inline `tasks` key is typed. Does **not** replace the
 `@theholocron/*-config` tool presets in `theholocron/configs`.
 
+> **As-built:** `holocron run` / `holocron ci` call `loadTasksConfig` directly.
+> `@theholocron/cli`'s `loadConfig` (used by `setup` / `sync` / `doctor`) also
+> calls it in `deriveDefaults` and overlays the result onto `HolocronConfig`
+> (`tasks` replaced with the merged list; `syncScripts` / `holocronScript` /
+> `hooks` taken from the dedicated file; `extraRequiredChecks` concatenated) —
+> so every surface sees one manifest. **This repo dogfoods the split**:
+> `holocron.config.ts` carries the preset tasks + capability config, a root
+> `astromech.config.ts` adds the repo-specific tasks (`audit` w/ knip, `release`,
+> `sync`, `wiki`) and `syncScripts: false`. `holocron ci` / `holocron sync`
+> output is byte-identical to the pre-split single file.
+
 ## The manifest — `registry.ts`
 
 ```ts
@@ -369,8 +380,8 @@ inherit`, `with:` overrides applied.
 4. **`config show` repo-awareness** (#576) — confirm before `astromech.plan()`
    depends on it.
 5. **`astromech.config.ts` vs `holocron-tasks.config.ts`** for the
-   dedicated file — leaning `astromech.config.ts` (mirrors
-   `vitest.config.ts`).
+   dedicated file — RESOLVED: `astromech.config.ts` (mirrors
+   `vitest.config.ts`); `loadTasksConfig` probes it and this repo ships one.
 6. **Single package + `/config` subpath vs a later split** to
    `@theholocron/astromech-config` — start single, split is non-breaking.
    (The generic loader is already its own package, `@theholocron/datapad`,
