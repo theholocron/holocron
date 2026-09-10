@@ -1,3 +1,13 @@
+## [8.2.1](https://github.com/theholocron/configs/compare/v8.2.0...v8.2.1) (2026-09-10)
+
+### Bug Fixes
+
+* **eslint-config,astro-config:** 🐛 storybook lint crash + astro-config @astrojs/react ([#451](https://github.com/theholocron/configs/issues/451)) ([fb938f3](https://github.com/theholocron/configs/commit/fb938f3b1cdeb36a988ef3f8677dc80853f0363e)), closes [configs#449](https://github.com/theholocron/configs/issues/449) [configs#450](https://github.com/theholocron/configs/issues/450) [theholocron/configs#449](https://github.com/theholocron/configs/issues/449) [theholocron/configs#450](https://github.com/theholocron/configs/issues/450) [theholocron/holocron#647](https://github.com/theholocron/holocron/issues/647)
+
+### Chores
+
+* ⬆️ bump @theholocron/* to 4.16.2 ([#448](https://github.com/theholocron/configs/issues/448)) ([53926f8](https://github.com/theholocron/configs/commit/53926f8ac31940d2e92205774db45a4138ac2155)), closes [#647](https://github.com/theholocron/configs/issues/647)
+
 ## [8.2.0](https://github.com/theholocron/configs/compare/v8.1.1...v8.2.0) (2026-09-09)
 
 ### Features
