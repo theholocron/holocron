@@ -133,6 +133,30 @@ Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one
 `"<task>": "holocron run <task>"` per runnable task. `syncScripts: false`
 opts out entirely.
 
+### Splitting the task manifest — `astromech.config.ts`
+
+The `tasks` key (plus `syncScripts` / `holocronScript` / `hooks` /
+`extraRequiredChecks`) can move to a dedicated
+`astromech.config.{ts,js,mjs,json}` at the project root:
+
+```ts
+// astromech.config.ts
+import { defineConfig } from "@theholocron/astromech/config";
+
+export default defineConfig({
+  tasks: [{ name: "audit", required: true, with: { "run-knip": true } }, "wiki"],
+  syncScripts: false,
+});
+```
+
+`@theholocron/astromech`'s `loadTasksConfig` merges it over
+`holocron.config`'s `tasks` — **task arrays concatenate**
+(`holocron.config` first), the dedicated file **wins on scalars**,
+`extraRequiredChecks` concatenate. `holocron run` / `holocron ci` /
+`holocron setup` / `holocron sync` all read the merged result, so the
+split is transparent. Useful for keeping the capability/provider config
+and the "what this repo runs" manifest in separate files (this repo does).
+
 ### `holocron run`
 
 ```bash

@@ -174,6 +174,9 @@ importers:
       '@theholocron/astro-config':
         specifier: catalog:configs
         version: 8.0.0(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.4.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(jiti@2.7.0)(lightningcss@1.33.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.0)
+      '@theholocron/astromech':
+        specifier: workspace:*
+        version: link:packages/astromech
       '@theholocron/cli':
         specifier: workspace:*
         version: link:packages/cli

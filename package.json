@@ -36,6 +36,7 @@
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
     "@theholocron/astro-config": "catalog:configs",
+    "@theholocron/astromech": "workspace:*",
     "@theholocron/cli": "workspace:*",
     "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/components-doc": "^1.2.0",

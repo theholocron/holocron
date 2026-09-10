@@ -5,7 +5,7 @@ const config: KnipConfig = {
 		".": {
 			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts
 			// auto-detected by Knip plugins
-			entry: ["commitlint.config.ts", "holocron.config.ts"],
+			entry: ["commitlint.config.ts", "holocron.config.ts", "astromech.config.ts"],
 			project: ["*.ts"],
 		},
 		docs: {

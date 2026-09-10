@@ -47,27 +47,12 @@ export default defineConfig({
 		"codecov/patch/holocron-plugin-slack",
 		"codecov/patch/holocron-plugin-vercel",
 	],
-	tasks: [
-		// lint (+ the org linter set), test and typecheck arrive from the preset
-		// already marked `{ required: true }`.
-		...presetTasks,
-		// Audit: Knip dead-code analysis on top of the standard bundle audit; gates
-		// merges + runs in `holocron ci`. The preset carries "audit / Conclusion"
-		// as an extra check; this adds the actual task with the repo's knip option.
-		{ name: "audit", required: true, with: { "run-knip": true } },
-		// Release: tag Sentry releases for the CLI package
-		{ name: "release", with: { "sentry-project": "holocron-cli" } },
-		// Sync: keep generated files (workflows, labels, etc.) current on push to main
-		"sync",
-		// Wiki: publish engineering docs to wiki.theholocron.dev/holocron
-		"wiki",
-	],
-	// Source repo opts out of `holocron sync`'s package.json script writes: its
-	// root scripts (`build`, `test`, …) must stay bootstrap-safe raw commands
-	// because `holocron` here IS the local build artifact (`node
-	// packages/cli/dist/cli.mjs`), not an installed bin. Consumer repos let
-	// sync manage the `holocron` entry + `holocron run <task>` wrappers.
-	syncScripts: false,
+	// The preset's task set (lint + the org linter set, test, typecheck — all
+	// `{ required: true }` — plus security / review / stale / greetings /
+	// dependencies / bookkeeping / deploy). The repo-specific tasks (audit,
+	// release, sync, wiki) and `syncScripts: false` live in `astromech.config.ts`
+	// and are merged in by astromech's `loadTasksConfig`.
+	tasks: [...presetTasks],
 	providers: {
 		...providers,
 		secrets: "github",
