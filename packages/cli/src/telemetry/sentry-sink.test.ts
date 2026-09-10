@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@sentry/node", () => ({
 	init: vi.fn(),
@@ -12,49 +12,29 @@ vi.mock("@sentry/node", () => ({
 
 import * as Sentry from "@sentry/node";
 
-import { resolveDsn, scrubError, SentrySink } from "./sentry-sink.js";
-
-const originalEnv = process.env;
+import { scrubError, SentrySink } from "./sentry-sink.js";
 
 beforeEach(() => {
-	process.env = { ...originalEnv, HOLOCRON_SENTRY_DSN: undefined, SENTRY_DSN: undefined };
 	vi.clearAllMocks();
-});
-afterEach(() => {
-	process.env = originalEnv;
 });
 
 const CTX = {
+	dsn: "https://key@o0.ingest.us.sentry.io/0",
 	release: "holocron@1.2.3",
 	environment: "local" as const,
 	tags: { os: "darwin", node: "v22", ci: "false" },
 };
 
-describe("resolveDsn", () => {
-	it("uses the built-in fallback when no env var is set", () => {
-		expect(resolveDsn()).toContain("ingest.us.sentry.io");
-	});
-	it("prefers SENTRY_DSN over the fallback", () => {
-		process.env["SENTRY_DSN"] = "https://vendor@o1.ingest.sentry.io/1";
-		expect(resolveDsn()).toBe("https://vendor@o1.ingest.sentry.io/1");
-	});
-	it("prefers HOLOCRON_SENTRY_DSN over SENTRY_DSN", () => {
-		process.env["HOLOCRON_SENTRY_DSN"] = "https://hlc@o2.ingest.sentry.io/2";
-		process.env["SENTRY_DSN"] = "https://vendor@o1.ingest.sentry.io/1";
-		expect(resolveDsn()).toBe("https://hlc@o2.ingest.sentry.io/2");
-	});
-});
-
 describe("SentrySink.init", () => {
-	it("passes release, environment, tracesSampleRate and beforeSend", () => {
+	it("passes the resolved dsn, release, environment, tracesSampleRate and beforeSend", () => {
 		new SentrySink().init(CTX);
 		expect(Sentry.init).toHaveBeenCalledWith(
 			expect.objectContaining({
+				dsn: "https://key@o0.ingest.us.sentry.io/0",
 				release: "holocron@1.2.3",
 				environment: "local",
 				tracesSampleRate: 1.0,
 				beforeSend: scrubError,
-				dsn: expect.stringContaining("ingest.us.sentry.io"),
 			})
 		);
 	});

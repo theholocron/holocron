@@ -1,29 +1,20 @@
 /**
- * `SentrySink` — the **only** `@sentry/node` import in the CLI. Error tracking +
- * per-command performance spans, activated self-contained per ADR-0007:
+ * `SentrySink` — the **only** `@sentry/node` call site. A portable `ErrorSink`
+ * adapter: error tracking + per-command performance spans. It reads no
+ * environment and ships no credentials — `init()` takes a resolved `dsn`; the
+ * caller (the CLI's `telemetry.ts`, via `telemetry/resolve.ts`) owns the env
+ * chain and the fallback. An empty `dsn` is the caller's signal to install a
+ * `NoopErrorSink` instead — it is never passed here.
  *
- *   HOLOCRON_SENTRY_DSN  →  SENTRY_DSN  →  built-in fallback DSN
- *
- * A consumer repo with `SENTRY_DSN` set gets CLI errors routed to its own
- * project with no config. An empty resolved DSN means "silently off" (safe to
- * ship before a project exists) — {@link resolveDsn} returning `""` is how the
- * caller decides to install a `NoopErrorSink` instead.
+ * Destined for `@theholocron/observability/errors` (#635); the redaction helper
+ * moves with it as `/core`.
  */
 
 import type { ErrorEvent, EventHint } from "@sentry/node";
 import * as Sentry from "@sentry/node";
 
-import { env } from "../env.js";
 import { redactObject } from "./redact.js";
 import type { CommandSpan, ErrorSink } from "./sinks.js";
-
-// Holocron's own Sentry project — the fallback when no env var points elsewhere.
-const FALLBACK_DSN = "https://95cbb72ad5636c94e119a5405ee8f55f@o4508238154104832.ingest.us.sentry.io/4511810950791168";
-
-/** Resolve the Sentry DSN. `""` → error telemetry disabled. */
-export function resolveDsn(): string {
-	return env.get("HOLOCRON_SENTRY_DSN") ?? env.get("SENTRY_DSN") ?? FALLBACK_DSN;
-}
 
 /** `beforeSend` — token-shaped strings never leave the process. */
 export function scrubError(event: ErrorEvent, _hint: EventHint): ErrorEvent {
@@ -31,9 +22,9 @@ export function scrubError(event: ErrorEvent, _hint: EventHint): ErrorEvent {
 }
 
 export class SentrySink implements ErrorSink {
-	init(ctx: { release: string; environment: "ci" | "local"; tags: Record<string, string> }): void {
+	init(ctx: { dsn: string; release: string; environment: "ci" | "local"; tags: Record<string, string> }): void {
 		Sentry.init({
-			dsn: resolveDsn(),
+			dsn: ctx.dsn,
 			release: ctx.release,
 			environment: ctx.environment,
 			tracesSampleRate: 1.0,

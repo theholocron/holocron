@@ -6,7 +6,7 @@ describe("NoopErrorSink", () => {
 	it("every method is a silent no-op and startSpan yields nothing", async () => {
 		const sink: ErrorSink = new NoopErrorSink();
 		expect(sink.startSpan("setup")).toBeUndefined();
-		sink.init({ release: "holocron@1.0.0", environment: "local", tags: {} });
+		sink.init({ dsn: "", release: "holocron@1.0.0", environment: "local", tags: {} });
 		sink.captureException(new Error("ignored"));
 		sink.endSession();
 		await expect(sink.flush()).resolves.toBeUndefined();

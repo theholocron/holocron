@@ -31,8 +31,13 @@ const { errorSink, analyticsSink, SentrySinkMock, PostHogSinkMock, resolveDsnMoc
 	};
 });
 
-vi.mock("./telemetry/sentry-sink.js", () => ({ SentrySink: SentrySinkMock, resolveDsn: resolveDsnMock }));
-vi.mock("./telemetry/posthog-sink.js", () => ({ PostHogSink: PostHogSinkMock, resolvePostHogKey: resolveKeyMock }));
+vi.mock("./telemetry/sentry-sink.js", () => ({ SentrySink: SentrySinkMock }));
+vi.mock("./telemetry/posthog-sink.js", () => ({ PostHogSink: PostHogSinkMock }));
+vi.mock("./telemetry/resolve.js", () => ({
+	resolveDsn: resolveDsnMock,
+	resolvePostHogKey: resolveKeyMock,
+	resolvePostHogHost: vi.fn(() => "https://us.i.posthog.com"),
+}));
 
 vi.mock("node:os", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:os")>();
@@ -119,9 +124,11 @@ it("HOLOCRON_TELEMETRY set to anything but the exact string 'false' stays on", (
 // ── init ─────────────────────────────────────────────────────────────────────
 
 describe("init", () => {
-	it("installs SentrySink with release + environment + os/node/ci tags", () => {
+	it("installs SentrySink with the resolved dsn + release + environment + os/node/ci tags", () => {
+		resolveDsnMock.mockReturnValue("https://key@o9.ingest.sentry.io/9");
 		init("1.2.3");
 		expect(errorSink.init).toHaveBeenCalledWith({
+			dsn: "https://key@o9.ingest.sentry.io/9",
 			release: "holocron@1.2.3",
 			environment: "local",
 			tags: { os: process.platform, node: process.version, ci: "false" },
@@ -148,6 +155,12 @@ describe("init", () => {
 		init("1.0.0");
 		expect(PostHogSinkMock).not.toHaveBeenCalled();
 		expect(SentrySinkMock).toHaveBeenCalled();
+	});
+
+	it("constructs PostHogSink with the resolved key + host", () => {
+		resolveKeyMock.mockReturnValue("phc_resolved");
+		init("1.0.0");
+		expect(PostHogSinkMock).toHaveBeenCalledWith({ key: "phc_resolved", host: "https://us.i.posthog.com" });
 	});
 
 	it("identifies the machine with anonymous props — no raw hostname/username", () => {

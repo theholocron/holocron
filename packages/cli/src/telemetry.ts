@@ -7,9 +7,10 @@
  * `posthog-node` call sites, and a `Noop*Sink` is installed when telemetry is
  * off. Same seam `@theholocron/logger` uses for Pino.
  *
- * Activation is env-var + shipped-fallback, resolved inside each sink. The
- * single kill switch is `HOLOCRON_TELEMETRY=false` (legacy alias
- * `NO_HOLOCRON_TELEMETRY`); see ADR-0007 / ADR-0008.
+ * Activation is env-var + shipped-fallback, resolved here (`telemetry/resolve.ts`)
+ * and passed to the sink — the adapters read no environment. The single kill
+ * switch is `HOLOCRON_TELEMETRY=false` (legacy alias `NO_HOLOCRON_TELEMETRY`);
+ * see ADR-0007 / ADR-0008.
  */
 
 import { createHash } from "node:crypto";
@@ -18,9 +19,10 @@ import { hostname, userInfo } from "node:os";
 import type { TelemetryConfig } from "./config/config.js";
 import { env } from "./env.js";
 import { getRunId } from "./logger.js";
-import { PostHogSink, resolvePostHogKey } from "./telemetry/posthog-sink.js";
+import { PostHogSink } from "./telemetry/posthog-sink.js";
 import { redactObject } from "./telemetry/redact.js";
-import { resolveDsn, SentrySink } from "./telemetry/sentry-sink.js";
+import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./telemetry/resolve.js";
+import { SentrySink } from "./telemetry/sentry-sink.js";
 import {
 	type AnalyticsSink,
 	type CommandSpan,
@@ -76,16 +78,19 @@ function baseProps(): Record<string, unknown> {
 // ── lifecycle ────────────────────────────────────────────────────────────────
 
 export function init(version: string): void {
-	if (isEnabled() && resolveDsn() !== "") {
+	const dsn = resolveDsn();
+	if (isEnabled() && dsn !== "") {
 		errors = new SentrySink();
 		errors.init({
+			dsn,
 			release: `holocron@${version}`,
 			environment: env.get("CI") ? "ci" : "local",
 			tags: { os: process.platform, node: process.version, ci: String(Boolean(env.get("CI"))) },
 		});
 	}
-	if (isEnabled() && resolvePostHogKey() !== "") {
-		analytics = new PostHogSink();
+	const posthogKey = resolvePostHogKey();
+	if (isEnabled() && posthogKey !== "") {
+		analytics = new PostHogSink({ key: posthogKey, host: resolvePostHogHost() });
 		analytics.identify(machineId(), {
 			ci: Boolean(env.get("CI")),
 			os: process.platform,
