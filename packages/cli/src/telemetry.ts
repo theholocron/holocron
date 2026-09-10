@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import { hostname, userInfo } from "node:os";
 
+import type { TelemetryConfig } from "./config/config.js";
 import { env } from "./env.js";
 import { getRunId } from "./logger.js";
 import { PostHogSink, resolvePostHogKey } from "./telemetry/posthog-sink.js";
@@ -92,6 +93,34 @@ export function init(version: string): void {
 			cli: version,
 			...(env.get("HOLOCRON_ORG") ? { org: env.get("HOLOCRON_ORG") } : {}),
 		});
+	}
+}
+
+/**
+ * Apply the `telemetry` config block — the committed override layer, run once
+ * per command *after* config loads (so it lands after {@link init}). Env still
+ * wins: this only ever *narrows* what `init` turned on, never re-enables.
+ *
+ * - `enabled: false` → swap both sinks to no-ops for the rest of the run.
+ * - `analytics: "none"` → drop usage analytics only; error reporting stays.
+ *
+ * A live sink is drained best-effort before it is dropped so an in-flight
+ * Sentry session / PostHog queue still leaves the process cleanly.
+ */
+export function applyConfig(cfg: TelemetryConfig | undefined): void {
+	if (!cfg) return;
+
+	if (cfg.enabled === false) {
+		void errors.flush();
+		void analytics.shutdown();
+		errors = new NoopErrorSink();
+		analytics = new NoopAnalyticsSink();
+		return;
+	}
+
+	if (cfg.analytics === "none") {
+		void analytics.shutdown();
+		analytics = new NoopAnalyticsSink();
 	}
 }
 

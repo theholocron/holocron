@@ -58,6 +58,31 @@ Additionally, `HOLOCRON_TELEMETRY=false` disables the `logs` Axiom transport
 while leaving local logging intact — useful when running offline or in an
 environment where outbound network calls should be suppressed.
 
+### The `config.telemetry` override layer
+
+`errors` (Sentry) and CLI usage analytics (PostHog) also ship a built-in
+fallback DSN / key, so they are **on by default** even with no env var set
+(ADR-0007 #533, ADR-0008). Removing the env vars is not enough to opt those
+out — there is nothing to remove.
+
+For that, `holocron.config` carries a small `telemetry` block (ADR-0008
+amendment, #575):
+
+```ts
+telemetry: {
+  enabled: false,       // committed peer of HOLOCRON_TELEMETRY=false — no-ops both sinks
+  // or:
+  analytics: "none",    // drops PostHog usage analytics, keeps Sentry error reporting
+}
+```
+
+This is an **override layer, not the primary path**. Env var still wins and
+is checked first (`HOLOCRON_TELEMETRY=false` → `config.telemetry.enabled` →
+default on); the config field only ever _narrows_ what env + fallback turned
+on, never re-enables. It is applied after config load, so it is the right
+tool for a repo-wide committed choice, not for a zero-leak kill switch — that
+remains `HOLOCRON_TELEMETRY=false`, which gates before the CLI emits anything.
+
 ## Contrast with standard capabilities
 
 |                               | Standard capability              | Self-contained capability  |

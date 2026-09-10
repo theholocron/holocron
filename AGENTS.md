@@ -90,6 +90,17 @@ not object destructuring.
 
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
+- **No third-party observability / telemetry SDK is imported outside its own
+  adapter module.** `pino`, `@sentry/node`, `posthog-node` each sit behind a
+  Holocron-owned interface — `Logger` (`packages/logger/src/interface.ts`),
+  `ErrorSink` / `AnalyticsSink` (`packages/cli/src/telemetry/sinks.ts`) — with a
+  `Noop*` implementation for the opted-out / no-credentials path and one
+  concrete adapter (`PinoLogger`, `SentrySink`, `PostHogSink`) that is the sole
+  call site of the vendor package. `git grep -n "@sentry/node\|posthog-node"
+packages/cli/src` must return only `telemetry/sentry-sink.ts` /
+  `telemetry/posthog-sink.ts` (+ their tests). Orchestration
+  (`telemetry.ts`) holds no SDK import. A vendor swap or a test fake is one
+  file.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The
   skill produces ~14 files in the right shape; only the capability

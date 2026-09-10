@@ -42,7 +42,16 @@ vi.mock("node:os", async (importOriginal) => {
 import { userInfo } from "node:os";
 
 import * as loggerMod from "./logger.js";
-import { captureException, endSession, event, flush, init, resetTelemetry, startCommand } from "./telemetry.js";
+import {
+	applyConfig,
+	captureException,
+	endSession,
+	event,
+	flush,
+	init,
+	resetTelemetry,
+	startCommand,
+} from "./telemetry.js";
 
 const lastCapture = (): { 0: string; 1: string; 2: Record<string, unknown> } =>
 	analyticsSink.capture.mock.calls.at(-1) as never;
@@ -240,6 +249,55 @@ describe("event", () => {
 		event("sync_github_run", { repo: "x" });
 		expect(lastCapture()[2]).toEqual(expect.objectContaining({ runId: "11111111-2222-3333-4444-555555555555" }));
 		spy.mockRestore();
+	});
+});
+
+// ── applyConfig (the telemetry config block) ─────────────────────────────────
+
+describe("applyConfig", () => {
+	beforeEach(() => init("1.0.0"));
+
+	it("is a no-op when the config block is absent", () => {
+		applyConfig(undefined);
+		startCommand("setup");
+		expect(analyticsSink.capture).toHaveBeenCalled();
+		expect(errorSink.startSpan).toHaveBeenCalled();
+	});
+
+	it("enabled: false drops both sinks — every later call is a no-op", () => {
+		applyConfig({ enabled: false });
+		vi.clearAllMocks();
+		startCommand("setup");
+		captureException(new Error("x"));
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
+		expect(errorSink.captureException).not.toHaveBeenCalled();
+		expect(errorSink.startSpan).not.toHaveBeenCalled();
+	});
+
+	it("enabled: false drains a live sink before dropping it", () => {
+		applyConfig({ enabled: false });
+		expect(errorSink.flush).toHaveBeenCalled();
+		expect(analyticsSink.shutdown).toHaveBeenCalled();
+	});
+
+	it('analytics: "none" drops usage analytics but keeps error reporting', () => {
+		applyConfig({ analytics: "none" });
+		vi.clearAllMocks();
+		const err = new Error("still tracked");
+		captureException(err);
+		event("sync_github_run", { repo: "x" });
+		expect(errorSink.captureException).toHaveBeenCalledWith(err);
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
+	});
+
+	it("enabled: true is a no-op — it never re-enables what the env turned off", () => {
+		resetTelemetry();
+		process.env["HOLOCRON_TELEMETRY"] = "false";
+		init("1.0.0"); // env gate → Noop sinks
+		vi.clearAllMocks();
+		applyConfig({ enabled: true });
+		startCommand("setup");
+		expect(analyticsSink.capture).not.toHaveBeenCalled();
 	});
 });
 

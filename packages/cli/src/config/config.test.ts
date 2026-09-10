@@ -135,6 +135,14 @@ describe("resolveConfig", () => {
 		});
 	});
 
+	it("passes the telemetry config block through", () => {
+		expect(resolveConfig(minimal).telemetry).toBeUndefined();
+		expect(resolveConfig({ ...minimal, telemetry: { enabled: false } }).telemetry).toEqual({ enabled: false });
+		expect(resolveConfig({ ...minimal, telemetry: { analytics: "none" } }).telemetry).toEqual({
+			analytics: "none",
+		});
+	});
+
 	it("passes syncScripts and holocronScript through", () => {
 		expect(resolveConfig(minimal).syncScripts).toBeUndefined();
 		expect(resolveConfig(minimal).holocronScript).toBeUndefined();
