@@ -47,7 +47,7 @@ The machinery also has consumers beyond the CLI's own commands:
 secondary repo needs the thin callers, the script list, and the
 required-checks list.
 
-Tracked in #581. Spec: `.notes/tech-astromech-task-runner.spec.md`.
+Tracked in #581. Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md`.
 
 ## Decision
 
@@ -220,4 +220,4 @@ already points.
 - ADR-0010 — `@theholocron/datapad`, the config loader astromech's config
   system sits on
 - vite / vitest `defineConfig` layering — the config-system model
-- Spec: `.notes/tech-astromech-task-runner.spec.md`
+- Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md`

@@ -5,7 +5,7 @@
  *
  * Keyed identically to the workflow templates — a task IS a workflow.
  *
- * Spec: `.notes/tech-astromech-task-runner.spec.md` (epic #581).
+ * Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md` (epic #581).
  */
 
 /** How to run one task (or job) locally. */

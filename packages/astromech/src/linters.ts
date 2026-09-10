@@ -5,7 +5,7 @@
  * the single source of truth for that mapping; {@link superLinterConfig}
  * (CI) and the `holocron run lint` aggregate (local) both read it.
  *
- * Spec: `.notes/tech-astromech-task-runner.spec.md` "Lint parity".
+ * Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md` "Lint parity".
  */
 
 export interface LinterDef {
