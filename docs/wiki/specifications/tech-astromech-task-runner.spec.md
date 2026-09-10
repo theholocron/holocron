@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 issue: theholocron/holocron#581
 blocked-by: []
 related:
@@ -25,7 +25,7 @@ the reusable `workflow_call` implementations pushed to `theholocron/.github`.
 A self-contained library the CLI instantiates once — like
 `@theholocron/logger`, not a capability plugin.
 
-ADR: [ADR-0009](../docs/wiki/decisions/0009-astromech-task-runner-package.md).
+ADR: [ADR-0009](../decisions/0009-astromech-task-runner-package.md).
 Supersedes the `config.tasks` sketch, the raw-script sync of #566/#570, and
 the hand-maintained `repo.requiredChecks` list.
 
@@ -97,7 +97,7 @@ Astromech owns the **schema**, **validation**, and its **own
 `defineConfig`** — exported from the package root and from a
 zero-runtime-dep `@theholocron/astromech/config` subpath. Generic file
 loading + merging is delegated to `@theholocron/datapad`
-([ADR-0010](../docs/wiki/decisions/0010-datapad-config-loader.md)) — the
+([ADR-0010](../decisions/0010-datapad-config-loader.md)) — the
 same loader `@theholocron/cli` uses for `holocron.config.*`.
 
 ```ts

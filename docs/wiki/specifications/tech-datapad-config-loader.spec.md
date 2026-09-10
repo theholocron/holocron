@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 issue: theholocron/holocron#582
 blocked-by: []
 related:
@@ -12,7 +12,7 @@ Generic, holocron-agnostic config-file loading. Extracted from
 `packages/cli/src/config/load-config.ts`; consumed by `@theholocron/cli`
 (`holocron.config.*`) and `@theholocron/astromech` (`astromech.config.*`).
 
-ADR: [ADR-0010](../docs/wiki/decisions/0010-datapad-config-loader.md).
+ADR: [ADR-0010](../decisions/0010-datapad-config-loader.md).
 Shipped in PR #582.
 
 ## Scope
