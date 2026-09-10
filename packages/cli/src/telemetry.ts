@@ -110,16 +110,22 @@ export function init(version: string): void {
 export function applyConfig(cfg: TelemetryConfig | undefined): void {
 	if (!cfg) return;
 
+	// Best-effort drain — never let a rejected close() surface as an unhandled
+	// rejection from this sync path.
+	const drain = (p: Promise<unknown>): void => {
+		p.catch(() => {});
+	};
+
 	if (cfg.enabled === false) {
-		void errors.flush();
-		void analytics.shutdown();
+		drain(errors.flush());
+		drain(analytics.shutdown());
 		errors = new NoopErrorSink();
 		analytics = new NoopAnalyticsSink();
 		return;
 	}
 
 	if (cfg.analytics === "none") {
-		void analytics.shutdown();
+		drain(analytics.shutdown());
 		analytics = new NoopAnalyticsSink();
 	}
 }
