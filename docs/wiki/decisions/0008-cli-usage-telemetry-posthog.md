@@ -97,14 +97,15 @@ PostHog event can be pivoted to the full Axiom trace for that run. All
   `isEnabled()` is unchanged (the existing opt-out covers PostHog).
 - Sentry and PostHog stay independent — no shared abstraction beyond
   `isEnabled()` and the redactor.
-- **(#574, as-built)** Each SDK now sits behind a Holocron-owned interface —
-  `ErrorSink` (Sentry) and `AnalyticsSink` (PostHog) in
-  `packages/cli/src/telemetry/sinks.ts`. `@sentry/node` and `posthog-node` are
-  imported **only** from `telemetry/sentry-sink.ts` / `telemetry/posthog-sink.ts`;
-  `telemetry.ts` is orchestration with no SDK import, and the opted-out /
-  no-credentials path is an explicit `NoopErrorSink` / `NoopAnalyticsSink`
-  rather than a scatter of `if (!enabled)` guards. Same seam
-  `@theholocron/logger` uses for Pino.
+- **(#574 → #633, as-built)** Each SDK sits behind an interface — `ErrorSink`
+  (Sentry) and `AnalyticsSink` (PostHog). #574 built the seam inside the CLI;
+  **#633 extracted it into `@theholocron/observability`** alongside the logger.
+  The interfaces + `NoopErrorSink` / `NoopAnalyticsSink` + the redactor are
+  `@theholocron/observability/core`; `SentrySink` is `/errors`, `PostHogSink` is
+  `/analytics`, and those are the only `@sentry/node` / `posthog-node` imports
+  anywhere. The CLI's `telemetry.ts` keeps the orchestration and
+  `telemetry/resolve.ts` keeps the Holocron-specific DSN / key resolution
+  (env chain + shipped fallbacks) — the adapters take a resolved value.
 - `sync_github_run` needs `runSyncGithub` to call a new `telemetry.event()`
   export — coordinate with #537's structured-logging pass over the same
   function so the call sites are touched once.

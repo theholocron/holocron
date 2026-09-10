@@ -86,6 +86,9 @@ catalogs:
     '@sentry/node':
       specifier: ^10.70.0
       version: 10.70.0
+    '@theholocron/observability':
+      specifier: ^0.2.0
+      version: 0.2.0
     '@types/node':
       specifier: ^26
       version: 26.1.2
@@ -369,6 +372,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@axiomhq/pino':
+        specifier: 'catalog:'
+        version: 2.0.0
       '@inquirer/prompts':
         specifier: 'catalog:'
         version: 8.5.2(@types/node@26.1.2)
@@ -396,9 +402,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.14.2(vitest@4.1.11)
-      '@theholocron/logger':
-        specifier: workspace:*
-        version: link:../logger
+      '@theholocron/observability':
+        specifier: 'catalog:'
+        version: 0.2.0(@axiomhq/pino@2.0.0)(@sentry/node@10.70.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.51.6)
       '@theholocron/registry-doc':
         specifier: ^1.12.0
         version: 1.12.0
@@ -408,6 +414,12 @@ importers:
       ora:
         specifier: 'catalog:'
         version: 9.4.1
+      pino:
+        specifier: 'catalog:'
+        version: 10.3.1
+      pino-pretty:
+        specifier: 'catalog:'
+        version: 13.1.3
       posthog-node:
         specifier: 'catalog:'
         version: 5.51.6
@@ -1270,58 +1282,6 @@ importers:
       tsx:
         specifier: 4.22.4
         version: 4.22.4
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.11)(vite@8.2.1(@types/node@26.1.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-
-  packages/logger:
-    dependencies:
-      '@axiomhq/pino':
-        specifier: 'catalog:'
-        version: 2.0.0
-      pino:
-        specifier: 'catalog:'
-        version: 10.3.1
-      pino-pretty:
-        specifier: 'catalog:'
-        version: 13.1.3
-    devDependencies:
-      '@theholocron/eslint-config':
-        specifier: catalog:configs
-        version: 8.0.0(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.11.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
-      '@theholocron/tsconfig':
-        specifier: catalog:configs
-        version: 8.0.0(typescript@5.9.3)
-      '@theholocron/tsdown-config':
-        specifier: catalog:configs
-        version: 8.0.0(tsdown@0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3))
-      '@theholocron/vitest-config':
-        specifier: catalog:configs
-        version: 8.0.0(@vitest/coverage-v8@4.1.11)(vitest@4.1.11)
-      '@types/node':
-        specifier: 'catalog:'
-        version: 26.1.2
-      '@vitest/coverage-v8':
-        specifier: 'catalog:'
-        version: 4.1.11(vitest@4.1.11)
-      '@vitest/eslint-plugin':
-        specifier: 'catalog:'
-        version: 1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.8.1(jiti@2.7.0)
-      eslint-plugin-n:
-        specifier: 'catalog:'
-        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
-      globals:
-        specifier: 'catalog:'
-        version: 17.11.0
-      tsdown:
-        specifier: 'catalog:'
-        version: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -3554,6 +3514,27 @@ packages:
   '@theholocron/neon-client@1.14.2':
     resolution: {integrity: sha512-c3rQj2eLmFsTC0u7I811yD6UuhTC/8wpTTy/c8WR+sq73stis/h+2ha2uZoLqsrIQhEtzBpylCKjlOl4PoCB2A==}
     engines: {node: '>=22.0.0'}
+
+  '@theholocron/observability@0.2.0':
+    resolution: {integrity: sha512-GeXqLpMB2FBXWTh/qum/ZvtQ38PJvRF1NRTTSBaTqzBc/FG1eyT/57jbMXUNfHi1KVhMkNM/vQ0Kz+hgr0Y+/w==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@axiomhq/pino': '>=2'
+      '@sentry/node': '>=10'
+      pino: '>=10'
+      pino-pretty: '>=13'
+      posthog-node: '>=5'
+    peerDependenciesMeta:
+      '@axiomhq/pino':
+        optional: true
+      '@sentry/node':
+        optional: true
+      pino:
+        optional: true
+      pino-pretty:
+        optional: true
+      posthog-node:
+        optional: true
 
   '@theholocron/posthog-client@1.14.2':
     resolution: {integrity: sha512-2APIGO1UeeMed/nH9mgxy/Wq6G27XdwKx4gsDacaxixXLF9tooWHtZFOxDbkIeia2p3Kotf8zFCSwRt3z2vvKg==}
@@ -10068,6 +10049,14 @@ snapshots:
       '@theholocron/http-client': 1.14.2(vitest@4.1.11)
     transitivePeerDependencies:
       - vitest
+
+  '@theholocron/observability@0.2.0(@axiomhq/pino@2.0.0)(@sentry/node@10.70.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.51.6)':
+    optionalDependencies:
+      '@axiomhq/pino': 2.0.0
+      '@sentry/node': 10.70.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))
+      pino: 10.3.1
+      pino-pretty: 13.1.3
+      posthog-node: 5.51.6
 
   '@theholocron/posthog-client@1.14.2(vitest@4.1.11)':
     dependencies:

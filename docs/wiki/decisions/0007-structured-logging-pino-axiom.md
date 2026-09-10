@@ -186,6 +186,14 @@ already drives Sentry initialisation today.
 `@theholocron/logger`. Other repos that need structured logging import the `Logger`
 interface and `createLogger` factory — never Pino directly.
 
+> **As built (2026-09, epic #633):** the package moved to its own repo,
+> `theholocron/observability`, published as **`@theholocron/observability`** with
+> subpath exports. Structured logging is `@theholocron/observability/logger`
+> (`createLogger`, plus a zero-dep `ConsoleLogger`); the `Logger` interface is
+> `@theholocron/observability/core`. The two other sinks moved with it —
+> `/errors` (`SentrySink`) and `/analytics` (`PostHogSink`). `@theholocron/logger`
+> is deprecated on npm.
+
 ## Consequences
 
 - All operational `console.log` / `console.error` call sites in the CLI and plugins must
@@ -201,9 +209,11 @@ interface and `createLogger` factory — never Pino directly.
 - Swapping Pino for another library in the future requires only changing the `PinoLogger`
   implementation class — no call sites change
 - The same seam now covers the other two sinks: **#574** put Sentry behind an
-  `ErrorSink` interface and PostHog behind an `AnalyticsSink`
-  (`packages/cli/src/telemetry/sinks.ts`), so `@sentry/node` / `posthog-node`
-  are each confined to one adapter module — matching `PinoLogger`
+  `ErrorSink` interface and PostHog behind an `AnalyticsSink`, so `@sentry/node`
+  / `posthog-node` are each confined to one adapter module — matching
+  `PinoLogger`. **#633** then extracted all three into
+  `@theholocron/observability` (see the "As built" note above); no
+  observability SDK is imported anywhere in `theholocron/holocron` any more.
 
 ## References
 

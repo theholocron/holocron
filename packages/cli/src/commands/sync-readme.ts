@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import type { PackagesRegistry } from "@theholocron/components-doc/markdown";
 import { generateReadme } from "@theholocron/components-doc/markdown";
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
 import type { LoadedConfig } from "../config/load-config.js";

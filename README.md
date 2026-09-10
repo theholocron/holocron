@@ -182,7 +182,6 @@ packages/
   holocron-plugin-postman/        — @theholocron/holocron-plugin-postman    (tooling)
   holocron-plugin-posthog/        — @theholocron/holocron-plugin-posthog   (analytics)
   holocron-plugin-sentry/         — @theholocron/holocron-plugin-sentry     (errors)
-  logger/                         — @theholocron/logger                     (structured logging — Pino + Axiom)
   datapad/                        — @theholocron/datapad                    (config-file loader — <name>.config.*)
   astromech/                      — @theholocron/astromech                  (task runner — holocron run / ci)
 holocron.config.ts                — this repo's own holocron config (self-hosted)

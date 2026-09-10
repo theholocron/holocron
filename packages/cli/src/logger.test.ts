@@ -15,8 +15,8 @@ const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 const createLoggerMock = vi.hoisted(() => vi.fn());
 const getTokenMock = vi.hoisted(() => vi.fn<(account: string) => string | null>());
 
-vi.mock("@theholocron/logger", async (importActual) => {
-	const actual = await importActual<typeof import("@theholocron/logger")>();
+vi.mock("@theholocron/observability/logger", async (importActual) => {
+	const actual = await importActual<typeof import("@theholocron/observability/logger")>();
 	return {
 		...actual,
 		createLogger: createLoggerMock,

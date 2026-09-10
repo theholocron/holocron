@@ -12,7 +12,7 @@
 
 import { spawnSync } from "node:child_process";
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";

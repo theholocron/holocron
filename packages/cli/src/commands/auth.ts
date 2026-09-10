@@ -20,7 +20,7 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/keyring.js";
 import { resolvePluginPackage } from "../config/config.js";

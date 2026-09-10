@@ -80,7 +80,6 @@ In the npm web UI, for each `@theholocron/*` package:
 Currently configured:
 
 - `@theholocron/cli`
-- `@theholocron/logger`
 - `@theholocron/holocron-plugin-github`
 - `@theholocron/holocron-plugin-vercel`
 - `@theholocron/holocron-plugin-neon`

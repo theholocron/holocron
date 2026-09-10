@@ -24,7 +24,7 @@
  *     them from env (or pull from `vault` at runtime)
  */
 
-import type { LogLevel } from "@theholocron/logger";
+import type { LogLevel } from "@theholocron/observability/core";
 
 import {
 	type CapabilityKey,

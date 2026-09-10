@@ -28,7 +28,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { Logger } from "@theholocron/logger";
+import type { Logger } from "@theholocron/observability/core";
 
 import { type CliEnv, makeEnv } from "../env.js";
 import { getLogger } from "../logger.js";
