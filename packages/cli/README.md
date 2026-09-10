@@ -99,6 +99,16 @@ export default defineConfig({
 });
 ```
 
+The generated ruleset also sets `require_extra_approval_for_unattributed_changes:
+false` — with `required_approving_review_count: 0` and a single maintainer, the
+GitHub default (`true`) is an unsatisfiable block on any PR with an
+unverified/unattributed commit. Repository-admin bypass still covers the real
+risk. And the `codecov.yml` `holocron setup` writes carries `if_not_found:
+success` on every status default, so an infra-only PR (dep bump, config,
+lockfile — no coverable change) passes instead of hanging on a `codecov/*`
+required check that never posts. A re-run of `holocron setup` backfills both into
+an existing repo.
+
 ### Git hooks
 
 ```ts

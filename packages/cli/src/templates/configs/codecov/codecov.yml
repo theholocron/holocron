@@ -9,9 +9,14 @@ coverage:
       default:
         target: auto
         threshold: 2%
+        # Infra-only PRs (dep bumps, config, lockfile) touch no coverable code,
+        # so codecov produces no report to compare. Pass instead of blocking
+        # forever on a required check that will never post.
+        if_not_found: success
     patch:
       default:
         target: 80%
+        if_not_found: success
 
 comment:
   layout: "reach,diff,flags,components"
@@ -23,4 +28,5 @@ component_management:
     statuses:
       - type: patch
         target: 80%
+        if_not_found: success
   individual_components:
