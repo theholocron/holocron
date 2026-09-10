@@ -14,7 +14,7 @@ export interface CommandSpan {
 
 /** Error tracking + performance (Sentry). */
 export interface ErrorSink {
-	init(ctx: { release: string; environment: "ci" | "local"; tags: Record<string, string> }): void;
+	init(ctx: { dsn: string; release: string; environment: "ci" | "local"; tags: Record<string, string> }): void;
 	/** Start a command span. Returns `undefined` for a no-op sink. */
 	startSpan(name: string): CommandSpan | undefined;
 	captureException(err: unknown): void;

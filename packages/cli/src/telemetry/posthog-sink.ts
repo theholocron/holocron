@@ -1,40 +1,23 @@
 /**
- * `PostHogSink` — the **only** `posthog-node` import in the CLI. Product
- * analytics (usage, adoption, retention), activated self-contained per ADR-0008:
+ * `PostHogSink` — the **only** `posthog-node` call site. A portable
+ * `AnalyticsSink` adapter: usage, adoption, retention. It reads no environment
+ * and ships no credentials — the constructor takes a resolved `key` + `host`;
+ * the caller (the CLI's `telemetry.ts`, via `telemetry/resolve.ts`) owns the
+ * env chain and the fallback. An empty `key` is the caller's signal to install
+ * a `NoopAnalyticsSink` instead — it is never passed here.
  *
- *   HOLOCRON_POSTHOG_PROJECT_TOKEN  →  POSTHOG_PROJECT_TOKEN  →  built-in fallback key
- *   HOLOCRON_POSTHOG_HOST           →  POSTHOG_HOST           →  https://us.i.posthog.com
- *
- * The built-in fallback is an ingest-only project write key (`phc_…`) — it can
- * capture events, never read data — so it ships in the published package, the
- * same risk model as the hard-coded Sentry DSN. {@link resolvePostHogKey}
- * returning `""` is how the caller decides to install a `NoopAnalyticsSink`.
+ * Destined for `@theholocron/observability/analytics` (#635).
  */
 
 import { PostHog } from "posthog-node";
 
-import { env } from "../env.js";
 import type { AnalyticsSink } from "./sinks.js";
-
-const FALLBACK_POSTHOG_PROJECT_TOKEN = "phc_AC4vFCvYzwnzmG7Vg5nEc3PZKZztoPyfKp4Lb9BbXcLK"; // gitleaks:allow
-const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
-
-/** Resolve the PostHog project key. `""` → usage analytics disabled. */
-export function resolvePostHogKey(): string {
-	return (
-		env.get("HOLOCRON_POSTHOG_PROJECT_TOKEN") ?? env.get("POSTHOG_PROJECT_TOKEN") ?? FALLBACK_POSTHOG_PROJECT_TOKEN
-	);
-}
-
-export function resolvePostHogHost(): string {
-	return env.get("HOLOCRON_POSTHOG_HOST") ?? env.get("POSTHOG_HOST") ?? DEFAULT_POSTHOG_HOST;
-}
 
 export class PostHogSink implements AnalyticsSink {
 	#client: PostHog;
 
-	constructor() {
-		this.#client = new PostHog(resolvePostHogKey(), { host: resolvePostHogHost() });
+	constructor(config: { key: string; host: string }) {
+		this.#client = new PostHog(config.key, { host: config.host });
 	}
 
 	identify(distinctId: string, props: Record<string, unknown>): void {
