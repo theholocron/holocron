@@ -1,0 +1,48 @@
+name: Holocron
+description: >
+  Run a Holocron CLI task (`holocron run <task> [job]`). Builds
+  @theholocron/cli from source first when it resolves to an unbuilt
+  workspace checkout (the holocron repo itself); a no-op everywhere else.
+  Requires dependencies to be installed already (run the setup action first).
+
+inputs:
+  task:
+    description: Manifest task to run (typecheck, test, build, audit).
+    required: true
+  job:
+    description: Optional sub-job within the task (e.g. knip, performance for audit).
+    required: false
+    default: ""
+  args:
+    description: Extra arguments forwarded to the tool after `--`.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+
+  steps:
+    - name: Build the workspace when the CLI resolves to an unbuilt checkout
+      shell: bash
+      # The holocron repo carries @theholocron/cli as `workspace:*`; its bin
+      # (dist/cli.mjs) does not exist on a fresh checkout. `pnpm build` is a
+      # turbo run — cached and cheap once warm. A no-op everywhere else, where
+      # the published tarball already ships dist/.
+      run: |
+        if [ ! -f node_modules/@theholocron/cli/dist/cli.mjs ]; then
+          echo "→ @theholocron/cli dist/ missing — building the workspace from source" >&2
+          pnpm build
+        fi
+
+    - name: holocron run ${{ inputs.task }}
+      shell: bash
+      env:
+        HOLOCRON_TASK: ${{ inputs.task }}
+        HOLOCRON_JOB: ${{ inputs.job }}
+        HOLOCRON_ARGS: ${{ inputs.args }}
+      run: |
+        set -- run "$HOLOCRON_TASK"
+        [ -n "$HOLOCRON_JOB" ] && set -- "$@" "$HOLOCRON_JOB"
+        # shellcheck disable=SC2086
+        [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
+        pnpm exec holocron "$@"

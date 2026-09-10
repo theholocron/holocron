@@ -61,9 +61,11 @@ describe("createAstromech().run", () => {
 			exec,
 			print: () => {},
 		}).run("test", { filter: "@scope/x" });
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test", "--filter=@scope/x"], {
-			cwd: "/repo",
-		});
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "test", "--filter=@scope/x", "--", "--coverage"],
+			{ cwd: "/repo" }
+		);
 	});
 
 	it("threads a sub-job through to the registry — run('audit', { job })", () => {

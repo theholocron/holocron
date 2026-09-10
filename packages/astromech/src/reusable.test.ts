@@ -26,6 +26,18 @@ describe("reusableTemplates()", () => {
 		}
 	});
 
+	it("ships the holocron composite action that CI jobs use to run a task", () => {
+		expect(REUSABLE_ACTIONS).toHaveProperty("holocron/action");
+		const action = batch.get(".github/actions/holocron/action.yml")!;
+		expect(action).toBeDefined();
+		expect(action).toContain("name: Holocron");
+		expect(action).toContain("using: composite");
+		// inputs reach `run:` only through env — no `${{ }}` inside a shell script
+		expect(action).toContain("HOLOCRON_TASK: ${{ inputs.task }}");
+		expect(action).toContain("pnpm exec holocron");
+		expect(action).not.toMatch(/run:[^\n]*\$\{\{\s*inputs\./);
+	});
+
 	it("applies the do-not-edit header to YAML — no timestamp", () => {
 		const lint = batch.get(".github/workflows/lint.yml")!;
 		expect(lint.startsWith("# AUTO-GENERATED — do not edit in theholocron/.github directly.\n")).toBe(true);
@@ -47,6 +59,39 @@ describe("reusableTemplates()", () => {
 	it("adds a .properties.json only for templates that have properties", () => {
 		const propsKeys = [...batch.keys()].filter((k) => k.endsWith(".properties.json"));
 		expect(propsKeys).toEqual(["workflow-templates/bookkeeping.properties.json"]);
+	});
+});
+
+describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
+	it("typecheck.yml runs the typecheck task through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["typecheck"]!;
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toMatch(/task: typecheck/);
+		expect(wf).not.toContain("run: pnpm typecheck");
+	});
+
+	it("test.yml unit job runs the test task through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["test"]!;
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toMatch(/task: test/);
+		expect(wf).not.toContain("run: pnpm test:coverage");
+	});
+
+	it("audit.yml runs build / audit knip / audit performance through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["audit"]!;
+		expect(wf).not.toContain('eval "$KNIP_SCRIPT"');
+		expect(wf).not.toContain('eval "$BUILD_SCRIPT"');
+		expect(wf).not.toContain("run: lhci autorun");
+		// the build-script / knip-script inputs are gone — the command comes from
+		// the manifest, and no caller passed them
+		expect(wf).not.toMatch(/^\s+build-script:/m);
+		expect(wf).not.toMatch(/^\s+knip-script:/m);
+		expect(wf).toMatch(/task: build/);
+		expect(wf).toMatch(/task: audit\n\s+job: knip/);
+		expect(wf).toMatch(/task: audit\n\s+job: performance\n\s+args: --config=/);
+		// the bundle-stats uploader still gets its token, at the job level now
+		expect(wf).toContain("CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}");
+		expect(wf).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
 	});
 });
 

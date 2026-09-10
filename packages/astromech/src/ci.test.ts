@@ -197,9 +197,11 @@ describe("runCi", () => {
 	it("--filter is forwarded to turbo", () => {
 		const { run, exec } = makeCi({ "package.json": PKG, "turbo.json": TURBO(["test"]) });
 		run({ tasks: [{ name: "test", required: true }] }, { filter: "@scope/cli" });
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test", "--filter=@scope/cli"], {
-			cwd: CWD,
-		});
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "test", "--filter=@scope/cli", "--", "--coverage"],
+			{ cwd: CWD }
+		);
 	});
 
 	it("de-dupes task entries by name (last wins)", () => {

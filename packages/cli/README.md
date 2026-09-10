@@ -148,6 +148,14 @@ sub-job whose tool isn't installed, or that has no local equivalent
 a task with no sub-jobs the `job` slot is the first passthrough arg
 (`holocron run build src/`).
 
+**CI runs the identical command.** The reusable `typecheck` / `test` / `audit`
+workflows call the `holocron` composite action
+(`theholocron/.github/.github/actions/holocron@main`), whose body is
+`holocron run <task> [job]`. So `holocron run test` locally and the `Test` CI
+job execute the same thing — at a turbo root both are
+`turbo run test -- --coverage` (the registry's org-default flags flow through
+turbo's `--`).
+
 ### `holocron ci`
 
 ```bash
