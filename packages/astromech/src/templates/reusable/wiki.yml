@@ -19,26 +19,23 @@ on: # yamllint disable-line rule:truthy
         default: false
       preview-id:
         description: >
-          Stable ID for the preview URL. The preview is accessible at
-          {fern-org}-preview-{id}.docs.buildwithfern.com. Use the PR number
-          (e.g. "pr-123") so the same URL is reused on every push to
-          the branch.
+          Stable ID for the preview build. Use the PR number (e.g. "pr-123")
+          so the same preview URL is reused on every push to the branch.
         type: string
         required: false
         default: ""
       fern-org:
         description: >
-          Fern workspace org slug (e.g. "holocron"). When set, a GitHub
-          deployment is created after a successful preview so the URL appears
-          in the PR sidebar widget — the same pattern as Cloudflare Pages previews.
+          DEPRECATED — the preview URL is now read from Fern's own output.
+          Kept as a fallback for building the URL when that parse fails, and so
+          existing callers do not error.
         type: string
         required: false
         default: ""
       base-path:
         description: >
-          Basepath appended to the preview URL (e.g. "holocron" when using
-          multi-source routing with wiki.theholocron.dev/holocron).
-          Omit for single-instance Fern sites.
+          DEPRECATED — see fern-org. Basepath appended to the fallback preview
+          URL (e.g. "holocron" for multi-source routing).
         type: string
         required: false
         default: ""
@@ -72,24 +69,38 @@ jobs:
           FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN || secrets.FERN_TOKEN }}
 
       - name: Preview docs
+        id: preview
         if: ${{ inputs.preview && inputs.preview-id != '' }}
-        run: fern generate --docs --preview --id "$PREVIEW_ID"
         env:
           FERN_TOKEN: ${{ secrets.HOLOCRON_FERN_TOKEN || secrets.FERN_TOKEN }}
           PREVIEW_ID: ${{ inputs.preview-id }}
+        run: |
+          out=$(fern generate --docs --preview --id "$PREVIEW_ID" 2>&1) || { printf '%s\n' "$out"; exit 1; }
+          printf '%s\n' "$out"
+          # Fern prints "Published docs to https://<org>-preview-<id>.docs.buildwithfern.com/<path>"
+          url=$(printf '%s\n' "$out" | grep -oiE 'https://[a-z0-9.-]+\.docs\.buildwithfern\.com[^ )]*' | head -n1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Report preview URL
-        if: ${{ inputs.preview && inputs.preview-id != '' && inputs.fern-org != '' }}
+        if: ${{ inputs.preview && inputs.preview-id != '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAPTURED_URL: ${{ steps.preview.outputs.url }}
           FERN_ORG: ${{ inputs.fern-org }}
           PREVIEW_ID: ${{ inputs.preview-id }}
           BASE_PATH: ${{ inputs.base-path }}
         run: |
-          PREVIEW_URL="https://${FERN_ORG}-preview-${PREVIEW_ID}.docs.buildwithfern.com${BASE_PATH:+/${BASE_PATH}}"
+          PREVIEW_URL="$CAPTURED_URL"
+          if [ -z "$PREVIEW_URL" ] && [ -n "$FERN_ORG" ]; then
+            PREVIEW_URL="https://${FERN_ORG}-preview-${PREVIEW_ID}.docs.buildwithfern.com${BASE_PATH:+/${BASE_PATH}}"
+          fi
+          if [ -z "$PREVIEW_URL" ]; then
+            echo "::warning::no preview URL parsed from Fern output and no fern-org fallback — skipping the deployment widget"
+            exit 0
+          fi
           PAYLOAD=$(printf '{"ref":"%s","environment":"wiki (Preview)","description":"Wiki","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
             "$GITHUB_HEAD_REF")
-          DEPLOY_ID=$(echo "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+          DEPLOY_ID=$(printf '%s\n' "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
             --method POST --input - | jq -r '.id')
           gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOY_ID}/statuses" \
             --method POST --field state=success --field environment_url="$PREVIEW_URL"

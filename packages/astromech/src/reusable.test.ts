@@ -95,6 +95,30 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 });
 
+describe("REUSABLE_WORKFLOWS.wiki — preview deployment widget", () => {
+	const wiki = REUSABLE_WORKFLOWS["wiki"]!;
+
+	it("reads the preview URL from Fern's output, not a constructed string", () => {
+		expect(wiki).toContain("id: preview");
+		expect(wiki).toMatch(/grep -o\w*E ["']https:\/\/\[a-z0-9\.-\]\+\\\.docs\\\.buildwithfern\\\.com/);
+		expect(wiki).toContain('echo "url=$url" >> "$GITHUB_OUTPUT"');
+	});
+
+	it("no longer gates the deployment step on fern-org, and keeps it as a fallback only", () => {
+		// the step runs for every preview now …
+		expect(wiki).toMatch(/Report preview URL\n\s+if: \$\{\{ inputs\.preview && inputs\.preview-id != '' \}\}/);
+		// … using the captured URL, falling back to the fern-org construction
+		expect(wiki).toContain('PREVIEW_URL="$CAPTURED_URL"');
+		expect(wiki).toContain('if [ -z "$PREVIEW_URL" ] && [ -n "$FERN_ORG" ]; then');
+	});
+
+	it("keeps the fern-org / base-path inputs (callers still pass them) but marks them deprecated", () => {
+		expect(wiki).toMatch(/^\s+fern-org:/m);
+		expect(wiki).toMatch(/^\s+base-path:/m);
+		expect(wiki).toMatch(/fern-org:\n\s+description: >\n\s+DEPRECATED/);
+	});
+});
+
 describe("REUSABLE_WORKFLOWS.lint — super-linter-env", () => {
 	const lint = REUSABLE_WORKFLOWS["lint"]!;
 
