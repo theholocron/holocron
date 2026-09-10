@@ -2,18 +2,18 @@
 
 ### Chores
 
-* **deps:** Bump the all-dependencies group with 25 updates ([#268](https://github.com/theholocron/utils/issues/268)) ([ffee2b3](https://github.com/theholocron/utils/commit/ffee2b391cdb6f2c358b73f905460335bf125f97))
+- **deps:** Bump the all-dependencies group with 25 updates ([#268](https://github.com/theholocron/utils/issues/268)) ([ffee2b3](https://github.com/theholocron/utils/commit/ffee2b391cdb6f2c358b73f905460335bf125f97))
 
 ## [1.7.0](https://github.com/theholocron/utils/compare/v1.6.0...v1.7.0) (2026-09-06)
 
 ### Features
 
-* ✨ add wiki navbar links ([#267](https://github.com/theholocron/utils/issues/267)) ([3fc90a3](https://github.com/theholocron/utils/commit/3fc90a358e376d984e138608f726e34730892bae))
+- ✨ add wiki navbar links ([#267](https://github.com/theholocron/utils/issues/267)) ([3fc90a3](https://github.com/theholocron/utils/commit/3fc90a358e376d984e138608f726e34730892bae))
 
 ### Chores
 
-* 🔧 ✨ add wiki icon to fern provider options ([#264](https://github.com/theholocron/utils/issues/264)) ([5d24de1](https://github.com/theholocron/utils/commit/5d24de11952be07511eab9a504ff7db01e637a1b))
-* 🗑️ remove orphaned workflow files ([#263](https://github.com/theholocron/utils/issues/263)) ([d1811fb](https://github.com/theholocron/utils/commit/d1811fbe5b30e04bdffedba61de8d3a8ed02c7c2))
+- 🔧 ✨ add wiki icon to fern provider options ([#264](https://github.com/theholocron/utils/issues/264)) ([5d24de1](https://github.com/theholocron/utils/commit/5d24de11952be07511eab9a504ff7db01e637a1b))
+- 🗑️ remove orphaned workflow files ([#263](https://github.com/theholocron/utils/issues/263)) ([d1811fb](https://github.com/theholocron/utils/commit/d1811fbe5b30e04bdffedba61de8d3a8ed02c7c2))
 
 ## [1.6.0](https://github.com/theholocron/utils/compare/v1.5.2...v1.6.0) (2026-09-03)
 
