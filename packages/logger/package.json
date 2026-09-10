@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/logger",
-  "version": "4.12.2",
+  "version": "4.13.0",
   "description": "Structured logging for Holocron — a Pino-backed Logger adapter interface with pino-pretty, CI JSON, and Axiom transports.",
   "keywords": [
     "axiom",
