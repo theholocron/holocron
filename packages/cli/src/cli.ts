@@ -115,6 +115,11 @@ try {
 	await yargs(hideBin(process.argv))
 		.scriptName("")
 		.usage("holocron <command> [options]")
+		// Keep everything after `--` in `argv['--']` instead of folding it into
+		// `argv._`. `holocron run <task> [job] -- <args>` forwards `<args>` to the
+		// underlying tool (`lhci autorun --config=…`, `turbo run build -- …`); the
+		// telemetry command name reads `argv._` and must not pick these up.
+		.parserConfiguration({ "populate--": true })
 		// ── global options (apply to every subcommand) ──────────────────────
 		.option("dry-run", {
 			type: "boolean",
@@ -632,7 +637,10 @@ try {
 				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
 				const report = astromech.run(argv.task as string, {
 					...(argv.job !== undefined ? { job: argv.job as string } : {}),
-					passthrough: (argv.passthrough as string[] | undefined) ?? [],
+					passthrough: [
+						...((argv.passthrough as string[] | undefined) ?? []),
+						...((argv["--"] as string[] | undefined) ?? []),
+					],
 					dryRun: argv.dryRun,
 					required: argv.required,
 					...(argv.filter ? { filter: argv.filter as string } : {}),
