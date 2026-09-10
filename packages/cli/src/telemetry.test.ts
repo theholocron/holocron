@@ -280,6 +280,13 @@ describe("applyConfig", () => {
 		expect(analyticsSink.shutdown).toHaveBeenCalled();
 	});
 
+	it("enabled: false swallows a rejected drain rather than leaking an unhandled rejection", async () => {
+		errorSink.flush.mockRejectedValueOnce(new Error("close timed out"));
+		analyticsSink.shutdown.mockRejectedValueOnce(new Error("network down"));
+		expect(() => applyConfig({ enabled: false })).not.toThrow();
+		await Promise.resolve(); // let the swallowed rejections settle
+	});
+
 	it('analytics: "none" drops usage analytics but keeps error reporting', () => {
 		applyConfig({ analytics: "none" });
 		vi.clearAllMocks();
