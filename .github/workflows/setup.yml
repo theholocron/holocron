@@ -10,9 +10,13 @@ on: # yamllint disable-line rule:truthy
       - alpha
       - main
     paths:
-      - packages/astromech/src/templates/workflows/**
+      # Everything `astromech.reusableTemplates()` (→ `holocron sync-github`)
+      # reads. `templates/**` covers the reusable workflow_call impls + composite
+      # actions (`reusable/`) and the thin-caller bases (`workflows/`).
+      - packages/astromech/src/templates/**
+      - packages/astromech/src/reusable.ts
+      - packages/astromech/src/thin-callers.ts
       - packages/cli/src/commands/sync-github.ts
-      - packages/cli/src/templates/**
   workflow_dispatch:
 
 jobs:
