@@ -45,4 +45,15 @@ runs:
         [ -n "$HOLOCRON_JOB" ] && set -- "$@" "$HOLOCRON_JOB"
         # shellcheck disable=SC2086
         [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
-        pnpm exec holocron "$@"
+        # Invoke the built entry directly. `pnpm exec holocron` relies on a
+        # node_modules/.bin/holocron shim that pnpm does not create for a
+        # workspace package whose dist/ was absent at install time (the holocron
+        # repo itself). Resolving the package's main export gives dist/index.mjs;
+        # the bin sits next to it as dist/cli.mjs.
+        cli="$(dirname "$(node -e 'process.stdout.write(require.resolve("@theholocron/cli"))')")/cli.mjs"
+        if [ ! -f "$cli" ]; then
+          echo "::error::@theholocron/cli entry not found at $cli — is the workspace built?" >&2
+          exit 1
+        fi
+        echo "→ $cli $*" >&2
+        node "$cli" "$@"

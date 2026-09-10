@@ -34,8 +34,12 @@ describe("reusableTemplates()", () => {
 		expect(action).toContain("using: composite");
 		// inputs reach `run:` only through env — no `${{ }}` inside a shell script
 		expect(action).toContain("HOLOCRON_TASK: ${{ inputs.task }}");
-		expect(action).toContain("pnpm exec holocron");
 		expect(action).not.toMatch(/run:[^\n]*\$\{\{\s*inputs\./);
+		// invokes the built entry directly — a .bin shim pnpm doesn't create for
+		// an unbuilt workspace package
+		expect(action).toContain('require.resolve("@theholocron/cli")');
+		expect(action).toContain('node "$cli" "$@"');
+		expect(action).not.toMatch(/^\s+run: pnpm exec holocron/m);
 	});
 
 	it("applies the do-not-edit header to YAML — no timestamp", () => {
