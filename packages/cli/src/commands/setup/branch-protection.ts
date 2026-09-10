@@ -31,6 +31,12 @@ export function buildRulesetPayload(requiredChecks: string[] = []): Record<strin
 				require_code_owner_review: false,
 				require_last_push_approval: false,
 				required_review_thread_resolution: true,
+				// GitHub defaults this to `true`. It bumps the required approval
+				// count to 1 for a PR with unverified / unattributed commits —
+				// which, with `required_approving_review_count: 0` and a single
+				// maintainer, is an unsatisfiable block (the author can't
+				// self-approve). Admin bypass already covers the real risk.
+				require_extra_approval_for_unattributed_changes: false,
 			},
 		},
 	];

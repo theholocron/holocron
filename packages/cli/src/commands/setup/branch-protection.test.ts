@@ -22,6 +22,19 @@ describe("buildRulesetPayload", () => {
 		const rules = payload.rules as Array<{ type: string }>;
 		expect(rules.some((r) => r.type === "required_status_checks")).toBe(false);
 	});
+
+	it("disables require_extra_approval_for_unattributed_changes on the pull_request rule", () => {
+		const payload = buildRulesetPayload([]);
+		const rules = payload.rules as Array<{ type: string; parameters?: Record<string, unknown> }>;
+		const pr = rules.find((r) => r.type === "pull_request");
+		expect(pr?.parameters?.require_extra_approval_for_unattributed_changes).toBe(false);
+		expect(pr?.parameters?.required_approving_review_count).toBe(0);
+	});
+
+	it("grants repository-admin bypass so automation can push to the default branch", () => {
+		const payload = buildRulesetPayload([]);
+		expect(payload.bypass_actors).toEqual([{ actor_id: 4, actor_type: "RepositoryRole", bypass_mode: "always" }]);
+	});
 });
 
 describe("buildClassicProtectionPayload", () => {
