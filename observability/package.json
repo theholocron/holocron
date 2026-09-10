@@ -1,0 +1,95 @@
+{
+  "name": "@theholocron/node-template",
+  "version": "1.7.0",
+  "description": "A modern NodeJS template with pre-configured tools, best practices, and CI/CD setup for rapid project development.",
+  "keywords": [
+    "nodejs",
+    "template",
+    "typescript",
+    "library"
+  ],
+  "homepage": "https://docs.theholocron.dev/node-template/",
+  "bugs": "https://github.com/theholocron/node-template/issues",
+  "repository": "theholocron/node-template",
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "audit": "knip",
+    "build": "tsdown",
+    "lint": "eslint .",
+    "prepare": "husky",
+    "release": "semantic-release",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "catalog:",
+    "@commitlint/cli": "catalog:",
+    "@commitlint/types": "catalog:",
+    "@eslint/js": "catalog:",
+    "@semantic-release/changelog": "catalog:",
+    "@semantic-release/exec": "catalog:",
+    "@semantic-release/git": "catalog:",
+    "@semantic-release/github": "catalog:",
+    "@theholocron/astro-config": "catalog:configs",
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/commitlint-config": "catalog:configs",
+    "@theholocron/docs-theme": "catalog:",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/holocron-config": "catalog:configs",
+    "@theholocron/holocron-plugin-github": "catalog:holocron",
+    "@theholocron/lint-staged-config": "catalog:configs",
+    "@theholocron/prettier-config": "catalog:configs",
+    "@theholocron/semantic-release-config": "catalog:configs",
+    "@theholocron/skills": "^1.3.2",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "astro": "catalog:",
+    "conventional-changelog-conventionalcommits": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "globals": "catalog:",
+    "husky": "catalog:",
+    "knip": "catalog:",
+    "lint-staged": "catalog:",
+    "prettier": "catalog:",
+    "semantic-release": "catalog:",
+    "sort-package-json": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pnpm": {
+    "overrides": {
+      "@commitlint/config-conventional>conventional-changelog-conventionalcommits": "7",
+      "conventional-changelog-conventionalcommits": "9.3.1"
+    }
+  },
+  "releases": "https://github.com/theholocron/node-template/releases",
+  "wiki": "https://github.com/theholocron/node-template/wiki"
+}
