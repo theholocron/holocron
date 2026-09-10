@@ -5,6 +5,7 @@ import { packageJson } from "./configs/package-json.js";
 import { typescript } from "./configs/typescript.js";
 import { node } from "./configs/node.js";
 import { react } from "./configs/react.js";
+import { storybook } from "./configs/storybook.js";
 import { library } from "./bundles/library.js";
 
 describe("eslint-config — individual configs", () => {
@@ -61,6 +62,14 @@ describe("eslint-config — package-json config", () => {
 		const config = packageJson();
 		const rules = config.flatMap((c) => ("rules" in c ? Object.entries(c.rules ?? {}) : []));
 		expect(rules.some(([k, v]) => k === "package-json/no-wildcard-dependencies" && v === "off")).toBe(true);
+	});
+});
+
+describe("eslint-config — storybook config", () => {
+	it("disables storybook/no-uninstalled-addons (crashes pnpm lint in monorepos — configs#449)", () => {
+		const config = storybook();
+		const rules = config.flatMap((c) => ("rules" in c ? Object.entries(c.rules ?? {}) : []));
+		expect(rules.some(([k, v]) => k === "storybook/no-uninstalled-addons" && v === "off")).toBe(true);
 	});
 });
 
