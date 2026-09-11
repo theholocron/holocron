@@ -20,6 +20,7 @@ import { getLogger } from "../logger.js";
 import type { Auth, Ci, Errors, Issues, Logs, Secrets, Source, Vault } from "../plugin/capabilities.js";
 import { CARDINALITY } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { assertPluginsResolvable } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
@@ -51,6 +52,9 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
+	// A global install has no plugin packages to resolve — say so plainly
+	// instead of printing a report that's all "Cannot find package" rows.
+	assertPluginsResolvable(loader, "doctor");
 
 	const rows: DoctorRow[] = [];
 	const config = input.loaded.resolved;

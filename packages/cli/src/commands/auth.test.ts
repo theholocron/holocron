@@ -389,6 +389,26 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/can't confirm validity/);
 	});
 
+	it("degrades to 'token present, verification skipped' when the plugin can't be resolved (global install) — theholocron/holocron#576", async () => {
+		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+		const { print, lines } = collect();
+		const result = await runAuthCheck({
+			provider: "doppler",
+			importer: async () => {
+				const err = new Error(
+					"Cannot find package '@theholocron/holocron-plugin-doppler'"
+				) as NodeJS.ErrnoException;
+				err.code = "ERR_MODULE_NOT_FOUND";
+				throw err;
+			},
+			print,
+		});
+		expect(result.status).toBe("ok");
+		expect(result.message).toMatch(/plugin not available/);
+		expect(lines.join("\n")).toMatch(/verification skipped \(plugin not available here\)/);
+		expect(lines.join("\n")).not.toMatch(/cannot verify/);
+	});
+
 	it("reports fail when verifyToken throws", async () => {
 		store.set("com.theholocron.cli::doppler", "dp.pt.abc");
 		const { print, lines } = collect();

@@ -26,6 +26,7 @@ import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/ke
 import { resolvePluginPackage } from "../config/config.js";
 import { makeEnv } from "../env.js";
 import { getLogger } from "../logger.js";
+import { isModuleNotFound } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
@@ -258,6 +259,18 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 		return { status: "fail", message: verified.message };
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
+		// Global install: the plugin package isn't resolvable here. `auth set` /
+		// `auth list` already work plugin-free — `auth check` degrades to the
+		// same "we have a token, we just can't confirm it" report rather than
+		// failing outright (theholocron/holocron#576).
+		if (isModuleNotFound(err)) {
+			print(style.warn(`${keyringKey}: token present — verification skipped (plugin not available here)`));
+			logger.info(
+				{ provider, keyringKey, status: "ok", reason: "plugin not resolvable" },
+				`auth check: ${keyringKey}`
+			);
+			return { status: "ok", message: "stored, unverified (plugin not available)" };
+		}
 		print(style.fail(`${keyringKey}: cannot verify — ${msg}`));
 		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `auth check: ${keyringKey}`);
 		return { status: "fail", message: msg };

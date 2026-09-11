@@ -8,6 +8,7 @@ import { resolveConfig } from "../../config/config.js";
 import type { LoadedConfig } from "../../config/load-config.js";
 import { ProviderApiError } from "../../plugin/capabilities.js";
 import { type PluginImporter, PluginLoader } from "../../plugin/loader.js";
+import { WorkspaceContextError } from "../../plugin/workspace.js";
 import { runSetup } from "./run-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -49,6 +50,24 @@ function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>):
 }
 
 describe("runSetup", () => {
+	it("throws a WorkspaceContextError when no plugin resolves (global install) — theholocron/holocron#576", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {}); // nothing resolves
+
+		const err = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+
+		expect(err).toBeInstanceOf(WorkspaceContextError);
+		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron setup/);
+	});
+
 	it("runs all six source security steps + reports ok for each", async () => {
 		const calls: string[] = [];
 		const source = {

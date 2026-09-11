@@ -4,6 +4,7 @@ import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import type { CapabilityKey } from "../plugin/capabilities.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
+import { WorkspaceContextError } from "../plugin/workspace.js";
 import { runDoctor } from "./doctor.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -94,6 +95,24 @@ describe("runDoctor", () => {
 		// the working provider is still reported
 		expect(report.rows.find((r) => r.capability === "source")?.status).toBe("ok");
 		expect(report.summary.fail).toBe(1);
+	});
+
+	it("throws a WorkspaceContextError when no plugin resolves (global install) — theholocron/holocron#576", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {}); // nothing resolves
+
+		const err = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+
+		expect(err).toBeInstanceOf(WorkspaceContextError);
+		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron doctor/);
 	});
 
 	it("reports fail when a smoke check throws", async () => {

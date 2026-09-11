@@ -17,6 +17,7 @@ import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
 import type { Deployment, DeploymentRecord, DeploymentTrigger } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { assertPluginsResolvable } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
@@ -49,6 +50,7 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
+	assertPluginsResolvable(loader, "deploy");
 
 	const dryRun = input.context.dryRun ?? false;
 	logger.info(

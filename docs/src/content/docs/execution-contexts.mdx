@@ -1,0 +1,62 @@
+---
+title: Execution Contexts
+description: What a bare "npm i -g @theholocron/cli" can do, what needs a repo, and what needs the plugin packages.
+---
+
+Every Holocron command has an **execution context** — how much of a repo it
+needs around it to work. A global install (`npm i -g @theholocron/cli`) gives
+you the binary and nothing else: no `holocron.config`, no plugin packages. Most
+of the command surface is fine with that; the rest needs a repo, and a few need
+the provider plugins resolvable too.
+
+## The three contexts
+
+| Context          | Needs                                                                                                                      | Commands                                                                                                                                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`global`**     | nothing but the CLI binary                                                                                                 | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `auth set` / `unset` / `list` / `check`, `npm bump-versions`, `npm publish-initial`, `skills install` / `remove` / `update` |
+| **`repo-aware`** | `./holocron.config` + `./package.json` in the working directory — but no plugins                                           | `run`, `ci`, `config show`, `sync-readme`                                                                                                                                                               |
+| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `deploy`, `cleanup-preview`, `sync-github`                                                                                                     |
+
+`holocron --help` prints this same grouping in its epilogue.
+
+## Running a `workspace` command globally
+
+A `workspace` command run where its plugins can't be resolved fails with a
+single actionable line rather than a raw `Cannot find package` stack trace:
+
+```
+$ holocron sync
+sync needs @theholocron/holocron-plugin-github, but no plugin package resolves here.
+Run it from a repo that has the @theholocron/holocron-plugin-* packages as
+devDependencies, or `pnpm exec holocron sync`. A global install can't resolve them.
+```
+
+The fix is to install the plugins you need next to the CLI:
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-github @theholocron/holocron-plugin-vercel
+```
+
+Holocron does **not** bundle plugins with the global CLI — the
+workspace/local-install model (plugins as devDependencies, `overrides:`
+collapsing `@theholocron/http-client` to one version) stays. This is only about
+failing clearly.
+
+## `auth check` degrades
+
+`auth check <provider>` normally loads the provider plugin to verify the stored
+token. From a global install the plugin isn't there, so it degrades to a
+report rather than an error — the same way `auth set` / `auth list` already
+work plugin-free:
+
+```
+$ holocron auth check vercel
+vercel: token present — verification skipped (plugin not available here)
+```
+
+## `repo-aware` commands still validate
+
+`holocron run test` in a repo with no `test` script — and no holocron-managed
+`test` task — prints `· no test task for this repo`, not a silent exit 0. Pass
+`--required` to turn that skip into a failure (this is what `holocron ci` does
+for its required set).
