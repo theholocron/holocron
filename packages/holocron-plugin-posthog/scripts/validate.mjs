@@ -84,7 +84,8 @@ async function runStep(body) {
 function hintFor(message) {
 	if (/→ 401|→ 403|not_authenticated/i.test(message))
 		return "key invalid — generate a personal API key (phx_*) at https://app.posthog.com/settings/user/api-keys";
-	if (/fetch failed|network/i.test(message)) return "network error — check app.posthog.com reachable (or set POSTHOG_HOST for EU cloud)";
+	if (/fetch failed|network/i.test(message))
+		return "network error — check app.posthog.com reachable (or set POSTHOG_HOST for EU cloud)";
 	if (/→ 5\d\d/.test(message)) return "server error — check https://status.posthog.com";
 	return null;
 }

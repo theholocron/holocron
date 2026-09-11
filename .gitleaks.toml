@@ -1,0 +1,12 @@
+title = "gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "PostHog public project token — client-side analytics key, not a secret"
+regexes = ['''phc_AC4vFCvYzwnzmG7Vg5nEc3PZKZztoPyfKp4Lb9BbXcLK''']
+
+[[allowlists]]
+description = "Sentry build plugin env file — gitignored, not committed"
+paths = ['''.env.sentry-build-plugin''']

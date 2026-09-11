@@ -66,7 +66,9 @@ await runStep(async () => {
 		records.forEach((r) => console.log(chalk.dim(`   ${r.type.padEnd(5)} ${r.name}  →  ${r.content}`)));
 	} else if (records.length > 10) {
 		console.log(chalk.dim(`   (${records.length} total — showing first 10)`));
-		records.slice(0, 10).forEach((r) => console.log(chalk.dim(`   ${r.type.padEnd(5)} ${r.name}  →  ${r.content}`)));
+		records
+			.slice(0, 10)
+			.forEach((r) => console.log(chalk.dim(`   ${r.type.padEnd(5)} ${r.name}  →  ${r.content}`)));
 	}
 });
 

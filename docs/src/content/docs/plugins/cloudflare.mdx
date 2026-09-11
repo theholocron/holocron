@@ -2,6 +2,7 @@
 title: Cloudflare Plugin
 description: Implements the dns and deployment capabilities against Cloudflare's API.
 ---
+
 import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
 import { getPlugins } from "@theholocron/registry-doc";
 
@@ -9,10 +10,12 @@ import { getPlugins } from "@theholocron/registry-doc";
 
 <Installation package={getPlugins()["holocron-plugin-cloudflare"].package} dev />
 
-<CapabilitiesTable rows={[
-  { capability: "dns", token: "HOLOCRON_CLOUDFLARE_TOKEN (cloudflare)" },
-  { capability: "deployment", token: "HOLOCRON_CLOUDFLARE_TOKEN (cloudflare) + CLOUDFLARE_ACCOUNT_ID" },
-]} />
+<CapabilitiesTable
+  rows={[
+    { capability: "dns", token: "HOLOCRON_CLOUDFLARE_TOKEN (cloudflare)" },
+    { capability: "deployment", token: "HOLOCRON_CLOUDFLARE_TOKEN (cloudflare) + CLOUDFLARE_ACCOUNT_ID" },
+  ]}
+/>
 
 ## Config
 
@@ -35,8 +38,8 @@ The `deployment` capability is enabled automatically when `CLOUDFLARE_ACCOUNT_ID
 
 ### Options
 
-| Option      | Required | Description                                                                                                  |
-| ----------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| Option      | Required | Description                                                                                                 |
+| ----------- | -------- | ----------------------------------------------------------------------------------------------------------- |
 | `accountId` | No       | Cloudflare account ID. Falls back to `CLOUDFLARE_ACCOUNT_ID` env var. Required for `deployment` capability. |
 
 ## Authentication
@@ -97,6 +100,7 @@ workflows: [
 ```
 
 `preview: true` derives defaults from your config:
+
 - `project` = `<org>-preview`
 - `domain` = `preview.<domain>` (used for DNS provisioning only)
 

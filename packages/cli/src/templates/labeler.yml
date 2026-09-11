@@ -1,26 +1,26 @@
 bug:
-  - '^fix'
+  - "^fix"
 
 chore:
   - '^chore(?!\(deps)'
 
 ci:
-  - '^ci'
+  - "^ci"
 
 dependencies:
   - '^chore\(deps'
 
 documentation:
-  - '^docs'
+  - "^docs"
 
 enhancement:
-  - '^feat'
+  - "^feat"
 
 performance:
-  - '^perf'
+  - "^perf"
 
 refactor:
-  - '^refactor'
+  - "^refactor"
 
 test:
-  - '^test'
+  - "^test"
