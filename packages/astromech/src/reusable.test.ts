@@ -81,6 +81,17 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
+	it("release.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
+		const wf = REUSABLE_WORKFLOWS["release"]!;
+		// detect the release commit semantic-release just pushed
+		expect(wf).toMatch(/BEFORE=\$\(git rev-parse HEAD\)/);
+		expect(wf).toMatch(/echo "commit=\$AFTER" >> "\$GITHUB_OUTPUT"/);
+		// run tests + upload, keyed to that SHA so the next PR compares cleanly
+		expect(wf).toMatch(/if: \$\{\{ steps\.release\.outputs\.commit != '' \}\}/);
+		expect(wf).toContain("override_commit: ${{ steps.release.outputs.commit }}");
+		expect(wf).toContain("codecov/codecov-action@");
+	});
+
 	it("audit.yml runs build / audit knip / audit performance through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["audit"]!;
 		expect(wf).not.toContain('eval "$KNIP_SCRIPT"');
