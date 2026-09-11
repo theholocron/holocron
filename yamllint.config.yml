@@ -2,6 +2,11 @@
 
 extends: default
 
+ignore: |
+  node_modules/
+  dist/
+  pnpm-lock.yaml
+
 rules:
   comments:
     min-spaces-from-content: 1
