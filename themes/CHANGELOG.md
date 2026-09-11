@@ -1,3 +1,14 @@
+## [1.10.2](https://github.com/theholocron/themes/compare/v1.10.1...v1.10.2) (2026-09-11)
+
+### Bug Fixes
+
+* **hooks:** 🐛 scope pre-commit GitLeaks scan to staged changes ([#106](https://github.com/theholocron/themes/issues/106)) ([350e791](https://github.com/theholocron/themes/commit/350e791721409131d175bf6197aafdef78c1535c))
+
+### Chores
+
+* ⬆️ migrate to @theholocron/cli 4.16.2 + holocron-config 8.x ([#103](https://github.com/theholocron/themes/issues/103)) ([12473b0](https://github.com/theholocron/themes/commit/12473b013fd136f9337af5de2b98eb1f23270171)), closes [#647](https://github.com/theholocron/themes/issues/647)
+* 🔧 holocron setup — ruleset + workflow/config sync ([#104](https://github.com/theholocron/themes/issues/104)) ([439be97](https://github.com/theholocron/themes/commit/439be975a4c528337b41645639b611ee547a7494)), closes [#647](https://github.com/theholocron/themes/issues/647) [#649](https://github.com/theholocron/themes/issues/649) [#649](https://github.com/theholocron/themes/issues/649) [#647](https://github.com/theholocron/themes/issues/647)
+
 ## [1.10.1](https://github.com/theholocron/themes/compare/v1.10.0...v1.10.1) (2026-09-08)
 
 ### Chores
