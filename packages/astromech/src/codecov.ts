@@ -15,6 +15,8 @@ import codecovTemplate from "./templates/codecov/codecov.yml";
 export interface WorkspacePackage {
 	slug: string;
 	name: string;
+	/** Which workspace root the package was discovered under. Defaults to `"packages"`. */
+	dir?: "packages" | "apps";
 }
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
@@ -32,11 +34,11 @@ export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	return (
 		"\n" +
 		packages
-			.flatMap(({ slug }) => [
+			.flatMap(({ slug, dir }) => [
 				`    - component_id: ${slug}`,
 				`      name: "${slug}"`,
 				`      paths:`,
-				`        - packages/${slug}/**`,
+				`        - ${dir ?? "packages"}/${slug}/**`,
 				``,
 			])
 			.join("\n")
@@ -94,23 +96,34 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	);
 }
 
-/** Every public `packages/*` workspace, sorted by slug. `[]` when there's no `packages/` dir. */
-export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
-	const packagesDir = join(repoRoot, "packages");
-	if (!existsSync(packagesDir)) return [];
+function readWorkspaceDir(repoRoot: string, dir: "packages" | "apps"): WorkspacePackage[] {
+	const dirPath = join(repoRoot, dir);
+	if (!existsSync(dirPath)) return [];
 	const packages: WorkspacePackage[] = [];
-	for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
+	for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
 		if (!entry.isDirectory()) continue;
 		try {
-			const raw = readFileSync(join(packagesDir, entry.name, "package.json"), "utf8");
+			const raw = readFileSync(join(dirPath, entry.name, "package.json"), "utf8");
 			const pkg = JSON.parse(raw) as { name?: string };
 			if (typeof pkg.name === "string") {
-				packages.push({ slug: entry.name, name: pkg.name });
+				packages.push({ slug: entry.name, name: pkg.name, dir });
 			}
 		} catch {
 			// no package.json or invalid JSON — skip
 		}
 	}
+	return packages;
+}
+
+/**
+ * Every public `packages/*` and `apps/*` workspace, sorted by slug. `[]`
+ * when neither directory exists. Monorepo templates (Next.js, React, …)
+ * ship user-facing code under `apps/` alongside library code under
+ * `packages/` — both need a codecov component so `codecov/patch/<slug>`
+ * actually posts for each.
+ */
+export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
+	const packages = [...readWorkspaceDir(repoRoot, "packages"), ...readWorkspaceDir(repoRoot, "apps")];
 	return packages.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
