@@ -1,5 +1,16 @@
-import { readdir, readFile } from "node:fs/promises";
+/**
+ * `codecov.yml` generation — a manifest-derived artifact (component `paths`
+ * come from workspace packages; the status targets track the `test` task's
+ * coverage setup), the same category as the reusable `test.yml` this package
+ * also generates. Moved out of `@theholocron/cli` (theholocron/holocron#650)
+ * — `holocron setup`'s codecov step now calls {@link codecovConfig} instead
+ * of importing this logic directly.
+ */
+
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import codecovTemplate from "./templates/codecov/codecov.yml";
 
 export interface WorkspacePackage {
 	slug: string;
@@ -7,6 +18,14 @@ export interface WorkspacePackage {
 }
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
+
+function scaffoldHeader(): string {
+	return [
+		`# Scaffolded by holocron setup — edit this file freely.`,
+		`# Source:  theholocron/holocron · packages/astromech/src/codecov.ts`,
+		``,
+	].join("\n");
+}
 
 export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	if (packages.length === 0) return "\n    []\n";
@@ -75,15 +94,15 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	);
 }
 
-export async function readWorkspacePackages(repoRoot: string): Promise<WorkspacePackage[]> {
+/** Every public `packages/*` workspace, sorted by slug. `[]` when there's no `packages/` dir. */
+export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
 	const packagesDir = join(repoRoot, "packages");
-	const entries = await readdir(packagesDir, { withFileTypes: true }).catch(() => null);
-	if (!entries) return [];
+	if (!existsSync(packagesDir)) return [];
 	const packages: WorkspacePackage[] = [];
-	for (const entry of entries) {
+	for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
 		if (!entry.isDirectory()) continue;
 		try {
-			const raw = await readFile(join(packagesDir, entry.name, "package.json"), "utf8");
+			const raw = readFileSync(join(packagesDir, entry.name, "package.json"), "utf8");
 			const pkg = JSON.parse(raw) as { name?: string };
 			if (typeof pkg.name === "string") {
 				packages.push({ slug: entry.name, name: pkg.name });
@@ -93,4 +112,19 @@ export async function readWorkspacePackages(repoRoot: string): Promise<Workspace
 		}
 	}
 	return packages.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+/** A brand-new `codecov.yml` — the scaffold header + the base template + this repo's component list. */
+export function createCodecovConfig(packages: WorkspacePackage[]): string {
+	return `${scaffoldHeader()}${codecovTemplate.trimEnd()}${codecovComponentBlock(packages)}`;
+}
+
+/**
+ * The full pipeline `holocron setup` needs: read this repo's public
+ * `packages/*`, then either merge them into an `existing` `codecov.yml` or
+ * scaffold a new one.
+ */
+export function codecovConfig(repoRoot: string, existing: string | null): string {
+	const packages = readWorkspacePackages(repoRoot);
+	return existing != null ? mergeCodecovComponents(existing, packages) : createCodecovConfig(packages);
 }

@@ -91,6 +91,7 @@ const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
 astromech.packageScripts(); // { holocron: "holocron", lint: "holocron run lint", … }
 astromech.requiredChecks(); // ["Lint / Conclusion", "codecov/patch", …]  — branch-protection contexts
+astromech.codecovConfig(existing); // codecov.yml content — merges into `existing`, or scaffolds fresh when null
 astromech.ci({ scope: "required" }); // CiReport — run the gating checks locally, in CI order
 ```
 
@@ -121,6 +122,18 @@ only.
 
 `holocron run` itself does not read the config yet — that (and
 `holocron ci`) come in later phases (epic #581).
+
+### `codecov.yml`
+
+`codecovConfig(existing)` generates this repo's `codecov.yml` — component
+`paths` derived from `packages/*`, same manifest-derived category as
+`thinCallers()`. Pass the current file's content (or `null`) and it either
+merges the `individual_components` list in (preserving everything else in the
+file — thresholds, flags, custom rules) or scaffolds a fresh file from the
+base template. `holocron setup` writes the result via the `source` capability;
+this method never touches the filesystem beyond reading `packages/*` under
+`cwd`. Moved here from `@theholocron/cli` (#650) — the coverage setup tracks
+the `test` task, the same way required checks track `tasks`.
 
 ## Lint parity
 
