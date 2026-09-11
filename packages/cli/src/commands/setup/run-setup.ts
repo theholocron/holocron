@@ -53,6 +53,7 @@ import { createConfig as createEditorconfigChecker } from "../../templates/confi
 import { createConfig as createPreCommit } from "../../templates/configs/pre-commit/index.js";
 import { createConfig as createPrePush } from "../../templates/configs/pre-push/index.js";
 import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
+import { createConfig as createYamllint } from "../../templates/configs/yamllint/index.js";
 import dcoConfig from "../../templates/dco.yml";
 import dependabotConfig from "../../templates/dependabot.yml";
 import labelerConfig from "../../templates/labeler.yml";
@@ -269,6 +270,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		steps.push(
 			await runStep("source", "write .alexignore", dryRun, async () => {
 				await source.writeRepoFile(".alexignore", createAlexignore());
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write yamllint.config.yml", dryRun, async () => {
+				await source.writeRepoFile("yamllint.config.yml", createYamllint());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
