@@ -43,6 +43,18 @@ describe("createCodecovConfig", () => {
 		expect(out).toContain("[]");
 	});
 
+	it('uses apps/<slug>/** as the path for a package tagged dir: "apps"', () => {
+		const out = createCodecovConfig([{ slug: "web", name: "@theholocron/web", dir: "apps" }]);
+		expect(out).toContain("component_id: web");
+		expect(out).toContain("- apps/web/**");
+		expect(out).not.toContain("- packages/web/**");
+	});
+
+	it("defaults to packages/<slug>/** when dir is omitted", () => {
+		const out = createCodecovConfig([{ slug: "ui", name: "@theholocron/ui" }]);
+		expect(out).toContain("- packages/ui/**");
+	});
+
 	it("ends with a trailing newline", () => {
 		expect(createCodecovConfig([])).toMatch(/\n$/);
 	});
@@ -177,6 +189,28 @@ describe("readWorkspacePackages", () => {
 	it("returns an empty list when there's no packages/ directory", () => {
 		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
 		expect(readWorkspacePackages(root)).toEqual([]);
+	});
+
+	it('also discovers apps/* workspaces, tagged with dir: "apps"', () => {
+		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
+		mkdirSync(join(root, "packages", "ui"), { recursive: true });
+		writeFileSync(join(root, "packages", "ui", "package.json"), JSON.stringify({ name: "@theholocron/ui" }));
+		mkdirSync(join(root, "apps", "web"), { recursive: true });
+		writeFileSync(join(root, "apps", "web", "package.json"), JSON.stringify({ name: "@theholocron/web" }));
+
+		const packages = readWorkspacePackages(root);
+		expect(packages.map((p) => p.slug)).toEqual(["ui", "web"]);
+		expect(packages.find((p) => p.slug === "ui")?.dir).toBe("packages");
+		expect(packages.find((p) => p.slug === "web")?.dir).toBe("apps");
+	});
+
+	it("discovers apps/* even when there's no packages/ directory", () => {
+		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
+		mkdirSync(join(root, "apps", "web"), { recursive: true });
+		writeFileSync(join(root, "apps", "web", "package.json"), JSON.stringify({ name: "@theholocron/web" }));
+
+		const packages = readWorkspacePackages(root);
+		expect(packages).toEqual([{ slug: "web", name: "@theholocron/web", dir: "apps" }]);
 	});
 });
 

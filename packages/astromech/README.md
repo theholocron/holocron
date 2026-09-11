@@ -126,14 +126,18 @@ only.
 ### `codecov.yml`
 
 `codecovConfig(existing)` generates this repo's `codecov.yml` — component
-`paths` derived from `packages/*`, same manifest-derived category as
-`thinCallers()`. Pass the current file's content (or `null`) and it either
-merges the `individual_components` list in (preserving everything else in the
-file — thresholds, flags, custom rules) or scaffolds a fresh file from the
-base template. `holocron setup` writes the result via the `source` capability;
-this method never touches the filesystem beyond reading `packages/*` under
-`cwd`. Moved here from `@theholocron/cli` (#650) — the coverage setup tracks
-the `test` task, the same way required checks track `tasks`.
+`paths` derived from `packages/*` **and** `apps/*` (monorepo templates ship
+user-facing code under `apps/` alongside library code under `packages/`;
+`readWorkspacePackages()` scans both and tags each result with the `dir` it
+came from), same manifest-derived category as `thinCallers()`. Pass the
+current file's content (or `null`) and it either merges the
+`individual_components` list in (preserving everything else in the file —
+thresholds, flags, custom rules) or scaffolds a fresh file from the base
+template. `holocron setup` writes the result via the `source` capability;
+this method never touches the filesystem beyond reading `packages/*` and
+`apps/*` under `cwd`. Moved here from `@theholocron/cli` (#650) — the
+coverage setup tracks the `test` task, the same way required checks track
+`tasks`.
 
 ## Lint parity
 
