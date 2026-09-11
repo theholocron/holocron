@@ -1,20 +1,33 @@
 name: Holocron
 description: >
-  Run a Holocron CLI task (`holocron run <task> [job]`). Builds
-  @theholocron/cli from source first when it resolves to an unbuilt
-  workspace checkout (the holocron repo itself); a no-op everywhere else.
-  Requires dependencies to be installed already (run the setup action first).
+  Run the Holocron CLI — `holocron run <task> [job]` by default, or any other
+  subcommand via `command:` (`sync`, `sync-github`, …). Resolves
+  `@theholocron/cli` from `node_modules` (published tarball) or builds it from
+  source when it resolves to an unbuilt workspace checkout (the holocron repo
+  itself). Requires dependencies to be installed already (run the setup action
+  first).
 
 inputs:
+  command:
+    description: >
+      Holocron subcommand. Default `run` — then `task` (and optional `job`)
+      name the manifest task. Set to `sync` / `sync-github` / … to run that
+      subcommand directly; `args` becomes everything after it.
+    required: false
+    default: run
   task:
-    description: Manifest task to run (typecheck, test, build, audit).
-    required: true
+    description: >
+      Manifest task to run when command is run — typecheck, test, build, audit.
+    required: false
+    default: ""
   job:
     description: Optional sub-job within the task (e.g. knip, performance for audit).
     required: false
     default: ""
   args:
-    description: Extra arguments forwarded to the tool after `--`.
+    description: >
+      For `command: run`, extra arguments forwarded to the tool after `--`.
+      For any other command, the arguments passed straight to it.
     required: false
     default: ""
 
@@ -34,22 +47,30 @@ runs:
           pnpm build
         fi
 
-    - name: holocron run ${{ inputs.task }}
+    - name: holocron ${{ inputs.command }} ${{ inputs.task }}
       shell: bash
       env:
+        HOLOCRON_COMMAND: ${{ inputs.command }}
         HOLOCRON_TASK: ${{ inputs.task }}
         HOLOCRON_JOB: ${{ inputs.job }}
         HOLOCRON_ARGS: ${{ inputs.args }}
       run: |
-        set -- run "$HOLOCRON_TASK"
-        [ -n "$HOLOCRON_JOB" ] && set -- "$@" "$HOLOCRON_JOB"
-        # shellcheck disable=SC2086
-        [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
+        if [ "$HOLOCRON_COMMAND" = "run" ]; then
+          set -- run "$HOLOCRON_TASK"
+          [ -n "$HOLOCRON_JOB" ] && set -- "$@" "$HOLOCRON_JOB"
+          # shellcheck disable=SC2086
+          [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
+        else
+          # shellcheck disable=SC2086
+          set -- "$HOLOCRON_COMMAND" $HOLOCRON_ARGS
+        fi
         # Invoke the built entry directly. `pnpm exec holocron` relies on a
         # node_modules/.bin/holocron shim that pnpm does not create for a
         # workspace package whose dist/ was absent at install time (the holocron
         # repo itself). Resolving the package's main export gives dist/index.mjs;
-        # the bin sits next to it as dist/cli.mjs.
+        # the bin sits next to it as dist/cli.mjs. This is `require.resolve` from
+        # node_modules — it works in the holocron monorepo AND in every consumer
+        # repo (theholocron/holocron#655), unlike a hard-coded `packages/cli/…`.
         cli="$(dirname "$(node -e 'process.stdout.write(require.resolve("@theholocron/cli"))')")/cli.mjs"
         if [ ! -f "$cli" ]; then
           echo "::error::@theholocron/cli entry not found at $cli — is the workspace built?" >&2
