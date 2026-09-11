@@ -6,6 +6,20 @@ Logging, error tracking, and analytics — one interface, swappable backends.
 
 <!-- /holocron:description -->
 
+<!-- holocron:installation -->
+
+## Installation
+
+```bash
+pnpm install @theholocron/observability
+```
+
+## Usage
+
+See the [documentation](https://docs.theholocron.dev/observability/) for the API.
+
+<!-- /holocron:installation -->
+
 ## Installation
 
 ```bash
@@ -85,13 +99,14 @@ full API.
 
 <!-- holocron:development -->
 
-```bash
-pnpm install       # install deps
-pnpm build         # tsdown → dist/
-pnpm test          # vitest
-pnpm typecheck     # tsc --noEmit
-pnpm lint          # eslint
-```
+| Script               | Command                 |
+| -------------------- | ----------------------- |
+| `pnpm build`         | `tsdown`                |
+| `pnpm lint`          | `eslint .`              |
+| `pnpm test`          | `vitest run`            |
+| `pnpm test:coverage` | `vitest run --coverage` |
+| `pnpm typecheck`     | `tsc --noEmit`          |
+| `pnpm audit`         | `knip`                  |
 
 <!-- /holocron:development -->
 
@@ -99,6 +114,7 @@ pnpm lint          # eslint
 
 <!-- holocron:releases -->
 
-Releases are automated via [semantic-release](https://semantic-release.gitbook.io) on push to `main`. See [CHANGELOG.md](CHANGELOG.md) for the release history.
+Automated via [semantic-release](https://semantic-release.gitbook.io/semantic-release/).
+See the [releases page](https://docs.theholocron.dev/observability/releases) and [CHANGELOG.md](./CHANGELOG.md).
 
 <!-- /holocron:releases -->

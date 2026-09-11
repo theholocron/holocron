@@ -3,16 +3,14 @@
   "version": "0.3.2",
   "description": "Logging, error tracking, and analytics — one interface, swappable backends.",
   "keywords": [
+    "typescript",
     "observability",
-    "telemetry",
     "logging",
-    "logger",
-    "pino",
+    "telemetry",
     "sentry",
     "posthog",
-    "structured-logging",
-    "theholocron",
-    "typescript"
+    "pino",
+    "theholocron"
   ],
   "homepage": "https://docs.theholocron.dev/observability/",
   "bugs": "https://github.com/theholocron/observability/issues",
@@ -59,12 +57,15 @@
   "scripts": {
     "audit": "knip",
     "build": "tsdown",
-    "lint": "eslint .",
+    "lint": "holocron run lint",
     "prepare": "husky",
     "release": "semantic-release",
-    "test": "vitest run",
+    "test": "holocron run test",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "holocron run typecheck",
+    "holocron": "holocron",
+    "wiki": "holocron run wiki",
+    "sync": "holocron run sync"
   },
   "devDependencies": {
     "@astrojs/react": "catalog:",
