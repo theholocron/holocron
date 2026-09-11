@@ -68,6 +68,7 @@ const astromech = createAstromech({
 await astromech.run(task, { job?, passthrough?, dryRun?, required? }); // holocron run
 await astromech.ci({ dryRun?, filter?, scope? });                      // holocron ci
 astromech.requiredChecks();    // string[]              — branch-protection contexts
+astromech.codecovConfig(existing); // string             — codecov.yml, merged or scaffolded
 astromech.thinCallers();       // Map<filename, yaml>   — .github/workflows/*.yml
 astromech.packageScripts();    // Record<string,string> — { test: "holocron run test", … }
 astromech.reusableTemplates(); // Map<path, content>    — what sync-github pushes
@@ -90,6 +91,7 @@ stays in `holocron-plugin-github`.
 | `src/commands/setup-workflows/` — thin-caller gen, `normalizeWorkflowWith`     | `thin-callers.ts`              |
 | `src/commands/sync-github.ts` — reusable-template batch (`buildBatch`, header) | `reusable.ts`                  |
 | `repo.requiredChecks` resolution (from `@theholocron/holocron-config`)         | `required-checks.ts` (derived) |
+| `templates/configs/codecov/` — `create-config.ts` + `utils.ts`                 | `codecov.ts` + `templates/codecov/` (#650) |
 
 ## Config system
 
@@ -408,6 +410,7 @@ Tracking epic: **#581**.
 | 6 ✅ | `astromech.reusableTemplates()` + move the 18 reusable workflows + 4 actions to `src/templates/reusable/`; `sync-github` shrinks to a `reusableTemplates()` consumer, dead `parseTasksFromTs`/`parseOrgContextFromTs` + the `# Synced:` timestamp dropped (PR 6.1); `sync` / `setup` consume `astromech.thinCallers()` — the deferred #584 item (PR 6.2); spec + `AGENTS.md` "pure sync target" (PR 6.3). Companion notes in `theholocron/.github` + `.github-private`. | #587  |
 | 7 ✅ | `holocron run <task> <job>` + `audit` sub-jobs (`bundle-size` / `knip` / `performance`); `JobDef.checkContext`; `holocron run audit` runs every job in order; `holocron ci` expands `audit` into per-job check-context lines; job-position arg folds into passthrough for job-less tasks.                                                                                                                                                                               | #588  |
 | 8 ✅ | The reusable `typecheck` / `test` / `audit` workflows run their core step through a new `holocron` composite action (`holocron run <task> [job]`); `bundle-size` → `holocron run build`, `knip` → `holocron run audit knip`, `performance` → `holocron run audit performance`. `run.ts` turbo delegation forwards the registry's org-default flags (`test` → `--coverage`). `lint.yml` stays a super-linter Action (Phase-4 parity).                                    | #589  |
+| 9 ✅ | `astromech.codecovConfig(existing)` — `codecov.yml` generation moved out of `@theholocron/cli` (component `paths` from `packages/*`, same manifest-derived category as `thinCallers()` / `requiredChecks()`). `holocron setup`'s codecov step calls it instead of importing template logic directly.                                                                                                                                                                    | #650  |
 
 ## Test plan
 
