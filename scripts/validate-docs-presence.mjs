@@ -57,9 +57,7 @@ if (newPackages.length === 0) {
 }
 
 // Check for any docs change in the PR
-const hasDocsChange = allChanged.some(
-	(f) => f.startsWith("docs/") || f.endsWith(".md") || f.endsWith(".mdx")
-);
+const hasDocsChange = allChanged.some((f) => f.startsWith("docs/") || f.endsWith(".md") || f.endsWith(".mdx"));
 
 console.log(`\nNew public package(s): ${newPackages.join(", ")}`);
 

@@ -2,6 +2,7 @@
 title: Vercel Plugin
 description: Implements the deployment capability against the Vercel REST API.
 ---
+
 import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
 import { getPlugins } from "@theholocron/registry-doc";
 
@@ -9,9 +10,7 @@ import { getPlugins } from "@theholocron/registry-doc";
 
 <Installation package={getPlugins()["holocron-plugin-vercel"].package} dev />
 
-<CapabilitiesTable rows={[
-  { capability: "deployment", token: "HOLOCRON_VERCEL_TOKEN (vercel)" },
-]} />
+<CapabilitiesTable rows={[{ capability: "deployment", token: "HOLOCRON_VERCEL_TOKEN (vercel)" }]} />
 
 ## Config
 

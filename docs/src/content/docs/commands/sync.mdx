@@ -18,19 +18,19 @@ holocron sync                               # run all steps
 holocron sync labels properties             # run only labels and properties
 ```
 
-| Step          | What it syncs                                             | Requires provider token      |
-| ------------- | --------------------------------------------------------- | ---------------------------- |
-| `labels`      | GitHub labels — upserts canonical set, deletes stale ones | Yes (`HOLOCRON_ADMIN_TOKEN`) |
-| `properties`  | Org-level custom properties (`repo.properties`)           | Yes                          |
-| `teams`       | Team repository access (`repo.teams`)                     | Yes                          |
-| `topics`      | GitHub topics (`repo.topics`)                             | Yes                          |
-| `keywords`    | `package.json#keywords` — set from `repo.topics`          | No                           |
-| `description` | `package.json#description` and GitHub repo description    | No (local) / Yes (GitHub)    |
-| `homepage`    | `package.json#homepage` and GitHub repo website field     | No (local) / Yes (GitHub)    |
-| `readme`      | Regenerates the README Installation/Usage block           | No                           |
-| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`       | No                           |
-| `scripts`     | `package.json#scripts` — the `holocron` entry + `holocron run <task>` wrappers from `tasks` | No |
-| `wiki`        | Publishes engineering docs to the wiki                    | No                           |
+| Step          | What it syncs                                                                               | Requires provider token      |
+| ------------- | ------------------------------------------------------------------------------------------- | ---------------------------- |
+| `labels`      | GitHub labels — upserts canonical set, deletes stale ones                                   | Yes (`HOLOCRON_ADMIN_TOKEN`) |
+| `properties`  | Org-level custom properties (`repo.properties`)                                             | Yes                          |
+| `teams`       | Team repository access (`repo.teams`)                                                       | Yes                          |
+| `topics`      | GitHub topics (`repo.topics`)                                                               | Yes                          |
+| `keywords`    | `package.json#keywords` — set from `repo.topics`                                            | No                           |
+| `description` | `package.json#description` and GitHub repo description                                      | No (local) / Yes (GitHub)    |
+| `homepage`    | `package.json#homepage` and GitHub repo website field                                       | No (local) / Yes (GitHub)    |
+| `readme`      | Regenerates the README Installation/Usage block                                             | No                           |
+| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                         | No                           |
+| `scripts`     | `package.json#scripts` — the `holocron` entry + `holocron run <task>` wrappers from `tasks` | No                           |
+| `wiki`        | Publishes engineering docs to the wiki                                                      | No                           |
 
 Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
 
