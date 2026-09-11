@@ -19,20 +19,19 @@ npm requires a package to already exist before you can configure Trusted Publish
 
 ```bash
 # From the holocron repo root.
-# Interactive npm sign-in via the browser (no token stored in CI):
-npm login --auth-type=web
-
 # Build everything fresh:
 pnpm install --frozen-lockfile
 pnpm build
 
-# Run the one-shot bootstrap publish. Prints direct links to each package's
-# Trusted Publisher config page after publishing.
+# Run the one-shot bootstrap publish. Verifies npm auth — running
+# `npm login --auth-type=web` itself (interactive, browser-based) if there's
+# no session yet — then publishes and prints direct links to each package's
+# Trusted Publisher config page.
 #
 # If your npm account requires 2FA for writes, grab a one-time password
 # from your authenticator and pass it via --otp. The same code is reused
 # across all sequential publishes — they happen within seconds.
-pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp 123456
+pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp 123456
 ```
 
 Add `--dry-run` to print what would happen without publishing. If you forget `--otp` and your account needs it, the command detects the `EOTP` error and prints the corrected command.
@@ -59,11 +58,10 @@ Push to `main` fires `release.yml`. The workflow requests an OIDC token from Git
 When adding a new `holocron-plugin-*` package:
 
 1. Add it to the workspace packages.
-2. Run `npm login --auth-type=web` locally.
-3. Run `holocron npm publish-initial --tag alpha` (or `--dry-run` first).
-4. Visit the npm UI and configure Trusted Publisher for the new package (same settings as above).
-5. Future releases via `main` will include the new package automatically.
+2. Run `holocron publish --initial --tag alpha` (or `--dry-run` first) — it handles `npm login` itself.
+3. Visit the npm UI and configure Trusted Publisher for the new package (same settings as above).
+4. Future releases via `main` will include the new package automatically.
 
 ## Release versioning
 
-Holocron uses `semantic-release` with lockstep versioning — all packages in `packages/*/` advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron npm bump-versions` to patch every `package.json` in the workspace.
+Holocron uses `semantic-release` with lockstep versioning — all packages in `packages/*/` advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron bump-versions` to patch every `package.json` in the workspace.

@@ -424,7 +424,7 @@ holds the orchestration + the Holocron-specific credential resolution
   `astromech.reusableTemplates()` to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
-  `secrets sync`, `npm publish-initial`, `sync-github`, `upgrade node`,
+  `secrets sync`, `publish`, `bump-versions`, `sync-github`, `upgrade node`,
   `upgrade deps`, `plugin create`, `auth`
 
 ## Status

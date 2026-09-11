@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
 import { fakeLogger } from "../test-utils/fake-logger.js";
-import { type PublishExecResult, runNpmPublishInitial } from "./npm-publish-initial.js";
+import { type PublishExecResult, runPublish } from "./publish.js";
 
 function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {
 	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
@@ -47,14 +47,14 @@ const baseEnv: NodeJS.ProcessEnv = {};
 const TEST_PACKAGES = ["@theholocron/foo", "@theholocron/bar"] as const;
 const TEST_REPO = "test-repo";
 
-describe("runNpmPublishInitial", () => {
+describe("runPublish", () => {
 	it("verifies npm auth via `npm whoami` before publishing", async () => {
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton\n", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
 		const log = fakeLogger();
-		const report = await runNpmPublishInitial({
+		const report = await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -66,33 +66,83 @@ describe("runNpmPublishInitial", () => {
 		expect(report.status).toBe("ok");
 		expect(calls[0]?.cmd).toBe("npm");
 		expect(calls[0]?.args).toEqual(["whoami"]);
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "ok" }), "npm publish-initial: done");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "ok" }), "publish --initial: done");
 	});
 
-	it("fails fast when npm whoami exits non-zero", async () => {
+	it("runs `npm login` automatically when npm whoami shows no session, then retries whoami (holocron#641)", async () => {
+		const lines: string[] = [];
+		let whoamiCalls = 0;
+		const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+			if (cmd === "npm" && args[0] === "whoami") {
+				whoamiCalls += 1;
+				// First call: not authenticated. Second call (post-login): authenticated.
+				return whoamiCalls === 1
+					? { exitCode: 1, stdout: "", stderr: "ENEEDAUTH" }
+					: { exitCode: 0, stdout: "iamnewton\n", stderr: "" };
+			}
+			return { exitCode: 0, stdout: "", stderr: "" };
+		};
+		const login = vi.fn(async () => ({ exitCode: 0 }));
+		const report = await runPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+			login,
+		});
+		expect(login).toHaveBeenCalledTimes(1);
+		expect(whoamiCalls).toBe(2); // checked, logged in, checked again
+		expect(report.status).toBe("ok");
+		expect(lines.join("\n")).toMatch(/running `npm login --auth-type=web`/);
+	});
+
+	it("fails when `npm login` itself fails", async () => {
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 1, stdout: "", stderr: "ENEEDAUTH" },
 		});
-		const report = await runNpmPublishInitial({
+		const login = vi.fn(async () => ({ exitCode: 1 }));
+		const report = await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
 			print: () => {},
 			exec,
+			login,
 		});
 		expect(report.status).toBe("fail");
-		expect(report.message).toContain("npm login");
-		expect(calls).toHaveLength(1); // didn't even attempt publish
+		expect(report.message).toMatch(/npm login failed/);
+		expect(calls).toHaveLength(1); // only the first whoami — never attempted publish
 	});
 
-	it("runs the pnpm publish with the right filters + flags", async () => {
+	it("fails when `npm login` succeeds but whoami still fails afterward", async () => {
+		const { exec } = makeExec({
+			npm: { exitCode: 1, stdout: "", stderr: "ENEEDAUTH" },
+		});
+		const login = vi.fn(async () => ({ exitCode: 0 }));
+		const report = await runPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			print: () => {},
+			exec,
+			login,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/whoami.* still fails/);
+	});
+
+	it("runs the pnpm publish with the right filters + flags (monorepo layout)", async () => {
+		const root = makeTempMonorepo([{ name: "@theholocron/public-a" }]);
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
-			cwd: "/tmp/test",
+		await runPublish({
+			cwd: root,
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
@@ -112,12 +162,71 @@ describe("runNpmPublishInitial", () => {
 		]);
 	});
 
+	it("publishes without -r/--filter for a single-package repo (holocron#641)", async () => {
+		const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@theholocron/observability" }));
+		const { exec, calls } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		const report = await runPublish({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: () => {},
+			exec,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.packageNames).toEqual(["@theholocron/observability"]);
+		expect(calls[1]?.cmd).toBe("pnpm");
+		expect(calls[1]?.args).toEqual(["publish", "--access", "public", "--no-git-checks", "--tag", "alpha"]);
+	});
+
+	it("fails loudly instead of a silent no-op when nothing is publishable (holocron#641)", async () => {
+		const lines: string[] = [];
+		const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "private-thing", private: true }));
+		const { exec, calls } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+		});
+		const report = await runPublish({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/nothing to publish/);
+		expect(lines.join("\n")).toMatch(/nothing to publish/);
+		// never got as far as the publish call — only `npm whoami` ran
+		expect(calls).toHaveLength(1);
+	});
+
+	it("still fails loudly on zero packages in dry-run", async () => {
+		const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+		writeFileSync(join(root, "package.json"), JSON.stringify({}));
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+		});
+		const report = await runPublish({
+			cwd: root,
+			dryRun: true,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: () => {},
+			exec,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/nothing to publish/);
+	});
+
 	it("honors a custom tag", async () => {
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			tag: "next",
 			env: baseEnv,
@@ -134,7 +243,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 1, stdout: "", stderr: "EPUBLISHCONFLICT" },
 		});
-		const report = await runNpmPublishInitial({
+		const report = await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -151,7 +260,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			otp: "123456",
 			env: baseEnv,
@@ -174,7 +283,7 @@ describe("runNpmPublishInitial", () => {
 				stderr: "",
 			},
 		});
-		const report = await runNpmPublishInitial({
+		const report = await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -194,7 +303,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 1, stdout: "", stderr: "some other error" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -211,7 +320,7 @@ describe("runNpmPublishInitial", () => {
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 		});
-		const report = await runNpmPublishInitial({
+		const report = await runPublish({
 			cwd: "/tmp/test",
 			dryRun: true,
 			env: baseEnv,
@@ -231,7 +340,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -254,7 +363,7 @@ describe("runNpmPublishInitial", () => {
 			git: { exitCode: 0, stdout: "https://github.com/theholocron/themes.git\n", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -271,7 +380,7 @@ describe("runNpmPublishInitial", () => {
 			git: { exitCode: 0, stdout: "git@github.com:theholocron/clients.git\n", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -288,7 +397,7 @@ describe("runNpmPublishInitial", () => {
 			git: { exitCode: 128, stdout: "", stderr: "not a git repo" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -304,7 +413,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: { NPM_TOKEN: "npm_xxx" },
 			packages: TEST_PACKAGES,
@@ -323,7 +432,7 @@ describe("runNpmPublishInitial", () => {
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			packages: TEST_PACKAGES,
@@ -338,7 +447,7 @@ describe("runNpmPublishInitial", () => {
 
 // ── discoverPublicPackages ────────────────────────────────────────────────────
 
-describe("discoverPublicPackages (via runNpmPublishInitial without packages injection)", () => {
+describe("discoverPublicPackages (via runPublish without packages injection)", () => {
 	it("discovers non-private packages and skips private, no-manifest, and invalid-JSON entries", async () => {
 		const root = makeTempMonorepo([
 			{ name: "@theholocron/public-a" },
@@ -351,7 +460,7 @@ describe("discoverPublicPackages (via runNpmPublishInitial without packages inje
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		await runNpmPublishInitial({
+		await runPublish({
 			cwd: root,
 			env: baseEnv,
 			repoName: TEST_REPO,
@@ -366,36 +475,37 @@ describe("discoverPublicPackages (via runNpmPublishInitial without packages inje
 		expect(joined).not.toContain("no-manifest/access");
 	});
 
-	it("returns empty list when the packages directory does not exist", async () => {
+	it("falls back to the root package.json when there's no packages/ dir at all — fails loudly, no publish attempted", async () => {
 		const lines: string[] = [];
-		const { exec } = makeExec({
+		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 0, stdout: "", stderr: "" },
 		});
-		// /tmp/test has no packages/ directory
-		await runNpmPublishInitial({
+		// /tmp/test has neither a packages/ dir nor a package.json
+		const report = await runPublish({
 			cwd: "/tmp/test",
 			env: baseEnv,
 			repoName: TEST_REPO,
 			print: (l) => lines.push(l),
 			exec,
 		});
-		// no package URLs in next-steps
+		expect(report.status).toBe("fail");
 		expect(lines.join("\n")).not.toContain("npmjs.com/package/");
+		expect(calls).toHaveLength(1); // whoami only — never reached pnpm
 	});
 });
 
 // ── defaultExec ───────────────────────────────────────────────────────────────
 
-describe("defaultExec (npm-publish-initial)", () => {
+describe("defaultExec (publish)", () => {
 	it("calls spawnSync and returns captured output when exec is not injected", async () => {
 		const { spawnSync } = await import("node:child_process");
 		const spy = spawnSync as ReturnType<typeof vi.fn>;
 		spy.mockReturnValue({ status: 0, stdout: "iamnewton\n", stderr: "" });
 
-		// Without injecting exec, runNpmPublishInitial uses defaultExec → spawnSync.
+		// Without injecting exec, runPublish uses defaultExec → spawnSync.
 		// npm whoami runs first; return a valid user so the publish proceeds.
-		const report = await runNpmPublishInitial({ cwd: "/tmp", env: { npm_config_userconfig: "/dev/null" } });
+		const report = await runPublish({ cwd: "/tmp", env: { npm_config_userconfig: "/dev/null" } });
 
 		expect(spy).toHaveBeenCalled();
 		// status reflects the spawnSync exit code path
@@ -407,7 +517,7 @@ describe("defaultExec (npm-publish-initial)", () => {
 		const spy = spawnSync as ReturnType<typeof vi.fn>;
 		spy.mockReturnValue({ status: null, stdout: "", stderr: "error" });
 
-		const report = await runNpmPublishInitial({ cwd: "/tmp", env: {} });
+		const report = await runPublish({ cwd: "/tmp", env: {} });
 		// null status → exitCode -1 → treated as non-zero → fail
 		expect(report.status).toBe("fail");
 	});

@@ -211,7 +211,7 @@ interface CommandEntry {
   name: string; // full command name, e.g. "auth set"
   description: string; // one-liner, matches the yargs registration
   positionals: PositionalPrompt[]; // required positionals only, in order
-  group?: string; // parent command: "auth" | "skills" | "npm" | "upgrade"
+  group?: string; // parent command: "auth" | "skills" | "upgrade"
 }
 ```
 
@@ -223,32 +223,32 @@ positional changes or a new command is added.
 
 ### Full registry
 
-| name                  | positionals                      | group     |
-| --------------------- | -------------------------------- | --------- |
-| `auth check`          | `provider` (select)              | `auth`    |
-| `auth list`           | —                                | `auth`    |
-| `auth set`            | `provider` (select)              | `auth`    |
-| `auth unset`          | `provider` (select)              | `auth`    |
-| `cleanup-preview`     | `pr` (input)                     | —         |
-| `clone`               | —                                | —         |
-| `config show`         | —                                | —         |
-| `deploy`              | `branch` (input)                 | —         |
-| `doctor`              | —                                | —         |
-| `new`                 | —                                | —         |
-| `npm bump-versions`   | `new-version` (input)            | `npm`     |
-| `npm publish-initial` | —                                | `npm`     |
-| `plugin create`       | `slug` (input), `vendor` (input) | —         |
-| `secret set`          | `name` (input)                   | —         |
-| `secrets sync`        | `environmentId` (input)          | —         |
-| `setup`               | —                                | —         |
-| `skills install`      | —                                | `skills`  |
-| `skills remove`       | —                                | `skills`  |
-| `skills update`       | —                                | `skills`  |
-| `sync`                | —                                | —         |
-| `sync-github`         | —                                | —         |
-| `sync-readme`         | —                                | —         |
-| `upgrade node`        | `to` (input)                     | `upgrade` |
-| `version`             | —                                | —         |
+| name              | positionals                      | group     |
+| ----------------- | -------------------------------- | --------- |
+| `auth check`      | `provider` (select)              | `auth`    |
+| `auth list`       | —                                | `auth`    |
+| `auth set`        | `provider` (select)              | `auth`    |
+| `auth unset`      | `provider` (select)              | `auth`    |
+| `cleanup-preview` | `pr` (input)                     | —         |
+| `clone`           | —                                | —         |
+| `config show`     | —                                | —         |
+| `deploy`          | `branch` (input)                 | —         |
+| `doctor`          | —                                | —         |
+| `new`             | —                                | —         |
+| `bump-versions`   | `new-version` (input)            | —         |
+| `publish`         | `--initial` (required today)     | —         |
+| `plugin create`   | `slug` (input), `vendor` (input) | —         |
+| `secret set`      | `name` (input)                   | —         |
+| `secrets sync`    | `environmentId` (input)          | —         |
+| `setup`           | —                                | —         |
+| `skills install`  | —                                | `skills`  |
+| `skills remove`   | —                                | `skills`  |
+| `skills update`   | —                                | `skills`  |
+| `sync`            | —                                | —         |
+| `sync-github`     | —                                | —         |
+| `sync-readme`     | —                                | —         |
+| `upgrade node`    | `to` (input)                     | `upgrade` |
+| `version`         | —                                | —         |
 
 `new` and `plugin create` are included in the top-level picker but have no
 registry positionals — both already prompt for everything they need internally.
@@ -307,12 +307,12 @@ Add a `$0` default command before `.parse()`:
 
 #### Parent command builders (Layer 2)
 
-For each of `skills`, `npm`, `upgrade`, `auth` — add a `$0` subcommand inside
+For each of `skills`, `upgrade`, `auth` — add a `$0` subcommand inside
 the builder and remove the existing `.demandCommand(1)`:
 
 ```ts
 .command("$0", false, () => {}, async (argv) => {
-  const group = "auth"; // or "skills" | "npm" | "upgrade"
+  const group = "auth"; // or "skills" | "upgrade"
   const entries = COMMAND_REGISTRY.filter((e) => e.group === group);
   const picked = await pickCommand(entries);
   const positionals = await promptForPositionals(picked, argv as Record<string, unknown>);

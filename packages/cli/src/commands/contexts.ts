@@ -45,8 +45,8 @@ export const COMMAND_CONTEXTS = {
 	// verification skipped" when the plugin isn't resolvable — so it's usable
 	// from a global install. See `runAuthCheck`.
 	"auth check": "global",
-	"npm bump-versions": "global",
-	"npm publish-initial": "global",
+	"bump-versions": "global",
+	publish: "global",
 	"skills install": "global",
 	"skills remove": "global",
 	"skills update": "global",

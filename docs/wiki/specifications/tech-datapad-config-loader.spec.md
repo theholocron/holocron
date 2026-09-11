@@ -131,9 +131,9 @@ schema, and `defineConfig` all stay in `@theholocron/cli`.
 - `codecov.yml` — `datapad` component.
 - `knip.config.ts` — `packages/datapad` workspace entry.
 - Root `README.md` — package map row.
-- `holocron npm bump-versions` picks up any non-private `packages/*`
+- `holocron bump-versions` picks up any non-private `packages/*`
   automatically — no script edit. Trusted Publisher must be registered
-  before the first publish (`holocron npm publish-initial`).
+  before the first publish (`holocron publish --initial`).
 - **Companion PR** `theholocron/docs#40` — `@theholocron/registry-doc`
   `datapad` entry (in `tools`, beside `logger`). `scripts/validate-registry.mjs`
   fails here until that merges → registry-doc releases → `@theholocron/registry-doc`

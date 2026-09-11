@@ -1,0 +1,28 @@
+---
+title: "bump-versions"
+description: Bump every non-private package's version in lockstep — the semantic-release prepareCmd.
+---
+
+```bash
+holocron bump-versions <version>
+```
+
+Bumps every non-private package's `version` field in `packages/*/package.json` to `<version>`. Used as the `prepareCmd` in `release.config.ts` during a `semantic-release` run.
+
+## Options
+
+| Option      | Description                                       |
+| ----------- | ------------------------------------------------- |
+| `<version>` | Target version (e.g. `4.2.0` or `2.0.0-alpha.1`)  |
+| `--dry-run` | Print what would change without writing any files |
+| `--cwd`     | Monorepo root (default: `process.cwd()`)          |
+
+## Example
+
+```bash
+# In release.config.ts:
+prepareCmd: "node packages/cli/dist/cli.mjs bump-versions ${nextRelease.version}"
+
+# Manual invocation:
+holocron bump-versions 4.2.0 --dry-run
+```

@@ -24,38 +24,37 @@ Trusted Publishing for it. So the actual flow for any new
 After step 3, no operator action is needed for that package again.
 
 The initial v2 bootstrap ran this for all 7 packages together (via
-`holocron npm publish-initial`, which does step 1 in a single
-invocation across the workspace). Any new plugin added later needs
-to walk through steps 1–2 for itself.
+`holocron publish --initial`, which does step 1 in a single
+invocation across the workspace — a monorepo `pnpm -r --filter=./packages/*`
+publish, or a plain `pnpm publish` for a single-package repo like a
+scaffolded plugin/template). Any new plugin added later needs to walk
+through steps 1–2 for itself.
 
 ## Step 1 — one-time manual publish
 
 <!-- prettier-ignore -->
 ```bash
 # From the holocron repo root, on a clean checkout.
-# Interactive npm sign-in via the browser (no token stored locally beyond
-# npm's own session cookie):
-npm login --auth-type=web
-
 # Build everything fresh:
 pnpm install --frozen-lockfile
 pnpm build
 
-# Run the holocron one-shot bootstrap publish. Verifies npm auth, runs
-# `pnpm publish -r` with the right filters, prints direct links to each
-# package's Trusted Publisher config page.
+# Run the holocron one-shot bootstrap publish. Verifies npm auth — running
+# `npm login --auth-type=web` itself (interactive, browser-based) if there's
+# no session yet — then runs `pnpm publish -r` with the right filters, and
+# prints direct links to each package's Trusted Publisher config page.
 #
 # If your npm account requires 2FA for writes (recommended), grab a
 # one-time password from your authenticator and pass it via --otp. The
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
-pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp 123456
+pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp 123456
 
 ```
 
-The bootstrap command does the publish + reminds you exactly which URLs
-to visit for step 2. The session token from `npm login` is local-only;
-never enters CI.
+The bootstrap command does the login + the publish + reminds you exactly
+which URLs to visit for step 2. The session token from `npm login` is
+local-only; never enters CI.
 
 Add `--dry-run` to print what would happen without actually publishing.
 If you forget `--otp` and your account needs it, the command detects
