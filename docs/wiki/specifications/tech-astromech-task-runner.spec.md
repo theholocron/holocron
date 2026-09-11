@@ -82,15 +82,15 @@ stays in `holocron-plugin-github`.
 
 ### What moves from `packages/cli`
 
-| From                                                                           | To (`@theholocron/astromech`)  |
-| ------------------------------------------------------------------------------ | ------------------------------ |
-| `src/tasks.ts`                                                                 | `registry.ts`                  |
-| `src/commands/run.ts` — resolution core                                        | `run.ts`                       |
-| cli `templates/workflows/*.yml` (thin-caller bases)                            | `templates/workflows/`         |
-| cli `templates/workflows/*.yml` + `templates/actions/` (reusable impls)        | `templates/reusable/`          |
-| `src/commands/setup-workflows/` — thin-caller gen, `normalizeWorkflowWith`     | `thin-callers.ts`              |
-| `src/commands/sync-github.ts` — reusable-template batch (`buildBatch`, header) | `reusable.ts`                  |
-| `repo.requiredChecks` resolution (from `@theholocron/holocron-config`)         | `required-checks.ts` (derived) |
+| From                                                                           | To (`@theholocron/astromech`)              |
+| ------------------------------------------------------------------------------ | ------------------------------------------ |
+| `src/tasks.ts`                                                                 | `registry.ts`                              |
+| `src/commands/run.ts` — resolution core                                        | `run.ts`                                   |
+| cli `templates/workflows/*.yml` (thin-caller bases)                            | `templates/workflows/`                     |
+| cli `templates/workflows/*.yml` + `templates/actions/` (reusable impls)        | `templates/reusable/`                      |
+| `src/commands/setup-workflows/` — thin-caller gen, `normalizeWorkflowWith`     | `thin-callers.ts`                          |
+| `src/commands/sync-github.ts` — reusable-template batch (`buildBatch`, header) | `reusable.ts`                              |
+| `repo.requiredChecks` resolution (from `@theholocron/holocron-config`)         | `required-checks.ts` (derived)             |
 | `templates/configs/codecov/` — `create-config.ts` + `utils.ts`                 | `codecov.ts` + `templates/codecov/` (#650) |
 
 ## Config system

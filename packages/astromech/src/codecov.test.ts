@@ -119,9 +119,13 @@ describe("ensureIfNotFound", () => {
 	});
 
 	it("is idempotent — does not double-insert when the key is already present", () => {
-		const input = ["    project:", "      default:", "        target: auto", "        if_not_found: success", ""].join(
-			"\n"
-		);
+		const input = [
+			"    project:",
+			"      default:",
+			"        target: auto",
+			"        if_not_found: success",
+			"",
+		].join("\n");
 		expect(ensureIfNotFound(input)).toBe(input);
 	});
 
