@@ -21,7 +21,7 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS } from "@theholocron/astromech";
+import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
@@ -46,11 +46,6 @@ import {
 	createIgnoreConfig as createAlexignore,
 	createRcConfig as createAlexrc,
 } from "../../templates/configs/alexjs/index.js";
-import {
-	createConfig as createCodecov,
-	mergeCodecovComponents,
-	readWorkspacePackages,
-} from "../../templates/configs/codecov/index.js";
 import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
 import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
 import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
@@ -320,7 +315,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		{
 			const configuredWorkflowNames = (config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name));
 			const hasTestWorkflow = configuredWorkflowNames.includes("test");
-			const packages = await readWorkspacePackages(input.context.repoRoot);
 			const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
 			if (!hasTestWorkflow && existing == null) {
 				steps.push({
@@ -332,10 +326,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			} else {
 				steps.push(
 					await runStep("source", "write codecov.yml", dryRun, async () => {
-						const content =
-							existing != null ? mergeCodecovComponents(existing, packages) : createCodecov(packages);
+						const content = createAstromech({ cwd: input.context.repoRoot }).codecovConfig(existing);
 						await source.writeRepoFile("codecov.yml", content);
-						return packages.length > 0 ? `${packages.length} components` : "no components";
+						const packageCount = readWorkspacePackages(input.context.repoRoot).length;
+						return packageCount > 0 ? `${packageCount} components` : "no components";
 					})
 				);
 			}

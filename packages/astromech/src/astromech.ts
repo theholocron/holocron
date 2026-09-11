@@ -9,6 +9,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { type CiOptions, type CiReport, runCi } from "./ci.js";
+import { codecovConfig as resolveCodecovConfig } from "./codecov.js";
 import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { requiredChecks as resolveRequiredChecks } from "./required-checks.js";
@@ -119,6 +120,13 @@ export interface Astromech {
 	 * the list; this method is policy-free (manifest only).
 	 */
 	requiredChecks(): string[];
+	/**
+	 * This repo's `codecov.yml` — component `paths` derived from `packages/*`.
+	 * Pass the current file's content (`null` if none exists yet) to either
+	 * merge the component list in or scaffold a fresh file. Policy-free same
+	 * as {@link requiredChecks} — `holocron setup` owns writing the result.
+	 */
+	codecovConfig(existing: string | null): string;
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
@@ -261,5 +269,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		reusableTemplates: () => resolveReusableTemplates(),
 
 		requiredChecks: () => resolveRequiredChecks(options.config ?? {}),
+
+		codecovConfig: (existing: string | null) => resolveCodecovConfig(options.cwd, existing),
 	};
 }
