@@ -22,10 +22,10 @@ on: # yamllint disable-line rule:truthy
         default: prettier.config.ts
       yaml-config:
         description: >
-          Filename for the yamllint config. Defaults to yamllint.config.yml.
+          Filename for the yamllint config. Defaults to .yamllint.yml.
         type: string
         required: false
-        default: yamllint.config.yml
+        default: .yamllint.yml
       enable-auto-commit:
         description: >
           Auto-commit super-linter fixes as a verified commit via a GitHub App.

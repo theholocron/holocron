@@ -274,8 +274,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		);
 		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
-			await runStep("source", "write yamllint.config.yml", dryRun, async () => {
-				await source.writeRepoFile("yamllint.config.yml", createYamllint());
+			await runStep("source", "write .yamllint.yml", dryRun, async () => {
+				await source.writeRepoFile(".yamllint.yml", createYamllint());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));

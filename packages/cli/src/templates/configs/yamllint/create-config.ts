@@ -1,5 +1,5 @@
 import { createHeader } from "../../../utils/create-header.js";
-import yamllintBody from "./yamllint.config.yml";
+import yamllintBody from "./.yamllint.yml";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/templates/configs/yamllint/create-config.ts",

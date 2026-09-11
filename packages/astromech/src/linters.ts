@@ -88,7 +88,7 @@ export const LINTERS: Record<string, LinterDef> = {
 		validate: ["VALIDATE_YAML"],
 		always: true,
 		localBin: "yamllint",
-		localArgs: ["-c", "yamllint.config.yml", "."],
+		localArgs: ["."],
 		installHint: "brew install yamllint",
 		configInput: "yaml-config",
 	},
