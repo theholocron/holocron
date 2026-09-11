@@ -28,7 +28,6 @@ jobs:
         with:
           task: typecheck
 
-
   conclusion:
     name: Conclusion
     runs-on: ubuntu-latest

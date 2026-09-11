@@ -13,9 +13,9 @@ Implements the `wiki` capability using [Fern](https://buildwithfern.com).
 pnpm add -D @theholocron/holocron-plugin-fern
 ```
 
-| Capability | Token                              |
-| ---------- | ---------------------------------- |
-| `wiki`     | `HOLOCRON_FERN_TOKEN` (CI secret)  |
+| Capability | Token                             |
+| ---------- | --------------------------------- |
+| `wiki`     | `HOLOCRON_FERN_TOKEN` (CI secret) |
 
 ## Config
 
@@ -64,10 +64,10 @@ URL on every pull request.
 When `domain` is a bare host, the plugin appends the repo name as a
 basepath. Every repo in the org gets its own URL under a shared domain:
 
-| Repo                       | URL                                      |
-| -------------------------- | ---------------------------------------- |
-| `theholocron/holocron`     | `wiki.theholocron.dev/holocron`          |
-| `theholocron/configs`      | `wiki.theholocron.dev/configs`           |
+| Repo                   | URL                             |
+| ---------------------- | ------------------------------- |
+| `theholocron/holocron` | `wiki.theholocron.dev/holocron` |
+| `theholocron/configs`  | `wiki.theholocron.dev/configs`  |
 
 The generated `fern/docs.yml` uses Fern's `multi-source: true` flag, which
 Fern requires for basepath-aware routing:

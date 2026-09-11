@@ -103,7 +103,7 @@ export const LINTERS: Record<string, LinterDef> = {
 		validate: ["VALIDATE_GITLEAKS"],
 		always: true,
 		localBin: "gitleaks",
-		localArgs: ["dir", "--no-banner"],
+		localArgs: ["dir", "--no-banner", "--config", ".gitleaks.toml"],
 		installHint: "brew install gitleaks",
 	},
 	editorconfig: {
