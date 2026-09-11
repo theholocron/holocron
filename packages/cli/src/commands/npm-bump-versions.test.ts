@@ -1,8 +1,8 @@
 import { join } from "node:path";
 
+import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it } from "vitest";
 
-import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runNpmBumpVersions } from "./npm-bump-versions.js";
 
 const CWD = "/repo";

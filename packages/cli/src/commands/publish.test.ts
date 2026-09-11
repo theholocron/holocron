@@ -6,7 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
-import { fakeLogger } from "../test-utils/fake-logger.js";
+import { fakeLogger } from "@theholocron/observability/testing";
+
 import { type PublishExecResult, runPublish } from "./publish.js";
 
 function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {

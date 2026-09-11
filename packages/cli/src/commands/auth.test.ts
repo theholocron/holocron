@@ -37,7 +37,7 @@ vi.mock("@napi-rs/keyring", () => {
 
 const { runAuthCheck, runAuthList, runAuthSet, runAuthUnset, resolveAuthSetToken } =
 	await import("../commands/auth.js");
-const { fakeLogger } = await import("../test-utils/fake-logger.js");
+const { fakeLogger } = await import("@theholocron/observability/testing");
 
 function reset() {
 	store.clear();

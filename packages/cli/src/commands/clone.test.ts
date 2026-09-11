@@ -4,9 +4,9 @@ import { homedir } from "node:os";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fakeLogger } from "../test-utils/fake-logger.js";
 import { runClone } from "./clone.js";
 
 function makeRepo(name: string, org = "test-org") {

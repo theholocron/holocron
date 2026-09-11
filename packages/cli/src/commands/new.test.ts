@@ -9,7 +9,8 @@ vi.mock("node:fs", async (importOriginal) => {
 	return { ...actual, existsSync: vi.fn(() => false), mkdirSync: vi.fn(), writeFileSync: vi.fn() };
 });
 
-import { fakeLogger } from "../test-utils/fake-logger.js";
+import { fakeLogger } from "@theholocron/observability/testing";
+
 import {
 	deriveVariants,
 	generateHolocronConfig,

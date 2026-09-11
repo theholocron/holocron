@@ -10,10 +10,10 @@ import {
 	WORKFLOW_TEMPLATE_PROPERTIES,
 	WORKFLOW_TEMPLATES,
 } from "@theholocron/astromech";
+import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
 import * as telemetry from "../telemetry.js";
-import { fakeLogger } from "../test-utils/fake-logger.js";
 import { gitBlobSha as _gitBlobSha, runSyncGithub } from "./sync-github.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
