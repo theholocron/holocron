@@ -78,6 +78,12 @@ const config: KnipConfig = {
 	// commitlint binary comes transitively via @theholocron/commitlint-config; not a direct dep
 	ignoreBinaries: ["commitlint"],
 	ignoreExportsUsedInFile: true,
+	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's
+	// glob doesn't traverse dotfiles so it can't trace these as reachable from imports
+	ignoreFiles: [
+		"packages/cli/src/templates/configs/yamllint/.yamllint.yml.d.ts",
+		"packages/cli/src/templates/configs/yamllint/.yamlignore.d.ts",
+	],
 };
 
 export default config;
