@@ -21,7 +21,21 @@ const ERROR_MSG = "Nothing is currently registered!";
 
 const isSessionStorageAvailable: boolean = typeof window !== "undefined" && "sessionStorage" in window;
 
-function createStorage(namespace = "theholocron"): TSessionStorage {
+/**
+ * Minimal structural logger seam — accept any object shaped like this
+ * (including a real `@theholocron/observability` `Logger` via a thin
+ * adapter) without this package taking a dependency on it. Defaults to
+ * `console.error` so behavior is unchanged when nothing is injected.
+ */
+export interface StorageLogger {
+	error(message: string, meta?: unknown): void;
+}
+
+const consoleLogger: StorageLogger = {
+	error: (message, meta) => (meta === undefined ? console.error(message) : console.error(message, meta)),
+};
+
+function createStorage(namespace = "theholocron", logger: StorageLogger = consoleLogger): TSessionStorage {
 	const prefixedNamespace = `@${namespace}`;
 	let lastRegisteredApp: string | undefined;
 	const storage: AppStorageData = {};
@@ -70,7 +84,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 				try {
 					sessionStorage.setItem(prefixedNamespace, JSON.stringify(storage));
 				} catch (error) {
-					console.error("Failed to store data in sessionStorage", error);
+					logger.error("Failed to store data in sessionStorage", error);
 				}
 			}
 		},
@@ -93,7 +107,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 						Object.assign(storage, parsedData); // Merge stored data into current storage
 					}
 				} catch (error) {
-					console.error("Failed to read data in sessionStorage", error);
+					logger.error("Failed to read data in sessionStorage", error);
 				}
 			}
 
@@ -142,7 +156,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 					try {
 						sessionStorage.setItem(prefixedNamespace, JSON.stringify(storage));
 					} catch (error) {
-						console.error("Failed to remove data from sessionStorage", error);
+						logger.error("Failed to remove data from sessionStorage", error);
 					}
 				}
 			}
@@ -154,7 +168,7 @@ function createStorage(namespace = "theholocron"): TSessionStorage {
 				try {
 					sessionStorage.removeItem(prefixedNamespace);
 				} catch (error) {
-					console.error("Failed to clear sessionStorage", error);
+					logger.error("Failed to clear sessionStorage", error);
 				}
 			}
 		},

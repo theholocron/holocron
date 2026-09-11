@@ -33,9 +33,11 @@ store.removeFrom("user.role");
 store.clear();
 ```
 
-### `storage.session.create(namespace?)`
+### `storage.session.create(namespace?, logger?)`
 
 Creates a namespaced session storage instance. The namespace defaults to `"theholocron"` (stored as `@theholocron` in `sessionStorage`).
+
+`sessionStorage` failures (quota exceeded, security errors, private-browsing restrictions) are caught and reported to `console.error` by default. Pass a `StorageLogger` (`{ error(message, meta?) }`) as the second argument to route them elsewhere: `storage.session.create("my-namespace", myLogger)`.
 
 The returned object exposes:
 

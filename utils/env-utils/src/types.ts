@@ -12,6 +12,18 @@ export interface EnvLoader {
 	load(): Record<string, string | undefined>;
 }
 
+/**
+ * Minimal structural logger seam — accept any object shaped like this
+ * (including a real `@theholocron/observability` `Logger` via a thin
+ * adapter) without this package taking a dependency on it. Defaults to
+ * `console.info`/`console.warn` so behavior is unchanged when nothing
+ * is injected.
+ */
+export interface EnvLogger {
+	info(message: string, meta?: unknown): void;
+	warn(message: string, meta?: unknown): void;
+}
+
 export interface EnvParserOptions {
 	/**
 	 * Display name for this app — used in debug output.
@@ -57,6 +69,12 @@ export interface EnvParserOptions {
 	 * createEnvParser({ appName: "my-cli", namespaces: ["MY_TOOL"] })
 	 */
 	namespaces?: string[];
+
+	/**
+	 * Structured logger for debug output (key-loaded counts, missing-key
+	 * warnings, deprecation notices). Defaults to `console.info`/`console.warn`.
+	 */
+	logger?: EnvLogger;
 }
 
 export interface EnvParser<T extends EnvObject = EnvObject> {

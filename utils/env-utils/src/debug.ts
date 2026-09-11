@@ -1,6 +1,11 @@
 import { environment } from "./environment.js";
-import type { EnvObject } from "./types.js";
+import type { EnvLogger, EnvObject } from "./types.js";
 import { collectKeys } from "./utils/index.js";
+
+const consoleLogger: EnvLogger = {
+	info: (message, meta) => (meta === undefined ? console.info(message) : console.info(message, meta)),
+	warn: (message, meta) => (meta === undefined ? console.warn(message) : console.warn(message, meta)),
+};
 
 function isDebugEnabled(): boolean {
 	const raw = process.env["DEBUG"];
@@ -8,28 +13,34 @@ function isDebugEnabled(): boolean {
 	return ["true", "1", "yes"].includes(raw.toLowerCase());
 }
 
-export function debugLog(appName: string, env: EnvObject): void {
+export function debugLog(appName: string, env: EnvObject, logger: EnvLogger = consoleLogger): void {
 	if (environment.isDeployed()) return;
 	if (!isDebugEnabled()) return;
 
 	const keys = collectKeys(env);
-	console.info(`[@theholocron/utils-env] (debugLog) - ${appName} loaded ${keys.length} key(s) from environment`, {
+	logger.info(`[@theholocron/utils-env] (debugLog) - ${appName} loaded ${keys.length} key(s) from environment`, {
 		keys,
 	});
 }
 
-export function warnMissingKey(appName: string, key: string): void {
+export function warnMissingKey(appName: string, key: string, logger: EnvLogger = consoleLogger): void {
 	if (environment.isDeployed()) return;
 	if (!isDebugEnabled()) return;
 
-	console.warn(`[@theholocron/utils-env] (warnMissingKey) - ${appName} key not found: "${key}" — returned undefined`);
+	logger.warn(`[@theholocron/utils-env] (warnMissingKey) - ${appName} key not found: "${key}" — returned undefined`);
 }
 
-export function debugDeprecation(appName: string, oldKey: string, newKey: string, env: EnvObject): void {
+export function debugDeprecation(
+	appName: string,
+	oldKey: string,
+	newKey: string,
+	env: EnvObject,
+	logger: EnvLogger = consoleLogger
+): void {
 	if (environment.isDeployed()) return;
 	if (!(oldKey in env)) return;
 
-	console.warn(
+	logger.warn(
 		`[@theholocron/utils-env] (debugDeprecation) - ${appName} "${oldKey}" is deprecated; migrate to "${newKey}"`
 	);
 }

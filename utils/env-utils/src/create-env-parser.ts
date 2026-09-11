@@ -27,7 +27,7 @@ import { buildEnvObject, getByPath, mergeNamespaces, normalizeKey } from "./util
  * }));
  */
 export function createEnvParser<T extends EnvObject = EnvObject>(options: EnvParserOptions): EnvParser<T> {
-	const { appName, loader = new DotenvLoader(), parseValues = true, namespaces } = options;
+	const { appName, loader = new DotenvLoader(), parseValues = true, namespaces, logger } = options;
 
 	const loaded = loader.load();
 	const raw = namespaces && namespaces.length > 0 ? mergeNamespaces(loaded, namespaces) : loaded;
@@ -36,14 +36,14 @@ export function createEnvParser<T extends EnvObject = EnvObject>(options: EnvPar
 	// so this cast is the correct and minimal assertion needed here.
 	const env = buildEnvObject(raw, parseValues) as T;
 
-	debug.log(appName, env);
+	debug.log(appName, env, logger);
 
 	function get(key: string): ReturnType<EnvParser<T>["get"]> {
 		const path = normalizeKey(key);
 		const value = getByPath(env, path);
 
 		if (value === undefined) {
-			debug.warn(appName, key);
+			debug.warn(appName, key, logger);
 		}
 
 		return value;
@@ -61,7 +61,7 @@ export function createEnvParser<T extends EnvObject = EnvObject>(options: EnvPar
 		},
 
 		deprecate(oldKey: string, newKey: string): void {
-			debug.deprecate(appName, oldKey, newKey, env);
+			debug.deprecate(appName, oldKey, newKey, env, logger);
 		},
 	};
 }

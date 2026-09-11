@@ -8,6 +8,20 @@ export interface IGeolocationCoordinates {
 	speed?: number | null;
 }
 
+/**
+ * Minimal structural logger seam — accept any object shaped like this
+ * (including a real `@theholocron/observability` `Logger` via a thin
+ * adapter) without this package taking a dependency on it. Defaults to
+ * `console.warn` so behavior is unchanged when nothing is injected.
+ */
+export interface LocationLogger {
+	warn(message: string, meta?: unknown): void;
+}
+
+const consoleLogger: LocationLogger = {
+	warn: (message, meta) => (meta === undefined ? console.warn(message) : console.warn(message, meta)),
+};
+
 const fallbackCoordinates: IGeolocationCoordinates = {
 	accuracy: 0,
 	latitude: 0,
@@ -18,12 +32,12 @@ const fallbackCoordinates: IGeolocationCoordinates = {
 	speed: null,
 };
 
-export async function getCurrentLocation(): Promise<IGeolocationCoordinates> {
+export async function getCurrentLocation(logger: LocationLogger = consoleLogger): Promise<IGeolocationCoordinates> {
 	const permissionStatus = await navigator.permissions.query({
 		name: "geolocation",
 	});
 	if (permissionStatus.state === "denied") {
-		console.warn("Location permission denied, using fallback");
+		logger.warn("Location permission denied, using fallback");
 		return fallbackCoordinates;
 	}
 
@@ -45,7 +59,7 @@ export async function getCurrentLocation(): Promise<IGeolocationCoordinates> {
 			speed: position.coords.speed,
 		};
 	} catch (error) {
-		console.warn("Error fetching fresh location:", error);
+		logger.warn("Error fetching fresh location:", error);
 		return fallbackCoordinates;
 	}
 }

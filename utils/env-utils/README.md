@@ -38,6 +38,14 @@ export const config = map((get) => ({
 }));
 ```
 
+### Logging
+
+Debug output (key-loaded counts, missing-key warnings, deprecation notices) goes to `console.info`/`console.warn` by default. Pass an `EnvLogger` (any object shaped `{ info(message, meta?), warn(message, meta?) }`) to route it elsewhere:
+
+```typescript
+const { get } = createEnvParser({ appName: "my-app", logger: myLogger });
+```
+
 ## Documentation
 
 Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
