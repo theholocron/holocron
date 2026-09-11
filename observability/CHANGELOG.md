@@ -1,3 +1,9 @@
+## [0.3.2](https://github.com/theholocron/observability/compare/v0.3.1...v0.3.2) (2026-09-11)
+
+### Bug Fixes
+
+* 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#9](https://github.com/theholocron/observability/issues/9)) ([4867b24](https://github.com/theholocron/observability/commit/4867b248431c9f641e6b20887cda3a0ce7bf49df))
+
 ## [0.3.1](https://github.com/theholocron/observability/compare/v0.3.0...v0.3.1) (2026-09-11)
 
 ### Bug Fixes
