@@ -104,6 +104,8 @@ navbar-links:
       - href: https://wiki.theholocron.dev
         text: Node Template
       - href: https://wiki.theholocron.dev
+        text: Observability
+      - href: https://wiki.theholocron.dev
         text: React Template
       - href: https://wiki.theholocron.dev
         text: Skills
