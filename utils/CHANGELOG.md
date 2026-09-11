@@ -1,3 +1,14 @@
+## [1.8.0](https://github.com/theholocron/utils/compare/v1.7.1...v1.8.0) (2026-09-11)
+
+### Features
+
+* **observability:** ✨ add optional logger seams to env-utils, location-utils, storage-utils ([#278](https://github.com/theholocron/utils/issues/278)) ([f59b27d](https://github.com/theholocron/utils/commit/f59b27db84712b611f45a784f8bf2ed7f34921f4)), closes [theholocron/holocron#638](https://github.com/theholocron/holocron/issues/638)
+
+### Chores
+
+* ⬆️ migrate to @theholocron/cli 4.16.2 + holocron-config 8.x ([#273](https://github.com/theholocron/utils/issues/273)) ([28fc69f](https://github.com/theholocron/utils/commit/28fc69faaed93c9fbca4b2b96df0ab39ec450259)), closes [#647](https://github.com/theholocron/utils/issues/647)
+* 🔧 holocron setup — ruleset + workflow/config sync ([#275](https://github.com/theholocron/utils/issues/275)) ([255639d](https://github.com/theholocron/utils/commit/255639dee94ac0259ebeb7350181c922e35485f5)), closes [#647](https://github.com/theholocron/utils/issues/647) [#649](https://github.com/theholocron/utils/issues/649) [#649](https://github.com/theholocron/utils/issues/649) [#647](https://github.com/theholocron/utils/issues/647)
+
 ## [1.7.1](https://github.com/theholocron/utils/compare/v1.7.0...v1.7.1) (2026-09-09)
 
 ### Chores
