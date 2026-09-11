@@ -1,4 +1,5 @@
 import { createRestClient, type RestClient } from "@theholocron/http-client";
+import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 import { page } from "./page/index.js";
 
@@ -11,6 +12,10 @@ export interface ConfluenceClientOptions {
 	token: string;
 	/** Override fetch for testing. Defaults to globalThis.fetch. */
 	fetch?: typeof fetch;
+	/** Structured logger for request/response diagnostics. Defaults to a no-op. */
+	logger?: Logger;
+	/** Reports transport failures and unexpected 5xx. Defaults to a no-op. */
+	errors?: ErrorSink;
 }
 
 function createConfluenceRestClient(opts: ConfluenceClientOptions): RestClient {
@@ -19,6 +24,8 @@ function createConfluenceRestClient(opts: ConfluenceClientOptions): RestClient {
 		token: opts.token,
 		vendor: "Confluence",
 		fetch: opts.fetch,
+		logger: opts.logger,
+		errors: opts.errors,
 	});
 }
 

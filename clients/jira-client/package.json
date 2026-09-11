@@ -40,7 +40,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@theholocron/http-client": "catalog:"
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/observability": "catalog:"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:",

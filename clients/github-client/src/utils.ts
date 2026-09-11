@@ -1,4 +1,5 @@
 import { createRestClient, type RestClient } from "@theholocron/http-client";
+import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
@@ -6,6 +7,10 @@ export interface GitHubClientOptions {
 	token: string;
 	baseUrl?: string;
 	fetch?: typeof fetch;
+	/** Structured logger for request/response diagnostics. Defaults to a no-op. */
+	logger?: Logger;
+	/** Reports transport failures and unexpected 5xx. Defaults to a no-op. */
+	errors?: ErrorSink;
 }
 
 export function createGitHubRestClient(opts: GitHubClientOptions): RestClient {
@@ -18,6 +23,8 @@ export function createGitHubRestClient(opts: GitHubClientOptions): RestClient {
 		},
 		vendor: "GitHub",
 		fetch: opts.fetch,
+		logger: opts.logger,
+		errors: opts.errors,
 	});
 }
 

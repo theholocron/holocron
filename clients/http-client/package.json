@@ -43,6 +43,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@theholocron/observability": "catalog:"
+  },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",

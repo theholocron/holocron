@@ -1,3 +1,5 @@
+import { type ErrorSink, type Logger, NoopErrorSink, NoopLogger } from "@theholocron/observability/core";
+
 import { ProviderApiError } from "./errors.js";
 
 export interface RestClientConfig {
@@ -25,6 +27,20 @@ export interface RestClientConfig {
 	vendor?: string;
 	/** Override `fetch` for tests. Defaults to `globalThis.fetch`. */
 	fetch?: typeof fetch;
+	/**
+	 * Structured logger for request/response diagnostics (`debug` level).
+	 * Defaults to a no-op — the seam, not a runtime. Bring your own
+	 * `@theholocron/observability` `Logger` (or any structurally-compatible
+	 * one) to see it.
+	 */
+	logger?: Logger;
+	/**
+	 * Reports transport failures (network errors, `status: 0`) and unexpected
+	 * 5xx responses. 4xx is left unreported — those are typically expected /
+	 * handled by the caller (a 404 from a "does this exist" check, etc.).
+	 * Defaults to a no-op.
+	 */
+	errors?: ErrorSink;
 }
 
 export interface RequestOptions {
@@ -44,6 +60,8 @@ export interface RestClient {
 export function createRestClient(config: RestClientConfig): RestClient {
 	const fetchImpl = config.fetch ?? globalThis.fetch;
 	const vendor = config.vendor ?? "";
+	const logger = config.logger ?? new NoopLogger();
+	const errors = config.errors ?? new NoopErrorSink();
 
 	// Manual trailing-slash trim — CodeQL flags regex on library input as
 	// polynomial ReDoS. O(n) loop, no backtracking risk.
@@ -81,19 +99,27 @@ export function createRestClient(config: RestClientConfig): RestClient {
 			}
 
 			const tag = vendor ? `${vendor} ${init.method} ${path}` : `${init.method} ${path}`;
+			logger.debug({ vendor, method: init.method, path }, "request");
 
 			let res: Response;
 			try {
 				res = await fetchImpl(url.toString(), init);
 			} catch (err) {
 				const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-				throw new ProviderApiError(`${tag} failed: ${detail}`, 0, undefined);
+				const apiErr = new ProviderApiError(`${tag} failed: ${detail}`, 0, undefined);
+				errors.captureException(apiErr);
+				throw apiErr;
 			}
 
 			if (!res.ok) {
 				const body = await res.text().catch(() => "");
-				throw new ProviderApiError(`${tag} → ${res.status}`, res.status, body);
+				const apiErr = new ProviderApiError(`${tag} → ${res.status}`, res.status, body);
+				// 4xx is typically expected/handled by the caller (a 404 from an
+				// "does this exist" check, etc.) — only 5xx is genuinely unexpected.
+				if (res.status >= 500) errors.captureException(apiErr);
+				throw apiErr;
 			}
+			logger.debug({ vendor, method: init.method, path, status: res.status }, "response");
 
 			if (opts.expectNoContent || res.status === 204) return undefined as T;
 			const text = await res.text();

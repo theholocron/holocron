@@ -1,4 +1,5 @@
 import { createRestClient, ProviderApiError, type RestClient } from "@theholocron/http-client";
+import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
@@ -8,6 +9,10 @@ export interface CloudflareClientOptions {
 	baseUrl?: string;
 	/** Override fetch for testing. Defaults to globalThis.fetch. */
 	fetch?: typeof fetch;
+	/** Structured logger for request/response diagnostics. Defaults to a no-op. */
+	logger?: Logger;
+	/** Reports transport failures and unexpected 5xx. Defaults to a no-op. */
+	errors?: ErrorSink;
 }
 
 export interface CfEnvelope<T> {
@@ -22,6 +27,8 @@ export function createCloudflareRestClient(opts: CloudflareClientOptions): RestC
 		token: opts.token,
 		vendor: "Cloudflare",
 		fetch: opts.fetch,
+		logger: opts.logger,
+		errors: opts.errors,
 	});
 }
 

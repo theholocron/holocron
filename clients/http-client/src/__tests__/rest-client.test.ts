@@ -232,6 +232,91 @@ describe("createRestClient — non-Error thrown by fetch", () => {
 	});
 });
 
+describe("createRestClient — logger seam", () => {
+	it("logs a debug line for the request and the response when a logger is provided", async () => {
+		const { fetch } = stubFetch([{ body: {} }]);
+		const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() };
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			vendor: "Example",
+			fetch,
+			logger,
+		}).request("/ping");
+		expect(logger.debug).toHaveBeenCalledWith({ vendor: "Example", method: "GET", path: "/ping" }, "request");
+		expect(logger.debug).toHaveBeenCalledWith(
+			{ vendor: "Example", method: "GET", path: "/ping", status: 200 },
+			"response"
+		);
+	});
+
+	it("does not throw when no logger is provided — the default is a silent no-op", async () => {
+		const { fetch } = stubFetch([{ body: {} }]);
+		await expect(
+			createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch }).request("/ping")
+		).resolves.toBeDefined();
+	});
+});
+
+describe("createRestClient — errors seam", () => {
+	it("reports a transport failure to the ErrorSink", async () => {
+		const fetch = vi.fn(async () => {
+			throw new TypeError("fetch failed");
+		}) as unknown as typeof globalThis.fetch;
+		const errors = {
+			init: vi.fn(),
+			startSpan: vi.fn(),
+			captureException: vi.fn(),
+			endSession: vi.fn(),
+			flush: vi.fn(),
+		};
+		await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch, errors })
+			.request("/ping")
+			.catch(() => {});
+		expect(errors.captureException).toHaveBeenCalledWith(expect.any(ProviderApiError));
+		expect((errors.captureException.mock.calls[0]?.[0] as ProviderApiError).status).toBe(0);
+	});
+
+	it("reports an unexpected 5xx to the ErrorSink", async () => {
+		const { fetch } = stubFetch([{ status: 503, text: "unavailable" }]);
+		const errors = {
+			init: vi.fn(),
+			startSpan: vi.fn(),
+			captureException: vi.fn(),
+			endSession: vi.fn(),
+			flush: vi.fn(),
+		};
+		await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch, errors })
+			.request("/ping")
+			.catch(() => {});
+		expect(errors.captureException).toHaveBeenCalledTimes(1);
+		expect((errors.captureException.mock.calls[0]?.[0] as ProviderApiError).status).toBe(503);
+	});
+
+	it("does NOT report an expected 4xx to the ErrorSink", async () => {
+		const { fetch } = stubFetch([{ status: 404, text: "not found" }]);
+		const errors = {
+			init: vi.fn(),
+			startSpan: vi.fn(),
+			captureException: vi.fn(),
+			endSession: vi.fn(),
+			flush: vi.fn(),
+		};
+		await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch, errors })
+			.request("/ping")
+			.catch(() => {});
+		expect(errors.captureException).not.toHaveBeenCalled();
+	});
+
+	it("does not throw when no ErrorSink is provided — the default is a silent no-op", async () => {
+		const { fetch } = stubFetch([{ status: 500 }]);
+		const err = await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch })
+			.request("/ping")
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+	});
+});
+
 describe("createRestClient — apikey with default header name", () => {
 	it("uses x-api-key when apiKeyHeader is not specified", async () => {
 		const { fetch, calls } = stubFetch([{ body: {} }]);

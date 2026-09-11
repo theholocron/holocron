@@ -28,16 +28,39 @@ const data = await client.request<{ id: string }>("/widgets/42");
 
 **Config options:**
 
-| Option         | Type                     | Default            | Description                                      |
-| -------------- | ------------------------ | ------------------ | ------------------------------------------------ |
-| `baseUrl`      | `string`                 | —                  | Base URL, trailing slashes trimmed automatically |
-| `token`        | `string`                 | —                  | Auth token                                       |
-| `tokenScheme`  | `"bearer" \| "apikey"`   | `"bearer"`         | How the token is sent                            |
-| `apiKeyHeader` | `string`                 | `"x-api-key"`      | Header name when `tokenScheme` is `"apikey"`     |
-| `extraHeaders` | `Record<string, string>` | —                  | Static headers merged into every request         |
-| `defaultQuery` | `Record<string, string>` | —                  | Query params appended to every request URL       |
-| `vendor`       | `string`                 | —                  | Vendor label for error messages                  |
-| `fetch`        | `typeof fetch`           | `globalThis.fetch` | Override fetch for testing                       |
+| Option         | Type                     | Default            | Description                                       |
+| -------------- | ------------------------ | ------------------ | ------------------------------------------------- |
+| `baseUrl`      | `string`                 | —                  | Base URL, trailing slashes trimmed automatically  |
+| `token`        | `string`                 | —                  | Auth token                                        |
+| `tokenScheme`  | `"bearer" \| "apikey"`   | `"bearer"`         | How the token is sent                             |
+| `apiKeyHeader` | `string`                 | `"x-api-key"`      | Header name when `tokenScheme` is `"apikey"`      |
+| `extraHeaders` | `Record<string, string>` | —                  | Static headers merged into every request          |
+| `defaultQuery` | `Record<string, string>` | —                  | Query params appended to every request URL        |
+| `vendor`       | `string`                 | —                  | Vendor label for error messages                   |
+| `fetch`        | `typeof fetch`           | `globalThis.fetch` | Override fetch for testing                        |
+| `logger`       | `Logger`                 | no-op              | Structured request/response diagnostics (`debug`) |
+| `errors`       | `ErrorSink`              | no-op              | Reports transport failures + unexpected 5xx       |
+
+**Observability seam.** `logger` and `errors` accept the `Logger` / `ErrorSink`
+interfaces from [`@theholocron/observability/core`](https://github.com/theholocron/observability)
+— a seam, not a runtime: the library never calls `Sentry.init` or reads
+credentials itself, and both default to a silent no-op when omitted.
+
+```ts
+import { SentrySink } from "@theholocron/observability/errors";
+import { createLogger } from "@theholocron/observability/logger";
+
+const { logger } = createLogger({ level: "info" });
+const errors = new SentrySink();
+errors.init({ dsn: process.env.SENTRY_DSN!, release: "my-app@1.0.0", environment: "local", tags: {} });
+
+const client = createRestClient({ baseUrl: "...", token: "...", logger, errors });
+```
+
+`errors.captureException` only fires for a transport failure (network error —
+`status: 0`) or an unexpected 5xx; a 4xx is left unreported since those are
+typically expected and already handled by the caller (a 404 from a
+"does this exist" check, etc.).
 
 ### `createResolveToken(config)`
 

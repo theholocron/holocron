@@ -39,7 +39,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@theholocron/http-client": "workspace:^"
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/observability": "catalog:"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:",
