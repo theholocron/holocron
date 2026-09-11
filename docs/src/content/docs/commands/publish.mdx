@@ -1,0 +1,49 @@
+---
+title: "publish"
+description: One-shot bootstrap publish for new packages, handling npm login and the Trusted Publishing chicken-and-egg.
+---
+
+```bash
+holocron publish --initial [--tag <tag>] [--otp <code>] [--dry-run]
+```
+
+One-shot bootstrap publish for packages that haven't been registered on npm yet. Solves the chicken-and-egg problem: npm Trusted Publishing (OIDC) requires the package to exist before you can configure it, so the first publish must happen with browser auth.
+
+`--initial` is required today — this command only implements the bootstrap publish. A non-initial `holocron publish` (a manual publish outside the semantic-release/OIDC steady state) isn't built yet.
+
+## Workflow
+
+```bash
+# 1. Build everything
+pnpm install --frozen-lockfile && pnpm build
+
+# 2. Bootstrap publish — logs in via `npm login --auth-type=web` automatically
+#    if `npm whoami` shows no session, then publishes and prints Trusted
+#    Publisher config links.
+holocron publish --initial --otp 123456
+```
+
+After the command runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)).
+
+## Repo layouts
+
+- **Monorepo** (a `packages/` directory exists): publishes every public `packages/*` workspace via `pnpm -r --filter=./packages/*`.
+- **Single package** (no `packages/` — most `node-template` scaffolds): publishes the root package directly via a plain `pnpm publish`.
+
+The command fails loudly — `nothing to publish` — rather than silently no-op'ing when it finds no publishable package in either layout.
+
+## Options
+
+| Option      | Default | Description                                                       |
+| ----------- | ------- | ----------------------------------------------------------------- |
+| `--initial` | `false` | Required today — runs the bootstrap publish                       |
+| `--tag`     | `alpha` | npm distribution tag                                              |
+| `--otp`     | —       | TOTP code from your authenticator (if 2FA is required for writes) |
+| `--dry-run` | `false` | Print what would be published without publishing                  |
+
+## Notes
+
+- Packages marked `"private": true` in their `package.json` are skipped automatically.
+- If `npm whoami` shows no authenticated session, the command runs `npm login --auth-type=web` itself (interactive, browser-based) before continuing.
+- If the command detects `NPM_TOKEN` in env, it prints a reminder to revoke the token after the bootstrap.
+- If the publish fails with `EOTP`, the corrected command with `--otp` is printed.

@@ -18,8 +18,8 @@ import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
-import { runNpmPublishInitial } from "./commands/npm-publish-initial.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
+import { runPublish } from "./commands/publish.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -519,59 +519,65 @@ try {
 			}
 		)
 		.command(
-			"npm",
-			"npm-related monorepo utilities",
+			"bump-versions <new-version>",
+			"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
+			(y) =>
+				y.positional("new-version", {
+					type: "string",
+					demandOption: true,
+					describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
+				}),
+			async (argv) => {
+				const report = await runNpmBumpVersions({
+					version: argv.newVersion as string,
+					cwd: argv.cwd,
+					dryRun: argv.dryRun,
+				});
+				if (report.status === "fail") {
+					process.exitCode = 1;
+				}
+			}
+		)
+		.command(
+			"publish",
+			"Publish @theholocron/* packages to npm",
 			(y) =>
 				y
-					.command(
-						"bump-versions <new-version>",
-						"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
-						(yy) =>
-							yy.positional("new-version", {
-								type: "string",
-								demandOption: true,
-								describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
-							}),
-						async (argv) => {
-							const report = await runNpmBumpVersions({
-								version: argv.newVersion as string,
-								cwd: argv.cwd,
-								dryRun: argv.dryRun,
-							});
-							if (report.status === "fail") {
-								process.exitCode = 1;
-							}
-						}
-					)
-					.command(
-						"publish-initial",
-						"One-shot bootstrap publish for trusted-publishing-eligible packages",
-						(yy) =>
-							yy
-								.option("tag", {
-									type: "string",
-									default: "alpha",
-									describe: "npm distribution tag (defaults to alpha)",
-								})
-								.option("otp", {
-									type: "string",
-									describe:
-										"One-time password from your authenticator (required if npm needs 2FA for writes)",
-								}),
-						async (argv) => {
-							const report = await runNpmPublishInitial({
-								cwd: argv.cwd,
-								tag: argv.tag,
-								dryRun: argv.dryRun,
-								...(argv.otp ? { otp: argv.otp as string } : {}),
-							});
-							if (report.status === "fail") {
-								process.exitCode = 1;
-							}
-						}
-					)
-					.demandCommand(1, "Run `holocron npm --help` to see available npm subcommands."),
-			() => {}
+					.option("initial", {
+						type: "boolean",
+						default: false,
+						describe:
+							"One-shot bootstrap publish for trusted-publishing-eligible packages (npm needs the " +
+							"package to exist before Trusted Publishing can be configured for it). Required today — " +
+							"a non-initial `publish` isn't implemented yet.",
+					})
+					.option("tag", {
+						type: "string",
+						default: "alpha",
+						describe: "npm distribution tag (defaults to alpha)",
+					})
+					.option("otp", {
+						type: "string",
+						describe: "One-time password from your authenticator (required if npm needs 2FA for writes)",
+					}),
+			async (argv) => {
+				if (!argv.initial) {
+					getLogger().error(
+						"publish: only `--initial` is supported today. Run `holocron publish --initial`."
+					);
+					process.exitCode = 1;
+					return;
+				}
+				const report = await runPublish({
+					cwd: argv.cwd,
+					tag: argv.tag,
+					dryRun: argv.dryRun,
+					...(argv.otp ? { otp: argv.otp as string } : {}),
+				});
+				if (report.status === "fail") {
+					process.exitCode = 1;
+				}
+			}
 		)
 		.command(
 			"sync [steps..]",

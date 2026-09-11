@@ -234,10 +234,11 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   no `NPM_TOKEN` secret anywhere. Each package has a Trusted
   Publisher registered on npmjs.com (Publisher: GitHub Actions,
   Repo: theholocron/holocron, Workflow: release.yml).
-- **First publish for a new package** uses `holocron npm
-publish-initial` (chicken-and-egg: trusted publishing needs the
-  package to exist first). Workflow: `npm login --auth-type=web`
-  → `pnpm install && pnpm build` → `pnpm exec tsx packages/cli/src/cli.ts npm publish-initial --otp <code>`.
+- **First publish for a new package** uses `holocron publish --initial`
+  (chicken-and-egg: trusted publishing needs the package to exist
+  first). The command runs `npm login --auth-type=web` itself when
+  `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
+  → `pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp <code>`.
 
 ## Repo layout
 

@@ -21,11 +21,11 @@ did not distinguish the two.
 
 ## Three contexts (as built)
 
-| Context          | Needs                                                          | Commands                                                                                                                                                                                                |
-| ---------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`global`**     | nothing but the CLI binary                                     | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `auth set` / `unset` / `list` / `check`, `npm bump-versions`, `npm publish-initial`, `skills install` / `remove` / `update` |
-| **`repo-aware`** | `./holocron.config` + `./package.json` in cwd, no plugins      | `run`, `ci`, `config show`, `sync-readme`                                                                                                                                                               |
-| **`workspace`**  | plugin packages resolvable (devDeps in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `deploy`, `cleanup-preview`, `sync-github`                                                                                                     |
+| Context          | Needs                                                          | Commands                                                                                                                                                                                |
+| ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`global`**     | nothing but the CLI binary                                     | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `auth set` / `unset` / `list` / `check`, `bump-versions`, `publish`, `skills install` / `remove` / `update` |
+| **`repo-aware`** | `./holocron.config` + `./package.json` in cwd, no plugins      | `run`, `ci`, `config show`, `sync-readme`                                                                                                                                               |
+| **`workspace`**  | plugin packages resolvable (devDeps in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `deploy`, `cleanup-preview`, `sync-github`                                                                                     |
 
 `auth check` is tagged `global` — it _tries_ to load the plugin to
 verify, but degrades gracefully when it can't (see §4), so it's usable
