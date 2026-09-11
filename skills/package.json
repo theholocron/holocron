@@ -23,7 +23,8 @@
   "scripts": {
     "build": "pnpm --filter @theholocron/skills-site build",
     "test": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs",
-    "test:coverage": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs"
+    "test:coverage": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@astrojs/react": "^6.0.4",
@@ -50,6 +51,7 @@
     "@theholocron/tsconfig": "catalog:configs",
     "astro": "catalog:",
     "conventional-changelog-conventionalcommits": "^10.2.1",
+    "husky": "^9.1.7",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "semantic-release": "^25.0.9",
