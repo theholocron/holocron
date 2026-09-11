@@ -5,7 +5,6 @@
 <!-- holocron:description -->
 
 A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.
-
 <!-- /holocron:description -->
 
 <!-- holocron:installation -->
