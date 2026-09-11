@@ -1,17 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { createConfig } from "./create-config.js";
+import { createConfig, createIgnoreConfig } from "./create-config.js";
 
 describe("yamllint createConfig", () => {
 	it("includes the auto-generated header", () => {
 		expect(createConfig()).toContain("AUTO-GENERATED — do not edit directly");
 	});
 
-	it("ignores node_modules, dist, and pnpm-lock.yaml", () => {
+	it("uses ignore-from-file for .gitignore and .yamlignore", () => {
 		const out = createConfig();
-		expect(out).toContain("node_modules/");
-		expect(out).toContain("dist/");
-		expect(out).toContain("pnpm-lock.yaml");
+		expect(out).toContain(".gitignore");
+		expect(out).toContain(".yamlignore");
 	});
 
 	it("extends default ruleset", () => {
@@ -20,5 +19,15 @@ describe("yamllint createConfig", () => {
 
 	it("disables line-length rule", () => {
 		expect(createConfig()).toContain("line-length: disable");
+	});
+});
+
+describe("yamllint createIgnoreConfig", () => {
+	it("includes the auto-generated header", () => {
+		expect(createIgnoreConfig()).toContain("AUTO-GENERATED — do not edit directly");
+	});
+
+	it("ignores pnpm-lock.yaml", () => {
+		expect(createIgnoreConfig()).toContain("pnpm-lock.yaml");
 	});
 });

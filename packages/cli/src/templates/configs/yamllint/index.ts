@@ -1,1 +1,1 @@
-export { createConfig } from "./create-config.js";
+export { createConfig, createIgnoreConfig } from "./create-config.js";

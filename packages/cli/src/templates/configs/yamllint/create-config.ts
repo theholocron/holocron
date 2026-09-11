@@ -1,4 +1,5 @@
 import { createHeader } from "../../../utils/create-header.js";
+import yamlignoreBody from "./.yamlignore";
 import yamllintBody from "./.yamllint.yml";
 
 const { workflowHeader } = createHeader({
@@ -7,4 +8,8 @@ const { workflowHeader } = createHeader({
 
 export function createConfig(): string {
 	return `${workflowHeader()}${yamllintBody}`;
+}
+
+export function createIgnoreConfig(): string {
+	return `${workflowHeader()}${yamlignoreBody}`;
 }
