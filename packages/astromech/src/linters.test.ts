@@ -53,14 +53,24 @@ describe("resolveLinters", () => {
 		expect(got).toContain("markdownlint");
 	});
 
-	it("an explicit list wins verbatim, ordered by the registry", () => {
-		const got = resolveLinters({ explicit: ["prettier", "eslint"], rootFiles: [] }).map((r) => r.name);
-		expect(got).toEqual(["eslint", "prettier"]);
+	it("an explicit list picks the set, ordered by the registry, but still gates detect-linters on their config", () => {
+		// eslint.config.* present → eslint stays
+		expect(
+			resolveLinters({ explicit: ["prettier", "eslint"], rootFiles: ["eslint.config.ts"] }).map((r) => r.name)
+		).toEqual(["eslint", "prettier"]);
+		// no eslint config → eslint drops even though it's listed (configs#654)
+		expect(resolveLinters({ explicit: ["prettier", "eslint"], rootFiles: [] }).map((r) => r.name)).toEqual([
+			"prettier",
+		]);
 	});
 
 	it("an explicit list ignores auto-detection (no always-on linters leak in)", () => {
 		const got = resolveLinters({ explicit: ["eslint"], rootFiles: ["eslint.config.ts"] }).map((r) => r.name);
 		expect(got).toEqual(["eslint"]);
+	});
+
+	it("an explicit list with a detect-linter but no config yields an empty set", () => {
+		expect(resolveLinters({ explicit: ["eslint"], rootFiles: ["package.json"] })).toEqual([]);
 	});
 
 	it("an empty explicit list falls back to auto-detect", () => {

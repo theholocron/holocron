@@ -298,6 +298,11 @@ One linter list drives both sides — no CI/local asymmetry.
   `.prettierrc*`/`prettier.config.*` → `prettier`, `.markdownlint*` →
   `markdownlint`, `.yamllint*` → `yamllint`, `.github/workflows/*.yml` →
   `actionlint`, always → `gitleaks`.
+- A **`detect`-gated** linter (`eslint`, `markdownlint`) only runs when its
+  config file is present — **even when named in an explicit `linters` list**.
+  super-linter FATALs if asked to run eslint with no `eslint.config.*`
+  (theholocron/holocron#654), and there is nothing for it to lint anyway.
+  `always` linters (prettier, yamllint, …) are unconditional.
 - **Registry** maps each linter →
   `{ superLinterEnv, localBin, localArgs, detect }`.
 - **CI**: `astromech.superLinterConfig()` emits the `VALIDATE_*` env (all
