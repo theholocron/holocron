@@ -40,6 +40,18 @@ describe("reusableTemplates()", () => {
 		expect(action).toContain('require.resolve("@theholocron/cli")');
 		expect(action).toContain('node "$cli" "$@"');
 		expect(action).not.toMatch(/^\s+run: pnpm exec holocron/m);
+		// generalised beyond `run` — any subcommand via `command:` (holocron#655)
+		expect(action).toContain("HOLOCRON_COMMAND: ${{ inputs.command }}");
+		expect(action).toMatch(/if \[ "\$HOLOCRON_COMMAND" = "run" \]/);
+	});
+
+	it("sync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
+		const wf = REUSABLE_WORKFLOWS["sync"]!;
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toMatch(/command: sync/);
+		expect(wf).not.toContain("node packages/cli/dist/cli.mjs");
+		// the standalone `pnpm build` step is gone — the action handles it
+		expect(wf).not.toMatch(/^\s+- run: pnpm build\n\s+name: Build CLI/m);
 	});
 
 	it("applies the do-not-edit header to YAML — no timestamp", () => {

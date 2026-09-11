@@ -51,6 +51,17 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    # Job-level so the `holocron` composite action's steps inherit them.
+    env:
+      HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
+      HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
+      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}
+      POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}
+      HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
+      HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
+      HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
+      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
+      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
@@ -60,31 +71,15 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - run: pnpm build
-        name: Build CLI
-
       - name: Run holocron sync
-        # Call the built entry directly — `pnpm exec holocron` relies on a
-        # node_modules/.bin/holocron symlink that pnpm cannot create at install
-        # time (dist/ does not exist yet), same as sync-github.yml.
-        run: |
-          if [ -n "$STEPS" ]; then
-            # shellcheck disable=SC2086
-            node packages/cli/dist/cli.mjs sync --steps $STEPS
-          else
-            node packages/cli/dist/cli.mjs sync
-          fi
-        env:
-          HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
-          HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
-          HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}
-          POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}
-          HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
-          HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
-          HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
-          HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
-          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
-          STEPS: ${{ inputs.steps }}
+        # The `holocron` action resolves @theholocron/cli from node_modules (or
+        # builds the workspace when it's an unbuilt checkout — the holocron repo
+        # itself). `inputs.steps` is a space-separated list or empty; the
+        # `--steps <list>` arg is omitted when empty.
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: sync
+          args: ${{ inputs.steps != '' && format('--steps {0}', inputs.steps) || '' }}
 
       - name: Format generated files
         run: |
