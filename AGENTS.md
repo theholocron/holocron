@@ -66,6 +66,15 @@ Three repos, one rule per concern:
     it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
     `USER_FACING_ERRORS` catch) only when every provider failed with a
     missing-package error — the global-install case.
+  - **Interactive fallback** (`packages/cli/src/interactive-menu.ts`, spec
+    `tool-interactive-cli-menu`, #438). A command with a required positional
+    gets a `COMMAND_REGISTRY` entry so a missing arg prompts instead of
+    hard-failing; interactive prompting itself stays inline in `cli.ts`'s
+    handler bodies (the same place `new` / `plugin create` already prompt),
+    not in the `commands/*.ts` modules. Every prompt path checks
+    `process.stdin.isTTY` first and throws `NonInteractiveError` (also in
+    `USER_FACING_ERRORS`) instead of relying on `@inquirer/prompts`'
+    `ExitPromptError` on a closed stdin.
 
 ## Consuming packages from `theholocron/clients`
 

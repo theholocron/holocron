@@ -14,6 +14,27 @@ holocron --help
 
 ```
 
+## Interactive mode
+
+Run `holocron` with no command, a parent command with no subcommand
+(`holocron auth`, `holocron skills`, `holocron upgrade`), or a leaf command
+missing a required positional (`holocron deploy`, `holocron secret set`), and
+you get a prompt instead of a `--help` dead end:
+
+```
+$ holocron
+? What would you like to do? › dep
+────────────────────────────────────────────────
+❯ deploy   Trigger a deployment via the configured `deployment` capability
+
+? Branch to deploy: › main
+```
+
+The picked command spawns as a normal `holocron <command> …` invocation —
+`--token`, `--org`, `--cwd`, and `--dry-run` on the original invocation carry
+through. A non-interactive shell (CI, a script, a pipe) gets the old
+hard-failure message instead of hanging on a prompt.
+
 ## Execution contexts
 
 Every command is tagged with how much of a repo it needs:
@@ -426,6 +447,10 @@ holds the orchestration + the Holocron-specific credential resolution
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
   `secrets sync`, `publish`, `bump-versions`, `sync-github`, `upgrade node`,
   `upgrade deps`, `plugin create`, `auth`
+- `src/interactive-menu.ts` — the interactive fallback: `COMMAND_REGISTRY`,
+  `launchMenu` (Layers 1–2, picks + spawns a fresh `holocron <command>`),
+  `promptForPositionals` (Layer 3, called inline from each leaf command's
+  `cli.ts` handler)
 
 ## Status
 

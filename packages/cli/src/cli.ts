@@ -32,6 +32,7 @@ import { runUpgradeNode } from "./commands/upgrade-node.js";
 import type { TelemetryConfig } from "./config/config.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
+import { COMMAND_REGISTRY, getEntry, launchMenu, promptForPositionals } from "./interactive-menu.js";
 import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
@@ -44,7 +45,7 @@ const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN",
  * Error class names whose `.message` is a complete, actionable sentence —
  * the top-level catch prints it and suppresses the stack trace.
  */
-const USER_FACING_ERRORS = new Set(["WorkspaceContextError", "ConfigFileError"]);
+const USER_FACING_ERRORS = new Set(["WorkspaceContextError", "ConfigFileError", "NonInteractiveError"]);
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
@@ -336,17 +337,28 @@ try {
 							if (report.status === "fail") process.exitCode = 1;
 						}
 					)
-					.demandCommand(1, "Run `holocron skills --help` to see available skills subcommands."),
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchMenu(
+								COMMAND_REGISTRY.filter((e) => e.group === "skills"),
+								argv,
+								"skills — choose a subcommand:",
+								"Run `holocron skills --help` to see available skills subcommands."
+							);
+						}
+					),
 			() => {}
 		)
 		.command(
-			"secret set <name> [value]",
+			"secret set [name] [value]",
 			"Set a single secret via the configured `secrets` capability",
 			(y) =>
 				y
 					.positional("name", {
 						type: "string",
-						demandOption: true,
 						describe: "Secret name (e.g., NPM_TOKEN)",
 					})
 					.positional("value", {
@@ -371,6 +383,7 @@ try {
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
+				const [name] = await promptForPositionals(getEntry("secret set"), argv as Record<string, unknown>);
 				const scopeArg = argv.scope as string;
 				const scope = parseScope(scopeArg);
 				const loaded = await loadConfig(argv.cwd);
@@ -383,7 +396,7 @@ try {
 						...tokens,
 						org: resolveOrg(argv, loaded.resolved),
 					},
-					name: argv.name as string,
+					name: name!,
 					...(argv.value ? { value: argv.value as string } : {}),
 					...(argv.fromStdin ? { fromStdin: true } : {}),
 					...(argv.fromEnv ? { fromEnv: argv.fromEnv as string } : {}),
@@ -395,13 +408,12 @@ try {
 			}
 		)
 		.command(
-			"secrets sync <environmentId>",
+			"secrets sync [environmentId]",
 			"Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
 			(y) =>
 				y
 					.positional("environmentId", {
 						type: "string",
-						demandOption: true,
 						describe: "Vault environment id to read (1P Environment id, etc.)",
 					})
 					.option("project-id", {
@@ -416,6 +428,10 @@ try {
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
+				const [environmentId] = await promptForPositionals(
+					getEntry("secrets sync"),
+					argv as Record<string, unknown>
+				);
 				const loaded = await loadConfig(argv.cwd);
 				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runSecretsSync({
@@ -426,7 +442,7 @@ try {
 						...tokens,
 						org: resolveOrg(argv, loaded.resolved),
 					},
-					environmentId: argv.environmentId as string,
+					environmentId: environmentId!,
 					...(argv.projectId ? { projectId: argv.projectId } : {}),
 					targets: argv.target as Array<"development" | "preview" | "production">,
 				});
@@ -436,13 +452,12 @@ try {
 			}
 		)
 		.command(
-			"deploy <branch>",
+			"deploy [branch]",
 			"Trigger a deployment via the configured `deployment` capability",
 			(y) =>
 				y
 					.positional("branch", {
 						type: "string",
-						demandOption: true,
 						describe: "Git branch to deploy",
 					})
 					.option("project-id", {
@@ -458,6 +473,7 @@ try {
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
+				const [branch] = await promptForPositionals(getEntry("deploy"), argv as Record<string, unknown>);
 				const loaded = await loadConfig(argv.cwd);
 				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runDeploy({
@@ -469,7 +485,7 @@ try {
 						org: resolveOrg(argv, loaded.resolved),
 					},
 					projectId: argv.projectId as string,
-					branch: argv.branch as string,
+					branch: branch!,
 					...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
 				});
 				if (report.status === "fail") {
@@ -478,13 +494,12 @@ try {
 			}
 		)
 		.command(
-			"cleanup-preview <pr>",
+			"cleanup-preview [pr]",
 			"List and delete Cloudflare Pages preview deployments for a GitHub PR",
 			(y) =>
 				y
 					.positional("pr", {
 						type: "number",
-						demandOption: true,
 						describe: "PR number to clean up",
 					})
 					.option("project", {
@@ -499,6 +514,7 @@ try {
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
+				const [pr] = await promptForPositionals(getEntry("cleanup-preview"), argv as Record<string, unknown>);
 				const loaded = await loadConfig(argv.cwd);
 				applyResolvedConfig(argv, loaded.resolved);
 				const report = await runCleanupPreview({
@@ -509,7 +525,7 @@ try {
 						...tokens,
 						org: resolveOrg(argv, loaded.resolved),
 					},
-					prNumber: argv.pr as number,
+					prNumber: Number(pr),
 					project: argv.project as string,
 					...(argv.repo ? { repo: argv.repo as string } : {}),
 				});
@@ -519,17 +535,20 @@ try {
 			}
 		)
 		.command(
-			"bump-versions <new-version>",
+			"bump-versions [new-version]",
 			"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
 			(y) =>
 				y.positional("new-version", {
 					type: "string",
-					demandOption: true,
 					describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
 				}),
 			async (argv) => {
+				const [newVersion] = await promptForPositionals(
+					getEntry("bump-versions"),
+					argv as Record<string, unknown>
+				);
 				const report = await runNpmBumpVersions({
-					version: argv.newVersion as string,
+					version: newVersion!,
 					cwd: argv.cwd,
 					dryRun: argv.dryRun,
 				});
@@ -1047,14 +1066,13 @@ try {
 			}
 		)
 		.command(
-			"plugin create <slug> <vendor>",
+			"plugin create [slug] [vendor]",
 			"Scaffold a new @theholocron/holocron-plugin-<slug> package",
 			(y) =>
 				y
-					.positional("slug", { type: "string", demandOption: true, describe: "Package slug (kebab-case)" })
+					.positional("slug", { type: "string", describe: "Package slug (kebab-case)" })
 					.positional("vendor", {
 						type: "string",
-						demandOption: true,
 						describe: "Vendor display name (PascalCase)",
 					})
 					.option("capability", {
@@ -1082,7 +1100,10 @@ try {
 					}),
 			async (argv) => {
 				try {
-					const vendor = argv.vendor as string;
+					const [slug, vendor] = await promptForPositionals(
+						getEntry("plugin create"),
+						argv as Record<string, unknown>
+					);
 					const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
 						{
 							capability: argv.capability as string | undefined,
@@ -1107,8 +1128,8 @@ try {
 					);
 
 					const report = runPluginCreate({
-						slug: argv.slug as string,
-						vendorName: vendor,
+						slug: slug!,
+						vendorName: vendor!,
 						capability,
 						vendorEnv,
 						baseUrl,
@@ -1136,13 +1157,12 @@ try {
 			(y) =>
 				y
 					.command(
-						"node <to>",
+						"node [to]",
 						"Scan the repo and update every Node.js version pin to a new major",
 						(yy) =>
 							yy
 								.positional("to", {
 									type: "number",
-									demandOption: true,
 									describe: "Target Node.js major version (e.g., 22)",
 								})
 								.option("from", {
@@ -1151,6 +1171,10 @@ try {
 										"Current major version to replace. Auto-detected from .nvmrc / engines.node when omitted.",
 								}),
 						async (argv) => {
+							const [to] = await promptForPositionals(
+								getEntry("upgrade node"),
+								argv as Record<string, unknown>
+							);
 							// Read upgrade.node.extra from holocron.config.json if present.
 							// We read the raw file directly rather than through loadConfig because
 							// the upgrade config is not part of the plugin schema.
@@ -1167,7 +1191,7 @@ try {
 							}
 
 							const report = await runUpgradeNode({
-								to: argv.to as number,
+								to: Number(to),
 								...(argv.from != null ? { from: argv.from as number } : {}),
 								cwd: argv.cwd,
 								dryRun: argv.dryRun,
@@ -1200,7 +1224,19 @@ try {
 							}
 						}
 					)
-					.demandCommand(1, "Run `holocron upgrade --help` to see available upgrade subcommands."),
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchMenu(
+								COMMAND_REGISTRY.filter((e) => e.group === "upgrade"),
+								argv,
+								"upgrade — choose a subcommand:",
+								"Run `holocron upgrade --help` to see available upgrade subcommands."
+							);
+						}
+					),
 			() => {}
 		)
 		.command(
@@ -1209,15 +1245,16 @@ try {
 			(y) =>
 				y
 					.command(
-						"set <provider> [value]",
+						"set [provider] [value]",
 						"Verify + store a bootstrap token for a provider",
-						(yy) =>
-							yy
-								.positional("provider", { type: "string", demandOption: true })
-								.positional("value", { type: "string" }),
+						(yy) => yy.positional("provider", { type: "string" }).positional("value", { type: "string" }),
 						async (argv) => {
+							const [provider] = await promptForPositionals(
+								getEntry("auth set"),
+								argv as Record<string, unknown>
+							);
 							const result = await runAuthSet({
-								provider: argv.provider as string,
+								provider: provider!,
 								...(argv.value ? { positional: argv.value as string } : {}),
 								...(argv.org ? { org: argv.org as string } : {}),
 							});
@@ -1225,20 +1262,28 @@ try {
 						}
 					)
 					.command(
-						"unset <provider>",
+						"unset [provider]",
 						"Remove a stored bootstrap token",
-						(yy) => yy.positional("provider", { type: "string", demandOption: true }),
-						(argv) => {
-							runAuthUnset({ provider: argv.provider as string });
+						(yy) => yy.positional("provider", { type: "string" }),
+						async (argv) => {
+							const [provider] = await promptForPositionals(
+								getEntry("auth unset"),
+								argv as Record<string, unknown>
+							);
+							runAuthUnset({ provider: provider! });
 						}
 					)
 					.command(
-						"check <provider>",
+						"check [provider]",
 						"Re-verify a stored bootstrap token",
-						(yy) => yy.positional("provider", { type: "string", demandOption: true }),
+						(yy) => yy.positional("provider", { type: "string" }),
 						async (argv) => {
+							const [provider] = await promptForPositionals(
+								getEntry("auth check"),
+								argv as Record<string, unknown>
+							);
 							const result = await runAuthCheck({
-								provider: argv.provider as string,
+								provider: provider!,
 								...(argv.org ? { org: argv.org as string } : {}),
 							});
 							if (result.status === "fail") process.exitCode = 1;
@@ -1252,10 +1297,32 @@ try {
 							await runAuthList();
 						}
 					)
-					.demandCommand(1, "Run `holocron auth --help` to see available auth subcommands."),
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchMenu(
+								COMMAND_REGISTRY.filter((e) => e.group === "auth"),
+								argv,
+								"auth — choose a subcommand:",
+								"Run `holocron auth --help` to see available auth subcommands."
+							);
+						}
+					),
 			() => {}
 		)
-		.demandCommand(1, "Run `holocron --help` to see available commands.")
+		.command(
+			"$0",
+			false,
+			() => {},
+			async (argv) => {
+				await launchMenu(
+					COMMAND_REGISTRY.filter((e) => !e.group),
+					argv
+				);
+			}
+		)
 		.strict()
 		.help()
 		.epilogue(
