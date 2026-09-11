@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-github",
-  "version": "4.17.1",
+  "version": "4.17.2",
   "description": "Holocron plugin for GitHub. Implements source, ci, secrets, environments, and issues capabilities against the GitHub REST API.",
   "keywords": [
     "ci",
