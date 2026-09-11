@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/observability",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Logging, error tracking, and analytics — one interface, swappable backends.",
   "keywords": [
     "observability",

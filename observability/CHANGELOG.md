@@ -1,3 +1,14 @@
+## [0.3.0](https://github.com/theholocron/observability/compare/v0.2.0...v0.3.0) (2026-09-11)
+
+### Features
+
+* ✨ NoopLogger in /core + a /testing subpath (fakeLogger, fakeErrorSink, fakeAnalyticsSink) ([#6](https://github.com/theholocron/observability/issues/6)) ([458b55c](https://github.com/theholocron/observability/commit/458b55c842e769cde610424432c98b9d17752a02)), closes [theholocron/holocron#643](https://github.com/theholocron/holocron/issues/643) [theholocron/holocron#645](https://github.com/theholocron/holocron/issues/645)
+
+### Chores
+
+* ⬆️ bump @theholocron/cli to 4.16.2 + 8.x holocron.config ([#3](https://github.com/theholocron/observability/issues/3)) ([bea3bc3](https://github.com/theholocron/observability/commit/bea3bc31eac382adc01bef5876f2bf17402e42b9)), closes [#642](https://github.com/theholocron/observability/issues/642) [#647](https://github.com/theholocron/observability/issues/647)
+* 🔧 holocron setup — ruleset + workflow/config sync ([#5](https://github.com/theholocron/observability/issues/5)) ([069d49b](https://github.com/theholocron/observability/commit/069d49b0b8756cfaf6fdf595cbbebd5b689fafea)), closes [#647](https://github.com/theholocron/observability/issues/647) [#649](https://github.com/theholocron/observability/issues/649) [#649](https://github.com/theholocron/observability/issues/649) [#647](https://github.com/theholocron/observability/issues/647) [theholocron/configs#450](https://github.com/theholocron/configs/issues/450) [theholocron/configs#450](https://github.com/theholocron/configs/issues/450) [#647](https://github.com/theholocron/observability/issues/647)
+
 ## [0.2.0](https://github.com/theholocron/observability/compare/v0.1.0...v0.2.0) (2026-09-10)
 
 ### Features
