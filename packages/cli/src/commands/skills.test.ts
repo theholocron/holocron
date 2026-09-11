@@ -6,9 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }));
 
+import { fakeLogger } from "@theholocron/observability/testing";
+
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
-import { fakeLogger } from "../test-utils/fake-logger.js";
 import * as setupIndex from "./setup/index.js";
 import { installSkills } from "./setup/index.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./skills.js";

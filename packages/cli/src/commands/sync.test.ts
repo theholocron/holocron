@@ -16,10 +16,11 @@ vi.mock("../commands/sync-readme.js", () => ({
 		return { status: "ok", updated: true };
 	}),
 }));
+import { fakeLogger } from "@theholocron/observability/testing";
+
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
-import { fakeLogger } from "../test-utils/fake-logger.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
