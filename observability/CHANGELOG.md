@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* **hooks:** scope pre-commit GitLeaks scan to staged changes ([#8](https://github.com/theholocron/observability/issues/8)) ([95123e4](https://github.com/theholocron/observability/commit/95123e45373239159f0ba1f64787b778777212ce))
+- **hooks:** scope pre-commit GitLeaks scan to staged changes ([#8](https://github.com/theholocron/observability/issues/8)) ([95123e4](https://github.com/theholocron/observability/commit/95123e45373239159f0ba1f64787b778777212ce))
 
 ## [0.3.0](https://github.com/theholocron/observability/compare/v0.2.0...v0.3.0) (2026-09-11)
 
