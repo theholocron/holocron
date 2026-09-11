@@ -50,6 +50,7 @@ import {
 import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
 import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
 import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
+import { createConfig as createPreCommit } from "../../templates/configs/pre-commit/index.js";
 import { createConfig as createPrePush } from "../../templates/configs/pre-push/index.js";
 import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
 import dcoConfig from "../../templates/dco.yml";
@@ -303,6 +304,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
+			steps.push(
+				await runStep("source", "write .husky/pre-commit", dryRun, async () => {
+					await source.writeRepoFile(".husky/pre-commit", createPreCommit());
+					return "runs GitLeaks (staged-only) + lint-staged before commit";
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
 			if (config.syncScripts !== false) {
 				steps.push(
 					await runStep("source", "set package.json prepare script", dryRun, async () => {
@@ -317,6 +325,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			steps.push({
 				capability: "source",
 				step: "write .husky/pre-push",
+				status: "skip",
+				message: "git hooks disabled",
+			});
+			print(formatStep(steps[steps.length - 1]!));
+			steps.push({
+				capability: "source",
+				step: "write .husky/pre-commit",
 				status: "skip",
 				message: "git hooks disabled",
 			});

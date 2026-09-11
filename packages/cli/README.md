@@ -157,10 +157,13 @@ export default defineConfig({
 ```
 
 `holocron setup` writes `.husky/pre-push` (runs `holocron ci` before every
-push) and sets `package.json#scripts.prepare` to `husky`. On by default for
+push) and `.husky/pre-commit` (runs `gitleaks protect --staged` + `lint-staged`
+before every commit — scoped to staged changes, not the whole history, so a
+past false positive can't permanently block future commits) and sets
+`package.json#scripts.prepare` to `husky`. Both on by default for
 `protection: "strict"`; `false` / `{ prePush: false }` opts out. `holocron
 setup --hooks` / `--no-hooks` override per run. Bypass one push with `git push
---no-verify`.
+--no-verify`; bypass one commit with `git commit --no-verify`.
 
 ### Task scripts
 

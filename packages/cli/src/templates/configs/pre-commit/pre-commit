@@ -1,0 +1,14 @@
+# Run GitLeaks against staged changes only — a full `gitleaks git` history
+# scan re-flags every pre-existing (already-merged) finding on every commit,
+# permanently blocking the repo once any false positive lands in history.
+# CI's super-linter GITLEAKS validator is likewise scoped to changed files.
+gitleaks protect --staged --no-banner
+
+# Exit with non-zero if secrets are detected by GitLeaks
+if [ $? -ne 0 ]; then
+	echo "Secrets detected by GitLeaks, aborting commit!"
+	exit 1
+fi
+
+# Run lint-staged with a custom config
+npx lint-staged --config @theholocron/lint-staged-config
