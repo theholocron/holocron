@@ -25,6 +25,7 @@ import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePa
 import type { TasksConfig } from "@theholocron/astromech/config";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
+import { getLogger } from "../../logger.js";
 import type {
 	Auth,
 	Deployment,
@@ -73,6 +74,7 @@ const { workflowHeader } = createHeader({
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
 	assertPluginsResolvable(loader, "setup");
@@ -157,7 +159,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 			const requiredChecks =
 				effectivePreset === "strict"
-					? ["DCO", ...createAstromech({ cwd: input.context.repoRoot, config: tasksConfig }).requiredChecks()]
+					? [
+							"DCO",
+							...createAstromech({
+								cwd: input.context.repoRoot,
+								config: tasksConfig,
+								logger,
+							}).requiredChecks(),
+						]
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
 			print(formatStep(steps[steps.length - 1]!));
@@ -178,6 +187,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			cwd: input.context.repoRoot,
 			config: { tasks: tasks as TasksConfig["tasks"] },
 			orgContext: { org: config.org, domain: config.domain },
+			logger,
 		}).thinCallers();
 
 		for (const entry of tasks) {
@@ -326,7 +336,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			} else {
 				steps.push(
 					await runStep("source", "write codecov.yml", dryRun, async () => {
-						const content = createAstromech({ cwd: input.context.repoRoot }).codecovConfig(existing);
+						const content = createAstromech({ cwd: input.context.repoRoot, logger }).codecovConfig(
+							existing
+						);
 						await source.writeRepoFile("codecov.yml", content);
 						const packageCount = readWorkspacePackages(input.context.repoRoot).length;
 						return packageCount > 0 ? `${packageCount} components` : "no components";

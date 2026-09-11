@@ -351,6 +351,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					cwd: input.context.repoRoot,
 					config: { tasks: config.tasks as TasksConfig["tasks"] },
 					orgContext: { org: config.org, domain: config.domain },
+					logger,
 				}).thinCallers();
 
 				for (const entry of taskEntries) {
@@ -398,6 +399,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				const desired = createAstromech({
 					cwd: input.context.repoRoot,
 					config: tasksConfig,
+					logger,
 				}).packageScripts();
 
 				steps.push(
