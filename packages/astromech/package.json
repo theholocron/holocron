@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/astromech",
-  "version": "4.18.1",
+  "version": "4.18.2",
   "description": "The Holocron task runner — one task manifest drives `holocron run`, `holocron ci`, the CI workflows, package.json scripts, linters, and required checks.",
   "keywords": [
     "ci",
