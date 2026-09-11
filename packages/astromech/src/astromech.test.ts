@@ -112,6 +112,7 @@ describe("createAstromech().run", () => {
 		const dir = await mkdtemp(join(tmpdir(), "astromech-lint-"));
 		const binDir = await mkdtemp(join(tmpdir(), "astromech-bin-"));
 		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
+		await writeFile(join(dir, "eslint.config.ts"), ""); // detect-gate: eslint only runs with a config
 		await mkdir(join(dir, "node_modules", ".bin"), { recursive: true });
 		await writeFile(join(dir, "node_modules", ".bin", "eslint"), "#!/bin/sh\nexit 0\n"); // node_modules/.bin hit
 		await writeFile(join(binDir, "prettier"), "#!/bin/sh\nexit 0\n"); // PATH hit
@@ -178,13 +179,23 @@ describe("createAstromech().thinCallers", () => {
 
 	it("honours an explicit linters list on the lint caller", () => {
 		const astromech = createAstromech({
-			cwd: "/repo",
+			...fs({ "package.json": PKG, "eslint.config.ts": "" }),
 			config: { tasks: [{ name: "lint", linters: ["eslint", "prettier"] }] },
 		});
 		const lint = astromech.thinCallers().get("lint.yml")!;
 		expect(lint).toContain("# linters: eslint, prettier");
 		expect(lint).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
 		expect(lint).not.toContain('"VALIDATE_YAML"');
+	});
+
+	it("drops eslint from an explicit linters list when the repo has no eslint config (configs#654)", () => {
+		const astromech = createAstromech({
+			...fs({ "package.json": PKG }),
+			config: { tasks: [{ name: "lint", linters: ["eslint", "prettier"] }] },
+		});
+		const lint = astromech.thinCallers().get("lint.yml")!;
+		expect(lint).toContain("# linters: prettier");
+		expect(lint).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
 	});
 
 	it("detects eslint from a repo config file", () => {
@@ -317,11 +328,20 @@ describe("createAstromech().superLinterConfig", () => {
 
 	it("honours the lint entry's explicit linters list", () => {
 		const sl = createAstromech({
-			cwd: "/repo",
+			...fs({ "package.json": PKG, "eslint.config.ts": "" }),
 			config: { tasks: [{ name: "lint", linters: ["eslint", "yamllint"] }] },
 		}).superLinterConfig();
 		expect(sl.linters).toEqual(["eslint", "yamllint"]);
 		expect(sl.env["VALIDATE_JAVASCRIPT_ES"]).toBe("true");
+	});
+
+	it("gates an explicitly-listed eslint on the repo actually having a config (configs#654)", () => {
+		const sl = createAstromech({
+			...fs({ "package.json": PKG }),
+			config: { tasks: [{ name: "lint", linters: ["eslint", "yamllint"] }] },
+		}).superLinterConfig();
+		expect(sl.linters).toEqual(["yamllint"]);
+		expect(sl.env["VALIDATE_JAVASCRIPT_ES"]).toBeUndefined();
 	});
 
 	it("auto-detects eslint from repo files when linters is omitted", () => {

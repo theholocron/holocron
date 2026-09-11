@@ -1440,6 +1440,7 @@ describe("runSync", () => {
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
+			await writeFile(join(tmpDir, "eslint.config.ts"), ""); // detect-gate: eslint runs iff a config is present
 
 			await runSync({
 				loaded,
@@ -1453,6 +1454,21 @@ describe("runSync", () => {
 			expect(content).toContain("# linters: eslint, prettier");
 			expect(content).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
 			expect(content).not.toContain('"VALIDATE_YAML"');
+		});
+
+		it("drops an explicitly-listed eslint from super-linter-env when the repo has no eslint config (#654)", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["workflows"], print: () => {} });
+
+			const content = await readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8");
+			expect(content).toContain("# linters: prettier");
+			expect(content).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
 		});
 
 		it("writes a plain deploy thin caller when deploy has with: but no preview", async () => {

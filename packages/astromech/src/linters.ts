@@ -144,10 +144,14 @@ export const LINTERS: Record<string, LinterDef> = {
 export const LINTER_NAMES: ReadonlySet<string> = new Set(Object.keys(LINTERS));
 
 /**
- * Resolve the linter set for a repo. An `explicit` list (from
- * `config.tasks`) wins verbatim; otherwise every `always` linter plus every
- * linter whose `detect` filenames are present at the repo root. Result is
- * ordered by {@link LINTERS} declaration order.
+ * Resolve the linter set for a repo. An `explicit` list (from `config.tasks`)
+ * picks the candidate set; otherwise the candidates are every `always` linter
+ * plus every `detect`-gated linter whose filenames are present at the repo
+ * root. Either way, a `detect`-gated linter (eslint, markdownlint) only makes
+ * the final set when its config file is actually present — a repo can't run
+ * eslint without an `eslint.config.*`, and super-linter FATALs if you ask it
+ * to (theholocron/holocron#654). `always` linters are unconditional. Result
+ * is ordered by {@link LINTERS} declaration order.
  *
  * @throws when an `explicit` name is not in the registry — a typo is a
  * config bug, not a linter to silently skip.
@@ -157,6 +161,9 @@ export function resolveLinters(opts: {
 	rootFiles: string[];
 }): Array<{ name: string; def: LinterDef }> {
 	const order = Object.keys(LINTERS);
+	const present = new Set(opts.rootFiles);
+	const configPresent = (def: LinterDef): boolean =>
+		def.always === true || (def.detect ?? []).some((f) => present.has(f));
 
 	if (opts.explicit && opts.explicit.length > 0) {
 		const unknown = opts.explicit.filter((n) => !LINTER_NAMES.has(n));
@@ -167,16 +174,10 @@ export function resolveLinters(opts: {
 			);
 		}
 		const wanted = new Set(opts.explicit);
-		return order.filter((n) => wanted.has(n)).map((name) => ({ name, def: LINTERS[name]! }));
+		return order
+			.filter((n) => wanted.has(n) && configPresent(LINTERS[n]!))
+			.map((name) => ({ name, def: LINTERS[name]! }));
 	}
 
-	const present = new Set(opts.rootFiles);
-	return order
-		.filter((name) => {
-			const def = LINTERS[name]!;
-			// Every linter is always-on XOR detect-gated (enforced by test), so
-			// `detect` is defined whenever `always` is not.
-			return def.always === true || def.detect!.some((f) => present.has(f));
-		})
-		.map((name) => ({ name, def: LINTERS[name]! }));
+	return order.filter((name) => configPresent(LINTERS[name]!)).map((name) => ({ name, def: LINTERS[name]! }));
 }

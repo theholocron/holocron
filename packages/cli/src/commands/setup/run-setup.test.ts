@@ -1322,7 +1322,53 @@ describe("runSetup", () => {
 			loader: hookLoader(loaded, []),
 			print: () => {},
 		});
-		expect(report.steps.find((s) => s.step === "set package.json prepare script")?.message).toBe("already set");
+		expect(report.steps.find((s) => s.step === "set package.json prepare script")?.message).toBe(
+			"already runs husky"
+		);
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("appends husky to a prepare that does more than husky, instead of clobbering it (#654)", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { prepare: "turbo run build" } }),
+			"utf8"
+		);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8")) as {
+			scripts: Record<string, string>;
+		};
+		expect(pkg.scripts.prepare).toBe("turbo run build && husky");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("is a no-op when husky is already a step in a longer prepare chain (#654)", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { prepare: "turbo run build && husky" } }),
+			"utf8"
+		);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: dir },
+			loader: hookLoader(loaded, []),
+			print: () => {},
+		});
+		expect(report.steps.find((s) => s.step === "set package.json prepare script")?.message).toBe(
+			"already runs husky"
+		);
 		await rm(dir, { recursive: true, force: true });
 	});
 
@@ -1645,13 +1691,44 @@ describe("runSetup", () => {
 			}),
 		});
 
-		// a repo root that does not exist — auto-detect would fall back, but the
-		// explicit list wins regardless
-		await runSetup({ loaded, context: { repoRoot: "/nonexistent-holocron-test" }, loader, print: () => {} });
+		// eslint is in the explicit list AND the repo has a config → it runs.
+		const repoRoot = await mkdtemp(join(tmpdir(), "holocron-lint-"));
+		await writeFile(join(repoRoot, "eslint.config.ts"), "");
+		await runSetup({ loaded, context: { repoRoot }, loader, print: () => {} });
 
 		expect(written["lint.yml"]).toContain("# linters: eslint, prettier");
 		expect(written["lint.yml"]).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
 		expect(written["lint.yml"]).not.toContain('"VALIDATE_YAML"');
+		await rm(repoRoot, { recursive: true, force: true });
+	});
+
+	it("drops an explicitly-listed eslint from the lint caller when the repo has no eslint config (#654)", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		const repoRoot = await mkdtemp(join(tmpdir(), "holocron-lint-"));
+		await runSetup({ loaded, context: { repoRoot }, loader, print: () => {} });
+
+		expect(written["lint.yml"]).toContain("# linters: prettier");
+		expect(written["lint.yml"]).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
+		await rm(repoRoot, { recursive: true, force: true });
 	});
 
 	it("writes standard deploy.yml (no preview job) when deploy has no preview: key", async () => {

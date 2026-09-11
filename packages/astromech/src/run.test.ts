@@ -415,7 +415,7 @@ describe("runTask — lint aggregate", () => {
 
 	it("honours an explicit linters list", () => {
 		const { call, exec } = makeRun(
-			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }) },
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }), "eslint.config.ts": "" },
 			{ lookPath: onPath("prettier"), linters: ["eslint", "prettier"] }
 		);
 		call("lint");
@@ -423,6 +423,16 @@ describe("runTask — lint aggregate", () => {
 		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", "."], { cwd: CWD });
 		// yamllint is always-on but excluded by the explicit list
 		expect(exec).not.toHaveBeenCalledWith("/usr/local/bin/yamllint", expect.anything(), expect.anything());
+	});
+
+	it("drops an explicitly-listed eslint when there's no eslint config (configs#654)", () => {
+		const { call, exec } = makeRun(
+			{ "package.json": PKG(), "turbo.json": JSON.stringify({ tasks: { lint: {} } }) },
+			{ lookPath: onPath("prettier"), linters: ["eslint", "prettier"] }
+		);
+		call("lint");
+		expect(exec).not.toHaveBeenCalledWith("turbo", ["run", "lint"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", "."], { cwd: CWD });
 	});
 
 	it("reports fail when any linter exits non-zero (and treats an unreadable root as no config files)", () => {

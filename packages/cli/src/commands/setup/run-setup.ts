@@ -300,8 +300,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				steps.push(
 					await runStep("source", "set package.json prepare script", dryRun, async () => {
 						return (await ensurePrepareScript(input.context.repoRoot))
-							? 'prepare = "husky"'
-							: "already set";
+							? "prepare now runs husky"
+							: "already runs husky";
 					})
 				);
 				print(formatStep(steps[steps.length - 1]!));
@@ -818,9 +818,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 }
 
 /**
- * Ensure `package.json#scripts.prepare` is `"husky"` so git hooks register on
- * install. Merge-only: leaves every other script untouched. Returns `true` when
- * it wrote a change, `false` when already set or there is no `package.json`.
+ * Ensure `package.json#scripts.prepare` runs `husky` so git hooks register on
+ * install. Merge-only: an existing `prepare` that does more than husky (e.g.
+ * `turbo run build` — needed where root config files import a workspace
+ * package's `dist/`, theholocron/holocron#654) is preserved and husky is
+ * appended. Leaves every other script untouched. Returns `true` when it wrote
+ * a change, `false` when already runs husky or there is no `package.json`.
  */
 async function ensurePrepareScript(repoRoot: string): Promise<boolean> {
 	const pkgPath = join(repoRoot, "package.json");
@@ -832,8 +835,10 @@ async function ensurePrepareScript(repoRoot: string): Promise<boolean> {
 	}
 	const pkg = JSON.parse(content) as { scripts?: Record<string, string> };
 	const scripts = pkg.scripts ?? {};
-	if (scripts.prepare === "husky") return false;
-	scripts.prepare = "husky";
+	const current = scripts.prepare?.trim() ?? "";
+	// Already invokes husky (bare, or as a step in a chain) → nothing to do.
+	if (/(^|[\s&|;])husky($|[\s&|;])/.test(current)) return false;
+	scripts.prepare = current ? `${current} && husky` : "husky";
 	pkg.scripts = scripts;
 	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
 	return true;
