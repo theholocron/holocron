@@ -27,6 +27,7 @@ import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
 import type { Deployment, DeploymentTarget, Secrets, Vault } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { assertPluginsResolvable } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
@@ -68,6 +69,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
+	assertPluginsResolvable(loader, "secrets sync");
 
 	logger.info(
 		{ environment: input.environmentId, dryRun: (input.context.dryRun ?? false) || undefined },

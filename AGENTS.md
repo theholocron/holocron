@@ -56,6 +56,16 @@ Three repos, one rule per concern:
     core + plugin-exported `parseWebhook(input): AuthEvent` utility
     (NOT a capability method). Swap auth providers without rewriting
     handlers.
+  - **Execution context** (`packages/cli/src/commands/contexts.ts`,
+    spec `tech-cli-execution-contexts`, #576). Every command is tagged
+    `global` (binary only), `repo-aware` (`./holocron.config`, no
+    plugins) or `workspace` (plugin packages resolvable). New commands
+    MUST get a `COMMAND_CONTEXTS` entry — `contexts.test.ts` fails
+    otherwise. A `workspace` command calls
+    `assertPluginsResolvable(loader, name)` right after `loader.load()`;
+    it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
+    `USER_FACING_ERRORS` catch) only when every provider failed with a
+    missing-package error — the global-install case.
 
 ## Consuming packages from `theholocron/clients`
 

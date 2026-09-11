@@ -13,6 +13,7 @@ import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/to
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
 import { runClone } from "./commands/clone.js";
+import { commandsInContext } from "./commands/contexts.js";
 import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
@@ -38,6 +39,12 @@ import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
 const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" });
+
+/**
+ * Error class names whose `.message` is a complete, actionable sentence —
+ * the top-level catch prints it and suppresses the stack trace.
+ */
+const USER_FACING_ERRORS = new Set(["WorkspaceContextError", "ConfigFileError"]);
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
@@ -110,6 +117,8 @@ init(CLI_VERSION);
 const updateCheckPromise = checkForUpdates(CLI_VERSION);
 
 let finishCommand: (ok: boolean) => void = () => {};
+/** Set by `.fail()` once it has printed an error, so the outer catch doesn't repeat it. */
+let errorReported = false;
 
 try {
 	await yargs(hideBin(process.argv))
@@ -1243,9 +1252,41 @@ try {
 		.demandCommand(1, "Run `holocron --help` to see available commands.")
 		.strict()
 		.help()
+		.epilogue(
+			"Execution contexts:\n" +
+				`  global      works from a bare 'npm i -g': ${commandsInContext("global").join(", ")}\n` +
+				`  repo-aware  needs ./holocron.config in cwd: ${commandsInContext("repo-aware").join(", ")}\n` +
+				`  workspace   also needs the plugin packages: ${commandsInContext("workspace").join(", ")}\n` +
+				"  https://theholocron.github.io/holocron/execution-contexts"
+		)
+		.fail((msg, err) => {
+			// A user-facing error (a `workspace` command with no resolvable
+			// plugins, a missing `holocron.config`) — its message is the whole
+			// story. Print that: no usage dump, no stack trace.
+			if (err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
+				captureException(err);
+				getLogger().error(err.message);
+				errorReported = true;
+				process.exitCode = 1;
+				return;
+			}
+			// Anything else a handler threw: hand back to the outer catch so
+			// telemetry + the generic path own it.
+			if (err) throw err;
+			// A yargs validation failure (unknown command, missing positional):
+			// keep yargs' own message.
+			getLogger().error(msg);
+			errorReported = true;
+			process.exitCode = 1;
+		})
 		.parse();
 } catch (err) {
 	captureException(err);
+	// User-facing errors carry a self-contained message — print it instead of
+	// letting a raw stack trace escape (unless `.fail()` already did).
+	if (!errorReported && err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
+		getLogger().error(err.message);
+	}
 	if (!process.exitCode) process.exitCode = 1;
 }
 

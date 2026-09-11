@@ -24,6 +24,7 @@ import { env } from "../env.js";
 import { getLogger } from "../logger.js";
 import type { Secrets, SecretScope } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { assertPluginsResolvable } from "../plugin/workspace.js";
 
 export type SecretSetPrint = (line: string) => void;
 
@@ -60,6 +61,7 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
+	assertPluginsResolvable(loader, "secret set");
 
 	const dryRun = input.context.dryRun ?? false;
 	const scope: SecretScope = input.scope ?? { kind: "repo" };

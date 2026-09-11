@@ -14,6 +14,22 @@ holocron --help
 
 ```
 
+## Execution contexts
+
+Every command is tagged with how much of a repo it needs:
+
+| Context      | Needs                                                    | Examples                                                                                     |
+| ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `global`     | just the CLI binary                                      | `version`, `clone`, `new`, `upgrade node`, `auth set` / `check`, `plugin create`, `skills …` |
+| `repo-aware` | `./holocron.config` in cwd, no plugins                   | `run`, `ci`, `config show`, `sync-readme`                                                    |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `secrets sync`, `deploy`                                          |
+
+A `workspace` command run from a bare global install (no plugins next to the
+CLI) fails with one actionable line — install the plugins as devDependencies or
+use `pnpm exec holocron <cmd>`. `auth check` degrades to "token present,
+verification skipped" instead. `holocron --help` prints the grouping; see
+[Execution Contexts](https://theholocron.github.io/holocron/execution-contexts).
+
 ## Config file
 
 Holocron reads `holocron.config.{json,js,ts}` from the project root

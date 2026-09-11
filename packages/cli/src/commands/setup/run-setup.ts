@@ -40,6 +40,7 @@ import type {
 	Workers,
 } from "../../plugin/capabilities.js";
 import { PluginLoader } from "../../plugin/loader.js";
+import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import sentimentBotConfig from "../../templates/config.yml";
 import {
 	createIgnoreConfig as createAlexignore,
@@ -79,6 +80,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
+	assertPluginsResolvable(loader, "setup");
 
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;

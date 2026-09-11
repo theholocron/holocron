@@ -5,6 +5,7 @@ import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
 import type { Deployment, DeploymentRecord, PullRequest, Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
+import { assertPluginsResolvable } from "../plugin/workspace.js";
 import { style } from "../ui/style.js";
 
 export interface RunCleanupPreviewInput {
@@ -47,6 +48,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	// c8 ignore next -- real PluginLoader construction is integration-level; unit tests always supply loader
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
+	assertPluginsResolvable(loader, "cleanup-preview");
 	logger.info({ pr: input.prNumber, project: input.project }, "cleanup-preview: start");
 
 	// ── 1. Look up the PR ───────────────────────────────────────────────
