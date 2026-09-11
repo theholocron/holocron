@@ -1206,6 +1206,42 @@ describe("runSetup", () => {
 		expect(report.steps.find((s) => s.step === "write .husky/pre-push")?.status).toBe("skip");
 	});
 
+	it("writes .husky/pre-commit alongside pre-push for protection: 'strict'", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		const [, body] = repoFiles.find(([p]) => p === ".husky/pre-commit") ?? [];
+		expect(body).toBeDefined();
+		expect(body).toContain("gitleaks protect --staged --no-banner");
+		expect(body).not.toMatch(/^gitleaks git\b/m);
+	});
+
+	it("skips .husky/pre-commit for a non-strict preset", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-commit")).toBe(false);
+		expect(report.steps.find((s) => s.step === "write .husky/pre-commit")?.status).toBe("skip");
+	});
+
 	it("hooks: false opts a strict repo out", async () => {
 		const repoFiles: Array<[string, string]> = [];
 		const loaded = loadedFrom({
