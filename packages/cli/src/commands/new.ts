@@ -165,10 +165,15 @@ export interface HolocronConfigOptions {
 export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 	const lines: string[] = [
 		`import { defineConfig } from "@theholocron/cli";`,
-		`import { node } from "@theholocron/holocron-config";`,
+		`import { compose, node, typecheck } from "@theholocron/holocron-config";`,
 		``,
-		`const { repo, workflows, providers } = node();`,
+		// `compose(node(), typecheck())` is the org baseline preset — the full
+		// task manifest (lint/test/typecheck required, security/review/… ) rides
+		// in via `...preset`, so `holocron setup` can derive CodeQL mode and the
+		// required-check contexts. See theholocron/holocron#642.
+		`const preset = compose(node(), typecheck());`,
 		`export default defineConfig({`,
+		`\t...preset,`,
 	];
 
 	if (opts.description) lines.push(`\tdescription: ${JSON.stringify(opts.description)},`);
@@ -182,10 +187,10 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 		// Full explicit repo block when org is known (always the case from the CLI).
 		const repoName = `${opts.org}/${opts.name}`;
 		lines.push(`\trepo: {`);
+		lines.push(`\t\t...preset.repo,`);
 		lines.push(`\t\tname: ${JSON.stringify(repoName)},`);
 		lines.push(`\t\tteams: [{ slug: "gatekeepers", permission: "maintain" }],`);
 		lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
-		lines.push(`\t\t...repo,`);
 		if (opts.protection && opts.protection !== "strict") {
 			lines.push(`\t\tprotection: ${JSON.stringify(opts.protection)},`);
 		}
@@ -194,31 +199,28 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 		if (opts.openSource === false) propParts.push(`open_source: false`);
 		if (opts.usesExternalPackages === false) propParts.push(`uses_external_packages: false`);
 		if (propParts.length > 0) {
-			lines.push(`\t\tproperties: { ...repo.properties, ${propParts.join(", ")} },`);
+			lines.push(`\t\tproperties: { ...preset.repo?.properties, ${propParts.join(", ")} },`);
 		}
 		lines.push(`\t},`);
 	} else if (topics.length > 0 || hasRuntimeOverride) {
 		lines.push(`\trepo: {`);
+		lines.push(`\t\t...preset.repo,`);
 		if (topics.length > 0) lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
-		lines.push(`\t\t...repo,`);
 		if (hasRuntimeOverride) {
 			lines.push(
-				`\t\tproperties: { ...repo.properties, runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)} },`
+				`\t\tproperties: { ...preset.repo?.properties, runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)} },`
 			);
 		}
 		lines.push(`\t},`);
-	} else {
-		lines.push(`\trepo,`);
 	}
-
-	lines.push(`\tworkflows,`);
+	// else: `...preset` already carries `repo` — no explicit block needed.
 
 	const hasVault = opts.vaultProvider && opts.vaultProvider !== "none";
 	const hasDeployment = opts.deploymentProvider && opts.deploymentProvider !== "none";
 
 	if (hasVault || hasDeployment) {
 		lines.push(`\tproviders: {`);
-		lines.push(`\t\t...providers,`);
+		lines.push(`\t\t...preset.providers,`);
 		if (opts.vaultProvider === "doppler") {
 			const proj = JSON.stringify(opts.vaultProject ?? opts.name);
 			const cfg = JSON.stringify(opts.vaultConfig ?? "dev");
@@ -234,9 +236,8 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 			lines.push(`\t\tdeployment: "vercel",`);
 		}
 		lines.push(`\t},`);
-	} else {
-		lines.push(`\tproviders,`);
 	}
+	// else: `...preset` already carries `providers`.
 
 	if (opts.agent && opts.agent !== "none") {
 		lines.push(`\tagent: ${JSON.stringify(opts.agent)},`);

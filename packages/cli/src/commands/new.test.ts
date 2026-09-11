@@ -897,12 +897,20 @@ describe("runNew — holocron.config.ts", () => {
 // ── generateHolocronConfig ─────────────────────────────────────────────
 
 describe("generateHolocronConfig", () => {
-	it("produces a valid TypeScript module with the node preset", () => {
+	it("produces a valid TypeScript module with the composed node preset", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node" });
 		expect(out).toContain(`import { defineConfig } from "@theholocron/cli"`);
-		expect(out).toContain(`import { node } from "@theholocron/holocron-config"`);
-		expect(out).toContain(`node()`);
-		expect(out).toContain(`defineConfig(`);
+		expect(out).toContain(`import { compose, node, typecheck } from "@theholocron/holocron-config"`);
+		expect(out).toContain(`const preset = compose(node(), typecheck());`);
+		expect(out).toMatch(/defineConfig\(\{\n\t\.\.\.preset,/);
+	});
+
+	it("carries the task manifest via ...preset so setup can derive checks (#642)", () => {
+		const out = generateHolocronConfig({ name: "my-tool", type: "node", org: "theholocron" });
+		// `...preset` is the first key — its `.tasks` flows into the config
+		expect(out).toMatch(/defineConfig\(\{\n\t\.\.\.preset,/);
+		expect(out).not.toContain(`workflows,`);
+		expect(out).not.toContain(`const { repo`);
 	});
 
 	it("includes description and homepage when provided", () => {
@@ -921,12 +929,12 @@ describe("generateHolocronConfig", () => {
 		expect(out).toContain(`topics:`);
 		expect(out).toContain(`"typescript"`);
 		expect(out).toContain(`"nodejs"`);
-		expect(out).toContain(`...repo`);
+		expect(out).toContain(`...preset.repo,`);
 	});
 
-	it("omits the topics block when topics are empty", () => {
+	it("omits the repo block entirely when there's nothing to override (...preset carries it)", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node", topics: [] });
-		expect(out).toContain(`repo,`);
+		expect(out).not.toContain(`repo:`);
 		expect(out).not.toContain(`topics:`);
 	});
 
@@ -941,7 +949,7 @@ describe("generateHolocronConfig", () => {
 		expect(out).toContain(`["doppler",`);
 		expect(out).toContain(`"my-tool"`);
 		expect(out).toContain(`"dev"`);
-		expect(out).toContain(`...providers`);
+		expect(out).toContain(`...preset.providers,`);
 	});
 
 	it("defaults vault project to the repo name when not specified", () => {
@@ -990,10 +998,9 @@ describe("generateHolocronConfig", () => {
 		expect(out).not.toContain(`agent:`);
 	});
 
-	it("uses plain providers when no vault or deployment is selected", () => {
+	it("omits the providers block when no vault or deployment is selected (...preset carries it)", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node", vaultProvider: "none" });
-		expect(out).toContain(`providers,`);
-		expect(out).not.toContain(`...providers`);
+		expect(out).not.toContain(`providers:`);
 	});
 
 	it("generates full explicit repo block when org is provided", () => {
@@ -1001,7 +1008,7 @@ describe("generateHolocronConfig", () => {
 		expect(out).toContain(`name: "theholocron/my-tool"`);
 		expect(out).toContain(`teams: [{ slug: "gatekeepers", permission: "maintain" }]`);
 		expect(out).toContain(`topics:`);
-		expect(out).toContain(`...repo`);
+		expect(out).toContain(`...preset.repo,`);
 	});
 
 	it("includes protection override when not strict", () => {
@@ -1049,14 +1056,14 @@ describe("generateHolocronConfig", () => {
 		for (const env of cases) {
 			const out = generateHolocronConfig({ name: "my-tool", type: "node", runtimeEnvironment: env });
 			expect(out).toContain(`runtime_environment: "${env}"`);
-			expect(out).toContain(`...repo.properties`);
-			expect(out).toContain(`...repo`);
+			expect(out).toContain(`...preset.repo?.properties`);
+			expect(out).toContain(`...preset.repo,`);
 		}
 	});
 
-	it("omits the properties override when runtimeEnvironment is node", () => {
+	it("omits the repo block when runtimeEnvironment is node (no override needed)", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node", runtimeEnvironment: "node" });
-		expect(out).toContain(`repo,`);
+		expect(out).not.toContain(`repo:`);
 		expect(out).not.toContain(`runtime_environment`);
 	});
 
@@ -1068,7 +1075,7 @@ describe("generateHolocronConfig", () => {
 			runtimeEnvironment: "browser",
 		});
 		expect(out).toContain(`topics:`);
-		expect(out).toContain(`...repo`);
+		expect(out).toContain(`...preset.repo,`);
 		expect(out).toContain(`runtime_environment: "browser"`);
 	});
 });
