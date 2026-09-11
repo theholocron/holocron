@@ -9,7 +9,7 @@
  */
 
 export type { LogEnv, Logger, LogLevel } from "./core/logger.js";
-export { LOG_LEVELS } from "./core/logger.js";
+export { LOG_LEVELS, NoopLogger } from "./core/logger.js";
 export { redact, REDACT_CENSOR, REDACTED_PATHS, redactObject, redactOptions } from "./core/redact.js";
 export type { AnalyticsSink, CommandSpan, ErrorSink } from "./core/sinks.js";
 export { NoopAnalyticsSink, NoopErrorSink } from "./core/sinks.js";

@@ -17,6 +17,7 @@ Then add the peer dependencies for the subpaths you use:
 | `/logger`    | `pino`, `pino-pretty`, `@axiomhq/pino` |
 | `/errors`    | `@sentry/node`                         |
 | `/analytics` | `posthog-node`                         |
+| `/testing`   | `vitest`                               |
 
 ## Code against the interface
 
@@ -75,6 +76,29 @@ const logger = new ConsoleLogger({ level: "info" });
 
 Environment-specific error / analytics adapters (`@sentry/nextjs`,
 `@sentry/react-native`, `posthog-js`, …) plug into the same interfaces.
+
+## Testing
+
+`deploy` above takes `Logger` / `ErrorSink` as plain dependencies, so tests
+pass spy doubles instead of a real logger or Sentry session:
+
+```ts
+import { fakeLogger, fakeErrorSink } from "@theholocron/observability/testing";
+
+const logger = fakeLogger();
+const errors = fakeErrorSink();
+deploy({ logger, errors });
+
+expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ target: "production" }), "deploying");
+expect(errors.captureException).not.toHaveBeenCalled();
+```
+
+`fakeAnalyticsSink()` mirrors the same shape for `AnalyticsSink`. Every fake's
+methods are `vitest` spies; `fakeLogger().child(...)` returns the same fake so
+bindings applied via a child logger are still assertable on the parent. For a
+non-vitest context that just needs a working `Logger` with no output (an
+example, a docs snippet, a non-test opt-out path), use `NoopLogger` from
+`/core` instead — it discards everything and needs no `vitest` peer.
 
 ## Logging behaviour
 

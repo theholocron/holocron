@@ -46,6 +46,11 @@
       "types": "./dist/analytics.d.mts",
       "import": "./dist/analytics.mjs",
       "default": "./dist/analytics.mjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.mts",
+      "import": "./dist/testing.mjs",
+      "default": "./dist/testing.mjs"
     }
   },
   "files": [
@@ -116,7 +121,8 @@
     "@sentry/node": ">=10",
     "pino": ">=10",
     "pino-pretty": ">=13",
-    "posthog-node": ">=5"
+    "posthog-node": ">=5",
+    "vitest": ">=4"
   },
   "peerDependenciesMeta": {
     "@axiomhq/pino": {
@@ -132,6 +138,9 @@
       "optional": true
     },
     "posthog-node": {
+      "optional": true
+    },
+    "vitest": {
       "optional": true
     }
   },

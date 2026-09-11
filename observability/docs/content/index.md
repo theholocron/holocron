@@ -18,6 +18,7 @@ off in a single file.
 | `@theholocron/observability/logger`    | `createLogger()` — a structured logger (pretty locally, NDJSON in CI, Axiom when credentials resolve) — plus a zero-dependency `ConsoleLogger`.                                         | `pino`, `pino-pretty`, `@axiomhq/pino` |
 | `@theholocron/observability/errors`    | `SentrySink` — error tracking and per-operation performance spans.                                                                                                                      | `@sentry/node`                         |
 | `@theholocron/observability/analytics` | `PostHogSink` — usage and adoption events.                                                                                                                                              | `posthog-node`                         |
+| `@theholocron/observability/testing`   | `fakeLogger` / `fakeErrorSink` / `fakeAnalyticsSink` — vitest spy doubles for the `/core` interfaces.                                                                                   | `vitest`                               |
 
 The vendor SDKs are **optional peer dependencies**: install only the ones for
 the subpaths you use. Adapters read no environment and hold no credentials —

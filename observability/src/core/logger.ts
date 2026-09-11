@@ -35,3 +35,24 @@ export const LOG_LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"
 
 /** Runtime environment a logger was constructed in. */
 export type LogEnv = "ci" | "local";
+
+/**
+ * The disabled-logging path made explicit — one shared no-op instead of a
+ * scatter of `if (!enabled) return` guards at every call site. Symmetric with
+ * {@link NoopErrorSink} / {@link NoopAnalyticsSink} in `./sinks.js`. `child()`
+ * returns `this` — a whole tree of child loggers collapses to one instance.
+ *
+ * Use it for the opted-out path, for non-vitest tests/examples that need a
+ * `Logger` but no output, or anywhere else a real transport is not worth the
+ * dependency. Vitest-based test doubles (`fakeLogger`, which records calls
+ * instead of discarding them) live in `@theholocron/observability/testing`.
+ */
+export class NoopLogger implements Logger {
+	debug(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	info(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	warn(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	error(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	child(_bindings?: Record<string, unknown>): Logger {
+		return this;
+	}
+}

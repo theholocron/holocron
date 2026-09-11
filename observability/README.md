@@ -21,6 +21,7 @@ optional:
 | `@theholocron/observability/logger`    | `pino`, `pino-pretty`, `@axiomhq/pino` |
 | `@theholocron/observability/errors`    | `@sentry/node`                         |
 | `@theholocron/observability/analytics` | `posthog-node`                         |
+| `@theholocron/observability/testing`   | `vitest`                               |
 
 ## Usage
 
@@ -59,6 +60,23 @@ deploy({ logger, errors });
 For the browser, an edge runtime, or React Native, import
 `@theholocron/observability/core` (zero dependencies) and use `ConsoleLogger`
 from `/logger` in place of Pino.
+
+Testing code that depends on `Logger` / `ErrorSink` / `AnalyticsSink`? Use the
+spy doubles from `/testing` instead of hand-rolling one per repo:
+
+```typescript
+import { fakeLogger, fakeErrorSink } from "@theholocron/observability/testing";
+
+const log = fakeLogger();
+const errors = fakeErrorSink();
+await deploy({ logger: log, errors, target: "production" });
+expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ target: "production" }), "deploying");
+expect(errors.captureException).not.toHaveBeenCalled();
+```
+
+For a non-vitest context that just needs a `Logger` with no output (an
+example, a non-test opt-out path), use `NoopLogger` from `/core` — it
+discards everything, `child()` returns itself.
 
 See the [documentation](https://docs.theholocron.dev/observability/) for the
 full API.
