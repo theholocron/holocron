@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* **hooks:** scope pre-commit GitLeaks scan to staged changes ([#279](https://github.com/theholocron/utils/issues/279)) ([47c43ca](https://github.com/theholocron/utils/commit/47c43caf8b954958658bcf1f53647621dc67b786))
+- **hooks:** scope pre-commit GitLeaks scan to staged changes ([#279](https://github.com/theholocron/utils/issues/279)) ([47c43ca](https://github.com/theholocron/utils/commit/47c43caf8b954958658bcf1f53647621dc67b786))
 
 ## [1.8.0](https://github.com/theholocron/utils/compare/v1.7.1...v1.8.0) (2026-09-11)
 
