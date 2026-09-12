@@ -1,3 +1,13 @@
+## [1.8.2](https://github.com/theholocron/utils/compare/v1.8.1...v1.8.2) (2026-09-12)
+
+### Bug Fixes
+
+* 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#280](https://github.com/theholocron/utils/issues/280)) ([2a2b6fb](https://github.com/theholocron/utils/commit/2a2b6fbb7dcfa63519fada600d863493ec664d26))
+
+### Chores
+
+* 🔧 sync from holocron.config ([#277](https://github.com/theholocron/utils/issues/277)) ([91a8ddc](https://github.com/theholocron/utils/commit/91a8ddc16ced2166c78053ddef39668b33fc44e0))
+
 ## [1.8.1](https://github.com/theholocron/utils/compare/v1.8.0...v1.8.1) (2026-09-11)
 
 ### Bug Fixes
