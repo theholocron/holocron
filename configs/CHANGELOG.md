@@ -2,11 +2,11 @@
 
 ### Bug Fixes
 
-* **hooks:** 🐛 scope pre-commit GitLeaks scan to staged changes ([#453](https://github.com/theholocron/configs/issues/453)) ([9e842a6](https://github.com/theholocron/configs/commit/9e842a6523226662ae57f0f358e5c512fa9dc374))
+- **hooks:** 🐛 scope pre-commit GitLeaks scan to staged changes ([#453](https://github.com/theholocron/configs/issues/453)) ([9e842a6](https://github.com/theholocron/configs/commit/9e842a6523226662ae57f0f358e5c512fa9dc374))
 
 ### Chores
 
-* 🔧 holocron setup — ruleset + workflow/config sync ([#452](https://github.com/theholocron/configs/issues/452)) ([b7425b3](https://github.com/theholocron/configs/commit/b7425b3ca1a4dfecda1c0bddfe9d74bf1f883727)), closes [#647](https://github.com/theholocron/configs/issues/647) [#649](https://github.com/theholocron/configs/issues/649) [#649](https://github.com/theholocron/configs/issues/649) [#647](https://github.com/theholocron/configs/issues/647) [#654](https://github.com/theholocron/configs/issues/654)
+- 🔧 holocron setup — ruleset + workflow/config sync ([#452](https://github.com/theholocron/configs/issues/452)) ([b7425b3](https://github.com/theholocron/configs/commit/b7425b3ca1a4dfecda1c0bddfe9d74bf1f883727)), closes [#647](https://github.com/theholocron/configs/issues/647) [#649](https://github.com/theholocron/configs/issues/649) [#649](https://github.com/theholocron/configs/issues/649) [#647](https://github.com/theholocron/configs/issues/647) [#654](https://github.com/theholocron/configs/issues/654)
 
 ## [8.2.1](https://github.com/theholocron/configs/compare/v8.2.0...v8.2.1) (2026-09-10)
 

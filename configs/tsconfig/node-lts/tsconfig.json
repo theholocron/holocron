@@ -3,7 +3,13 @@
   "display": "Node LTS (ESM, nodenext)",
 
   "compilerOptions": {
-    "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator", "ESNext.Promise"],
+    "lib": [
+      "es2024",
+      "ESNext.Array",
+      "ESNext.Collection",
+      "ESNext.Iterator",
+      "ESNext.Promise"
+    ],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "es2024",
