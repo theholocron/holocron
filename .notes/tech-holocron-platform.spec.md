@@ -86,7 +86,7 @@ already designed with rando as the 2nd consumer).
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | **Stays in `theholocron/holocron`.** No new `theholocron/platform` / `theholocron/github-app` repos. Extend `astromech` (vocabulary + resolution), `datapad` (config loading), `cli` (commands, App runtime) in place. One repo, atomic changes across the vocabulary/properties/App work, no new repo to bootstrap. Revisit only if the GitHub App's deploy/runtime needs turn out to require genuine separation (see Phase B).                                                                                                                                    |
 | D2  | **Full scope, not Actions-only.** This epic includes a minimal GitHub App (webhook receiver, check-run posting, properties sync) alongside the vocabulary/ruleset work — not deferred to a later epic. Explicitly **out of v1 App scope**: autofix PRs, PR comments, dashboards. Those are real, wanted, and come once the minimal App is live and proven.                                                                                                                                                                                                          |
-| D3  | **Rename/reframe astromech's existing task model in place** rather than adding a parallel intent-vocabulary layer. One system, backward compatible with every repo already on `holocron.config.ts` — `tasks: ["test", "lint"]` keeps working; intent-facing aliases resolve to the same underlying `TASKS` registry entries. No "two config systems to keep in sync" problem.                                                                                                                                                                                       |
+| D3  | **Rename astromech's existing task model in place** rather than adding a parallel intent-vocabulary layer — one system, not two to keep in sync. **No back-compat shim.** There's exactly one consumer (every repo in this org, all under our own control, migrated the same way — `holocron setup` re-runs, per Phase 5) and no external users depending on `tasks: ["test", "lint"]` staying stable — a straight rename is faster to build than aliasing the old names alongside the new ones, and there's no reason to carry that complexity.                    |
 | D4  | **`holocron.config.ts` stays TypeScript-authored, but its accepted shape is (and must remain) plain serializable data** — no functions, no dynamic imports evaluated for their side effects, `defineConfig()` is an identity/validation function over a JSON-compatible object. This is already true in practice today; Phase B formalizes it with a versioned schema + validation, because the App reading a repo's config server-side is the point this stops being merely a style preference and becomes a security boundary.                                    |
 | D5  | **Custom-properties sync stays one-way**: `holocron.config.ts` → resolved/validated → GitHub custom properties. Properties are a queryable _projection_, never a second editable source of truth. Matches the existing `repo.properties` sync exactly — this is expansion, not a new pattern.                                                                                                                                                                                                                                                                       |
 | D6  | **The App only ever reads config from the repository's default branch.** It never executes or reads `holocron.config.ts` from a PR branch/fork. A PR changing `holocron.config.ts` takes effect on merge, the same trust model as any other repo file today (CODEOWNERS, workflow files, etc.) — no new trust boundary is introduced by the App existing.                                                                                                                                                                                                           |
@@ -253,14 +253,14 @@ flagged as its own phase rather than blocking the rest of this epic.
 
 ## Phased rollout (maps to future sub-issues, astromech-epic style)
 
-1. **Vocabulary + registry rename, plus config resolution.** Intent-facing
-   aliases in astromech's `TASKS` registry and `holocron.config.ts` schema,
-   resolving to existing task runners — fully backward compatible, existing
-   `tasks: ["test"]` arrays keep working unchanged. Also where "Config
-   resolution" (above) gets built: task runners resolve and pass an
-   explicit `--config` path instead of relying on tool auto-discovery. Large
-   enough it may become its own sub-issue rather than staying folded into
-   the vocabulary rename.
+1. **Vocabulary + registry rename, plus config resolution.** Straight
+   rename in astromech's `TASKS` registry and `holocron.config.ts` schema
+   (D3 — no back-compat shim; `tasks: ["test"]` becomes the new names
+   outright, migrated across every repo via `holocron setup`, not aliased
+   alongside them). Also where "Config resolution" (above) gets built: task
+   runners resolve and pass an explicit `--config` path instead of relying
+   on tool auto-discovery. Large enough it may become its own sub-issue
+   rather than staying folded into the vocabulary rename.
 2. **Custom-properties sync expansion.** `holocron_profile`,
    `holocron_capabilities`, `holocron_compliance` synced alongside the
    existing `repo.properties` fields.
