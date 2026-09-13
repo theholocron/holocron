@@ -10,6 +10,7 @@ related:
   - theholocron/holocron#667
   - theholocron/holocron#668
   - theholocron/holocron#669
+  - theholocron/holocron#674
 ---
 
 # Holocron Platform — intent vocabulary, custom-properties sync, minimal GitHub App
@@ -221,7 +222,14 @@ flagged as its own phase rather than blocking the rest of this epic.
 - Sync resolved capabilities/profile to GitHub custom properties (D5), extending the existing `repo.properties` mechanism.
 - Post a single check run reflecting capability-compliance status (e.g., "this repo declares X, Y, Z — all present" / "missing: dependencyReview").
 
-**Explicitly out of v1**: autofix PRs, PR comments, dashboards, any write access beyond check runs + custom properties.
+**Explicitly out of v1**: the App autonomously _triggering_ autofix PRs or
+PR comments on webhook events, and dashboards. This does not remove
+anything that exists today — `holocron sync-github --pr` already opens
+autofix PRs (the CLI-driven mechanism used all session for the fleet-wide
+fixes), and `Issues.comment()` already exists as a capability primitive,
+just not wired into a live workflow yet. What's deferred is the App
+deciding _on its own, from a webhook event_ to invoke either — not the
+underlying capability. Full list, kept as one running backlog: #674.
 
 **Open, not yet decided:**
 
