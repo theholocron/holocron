@@ -63,17 +63,17 @@ of a 20-repo synchronized rollout.
 
 ## Current state — what already exists
 
-| Concern                                        | Already built as                                                                                                                                                               | Gap                                                                                                                                                                                                                                                                                                                                                         |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reusable CI workflows, thin callers            | `packages/astromech/src/templates/reusable/` → pushed to `theholocron/.github` via `holocron sync-github`; every repo's `.github/workflows/*.yml` is a generated thin caller   | Not broken — the job logic is centrally owned and the caller is generated, not hand-written, so it doesn't suffer the N-repo-duplication problem the other rows do. But the caller **file itself** still physically exists in every repo. Whether it needs to — see "Ruleset investigation" below, which is the same lever, not a separate one              |
-| Required-checks list from manifest             | `astromech.requiredChecks()` walks the `tasks` manifest + `extraRequiredChecks`, written into the repo's ruleset by `holocron setup`                                           | Matches by **check-run name string**, not GitHub's "required workflow" rule type (points at a workflow file) — the exact bug class in incident 2                                                                                                                                                                                                            |
-| Shared tool config as npm packages             | `theholocron/configs` publishes `@theholocron/eslint-config`, `-prettier-config`, `-vitest-config`, `-tsconfig`, etc. — the rule sets themselves are already centralized       | None — the packages stay exactly as they are, useful standalone to any project                                                                                                                                                                                                                                                                              |
-| Repo carries zero config files for these tools | **Not built.** Every consuming repo still has a local `eslint.config.ts` / `prettier.config.*` / `vitest.config.ts` / `tsdown.config.ts` that `extends` the shared package     | Real gap. A change to the `extends` shape (import syntax, `defineConfig` signature, file naming) is still an N-repo change. Target: repo commits **none** of these four; the CLI resolves the config externally and invokes the tool with an explicit `--config <path>` — see "Config resolution" below. `tsconfig.json` is the one accepted exception (D7) |
-| Repo declares what it is                       | `holocron.config.ts` + `defineConfig`                                                                                                                                          | Vocabulary is tool/provider-shaped (`tasks: ["test", "lint"]`, `providers: { source: "github" }`), not intent-shaped (`features.verification.unitTests: true`)                                                                                                                                                                                              |
-| Config → GitHub metadata sync                  | `repo.properties` → `source.syncProperties()` already syncs `lifecycle`, `open_source`, `runtime_environment`, `uses_external_packages`, `monorepo`, `branch_protection_level` | One-way flow already exists and is the right shape — just needs to cover more fields (profile, capabilities, compliance)                                                                                                                                                                                                                                    |
-| `holocron/core` vs `holocron/cli` split        | `astromech` (task/CI resolution) + `datapad` (config loading) already play the "core" role; CLI is the UX layer on top                                                         | Not formalized as a public `@theholocron/core` package, and doesn't need to be yet — see decision D1                                                                                                                                                                                                                                                        |
-| GitHub App (control plane)                     | **Does not exist.** CLI talks to GitHub via REST/GraphQL with a PAT                                                                                                            | Net-new — this spec's Phase B                                                                                                                                                                                                                                                                                                                               |
-| Safety boundary for untrusted config execution | N/A today — no App exists to create the risk                                                                                                                                   | Design constraint for Phase B, not a current vulnerability                                                                                                                                                                                                                                                                                                  |
+| Concern                                        | Already built as                                                                                                                                                                                                                                                                         | Gap                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reusable CI workflows, thin callers            | `packages/astromech/src/templates/reusable/` → pushed to `theholocron/.github` via `holocron sync-github`; every repo's `.github/workflows/*.yml` is a generated thin caller                                                                                                             | Not broken — the job logic is centrally owned and the caller is generated, not hand-written, so it doesn't suffer the N-repo-duplication problem the other rows do. But the caller **file itself** still physically exists in every repo. Whether it needs to — see "Ruleset investigation" below, which is the same lever, not a separate one                                                                             |
+| Required-checks list from manifest             | `astromech.requiredChecks()` walks the `tasks` manifest + `extraRequiredChecks`, written into the repo's ruleset by `holocron setup`                                                                                                                                                     | Matches by **check-run name string**, not GitHub's "required workflow" rule type (points at a workflow file) — the exact bug class in incident 2                                                                                                                                                                                                                                                                           |
+| Shared tool config as npm packages             | `theholocron/configs` publishes `@theholocron/eslint-config`, `-prettier-config`, `-vitest-config`, `-tsconfig`, etc. — the rule sets themselves are already centralized                                                                                                                 | None — the packages stay exactly as they are, useful standalone to any project                                                                                                                                                                                                                                                                                                                                             |
+| Repo carries zero config files for these tools | **Not built.** Every consuming repo has local `eslint.config.ts` / `prettier.config.*` / `vitest.config.ts` / `tsdown.config.ts` / `knip.config.ts` / `commitlint.config.ts` / `release.config.ts` that all `extend` the shared package — 52 files across 13 packages in `clients` alone | Real gap for tools our CLI invokes directly (verified `--config`/`--extends` support on all seven — see "Config resolution"). Doesn't apply uniformly: `tsconfig.json`/`.editorconfig`/`codecov.yml`/`.alexrc.json` must stay committed (a different consumer discovers them directly, no CLI flag applies), and `astro.config.ts` has genuine per-repo content, not a duplicated ruleset — see the bucket breakdown below |
+| Repo declares what it is                       | `holocron.config.ts` + `defineConfig`                                                                                                                                                                                                                                                    | Vocabulary is tool/provider-shaped (`tasks: ["test", "lint"]`, `providers: { source: "github" }`), not intent-shaped (`features.verification.unitTests: true`)                                                                                                                                                                                                                                                             |
+| Config → GitHub metadata sync                  | `repo.properties` → `source.syncProperties()` already syncs `lifecycle`, `open_source`, `runtime_environment`, `uses_external_packages`, `monorepo`, `branch_protection_level`                                                                                                           | One-way flow already exists and is the right shape — just needs to cover more fields (profile, capabilities, compliance)                                                                                                                                                                                                                                                                                                   |
+| `holocron/core` vs `holocron/cli` split        | `astromech` (task/CI resolution) + `datapad` (config loading) already play the "core" role; CLI is the UX layer on top                                                                                                                                                                   | Not formalized as a public `@theholocron/core` package, and doesn't need to be yet — see decision D1                                                                                                                                                                                                                                                                                                                       |
+| GitHub App (control plane)                     | **Does not exist.** CLI talks to GitHub via REST/GraphQL with a PAT                                                                                                                                                                                                                      | Net-new — this spec's Phase B                                                                                                                                                                                                                                                                                                                                                                                              |
+| Safety boundary for untrusted config execution | N/A today — no App exists to create the risk                                                                                                                                                                                                                                             | Design constraint for Phase B, not a current vulnerability                                                                                                                                                                                                                                                                                                                                                                 |
 
 Confirmed via `gh`: the `rando` org exists on GitHub with a handful of
 dormant/unrelated repos — nothing in it runs holocron yet. It's a real
@@ -91,7 +91,7 @@ already designed with rando as the 2nd consumer).
 | D4  | **`holocron.config.ts` stays TypeScript-authored, but its accepted shape is (and must remain) plain serializable data** — no functions, no dynamic imports evaluated for their side effects, `defineConfig()` is an identity/validation function over a JSON-compatible object. This is already true in practice today; Phase B formalizes it with a versioned schema + validation, because the App reading a repo's config server-side is the point this stops being merely a style preference and becomes a security boundary.                                                                                                                                                                                                                                                                                                                                                   |
 | D5  | **Custom-properties sync stays one-way**: `holocron.config.ts` → resolved/validated → GitHub custom properties. Properties are a queryable _projection_, never a second editable source of truth. Matches the existing `repo.properties` sync exactly — this is expansion, not a new pattern.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | D6  | **The App only ever reads config from the repository's default branch.** It never executes or reads `holocron.config.ts` from a PR branch/fork. A PR changing `holocron.config.ts` takes effect on merge, the same trust model as any other repo file today (CODEOWNERS, workflow files, etc.) — no new trust boundary is introduced by the App existing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| D7  | **`tsconfig.json` is the one accepted committed exception.** It stays as a thin `{ "extends": "@theholocron/tsconfig/<variant>.json" }` pointer — nothing else. IDEs and the TypeScript language server discover project config by walking up from the open file; there's no way to redirect that to an externally-resolved path without breaking in-editor type errors, hover, and go-to-definition. Every other tool config (ESLint, Prettier, Vitest, the build tool) goes to **zero committed files** — see "Config resolution" below.                                                                                                                                                                                                                                                                                                                                         |
+| D7  | **`tsconfig.json` stays committed, as a thin `{ "extends": "@theholocron/tsconfig/<variant>.json" }` pointer — nothing else.** IDEs and the TypeScript language server discover project config by walking up from the open file; there's no way to redirect that to an externally-resolved path without breaking in-editor type errors, hover, and go-to-definition. It's the flagship example of a broader category ("Bucket B" in "Config resolution" below) — files a _different consumer_ (an editor, or a third-party SaaS reading the repo directly) discovers on its own, with no CLI flag our own tooling could hand a path through even if we wanted to. Every tool our own CLI actually invokes goes to **zero committed files** instead — see "Config resolution" below.                                                                                                |
 | D8  | **Everything CI runs must be reproducible locally via `holocron`, with no CI-only or App-only logic path.** Already the design behind `holocron run` / `holocron ci` (a `pre-push` hook runs the same command CI does); this decision extends the constraint to the GitHub App — whatever the App decides to check, it invokes the exact same resolution/execution `holocron run`/`holocron ci` uses, never a bespoke server-side-only implementation. One engine, three callers (developer, CI, App) — never two implementations of the same rule to keep in sync. **Retain the existing check-name parity**: `holocron ci` already prints each task using the identical `WORKFLOW_CHECK_CONTEXTS` string GitHub's check list shows (`▶ Lint / Conclusion`, not `▶ lint`) — a developer sees the same names locally as on a PR. Don't lose this as the vocabulary/App work lands. |
 
 ## Config resolution — zero committed tool-config files
@@ -100,32 +100,69 @@ The mechanism that makes the intent vocabulary meaningful, not just a
 rename. Today `astromech`'s `TASKS` registry runs `eslint .`, `vitest run`,
 `tsdown` with no `--config` flag — each tool auto-discovers a same-named
 file the repo commits, which is exactly the residual duplication (every
-repo needs _some_ local file, even a thin one, for the tool to find).
+repo needs _some_ local file, even a thin one, for the tool to find). It's
+not just cross-repo duplication either — `clients` alone has 13 vendor
+packages, each carrying its own `eslint.config.ts` / `tsconfig.json` /
+`tsdown.config.ts` / `vitest.config.ts`: 52 files in one repo.
 
-The target: `holocron lint` / `holocron test` / `holocron build` — the same
-commands whether run by a developer locally, by CI, or triggered by the
-GitHub App — resolve the repo's declared profile to a config path inside
-the already-installed `@theholocron/eslint-config` / `-prettier-config` /
-`-vitest-config` / `-tsdown-config` package, and invoke the tool with that
-path **explicit**:
+This doesn't apply uniformly to every tool config in the repo, though —
+three genuinely different categories, verified against each tool's actual
+CLI rather than assumed:
+
+**Bucket A — zero committed file.** The tool is invoked by our own CLI and
+accepts an explicit external config path. Verified today:
+`eslint --config`, `prettier --config`, `vitest --config` (`-c`), `tsdown
+--config`, `knip --config` (`-c`), `commitlint --config` (`-g`),
+`semantic-release --extends` (`-e`). The target:
 
 ```
 eslint --config <resolved path> .
 prettier --config <resolved path> --check .
 vitest run --config <resolved path>
 tsdown --config <resolved path>
+knip --config <resolved path>
+commitlint --config <resolved path>
+semantic-release --extends <resolved path>
 ```
 
-No local `eslint.config.ts`, `prettier.config.*`, `vitest.config.ts`, or
-`tsdown.config.ts` needed — the tool never looks for one because it's
-handed the path directly. This requires two changes: (a) `astromech`'s task
-registry actually resolving and passing `--config`, and (b) removing the
-now-redundant pointer files from every repo (folds into the migration pass,
-Phase 5).
+No local `eslint.config.ts`, `prettier.config.*`, `vitest.config.ts`,
+`tsdown.config.ts`, `knip.config.ts`, `commitlint.config.ts`, or
+`release.config.ts` needed — the tool never looks for one because it's
+handed the path directly. Requires: (a) `astromech`'s task registry
+actually resolving and passing `--config`/`--extends`, and (b) removing
+the now-redundant pointer files from every repo (folds into the migration
+pass, Phase 5). **Unverified, check during implementation**: `devmoji`
+(invoked via `npx devmoji -e` in the generated `prepare-commit-msg` hook,
+not installed as a persistent devDependency anywhere checked) — don't
+assume it supports the same pattern without confirming first.
 
-`tsconfig.json` is the deliberate exception (D7) — kept as a one-line
-pointer, nothing else, because IDE/TS-language-server project discovery
-has no equivalent external-path escape hatch.
+**Bucket B — must stay committed, but generated, never hand-authored.**
+A _different_ consumer discovers the file directly from the filesystem or
+repo, with no CLI flag our own tooling could hand a path through even if
+it wanted to:
+
+- `tsconfig.json` (D7) — IDE / TypeScript-language-server project
+  discovery, no override mechanism.
+- `.editorconfig` — editors read this directly as you type; the
+  EditorConfig spec has no `extends`/external-pointer concept at all, so
+  there's no flag to offer even in principle.
+- `codecov.yml` — Codecov's own servers read this directly from the repo
+  via GitHub's integration when processing an uploaded coverage report;
+  never invoked by anything our CLI runs. **Already precedented** —
+  `astromech.codecovConfig()` already generates this file today.
+- `.alexrc.json` — already "Generated by `holocron setup` — do not edit
+  manually" per this org's own `AGENTS.md`. Already following this pattern.
+
+(`.editorconfig-checker.json` — the _linter's_ config, not `.editorconfig`
+itself — likely belongs in Bucket A instead; not yet verified.)
+
+**Bucket C — genuinely repo-specific content, not a duplicated ruleset.**
+`astro.config.ts` for a docs-site repo: the `defineConfig` wrapper and
+`docsTheme`/`starlight` imports are already centralized
+(`@theholocron/astro-config`), but the sidebar navigation, package list,
+and `srcDir`/`outDir` paths passed into it are real per-repo data — the
+same situation `holocron.config.ts` itself is always in. Nothing to
+centralize away here; not a gap this epic closes.
 
 ## Vocabulary mapping (proposed — refine during implementation)
 
@@ -283,9 +320,12 @@ underlying capability. Full list, kept as one running backlog: #674.
    vocabulary/properties into repos already on `holocron.config.ts` via
    `holocron setup` re-runs — same mechanism used all session for the
    pre-commit-hook and codecov-component fixes, at epic scale instead of
-   ad hoc. Also removes each repo's now-redundant `eslint.config.ts` /
-   `prettier.config.*` / `vitest.config.ts` / `tsdown.config.ts` (D7's
-   `tsconfig.json` exception stays, reduced to its one-line pointer).
+   ad hoc. Also removes each repo's now-redundant Bucket A files
+   (`eslint.config.ts` / `prettier.config.*` / `vitest.config.ts` /
+   `tsdown.config.ts` / `knip.config.ts` / `commitlint.config.ts` /
+   `release.config.ts`). Bucket B (`tsconfig.json`, `.editorconfig`,
+   `codecov.yml`, `.alexrc.json`) stays committed, generated; Bucket C
+   (`astro.config.ts`) isn't touched at all.
 6. **Selective execution.** Path-based skip-detection above/into turbo's
    per-task `inputs`, so a docs-only diff doesn't re-run `test`/`build` for
    a touched package. Depends on nothing above landing first — could be
