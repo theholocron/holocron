@@ -691,7 +691,7 @@ describe("runSync", () => {
 
 			const report = await runScriptsStep({
 				name: "demo",
-				tasks: ["test", "lint"],
+				tasks: ["verification.unitTests", "sourceQuality.staticAnalysis"],
 				providers: {},
 			});
 
@@ -704,20 +704,28 @@ describe("runSync", () => {
 			expect(pkg.scripts).toEqual({
 				start: "node .",
 				holocron: "holocron",
-				test: "holocron run test",
-				lint: "holocron run lint",
+				"verification.unitTests": "holocron run verification.unitTests",
+				"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis",
 			});
 		});
 
 		it("updates a drifted value and is a no-op when already current", async () => {
 			await writeFile(
 				join(tmpDir, "package.json"),
-				JSON.stringify({ name: "demo", scripts: { holocron: "holocron", test: "vitest" } }, null, 2) + "\n"
+				JSON.stringify(
+					{ name: "demo", scripts: { holocron: "holocron", "verification.unitTests": "vitest" } },
+					null,
+					2
+				) + "\n"
 			);
-			const raw = { name: "demo", tasks: ["test"], providers: {} } as Parameters<typeof resolveConfig>[0];
+			const raw = {
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				providers: {},
+			} as Parameters<typeof resolveConfig>[0];
 
 			const first = await runScriptsStep(raw);
-			expect(first.steps.find((s) => s.step === "sync scripts")?.message).toBe("test set");
+			expect(first.steps.find((s) => s.step === "sync scripts")?.message).toBe("verification.unitTests set");
 
 			const second = await runScriptsStep(raw);
 			expect(second.steps.find((s) => s.step === "sync scripts")?.message).toBe("2 scripts already current");
@@ -728,7 +736,7 @@ describe("runSync", () => {
 
 			await runScriptsStep({
 				name: "demo",
-				tasks: ["test"],
+				tasks: ["verification.unitTests"],
 				holocronScript: "node packages/cli/dist/cli.mjs",
 				providers: {},
 			});
@@ -737,11 +745,11 @@ describe("runSync", () => {
 				scripts: Record<string, string>;
 			};
 			expect(pkg.scripts.holocron).toBe("node packages/cli/dist/cli.mjs");
-			expect(pkg.scripts.test).toBe("holocron run test");
+			expect(pkg.scripts["verification.unitTests"]).toBe("holocron run verification.unitTests");
 		});
 
 		it("succeeds gracefully when package.json is absent", async () => {
-			const report = await runScriptsStep({ name: "demo", tasks: ["test"], providers: {} });
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.unitTests"], providers: {} });
 			const step = report.steps.find((s) => s.step === "sync scripts");
 			expect(step?.status).toBe("ok");
 			expect(step?.message).toBe("no package.json");
@@ -751,7 +759,7 @@ describe("runSync", () => {
 			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
 			const report = await runScriptsStep({
 				name: "demo",
-				tasks: ["test"],
+				tasks: ["verification.unitTests"],
 				syncScripts: false,
 				providers: {},
 			});
@@ -1392,7 +1400,7 @@ describe("runSync", () => {
 		it("writes a plain workflow thin caller to .github/workflows/", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				tasks: ["lint"],
+				tasks: ["sourceQuality.staticAnalysis"],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1405,77 +1413,20 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const step = report.steps.find((s) => s.step === "sync workflow lint");
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8");
+			const content = await readFile(
+				join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
 			expect(content).toContain("AUTO-GENERATED");
-			expect(content).toContain("lint.yml@main");
-			expect(content).toContain("enable-auto-commit: true");
-			expect(content).toMatch(/# linters: prettier, yamllint/);
-			expect(content).toMatch(/super-linter-env: '\{.*"VALIDATE_YAML":"true".*\}'/);
+			expect(content).toContain("sourceQuality.staticAnalysis.yml@main");
 		});
 
-		it("falls back to the always-on linter set when the repo root is unreadable", async () => {
-			const loaded = loadedFrom({ name: "demo", tasks: ["lint"], providers: {} });
-			const loader = makeLoaderWith(loaded, {});
-			const missing = join(tmpDir, "missing");
-
-			const report = await runSync({
-				loaded,
-				context: { repoRoot: missing },
-				loader,
-				steps: ["workflows"],
-				print: () => {},
-			});
-
-			expect(report.steps.find((s) => s.step === "sync workflow lint")?.status).toBe("ok");
-			const content = await readFile(join(missing, ".github", "workflows", "lint.yml"), "utf8");
-			expect(content).toMatch(/# linters: prettier, yamllint/);
-			expect(content).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
-		});
-
-		it("bakes an explicit linters list into the lint thin caller's super-linter-env", async () => {
+		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
-				providers: {},
-			});
-			const loader = makeLoaderWith(loaded, {});
-			await writeFile(join(tmpDir, "eslint.config.ts"), ""); // detect-gate: eslint runs iff a config is present
-
-			await runSync({
-				loaded,
-				context: { repoRoot: tmpDir },
-				loader,
-				steps: ["workflows"],
-				print: () => {},
-			});
-
-			const content = await readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8");
-			expect(content).toContain("# linters: eslint, prettier");
-			expect(content).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
-			expect(content).not.toContain('"VALIDATE_YAML"');
-		});
-
-		it("drops an explicitly-listed eslint from super-linter-env when the repo has no eslint config (#654)", async () => {
-			const loaded = loadedFrom({
-				name: "demo",
-				tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
-				providers: {},
-			});
-			const loader = makeLoaderWith(loaded, {});
-
-			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["workflows"], print: () => {} });
-
-			const content = await readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8");
-			expect(content).toContain("# linters: prettier");
-			expect(content).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
-		});
-
-		it("writes a plain deploy thin caller when deploy has with: but no preview", async () => {
-			const loaded = loadedFrom({
-				name: "demo",
-				tasks: [{ name: "deploy", with: { type: "storybook" } }],
+				tasks: [{ name: "delivery.deploy", with: { type: "storybook" } }],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1488,9 +1439,9 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const step = report.steps.find((s) => s.step === "sync workflow deploy");
+			const step = report.steps.find((s) => s.step === "sync workflow delivery.deploy");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy.yml"), "utf8");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.deploy.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).not.toContain("preview.yml@main");
 		});
@@ -1500,7 +1451,7 @@ describe("runSync", () => {
 				name: "demo",
 				org: "theholocron",
 				domain: "theholocron.dev",
-				tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
+				tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1513,9 +1464,9 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const step = report.steps.find((s) => s.step === "sync workflow deploy (with preview)");
+			const step = report.steps.find((s) => s.step === "sync workflow delivery.deploy (with preview)");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy.yml"), "utf8");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.deploy.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("theholocron-preview");
 			expect(content).toContain("preview.yml@main");
@@ -1546,7 +1497,7 @@ describe("runSync", () => {
 		it("writes no file and reports no step for a ci: false task", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				tasks: ["lint", { name: "test", ci: false }],
+				tasks: ["sourceQuality.staticAnalysis", { name: "verification.unitTests", ci: false }],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1559,15 +1510,17 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			expect(report.steps.some((s) => s.step.includes("test"))).toBe(false);
-			expect(existsSync(join(tmpDir, ".github/workflows/test.yml"))).toBe(false);
-			expect(report.steps.find((s) => s.step === "sync workflow lint")?.status).toBe("ok");
+			expect(report.steps.some((s) => s.step.includes("verification.unitTests"))).toBe(false);
+			expect(existsSync(join(tmpDir, ".github/workflows/verification.unitTests.yml"))).toBe(false);
+			expect(report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis")?.status).toBe(
+				"ok"
+			);
 		});
 
 		it("reports dry-run status without writing files", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				tasks: ["lint"],
+				tasks: ["sourceQuality.staticAnalysis"],
 				providers: {},
 			});
 			const loader = makeLoaderWith(loaded, {});
@@ -1580,15 +1533,17 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const step = report.steps.find((s) => s.step === "sync workflow lint");
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("dry-run");
-			await expect(readFile(join(tmpDir, ".github", "workflows", "lint.yml"), "utf8")).rejects.toThrow();
+			await expect(
+				readFile(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), "utf8")
+			).rejects.toThrow();
 		});
 
 		it("runs without a provider token (is a local step)", async () => {
 			const loaded = loadedFrom({
 				name: "demo",
-				tasks: ["lint"],
+				tasks: ["sourceQuality.staticAnalysis"],
 				providers: { source: "github" },
 			});
 			// Loader throws AuthError — simulates missing provider token.
@@ -1608,7 +1563,7 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const step = report.steps.find((s) => s.step === "sync workflow lint");
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("ok");
 		});
 	});

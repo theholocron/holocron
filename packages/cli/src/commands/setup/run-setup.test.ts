@@ -413,7 +413,7 @@ describe("runSetup", () => {
 			docs: { build: "workflow", domain: "acme.dev", https: true },
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
 				},
 			],
@@ -466,7 +466,7 @@ describe("runSetup", () => {
 			name: "my-docs",
 			org: "acme",
 			domain: "acme.dev",
-			tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
+			tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }],
 			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -515,7 +515,7 @@ describe("runSetup", () => {
 		const customDomainCalls: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-docs",
-			tasks: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			tasks: [{ name: "delivery.deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
 			providers: { vault: "1password", deployment: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -543,7 +543,7 @@ describe("runSetup", () => {
 			name: "my-docs",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
 				},
 			],
@@ -572,7 +572,7 @@ describe("runSetup", () => {
 			name: "my-docs",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
 				},
 			],
@@ -783,7 +783,7 @@ describe("runSetup", () => {
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", "codeql"],
+			tasks: ["sourceQuality.staticAnalysis", "security.codeScanning"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -821,7 +821,7 @@ describe("runSetup", () => {
 		let defaultSetupEnabled = false;
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint"],
+			tasks: ["sourceQuality.staticAnalysis"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -936,7 +936,7 @@ describe("runSetup", () => {
 	it("skips disableDefaultCodeScanning when the API returns 403 plan restriction", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["codeql"],
+			tasks: ["security.codeScanning"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1018,9 +1018,9 @@ describe("runSetup", () => {
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
 			tasks: [
-				{ name: "lint", required: true },
-				{ name: "test", required: true },
-				{ name: "typecheck", required: true },
+				{ name: "sourceQuality.staticAnalysis", required: true },
+				{ name: "verification.unitTests", required: true },
+				{ name: "verification.typeSafety", required: true },
 				"security", // not required → no context
 			],
 			providers: { vault: "1password", source: "github" },
@@ -1056,7 +1056,7 @@ describe("runSetup", () => {
 			required_status_checks: [
 				{ context: "DCO" },
 				{ context: "Typecheck / Conclusion" },
-				{ context: "Lint / Conclusion" },
+				{ context: "Static Analysis / Conclusion" },
 				{ context: "Test / Conclusion" },
 			],
 		});
@@ -1068,7 +1068,7 @@ describe("runSetup", () => {
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
 			extraRequiredChecks: ["some-extra-check"],
-			tasks: [{ name: "lint", required: true }],
+			tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1099,7 +1099,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Lint / Conclusion" },
+				{ context: "Static Analysis / Conclusion" },
 				{ context: "some-extra-check" },
 			],
 		});
@@ -1110,10 +1110,11 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			// "test" appears twice — simulates ...tasks spread + explicit override; dedup by name
+			// "verification.unitTests" appears twice — simulates ...tasks spread +
+			// explicit override; dedup by name
 			tasks: [
-				{ name: "test", required: true },
-				{ name: "test", required: true, with: { "run-unit": true } },
+				{ name: "verification.unitTests", required: true },
+				{ name: "verification.unitTests", required: true, with: { "run-unit": true } },
 			],
 			providers: { vault: "1password", source: "github" },
 		});
@@ -1524,7 +1525,7 @@ describe("runSetup", () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", protection: "strict" },
-			tasks: ["lint", "test"],
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1687,7 +1688,7 @@ describe("runSetup", () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", "test", "typecheck"],
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", "verification.typeSafety"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1714,83 +1715,23 @@ describe("runSetup", () => {
 			print: () => {},
 		});
 
-		expect(Object.keys(written)).toEqual(["lint.yml", "test.yml", "typecheck.yml"]);
-		expect(written["lint.yml"]).toContain("lint.yml@main");
-		expect(written["lint.yml"]).toContain("enable-auto-commit: true");
-		expect(written["lint.yml"]).toMatch(/# linters: prettier, yamllint/);
-		expect(written["lint.yml"]).toMatch(/super-linter-env: '\{.*"VALIDATE_YAML":"true".*\}'/);
-		expect(written["test.yml"]).toContain("test.yml@main");
+		expect(Object.keys(written)).toEqual([
+			"sourceQuality.staticAnalysis.yml",
+			"verification.unitTests.yml",
+			"verification.typeSafety.yml",
+		]);
+		expect(written["sourceQuality.staticAnalysis.yml"]).toContain("sourceQuality.staticAnalysis.yml@main");
+		expect(written["verification.unitTests.yml"]).toContain("verification.unitTests.yml@main");
 		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
 		expect(workflowSteps).toHaveLength(3);
 		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);
 	});
 
-	it("bakes an explicit linters list into the lint thin caller (setup)", async () => {
+	it("writes standard delivery.deploy.yml (no preview job) when delivery.deploy has no preview: key", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
-			providers: { source: "github" },
-		});
-		const loader = makeLoaderWith(loaded, {
-			"@theholocron/holocron-plugin-github": makePlugin("gh", {
-				source: {
-					enableVulnerabilityAlerts: async () => {},
-					enableAutomatedSecurityFixes: async () => {},
-					enableSecretScanning: async () => {},
-					enablePrivateVulnerabilityReporting: async () => {},
-					writeWorkflowFile: async (name: string, contents: string) => {
-						written[name] = contents;
-					},
-				},
-			}),
-		});
-
-		// eslint is in the explicit list AND the repo has a config → it runs.
-		const repoRoot = await mkdtemp(join(tmpdir(), "holocron-lint-"));
-		await writeFile(join(repoRoot, "eslint.config.ts"), "");
-		await runSetup({ loaded, context: { repoRoot }, loader, print: () => {} });
-
-		expect(written["lint.yml"]).toContain("# linters: eslint, prettier");
-		expect(written["lint.yml"]).toContain('"VALIDATE_JAVASCRIPT_ES":"true"');
-		expect(written["lint.yml"]).not.toContain('"VALIDATE_YAML"');
-		await rm(repoRoot, { recursive: true, force: true });
-	});
-
-	it("drops an explicitly-listed eslint from the lint caller when the repo has no eslint config (#654)", async () => {
-		const written: Record<string, string> = {};
-		const loaded = loadedFrom({
-			name: "demo",
-			tasks: [{ name: "lint", linters: ["eslint", "prettier"] }],
-			providers: { source: "github" },
-		});
-		const loader = makeLoaderWith(loaded, {
-			"@theholocron/holocron-plugin-github": makePlugin("gh", {
-				source: {
-					enableVulnerabilityAlerts: async () => {},
-					enableAutomatedSecurityFixes: async () => {},
-					enableSecretScanning: async () => {},
-					enablePrivateVulnerabilityReporting: async () => {},
-					writeWorkflowFile: async (name: string, contents: string) => {
-						written[name] = contents;
-					},
-				},
-			}),
-		});
-
-		const repoRoot = await mkdtemp(join(tmpdir(), "holocron-lint-"));
-		await runSetup({ loaded, context: { repoRoot }, loader, print: () => {} });
-
-		expect(written["lint.yml"]).toContain("# linters: prettier");
-		expect(written["lint.yml"]).not.toContain('"VALIDATE_JAVASCRIPT_ES"');
-		await rm(repoRoot, { recursive: true, force: true });
-	});
-
-	it("writes standard deploy.yml (no preview job) when deploy has no preview: key", async () => {
-		const written: Record<string, string> = {};
-		const loaded = loadedFrom({
-			name: "demo",
-			tasks: [{ name: "deploy", with: { docs: true } }],
+			tasks: [{ name: "delivery.deploy", with: { docs: true } }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1812,18 +1753,18 @@ describe("runSetup", () => {
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect("deploy.yml" in written).toBe(true);
-		expect(written["deploy.yml"]).not.toContain("pull_request:");
-		expect(written["deploy.yml"]).not.toContain("name: Preview");
+		expect("delivery.deploy.yml" in written).toBe(true);
+		expect(written["delivery.deploy.yml"]).not.toContain("pull_request:");
+		expect(written["delivery.deploy.yml"]).not.toContain("name: Preview");
 	});
 
-	it("writes combined deploy.yml with preview job when deploy config has preview:", async () => {
+	it("writes combined delivery.deploy.yml with preview job when delivery.deploy config has preview:", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "my-docs",
 			org: "acme",
 			docs: { build: "workflow", domain: "acme.dev", https: true },
-			tasks: [{ name: "deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			tasks: [{ name: "delivery.deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1845,10 +1786,10 @@ describe("runSetup", () => {
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect("deploy.yml" in written).toBe(true);
-		expect(written["deploy.yml"]).toContain("pull_request:");
-		expect(written["deploy.yml"]).toContain("name: Preview");
-		expect(written["deploy.yml"]).toContain("cloudflare-project: acme-preview");
+		expect("delivery.deploy.yml" in written).toBe(true);
+		expect(written["delivery.deploy.yml"]).toContain("pull_request:");
+		expect(written["delivery.deploy.yml"]).toContain("name: Preview");
+		expect(written["delivery.deploy.yml"]).toContain("cloudflare-project: acme-preview");
 	});
 
 	it("skips workflow writing when project.tasks is absent", async () => {
@@ -1882,7 +1823,7 @@ describe("runSetup", () => {
 	it("reports skip for an unknown workflow name", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", "not-a-real-workflow"],
+			tasks: ["sourceQuality.staticAnalysis", "not-a-real-workflow"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1916,7 +1857,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", { name: "test", ci: false }],
+			tasks: ["sourceQuality.staticAnalysis", { name: "verification.unitTests", ci: false }],
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1935,14 +1876,14 @@ describe("runSetup", () => {
 
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect(written).not.toContain("test.yml");
-		expect(report.steps.some((s) => s.step === "write workflow test")).toBe(false);
+		expect(written).not.toContain("verification.unitTests.yml");
+		expect(report.steps.some((s) => s.step === "write workflow verification.unitTests")).toBe(false);
 	});
 
 	it("rejects when the test workflow has both run-unit and run-storybook set to false", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: [{ name: "test", with: { "run-unit": false, "run-storybook": false } }],
+			tasks: [{ name: "verification.unitTests", with: { "run-unit": false, "run-storybook": false } }],
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1966,7 +1907,7 @@ describe("runSetup", () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: [{ name: "test", with: { "run-unit": true, "run-storybook": false } }],
+			tasks: [{ name: "verification.unitTests", with: { "run-unit": true, "run-storybook": false } }],
 			providers: { source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -1995,7 +1936,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "test",
+					name: "verification.unitTests",
 					with: {
 						"run-unit": false,
 						"run-storybook": true,
@@ -2039,7 +1980,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "test",
+					name: "verification.unitTests",
 					with: {
 						"run-unit": false,
 						"run-storybook": true,
@@ -2085,7 +2026,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "release",
+					name: "delivery.publish",
 					with: { "run-build": true, "extra-tags": ["v1", "latest"] as unknown as boolean },
 				},
 			],
@@ -2117,7 +2058,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: {
 						docs: true,
 						storybook: [
@@ -2158,7 +2099,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: {
 						docs: true,
 						storybook: [
@@ -2185,7 +2126,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
 		expect(deployContent).toContain("- astro.config.ts");
@@ -2201,7 +2142,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: true },
 				},
 			],
@@ -2222,7 +2163,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
 		expect(deployContent).toContain("- astro.config.ts");
@@ -2237,7 +2178,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: {
 						storybook: [{ name: "ui", path: "packages/ui" }],
 					},
@@ -2273,7 +2214,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: {
 						storybook: [{ name: "ui", path: "." }],
 					},
@@ -2296,7 +2237,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- src/**");
 		expect(deployContent).toContain("- .storybook/**");
@@ -2308,7 +2249,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { storybook: [{ name: "app" }] },
 				},
 			],
@@ -2329,7 +2270,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- src/**");
 		expect(deployContent).toContain("- .storybook/**");
@@ -2342,7 +2283,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { storybook: [{ name: "ui", path: "" }] },
 				},
 			],
@@ -2363,7 +2304,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- src/**");
 		expect(deployContent).toContain("- .storybook/**");
@@ -2375,7 +2316,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: true },
 					paths: ["packages/my-docs/**"],
 				},
@@ -2397,7 +2338,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- packages/my-docs/**");
 		expect(deployContent).not.toContain("- docs/**");
@@ -2409,7 +2350,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: { path: "packages/site" } },
 				},
 			],
@@ -2430,7 +2371,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- packages/site/**");
 		expect(deployContent).not.toContain("- docs/**");
@@ -2442,7 +2383,7 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "deploy",
+					name: "delivery.deploy",
 					with: { docs: { path: "." } },
 				},
 			],
@@ -2463,7 +2404,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).not.toContain("paths:");
 	});
@@ -2472,7 +2413,7 @@ describe("runSetup", () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", "test"],
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -2588,7 +2529,7 @@ describe("runSetup", () => {
 		const workflowFiles: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", "bookkeeping"],
+			tasks: ["sourceQuality.staticAnalysis", "bookkeeping"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -2628,7 +2569,7 @@ describe("runSetup", () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
-			tasks: ["lint", "test"],
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests"],
 			providers: { vault: "1password", source: "github" },
 		});
 		const loader = makeLoaderWith(loaded, {
@@ -3449,7 +3390,11 @@ describe("setup: write codecov.yml", () => {
 		});
 
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				providers: { source: "github" },
+			}),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
@@ -3491,7 +3436,11 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				providers: { source: "github" },
+			}),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -3548,7 +3497,11 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				providers: { source: "github" },
+			}),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -3572,7 +3525,11 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				providers: { source: "github" },
+			}),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 
@@ -3596,7 +3553,11 @@ describe("setup: write codecov.yml", () => {
 			},
 		});
 		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", tasks: ["test"], providers: { source: "github" } }),
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				providers: { source: "github" },
+			}),
 			filepath: join(tmpDir, "holocron.config.json"),
 		};
 

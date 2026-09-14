@@ -327,25 +327,38 @@ export interface HolocronConfig {
 	 * single source for `holocron run` / `holocron ci` / the generated CI
 	 * workflows / `package.json` scripts.
 	 *
-	 * Supported values: "lint" | "test" | "typecheck" | "codeql" | "review" |
-	 *   "release" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit" |
-	 *   "deploy"
+	 * Supported values (intent-facing vocabulary — epic #672, D3):
+	 *   "verification.unitTests" | "verification.typeSafety" | "verification.performance" |
+	 *   "sourceQuality.staticAnalysis" | "sourceQuality.formatting" |
+	 *   "sourceQuality.structuredDataValidation" | "sourceQuality.deadCodeAnalysis" |
+	 *   "security.secretDetection" | "security.codeScanning" |
+	 *   "delivery.build" | "delivery.publish" | "delivery.deploy" | "delivery.bundleSize" |
+	 *   "platform.repoSync" | "platform.commitStandards" | "platform.repoValidation" |
+	 *   "knowledge.wiki" | "knowledge.docs" | "knowledge.components" |
+	 *   "review" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping"
 	 *
 	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
 	 * calling the corresponding reusable workflow in `theholocron/.github`.
 	 * Files are overwritten on each run — they are generated artifacts.
 	 *
-	 * ### deploy workflow
-	 * Use `docs` and/or `storybook` in `with:` — setup derives `paths:` automatically.
-	 * `docs: true` uses the org-standard `docs/` directory; `docs: { path: "custom" }` overrides it.
+	 * ### delivery.deploy / knowledge.docs / knowledge.components
+	 * `delivery.deploy` uses `docs` and/or `storybook` in `with:` — setup
+	 * derives `paths:` automatically. `docs: true` uses the org-standard
+	 * `docs/` directory; `docs: { path: "custom" }` overrides it.
+	 * `knowledge.docs` / `knowledge.components` are the same underlying
+	 * mechanism, each dedicated to exactly one type — they imply the
+	 * corresponding shorthand, so a repo using them never has to spell out
+	 * `docs: true` / `storybook: […]` itself.
 	 *
 	 * ```ts
 	 * // Docs only (standard layout)
-	 * { name: "deploy", with: { docs: true } }
+	 * { name: "delivery.deploy", with: { docs: true } }
+	 * // …or equivalently, the dedicated task:
+	 * "knowledge.docs"
 	 *
 	 * // Docs + monorepo storybooks
 	 * {
-	 *   name: "deploy",
+	 *   name: "delivery.deploy",
 	 *   with: {
 	 *     docs: true,
 	 *     storybook: [
@@ -356,7 +369,7 @@ export interface HolocronConfig {
 	 * }
 	 *
 	 * // Non-standard docs location
-	 * { name: "deploy", with: { docs: { path: "packages/site" } } }
+	 * { name: "delivery.deploy", with: { docs: { path: "packages/site" } } }
 	 * ```
 	 *
 	 * ### run-chromatic
@@ -378,8 +391,8 @@ export interface HolocronConfig {
 	 * that the reusable workflow accepts.
 	 *
 	 * @example
-	 * ["lint", { "name": "release", "with": { "run-build": false } }]
-	 * { "name": "deploy", "with": { "docs": true } }
+	 * ["sourceQuality.staticAnalysis", { "name": "delivery.publish", "with": { "run-build": false } }]
+	 * { "name": "delivery.deploy", "with": { "docs": true } }
 	 */
 	tasks?: Array<string | TaskEntryConfig>;
 	/**
@@ -475,8 +488,7 @@ export interface ResolvedTuple {
 }
 
 export type ResolvedProviderEntry =
-	| { cardinality: "single"; tuple: ResolvedTuple }
-	| { cardinality: "many"; tuples: ResolvedTuple[] };
+	{ cardinality: "single"; tuple: ResolvedTuple } | { cardinality: "many"; tuples: ResolvedTuple[] };
 
 export type ResolvedProvidersConfig = Partial<Record<CapabilityKey, ResolvedProviderEntry>>;
 

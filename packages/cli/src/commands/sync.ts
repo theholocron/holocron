@@ -368,11 +368,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						continue;
 					}
 
-					const filename = name === "deploy" ? "deploy.yml" : `${name}.yml`;
+					// The combined-content family (delivery.deploy, knowledge.docs,
+					// knowledge.components) all key their generated file by task
+					// name already — no special-casing needed.
+					const filename = `${name}.yml`;
 					const content = files.get(filename);
 					if (content === undefined) continue; // ci: false — nothing to write
 
-					const withPreview = name === "deploy" && content.includes("workflows/preview.yml@main");
+					const withPreview = content.includes("workflows/preview.yml@main");
 					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
 					steps.push(
 						await runSyncStep("local", step, dryRun, async () => {

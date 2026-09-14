@@ -135,7 +135,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		const usesAdvancedCodeQL = (config.tasks ?? [])
 			.map((e) => (typeof e === "string" ? e : e.name))
-			.includes("codeql");
+			.includes("security.codeScanning");
 		steps.push(
 			await runStep(
 				"source",
@@ -209,12 +209,16 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				continue;
 			}
 
-			const filename = name === "deploy" ? "deploy.yml" : `${name}.yml`;
+			// The combined-content family (delivery.deploy, knowledge.docs,
+			// knowledge.components) all key their generated file by task name
+			// already — no special-casing needed, unlike the old hardcoded
+			// "deploy.yml" filename.
+			const filename = `${name}.yml`;
 			const content = files.get(filename);
 			if (content === undefined) continue; // ci: false — nothing to write
 
-			const withPreview = name === "deploy" && content.includes("workflows/preview.yml@main");
-			const step = withPreview ? "write workflow deploy (with preview)" : `write workflow ${name}`;
+			const withPreview = content.includes("workflows/preview.yml@main");
+			const step = withPreview ? `write workflow ${name} (with preview)` : `write workflow ${name}`;
 			steps.push(
 				await runStep("source", step, dryRun, async () => {
 					await source.writeWorkflowFile(filename, `${workflowHeader()}${content}`);
@@ -355,7 +359,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 		{
 			const configuredWorkflowNames = (config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name));
-			const hasTestWorkflow = configuredWorkflowNames.includes("test");
+			const hasTestWorkflow = configuredWorkflowNames.includes("verification.unitTests");
 			const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
 			if (!hasTestWorkflow && existing == null) {
 				steps.push({
@@ -557,9 +561,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const deploy = loader.get("deployment") as Deployment;
 		print(style.step("deployment"));
 
+		// delivery.deploy, knowledge.docs, and knowledge.components all share the
+		// same combined production+preview mechanism (astromech.ts) — any one of
+		// them can carry the preview config that drives project/DNS provisioning.
 		const deployEntry = (config.tasks ?? [])
 			.map((e) => (typeof e === "string" ? { name: e } : e))
-			.find((e) => e.name === "deploy");
+			.find(
+				(e) => e.name === "delivery.deploy" || e.name === "knowledge.docs" || e.name === "knowledge.components"
+			);
 		const previewCfg = deployEntry?.with
 			? extractPreviewConfig(deployEntry.with as Record<string, unknown>, {
 					org: config.org,
