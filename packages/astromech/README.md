@@ -189,13 +189,12 @@ this method never touches the filesystem beyond reading `packages/*` and
 
 ## Development
 
-| Script                                  | Description             |
-| --------------------------------------- | ----------------------- |
-| `pnpm run delivery.build`               | Bundle with tsdown      |
-| `pnpm run verification.unitTests`       | Run the vitest suite    |
-| `pnpm test:coverage`                    | Run tests with coverage |
-| `pnpm run verification.typeSafety`      | `tsc --noEmit`          |
-| `pnpm run sourceQuality.staticAnalysis` | ESLint                  |
+| Script                                  | Description                                 |
+| --------------------------------------- | ------------------------------------------- |
+| `pnpm run delivery.build`               | Bundle with tsdown                          |
+| `pnpm run verification.unitTests`       | Run the vitest suite (always with coverage) |
+| `pnpm run verification.typeSafety`      | `tsc --noEmit`                              |
+| `pnpm run sourceQuality.staticAnalysis` | ESLint                                      |
 
 ## Releases
 
