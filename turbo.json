@@ -10,7 +10,8 @@
     },
     "sourceQuality.staticAnalysis": {
       "inputs": ["src/**", "eslint.config.ts", "eslint.config.js"],
-      "outputs": []
+      "outputs": [],
+      "dependsOn": ["^delivery.build"]
     },
     "verification.unitTests": {
       "inputs": ["src/**", "vitest.config.ts", "package.json"],
