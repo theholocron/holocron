@@ -8,7 +8,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   dead-code-analysis:
-    name: Dead Code Analysis
+    name: Run knip
     permissions:
       contents: read
     runs-on: ubuntu-latest

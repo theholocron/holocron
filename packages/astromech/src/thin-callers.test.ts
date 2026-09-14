@@ -36,8 +36,12 @@ describe("WORKFLOW_TEMPLATES", () => {
 		// single always-run job, so its own conclusion already is the check.
 		expect(WORKFLOW_CHECK_CONTEXTS["verification.unitTests"]).toBe("Test / Conclusion");
 		expect(WORKFLOW_CHECK_CONTEXTS["platform.repoValidation"]).toBe("Repo Validation / Conclusion");
-		expect(WORKFLOW_CHECK_CONTEXTS["sourceQuality.staticAnalysis"]).toBe("Static Analysis / Static Analysis");
-		expect(WORKFLOW_CHECK_CONTEXTS["delivery.bundleSize"]).toBe("Audit the bundle size / Audit the bundle size");
+		expect(WORKFLOW_CHECK_CONTEXTS["sourceQuality.staticAnalysis"]).toBe(
+			"Static Analysis / Run eslint and actionlint"
+		);
+		expect(WORKFLOW_CHECK_CONTEXTS["delivery.bundleSize"]).toBe(
+			"Audit the Bundle Size / Upload bundle stats to Codecov"
+		);
 	});
 });
 

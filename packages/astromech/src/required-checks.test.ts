@@ -24,7 +24,7 @@ describe("requiredChecks", () => {
 					{ name: "verification.typeSafety", required: true },
 				],
 			})
-		).toEqual(["Typecheck / tsc --noEmit", "Static Analysis / Static Analysis", "Test / Conclusion"]);
+		).toEqual(["Typecheck / tsc --noEmit", "Static Analysis / Run eslint and actionlint", "Test / Conclusion"]);
 	});
 
 	it("orders task contexts by CI_ORDER regardless of manifest order", () => {
@@ -39,9 +39,9 @@ describe("requiredChecks", () => {
 			})
 		).toEqual([
 			"Typecheck / tsc --noEmit",
-			"Static Analysis / Static Analysis",
+			"Static Analysis / Run eslint and actionlint",
 			"Test / Conclusion",
-			"Audit the bundle size / Audit the bundle size",
+			"Audit the Bundle Size / Upload bundle stats to Codecov",
 		]);
 	});
 
@@ -52,7 +52,7 @@ describe("requiredChecks", () => {
 				extraRequiredChecks: ["codecov/patch", "codecov/project", "tsdown (every workspace)"],
 			})
 		).toEqual([
-			"Static Analysis / Static Analysis",
+			"Static Analysis / Run eslint and actionlint",
 			"codecov/patch",
 			"codecov/project",
 			"tsdown (every workspace)",
@@ -63,9 +63,9 @@ describe("requiredChecks", () => {
 		expect(
 			requiredChecks({
 				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
-				extraRequiredChecks: ["Static Analysis / Static Analysis", "codecov/patch"],
+				extraRequiredChecks: ["Static Analysis / Run eslint and actionlint", "codecov/patch"],
 			})
-		).toEqual(["Static Analysis / Static Analysis", "codecov/patch"]);
+		).toEqual(["Static Analysis / Run eslint and actionlint", "codecov/patch"]);
 	});
 
 	it("ignores a required task with no known check context", () => {

@@ -75,15 +75,15 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	"verification.unitTests": "Test / Conclusion",
 	"verification.typeSafety": "Typecheck / tsc --noEmit",
-	"verification.performance": "Audit the performance / Audit the performance",
-	"sourceQuality.staticAnalysis": "Static Analysis / Static Analysis",
-	"sourceQuality.formatting": "Formatting / Formatting",
-	"sourceQuality.structuredDataValidation": "Structured Data Validation / Structured Data Validation",
-	"sourceQuality.deadCodeAnalysis": "Dead Code Analysis / Dead Code Analysis",
-	"security.secretDetection": "Secret Detection / Secret Detection",
-	"platform.commitStandards": "Commit Standards / Commit Standards",
+	"verification.performance": "Audit the Performance / Run Lighthouse CI",
+	"sourceQuality.staticAnalysis": "Static Analysis / Run eslint and actionlint",
+	"sourceQuality.formatting": "Formatting / Run prettier, editorconfig-checker, markdownlint",
+	"sourceQuality.structuredDataValidation": "Structured Data Validation / Run yamllint",
+	"sourceQuality.deadCodeAnalysis": "Dead Code Analysis / Run knip",
+	"security.secretDetection": "Secret Detection / Run gitleaks",
+	"platform.commitStandards": "Commit Standards / Run commitlint",
 	"platform.repoValidation": "Repo Validation / Conclusion",
-	"delivery.bundleSize": "Audit the bundle size / Audit the bundle size",
+	"delivery.bundleSize": "Audit the Bundle Size / Upload bundle stats to Codecov",
 };
 
 /**

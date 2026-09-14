@@ -1,4 +1,4 @@
-name: Structured Data Validation
+name: Source Quality
 
 on: # yamllint disable-line rule:truthy
   push:

@@ -1,4 +1,4 @@
-name: Wiki
+name: Knowledge
 
 on: # yamllint disable-line rule:truthy
   push:

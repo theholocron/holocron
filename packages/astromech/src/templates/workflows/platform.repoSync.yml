@@ -1,4 +1,4 @@
-name: Sync
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   push:

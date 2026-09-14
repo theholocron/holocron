@@ -1,4 +1,4 @@
-name: Deploy
+name: Delivery
 
 on: # yamllint disable-line rule:truthy
   push:

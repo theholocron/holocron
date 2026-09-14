@@ -1,4 +1,4 @@
-name: Audit the bundle size
+name: Audit the Bundle Size
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -10,7 +10,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   bundle-size:
-    name: Audit the bundle size
+    name: Upload bundle stats to Codecov
     permissions:
       contents: read
     runs-on: ubuntu-latest

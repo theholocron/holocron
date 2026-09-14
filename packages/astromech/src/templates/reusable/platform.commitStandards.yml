@@ -8,7 +8,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   commit-standards:
-    name: Commit Standards
+    name: Run commitlint
     permissions:
       contents: read
     runs-on: ubuntu-latest

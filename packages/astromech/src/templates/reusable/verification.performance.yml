@@ -1,4 +1,4 @@
-name: Audit the performance
+name: Audit the Performance
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -19,7 +19,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   performance:
-    name: Audit the performance
+    name: Run Lighthouse CI
     permissions:
       contents: read
     runs-on: ubuntu-latest

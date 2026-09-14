@@ -126,7 +126,13 @@ jobs:
           files: "**/test-report.junit.xml"
 
   visual-and-composition:
-    name: Test Visual and Composition (${{ matrix.project.tokenName }})
+    # No explicit matrix reference here — a skipped job (run-chromatic:
+    # false, the common case) never expands its matrix, so a `${{
+    # matrix.project.tokenName }}` in name: has nothing to resolve and
+    # shows as raw template text in the checks UI. GitHub auto-appends
+    # the matrix values in parens when the matrix *does* expand, so this
+    # loses no distinctness across multiple Chromatic projects.
+    name: Test Visual and Composition
     if: ${{ inputs.run-chromatic }}
     strategy:
       fail-fast: false

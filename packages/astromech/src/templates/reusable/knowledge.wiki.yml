@@ -47,7 +47,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   publish:
-    name: ${{ inputs.preview && 'Preview' || 'Publish' }} to Wiki
+    name: Publish to Fern
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

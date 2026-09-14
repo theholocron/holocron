@@ -1,4 +1,4 @@
-name: Repo Validation
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -10,5 +10,6 @@ permissions:
 
 jobs:
   repo-validation:
+    name: Repo Validation
     uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main
     secrets: inherit

@@ -8,7 +8,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   structured-data-validation:
-    name: Structured Data Validation
+    name: Run yamllint
     permissions:
       contents: read
     runs-on: ubuntu-latest

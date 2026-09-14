@@ -17,5 +17,6 @@ permissions:
 
 jobs:
   security:
+    name: Code Scanning
     uses: theholocron/.github/.github/workflows/security.codeScanning.yml@main
     secrets: inherit

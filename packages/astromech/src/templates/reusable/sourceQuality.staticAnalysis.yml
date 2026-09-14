@@ -21,7 +21,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   static-analysis:
-    name: Static Analysis
+    name: Run eslint and actionlint
     permissions:
       contents: write
       statuses: write

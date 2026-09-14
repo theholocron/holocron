@@ -21,7 +21,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   formatting:
-    name: Formatting
+    name: Run prettier, editorconfig-checker, markdownlint
     permissions:
       contents: write
       statuses: write
