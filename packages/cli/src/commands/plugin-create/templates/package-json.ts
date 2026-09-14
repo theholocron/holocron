@@ -20,21 +20,17 @@ export function render(inputs: TemplateInputs): string {
 				main: "./src/index.ts",
 				exports: { ".": "./src/index.ts" },
 				scripts: {
-					// Direct tool invocations, not `holocron run <task>` — this repo
-					// carries @theholocron/cli as workspace:*, and a freshly
-					// scaffolded plugin joining this monorepo inherits two separate
-					// self-hosting races routing through holocron would hit: pnpm's
-					// node_modules/.bin/holocron timing, and turbo having no
-					// dependency edge forcing @theholocron/cli (and transitively
-					// astromech) to finish building before this package's own script
-					// runs, since neither is a real package.json dependency here.
-					// Consuming repos outside this monorepo don't have either problem
-					// (a real npm dependency ships dist/ already built) — see
-					// packageScripts() in astromech.
+					// delivery.build stays a direct tool invocation, never `holocron
+					// run` — it's what produces the holocron binary, so it can never
+					// depend on holocron already existing. The other three tasks are
+					// safe to gateway through holocron: this template already
+					// declares @theholocron/cli as a real devDependency below, giving
+					// turbo the edge it needs to build cli (and transitively
+					// astromech) before this package's own script ever runs.
 					"delivery.build": "tsdown",
-					"sourceQuality.staticAnalysis": "eslint .",
-					"verification.typeSafety": "tsc --noEmit",
-					"verification.unitTests": "vitest run",
+					"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+					"verification.typeSafety": "holocron run verification.typeSafety --",
+					"verification.unitTests": "holocron run verification.unitTests --",
 					"test:watch": "vitest",
 					validate: "tsx scripts/validate.mjs",
 				},
