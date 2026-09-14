@@ -1055,8 +1055,8 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Typecheck / Conclusion" },
-				{ context: "Static Analysis / Conclusion" },
+				{ context: "Typecheck / tsc --noEmit" },
+				{ context: "Static Analysis / Static Analysis" },
 				{ context: "Test / Conclusion" },
 			],
 		});
@@ -1099,7 +1099,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Static Analysis / Conclusion" },
+				{ context: "Static Analysis / Static Analysis" },
 				{ context: "some-extra-check" },
 			],
 		});
