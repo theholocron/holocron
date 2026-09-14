@@ -68,7 +68,7 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * conditionally-run jobs feeding one required check:
  * `verification.unitTests` (unit / Storybook / Chromatic / interaction /
  * user-flow, each gated by its own `run-*` input) and
- * `platform.repoValidation` (its two script jobs both must pass). Only
+ * `platform.repoValidation` (its three script jobs all must pass). Only
  * merge-gating workflows are listed. `astromech.requiredChecks()` reads this
  * for every `required` task.
  */
