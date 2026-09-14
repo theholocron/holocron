@@ -20,20 +20,17 @@ export function render(inputs: TemplateInputs): string {
 				main: "./src/index.ts",
 				exports: { ".": "./src/index.ts" },
 				scripts: {
-					// Direct tool invocations, not `holocron run <task>` — this repo
-					// carries @theholocron/cli as workspace:*, and pnpm creates each
-					// package's node_modules/.bin/holocron symlink once, during the
-					// single `pnpm install` in CI's setup step, before anything has
-					// built. A later build doesn't retroactively create it, so a
-					// freshly scaffolded plugin joining this monorepo hits the same
-					// "holocron: not found" turbo fan-out failure every existing
-					// package's scripts were reverted from. Consuming repos outside
-					// this monorepo don't have this problem (a real npm dependency
-					// ships dist/ already built) — see packageScripts() in astromech.
+					// delivery.build stays a direct tool invocation, never `holocron
+					// run` — this repo carries @theholocron/cli as workspace:*, so
+					// its own dist doesn't exist until something builds it; routing
+					// build itself through the CLI it's building is circular. Every
+					// other task is safe to gateway through holocron — the composite
+					// CI action's self-heal step builds it AND re-links
+					// node_modules/.bin before any of these ever run.
 					"delivery.build": "tsdown",
-					"sourceQuality.staticAnalysis": "eslint .",
-					"verification.typeSafety": "tsc --noEmit",
-					"verification.unitTests": "vitest run",
+					"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+					"verification.typeSafety": "holocron run verification.typeSafety --",
+					"verification.unitTests": "holocron run verification.unitTests --",
 					"test:watch": "vitest",
 					validate: "tsx scripts/validate.mjs",
 				},
