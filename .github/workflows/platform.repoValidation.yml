@@ -1,0 +1,18 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+name: Repo Validation
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repo-validation:
+    uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main
+    secrets: inherit

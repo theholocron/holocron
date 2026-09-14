@@ -1473,6 +1473,31 @@ describe("runSync", () => {
 			expect(content).not.toContain("cleanup-preview.yml@main");
 		});
 
+		it("writes knowledge.docs / knowledge.components even though neither has a static template (combined-content family)", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				org: "theholocron",
+				domain: "theholocron.dev",
+				tasks: [{ name: "knowledge.docs", with: { preview: true } }, "knowledge.components"],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			expect(report.steps.some((s) => s.message?.includes("unknown workflow"))).toBe(false);
+			const docs = await readFile(join(tmpDir, ".github", "workflows", "knowledge.docs.yml"), "utf8");
+			expect(docs).toContain("- docs/**");
+			const components = await readFile(join(tmpDir, ".github", "workflows", "knowledge.components.yml"), "utf8");
+			expect(components).toContain("- src/**");
+		});
+
 		it("skips unknown workflow names", async () => {
 			const loaded = loadedFrom({
 				name: "demo",

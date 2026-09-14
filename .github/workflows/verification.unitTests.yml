@@ -2,24 +2,26 @@
 # Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Security
+name: Test
 
 on: # yamllint disable-line rule:truthy
   push:
-    branches:
-      - main
+    branches: [main, alpha]
   pull_request:
-    branches:
-      - main
-  schedule:
-    - cron: "0 0 * * 1"
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
-  actions: read
   contents: read
-  security-events: write
+  id-token: write
+  statuses: write
 
 jobs:
-  security:
-    uses: theholocron/.github/.github/workflows/security.yml@main
+  test:
+    name: Test
+    uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main
+    with:
+      run-unit: true
     secrets: inherit

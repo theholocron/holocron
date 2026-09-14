@@ -1,0 +1,18 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+name: Dead Code Analysis
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dead-code-analysis:
+    uses: theholocron/.github/.github/workflows/sourceQuality.deadCodeAnalysis.yml@main
+    secrets: inherit

@@ -40,11 +40,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown --config-loader tsx",
+    "delivery.build": "tsdown --config-loader tsx",
     "start": "node ./dist/cli.mjs",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

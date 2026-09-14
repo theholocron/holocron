@@ -2,22 +2,20 @@
 # Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Typecheck
+name: Commit Standards
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
   pull_request:
 
 concurrency:
-  group: typecheck-${{ github.ref }}
+  group: platform-commit-standards-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  typecheck:
-    name: Typecheck
-    uses: theholocron/.github/.github/workflows/typecheck.yml@main
+  commit-standards:
+    name: Commit Standards
+    uses: theholocron/.github/.github/workflows/platform.commitStandards.yml@main
     secrets: inherit

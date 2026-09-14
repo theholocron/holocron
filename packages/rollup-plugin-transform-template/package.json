@@ -34,10 +34,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint src",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

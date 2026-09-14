@@ -39,7 +39,7 @@ jobs:
   deploy:
     name: Deploy
     if: ${{ github.event_name != 'pull_request' }}
-    uses: theholocron/.github/.github/workflows/deploy.yml@main
+    uses: theholocron/.github/.github/workflows/delivery.deploy.yml@main
     with:
       type: docs
     secrets: inherit

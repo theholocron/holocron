@@ -2,12 +2,16 @@ import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
 import { nodeDocs } from "@theholocron/holocron-config";
 
-// nodeDocs() provides: org, domain, docs, strict repo protection, the standard
-// Node.js task set (lint/test/typecheck marked `required`, security, review,
-// stale, greetings, dependencies, bookkeeping, deploy), the base providers
-// (source, ci, issues, deployment, dns, workers), and `extraRequiredChecks`
-// (codecov/patch, codecov/project, "audit / Conclusion").
-const { repo, tasks: presetTasks, providers, org, domain, docs, extraRequiredChecks: presetChecks } = nodeDocs();
+// nodeDocs() provides: org, domain, docs, strict repo protection, the base
+// providers (source, ci, issues, deployment, dns, workers). Per D13
+// (epic #672 / .notes/tech-holocron-platform.spec.md): the preset's `tasks`
+// and task-derived `extraRequiredChecks` still speak the pre-decomposition
+// vocabulary (`lint`, `test`, `typecheck`, `deploy`, plain `"audit /
+// Conclusion"`) — theholocron/configs hasn't caught up to #675 yet, and
+// doesn't need to for this repo to move (D13: it's a convenience preset,
+// not a required dependency). This repo declares its own intent-facing
+// tasks directly instead of spreading `presetTasks`/`presetChecks`.
+const { repo, providers, org, domain, docs } = nodeDocs();
 
 export default defineConfig({
 	description:
@@ -23,10 +27,16 @@ export default defineConfig({
 	},
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron setup` appends these to the task-derived contexts from
-	// `astromech.requiredChecks()`. The preset supplies codecov/patch,
-	// codecov/project and "audit / Conclusion"; the rest are repo-specific.
+	// `astromech.requiredChecks()`. codecov/patch + codecov/project are
+	// project-wide gates; the rest are repo-specific. The old preset's
+	// "audit / Conclusion" is gone — the decomposed audit tasks
+	// (sourceQuality.deadCodeAnalysis, delivery.bundleSize, in
+	// astromech.config.ts) each derive their own context automatically now
+	// that they're real `{ required: true }` task entries, not a
+	// preset-supplied extra.
 	extraRequiredChecks: [
-		...presetChecks,
+		"codecov/patch",
+		"codecov/project",
 		"tsdown (every workspace)",
 		"codecov/patch/astromech",
 		"codecov/patch/cli",
@@ -47,12 +57,34 @@ export default defineConfig({
 		"codecov/patch/holocron-plugin-slack",
 		"codecov/patch/holocron-plugin-vercel",
 	],
-	// The preset's task set (lint + the org linter set, test, typecheck — all
-	// `{ required: true }` — plus security / review / stale / greetings /
-	// dependencies / bookkeeping / deploy). The repo-specific tasks (audit,
-	// release, sync, wiki) and `syncScripts: false` live in `astromech.config.ts`
-	// and are merged in by astromech's `loadTasksConfig`.
-	tasks: [...presetTasks],
+	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
+	// `nodeDocs()`'s bundled `lint` (8 linters) is now 5 separately-gated
+	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/
+	// `stale`/`greetings`/`dependencies`/`bookkeeping` aren't part of the
+	// task-name vocabulary (workflow-only keys, unaffected by the rename).
+	// The repo-specific tasks (the decomposed audit tasks, platform.
+	// repoValidation, delivery.publish, platform.repoSync, knowledge.wiki)
+	// and `syncScripts: false` live in `astromech.config.ts` and are merged
+	// in by astromech's `loadTasksConfig`.
+	tasks: [
+		{ name: "sourceQuality.staticAnalysis", required: true },
+		{ name: "sourceQuality.formatting", required: true },
+		{ name: "sourceQuality.structuredDataValidation", required: true },
+		{ name: "security.secretDetection", required: true },
+		{ name: "platform.commitStandards", required: true },
+		{ name: "verification.unitTests", required: true },
+		"security.codeScanning",
+		"review",
+		"stale",
+		"greetings",
+		"dependencies",
+		"bookkeeping",
+		{ name: "verification.typeSafety", required: true },
+		// knowledge.docs implies docs: true — this repo has no Storybook, so
+		// the dedicated task is more idiomatic than delivery.deploy + with:
+		// { docs: true } now that the two mean the same thing (astromech.ts).
+		{ name: "knowledge.docs", with: { preview: true } },
+	],
 	providers: {
 		...providers,
 		secrets: "github",
