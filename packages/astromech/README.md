@@ -53,28 +53,28 @@ what it actually runs, and why. Tool names never appear in
 `holocron.config.ts` — they're an implementation detail this table
 documents, not a naming convention repos need to follow.
 
-| Task | Runs | Notes |
-| --- | --- | --- |
-| `verification.unitTests` | vitest | carries the `--coverage` org default |
-| `verification.typeSafety` | tsc | `tsc --noEmit` |
-| `verification.performance` | Lighthouse CI | only runs with a `lighthouse.config.*` present |
-| `sourceQuality.staticAnalysis` | eslint, actionlint, git-merge-conflict-markers | a `linterGroup` — see below |
-| `sourceQuality.formatting` | prettier, editorconfig-checker, markdownlint-cli2 | a `linterGroup` |
-| `sourceQuality.structuredDataValidation` | yamllint | |
-| `sourceQuality.deadCodeAnalysis` | knip | |
-| `security.secretDetection` | gitleaks | |
-| `security.codeScanning` | CodeQL | no local equivalent — CI only |
-| `security.dependencyReview` | GitHub's native Dependabot alerts/graph | a capability-model method (`Source.enableVulnerabilityAlerts()`), not a task |
-| `delivery.build` | tsdown / vite / rollup / tsc, detected from the repo's own config file | |
-| `delivery.publish` | semantic-release | no local equivalent — CI only; carries `preview` (npm dist-tags) |
-| `delivery.deploy` | Cloudflare Pages / Vercel | no local equivalent — CI only; carries `preview` |
-| `delivery.bundleSize` | bundle-size upload to Codecov | no local equivalent — CI only |
-| `platform.repoSync` | `holocron sync` | keeps generated files current |
-| `platform.commitStandards` | commitlint | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI |
-| `platform.repoValidation` | `scripts/validate-adrs.mjs`, `scripts/validate-registry.mjs` | a job-bearing task — spec/ADR frontmatter and registry-doc completeness, not linters |
-| `knowledge.wiki` | Fern | publishes `docs/wiki/*.md` — not a sync, a publish; carries `preview` |
-| `knowledge.docs` | Astro build | the docs site itself; carries `preview` (defaults on) |
-| `knowledge.components` | Storybook build | a browsable component catalog — "Storybook" is the tool, not the intent; carries `preview` (defaults on) |
+| Task                                     | Runs                                                                                               | Notes                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `verification.unitTests`                 | vitest                                                                                             | carries the `--coverage` org default                                                                     |
+| `verification.typeSafety`                | tsc                                                                                                | `tsc --noEmit`                                                                                           |
+| `verification.performance`               | Lighthouse CI                                                                                      | only runs with a `lighthouse.config.*` present                                                           |
+| `sourceQuality.staticAnalysis`           | eslint, actionlint, git-merge-conflict-markers                                                     | a `linterGroup` — see below                                                                              |
+| `sourceQuality.formatting`               | prettier, editorconfig-checker, markdownlint-cli2                                                  | a `linterGroup`                                                                                          |
+| `sourceQuality.structuredDataValidation` | yamllint                                                                                           |                                                                                                          |
+| `sourceQuality.deadCodeAnalysis`         | knip                                                                                               |                                                                                                          |
+| `security.secretDetection`               | gitleaks                                                                                           |                                                                                                          |
+| `security.codeScanning`                  | CodeQL                                                                                             | no local equivalent — CI only                                                                            |
+| `security.dependencyReview`              | GitHub's native Dependabot alerts/graph                                                            | a capability-model method (`Source.enableVulnerabilityAlerts()`), not a task                             |
+| `delivery.build`                         | tsdown / vite / rollup / tsc, detected from the repo's own config file                             |                                                                                                          |
+| `delivery.publish`                       | semantic-release                                                                                   | no local equivalent — CI only; carries `preview` (npm dist-tags)                                         |
+| `delivery.deploy`                        | Cloudflare Pages / Vercel                                                                          | no local equivalent — CI only; carries `preview`                                                         |
+| `delivery.bundleSize`                    | bundle-size upload to Codecov                                                                      | no local equivalent — CI only                                                                            |
+| `platform.repoSync`                      | `holocron sync`                                                                                    | keeps generated files current                                                                            |
+| `platform.commitStandards`               | commitlint                                                                                         | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI        |
+| `platform.repoValidation`                | `scripts/validate-adrs.mjs`, `scripts/validate-registry.mjs`, `scripts/validate-docs-presence.mjs` | a job-bearing task — spec/ADR frontmatter, registry-doc completeness, and docs-presence, not linters     |
+| `knowledge.wiki`                         | Fern                                                                                               | publishes `docs/wiki/*.md` — not a sync, a publish; carries `preview`                                    |
+| `knowledge.docs`                         | Astro build                                                                                        | the docs site itself; carries `preview` (defaults on)                                                    |
+| `knowledge.components`                   | Storybook build                                                                                    | a browsable component catalog — "Storybook" is the tool, not the intent; carries `preview` (defaults on) |
 
 **`preview` is a cross-cutting feature, not a namespace.** npm has staging
 dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews
@@ -123,7 +123,7 @@ export default defineConfig({
 | `local` (default `true`) | write the `package.json` script; `holocron run` resolves it |
 | `local: false`           | `holocron run <name>` → "CI-only task", exit 0              |
 | `required`               | the task's check context is a required status check         |
-| `with`                   | per-repo overrides on the reusable-workflow channel          |
+| `with`                   | per-repo overrides on the reusable-workflow channel         |
 
 Top-level keys: `syncScripts: false` disables the `package.json` script
 writes entirely; `holocronScript` sets the command the synced `"holocron"`
@@ -189,13 +189,13 @@ this method never touches the filesystem beyond reading `packages/*` and
 
 ## Development
 
-| Script                              | Description             |
-| ------------------------------------ | ------------------------ |
-| `pnpm run delivery.build`            | Bundle with tsdown        |
-| `pnpm run verification.unitTests`    | Run the vitest suite      |
-| `pnpm test:coverage`                 | Run tests with coverage   |
-| `pnpm run verification.typeSafety`   | `tsc --noEmit`            |
-| `pnpm run sourceQuality.staticAnalysis` | ESLint                 |
+| Script                                  | Description             |
+| --------------------------------------- | ----------------------- |
+| `pnpm run delivery.build`               | Bundle with tsdown      |
+| `pnpm run verification.unitTests`       | Run the vitest suite    |
+| `pnpm test:coverage`                    | Run tests with coverage |
+| `pnpm run verification.typeSafety`      | `tsc --noEmit`          |
+| `pnpm run sourceQuality.staticAnalysis` | ESLint                  |
 
 ## Releases
 

@@ -136,28 +136,28 @@ not `["vitest"]`. Tool names never appear in `holocron.config.ts`; the table
 below is the full registry (`@theholocron/astromech`'s `TASKS`) — every task
 name it knows, what it actually runs, and why.
 
-| Task | Runs | Notes |
-| --- | --- | --- |
-| `verification.unitTests` | vitest | carries the `--coverage` org default |
-| `verification.typeSafety` | tsc | `tsc --noEmit` |
-| `verification.performance` | Lighthouse CI | only runs with a `lighthouse.config.*` present |
-| `sourceQuality.staticAnalysis` | eslint, actionlint, git-merge-conflict-markers | bundles more than one tool under one required check |
-| `sourceQuality.formatting` | prettier, editorconfig-checker, markdownlint-cli2 | bundles more than one tool |
-| `sourceQuality.structuredDataValidation` | yamllint | |
-| `sourceQuality.deadCodeAnalysis` | knip | |
-| `security.secretDetection` | gitleaks | |
-| `security.codeScanning` | CodeQL | no local equivalent — CI only |
-| `security.dependencyReview` | GitHub's native Dependabot alerts/graph | a capability method, not a task |
-| `delivery.build` | tsdown / vite / rollup / tsc, detected from the repo's own config | |
-| `delivery.publish` | semantic-release | no local equivalent — CI only; carries `preview` (npm dist-tags) |
-| `delivery.deploy` | Cloudflare Pages / Vercel | no local equivalent — CI only; carries `preview` |
-| `delivery.bundleSize` | bundle-size upload to Codecov | no local equivalent — CI only |
-| `platform.repoSync` | `holocron sync` | keeps generated files current |
-| `platform.commitStandards` | commitlint | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI |
-| `platform.repoValidation` | ADR/spec frontmatter + registry-doc completeness scripts | not linters — process/governance checks |
-| `knowledge.wiki` | Fern | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview` |
-| `knowledge.docs` | Astro build | the docs site itself; carries `preview` (defaults on) |
-| `knowledge.components` | Storybook build | a browsable component catalog; carries `preview` (defaults on) |
+| Task                                     | Runs                                                              | Notes                                                                                             |
+| ---------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `verification.unitTests`                 | vitest                                                            | carries the `--coverage` org default                                                              |
+| `verification.typeSafety`                | tsc                                                               | `tsc --noEmit`                                                                                    |
+| `verification.performance`               | Lighthouse CI                                                     | only runs with a `lighthouse.config.*` present                                                    |
+| `sourceQuality.staticAnalysis`           | eslint, actionlint, git-merge-conflict-markers                    | bundles more than one tool under one required check                                               |
+| `sourceQuality.formatting`               | prettier, editorconfig-checker, markdownlint-cli2                 | bundles more than one tool                                                                        |
+| `sourceQuality.structuredDataValidation` | yamllint                                                          |                                                                                                   |
+| `sourceQuality.deadCodeAnalysis`         | knip                                                              |                                                                                                   |
+| `security.secretDetection`               | gitleaks                                                          |                                                                                                   |
+| `security.codeScanning`                  | CodeQL                                                            | no local equivalent — CI only                                                                     |
+| `security.dependencyReview`              | GitHub's native Dependabot alerts/graph                           | a capability method, not a task                                                                   |
+| `delivery.build`                         | tsdown / vite / rollup / tsc, detected from the repo's own config |                                                                                                   |
+| `delivery.publish`                       | semantic-release                                                  | no local equivalent — CI only; carries `preview` (npm dist-tags)                                  |
+| `delivery.deploy`                        | Cloudflare Pages / Vercel                                         | no local equivalent — CI only; carries `preview`                                                  |
+| `delivery.bundleSize`                    | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                     |
+| `platform.repoSync`                      | `holocron sync`                                                   | keeps generated files current                                                                     |
+| `platform.commitStandards`               | commitlint                                                        | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI |
+| `platform.repoValidation`                | ADR/spec frontmatter + registry-doc + docs-presence scripts       | not linters — process/governance checks                                                           |
+| `knowledge.wiki`                         | Fern                                                              | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview`                             |
+| `knowledge.docs`                         | Astro build                                                       | the docs site itself; carries `preview` (defaults on)                                             |
+| `knowledge.components`                   | Storybook build                                                   | a browsable component catalog; carries `preview` (defaults on)                                    |
 
 `preview` is a cross-cutting feature, not a namespace — npm has staging
 dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews docs.

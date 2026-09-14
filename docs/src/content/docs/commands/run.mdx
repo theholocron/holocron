@@ -45,14 +45,15 @@ sub-jobs.
 ## Sub-jobs
 
 Some tasks are a bundle of smaller jobs. `platform.repoValidation` is the one
-that matters today — spec/ADR frontmatter and registry-doc completeness, not
-linters:
+that matters today — spec/ADR frontmatter, registry-doc completeness, and
+docs-presence, not linters:
 
-| `holocron run …`                     | Runs                              |
-| ------------------------------------- | ---------------------------------- |
-| `platform.repoValidation adrs`        | `node scripts/validate-adrs.mjs`    |
-| `platform.repoValidation registry`    | `node scripts/validate-registry.mjs` |
-| `platform.repoValidation` (no job)    | each of the above, in that order    |
+| `holocron run …`                       | Runs                                      |
+| -------------------------------------- | ----------------------------------------- |
+| `platform.repoValidation adrs`         | `node scripts/validate-adrs.mjs`          |
+| `platform.repoValidation registry`     | `node scripts/validate-registry.mjs`      |
+| `platform.repoValidation docsPresence` | `node scripts/validate-docs-presence.mjs` |
+| `platform.repoValidation` (no job)     | each of the above, in that order          |
 
 A sub-job whose tool isn't installed is skipped with a note — CI enforces it
 regardless. `--required` turns "can't run this here" into a failure.
@@ -65,7 +66,7 @@ exits 1.
 than one tool under a single required check — they don't map to a single
 command. Locally:
 
-- runs *after* the normal resolution above (steps 1–2) — the whole task
+- runs _after_ the normal resolution above (steps 1–2) — the whole task
   delegates to turbo/a package script first, exactly like any other task
 - each resolved linter in the group runs its own binary when it's in
   `node_modules/.bin` or on `PATH`
@@ -74,11 +75,11 @@ command. Locally:
   with no local equivalent at all prints `· <name> (CI only)`. CI enforces
   them regardless.
 - the exit code is the worst of the lot
-- **exception**: if *every* linter in the group has no local equivalent at
+- **exception**: if _every_ linter in the group has no local equivalent at
   all (e.g. `platform.commitStandards` — commitlint has no local
   equivalent, ever, since there's no PR commit range to diff against
   outside CI), the task is skipped even when `--required` — the same
-  carve-out a `local: null` task gets. It only fails when a linter *could*
+  carve-out a `local: null` task gets. It only fails when a linter _could_
   run locally but its tool just isn't installed.
 
 ```
