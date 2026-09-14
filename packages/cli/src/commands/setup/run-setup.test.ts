@@ -1055,7 +1055,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Typecheck / tsc --noEmit" },
+				{ context: "Typecheck / Run tsc --noEmit" },
 				{ context: "Static Analysis / Run eslint and actionlint" },
 				{ context: "Test / Conclusion" },
 			],
