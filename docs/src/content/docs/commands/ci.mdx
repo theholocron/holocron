@@ -20,7 +20,7 @@ is marked required, it falls back to every `ci: true` task (with a note).
 $ holocron ci
 holocron ci — required checks (3)
 
-▶ Typecheck / tsc --noEmit
+▶ Typecheck / Run tsc --noEmit
   → tsc --noEmit
 ▶ Static Analysis / Run eslint and actionlint
   → turbo run sourceQuality.staticAnalysis
@@ -43,7 +43,7 @@ holocron ci — required checks (3)
   `· no local equivalent — enforced in CI` and never fail the run, even when
   marked `required` (a CI-only check isn't a _local_ failure).
 - Most tasks are a single always-run job now, so their check context names
-  that job directly (`Typecheck / tsc --noEmit`) — the `… / Conclusion`
+  that job directly (`Typecheck / Run tsc --noEmit`) — the `… / Conclusion`
   fan-in is only used where a task genuinely has several conditionally-run
   jobs feeding one check (`verification.unitTests`, `platform.repoValidation`).
 - Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
