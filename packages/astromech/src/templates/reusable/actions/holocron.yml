@@ -41,10 +41,22 @@ runs:
       # (dist/cli.mjs) does not exist on a fresh checkout. `pnpm build` is a
       # turbo run — cached and cheap once warm. A no-op everywhere else, where
       # the published tarball already ships dist/.
+      #
+      # pnpm creates every workspace package's node_modules/.bin/holocron shim
+      # once, during the setup action's earlier `pnpm install` — before this
+      # build has run, so every one of them is silently skipped ("Failed to
+      # create bin ... ENOENT"), not just @theholocron/cli's own. That's a
+      # one-time decision: a later build doesn't retroactively fix a shim that
+      # was never created. Re-running `pnpm install` here (fast — the lockfile
+      # hasn't changed, so it only re-links `.bin`) is what actually fixes it,
+      # confirmed against a real cold install: `holocron` stays unresolvable
+      # from inside any package until this second install runs.
       run: |
         if [ ! -f node_modules/@theholocron/cli/dist/cli.mjs ]; then
           echo "→ @theholocron/cli dist/ missing — building the workspace from source" >&2
           pnpm build
+          echo "→ re-linking node_modules/.bin — pnpm skipped it pre-build" >&2
+          pnpm install --frozen-lockfile
         fi
 
     - name: holocron ${{ inputs.command }} ${{ inputs.task }}
