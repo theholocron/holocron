@@ -31,17 +31,3 @@ jobs:
       - name: Run commitlint over the PR range
         if: github.event_name == 'pull_request'
         run: pnpm exec commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
-
-  conclusion:
-    name: Conclusion
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [commit-standards]
-    steps:
-      - name: Check job statuses
-        run: |
-          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
-            exit 1
-          fi
-        env:
-          RESULTS: ${{ join(needs.*.result, ',') }}

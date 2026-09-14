@@ -37,10 +37,11 @@ export interface JobDef {
 	/** How the job runs locally; `null` → no local equivalent (enforced in CI). */
 	local: LocalRunner | null;
 	/**
-	 * The CI status-check context this job reports as (`audit / Knip`) — every
-	 * sub-job is a CI job. `holocron run audit` and `holocron ci` label each job
-	 * line with it; the task-level `… / Conclusion` context lives in
-	 * `WORKFLOW_CHECK_CONTEXTS`.
+	 * The CI status-check context this job reports as (e.g.
+	 * `platform.repoValidation / Registry`) — every sub-job is a CI job.
+	 * `holocron run <task>` and `holocron ci` label each job line with it;
+	 * the task-level `… / Conclusion` context (only for tasks with several
+	 * jobs) lives in `WORKFLOW_CHECK_CONTEXTS`.
 	 */
 	checkContext: string;
 }

@@ -60,24 +60,30 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * The GitHub status-check context a `required` task contributes to branch
  * protection. Format: `"{workflow name} / {job name}"`.
  *
- * These name the **aggregate `Conclusion` job** (fan-in, `if: always()`), not
- * an individual inner job — `verification.unitTests` has several
- * conditionally-run sub-jobs, so `"Test / Conclusion"` is the only stable
- * gate. Only merge-gating workflows are listed. `astromech.requiredChecks()`
- * reads this for every `required` task.
+ * Most of these are single-job workflows now (D3's decomposition split what
+ * used to be multi-job `lint`/`audit` into one task per concern) — the
+ * context names that job directly, no `Conclusion` aggregator needed; a
+ * single job's own conclusion already *is* the workflow's conclusion.
+ * `Conclusion` fan-in jobs are kept only where a task genuinely has several
+ * conditionally-run jobs feeding one required check:
+ * `verification.unitTests` (unit / Storybook / Chromatic / interaction /
+ * user-flow, each gated by its own `run-*` input) and
+ * `platform.repoValidation` (its two script jobs both must pass). Only
+ * merge-gating workflows are listed. `astromech.requiredChecks()` reads this
+ * for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	"verification.unitTests": "Test / Conclusion",
-	"verification.typeSafety": "Typecheck / Conclusion",
-	"verification.performance": "Audit the Performance / Conclusion",
-	"sourceQuality.staticAnalysis": "Static Analysis / Conclusion",
-	"sourceQuality.formatting": "Formatting / Conclusion",
-	"sourceQuality.structuredDataValidation": "Structured Data Validation / Conclusion",
-	"sourceQuality.deadCodeAnalysis": "Dead Code Analysis / Conclusion",
-	"security.secretDetection": "Secret Detection / Conclusion",
-	"platform.commitStandards": "Commit Standards / Conclusion",
+	"verification.typeSafety": "Typecheck / tsc --noEmit",
+	"verification.performance": "Audit the performance / Audit the performance",
+	"sourceQuality.staticAnalysis": "Static Analysis / Static Analysis",
+	"sourceQuality.formatting": "Formatting / Formatting",
+	"sourceQuality.structuredDataValidation": "Structured Data Validation / Structured Data Validation",
+	"sourceQuality.deadCodeAnalysis": "Dead Code Analysis / Dead Code Analysis",
+	"security.secretDetection": "Secret Detection / Secret Detection",
+	"platform.commitStandards": "Commit Standards / Commit Standards",
 	"platform.repoValidation": "Repo Validation / Conclusion",
-	"delivery.bundleSize": "Audit the Bundle Size / Conclusion",
+	"delivery.bundleSize": "Audit the bundle size / Audit the bundle size",
 };
 
 /**

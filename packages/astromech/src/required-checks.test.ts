@@ -15,7 +15,7 @@ describe("requiredChecks", () => {
 		).toEqual([]);
 	});
 
-	it("maps each required task to its Conclusion check context", () => {
+	it("maps each required task to its check context", () => {
 		expect(
 			requiredChecks({
 				tasks: [
@@ -24,7 +24,7 @@ describe("requiredChecks", () => {
 					{ name: "verification.typeSafety", required: true },
 				],
 			})
-		).toEqual(["Typecheck / Conclusion", "Static Analysis / Conclusion", "Test / Conclusion"]);
+		).toEqual(["Typecheck / tsc --noEmit", "Static Analysis / Static Analysis", "Test / Conclusion"]);
 	});
 
 	it("orders task contexts by CI_ORDER regardless of manifest order", () => {
@@ -38,10 +38,10 @@ describe("requiredChecks", () => {
 				],
 			})
 		).toEqual([
-			"Typecheck / Conclusion",
-			"Static Analysis / Conclusion",
+			"Typecheck / tsc --noEmit",
+			"Static Analysis / Static Analysis",
 			"Test / Conclusion",
-			"Audit the Bundle Size / Conclusion",
+			"Audit the bundle size / Audit the bundle size",
 		]);
 	});
 
@@ -51,16 +51,21 @@ describe("requiredChecks", () => {
 				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
 				extraRequiredChecks: ["codecov/patch", "codecov/project", "tsdown (every workspace)"],
 			})
-		).toEqual(["Static Analysis / Conclusion", "codecov/patch", "codecov/project", "tsdown (every workspace)"]);
+		).toEqual([
+			"Static Analysis / Static Analysis",
+			"codecov/patch",
+			"codecov/project",
+			"tsdown (every workspace)",
+		]);
 	});
 
 	it("de-duplicates a context that appears as both a task context and an extra", () => {
 		expect(
 			requiredChecks({
 				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
-				extraRequiredChecks: ["Static Analysis / Conclusion", "codecov/patch"],
+				extraRequiredChecks: ["Static Analysis / Static Analysis", "codecov/patch"],
 			})
-		).toEqual(["Static Analysis / Conclusion", "codecov/patch"]);
+		).toEqual(["Static Analysis / Static Analysis", "codecov/patch"]);
 	});
 
 	it("ignores a required task with no known check context", () => {

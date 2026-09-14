@@ -70,8 +70,8 @@ describe("runCi", () => {
 			"verification.unitTests",
 		]);
 		expect(report.jobs.map((j) => j.checkContext)).toEqual([
-			"Typecheck / Conclusion",
-			"Static Analysis / Conclusion",
+			"Typecheck / tsc --noEmit",
+			"Static Analysis / Static Analysis",
 			"Test / Conclusion",
 		]);
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {

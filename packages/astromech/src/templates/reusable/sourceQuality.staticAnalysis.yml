@@ -92,17 +92,3 @@ jobs:
           branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
           commit-message: "chore: fix static-analysis issues"
           commit-options: "--no-verify"
-
-  conclusion:
-    name: Conclusion
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [static-analysis]
-    steps:
-      - name: Check job statuses
-        run: |
-          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
-            exit 1
-          fi
-        env:
-          RESULTS: ${{ join(needs.*.result, ',') }}

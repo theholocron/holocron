@@ -23,13 +23,21 @@ describe("WORKFLOW_TEMPLATES", () => {
 		}
 	});
 
-	it("check contexts point at real workflow names and use the Conclusion aggregate job", () => {
+	it("check contexts point at real workflow names, in '{workflow} / {job}' form", () => {
 		for (const [name, context] of Object.entries(WORKFLOW_CHECK_CONTEXTS)) {
 			expect(KNOWN_WORKFLOWS.has(name)).toBe(true);
-			expect(context).toMatch(/ \/ Conclusion$/);
+			expect(context).toMatch(/ \/ /);
 		}
-		expect(WORKFLOW_CHECK_CONTEXTS["sourceQuality.staticAnalysis"]).toBe("Static Analysis / Conclusion");
-		expect(WORKFLOW_CHECK_CONTEXTS["delivery.bundleSize"]).toBe("Audit the Bundle Size / Conclusion");
+	});
+
+	it("uses the Conclusion aggregate only for genuinely multi-job tasks", () => {
+		// verification.unitTests (5 conditional jobs) and platform.repoValidation
+		// (2 jobs that both must pass) need a fan-in; every other task is a
+		// single always-run job, so its own conclusion already is the check.
+		expect(WORKFLOW_CHECK_CONTEXTS["verification.unitTests"]).toBe("Test / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["platform.repoValidation"]).toBe("Repo Validation / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["sourceQuality.staticAnalysis"]).toBe("Static Analysis / Static Analysis");
+		expect(WORKFLOW_CHECK_CONTEXTS["delivery.bundleSize"]).toBe("Audit the bundle size / Audit the bundle size");
 	});
 });
 

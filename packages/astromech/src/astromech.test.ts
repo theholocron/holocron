@@ -367,7 +367,7 @@ describe("createAstromech().requiredChecks", () => {
 				extraRequiredChecks: ["codecov/patch"],
 			},
 		}).requiredChecks();
-		expect(checks).toEqual(["Static Analysis / Conclusion", "Test / Conclusion", "codecov/patch"]);
+		expect(checks).toEqual(["Static Analysis / Static Analysis", "Test / Conclusion", "codecov/patch"]);
 	});
 });
 

@@ -1,4 +1,4 @@
-name: Knip
+name: Dead Code Analysis
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -7,8 +7,8 @@ on: # yamllint disable-line rule:truthy
         required: false
 
 jobs:
-  knip:
-    name: Knip
+  dead-code-analysis:
+    name: Dead Code Analysis
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -26,20 +26,6 @@ jobs:
         name: Setup
 
       - uses: theholocron/.github/.github/actions/holocron@main
-        name: Run Knip
+        name: Run knip
         with:
           task: sourceQuality.deadCodeAnalysis
-
-  conclusion:
-    name: Conclusion
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [knip]
-    steps:
-      - name: Check job statuses
-        run: |
-          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
-            exit 1
-          fi
-        env:
-          RESULTS: ${{ join(needs.*.result, ',') }}
