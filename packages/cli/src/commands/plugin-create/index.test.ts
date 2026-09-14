@@ -209,7 +209,7 @@ describe("Rendered content sanity", () => {
 		const content = fs.get(pkg!)!;
 		expect(content).toMatch(/@theholocron\/holocron-plugin-acme/);
 		expect(content).toMatch(/"peerDependencies":\s*{\s*"@theholocron\/cli":/);
-		expect(content).toMatch(/"delivery\.build":\s*"holocron run delivery\.build --"/);
+		expect(content).toMatch(/"delivery\.build":\s*"tsdown"/);
 	});
 
 	it("auth.ts uses the 4-step precedence with keyring + custom env vars", () => {

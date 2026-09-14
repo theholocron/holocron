@@ -20,7 +20,13 @@ export function render(inputs: TemplateInputs): string {
 				main: "./src/index.ts",
 				exports: { ".": "./src/index.ts" },
 				scripts: {
-					"delivery.build": "holocron run delivery.build --",
+					// delivery.build stays a direct tool invocation, never `holocron run` —
+					// this repo carries @theholocron/cli as workspace:*, so its own dist
+					// doesn't exist until something builds it; routing build itself through
+					// the CLI it's building is circular ("holocron: not found" on a cold
+					// checkout, before anything has built). Every other task is safe to
+					// gateway through holocron since it always runs after a build.
+					"delivery.build": "tsdown",
 					"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
 					"verification.typeSafety": "holocron run verification.typeSafety --",
 					"verification.unitTests": "holocron run verification.unitTests --",
