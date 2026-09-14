@@ -1056,7 +1056,7 @@ describe("runSetup", () => {
 			required_status_checks: [
 				{ context: "DCO" },
 				{ context: "Typecheck / tsc --noEmit" },
-				{ context: "Static Analysis / Static Analysis" },
+				{ context: "Static Analysis / Run eslint and actionlint" },
 				{ context: "Test / Conclusion" },
 			],
 		});
@@ -1099,7 +1099,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Static Analysis / Static Analysis" },
+				{ context: "Static Analysis / Run eslint and actionlint" },
 				{ context: "some-extra-check" },
 			],
 		});
