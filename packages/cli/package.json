@@ -41,11 +41,11 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "start": "node ./dist/cli.mjs",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "dependencies": {
     "@axiomhq/pino": "catalog:",
