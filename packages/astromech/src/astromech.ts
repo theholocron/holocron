@@ -236,7 +236,13 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				// task still runs locally even though its own `local` is null.
 				const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
 				if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
-				out[entry.name] = `holocron run ${entry.name}`;
+				// Trailing `--` matters: turbo/pnpm append extra args to a script's
+				// command text directly, without inserting their own `--` — e.g.
+				// `pnpm run <task> --coverage`, not `pnpm run <task> -- --coverage`.
+				// Without it here, that lands as an argument to `holocron run`
+				// itself ("Unknown argument: coverage"), not as passthrough to the
+				// tool. A bare trailing `--` is a no-op when nothing gets appended.
+				out[entry.name] = `holocron run ${entry.name} --`;
 			}
 			// Enabled hooks need `husky` to run on install to register the hook path.
 			const hooks = options.config.hooks;

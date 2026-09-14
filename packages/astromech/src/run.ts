@@ -161,7 +161,13 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		}
 		const runner = resolveRunner(def.local, cwd, listDir);
 		if (runner) {
-			const flags = def.flags?.[runner.tool] ?? [];
+			// Step 1 already forwards these same org-default flags through `--`
+			// when delegating to turbo, so a leaf package whose own script is
+			// itself a `holocron run <task>` wrapper (step 2's recursion-skip)
+			// would otherwise see them twice by the time turbo's fan-out lands
+			// back here — e.g. `vitest run --coverage --coverage`. Drop any
+			// already present in passthrough rather than appending blindly.
+			const flags = (def.flags?.[runner.tool] ?? []).filter((f) => !passthrough.includes(f));
 			const bin = resolveBin(cwd, runner.tool, fileExists);
 			return run(bin, [...runner.args, ...flags, ...passthrough]);
 		}

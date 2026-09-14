@@ -253,10 +253,10 @@ describe("createAstromech().packageScripts", () => {
 		});
 		expect(astromech.packageScripts()).toEqual({
 			holocron: "holocron",
-			"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis",
-			"verification.unitTests": "holocron run verification.unitTests",
-			"verification.typeSafety": "holocron run verification.typeSafety",
-			"delivery.build": "holocron run delivery.build",
+			"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+			"verification.unitTests": "holocron run verification.unitTests --",
+			"verification.typeSafety": "holocron run verification.typeSafety --",
+			"delivery.build": "holocron run delivery.build --",
 		});
 	});
 
@@ -273,7 +273,7 @@ describe("createAstromech().packageScripts", () => {
 		});
 		expect(astromech.packageScripts()).toEqual({
 			holocron: "holocron",
-			"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis",
+			"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
 		});
 	});
 
@@ -289,7 +289,7 @@ describe("createAstromech().packageScripts", () => {
 		});
 		expect(astromech.packageScripts()).toEqual({
 			holocron: "node packages/cli/dist/cli.mjs",
-			"verification.unitTests": "holocron run verification.unitTests",
+			"verification.unitTests": "holocron run verification.unitTests --",
 		});
 	});
 
