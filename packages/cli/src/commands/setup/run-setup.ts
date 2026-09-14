@@ -76,6 +76,15 @@ const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/setup/run-setup.ts",
 	tool: "holocron setup",
 });
+// Thin-caller workflow content comes from astromech.thinCallers(), not this
+// file — a separate binding so its header points contributors at the actual
+// template/generation logic (packages/astromech/src/thin-callers.ts), same as
+// the workflowHeader() calls further down that write genuinely cli-owned
+// templates (labeler.yml, dependabot.yml, dco.yml, config.yml).
+const { workflowHeader: thinCallerHeader } = createHeader({
+	source: "packages/astromech/src/thin-callers.ts",
+	tool: "holocron setup",
+});
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -221,7 +230,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			const step = withPreview ? `write workflow ${name} (with preview)` : `write workflow ${name}`;
 			steps.push(
 				await runStep("source", step, dryRun, async () => {
-					await source.writeWorkflowFile(filename, `${workflowHeader()}${content}`);
+					await source.writeWorkflowFile(filename, `${thinCallerHeader()}${content}`);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));

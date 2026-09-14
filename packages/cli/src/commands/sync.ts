@@ -13,8 +13,11 @@ import { createHeader } from "../utils/create-header.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
 
+// The only content this file ever prefixes with workflowHeader() is thin-caller
+// workflow content from astromech.thinCallers() — sync.ts just writes it. The
+// actual template/generation logic a contributor would edit lives there.
 const { workflowHeader } = createHeader({
-	source: "packages/cli/src/commands/sync.ts",
+	source: "packages/astromech/src/thin-callers.ts",
 	tool: "holocron sync",
 });
 import { runSyncReadme } from "./sync-readme.js";
