@@ -153,6 +153,15 @@ export const TASKS: Record<string, TaskDef> = {
 				local: { tool: "node", args: ["scripts/validate-registry.mjs"] },
 				checkContext: "platform.repoValidation / Registry",
 			},
+			// Warns (never fails — the script itself always exits 0) when a PR
+			// adds a new public package without a docs change. Doesn't actually
+			// require a docs *site* to be meaningful (just "was something
+			// documented"), so it belongs here with its process/governance
+			// siblings, not gated behind knowledge.docs.
+			docsPresence: {
+				local: { tool: "node", args: ["scripts/validate-docs-presence.mjs"] },
+				checkContext: "platform.repoValidation / Docs presence",
+			},
 		},
 	},
 

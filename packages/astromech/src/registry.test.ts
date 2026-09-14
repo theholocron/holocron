@@ -67,9 +67,10 @@ describe("TASKS registry", () => {
 
 	it("platform.repoValidation bundles the process/governance scripts as jobs, not a linterGroup", () => {
 		const jobs = TASKS["platform.repoValidation"]!.jobs!;
-		expect(Object.keys(jobs)).toEqual(["adrs", "registry"]);
+		expect(Object.keys(jobs)).toEqual(["adrs", "registry", "docsPresence"]);
 		expect(jobs.adrs!.local).toEqual({ tool: "node", args: ["scripts/validate-adrs.mjs"] });
 		expect(jobs.registry!.local).toEqual({ tool: "node", args: ["scripts/validate-registry.mjs"] });
+		expect(jobs.docsPresence!.local).toEqual({ tool: "node", args: ["scripts/validate-docs-presence.mjs"] });
 	});
 
 	it("preview-carrying tasks are flagged, not their own namespace (cross-cutting feature, not a task)", () => {

@@ -313,7 +313,7 @@ describe("runTask — sub-jobs", () => {
 		const report = call("platform.repoValidation", { job: "frobnicate" });
 		expect(report.status).toBe("unknown");
 		expect(report.message).toBe('unknown job "platform.repoValidation frobnicate"');
-		expect(lines.join("\n")).toMatch(/known: adrs, registry/);
+		expect(lines.join("\n")).toMatch(/known: adrs, registry, docsPresence/);
 	});
 
 	it("`holocron run platform.repoValidation` with no job runs every job in declared order", () => {
@@ -323,10 +323,14 @@ describe("runTask — sub-jobs", () => {
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			["scripts/validate-adrs.mjs"],
 			["scripts/validate-registry.mjs"],
+			["scripts/validate-docs-presence.mjs"],
 		]);
 		const out = lines.join("\n");
 		expect(out.indexOf("platform.repoValidation / ADRs and specs")).toBeLessThan(
 			out.indexOf("platform.repoValidation / Registry")
+		);
+		expect(out.indexOf("platform.repoValidation / Registry")).toBeLessThan(
+			out.indexOf("platform.repoValidation / Docs presence")
 		);
 	});
 

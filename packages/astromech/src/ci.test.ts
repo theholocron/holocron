@@ -152,6 +152,7 @@ describe("runCi", () => {
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			["scripts/validate-adrs.mjs"],
 			["scripts/validate-registry.mjs"],
+			["scripts/validate-docs-presence.mjs"],
 		]);
 		// still one task-level row in the report
 		expect(report.jobs.find((j) => j.task === "platform.repoValidation")!.status).toBe("ok");

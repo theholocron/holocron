@@ -129,6 +129,9 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
 			/task: platform\.repoValidation\n\s+job: registry/
 		);
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
+			/task: platform\.repoValidation\n\s+job: docsPresence/
+		);
 	});
 
 	it("no reusable workflow invokes the super-linter action anymore (D12)", () => {
