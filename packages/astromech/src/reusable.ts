@@ -17,46 +17,60 @@ import holocronAction from "./templates/reusable/actions/holocron.yml";
 import installAction from "./templates/reusable/actions/install.yml";
 import setupAction from "./templates/reusable/actions/setup.yml";
 import setupNodeAction from "./templates/reusable/actions/setup-node.yml";
-import auditWorkflow from "./templates/reusable/audit.yml";
 import bookkeepingWorkflow from "./templates/reusable/bookkeeping.yml";
+import bundleSizeWorkflow from "./templates/reusable/delivery.bundleSize.yml";
+import deployWorkflow from "./templates/reusable/delivery.deploy.yml";
+import publishWorkflow from "./templates/reusable/delivery.publish.yml";
 import dependenciesWorkflow from "./templates/reusable/dependencies.yml";
-import deployWorkflow from "./templates/reusable/deploy.yml";
 import greetingsWorkflow from "./templates/reusable/greetings.yml";
-import lintWorkflow from "./templates/reusable/lint.yml";
+import wikiWorkflow from "./templates/reusable/knowledge.wiki.yml";
+import commitStandardsWorkflow from "./templates/reusable/platform.commitStandards.yml";
+import repoSyncWorkflow from "./templates/reusable/platform.repoSync.yml";
+import repoValidationWorkflow from "./templates/reusable/platform.repoValidation.yml";
 import previewWorkflow from "./templates/reusable/preview.yml";
-import releaseWorkflow from "./templates/reusable/release.yml";
 import reviewWorkflow from "./templates/reusable/review.yml";
-import securityWorkflow from "./templates/reusable/security.yml";
+import codeScanningWorkflow from "./templates/reusable/security.codeScanning.yml";
+import secretDetectionWorkflow from "./templates/reusable/security.secretDetection.yml";
+import deadCodeAnalysisWorkflow from "./templates/reusable/sourceQuality.deadCodeAnalysis.yml";
+import formattingWorkflow from "./templates/reusable/sourceQuality.formatting.yml";
+import staticAnalysisWorkflow from "./templates/reusable/sourceQuality.staticAnalysis.yml";
+import structuredDataValidationWorkflow from "./templates/reusable/sourceQuality.structuredDataValidation.yml";
 import staleWorkflow from "./templates/reusable/stale.yml";
-import syncWorkflow from "./templates/reusable/sync.yml";
 import syncDispatchWorkflow from "./templates/reusable/sync-dispatch.yml";
 import syncGithubWorkflow from "./templates/reusable/sync-github.yml";
 import tagWorkflow from "./templates/reusable/tag.yml";
-import testWorkflow from "./templates/reusable/test.yml";
-import typecheckWorkflow from "./templates/reusable/typecheck.yml";
-import wikiWorkflow from "./templates/reusable/wiki.yml";
+import performanceWorkflow from "./templates/reusable/verification.performance.yml";
+import typeSafetyWorkflow from "./templates/reusable/verification.typeSafety.yml";
+import unitTestsWorkflow from "./templates/reusable/verification.unitTests.yml";
 import { WORKFLOW_TEMPLATES } from "./thin-callers.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
 export const REUSABLE_WORKFLOWS: Record<string, string> = {
-	audit: auditWorkflow,
+	"verification.unitTests": unitTestsWorkflow,
+	"verification.typeSafety": typeSafetyWorkflow,
+	"verification.performance": performanceWorkflow,
+	"sourceQuality.staticAnalysis": staticAnalysisWorkflow,
+	"sourceQuality.formatting": formattingWorkflow,
+	"sourceQuality.structuredDataValidation": structuredDataValidationWorkflow,
+	"sourceQuality.deadCodeAnalysis": deadCodeAnalysisWorkflow,
+	"security.secretDetection": secretDetectionWorkflow,
+	"security.codeScanning": codeScanningWorkflow,
+	"delivery.publish": publishWorkflow,
+	"delivery.deploy": deployWorkflow,
+	"delivery.bundleSize": bundleSizeWorkflow,
+	"platform.repoSync": repoSyncWorkflow,
+	"platform.commitStandards": commitStandardsWorkflow,
+	"platform.repoValidation": repoValidationWorkflow,
+	"knowledge.wiki": wikiWorkflow,
 	bookkeeping: bookkeepingWorkflow,
 	dependencies: dependenciesWorkflow,
-	deploy: deployWorkflow,
 	preview: previewWorkflow,
-	security: securityWorkflow,
 	greetings: greetingsWorkflow,
-	lint: lintWorkflow,
-	release: releaseWorkflow,
 	review: reviewWorkflow,
 	stale: staleWorkflow,
 	"sync-dispatch": syncDispatchWorkflow,
 	tag: tagWorkflow,
 	"sync-github": syncGithubWorkflow,
-	sync: syncWorkflow,
-	test: testWorkflow,
-	typecheck: typecheckWorkflow,
-	wiki: wikiWorkflow,
 };
 
 /** Composite actions → `.github/actions/<name>/action.yml` (key includes `/action`). */

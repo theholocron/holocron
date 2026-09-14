@@ -1,0 +1,14 @@
+name: Audit the Bundle Size
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle-size:
+    uses: theholocron/.github/.github/workflows/delivery.bundleSize.yml@main
+    secrets: inherit

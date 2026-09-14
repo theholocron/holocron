@@ -3,7 +3,19 @@
  * Actions. `holocron run <task>` and `holocron ci` resolve against this;
  * adding a task here gives every repo that task.
  *
- * Keyed identically to the workflow templates — a task IS a workflow.
+ * Keyed identically to the workflow templates — a task IS a workflow. This
+ * is the canonical vocabulary table (epic #672, D11): every other artifact
+ * (`KNOWN_TASKS`, `thin-callers.ts`'s `KNOWN_WORKFLOWS`/`WORKFLOW_CHECK_CONTEXTS`,
+ * `CI_ORDER`) derives from these keys rather than hand-duplicating them —
+ * including the future GitHub App (#679), which imports this same table for
+ * config-schema validation instead of reimplementing its own copy.
+ *
+ * Task names are an intent-facing vocabulary (`verification.*`,
+ * `sourceQuality.*`, `security.*`, `delivery.*`, `platform.*`,
+ * `knowledge.*`), not tool names — `eslint`/`vitest`/`tsdown`/… stay
+ * internal to this file and `theholocron/configs`. See
+ * `.notes/tech-vocabulary-rename.spec.md` (#675) for the full mapping and
+ * the reasoning behind each namespace and decomposition.
  *
  * Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md` (epic #581).
  */
@@ -35,41 +47,78 @@ export interface JobDef {
 
 export interface TaskDef {
 	/**
-	 * `null` — the registry has no built-in runner (CodeQL, deploys, audit's
-	 * server / baseline jobs). An explicit turbo task or `package.json` script
-	 * still runs (resolution steps 1–2); with neither, `holocron run` does
-	 * nothing and `holocron ci` skips it — never a failure, even when the task
-	 * is `required` (a CI-only check isn't a local one).
+	 * `null` — the registry has no built-in runner (CodeQL, deploys, the
+	 * bundle-size job). An explicit turbo task or `package.json` script still
+	 * runs (resolution steps 1–2); with neither, `holocron run` does nothing
+	 * and `holocron ci` skips it — never a failure, even when the task is
+	 * `required` (a CI-only check isn't a local one).
 	 */
 	local: LocalRunner | null;
 	/**
-	 * Sub-jobs, keyed by slug — `holocron run audit performance`. Declared order
-	 * is run order: `holocron run audit` (no job) runs each in turn.
+	 * Sub-jobs, keyed by slug. Declared order is run order: `holocron run
+	 * <task>` (no job) runs each in turn.
 	 */
 	jobs?: Record<string, JobDef>;
 	/** Org-default flags injected by tool name. Removed by a repo override. */
 	flags?: Record<string, string[]>;
 	/**
-	 * This task is the linter aggregate: `holocron run lint` resolves the
-	 * linter set (`config.tasks` `linters` or auto-detect) and runs each
-	 * natively instead of using `local`. See `linters.ts` / `super-linter.ts`.
+	 * This task is a linter-group aggregate: `holocron run <task>` resolves
+	 * this fixed set of `linters.ts` entries (still gated by each linter's
+	 * own `detect`/`always` rule) and runs each natively, instead of using
+	 * `local`. Replaces the old single `lint` task's auto-detected linter
+	 * list (`config.tasks[].linters`) — a repo's choice of which of these
+	 * run is now just whether it includes this task in `tasks: [...]`, same
+	 * as any other task. See `linters.ts` / `run.ts`.
 	 */
-	linters?: boolean;
+	linterGroup?: string[];
+	/** Carries a `preview` mode (Cloudflare/Vercel deploy, npm dist-tag, Fern preview docs, …). Cross-cutting, not its own task. */
+	preview?: boolean;
 }
 
 export const TASKS: Record<string, TaskDef> = {
-	test: {
+	// ── verification.* — does the code work? ──────────────────────────────
+	"verification.unitTests": {
 		local: { tool: "vitest", args: ["run"] },
 		flags: { vitest: ["--coverage"] },
 	},
-	typecheck: {
+	"verification.typeSafety": {
 		local: { tool: "tsc", args: ["--noEmit"] },
 	},
-	lint: {
-		local: { tool: "eslint", args: ["."] },
-		linters: true,
+	"verification.performance": {
+		local: {
+			detect: [
+				{ when: /^lighthouse\.config\.(cjs|js|mjs|ts)$/, tool: "lhci", args: ["autorun"] },
+				{ when: /^lighthouserc\.(cjs|js|mjs|json|yml|yaml)$/, tool: "lhci", args: ["autorun"] },
+			],
+		},
 	},
-	build: {
+
+	// ── sourceQuality.* — is the source well-formed? ──────────────────────
+	"sourceQuality.staticAnalysis": {
+		local: null,
+		linterGroup: ["eslint", "actionlint", "git-merge-conflict-markers"],
+	},
+	"sourceQuality.formatting": {
+		local: null,
+		linterGroup: ["prettier", "editorconfig", "markdownlint"],
+	},
+	"sourceQuality.structuredDataValidation": {
+		local: null,
+		linterGroup: ["yamllint"],
+	},
+	"sourceQuality.deadCodeAnalysis": {
+		local: { tool: "knip" },
+	},
+
+	// ── security.* ─────────────────────────────────────────────────────────
+	"security.secretDetection": {
+		local: null,
+		linterGroup: ["gitleaks"],
+	},
+	"security.codeScanning": { local: null },
+
+	// ── delivery.* — shipping software (npm packages, deployed apps) ──────
+	"delivery.build": {
 		local: {
 			detect: [
 				{ when: /^tsdown\.config\.(ts|js|mjs|cjs)$/, tool: "tsdown" },
@@ -79,36 +128,37 @@ export const TASKS: Record<string, TaskDef> = {
 			],
 		},
 	},
+	"delivery.publish": { local: null, preview: true },
+	"delivery.deploy": { local: null, preview: true },
+	"delivery.bundleSize": { local: null },
 
-	// Tasks that ARE holocron subcommands — `holocron run sync` → `holocron sync`.
-	sync: { local: { command: "sync" } },
-	wiki: { local: { command: "sync-wiki" } },
-
-	// No built-in top-level runner. `holocron run audit` / `holocron ci` still
-	// honour an explicit turbo task or `package.json` script (e.g. `"audit":
-	// "knip"`); with neither, `holocron run audit` runs each sub-job in declared
-	// order — `bundle-size` (CI-only), `knip`, `performance`.
-	audit: {
+	// ── platform.* — operating the repo itself ────────────────────────────
+	"platform.repoSync": { local: { command: "sync" } },
+	"platform.commitStandards": {
+		local: null,
+		linterGroup: ["commitlint"],
+	},
+	// Process/governance checks that rode inside the old monolithic `lint`
+	// task with no linter connection at all — spec/ADR frontmatter, registry
+	// completeness. Not `linters.ts` entries (not linters), so plain jobs.
+	"platform.repoValidation": {
 		local: null,
 		jobs: {
-			// Build + upload bundle stats to Codecov — no meaningful local equivalent.
-			"bundle-size": { local: null, checkContext: "audit / Audit the bundle size" },
-			// Dead-code / unused-dependency analysis.
-			knip: { local: { tool: "knip" }, checkContext: "audit / Knip" },
-			// Lighthouse CI — only runnable with a lighthouse config in the repo root.
-			performance: {
-				local: {
-					detect: [
-						{ when: /^lighthouse\.config\.(cjs|js|mjs|ts)$/, tool: "lhci", args: ["autorun"] },
-						{ when: /^lighthouserc\.(cjs|js|mjs|json|yml|yaml)$/, tool: "lhci", args: ["autorun"] },
-					],
-				},
-				checkContext: "audit / Audit the performance",
+			adrs: {
+				local: { tool: "node", args: ["scripts/validate-adrs.mjs"] },
+				checkContext: "platform.repoValidation / ADRs and specs",
+			},
+			registry: {
+				local: { tool: "node", args: ["scripts/validate-registry.mjs"] },
+				checkContext: "platform.repoValidation / Registry",
 			},
 		},
 	},
-	codeql: { local: null },
-	deploy: { local: null },
+
+	// ── knowledge.* — published content, not software ─────────────────────
+	"knowledge.wiki": { local: { command: "sync-wiki" }, preview: true },
+	"knowledge.docs": { local: null, preview: true },
+	"knowledge.components": { local: null, preview: true },
 };
 
 /** Every task name the registry knows. */
@@ -120,4 +170,19 @@ export const KNOWN_TASKS = new Set(Object.keys(TASKS));
  * manifest order. (The generated thin callers carry no `needs:` — cross-workflow
  * ordering lives in `theholocron/.github` — so `holocron ci` declares its own.)
  */
-export const CI_ORDER: string[] = ["typecheck", "lint", "test", "build", "audit", "codeql", "deploy"];
+export const CI_ORDER: string[] = [
+	"verification.typeSafety",
+	"sourceQuality.staticAnalysis",
+	"sourceQuality.formatting",
+	"sourceQuality.structuredDataValidation",
+	"security.secretDetection",
+	"platform.commitStandards",
+	"platform.repoValidation",
+	"verification.unitTests",
+	"delivery.build",
+	"sourceQuality.deadCodeAnalysis",
+	"delivery.bundleSize",
+	"verification.performance",
+	"security.codeScanning",
+	"delivery.deploy",
+];

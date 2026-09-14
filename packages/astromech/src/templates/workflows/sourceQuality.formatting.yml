@@ -1,4 +1,4 @@
-name: Lint
+name: Formatting
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -6,16 +6,15 @@ on: # yamllint disable-line rule:truthy
   pull_request:
 
 concurrency:
-  group: lint-${{ github.ref }}
+  group: source-quality-formatting-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: write
-  issues: write
   statuses: write
 
 jobs:
-  lint:
-    name: Lint
-    uses: theholocron/.github/.github/workflows/lint.yml@main
+  formatting:
+    name: Formatting
+    uses: theholocron/.github/.github/workflows/sourceQuality.formatting.yml@main
     secrets: inherit

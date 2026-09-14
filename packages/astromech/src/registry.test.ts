@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry.js";
 
 describe("TASKS registry", () => {
-	it("keys are lower-case task names matching workflow templates", () => {
+	it("keys are the intent-facing dotted vocabulary (namespace.taskName)", () => {
 		for (const key of Object.keys(TASKS)) {
-			expect(key).toMatch(/^[a-z][a-z-]*$/);
+			expect(key).toMatch(/^[a-z][a-zA-Z]*\.[a-zA-Z]+$/);
 		}
 	});
 
@@ -33,40 +33,64 @@ describe("TASKS registry", () => {
 		}
 	});
 
-	it("build detects tsdown before vite before tsc", () => {
-		const detect = TASKS.build!.local!.detect!;
+	it("delivery.build detects tsdown before vite before tsc", () => {
+		const detect = TASKS["delivery.build"]!.local!.detect!;
 		expect(detect.map((d) => d.tool)).toEqual(["tsdown", "vite", "rollup", "tsc"]);
 		expect(detect[0]!.when.test("tsdown.config.ts")).toBe(true);
 		expect(detect[0]!.when.test("tsdown.config.mjs")).toBe(true);
 		expect(detect[1]!.when.test("vite.config.js")).toBe(true);
 	});
 
-	it("test carries the --coverage org default for vitest", () => {
-		expect(TASKS.test!.flags?.vitest).toEqual(["--coverage"]);
+	it("verification.unitTests carries the --coverage org default for vitest", () => {
+		expect(TASKS["verification.unitTests"]!.flags?.vitest).toEqual(["--coverage"]);
 	});
 
-	it("lint is marked as the linter aggregate", () => {
-		expect(TASKS.lint!.linters).toBe(true);
-		expect(KNOWN_TASKS.has("lint")).toBe(true);
+	it("the lint-decomposed tasks each declare their fixed linterGroup, no auto-detect override", () => {
+		expect(TASKS["sourceQuality.staticAnalysis"]!.linterGroup).toEqual([
+			"eslint",
+			"actionlint",
+			"git-merge-conflict-markers",
+		]);
+		expect(TASKS["sourceQuality.formatting"]!.linterGroup).toEqual(["prettier", "editorconfig", "markdownlint"]);
+		expect(TASKS["sourceQuality.structuredDataValidation"]!.linterGroup).toEqual(["yamllint"]);
+		expect(TASKS["security.secretDetection"]!.linterGroup).toEqual(["gitleaks"]);
+		expect(TASKS["platform.commitStandards"]!.linterGroup).toEqual(["commitlint"]);
 	});
 
-	it("audit declares bundle-size / knip / performance jobs, in that order", () => {
-		const jobs = TASKS.audit!.jobs!;
-		expect(Object.keys(jobs)).toEqual(["bundle-size", "knip", "performance"]);
-		expect(jobs["bundle-size"]!.local).toBeNull();
-		expect(jobs.knip!.local).toEqual({ tool: "knip" });
-		expect(jobs.performance!.local!.detect!.map((d) => d.tool)).toEqual(["lhci", "lhci"]);
-		expect(jobs.performance!.local!.detect![0]!.when.test("lighthouse.config.cjs")).toBe(true);
+	it("the audit-decomposed tasks are standalone, not nested under one 'audit' task", () => {
+		expect(KNOWN_TASKS.has("audit")).toBe(false);
+		expect(TASKS["sourceQuality.deadCodeAnalysis"]!.local).toEqual({ tool: "knip" });
+		expect(TASKS["delivery.bundleSize"]!.local).toBeNull();
+		expect(TASKS["verification.performance"]!.local!.detect!.map((d) => d.tool)).toEqual(["lhci", "lhci"]);
+		expect(TASKS["verification.performance"]!.local!.detect![0]!.when.test("lighthouse.config.cjs")).toBe(true);
 	});
 
-	it("every job maps to a `audit / …` check context", () => {
-		const contexts = Object.values(TASKS.audit!.jobs!).map((j) => j.checkContext);
-		expect(contexts).toEqual(["audit / Audit the bundle size", "audit / Knip", "audit / Audit the performance"]);
+	it("platform.repoValidation bundles the process/governance scripts as jobs, not a linterGroup", () => {
+		const jobs = TASKS["platform.repoValidation"]!.jobs!;
+		expect(Object.keys(jobs)).toEqual(["adrs", "registry"]);
+		expect(jobs.adrs!.local).toEqual({ tool: "node", args: ["scripts/validate-adrs.mjs"] });
+		expect(jobs.registry!.local).toEqual({ tool: "node", args: ["scripts/validate-registry.mjs"] });
+	});
+
+	it("preview-carrying tasks are flagged, not their own namespace (cross-cutting feature, not a task)", () => {
+		expect(TASKS["delivery.publish"]!.preview).toBe(true);
+		expect(TASKS["delivery.deploy"]!.preview).toBe(true);
+		expect(TASKS["knowledge.wiki"]!.preview).toBe(true);
+		expect(TASKS["knowledge.docs"]!.preview).toBe(true);
+		expect(TASKS["knowledge.components"]!.preview).toBe(true);
+	});
+
+	it("no tool name (eslint, vitest, tsdown, …) leaks into a task key", () => {
+		for (const key of Object.keys(TASKS)) {
+			expect(key.toLowerCase()).not.toMatch(/eslint|prettier|vitest|tsdown|knip|gitleaks|yamllint/);
+		}
 	});
 
 	it("CI_ORDER lists known tasks, cheapest first", () => {
 		for (const name of CI_ORDER) expect(KNOWN_TASKS.has(name)).toBe(true);
-		expect(CI_ORDER.indexOf("typecheck")).toBeLessThan(CI_ORDER.indexOf("test"));
-		expect(CI_ORDER.indexOf("lint")).toBeLessThan(CI_ORDER.indexOf("test"));
+		expect(CI_ORDER.indexOf("verification.typeSafety")).toBeLessThan(CI_ORDER.indexOf("verification.unitTests"));
+		expect(CI_ORDER.indexOf("sourceQuality.staticAnalysis")).toBeLessThan(
+			CI_ORDER.indexOf("verification.unitTests")
+		);
 	});
 });

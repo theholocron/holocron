@@ -16,11 +16,6 @@ import { requiredChecks as resolveRequiredChecks } from "./required-checks.js";
 import { reusableTemplates as resolveReusableTemplates } from "./reusable.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./run.js";
 import {
-	lintThinCallerWith,
-	type SuperLinterConfig,
-	superLinterConfig as resolveSuperLinterConfig,
-} from "./super-linter.js";
-import {
 	deriveDeployPaths,
 	extractPreviewConfig,
 	generateCombinedDeployContent,
@@ -106,14 +101,6 @@ export interface Astromech {
 	 */
 	packageScripts(): Record<string, string>;
 	/**
-	 * The resolved super-linter env for this repo's `lint` task — the CI half
-	 * of lint parity. `thinCallers()` already bakes `env` into the `lint` thin
-	 * caller's `super-linter-env` input; this method exposes the full result
-	 * for `holocron doctor` / diagnostics. Driven by the `lint` entry's
-	 * `linters` list, else auto-detection from the repo's config files.
-	 */
-	superLinterConfig(): SuperLinterConfig;
-	/**
 	 * The branch-protection required-status-check contexts for this repo —
 	 * every `required: true` task's check context plus `extraRequiredChecks`,
 	 * ordered and de-duplicated. `holocron setup` prepends `"DCO"` and applies
@@ -159,19 +146,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
 
-	const rootFiles = (): string[] => {
-		try {
-			return deps.listDir(options.cwd);
-		} catch {
-			return [];
-		}
-	};
-
-	const lintEntry = (): TaskEntry | undefined =>
-		items()
-			.filter((e) => e.name === "lint")
-			.at(-1);
-
 	return {
 		run: (task, opts = {}) =>
 			runTask({
@@ -183,7 +157,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
-				...(task === "lint" && opts.job === undefined ? { linters: lintEntry()?.linters } : {}),
 			}),
 
 		ci: (opts = {}) =>
@@ -191,7 +164,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				...deps,
 				cwd: options.cwd,
 				config: options.config ?? {},
-				linters: lintEntry()?.linters,
 				...opts,
 			}),
 
@@ -199,24 +171,28 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const orgCtx = options.orgContext ?? {};
 			const out = new Map<string, string>();
 			for (const entry of items()) {
-				if (entry.ci === false || !KNOWN_WORKFLOWS.has(entry.name)) continue;
-				const rawWith = entry.with;
+				// `delivery.deploy`, `knowledge.docs`, and `knowledge.components` all
+				// share the same combined production+preview reusable pair
+				// (`delivery.deploy.yml` / `preview.yml`) — the two new tasks are
+				// each dedicated to exactly one `type:`, so they imply the
+				// corresponding `docs`/`storybook` shorthand rather than requiring
+				// a repo to spell it out. Neither has a static `WORKFLOW_TEMPLATES`
+				// entry (their content is always generated, never a fixed base), so
+				// they're allowed through the `KNOWN_WORKFLOWS` gate explicitly.
+				const isDocsSite = entry.name === "knowledge.docs";
+				const isComponents = entry.name === "knowledge.components";
+				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(entry.name) && !isDocsSite && !isComponents)) continue;
+				const rawWith: Record<string, unknown> | undefined = isDocsSite
+					? { ...entry.with, docs: entry.with?.["docs"] ?? true }
+					: isComponents
+						? { ...entry.with, storybook: entry.with?.["storybook"] ?? [{ workingDir: "." }] }
+						: entry.with;
 				const normalized = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
 
-				let withOverrides = normalized;
-				let comments: Record<string, string> | undefined;
-				if (entry.name === "lint") {
-					const lint = lintThinCallerWith({
-						explicit: entry.linters,
-						rootFiles: rootFiles(),
-						extra: normalized,
-					});
-					withOverrides = lint.withOverrides;
-					comments = lint.comments;
-				}
+				const withOverrides = normalized;
 
 				if (
-					entry.name === "test" &&
+					entry.name === "verification.unitTests" &&
 					withOverrides?.["run-unit"] === false &&
 					withOverrides?.["run-storybook"] === false
 				) {
@@ -226,23 +202,24 @@ export function createAstromech(options: AstromechOptions): Astromech {
 					);
 				}
 
+				const isDeployFamily = entry.name === "delivery.deploy" || isDocsSite || isComponents;
 				const additionalPaths =
-					entry.paths ?? (entry.name === "deploy" && rawWith ? deriveDeployPaths(rawWith) : undefined);
+					entry.paths ?? (isDeployFamily && rawWith ? deriveDeployPaths(rawWith) : undefined);
 
-				if (entry.name === "deploy" && rawWith) {
+				if (isDeployFamily && rawWith) {
 					const preview = extractPreviewConfig(rawWith, orgCtx);
 					if (preview) {
 						// `rawWith` is truthy here, so both helpers always return a value —
 						// no `?? {}` / `?? []` fallback to leave half-covered.
 						const deployWith = normalizeWorkflowWith(rawWith);
 						const deployPaths = entry.paths ?? deriveDeployPaths(rawWith);
-						out.set("deploy.yml", generateCombinedDeployContent(deployWith, deployPaths, preview));
+						out.set(`${entry.name}.yml`, generateCombinedDeployContent(deployWith, deployPaths, preview));
 						continue;
 					}
 				}
 				out.set(
 					`${entry.name}.yml`,
-					generateThinCallerContent(entry.name, withOverrides, additionalPaths, deps.logger, comments)
+					generateThinCallerContent(entry.name, withOverrides, additionalPaths, deps.logger)
 				);
 			}
 			return out;
@@ -253,8 +230,12 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			if (!options.config || options.config.syncScripts === false) return out;
 			out.holocron = options.config.holocronScript ?? "holocron";
 			for (const entry of items()) {
-				if (entry.local === false || !KNOWN_TASKS.has(entry.name) || TASKS[entry.name]?.local === null)
-					continue;
+				const def = TASKS[entry.name];
+				// `local: null` alone means genuinely no local equivalent
+				// (security.codeScanning, delivery.deploy); a `linterGroup` or `jobs`
+				// task still runs locally even though its own `local` is null.
+				const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
+				if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
 				out[entry.name] = `holocron run ${entry.name}`;
 			}
 			// Enabled hooks need `husky` to run on install to register the hook path.
@@ -263,8 +244,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			if (hooksOn) out.prepare = "husky";
 			return out;
 		},
-
-		superLinterConfig: () => resolveSuperLinterConfig({ explicit: lintEntry()?.linters, rootFiles: rootFiles() }),
 
 		reusableTemplates: () => resolveReusableTemplates(),
 

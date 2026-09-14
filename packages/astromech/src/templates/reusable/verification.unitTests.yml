@@ -75,7 +75,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run tests with coverage
         with:
-          task: test
+          task: verification.unitTests
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload coverage to Codecov

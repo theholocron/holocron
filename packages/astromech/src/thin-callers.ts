@@ -6,38 +6,52 @@
  * into the thin caller `holocron setup` / `holocron sync` write locally.
  */
 
-import auditYml from "./templates/workflows/audit.yml";
 import bookkeepingYml from "./templates/workflows/bookkeeping.yml";
+import bundleSizeYml from "./templates/workflows/delivery.bundleSize.yml";
+import deployYml from "./templates/workflows/delivery.deploy.yml";
+import publishYml from "./templates/workflows/delivery.publish.yml";
 import dependenciesYml from "./templates/workflows/dependencies.yml";
-import deployYml from "./templates/workflows/deploy.yml";
 import greetingsYml from "./templates/workflows/greetings.yml";
-import lintYml from "./templates/workflows/lint.yml";
+import wikiYml from "./templates/workflows/knowledge.wiki.yml";
+import commitStandardsYml from "./templates/workflows/platform.commitStandards.yml";
+import repoSyncYml from "./templates/workflows/platform.repoSync.yml";
+import repoValidationYml from "./templates/workflows/platform.repoValidation.yml";
 import previewYml from "./templates/workflows/preview.yml";
-import releaseYml from "./templates/workflows/release.yml";
 import reviewYml from "./templates/workflows/review.yml";
-import securityYml from "./templates/workflows/security.yml";
+import codeScanningYml from "./templates/workflows/security.codeScanning.yml";
+import secretDetectionYml from "./templates/workflows/security.secretDetection.yml";
+import deadCodeAnalysisYml from "./templates/workflows/sourceQuality.deadCodeAnalysis.yml";
+import formattingYml from "./templates/workflows/sourceQuality.formatting.yml";
+import staticAnalysisYml from "./templates/workflows/sourceQuality.staticAnalysis.yml";
+import structuredDataValidationYml from "./templates/workflows/sourceQuality.structuredDataValidation.yml";
 import staleYml from "./templates/workflows/stale.yml";
-import syncYml from "./templates/workflows/sync.yml";
-import testYml from "./templates/workflows/test.yml";
-import typecheckYml from "./templates/workflows/typecheck.yml";
-import wikiYml from "./templates/workflows/wiki.yml";
+import performanceYml from "./templates/workflows/verification.performance.yml";
+import typeSafetyYml from "./templates/workflows/verification.typeSafety.yml";
+import unitTestsYml from "./templates/workflows/verification.unitTests.yml";
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
-	lint: lintYml,
-	test: testYml,
-	typecheck: typecheckYml,
-	security: securityYml,
+	"verification.unitTests": unitTestsYml,
+	"verification.typeSafety": typeSafetyYml,
+	"verification.performance": performanceYml,
+	"sourceQuality.staticAnalysis": staticAnalysisYml,
+	"sourceQuality.formatting": formattingYml,
+	"sourceQuality.structuredDataValidation": structuredDataValidationYml,
+	"sourceQuality.deadCodeAnalysis": deadCodeAnalysisYml,
+	"security.secretDetection": secretDetectionYml,
+	"security.codeScanning": codeScanningYml,
+	"delivery.publish": publishYml,
+	"delivery.deploy": deployYml,
+	"delivery.bundleSize": bundleSizeYml,
+	"platform.repoSync": repoSyncYml,
+	"platform.commitStandards": commitStandardsYml,
+	"platform.repoValidation": repoValidationYml,
+	"knowledge.wiki": wikiYml,
 	preview: previewYml,
 	review: reviewYml,
-	release: releaseYml,
 	stale: staleYml,
-	sync: syncYml,
 	greetings: greetingsYml,
 	dependencies: dependenciesYml,
 	bookkeeping: bookkeepingYml,
-	audit: auditYml,
-	deploy: deployYml,
-	wiki: wikiYml,
 };
 
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
@@ -47,15 +61,23 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * protection. Format: `"{workflow name} / {job name}"`.
  *
  * These name the **aggregate `Conclusion` job** (fan-in, `if: always()`), not
- * an individual inner job — `test` has several conditionally-run sub-jobs, so
- * `"Test / Conclusion"` is the only stable gate. Only merge-gating workflows
- * are listed. `astromech.requiredChecks()` reads this for every `required` task.
+ * an individual inner job — `verification.unitTests` has several
+ * conditionally-run sub-jobs, so `"Test / Conclusion"` is the only stable
+ * gate. Only merge-gating workflows are listed. `astromech.requiredChecks()`
+ * reads this for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
-	lint: "Lint / Conclusion",
-	test: "Test / Conclusion",
-	typecheck: "Typecheck / Conclusion",
-	audit: "audit / Conclusion",
+	"verification.unitTests": "Test / Conclusion",
+	"verification.typeSafety": "Typecheck / Conclusion",
+	"verification.performance": "Audit the Performance / Conclusion",
+	"sourceQuality.staticAnalysis": "Static Analysis / Conclusion",
+	"sourceQuality.formatting": "Formatting / Conclusion",
+	"sourceQuality.structuredDataValidation": "Structured Data Validation / Conclusion",
+	"sourceQuality.deadCodeAnalysis": "Dead Code Analysis / Conclusion",
+	"security.secretDetection": "Secret Detection / Conclusion",
+	"platform.commitStandards": "Commit Standards / Conclusion",
+	"platform.repoValidation": "Repo Validation / Conclusion",
+	"delivery.bundleSize": "Audit the Bundle Size / Conclusion",
 };
 
 /**
@@ -278,7 +300,7 @@ export function generateCombinedDeployContent(
 		`  deploy:`,
 		`    name: Deploy`,
 		`    if: \${{ github.event_name != 'pull_request' }}`,
-		`    uses: theholocron/.github/.github/workflows/deploy.yml@main`,
+		`    uses: theholocron/.github/.github/workflows/delivery.deploy.yml@main`,
 		...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
 		`    secrets: inherit`,
 		``,

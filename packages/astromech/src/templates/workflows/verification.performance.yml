@@ -1,0 +1,14 @@
+name: Audit the Performance
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  performance:
+    uses: theholocron/.github/.github/workflows/verification.performance.yml@main
+    secrets: inherit

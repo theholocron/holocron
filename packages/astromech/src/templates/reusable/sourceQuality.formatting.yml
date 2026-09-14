@@ -1,0 +1,99 @@
+name: Formatting
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      enable-auto-commit:
+        description: >
+          Auto-commit prettier/editorconfig/markdownlint --fix results as a
+          verified commit via a GitHub App (same App used across every
+          formatting-capable task — D12).
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      SUPER_LINTER_APP_ID:
+        required: false
+      SUPER_LINTER_PRIVATE_KEY:
+        required: false
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  formatting:
+    name: Formatting
+    permissions:
+      contents: write
+      statuses: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      APP_ID_SET: ${{ secrets.SUPER_LINTER_APP_ID != '' }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        if: >
+          inputs.enable-auto-commit == true &&
+          github.event.pull_request != null &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.ref_name != github.event.repository.default_branch &&
+          env.APP_ID_SET == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.SUPER_LINTER_APP_ID }}
+          private-key: ${{ secrets.SUPER_LINTER_PRIVATE_KEY }}
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # editorconfig-checker has no npm distribution — install the prebuilt
+      # binary via its release install script.
+      # NOTE: unverified against a live CI run at authoring time (D12) — flag
+      # here if this needs adjustment.
+      - name: Install editorconfig-checker
+        run: |
+          curl -sSL https://github.com/editorconfig-checker/editorconfig-checker/releases/latest/download/ec-linux-amd64.tar.gz \
+            | tar xz --strip-components=1 -C /usr/local/bin bin/ec-linux-amd64
+          sudo mv /usr/local/bin/ec-linux-amd64 /usr/local/bin/editorconfig-checker
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run prettier, editorconfig-checker, markdownlint
+        with:
+          task: sourceQuality.formatting
+
+      - uses: theholocron/.github/.github/actions/auto-commit@main
+        name: Commit and push formatting fixes
+        if: >
+          inputs.enable-auto-commit == true &&
+          github.event.pull_request != null &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.ref_name != github.event.repository.default_branch &&
+          env.APP_ID_SET == 'true' &&
+          steps.app-token.conclusion == 'success'
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
+          commit-message: "chore: fix formatting issues"
+          commit-options: "--no-verify"
+
+  conclusion:
+    name: Conclusion
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [formatting]
+    steps:
+      - name: Check job statuses
+        run: |
+          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
+            exit 1
+          fi
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}

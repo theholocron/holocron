@@ -18,13 +18,13 @@ jobs:
   publish:
     name: Publish
     if: ${{ github.event_name != 'pull_request' }}
-    uses: theholocron/.github/.github/workflows/wiki.yml@main
+    uses: theholocron/.github/.github/workflows/knowledge.wiki.yml@main
     secrets: inherit
 
   preview:
     name: Preview
     if: ${{ github.event_name == 'pull_request' }}
-    uses: theholocron/.github/.github/workflows/wiki.yml@main
+    uses: theholocron/.github/.github/workflows/knowledge.wiki.yml@main
     with:
       preview: true
       preview-id: pr-${{ github.event.pull_request.number }}

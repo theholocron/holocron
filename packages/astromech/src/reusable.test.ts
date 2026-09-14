@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS, reusableTemplates, WORKFLOW_TEMPLATE_PROPERTIES } from "./reusable.js";
-import { baselineSuperLinterEnv } from "./super-linter.js";
 import { WORKFLOW_TEMPLATES } from "./thin-callers.js";
 
 describe("reusableTemplates()", () => {
@@ -45,8 +44,8 @@ describe("reusableTemplates()", () => {
 		expect(action).toMatch(/if \[ "\$HOLOCRON_COMMAND" = "run" \]/);
 	});
 
-	it("sync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
-		const wf = REUSABLE_WORKFLOWS["sync"]!;
+	it("platform.repoSync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
+		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
 		expect(wf).toMatch(/command: sync/);
 		expect(wf).not.toContain("node packages/cli/dist/cli.mjs");
@@ -55,15 +54,15 @@ describe("reusableTemplates()", () => {
 	});
 
 	it("applies the do-not-edit header to YAML — no timestamp", () => {
-		const lint = batch.get(".github/workflows/lint.yml")!;
-		expect(lint.startsWith("# AUTO-GENERATED — do not edit in theholocron/.github directly.\n")).toBe(true);
-		expect(lint).toContain("# Source:  theholocron/holocron · packages/astromech/src/reusable.ts");
-		expect(lint).toContain("# Tool:    holocron sync-github");
+		const typecheck = batch.get(".github/workflows/verification.typeSafety.yml")!;
+		expect(typecheck.startsWith("# AUTO-GENERATED — do not edit in theholocron/.github directly.\n")).toBe(true);
+		expect(typecheck).toContain("# Source:  theholocron/holocron · packages/astromech/src/reusable.ts");
+		expect(typecheck).toContain("# Tool:    holocron sync-github");
 		// A live `Synced:` timestamp would defeat sync-github's unchanged-file skip.
-		expect(lint).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
-		expect(lint).not.toContain("Synced:");
+		expect(typecheck).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+		expect(typecheck).not.toContain("Synced:");
 		// header, then the real workflow
-		expect(lint).toContain("\nname: Lint\n");
+		expect(typecheck).toContain("\nname: Typecheck\n");
 	});
 
 	it("leaves the starter-workflow .properties.json bare (native JSON, no header)", () => {
@@ -79,22 +78,22 @@ describe("reusableTemplates()", () => {
 });
 
 describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
-	it("typecheck.yml runs the typecheck task through the holocron action", () => {
-		const wf = REUSABLE_WORKFLOWS["typecheck"]!;
+	it("verification.typeSafety.yml runs the task through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["verification.typeSafety"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/task: typecheck/);
+		expect(wf).toMatch(/task: verification\.typeSafety/);
 		expect(wf).not.toContain("run: pnpm typecheck");
 	});
 
-	it("test.yml unit job runs the test task through the holocron action", () => {
-		const wf = REUSABLE_WORKFLOWS["test"]!;
+	it("verification.unitTests.yml unit job runs the task through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/task: test/);
+		expect(wf).toMatch(/task: verification\.unitTests/);
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
-	it("release.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
-		const wf = REUSABLE_WORKFLOWS["release"]!;
+	it("delivery.publish.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
+		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
 		// detect the release commit semantic-release just pushed
 		expect(wf).toMatch(/BEFORE=\$\(git rev-parse HEAD\)/);
 		expect(wf).toMatch(/echo "commit=\$AFTER" >> "\$GITHUB_OUTPUT"/);
@@ -104,26 +103,43 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).toContain("codecov/codecov-action@");
 	});
 
-	it("audit.yml runs build / audit knip / audit performance through the holocron action", () => {
-		const wf = REUSABLE_WORKFLOWS["audit"]!;
-		expect(wf).not.toContain('eval "$KNIP_SCRIPT"');
-		expect(wf).not.toContain('eval "$BUILD_SCRIPT"');
-		expect(wf).not.toContain("run: lhci autorun");
-		// the build-script / knip-script inputs are gone — the command comes from
-		// the manifest, and no caller passed them
-		expect(wf).not.toMatch(/^\s+build-script:/m);
-		expect(wf).not.toMatch(/^\s+knip-script:/m);
-		expect(wf).toMatch(/task: build/);
-		expect(wf).toMatch(/task: audit\n\s+job: knip/);
-		expect(wf).toMatch(/task: audit\n\s+job: performance\n\s+args: --config=/);
-		// the bundle-stats uploader still gets its token, at the job level now
-		expect(wf).toContain("CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}");
-		expect(wf).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
+	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
+		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
+		expect(build).toMatch(/task: delivery\.build/);
+
+		const knip = REUSABLE_WORKFLOWS["sourceQuality.deadCodeAnalysis"]!;
+		expect(knip).toMatch(/task: sourceQuality\.deadCodeAnalysis/);
+
+		const performance = REUSABLE_WORKFLOWS["verification.performance"]!;
+		expect(performance).toMatch(/task: verification\.performance\n\s+args: --config=/);
+		expect(performance).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
+	});
+
+	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
+		expect(REUSABLE_WORKFLOWS["sourceQuality.staticAnalysis"]).toMatch(/task: sourceQuality\.staticAnalysis/);
+		expect(REUSABLE_WORKFLOWS["sourceQuality.formatting"]).toMatch(/task: sourceQuality\.formatting/);
+		expect(REUSABLE_WORKFLOWS["sourceQuality.structuredDataValidation"]).toMatch(
+			/task: sourceQuality\.structuredDataValidation/
+		);
+		expect(REUSABLE_WORKFLOWS["security.secretDetection"]).toMatch(/task: security\.secretDetection/);
+		// commitlint and the repo-validation scripts have no local runner — they
+		// don't go through the holocron composite action at all.
+		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain("commitlint --from");
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
+			/task: platform\.repoValidation\n\s+job: registry/
+		);
+	});
+
+	it("no reusable workflow invokes the super-linter action anymore (D12)", () => {
+		for (const wf of Object.values(REUSABLE_WORKFLOWS)) {
+			expect(wf).not.toContain("super-linter/super-linter");
+		}
 	});
 });
 
-describe("REUSABLE_WORKFLOWS.wiki — preview deployment widget", () => {
-	const wiki = REUSABLE_WORKFLOWS["wiki"]!;
+describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", () => {
+	const wiki = REUSABLE_WORKFLOWS["knowledge.wiki"]!;
 
 	it("reads the preview URL from Fern's output, not a constructed string", () => {
 		expect(wiki).toContain("id: preview");
@@ -143,28 +159,5 @@ describe("REUSABLE_WORKFLOWS.wiki — preview deployment widget", () => {
 		expect(wiki).toMatch(/^\s+fern-org:/m);
 		expect(wiki).toMatch(/^\s+base-path:/m);
 		expect(wiki).toMatch(/fern-org:\n\s+description: >\n\s+DEPRECATED/);
-	});
-});
-
-describe("REUSABLE_WORKFLOWS.lint — super-linter-env", () => {
-	const lint = REUSABLE_WORKFLOWS["lint"]!;
-
-	it("declares the super-linter-env input and expands it, not file detection", () => {
-		expect(lint).toMatch(/^ {6}super-linter-env:$/m);
-		expect(lint).toContain("Expand linter matrix");
-		expect(lint).not.toContain("Detect project features");
-	});
-
-	it("no longer hard-codes the always-on VALIDATE_* block in the super-linter step", () => {
-		const superLinterEnv = lint.slice(lint.indexOf("Run Super Linter"));
-		expect(superLinterEnv).not.toContain("# Always-on linters");
-	});
-
-	it("the input default is the astromech always-on baseline", () => {
-		const raw = lint.match(/super-linter-env:[\s\S]*?default: >-\n([\s\S]*?)\n {4}secrets:/)?.[1];
-		expect(raw).toBeDefined();
-		const parsed = JSON.parse(raw!.replace(/\n\s+/g, "")) as Record<string, string>;
-		expect(Object.keys(parsed).sort()).toEqual(Object.keys(baselineSuperLinterEnv()).sort());
-		expect(Object.values(parsed).every((v) => v === "true")).toBe(true);
 	});
 });

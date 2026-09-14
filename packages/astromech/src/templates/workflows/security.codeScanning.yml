@@ -17,5 +17,5 @@ permissions:
 
 jobs:
   security:
-    uses: theholocron/.github/.github/workflows/security.yml@main
+    uses: theholocron/.github/.github/workflows/security.codeScanning.yml@main
     secrets: inherit

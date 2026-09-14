@@ -1,4 +1,4 @@
-name: Audit
+name: Repo Validation
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -9,6 +9,6 @@ permissions:
   contents: read
 
 jobs:
-  audit:
-    uses: theholocron/.github/.github/workflows/audit.yml@main
+  repo-validation:
+    uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main
     secrets: inherit

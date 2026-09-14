@@ -38,12 +38,6 @@ export { requiredChecks } from "./required-checks.js";
 export { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS, reusableTemplates, WORKFLOW_TEMPLATE_PROPERTIES } from "./reusable.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
 export {
-	baselineSuperLinterEnv,
-	lintThinCallerWith,
-	type SuperLinterConfig,
-	superLinterConfig,
-} from "./super-linter.js";
-export {
 	deriveDeployPaths,
 	extractPreviewConfig,
 	generateCombinedDeployContent,

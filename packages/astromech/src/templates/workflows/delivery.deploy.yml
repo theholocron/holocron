@@ -17,5 +17,5 @@ permissions:
 jobs:
   deploy:
     name: Deploy
-    uses: theholocron/.github/.github/workflows/deploy.yml@main
+    uses: theholocron/.github/.github/workflows/delivery.deploy.yml@main
     secrets: inherit

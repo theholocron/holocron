@@ -49,28 +49,29 @@ distinct intent, following the same reasoning throughout: a bundle hiding
 several unrelated intents behind one name loses exactly the information this
 epic exists to surface.
 
-| New task                                 | Was                            | Tool(s)                                        | Notes                                                                                                                               |
-| ---------------------------------------- | ------------------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `verification.unitTests`                 | `test`                         | vitest                                         | carries `--coverage` org flag                                                                                                       |
-| `verification.typeSafety`                | `typecheck`                    | tsc                                            |                                                                                                                                     |
-| `verification.performance`               | `audit` → `performance` job    | lighthouse (lhci)                              | detect-gated (needs a lighthouse config)                                                                                            |
-| `sourceQuality.staticAnalysis`           | `lint` (partial)               | eslint, actionlint, git-merge-conflict-markers | linter group                                                                                                                        |
-| `sourceQuality.formatting`               | `lint` (partial)               | prettier, editorconfig, markdownlint           | linter group                                                                                                                        |
-| `sourceQuality.structuredDataValidation` | `lint` (partial)               | yamllint                                       |                                                                                                                                     |
-| `sourceQuality.deadCodeAnalysis`         | `audit` → `knip` job           | knip                                           |                                                                                                                                     |
-| `security.secretDetection`               | `lint` (partial)               | gitleaks                                       |                                                                                                                                     |
-| `security.codeScanning`                  | `codeql`                       | CodeQL                                         | GitHub's own term for what it does                                                                                                  |
-| `security.dependencyReview`              | —                              | —                                              | already exists as a capability-model method (`Source.enableVulnerabilityAlerts()`/`enableDependencyGraph()`), not a task; unchanged |
-| `delivery.build`                         | `build`                        | tsdown/vite/rollup/tsc (detect)                |                                                                                                                                     |
-| `delivery.publish`                       | `release`                      | semantic-release                               | carries `preview` (npm dist-tags)                                                                                                   |
-| `delivery.deploy`                        | `deploy`                       | Cloudflare Pages/Vercel                        | carries `preview`                                                                                                                   |
-| `delivery.bundleSize`                    | `audit` → `bundle-size` job    | —                                              | CI-only, no local equivalent, same as today                                                                                         |
-| `platform.repoSync`                      | `sync`                         | `holocron sync`                                |                                                                                                                                     |
-| `platform.commitStandards`               | `lint` (partial)               | commitlint                                     | CI-only, no local equivalent, same as today                                                                                         |
-| `knowledge.wiki`                         | `wiki`                         | Fern                                           | publish, not sync; carries `preview`                                                                                                |
-| `knowledge.docs`                         | _(new — was a fixed workflow)_ | Astro build                                    | the docs site itself; carries `preview`                                                                                             |
-| `knowledge.components`                   | _(new — was a fixed workflow)_ | Storybook build                                | "Storybook" is the tool, not the intent — this is a browsable component catalog; carries `preview`                                  |
-| — (no existing task)                     | `dependencyUpdates`            | Renovate/Dependabot                            | not designed yet, tracked as an open question below                                                                                 |
+| New task                                 | Was                                       | Tool(s)                                        | Notes                                                                                                                                                 |
+| ---------------------------------------- | ----------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verification.unitTests`                 | `test`                                    | vitest                                         | carries `--coverage` org flag                                                                                                                         |
+| `verification.typeSafety`                | `typecheck`                               | tsc                                            |                                                                                                                                                       |
+| `verification.performance`               | `audit` → `performance` job               | lighthouse (lhci)                              | detect-gated (needs a lighthouse config)                                                                                                              |
+| `sourceQuality.staticAnalysis`           | `lint` (partial)                          | eslint, actionlint, git-merge-conflict-markers | linter group                                                                                                                                          |
+| `sourceQuality.formatting`               | `lint` (partial)                          | prettier, editorconfig, markdownlint           | linter group                                                                                                                                          |
+| `sourceQuality.structuredDataValidation` | `lint` (partial)                          | yamllint                                       |                                                                                                                                                       |
+| `sourceQuality.deadCodeAnalysis`         | `audit` → `knip` job                      | knip                                           |                                                                                                                                                       |
+| `security.secretDetection`               | `lint` (partial)                          | gitleaks                                       |                                                                                                                                                       |
+| `security.codeScanning`                  | `codeql`                                  | CodeQL                                         | GitHub's own term for what it does                                                                                                                    |
+| `security.dependencyReview`              | —                                         | —                                              | already exists as a capability-model method (`Source.enableVulnerabilityAlerts()`/`enableDependencyGraph()`), not a task; unchanged                   |
+| `delivery.build`                         | `build`                                   | tsdown/vite/rollup/tsc (detect)                |                                                                                                                                                       |
+| `delivery.publish`                       | `release`                                 | semantic-release                               | carries `preview` (npm dist-tags)                                                                                                                     |
+| `delivery.deploy`                        | `deploy`                                  | Cloudflare Pages/Vercel                        | carries `preview`                                                                                                                                     |
+| `delivery.bundleSize`                    | `audit` → `bundle-size` job               | —                                              | CI-only, no local equivalent, same as today                                                                                                           |
+| `platform.repoSync`                      | `sync`                                    | `holocron sync`                                |                                                                                                                                                       |
+| `platform.commitStandards`               | `lint` (partial)                          | commitlint                                     | CI-only, no local equivalent, same as today                                                                                                           |
+| `platform.repoValidation`                | `lint` (partial, unrelated to any linter) | `validate-adrs.mjs`, `validate-registry.mjs`   | process/governance checks that were riding inside the old Lint job with no linter connection at all — spec/ADR frontmatter, registry-doc completeness |
+| `knowledge.wiki`                         | `wiki`                                    | Fern                                           | publish, not sync; carries `preview`                                                                                                                  |
+| `knowledge.docs`                         | _(new — was a fixed workflow)_            | Astro build                                    | the docs site itself; carries `preview`; also runs `validate-docs-presence.mjs` (only meaningful where a docs site exists)                            |
+| `knowledge.components`                   | _(new — was a fixed workflow)_            | Storybook build                                | "Storybook" is the tool, not the intent — this is a browsable component catalog; carries `preview`                                                    |
+| — (no existing task)                     | `dependencyUpdates`                       | Renovate/Dependabot                            | not designed yet, tracked as an open question below                                                                                                   |
 
 `preview` is a cross-cutting **feature**, not a separate task or namespace —
 npm has staging dist-tags, Cloudflare/Vercel already do per-PR preview
@@ -105,6 +106,20 @@ No new abstraction needed — the existing `jobs` shape (already used by
 - The old `config.tasks[].linters` per-repo override list goes away — a
   repo's choice of which linters run is now just which tasks it includes in
   `tasks: [...]`, directly, consistent with how every other task works.
+
+## Auto-commit-fix generalizes, doesn't disappear
+
+The old `lint.yml` reusable workflow's auto-commit-fix mechanism (a GitHub
+App bot pushes verified auto-fix commits — `enable-auto-commit`, gated on
+`SUPER_LINTER_APP_ID`/`SUPER_LINTER_PRIVATE_KEY`) was super-linter's own fix
+mode, specific to the old monolithic Lint job. Decided: **keep it, generalized
+across every formatting-capable task**, not dropped. `prettier --write`,
+`eslint --fix`, `editorconfig-checker --fix`, and `markdownlint --fix` all
+support a native fix mode — the same App-token → commit → push mechanism
+wraps whichever tool the task is running, rather than being bundled inside
+super-linter specifically. Lands as part of `sourceQuality.staticAnalysis`'s
+and `sourceQuality.formatting`'s own reusable workflows, not a separate
+mechanism.
 
 ## Scope
 

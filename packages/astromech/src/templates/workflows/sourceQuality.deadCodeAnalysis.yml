@@ -1,0 +1,14 @@
+name: Dead Code Analysis
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dead-code-analysis:
+    uses: theholocron/.github/.github/workflows/sourceQuality.deadCodeAnalysis.yml@main
+    secrets: inherit

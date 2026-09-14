@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   release:
-    uses: theholocron/.github/.github/workflows/release.yml@main
+    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
     with:
       dry-run: ${{ inputs.dry_run == true }}
     secrets: inherit
