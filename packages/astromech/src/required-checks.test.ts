@@ -24,7 +24,7 @@ describe("requiredChecks", () => {
 					{ name: "verification.typeSafety", required: true },
 				],
 			})
-		).toEqual(["Typecheck / tsc --noEmit", "Static Analysis / Run eslint and actionlint", "Test / Conclusion"]);
+		).toEqual(["Typecheck / Run tsc --noEmit", "Static Analysis / Run eslint and actionlint", "Test / Conclusion"]);
 	});
 
 	it("orders task contexts by CI_ORDER regardless of manifest order", () => {
@@ -38,7 +38,7 @@ describe("requiredChecks", () => {
 				],
 			})
 		).toEqual([
-			"Typecheck / tsc --noEmit",
+			"Typecheck / Run tsc --noEmit",
 			"Static Analysis / Run eslint and actionlint",
 			"Test / Conclusion",
 			"Audit the Bundle Size / Upload bundle stats to Codecov",

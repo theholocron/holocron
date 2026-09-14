@@ -38,7 +38,7 @@ export interface JobDef {
 	local: LocalRunner | null;
 	/**
 	 * The CI status-check context this job reports as (e.g.
-	 * `platform.repoValidation / Registry`) — every sub-job is a CI job.
+	 * `platform.repoValidation / Validate registry consistency`) — every sub-job is a CI job.
 	 * `holocron run <task>` and `holocron ci` label each job line with it;
 	 * the task-level `… / Conclusion` context (only for tasks with several
 	 * jobs) lives in `WORKFLOW_CHECK_CONTEXTS`.
@@ -147,11 +147,11 @@ export const TASKS: Record<string, TaskDef> = {
 		jobs: {
 			adrs: {
 				local: { tool: "node", args: ["scripts/validate-adrs.mjs"] },
-				checkContext: "platform.repoValidation / ADRs and specs",
+				checkContext: "platform.repoValidation / Validate ADRs and specs",
 			},
 			registry: {
 				local: { tool: "node", args: ["scripts/validate-registry.mjs"] },
-				checkContext: "platform.repoValidation / Registry",
+				checkContext: "platform.repoValidation / Validate registry consistency",
 			},
 			// Warns (never fails — the script itself always exits 0) when a PR
 			// adds a new public package without a docs change. Doesn't actually
@@ -160,7 +160,7 @@ export const TASKS: Record<string, TaskDef> = {
 			// siblings, not gated behind knowledge.docs.
 			docsPresence: {
 				local: { tool: "node", args: ["scripts/validate-docs-presence.mjs"] },
-				checkContext: "platform.repoValidation / Docs presence",
+				checkContext: "platform.repoValidation / Validate docs presence",
 			},
 		},
 	},

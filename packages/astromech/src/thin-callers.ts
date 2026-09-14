@@ -74,7 +74,7 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	"verification.unitTests": "Test / Conclusion",
-	"verification.typeSafety": "Typecheck / tsc --noEmit",
+	"verification.typeSafety": "Typecheck / Run tsc --noEmit",
 	"verification.performance": "Audit the Performance / Run Lighthouse CI",
 	"sourceQuality.staticAnalysis": "Static Analysis / Run eslint and actionlint",
 	"sourceQuality.formatting": "Formatting / Run prettier, editorconfig-checker, markdownlint",

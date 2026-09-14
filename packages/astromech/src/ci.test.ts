@@ -70,7 +70,7 @@ describe("runCi", () => {
 			"verification.unitTests",
 		]);
 		expect(report.jobs.map((j) => j.checkContext)).toEqual([
-			"Typecheck / tsc --noEmit",
+			"Typecheck / Run tsc --noEmit",
 			"Static Analysis / Run eslint and actionlint",
 			"Test / Conclusion",
 		]);

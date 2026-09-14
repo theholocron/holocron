@@ -326,11 +326,11 @@ describe("runTask — sub-jobs", () => {
 			["scripts/validate-docs-presence.mjs"],
 		]);
 		const out = lines.join("\n");
-		expect(out.indexOf("platform.repoValidation / ADRs and specs")).toBeLessThan(
-			out.indexOf("platform.repoValidation / Registry")
+		expect(out.indexOf("platform.repoValidation / Validate ADRs and specs")).toBeLessThan(
+			out.indexOf("platform.repoValidation / Validate registry consistency")
 		);
-		expect(out.indexOf("platform.repoValidation / Registry")).toBeLessThan(
-			out.indexOf("platform.repoValidation / Docs presence")
+		expect(out.indexOf("platform.repoValidation / Validate registry consistency")).toBeLessThan(
+			out.indexOf("platform.repoValidation / Validate docs presence")
 		);
 	});
 

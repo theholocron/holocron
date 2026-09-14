@@ -55,7 +55,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   unit:
-    name: Run tests and collect coverage
+    name: Run unit tests and collect coverage
     if: ${{ inputs.run-unit }}
     permissions:
       contents: read
@@ -132,7 +132,7 @@ jobs:
     # shows as raw template text in the checks UI. GitHub auto-appends
     # the matrix values in parens when the matrix *does* expand, so this
     # loses no distinctness across multiple Chromatic projects.
-    name: Test Visual and Composition
+    name: Run visual and composition tests
     if: ${{ inputs.run-chromatic }}
     strategy:
       fail-fast: false
@@ -164,7 +164,7 @@ jobs:
           exitZeroOnChanges: ${{ matrix.project.exitZeroOnChanges || false }}
 
   interaction-and-accessibility:
-    name: Test Interactions and Accessibility
+    name: Run interactions and accessibility tests
     if: ${{ inputs.run-interaction }}
     permissions:
       contents: read
@@ -187,7 +187,7 @@ jobs:
         name: Run interaction and accessibility tests
 
   user-flow:
-    name: Test User Flow
+    name: Run user flow tests
     if: ${{ inputs.run-user-flow }}
     permissions:
       contents: read
