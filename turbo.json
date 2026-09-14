@@ -14,13 +14,8 @@
     },
     "verification.unitTests": {
       "inputs": ["src/**", "vitest.config.ts", "package.json"],
-      "outputs": ["test-report.junit.xml"],
+      "outputs": ["test-report.junit.xml", "coverage/**"],
       "dependsOn": ["delivery.build", "^delivery.build"]
-    },
-    "test:coverage": {
-      "inputs": ["src/**", "vitest.config.ts", "package.json"],
-      "outputs": ["coverage/**"],
-      "dependsOn": ["delivery.build"]
     },
     "verification.typeSafety": {
       "inputs": ["src/**", "tsconfig.json"],

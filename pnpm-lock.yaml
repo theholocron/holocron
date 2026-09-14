@@ -312,12 +312,6 @@ importers:
       semantic-release:
         specifier: ^25.0.9
         version: 25.0.9(typescript@5.9.3)
-      tsdown:
-        specifier: ^0.22.14
-        version: 0.22.14(oxc-resolver@11.24.2)(tsx@4.22.4)(typescript@5.9.3)
-      tsx:
-        specifier: 4.22.4
-        version: 4.22.4
       turbo:
         specifier: 'catalog:'
         version: 2.10.12
@@ -401,7 +395,7 @@ importers:
         version: link:../astromech
       '@theholocron/components-doc':
         specifier: ^1.6.0
-        version: 1.6.0(@astrojs/react@5.0.7(@types/node@26.1.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(jiti@2.7.0)(lightningcss@1.33.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.0))(@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3))(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 1.6.0(@astrojs/react@5.0.7(@types/node@26.1.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(jiti@2.7.0)(lightningcss@1.33.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.0))(@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3))(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@theholocron/datapad':
         specifier: workspace:*
         version: link:../datapad
@@ -7899,14 +7893,6 @@ snapshots:
   '@astrojs/compiler-binding-linux-x64-musl@0.4.0':
     optional: true
 
-  '@astrojs/compiler-binding-wasm32-wasi@0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
-    dependencies:
-      '@napi-rs/wasm-runtime': 1.2.3(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-    optional: true
-
   '@astrojs/compiler-binding-wasm32-wasi@0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)':
     dependencies:
       '@napi-rs/wasm-runtime': 1.2.3(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)
@@ -7921,21 +7907,6 @@ snapshots:
   '@astrojs/compiler-binding-win32-x64-msvc@0.4.0':
     optional: true
 
-  '@astrojs/compiler-binding@0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
-    optionalDependencies:
-      '@astrojs/compiler-binding-darwin-arm64': 0.4.0
-      '@astrojs/compiler-binding-darwin-x64': 0.4.0
-      '@astrojs/compiler-binding-linux-arm64-gnu': 0.4.0
-      '@astrojs/compiler-binding-linux-arm64-musl': 0.4.0
-      '@astrojs/compiler-binding-linux-x64-gnu': 0.4.0
-      '@astrojs/compiler-binding-linux-x64-musl': 0.4.0
-      '@astrojs/compiler-binding-wasm32-wasi': 0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
-      '@astrojs/compiler-binding-win32-arm64-msvc': 0.4.0
-      '@astrojs/compiler-binding-win32-x64-msvc': 0.4.0
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-
   '@astrojs/compiler-binding@0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)':
     optionalDependencies:
       '@astrojs/compiler-binding-darwin-arm64': 0.4.0
@@ -7947,13 +7918,6 @@ snapshots:
       '@astrojs/compiler-binding-wasm32-wasi': 0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)
       '@astrojs/compiler-binding-win32-arm64-msvc': 0.4.0
       '@astrojs/compiler-binding-win32-x64-msvc': 0.4.0
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-
-  '@astrojs/compiler-rs@0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
-    dependencies:
-      '@astrojs/compiler-binding': 0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -8035,13 +7999,13 @@ snapshots:
       github-slugger: 2.0.0
       satteri: 0.10.5
 
-  '@astrojs/mdx@7.0.5(@astrojs/markdown-satteri@0.3.5)(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@astrojs/mdx@7.0.5(@astrojs/markdown-satteri@0.3.5)(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@astrojs/internal-helpers': 0.10.2
       '@astrojs/markdown-remark': 7.2.2
       '@mdx-js/mdx': 3.1.1
       acorn: 8.18.0
-      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
       es-module-lexer: 2.3.1
       estree-util-visit: 2.0.0
       hast-util-to-html: 9.0.5
@@ -8140,17 +8104,17 @@ snapshots:
       stream-replace-string: 2.0.0
       zod: 4.4.3
 
-  '@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3)':
+  '@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3)':
     dependencies:
       '@astrojs/markdown-satteri': 0.3.5
-      '@astrojs/mdx': 7.0.5(@astrojs/markdown-satteri@0.3.5)(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@astrojs/mdx': 7.0.5(@astrojs/markdown-satteri@0.3.5)(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       '@astrojs/sitemap': 3.7.3
       '@pagefind/default-ui': 1.5.2
       '@types/hast': 3.0.5
       '@types/js-yaml': 4.0.9
       '@types/mdast': 4.0.4
-      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
-      astro-expressive-code: 0.44.1(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      astro-expressive-code: 0.44.1(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       bcp-47: 2.1.1
       hast-util-from-html: 2.0.3
       hast-util-select: 6.0.4
@@ -9988,11 +9952,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@theholocron/components-doc@1.6.0(@astrojs/react@5.0.7(@types/node@26.1.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(jiti@2.7.0)(lightningcss@1.33.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.0))(@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3))(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@theholocron/components-doc@1.6.0(@astrojs/react@5.0.7(@types/node@26.1.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(jiti@2.7.0)(lightningcss@1.33.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.0))(@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3))(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@astrojs/starlight': 0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3)
+      '@astrojs/starlight': 0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3)
       '@codesandbox/sandpack-react': 2.20.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
       mdast-util-mdx-jsx: 3.2.0
       unist-util-visit: 5.1.0
     optionalDependencies:
@@ -10663,9 +10627,9 @@ snapshots:
 
   astring@1.9.0: {}
 
-  astro-expressive-code@0.44.1(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
+  astro-expressive-code@0.44.1(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
     dependencies:
-      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      astro: 7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
       rehype-expressive-code: 0.44.1
       url-extras: 0.1.0
 
@@ -10675,9 +10639,9 @@ snapshots:
       rehype-expressive-code: 0.44.1
       url-extras: 0.1.0
 
-  astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0):
+  astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0):
     dependencies:
-      '@astrojs/compiler-rs': 0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@astrojs/compiler-rs': 0.4.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)
       '@astrojs/internal-helpers': 0.11.0
       '@astrojs/markdown-satteri': 0.4.0
       '@astrojs/telemetry': 3.3.3

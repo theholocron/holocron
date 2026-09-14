@@ -31,13 +31,12 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint .",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run",
+    "delivery.build": "holocron run delivery.build --",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "validate": "tsx scripts/validate.mjs"
+    "validate": "tsx scripts/validate.mjs",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "dependencies": {
     "libsodium-wrappers": "^0.8.4"

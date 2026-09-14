@@ -34,12 +34,11 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint src",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run",
+    "delivery.build": "holocron run delivery.build --",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",

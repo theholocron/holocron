@@ -83,6 +83,10 @@ const config: KnipConfig = {
 		"@theholocron/devmoji-config",
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
+		// rollup-plugin-transform-template's tsdown.config.ts re-exports it
+		// (`export { default } from "..."`) rather than importing + calling it —
+		// Knip's dependency-usage graph doesn't trace through a bare re-export
+		"@theholocron/tsdown-config",
 	],
 	ignoreExportsUsedInFile: true,
 	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's

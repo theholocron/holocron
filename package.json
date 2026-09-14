@@ -21,11 +21,10 @@
     "build": "turbo run delivery.build",
     "format": "prettier --write .",
     "holocron": "node packages/cli/dist/cli.mjs",
-    "lint": "turbo run sourceQuality.staticAnalysis",
+    "lint": "holocron run sourceQuality.staticAnalysis --",
     "prepare": "husky",
-    "test": "turbo run verification.unitTests",
-    "test:coverage": "turbo run test:coverage",
-    "typecheck": "turbo run verification.typeSafety"
+    "test": "holocron run verification.unitTests --",
+    "typecheck": "holocron run verification.typeSafety --"
   },
   "devDependencies": {
     "@astrojs/react": "^5.0.0",
@@ -79,8 +78,6 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.6",
     "semantic-release": "^25.0.9",
-    "tsdown": "^0.22.14",
-    "tsx": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "^8.67.0"
