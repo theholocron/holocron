@@ -20,17 +20,21 @@ export function render(inputs: TemplateInputs): string {
 				main: "./src/index.ts",
 				exports: { ".": "./src/index.ts" },
 				scripts: {
-					// delivery.build stays a direct tool invocation, never `holocron
-					// run` — this repo carries @theholocron/cli as workspace:*, so
-					// its own dist doesn't exist until something builds it; routing
-					// build itself through the CLI it's building is circular. Every
-					// other task is safe to gateway through holocron — the composite
-					// CI action's self-heal step builds it AND re-links
-					// node_modules/.bin before any of these ever run.
+					// Direct tool invocations, not `holocron run <task>` — this repo
+					// carries @theholocron/cli as workspace:*, and a freshly
+					// scaffolded plugin joining this monorepo inherits two separate
+					// self-hosting races routing through holocron would hit: pnpm's
+					// node_modules/.bin/holocron timing, and turbo having no
+					// dependency edge forcing @theholocron/cli (and transitively
+					// astromech) to finish building before this package's own script
+					// runs, since neither is a real package.json dependency here.
+					// Consuming repos outside this monorepo don't have either problem
+					// (a real npm dependency ships dist/ already built) — see
+					// packageScripts() in astromech.
 					"delivery.build": "tsdown",
-					"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
-					"verification.typeSafety": "holocron run verification.typeSafety --",
-					"verification.unitTests": "holocron run verification.unitTests --",
+					"sourceQuality.staticAnalysis": "eslint .",
+					"verification.typeSafety": "tsc --noEmit",
+					"verification.unitTests": "vitest run",
 					"test:watch": "vitest",
 					validate: "tsx scripts/validate.mjs",
 				},
