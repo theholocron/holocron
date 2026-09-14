@@ -49,24 +49,19 @@ export default defineConfig({
     },
   },
 
-  // The task manifest — what this repo runs. `@theholocron/astromech` reads it
-  // for `holocron run` / `holocron ci` / the generated CI workflow thin callers.
-  // String form: default inputs. Object form: pass custom `with:` inputs.
-  // Supported: "lint" | "test" | "typecheck" | "codeql" | "review" |
-  //            "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit"
-  // The `lint` entry takes an optional `linters` array — the one list that
-  // drives both the CI super-linter env and `holocron run lint` locally.
-  // Omitted → auto-detected from the config files present (eslint.config.*,
-  // .markdownlint*, …) plus the org always-on set (prettier, yamllint,
-  // actionlint, gitleaks, editorconfig, commitlint, merge-conflict-markers).
+  // The task manifest — what this repo runs, named by intent, not by tool.
+  // `@theholocron/astromech` reads it for `holocron run` / `holocron ci` /
+  // the generated CI workflow thin callers. String form: default inputs.
+  // Object form: pass custom `with:` inputs. See "Task vocabulary" below
+  // for the full list of task names and what each actually runs.
   // `required: true` marks a task merge-gating: `holocron ci` runs it by
-  // default and `holocron setup` (strict) adds its workflow check context to
-  // branch protection.
+  // default and `holocron setup` (strict) adds its check context to branch
+  // protection.
   tasks: [
-    { name: "lint", required: true, linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] },
-    { name: "test", required: true },
-    { name: "typecheck", required: true },
-    { name: "release", with: { "run-build": false } },
+    { name: "sourceQuality.staticAnalysis", required: true },
+    { name: "verification.unitTests", required: true },
+    { name: "verification.typeSafety", required: true },
+    { name: "delivery.publish", with: { "run-build": false } },
     "stale",
     "greetings",
   ],
@@ -133,6 +128,45 @@ export default defineConfig({
   telemetry: { enabled: true, analytics: "posthog" },
 });
 ```
+
+## Task vocabulary
+
+Tasks are named by **intent**, not by tool — `tasks: ["verification.unitTests"]`,
+not `["vitest"]`. Tool names never appear in `holocron.config.ts`; the table
+below is the full registry (`@theholocron/astromech`'s `TASKS`) — every task
+name it knows, what it actually runs, and why.
+
+| Task | Runs | Notes |
+| --- | --- | --- |
+| `verification.unitTests` | vitest | carries the `--coverage` org default |
+| `verification.typeSafety` | tsc | `tsc --noEmit` |
+| `verification.performance` | Lighthouse CI | only runs with a `lighthouse.config.*` present |
+| `sourceQuality.staticAnalysis` | eslint, actionlint, git-merge-conflict-markers | bundles more than one tool under one required check |
+| `sourceQuality.formatting` | prettier, editorconfig-checker, markdownlint-cli2 | bundles more than one tool |
+| `sourceQuality.structuredDataValidation` | yamllint | |
+| `sourceQuality.deadCodeAnalysis` | knip | |
+| `security.secretDetection` | gitleaks | |
+| `security.codeScanning` | CodeQL | no local equivalent — CI only |
+| `security.dependencyReview` | GitHub's native Dependabot alerts/graph | a capability method, not a task |
+| `delivery.build` | tsdown / vite / rollup / tsc, detected from the repo's own config | |
+| `delivery.publish` | semantic-release | no local equivalent — CI only; carries `preview` (npm dist-tags) |
+| `delivery.deploy` | Cloudflare Pages / Vercel | no local equivalent — CI only; carries `preview` |
+| `delivery.bundleSize` | bundle-size upload to Codecov | no local equivalent — CI only |
+| `platform.repoSync` | `holocron sync` | keeps generated files current |
+| `platform.commitStandards` | commitlint | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI |
+| `platform.repoValidation` | ADR/spec frontmatter + registry-doc completeness scripts | not linters — process/governance checks |
+| `knowledge.wiki` | Fern | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview` |
+| `knowledge.docs` | Astro build | the docs site itself; carries `preview` (defaults on) |
+| `knowledge.components` | Storybook build | a browsable component catalog; carries `preview` (defaults on) |
+
+`preview` is a cross-cutting feature, not a namespace — npm has staging
+dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews docs.
+None of these earn their own task; it's one capability any
+publish/deploy-shaped task can carry, toggled via that task's `with:`.
+
+No super-linter: every task above runs its own tool directly, through the
+same mechanism that resolves it locally — CI runs the identical command a
+developer runs.
 
 ## Provider entry forms
 
@@ -222,7 +256,7 @@ If you prefer not to use TypeScript:
     "protection": "balanced",
     "topics": ["typescript", "node"]
   },
-  "workflows": ["lint", "test"],
+  "workflows": ["sourceQuality.staticAnalysis", "verification.unitTests"],
   "providers": {
     "source": "github",
     "vault": ["doppler", { "project": "my-project", "config": "prd" }]

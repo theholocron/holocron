@@ -41,7 +41,7 @@ export default defineConfig({
       runtime_environment: "node",
     },
   },
-  workflows: ["lint", "test", "typecheck", "release"],
+  workflows: ["sourceQuality.staticAnalysis", "verification.unitTests", "verification.typeSafety", "delivery.publish"],
   skills: ["git-safety", "pr-workflow", "commit-standards"],
   agent: "claude",
   providers: {
