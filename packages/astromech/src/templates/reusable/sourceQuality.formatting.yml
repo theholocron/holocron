@@ -55,14 +55,13 @@ jobs:
         name: Setup
 
       # editorconfig-checker has no npm distribution — install the prebuilt
-      # binary via its release install script.
-      # NOTE: unverified against a live CI run at authoring time (D12) — flag
-      # here if this needs adjustment.
+      # binary from its release tarball (v4.0.1+ ships the binary at the
+      # tarball root as `editorconfig-checker`, not `bin/ec-<os>-<arch>` —
+      # confirmed against a live CI run; the old asset name/path 404s now).
       - name: Install editorconfig-checker
         run: |
-          curl -sSL https://github.com/editorconfig-checker/editorconfig-checker/releases/latest/download/ec-linux-amd64.tar.gz \
-            | tar xz --strip-components=1 -C /usr/local/bin bin/ec-linux-amd64
-          sudo mv /usr/local/bin/ec-linux-amd64 /usr/local/bin/editorconfig-checker
+          curl -sSL https://github.com/editorconfig-checker/editorconfig-checker/releases/latest/download/editorconfig-checker-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin editorconfig-checker
 
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run prettier, editorconfig-checker, markdownlint
