@@ -209,7 +209,7 @@ describe("Rendered content sanity", () => {
 		const content = fs.get(pkg!)!;
 		expect(content).toMatch(/@theholocron\/holocron-plugin-acme/);
 		expect(content).toMatch(/"peerDependencies":\s*{\s*"@theholocron\/cli":/);
-		expect(content).toMatch(/"build":\s*"tsdown"/);
+		expect(content).toMatch(/"delivery\.build":\s*"holocron run delivery\.build --"/);
 	});
 
 	it("auth.ts uses the 4-step precedence with keyring + custom env vars", () => {
@@ -311,9 +311,9 @@ describe("runPluginCreate — post-scaffold verify", () => {
 		});
 		expect(calls).toEqual([
 			`pnpm install --frozen-lockfile=false`,
-			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug typecheck`,
-			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug lint`,
-			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug test`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug verification.typeSafety`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug sourceQuality.staticAnalysis`,
+			`pnpm --filter @theholocron/holocron-plugin-nonexistent-fake-slug verification.unitTests`,
 		]);
 		expect(report.status).toBe("ok");
 	});
@@ -326,7 +326,7 @@ describe("runPluginCreate — post-scaffold verify", () => {
 			writeFile: fs.writeFile,
 			print: (l) => lines.push(l),
 			exec: (_, args) => {
-				if (args.includes("typecheck")) throw new Error("type error");
+				if (args.includes("verification.typeSafety")) throw new Error("type error");
 			},
 		});
 		expect(report.status).toBe("fail");
@@ -344,7 +344,7 @@ describe("runPluginCreate — post-scaffold verify", () => {
 			print: (l) => lines.push(l),
 			logger: log,
 			exec: (_, args) => {
-				if (args.includes("test")) throw "boom";
+				if (args.includes("verification.unitTests")) throw "boom";
 			},
 		});
 		expect(report.status).toBe("fail");

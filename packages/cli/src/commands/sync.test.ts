@@ -704,8 +704,8 @@ describe("runSync", () => {
 			expect(pkg.scripts).toEqual({
 				start: "node .",
 				holocron: "holocron",
-				"verification.unitTests": "holocron run verification.unitTests",
-				"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis",
+				"verification.unitTests": "holocron run verification.unitTests --",
+				"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
 			});
 		});
 
@@ -745,7 +745,7 @@ describe("runSync", () => {
 				scripts: Record<string, string>;
 			};
 			expect(pkg.scripts.holocron).toBe("node packages/cli/dist/cli.mjs");
-			expect(pkg.scripts["verification.unitTests"]).toBe("holocron run verification.unitTests");
+			expect(pkg.scripts["verification.unitTests"]).toBe("holocron run verification.unitTests --");
 		});
 
 		it("succeeds gracefully when package.json is absent", async () => {
