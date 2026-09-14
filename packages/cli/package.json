@@ -40,7 +40,7 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "holocron run delivery.build --",
+    "delivery.build": "tsdown",
     "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "start": "node ./dist/cli.mjs",
     "test:watch": "vitest",

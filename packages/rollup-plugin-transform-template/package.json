@@ -34,7 +34,7 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "holocron run delivery.build --",
+    "delivery.build": "tsdown",
     "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
     "verification.typeSafety": "holocron run verification.typeSafety --",
@@ -46,6 +46,7 @@
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {

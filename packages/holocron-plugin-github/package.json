@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "holocron run delivery.build --",
+    "delivery.build": "tsdown",
     "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
     "validate": "tsx scripts/validate.mjs",
