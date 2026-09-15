@@ -126,4 +126,34 @@ describe("eslint-config — bundles", () => {
 		const config = library();
 		expect(config.some((c) => "name" in c && c.name === "@theholocron/library")).toBe(true);
 	});
+
+	it("library() config runs without throwing on ESLint v10 context API", () => {
+		const linter = new Linter({ configType: "flat" });
+		expect(() => linter.verify("const x = 1;\n", library() as Parameters<Linter["verify"]>[1])).not.toThrow();
+	});
+
+	it("library({ browserPackages }) config runs without throwing", () => {
+		const linter = new Linter({ configType: "flat" });
+		const config = library({ browserPackages: ["packages/location-utils/src"] });
+		expect(() => linter.verify("const x = 1;\n", config as Parameters<Linter["verify"]>[1])).not.toThrow();
+	});
+
+	it("library() bakes in vitest() unconditionally — matches test/setup files", () => {
+		const config = library();
+		const files = config.flatMap((c) => ("files" in c ? (c.files as string[]) : []));
+		expect(files.some((f) => f.includes("{test,spec}"))).toBe(true);
+	});
+
+	it("library() with no browserPackages omits the browser-packages config", () => {
+		const config = library();
+		expect(config.some((c) => "name" in c && c.name === "@theholocron/library/browser-packages")).toBe(false);
+	});
+
+	it("library({ browserPackages }) adds a scoped node-builtins exception", () => {
+		const config = library({ browserPackages: ["packages/location-utils/src", "packages/misc-utils/src"] });
+		const browserPackages = config.find((c) => "name" in c && c.name === "@theholocron/library/browser-packages");
+		expect(browserPackages).toBeDefined();
+		expect(browserPackages?.files).toEqual(["packages/location-utils/src/**", "packages/misc-utils/src/**"]);
+		expect(browserPackages?.rules?.["n/no-unsupported-features/node-builtins"]).toBe("off");
+	});
 });

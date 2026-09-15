@@ -82,6 +82,10 @@ export default [...nodeApp()];
 // Publishable library (base + typescript + vitest)
 import { library } from "@theholocron/eslint-config/bundles/library";
 export default [...library()];
+
+// With browser-targeted packages (turns off a Node-builtins rule that
+// false-positives on navigator/sessionStorage/KeyboardEvent/…):
+export default [...library({ browserPackages: ["packages/browser-utils/src"] })];
 ```
 
 Add project-specific configs after the bundle — they are merged in order:
