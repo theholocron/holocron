@@ -26,7 +26,7 @@ runs:
     # install is cheap, the store is already warm from the first.
     - name: Build the Holocron CLI
       shell: bash
-      run: pnpm --filter @theholocron/cli build
+      run: pnpm --filter @theholocron/cli run delivery.build
 
     - name: Re-link workspace bins
       uses: theholocron/.github/.github/actions/install@main
