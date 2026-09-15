@@ -1,3 +1,18 @@
+## [1.8.3](https://github.com/theholocron/utils/compare/v1.8.2...v1.8.3) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#285](https://github.com/theholocron/utils/issues/285)) ([c0d069e](https://github.com/theholocron/utils/commit/c0d069e216af526e6f6a39ccab2bda64e5fc9499))
+
+### Refactoring
+
+* ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/utils/issues/672)) ([#284](https://github.com/theholocron/utils/issues/284)) ([ab406ec](https://github.com/theholocron/utils/commit/ab406ec2043654e90339dbead483a1be7939b8e9))
+
+### Chores
+
+* 🔧 sync from holocron.config ([#281](https://github.com/theholocron/utils/issues/281)) ([05e3bff](https://github.com/theholocron/utils/commit/05e3bff1c6d5e3efc491647a5aed02290f2cc2d4))
+* sync README and repo metadata ([#282](https://github.com/theholocron/utils/issues/282)) ([2074b81](https://github.com/theholocron/utils/commit/2074b81513ff895d24ab176665f7b927b5df7dde))
+
 ## [1.8.2](https://github.com/theholocron/utils/compare/v1.8.1...v1.8.2) (2026-09-12)
 
 ### Bug Fixes
