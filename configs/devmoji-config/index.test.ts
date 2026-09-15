@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineConfig, type DevmojiConfig } from "./index.js";
+import defaultConfig from "./index.js";
 
 describe("defineConfig()", () => {
 	it("returns a valid DevmojiConfig", () => {
@@ -38,5 +39,9 @@ describe("defineConfig()", () => {
 		const config = defineConfig({ devmoji: [{ code: "custom", emoji: "rocket" }] });
 		expect(config.devmoji?.find((e) => e.code === "feat")).toBeDefined();
 		expect(config.devmoji?.find((e) => e.code === "custom")?.emoji).toBe("rocket");
+	});
+
+	it("has a ready-to-use default export equal to defineConfig() — required for `devmoji --config <path>` to load it directly", () => {
+		expect(defaultConfig).toEqual(defineConfig());
 	});
 });

@@ -43,3 +43,14 @@ export function defineConfig(overrides: Partial<DevmojiConfig> = {}): DevmojiCon
 		devmoji: [...defaultDevmoji, ...(overrides.devmoji ?? [])],
 	};
 }
+
+/**
+ * Ready-to-use config for repos that need no overrides — every org repo's
+ * generated `devmoji.config.cjs` calls `defineConfig()` with no args (see
+ * `holocron setup`'s template), so this covers all of them. `devmoji
+ * --config <path>` loads a file's default export directly, same requirement
+ * as `eslint --config` (config-resolution workstream, #676 in
+ * theholocron/holocron) — lets the resolver point at this file with zero
+ * committed local content.
+ */
+export default defineConfig();
