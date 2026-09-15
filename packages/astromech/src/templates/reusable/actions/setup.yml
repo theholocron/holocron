@@ -21,15 +21,25 @@ runs:
     # pnpm's workspace bin-linking can't create `node_modules/.bin/holocron`
     # (silent `WARN ... ENOENT`, not a hard failure). Every package whose
     # scripts delegate via `holocron run <task> --` then fails at run time
-    # with `holocron: not found` (#698). Build the CLI, then re-run install
-    # so pnpm links the bin now that the target file exists — the second
-    # install is cheap, the store is already warm from the first.
+    # with `holocron: not found` (#698). Same fix the `holocron` composite
+    # action already applies for its own direct invocation (see its "Build
+    # the workspace when the CLI resolves to an unbuilt checkout" step) —
+    # mirrored here so it also covers *nested* `holocron run <task> --`
+    # calls from inside package.json scripts, which that action's own guard
+    # doesn't reach. `pnpm build` (not a scoped `--filter`) so the CLI's own
+    # workspace dependencies (e.g. rollup-plugin-transform-template) build
+    # in topological order too — a scoped build skips them and fails.
+    # No-op in every consumer repo, where the published tarball already
+    # ships `dist/`.
     - name: Build the Holocron CLI
       shell: bash
-      run: pnpm --filter @theholocron/cli run delivery.build
-
-    - name: Re-link workspace bins
-      uses: theholocron/.github/.github/actions/install@main
+      run: |
+        if [ ! -f node_modules/@theholocron/cli/dist/cli.mjs ]; then
+          echo "→ @theholocron/cli dist/ missing — building the workspace from source" >&2
+          pnpm build
+          echo "→ re-linking node_modules/.bin — pnpm skipped it pre-build" >&2
+          pnpm install --frozen-lockfile
+        fi
 
     - name: Cache Turbo artifacts
       if: ${{ hashFiles('turbo.json') != '' }}
