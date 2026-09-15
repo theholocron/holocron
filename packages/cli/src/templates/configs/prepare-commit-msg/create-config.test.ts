@@ -29,4 +29,15 @@ describe("prepare-commit-msg createConfig", () => {
 	it("runs devmoji", () => {
 		expect(createConfig()).toContain("devmoji");
 	});
+
+	it("resolves --config against the shared devmoji-config package's built dist when present", () => {
+		const out = createConfig();
+		expect(out).toContain('DEVMOJI_CONFIG="node_modules/@theholocron/devmoji-config/dist/index.cjs"');
+		expect(out).toContain('npx devmoji --config "$DEVMOJI_CONFIG" -e');
+	});
+
+	it("falls back to devmoji's own auto-discovery when the shared package isn't installed", () => {
+		const out = createConfig();
+		expect(out).toMatch(/if \[ -f "\$DEVMOJI_CONFIG" \]; then[\s\S]*else\s*\n\s*npx devmoji -e\s*\n\s*fi/);
+	});
 });
