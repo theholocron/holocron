@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-posthog",
-  "version": "5.0.0-alpha.4",
+  "version": "5.0.0-alpha.5",
   "description": "Holocron plugin for PostHog. Implements the analytics capability — project provisioning and tracking token retrieval.",
   "keywords": [
     "analytics",
