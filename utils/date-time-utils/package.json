@@ -31,13 +31,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "typecheck": "npx tsc --noEmit"
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@tsconfig/node-lts": "catalog:",
