@@ -20,12 +20,18 @@ export function render(inputs: TemplateInputs): string {
 				main: "./src/index.ts",
 				exports: { ".": "./src/index.ts" },
 				scripts: {
-					build: "tsdown",
-					lint: "eslint .",
-					typecheck: "tsc --noEmit",
-					test: "vitest run",
+					// delivery.build stays a direct tool invocation, never `holocron
+					// run` — it's what produces the holocron binary, so it can never
+					// depend on holocron already existing. The other three tasks are
+					// safe to gateway through holocron: this template already
+					// declares @theholocron/cli as a real devDependency below, giving
+					// turbo the edge it needs to build cli (and transitively
+					// astromech) before this package's own script ever runs.
+					"delivery.build": "tsdown",
+					"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+					"verification.typeSafety": "holocron run verification.typeSafety --",
+					"verification.unitTests": "holocron run verification.unitTests --",
 					"test:watch": "vitest",
-					"test:coverage": "vitest run --coverage",
 					validate: "tsx scripts/validate.mjs",
 				},
 				peerDependencies: { "@theholocron/cli": "workspace:*" },
