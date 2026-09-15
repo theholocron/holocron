@@ -19,7 +19,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runPublish } from "./commands/publish.js";
+import { runPublish, runSyncTrust } from "./commands/publish.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -578,11 +578,42 @@ try {
 					.option("otp", {
 						type: "string",
 						describe: "One-time password from your authenticator (required if npm needs 2FA for writes)",
+					})
+					.option("sync-trust", {
+						type: "array",
+						describe:
+							"Migrate npm Trusted Publisher config to a new workflow filename across every public " +
+							"package: --sync-trust <old-file> <new-file>. See issue #689 — npm requires fresh " +
+							"interactive 2FA per package; re-run after approving the printed authUrl if it stops early.",
+					})
+					.option("repo", {
+						type: "string",
+						describe:
+							"owner/repo for Trusted Publisher config (--sync-trust). Defaults to theholocron/holocron.",
 					}),
 			async (argv) => {
+				if (argv.syncTrust) {
+					const [oldFile, newFile] = argv.syncTrust as [string?, string?];
+					if (!oldFile || !newFile) {
+						getLogger().error("publish --sync-trust requires exactly two values: <old-file> <new-file>");
+						process.exitCode = 1;
+						return;
+					}
+					const report = await runSyncTrust({
+						cwd: argv.cwd,
+						oldFile,
+						newFile,
+						dryRun: argv.dryRun,
+						...(argv.repo ? { repo: argv.repo as string } : {}),
+					});
+					if (report.status === "fail") {
+						process.exitCode = 1;
+					}
+					return;
+				}
 				if (!argv.initial) {
 					getLogger().error(
-						"publish: only `--initial` is supported today. Run `holocron publish --initial`."
+						"publish: only `--initial` and `--sync-trust` are supported today. Run `holocron publish --initial`."
 					);
 					process.exitCode = 1;
 					return;
