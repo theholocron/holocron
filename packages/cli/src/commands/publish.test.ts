@@ -693,4 +693,128 @@ describe("runSyncTrust", () => {
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/nothing to sync/);
 	});
+
+	it("defaults cwd to process.cwd() when omitted", async () => {
+		// packages: [] short-circuits before any filesystem work, so the
+		// `input.cwd ?? process.cwd()` default is exercised harmlessly.
+		const report = await runSyncTrust({
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: [],
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/nothing to sync/);
+	});
+
+	it("defaults exec to spawnSync (defaultExec) when omitted", async () => {
+		const { spawnSync } = await import("node:child_process");
+		const spy = spawnSync as ReturnType<typeof vi.fn>;
+		spy.mockReturnValue({
+			status: 0,
+			stdout: JSON.stringify({ id: "x", file: "delivery.publish.yml" }),
+			stderr: "",
+		});
+
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: ["@theholocron/foo"],
+		});
+
+		expect(spy).toHaveBeenCalled();
+		expect(report.status).toBe("ok");
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "skipped" }]);
+	});
+
+	it("defaults packages to discoverPublicPackages(cwd) when omitted", async () => {
+		const root = makeTempMonorepo([{ name: "@theholocron/public-a" }]);
+		const { exec, calls } = makeQueueExec([ok(JSON.stringify({ id: "x", file: "delivery.publish.yml" }))]);
+
+		const report = await runSyncTrust({
+			cwd: root,
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			exec,
+		});
+
+		expect(report.packages).toEqual([{ name: "@theholocron/public-a", status: "skipped" }]);
+		expect(calls[0]?.args).toEqual(expect.arrayContaining(["@theholocron/public-a"]));
+	});
+
+	it("falls back to '?' when an existing trust entry has an id but no file", async () => {
+		const { exec, calls } = makeQueueExec([
+			ok(JSON.stringify({ id: "old-id" })), // list — id present, file absent
+			ok(), // revoke
+			ok(), // create
+		]);
+		const lines: string[] = [];
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: ["@theholocron/foo"],
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "ok" }]);
+		expect(lines.join("\n")).toContain("file=?, id=old-id");
+		expect(calls[1]?.args).toEqual(expect.arrayContaining(["--id", "old-id"]));
+	});
+
+	it("falls back to an empty authUrl when the list-call EOTP response omits it", async () => {
+		const { exec } = makeQueueExec([
+			{ exitCode: 1, stdout: JSON.stringify({ error: { code: "EOTP" } }), stderr: "" },
+		]);
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: ["@theholocron/foo"],
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "needs-auth", message: "" }]);
+	});
+
+	it("falls back to an empty authUrl when the revoke-call EOTP response omits it", async () => {
+		const { exec } = makeQueueExec([
+			ok(JSON.stringify({ id: "old-id", file: "release.yml" })),
+			{ exitCode: 1, stdout: JSON.stringify({ error: { code: "EOTP" } }), stderr: "" },
+		]);
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: ["@theholocron/foo"],
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "needs-auth", message: "" }]);
+	});
+
+	it("falls back to an empty authUrl when the create-call EOTP response omits it", async () => {
+		const { exec } = makeQueueExec([
+			ok("{}"),
+			{ exitCode: 1, stdout: JSON.stringify({ error: { code: "EOTP" } }), stderr: "" },
+		]);
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: ["@theholocron/foo"],
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "needs-auth", message: "" }]);
+	});
+
+	it("falls back to the exit-code message when a failed create has no stderr or stdout", async () => {
+		const { exec } = makeQueueExec([ok("{}"), { exitCode: 7, stdout: "", stderr: "" }]);
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "release.yml",
+			newFile: "delivery.publish.yml",
+			packages: ["@theholocron/foo"],
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "fail", message: "exit 7" }]);
+	});
 });
