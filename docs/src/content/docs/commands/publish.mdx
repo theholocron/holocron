@@ -5,11 +5,26 @@ description: One-shot bootstrap publish for new packages, handling npm login and
 
 ```bash
 holocron publish --initial [--tag <tag>] [--otp <code>] [--dry-run]
+holocron publish --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--dry-run]
 ```
 
 One-shot bootstrap publish for packages that haven't been registered on npm yet. Solves the chicken-and-egg problem: npm Trusted Publishing (OIDC) requires the package to exist before you can configure it, so the first publish must happen with browser auth.
 
-`--initial` is required today — this command only implements the bootstrap publish. A non-initial `holocron publish` (a manual publish outside the semantic-release/OIDC steady state) isn't built yet.
+`--initial` and `--sync-trust` are the two supported modes today — a non-initial, non-sync-trust `holocron publish` (a manual publish outside the semantic-release/OIDC steady state) isn't built yet.
+
+## Migrating Trusted Publisher config (`--sync-trust`)
+
+npm's Trusted Publisher config is tied to a specific workflow **filename** per package. Renaming the release workflow (e.g. `release.yml` → `delivery.publish.yml`) breaks OIDC publish (`ENEEDAUTH`) for every package still registered under the old filename until each one is updated to match.
+
+```bash
+holocron publish --sync-trust release.yml delivery.publish.yml
+```
+
+For every public package (auto-discovered the same way as `--initial`): revokes the existing trust config if its `file` doesn't already match, then creates a new one pointing at the new filename. Already-migrated packages are skipped, so it's safe to re-run.
+
+**This can't run unattended.** npm's `trust` mutations — and reads, once a short-lived OTP grant lapses — require a fresh interactive browser 2FA approval. There's no token that bypasses this (npm's own docs: Granular Access Tokens with the bypass-2FA option are explicitly unsupported for trust endpoints). When the command hits this, it stops immediately, prints the `authUrl` to open and approve, and returns a `needs-auth` result for that package — open the link, approve it, and re-run.
+
+See [issue #689](https://github.com/theholocron/holocron/issues/689) for the full background.
 
 ## Workflow
 
@@ -34,12 +49,14 @@ The command fails loudly — `nothing to publish` — rather than silently no-op
 
 ## Options
 
-| Option      | Default | Description                                                       |
-| ----------- | ------- | ----------------------------------------------------------------- |
-| `--initial` | `false` | Required today — runs the bootstrap publish                       |
-| `--tag`     | `alpha` | npm distribution tag                                              |
-| `--otp`     | —       | TOTP code from your authenticator (if 2FA is required for writes) |
-| `--dry-run` | `false` | Print what would be published without publishing                  |
+| Option         | Default                | Description                                                                |
+| -------------- | ---------------------- | -------------------------------------------------------------------------- |
+| `--initial`    | `false`                | Runs the bootstrap publish                                                 |
+| `--tag`        | `alpha`                | npm distribution tag                                                       |
+| `--otp`        | —                      | TOTP code from your authenticator (if 2FA is required for writes)          |
+| `--sync-trust` | —                      | `<old-file> <new-file>` — migrate every package's Trusted Publisher config |
+| `--repo`       | `theholocron/holocron` | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)        |
+| `--dry-run`    | `false`                | Print what would happen without making any npm calls                       |
 
 ## Notes
 
