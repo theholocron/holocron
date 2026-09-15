@@ -46,18 +46,18 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown && cp src/styles.css dist/",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "delivery.build": "tsdown && cp src/styles.css dist/",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "dependencies": {
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {
     "@astrojs/starlight": "^0.41.7",
+    "@theholocron/cli": "catalog:holocron",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",

@@ -2,11 +2,11 @@
 
 ### Bug Fixes
 
-* 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#107](https://github.com/theholocron/themes/issues/107)) ([63ad542](https://github.com/theholocron/themes/commit/63ad5423be0f4fa13c9f59307132bbbea0d62622))
+- 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#107](https://github.com/theholocron/themes/issues/107)) ([63ad542](https://github.com/theholocron/themes/commit/63ad5423be0f4fa13c9f59307132bbbea0d62622))
 
 ### Chores
 
-* 🔧 sync from holocron.config ([#105](https://github.com/theholocron/themes/issues/105)) ([5cfa330](https://github.com/theholocron/themes/commit/5cfa33050da8167644c9c591c38c18d1cf034895))
+- 🔧 sync from holocron.config ([#105](https://github.com/theholocron/themes/issues/105)) ([5cfa330](https://github.com/theholocron/themes/commit/5cfa33050da8167644c9c591c38c18d1cf034895))
 
 ## [1.10.2](https://github.com/theholocron/themes/compare/v1.10.1...v1.10.2) (2026-09-11)
 
