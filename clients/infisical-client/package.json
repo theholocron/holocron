@@ -32,18 +32,18 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "dependencies": {
     "@theholocron/http-client": "workspace:^",
     "@theholocron/observability": "catalog:"
   },
   "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
     "@theholocron/eslint-config": "catalog:",
     "@theholocron/tsconfig": "catalog:",
     "@theholocron/tsdown-config": "catalog:",
