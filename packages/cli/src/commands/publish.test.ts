@@ -8,9 +8,17 @@ vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdo
 
 import { fakeLogger } from "@theholocron/observability/testing";
 
-import { type PublishExecResult, runPublish, runSyncTrust } from "./publish.js";
+import {
+	type PublicPackageEntry,
+	type PublishExecResult,
+	runPublish,
+	runSteadyPublish,
+	runSyncTrust,
+} from "./publish.js";
 
-function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; invalidJson?: boolean }>) {
+function makeTempMonorepo(
+	packages: Array<{ name: string; version?: string; private?: boolean; invalidJson?: boolean }>
+) {
 	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
 	const pkgsDir = join(root, "packages");
 	mkdirSync(pkgsDir);
@@ -19,7 +27,11 @@ function makeTempMonorepo(packages: Array<{ name: string; private?: boolean; inv
 		mkdirSync(dir);
 		const content = pkg.invalidJson
 			? "not valid json {"
-			: JSON.stringify({ name: pkg.name, ...(pkg.private ? { private: true } : {}) });
+			: JSON.stringify({
+					name: pkg.name,
+					version: pkg.version ?? "1.0.0",
+					...(pkg.private ? { private: true } : {}),
+				});
 		writeFileSync(join(dir, "package.json"), content);
 	}
 	// Directory with no package.json — should be skipped
@@ -443,6 +455,196 @@ describe("runPublish", () => {
 		});
 		const joined = lines.join("\n");
 		expect(joined).not.toContain("Revoke it now");
+	});
+});
+
+// ── runSteadyPublish ────────────────────────────────────────────────────────
+
+const STEADY_ENTRIES: readonly PublicPackageEntry[] = [
+	{ name: "@theholocron/foo", version: "1.0.0", dir: "./packages/foo" },
+	{ name: "@theholocron/bar", version: "2.0.0", dir: "./packages/bar" },
+];
+
+describe("runSteadyPublish", () => {
+	it("fails with no packages, without calling exec", async () => {
+		const { exec, calls } = makeExec({});
+		const report = await runSteadyPublish({ cwd: "/tmp/test", env: baseEnv, packages: [], print: () => {}, exec });
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/nothing to publish/);
+		expect(calls).toHaveLength(0);
+	});
+
+	it("bulk-publishes a monorepo with -r --filter=./packages/* and --provenance by default", async () => {
+		const root = makeTempMonorepo([{ name: "@theholocron/public-a" }]);
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		const report = await runSteadyPublish({ cwd: root, env: baseEnv, print: () => {}, exec });
+		expect(report.status).toBe("ok");
+		expect(calls[0]?.cmd).toBe("pnpm");
+		expect(calls[0]?.args).toEqual([
+			"-r",
+			"--filter=./packages/*",
+			"publish",
+			"--access",
+			"public",
+			"--no-git-checks",
+			"--tag",
+			"latest",
+			"--provenance",
+		]);
+	});
+
+	it("skips an invalid-JSON package.json when discovering entries", async () => {
+		const root = makeTempMonorepo([{ name: "@theholocron/good" }, { name: "@theholocron/bad", invalidJson: true }]);
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		const report = await runSteadyPublish({ cwd: root, env: baseEnv, print: () => {}, exec });
+		expect(report.status).toBe("ok");
+		expect(report.packageNames).toEqual(["@theholocron/good"]);
+		expect(calls[0]?.args).toContain("-r");
+	});
+
+	it("bulk-publishes a single-package repo without -r --filter", async () => {
+		const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@theholocron/solo", version: "1.0.0" }));
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		const report = await runSteadyPublish({ cwd: root, env: baseEnv, print: () => {}, exec });
+		expect(report.status).toBe("ok");
+		expect(calls[0]?.args).not.toContain("-r");
+		expect(calls[0]?.args).not.toContain("--filter=./packages/*");
+	});
+
+	it("omits --provenance when provenance: false", async () => {
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		await runSteadyPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: STEADY_ENTRIES,
+			provenance: false,
+			print: () => {},
+			exec,
+		});
+		expect(calls[0]?.args).not.toContain("--provenance");
+	});
+
+	it("passes --tag and --otp through to the bulk publish call", async () => {
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		await runSteadyPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: STEADY_ENTRIES,
+			tag: "next",
+			otp: "123456",
+			print: () => {},
+			exec,
+		});
+		expect(calls[0]?.args).toContain("next");
+		expect(calls[0]?.args).toEqual(expect.arrayContaining(["--otp", "123456"]));
+	});
+
+	it("fails and prints an --otp hint on an EOTP bulk-publish failure", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({ pnpm: { exitCode: 1, stdout: "", stderr: "EOTP: 2FA required" } });
+		const report = await runSteadyPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: STEADY_ENTRIES,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toMatch(/--otp <6-digit-code>/);
+	});
+
+	it("fails with the pnpm stderr on a non-EOTP bulk-publish failure", async () => {
+		const { exec } = makeExec({ pnpm: { exitCode: 1, stdout: "", stderr: "network error" } });
+		const report = await runSteadyPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: STEADY_ENTRIES,
+			print: () => {},
+			exec,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("network error");
+	});
+
+	it("dry-run prints the would-run pnpm command without calling exec", async () => {
+		const lines: string[] = [];
+		const { exec, calls } = makeExec({});
+		const report = await runSteadyPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: STEADY_ENTRIES,
+			dryRun: true,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.status).toBe("dry-run");
+		expect(calls).toHaveLength(0);
+		expect(lines.join("\n")).toContain("would run: pnpm");
+	});
+
+	describe("skipAlreadyPublished", () => {
+		it("skips a package whose exact version is already on npm, publishes the rest", async () => {
+			const calls: Array<{ cmd: string; args: string[] }> = [];
+			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+				calls.push({ cmd, args: [...args] });
+				if (cmd === "npm" && args[1] === "@theholocron/foo@1.0.0") {
+					return { exitCode: 0, stdout: "1.0.0\n", stderr: "" }; // already published
+				}
+				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" }; // not found — publish it
+				return { exitCode: 0, stdout: "", stderr: "" };
+			};
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				print: () => {},
+				exec,
+			});
+			expect(report.status).toBe("ok");
+			const pnpmCalls = calls.filter((c) => c.cmd === "pnpm");
+			expect(pnpmCalls).toHaveLength(1);
+			expect(pnpmCalls[0]?.args).toEqual(expect.arrayContaining(["--filter", "./packages/bar"]));
+		});
+
+		it("fails on the first per-package publish failure, without attempting the rest", async () => {
+			const calls: Array<{ cmd: string; args: string[] }> = [];
+			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+				calls.push({ cmd, args: [...args] });
+				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" };
+				return { exitCode: 1, stdout: "", stderr: "publish blew up" };
+			};
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				print: () => {},
+				exec,
+			});
+			expect(report.status).toBe("fail");
+			expect(report.message).toContain("@theholocron/foo@1.0.0");
+			expect(calls.filter((c) => c.cmd === "pnpm")).toHaveLength(1); // stopped after the first failure
+		});
+
+		it("dry-run lists each would-check package without calling exec", async () => {
+			const lines: string[] = [];
+			const { exec, calls } = makeExec({});
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				dryRun: true,
+				print: (l) => lines.push(l),
+				exec,
+			});
+			expect(report.status).toBe("dry-run");
+			expect(calls).toHaveLength(0);
+			expect(lines.join("\n")).toContain("would check @theholocron/foo@1.0.0");
+			expect(lines.join("\n")).toContain("would check @theholocron/bar@2.0.0");
+		});
 	});
 });
 

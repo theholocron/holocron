@@ -34,7 +34,9 @@ rather than assumed.
 The tool is invoked by our own CLI and accepts an explicit external config
 path. Verified today: `eslint --config`, `prettier --config`, `vitest
 --config` (`-c`), `tsdown --config`, `knip --config` (`-c`), `commitlint
---config` (`-g`), `semantic-release --extends` (`-e`). The target:
+--config` (`-g`), `semantic-release --extends` (`-e`), `devmoji --config`
+(`-c`), `editorconfig-checker --config` (both newly verified — see below).
+The target:
 
 ```
 eslint --config <resolved path> .
@@ -44,27 +46,138 @@ tsdown --config <resolved path>
 knip --config <resolved path>
 commitlint --config <resolved path>
 semantic-release --extends <resolved path>
+devmoji --config <resolved path>
+editorconfig-checker --config <resolved path>
 ```
 
 No local `eslint.config.ts`, `prettier.config.*`, `vitest.config.ts`,
-`tsdown.config.ts`, `knip.config.ts`, `commitlint.config.ts`, or
-`release.config.ts` needed — the tool never looks for one because it's
-handed the path directly.
+`tsdown.config.ts`, `knip.config.ts`, `commitlint.config.ts`,
+`release.config.ts`, `devmoji.config.cjs`, or `.editorconfig-checker.json`
+needed — the tool never looks for one because it's handed the path
+directly.
 
-Requires:
+Requires `astromech`'s task registry resolving the shared-package path
+(from the repo's `@theholocron/*-config` catalog version) and passing
+`--config`/`--extends` when invoking each tool. Removing the now-redundant
+pointer files from every repo folds into the migration-pass workstream,
+#680, not duplicated here.
 
-1. `astromech`'s task registry resolving the shared-package path (from the
-   repo's `@theholocron/*-config` catalog version) and passing
-   `--config`/`--extends` when invoking each tool.
-2. Removing the now-redundant pointer files from every repo — folds into the
-   migration-pass workstream, #680, not duplicated here.
+### Not all seven tools are equally ready — verified against every migrated repo
 
-**Unverified, check during implementation**: `devmoji` (invoked via `npx
-devmoji -e` in the generated `prepare-commit-msg` hook, not installed as a
-persistent devDependency anywhere checked) — don't assume it supports the
-same pattern without confirming first. `.editorconfig-checker.json` (the
-_linter's_ config, not `.editorconfig` itself) likely belongs here instead
-of Bucket B — not yet verified.
+Checked the actual committed `eslint.config.ts` / `commitlint.config.ts` /
+`release.config.ts` in `holocron`, `clients`, `utils`, `configs`, and
+`themes`. Three tools are genuinely zero-value pointers today — safe to go
+Bucket A immediately, no shared-package changes needed:
+
+- **`prettier.config.ts`** — pure re-export in every repo checked.
+- **`tsdown.config.ts`** — pure re-export (`export { default } from
+"@theholocron/tsdown-config/presets/<variant>"`) in every repo checked.
+- **`knip.config.ts`** — repo-specific (entry points, ignored deps) by
+  nature, not a shared-config candidate at all — already excluded from
+  Bucket A implicitly, noting it here for completeness.
+
+Two tools' local files carry real, load-bearing per-repo content today —
+pointing `--config` straight at the raw shared-package file would silently
+**drop** that content, not just remove duplication:
+
+- **`eslint.config.ts`** — every repo has repo-specific `ignores:` (dist/
+  coverage paths vary by monorepo layout), and most have repo-specific rule
+  overrides (a `docs/src` → `n/no-extraneous-import: off` exception shows up
+  in 4 of 5 repos checked; `utils` disables a rule only for its
+  browser-targeted packages; `themes` sets `tsconfigRootDir`).
+- **`release.config.ts`** — every repo has a genuinely different
+  `exec.publishCmd`/`prepareCmd`: single-package vs. monorepo `--filter`,
+  provenance on/off, `configs`' own hand-rolled shell loop that skips
+  already-published versions (it ships many small, independently-versioned
+  packages that don't all bump every release).
+
+The fix isn't a runtime merge mechanism (repo delta + shared base combined
+at invocation time) — it's the same move `@theholocron/eslint-config`
+already makes for `n/hashbang`/`n/no-unpublished-import` in `library()`
+today: **absorb the pattern into the shared package**, either as universal
+built-in behavior or as a preset parameter fed from data `holocron.config.ts`
+/ `pnpm-workspace.yaml` already expose. Concretely:
+
+- **`eslint-config`**:
+  1. Ignore via `.gitignore`, not a hand-maintained `ignores:` array — every
+     repo's `.gitignore` already excludes `dist/`, `coverage/`,
+     `node_modules/`; ESLint's flat config can load ignore patterns from it
+     directly (`@eslint/compat`'s `includeIgnoreFile()` or equivalent) —
+     removes the per-repo array entirely, and it can never drift from what
+     git itself already ignores.
+  2. Bake the `docs/src` exception into `library()` (or wherever it
+     belongs) unconditionally, scoped to a `docs/src/**` glob — a no-op for
+     any repo without that directory, so it's safe to always include rather
+     than opt into.
+  3. The genuinely repo-specific remainder (`utils`' browser-package list,
+     `themes`' `tsconfigRootDir`) becomes an optional bundle parameter
+     (e.g. `library({ browserPackages: [...] })`), fed from
+     `holocron.config.ts`/`astromech.config.ts` data at resolve time — not
+     hand-rolled override blocks living in a committed file.
+- **`release.config.ts`'s `exec.publishCmd`**: the `prepareCmd` half of
+  this already goes through the CLI (`holocron bump-versions` — just fixed
+  a live bug where 4 repos called a stale `holocron npm bump-versions` that
+  no longer exists, theholocron/holocron#696). `publishCmd` should get the
+  same treatment rather than adding monorepo-awareness to
+  `semantic-release-config`'s JS-level `defineConfig()` options — keeps all
+  the logic in one place (the CLI) instead of splitting it across `configs`
+  and `holocron`.
+
+  `packages/cli/src/commands/publish.ts`'s `runPublish()` (today:
+  `holocron publish --initial`, the one-shot Trusted Publisher bootstrap)
+  already has exactly the monorepo-detection + `pnpm publish` invocation
+  logic a steady-state `publishCmd` needs — `hasPackagesDir()` picks
+  `-r --filter=./packages/*` vs. a bare root publish, building the same
+  `publishArgs` either way. Extend it to a non-`--initial`, steady-state
+  mode (the doc comment already reserves the flag surface for this:
+  "`--initial` is required today... exists so the surface doesn't need
+  another rename when it is built") rather than writing new
+  monorepo-detection logic a second time:
+
+  - Skip the `npm whoami`/`npm login --auth-type=web` dance and the
+    Trusted-Publisher "next steps" printout — both bootstrap-only. CI's
+    steady-state publish authenticates via OIDC automatically, no
+    interactive login involved.
+  - Default `--provenance` on (currently inconsistent — present in
+    `utils`/`themes`/`observability`'s hand-typed `publishCmd`, absent from
+    `clients`'s).
+  - Add a `skipAlreadyPublished` option: check `npm view <pkg>@<version>`
+    before publishing each package, skip if it already exists. Replaces
+    `configs`' hand-rolled shell loop (many small, independently-versioned
+    packages that don't all bump every release) with a CLI flag instead of
+    bespoke shell.
+
+  Once this exists, `exec.publishCmd` becomes `pnpm exec holocron publish`
+  (plus `--skip-already-published` for `configs`) uniformly — no
+  per-repo shell, matching `prepareCmd`'s existing uniformity.
+
+- **`commitlint-config`**: already the closest to done — the shared
+  package's `index.ts` already carries real logic (a dependabot-commit
+  `ignores` regex, `body-max-line-length` disabled) that every repo
+  currently gets via a pure `{ extends: [...] }` pointer, **except**
+  `holocron` itself, which adds `footer-max-line-length: [0]` locally. Given
+  every repo's commits carry a `Signed-off-by:` trailer (`-s` is the
+  session-wide convention — see `AGENTS.md`), that's a universal need, not
+  a `holocron`-specific one — fold it into the shared package rather than
+  leaving it as a one-repo local override. (Also noticed: `extends:
+["@theholocron"]` vs. `extends: ["@theholocron/commitlint-config"]` differ
+  in string form across repos — worth confirming these actually resolve
+  identically and normalizing to one form, low-stakes either way.)
+
+Once `eslint-config`/`commitlint-config` (both in `configs`) and the
+`holocron publish` extension (in `holocron` itself) land, all seven tools
+are uniformly Bucket A — no per-repo delta, no runtime merge step, just
+`--config <resolved shared path>` (or, for `release.config.ts`, a uniform
+`pnpm exec holocron publish` invocation).
+
+### Previously unverified, now confirmed
+
+- **`devmoji`**: `devmoji --help` confirms `-c|--config <file>` — Bucket A,
+  same as everything else. No blocker.
+- **`.editorconfig-checker.json`** (the linter's own settings, not
+  `.editorconfig` itself): `editorconfig-checker --help` confirms `-config
+string` — Bucket A, not Bucket B as originally guessed. `.editorconfig`
+  itself (the file editors read directly) stays Bucket B, unaffected.
 
 ## Bucket B — must stay committed, but generated, never hand-authored
 
@@ -97,13 +210,25 @@ away here; not a gap this workstream closes.
 
 ## Scope
 
-- Resolver logic: given a repo's `holocron.config.ts` + `@theholocron/*-config`
-  catalog versions, resolve the absolute path to each Bucket A tool's shared
-  config, wired into `holocron run <task>`.
-- Bucket B generator functions (parallel to `astromech.codecovConfig()`) for
-  `tsconfig.json`, `.editorconfig`.
-- Confirm `devmoji` and `.editorconfig-checker.json` bucket placement before
-  building against an assumption.
+- **`theholocron/configs` changes (prerequisite for eslint to reach Bucket
+  A)**:
+  - `eslint-config`: `.gitignore`-based ignoring, bake in the `docs/src`
+    exception, parameterize the remaining genuinely repo-specific bits
+    (browser-package list, `tsconfigRootDir`) as bundle options.
+  - `commitlint-config`: fold `footer-max-line-length: [0]` in (universal
+    need, not `holocron`-specific); normalize the `extends:` string form.
+- **`holocron` changes**:
+  - Extend `packages/cli/src/commands/publish.ts`'s `runPublish()` to a
+    non-`--initial`, steady-state mode: skip the bootstrap login/next-steps
+    flow, default `--provenance` on, add `skipAlreadyPublished`. Reuses the
+    existing `hasPackagesDir()`/`publishArgs` monorepo-detection logic
+    rather than duplicating it in `semantic-release-config`.
+  - `astromech`/CLI resolver logic — given a repo's `holocron.config.ts` +
+    `@theholocron/*-config` catalog versions, resolve the absolute path to
+    each Bucket A tool's shared config and pass `--config`/`--extends`/`-c`
+    — wired into `holocron run <task>`.
+  - Bucket B generator functions (parallel to `astromech.codecovConfig()`)
+    for `tsconfig.json`, `.editorconfig`.
 
 ## Out of scope
 
@@ -115,5 +240,15 @@ away here; not a gap this workstream closes.
 
 ## PR-stack
 
-TBD — filed once the resolver design (single shared "resolve config path"
-helper vs. per-tool logic) is settled.
+- [ ] `configs`: eslint-config gitignore-based ignoring + baked-in
+      `docs/src` exception + bundle parameters for the remaining
+      repo-specific bits
+- [ ] `configs`: commitlint-config fold in `footer-max-line-length`,
+      normalize `extends:` form
+- [ ] `holocron`: extend `runPublish()` to a steady-state (non-`--initial`)
+      mode — `skipAlreadyPublished`, `--provenance` default, no bootstrap
+      login/next-steps flow
+- [ ] `holocron`: resolver logic wired into `holocron run <task>` for all
+      seven Bucket A tools
+- [ ] `holocron`: Bucket B generators (`tsconfig.json`, `.editorconfig`)
+- [ ] Tests + docs across all of the above
