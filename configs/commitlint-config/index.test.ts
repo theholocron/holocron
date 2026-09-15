@@ -18,4 +18,8 @@ describe("commitlint-config", () => {
 	it("exports rules object", () => {
 		expect(typeof config.rules).toBe("object");
 	});
+
+	it("disables footer-max-line-length (Signed-off-by: trailers are parsed as footer text)", () => {
+		expect(config.rules?.["footer-max-line-length"]).toEqual([0]);
+	});
 });
