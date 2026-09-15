@@ -275,13 +275,24 @@ away here; not a gap this workstream closes.
       `--config`/loading needs (a gap #461 didn't close — `library()` had
       only a named export, and ESLint's `--config` loader requires the
       file's _default_ export; caught with a minimal repro before shipping,
-      not assumed). Deliberately unwired: `semantic-release` (`defineConfig()`
-      needs real per-repo data — branches, npm options — a static
-      `--extends <path>` can't carry; a genuinely separate design question,
-      not a resolver gap), `devmoji` (runs through a git hook template, not
-      `holocron run <task>`, even though the package itself is now ready),
-      `editorconfig-checker` (no shared-config package exists yet), `knip`
-      (repo-specific by nature, never a shared-config candidate).
+      not assumed). Deliberately unwired here: `semantic-release`
+      (`defineConfig()` needs real per-repo data — branches, npm options —
+      a static `--extends <path>` can't carry; a genuinely separate design
+      question, not a resolver gap), `editorconfig-checker` (no
+      shared-config package exists yet), `knip` (repo-specific by nature,
+      never a shared-config candidate).
+- [x] `holocron`: `devmoji` — resolved via its git hook template, not
+      `holocron run <task>` (it never runs through the task registry at
+      all — `.husky/prepare-commit-msg` calls it directly). The raw shell
+      template now resolves `--config` against
+      `node_modules/@theholocron/devmoji-config/dist/index.cjs` when
+      present, falling back to devmoji's own auto-discovery of a local
+      `devmoji.config.cjs` otherwise — same degrade-gracefully shape as
+      the `run.ts` resolver, in shell form. Verified end-to-end: ran the
+      generated hook against a real fixture repo with the actual built
+      `devmoji-config` package installed, both branches (config present
+      and absent), confirming the custom `config` → gear-emoji mapping
+      from `configs`#463's fixture applies through the resolved path.
 - [x] `holocron`: Bucket B generators — `.editorconfig` already had one
       (`packages/cli/src/templates/configs/editorconfig/`, pre-dating this
       workstream); added `tsconfig.json`'s (`astromech.createTsconfig()`).
