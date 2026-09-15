@@ -240,14 +240,14 @@ away here; not a gap this workstream closes.
 
 ## PR-stack
 
-- [ ] `configs`: eslint-config gitignore-based ignoring + baked-in
+- [x] `configs`: eslint-config gitignore-based ignoring + baked-in
       `docs/src` exception + bundle parameters for the remaining
-      repo-specific bits
-- [ ] `configs`: commitlint-config fold in `footer-max-line-length`,
-      normalize `extends:` form
-- [ ] `holocron`: extend `runPublish()` to a steady-state (non-`--initial`)
+      repo-specific bits (`configs`#460)
+- [x] `configs`: commitlint-config fold in `footer-max-line-length`,
+      normalize `extends:` form (`configs`#459)
+- [x] `holocron`: extend `runPublish()` to a steady-state (non-`--initial`)
       mode — `skipAlreadyPublished`, `--provenance` default, no bootstrap
-      login/next-steps flow
+      login/next-steps flow (`holocron`#697)
 - [ ] `holocron`: resolver logic wired into `holocron run <task>` for all
       seven Bucket A tools
 - [ ] `holocron`: Bucket B generators (`tsconfig.json`, `.editorconfig`)
