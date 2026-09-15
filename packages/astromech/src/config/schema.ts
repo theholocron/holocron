@@ -31,6 +31,16 @@ export interface TaskEntry {
 	with?: Record<string, unknown>;
 	/** Extra `on.push.paths` entries for the generated CI workflow. */
 	paths?: string[];
+	/**
+	 * Per-repo additions to this task's generated `turbo.json` entry — a
+	 * separate channel from `with:` (that's the reusable *workflow's* inputs;
+	 * this is local turbo cache config, unrelated). No-op for a task with no
+	 * {@link TurboTaskConfig} in the registry (nothing to add to).
+	 */
+	turbo?: {
+		/** Extra env vars turbo hashes into this task's cache key, appended to the registry default (empty when the task has none). */
+		passThroughEnv?: string[];
+	};
 }
 
 /** A task is either its bare name (all defaults) or an entry object. */

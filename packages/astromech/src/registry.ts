@@ -32,6 +32,23 @@ export interface LocalRunner {
 	command?: string;
 }
 
+/**
+ * How a task fans out across every workspace via Turborepo — content-hash
+ * caching + `^`-prefixed cross-package ordering, epic #672 D9 (#681).
+ * Present only on tasks that genuinely run *per workspace* (a real build/
+ * compile/test step); whole-repo single-run tools (prettier, gitleaks,
+ * commitlint, yamllint, …) have no entry here — they stay off turbo.json
+ * entirely and run once, un-fanned-out, the way they already do.
+ */
+export interface TurboTaskConfig {
+	/** Glob patterns turbo hashes to decide whether a cached run is still valid. */
+	inputs: string[];
+	/** Glob patterns turbo caches/restores after a run. Empty array for a task with no build artifact (lint, typecheck). */
+	outputs: string[];
+	/** Task names this depends on — a bare name runs in this package first; `^name` waits on every upstream workspace's task. */
+	dependsOn: string[];
+}
+
 /** One sub-job of a task — `performance` in `holocron run audit performance`. */
 export interface JobDef {
 	/** How the job runs locally; `null` → no local equivalent (enforced in CI). */
@@ -74,6 +91,8 @@ export interface TaskDef {
 	linterGroup?: string[];
 	/** Carries a `preview` mode (Cloudflare/Vercel deploy, npm dist-tag, Fern preview docs, …). Cross-cutting, not its own task. */
 	preview?: boolean;
+	/** Turborepo fan-out config for this task — see {@link TurboTaskConfig}. Omitted for whole-repo, non-fan-out tasks. */
+	turbo?: TurboTaskConfig;
 }
 
 export const TASKS: Record<string, TaskDef> = {
@@ -81,9 +100,21 @@ export const TASKS: Record<string, TaskDef> = {
 	"verification.unitTests": {
 		local: { tool: "vitest", args: ["run"] },
 		flags: { vitest: ["--coverage"] },
+		turbo: {
+			inputs: ["src/**", "vitest.config.ts", "vitest.config.js", "vitest.config.mjs", "package.json"],
+			outputs: ["test-report.junit.xml", "coverage/**"],
+			// Own package's build first (tests may import from dist) + every
+			// upstream workspace's build (so a dependency's types/dist are current).
+			dependsOn: ["delivery.build", "^delivery.build"],
+		},
 	},
 	"verification.typeSafety": {
 		local: { tool: "tsc", args: ["--noEmit"] },
+		turbo: {
+			inputs: ["src/**", "tsconfig.json"],
+			outputs: [],
+			dependsOn: ["^delivery.build"],
+		},
 	},
 	"verification.performance": {
 		local: {
@@ -98,6 +129,11 @@ export const TASKS: Record<string, TaskDef> = {
 	"sourceQuality.staticAnalysis": {
 		local: null,
 		linterGroup: ["eslint", "actionlint", "git-merge-conflict-markers"],
+		turbo: {
+			inputs: ["src/**", "eslint.config.ts", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"],
+			outputs: [],
+			dependsOn: ["^delivery.build"],
+		},
 	},
 	"sourceQuality.formatting": {
 		local: null,
@@ -127,6 +163,22 @@ export const TASKS: Record<string, TaskDef> = {
 				{ when: /^rollup\.config\.(ts|js|mjs|cjs)$/, tool: "rollup", args: ["-c"] },
 				{ when: /^tsconfig\.json$/, tool: "tsc", args: ["-b"] },
 			],
+		},
+		turbo: {
+			// Covers every `local.detect` build tool above — turbo doesn't mind
+			// listing a config filename a given package doesn't have.
+			inputs: [
+				"src/**",
+				"package.json",
+				"tsdown.config.ts",
+				"vite.config.ts",
+				"rollup.config.ts",
+				"tsconfig.json",
+			],
+			outputs: ["dist/**"],
+			// Depends only on upstream workspaces — a package can't depend on
+			// its own not-yet-built output.
+			dependsOn: ["^delivery.build"],
 		},
 	},
 	"delivery.publish": { local: null, preview: true },

@@ -396,6 +396,29 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			}
 			print(formatStep(steps[steps.length - 1]!));
 		}
+		{
+			const content = createAstromech({
+				cwd: input.context.repoRoot,
+				config: { tasks: config.tasks as TasksConfig["tasks"] },
+				logger,
+			}).turboConfig();
+
+			if (content === null) {
+				steps.push({
+					capability: "source",
+					step: "write turbo.json",
+					status: "skip",
+					message: "no fan-out-eligible tasks configured",
+				});
+			} else {
+				steps.push(
+					await runStep("source", "write turbo.json", dryRun, async () => {
+						await source.writeRepoFile("turbo.json", content);
+					})
+				);
+			}
+			print(formatStep(steps[steps.length - 1]!));
+		}
 
 		if (source.syncLabels) {
 			steps.push(

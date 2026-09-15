@@ -2,19 +2,13 @@
   "$schema": "https://turborepo.org/schema.json",
   "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json"],
   "tasks": {
-    "delivery.build": {
-      "inputs": ["src/**", "tsdown.config.ts", "tsconfig.json", "package.json"],
-      "outputs": ["dist/**"],
-      "dependsOn": ["^delivery.build"],
-      "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
-    },
     "sourceQuality.staticAnalysis": {
-      "inputs": ["src/**", "eslint.config.ts", "eslint.config.js"],
+      "inputs": ["src/**", "eslint.config.ts", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"],
       "outputs": [],
       "dependsOn": ["^delivery.build"]
     },
     "verification.unitTests": {
-      "inputs": ["src/**", "vitest.config.ts", "package.json"],
+      "inputs": ["src/**", "vitest.config.ts", "vitest.config.js", "vitest.config.mjs", "package.json"],
       "outputs": ["test-report.junit.xml", "coverage/**"],
       "dependsOn": ["delivery.build", "^delivery.build"]
     },
@@ -22,6 +16,12 @@
       "inputs": ["src/**", "tsconfig.json"],
       "outputs": [],
       "dependsOn": ["^delivery.build"]
+    },
+    "delivery.build": {
+      "inputs": ["src/**", "package.json", "tsdown.config.ts", "vite.config.ts", "rollup.config.ts", "tsconfig.json"],
+      "outputs": ["dist/**"],
+      "dependsOn": ["^delivery.build"],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
     }
   }
 }

@@ -3408,6 +3408,51 @@ describe("setup: write codecov.yml", () => {
 		);
 	}
 
+	it("writes turbo.json when the manifest has a fan-out-eligible task", async () => {
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.typeSafety"],
+				providers: { source: "github" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["turbo.json"]).toBeDefined();
+		expect(written["turbo.json"]).toContain("verification.typeSafety");
+		expect(report.steps.find((s) => s.step === "write turbo.json")?.status).toBe("ok");
+	});
+
+	it("skips writing turbo.json when the manifest has no fan-out-eligible task", async () => {
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			// platform.repoSync has no `turbo` entry in the registry — whole-repo,
+			// never fanned out.
+			resolved: resolveConfig({ name: "demo", tasks: ["platform.repoSync"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["turbo.json"]).toBeUndefined();
+		const step = report.steps.find((s) => s.step === "write turbo.json");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no fan-out-eligible tasks configured");
+	});
+
 	it("writes codecov.yml with discovered packages", async () => {
 		const pkgsDir = join(tmpDir, "packages");
 		await mkdir(join(pkgsDir, "foo"), { recursive: true });

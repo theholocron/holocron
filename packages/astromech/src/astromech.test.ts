@@ -386,6 +386,20 @@ describe("createAstromech().codecovConfig", () => {
 	});
 });
 
+describe("createAstromech().turboConfig", () => {
+	it("delegates to the bare turboConfig(config) — null with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).turboConfig()).toBeNull();
+	});
+
+	it("returns the generated turbo.json for a manifest with fan-out-eligible tasks", async () => {
+		const { turboConfig } = await import("./turbo.js");
+		const config = { tasks: ["verification.typeSafety", "verification.unitTests"] };
+		const viaFactory = createAstromech({ cwd: "/repo", config }).turboConfig();
+		expect(viaFactory).toEqual(turboConfig(config));
+		expect(viaFactory).toContain("verification.typeSafety");
+	});
+});
+
 describe("createAstromech().ci", () => {
 	it("returns ok with no config (nothing to run)", () => {
 		const report = createAstromech({ cwd: "/repo", print: () => {} }).ci();
