@@ -1,3 +1,13 @@
+## [8.2.5](https://github.com/theholocron/configs/compare/v8.2.4...v8.2.5) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#458](https://github.com/theholocron/configs/issues/458)) ([df22f85](https://github.com/theholocron/configs/commit/df22f85e11ffa8c62cc3309830b2bf424099d83a)), closes [#457](https://github.com/theholocron/configs/issues/457)
+
+### Refactoring
+
+* ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/configs/issues/672)) ([#457](https://github.com/theholocron/configs/issues/457)) ([1ab954c](https://github.com/theholocron/configs/commit/1ab954ca33e4476847f19273e776097f4482e872)), closes [#455](https://github.com/theholocron/configs/issues/455) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
 ## [8.2.4](https://github.com/theholocron/configs/compare/v8.2.3...v8.2.4) (2026-09-15)
 
 ### Bug Fixes
