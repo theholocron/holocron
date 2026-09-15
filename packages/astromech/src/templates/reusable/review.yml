@@ -3,16 +3,17 @@ name: Review
 # ReviewDog is the annotation layer — posts inline PR diff annotations.
 # Runs on pull_request only: inline annotations require PR context,
 # and branch protection ensures all changes go through PRs anyway.
-# super-linter (lint.yml) is the CI gate covering push + PR events.
-# Gitleaks and YAML are intentionally duplicated: super-linter gates
-# merges; ReviewDog surfaces exact line annotations in the PR diff.
+# security.secretDetection.yml / sourceQuality.structuredDataValidation.yml
+# are the CI gates covering push + PR events. Gitleaks and YAML are
+# intentionally duplicated: those gate merges; ReviewDog surfaces exact
+# line annotations in the PR diff.
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
 
 jobs:
   reviewdog:
-    name: Review PRs
+    name: Post inline lint annotations
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

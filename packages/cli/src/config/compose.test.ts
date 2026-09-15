@@ -8,15 +8,15 @@ const node = (): Capability => ({
 	id: "node",
 	providers: { source: "github", ci: "github" },
 	repo: { protection: "strict", properties: { lifecycle: "active" } },
-	tasks: ["lint", "test", "codeql"],
-	extraRequiredChecks: ["Lint / Conclusion", "Test / Conclusion"],
+	tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", "security.codeScanning"],
+	extraRequiredChecks: ["Static Analysis / Static Analysis", "Test / Conclusion"],
 });
 
 const typecheck = (): Capability => ({
-	id: "typecheck",
+	id: "verification.typeSafety",
 	requires: ["node"],
-	tasks: ["typecheck"],
-	extraRequiredChecks: ["Typecheck / Conclusion"],
+	tasks: ["verification.typeSafety"],
+	extraRequiredChecks: ["Typecheck / tsc --noEmit"],
 });
 
 const docs = (): Capability => ({
@@ -26,45 +26,47 @@ const docs = (): Capability => ({
 	domain: "theholocron.dev",
 	docs: { build: "workflow", https: true },
 	providers: { deployment: "cloudflare" },
-	tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
+	tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }],
 	extraRequiredChecks: ["codecov/patch", "codecov/project"],
 });
 
 const audit = (): Capability => ({
-	id: "audit",
+	id: "sourceQuality.deadCodeAnalysis",
 	requires: ["node"],
-	tasks: ["audit"],
-	extraRequiredChecks: ["audit / Conclusion"],
+	tasks: ["sourceQuality.deadCodeAnalysis"],
+	extraRequiredChecks: ["Dead Code Analysis / Dead Code Analysis"],
 });
 
 describe("compose()", () => {
 	it("merges tasks from multiple capabilities", () => {
 		const preset = compose(node(), typecheck());
-		expect(preset.tasks).toContainEqual("lint");
-		expect(preset.tasks).toContainEqual("test");
-		expect(preset.tasks).toContainEqual("typecheck");
+		expect(preset.tasks).toContainEqual("sourceQuality.staticAnalysis");
+		expect(preset.tasks).toContainEqual("verification.unitTests");
+		expect(preset.tasks).toContainEqual("verification.typeSafety");
 	});
 
 	it("deduplicates tasks by name — last writer wins", () => {
 		const override: Capability = {
 			id: "override",
-			tasks: [{ name: "test", with: { "run-unit": false } }],
+			tasks: [{ name: "verification.unitTests", with: { "run-unit": false } }],
 		};
 		const preset = compose(node(), override);
-		const testEntry = preset.tasks.find((w) => (typeof w === "string" ? w : w.name) === "test");
-		expect(testEntry).toEqual({ name: "test", with: { "run-unit": false } });
-		expect(preset.tasks.filter((w) => (typeof w === "string" ? w : w.name) === "test")).toHaveLength(1);
+		const testEntry = preset.tasks.find((w) => (typeof w === "string" ? w : w.name) === "verification.unitTests");
+		expect(testEntry).toEqual({ name: "verification.unitTests", with: { "run-unit": false } });
+		expect(
+			preset.tasks.filter((w) => (typeof w === "string" ? w : w.name) === "verification.unitTests")
+		).toHaveLength(1);
 	});
 
 	it("unions extraRequiredChecks without duplicates", () => {
 		const preset = compose(node(), typecheck(), docs(), audit());
 		expect(preset.extraRequiredChecks).toEqual([
-			"Lint / Conclusion",
+			"Static Analysis / Static Analysis",
 			"Test / Conclusion",
-			"Typecheck / Conclusion",
+			"Typecheck / tsc --noEmit",
 			"codecov/patch",
 			"codecov/project",
-			"audit / Conclusion",
+			"Dead Code Analysis / Dead Code Analysis",
 		]);
 	});
 
@@ -112,29 +114,37 @@ describe("compose()", () => {
 	});
 
 	it("deduplicates capabilities by id — last wins", () => {
-		const first: Capability = { id: "x", tasks: ["lint"], extraRequiredChecks: ["Lint / Conclusion"] };
-		const second: Capability = { id: "x", tasks: ["test"], extraRequiredChecks: ["Test / Conclusion"] };
+		const first: Capability = {
+			id: "x",
+			tasks: ["sourceQuality.staticAnalysis"],
+			extraRequiredChecks: ["Static Analysis / Static Analysis"],
+		};
+		const second: Capability = {
+			id: "x",
+			tasks: ["verification.unitTests"],
+			extraRequiredChecks: ["Test / Conclusion"],
+		};
 		const preset = compose(first, second);
-		expect(preset.tasks).toContainEqual("test");
-		expect(preset.tasks).not.toContainEqual("lint");
+		expect(preset.tasks).toContainEqual("verification.unitTests");
+		expect(preset.tasks).not.toContainEqual("sourceQuality.staticAnalysis");
 		expect(preset.extraRequiredChecks).toContain("Test / Conclusion");
-		expect(preset.extraRequiredChecks).not.toContain("Lint / Conclusion");
+		expect(preset.extraRequiredChecks).not.toContain("Static Analysis / Static Analysis");
 	});
 
 	it("flattens nested Capability[] from bundle presets", () => {
 		const bundle = (): Capability[] => [typecheck(), audit()];
 		const preset = compose(node(), bundle());
-		expect(preset.tasks).toContainEqual("typecheck");
-		expect(preset.tasks).toContainEqual("audit");
+		expect(preset.tasks).toContainEqual("verification.typeSafety");
+		expect(preset.tasks).toContainEqual("sourceQuality.deadCodeAnalysis");
 	});
 
 	it("throws ConfigError listing all unmet dependencies at once", () => {
 		expect(() => compose(typecheck())).toThrow(ConfigError);
-		expect(() => compose(typecheck())).toThrow('"typecheck" requires "node"');
+		expect(() => compose(typecheck())).toThrow('"verification.typeSafety" requires "node"');
 	});
 
 	it("throws for multiple missing deps in one message", () => {
-		const cap: Capability = { id: "big", requires: ["node", "typecheck"] };
+		const cap: Capability = { id: "big", requires: ["node", "verification.typeSafety"] };
 		expect(() => compose(cap)).toThrow(ConfigError);
 		const err = (() => {
 			try {
@@ -144,7 +154,7 @@ describe("compose()", () => {
 			}
 		})();
 		expect(err?.message).toContain('"big" requires "node"');
-		expect(err?.message).toContain('"big" requires "typecheck"');
+		expect(err?.message).toContain('"big" requires "verification.typeSafety"');
 	});
 
 	it("does not throw when all requirements are satisfied", () => {
@@ -188,9 +198,16 @@ describe("compose()", () => {
 	});
 
 	it("deduplicates extraRequiredChecks appearing in multiple capabilities", () => {
-		const a: Capability = { id: "a", extraRequiredChecks: ["Lint / Conclusion", "Test / Conclusion"] };
-		const b: Capability = { id: "b", extraRequiredChecks: ["Lint / Conclusion", "codecov/patch"] };
+		const a: Capability = {
+			id: "a",
+			extraRequiredChecks: ["Static Analysis / Static Analysis", "Test / Conclusion"],
+		};
+		const b: Capability = { id: "b", extraRequiredChecks: ["Static Analysis / Static Analysis", "codecov/patch"] };
 		const preset = compose(a, b);
-		expect(preset.extraRequiredChecks).toEqual(["Lint / Conclusion", "Test / Conclusion", "codecov/patch"]);
+		expect(preset.extraRequiredChecks).toEqual([
+			"Static Analysis / Static Analysis",
+			"Test / Conclusion",
+			"codecov/patch",
+		]);
 	});
 });

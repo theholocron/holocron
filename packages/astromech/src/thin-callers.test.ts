@@ -23,13 +23,25 @@ describe("WORKFLOW_TEMPLATES", () => {
 		}
 	});
 
-	it("check contexts point at real workflow names and use the Conclusion aggregate job", () => {
+	it("check contexts point at real workflow names, in '{workflow} / {job}' form", () => {
 		for (const [name, context] of Object.entries(WORKFLOW_CHECK_CONTEXTS)) {
 			expect(KNOWN_WORKFLOWS.has(name)).toBe(true);
-			expect(context).toMatch(/ \/ Conclusion$/);
+			expect(context).toMatch(/ \/ /);
 		}
-		expect(WORKFLOW_CHECK_CONTEXTS["lint"]).toBe("Lint / Conclusion");
-		expect(WORKFLOW_CHECK_CONTEXTS["audit"]).toBe("audit / Conclusion");
+	});
+
+	it("uses the Conclusion aggregate only for genuinely multi-job tasks", () => {
+		// verification.unitTests (5 conditional jobs) and platform.repoValidation
+		// (2 jobs that both must pass) need a fan-in; every other task is a
+		// single always-run job, so its own conclusion already is the check.
+		expect(WORKFLOW_CHECK_CONTEXTS["verification.unitTests"]).toBe("Test / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["platform.repoValidation"]).toBe("Repo Validation / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["sourceQuality.staticAnalysis"]).toBe(
+			"Static Analysis / Run eslint and actionlint"
+		);
+		expect(WORKFLOW_CHECK_CONTEXTS["delivery.bundleSize"]).toBe(
+			"Audit the Bundle Size / Upload bundle stats to Codecov"
+		);
 	});
 });
 
@@ -39,14 +51,18 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("returns base template unchanged when withOverrides is empty / omitted", () => {
-		const base = generateThinCallerContent("test", {});
+		const base = generateThinCallerContent("verification.unitTests", {});
 		expect(base).toContain("name: Test");
 		expect(base).toContain("secrets: inherit");
-		expect(generateThinCallerContent("test")).toBe(base);
+		expect(generateThinCallerContent("verification.unitTests")).toBe(base);
 	});
 
 	it("injects boolean and string overrides into an existing with: block", () => {
-		const content = generateThinCallerContent("test", { enable: true, debug: false, version: "1.2.3" });
+		const content = generateThinCallerContent("verification.unitTests", {
+			enable: true,
+			debug: false,
+			version: "1.2.3",
+		});
 		expect(content).toContain("with:");
 		expect(content).toContain("enable: true");
 		expect(content).toContain("debug: false");
@@ -55,24 +71,24 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("injects overrides before secrets: inherit when the template has no with: block", () => {
-		const content = generateThinCallerContent("lint", { "yaml-config": "custom.yml" });
+		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { "yaml-config": "custom.yml" });
 		expect(content).toContain("yaml-config: custom.yml");
 	});
 
 	it("replaces an existing key when the override matches it", () => {
-		const content = generateThinCallerContent("lint", { "enable-auto-commit": false });
+		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { "enable-auto-commit": false });
 		expect(content.match(/enable-auto-commit:/g)).toHaveLength(1);
 		expect(content).toContain("enable-auto-commit: false");
 	});
 
 	it("single-quotes an override value that looks like a YAML mapping node", () => {
-		const content = generateThinCallerContent("lint", { config: '{"key":"val"}' });
+		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { config: '{"key":"val"}' });
 		expect(content).toContain(`config: '{"key":"val"}'`);
 	});
 
 	it("renders a # comment line above a with: entry when given", () => {
 		const content = generateThinCallerContent(
-			"lint",
+			"sourceQuality.staticAnalysis",
 			{ "super-linter-env": '{"VALIDATE_YAML":"true"}' },
 			undefined,
 			undefined,
@@ -122,10 +138,10 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("inserts a paths block when the template has none, in order, deduped when empty", () => {
-		const base = generateThinCallerContent("deploy");
-		expect(generateThinCallerContent("deploy", undefined, [])).toBe(base);
+		const base = generateThinCallerContent("delivery.deploy");
+		expect(generateThinCallerContent("delivery.deploy", undefined, [])).toBe(base);
 
-		const content = generateThinCallerContent("deploy", undefined, ["src/**", ".storybook/**"]);
+		const content = generateThinCallerContent("delivery.deploy", undefined, ["src/**", ".storybook/**"]);
 		expect(content).toContain("    paths:");
 		expect(content.indexOf("- src/**")).toBeLessThan(content.indexOf("- .storybook/**"));
 	});
@@ -146,7 +162,7 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("applies both additionalPaths and withOverrides together", () => {
-		const content = generateThinCallerContent("deploy", { type: "docs", name: "configs" }, ["docs/**"]);
+		const content = generateThinCallerContent("delivery.deploy", { type: "docs", name: "configs" }, ["docs/**"]);
 		expect(content).toContain("- docs/**");
 		expect(content).toContain("type: docs");
 		expect(content).toContain("name: configs");

@@ -1,0 +1,22 @@
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches-ignore:
+      - main # delivery.publish builds before publishing
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: delivery.build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    uses: theholocron/.github/.github/workflows/delivery.build.yml@main
+    secrets: inherit

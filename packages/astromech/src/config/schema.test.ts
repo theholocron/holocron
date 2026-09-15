@@ -15,9 +15,9 @@ describe("normalizeTaskEntry", () => {
 		});
 	});
 
-	it("keeps extra fields (required, with, linters)", () => {
-		const entry = normalizeTaskEntry({ name: "lint", linters: ["eslint"], required: true });
-		expect(entry.linters).toEqual(["eslint"]);
+	it("keeps extra fields (required, with, paths)", () => {
+		const entry = normalizeTaskEntry({ name: "delivery.deploy", with: { docs: true }, required: true });
+		expect(entry.with).toEqual({ docs: true });
 		expect(entry.required).toBe(true);
 		expect(entry.ci).toBe(true);
 	});
