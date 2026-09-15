@@ -8,7 +8,7 @@
  */
 
 export interface TaskEntry {
-	/** Registry task name — `test`, `lint`, `build`, `audit`, … */
+	/** Registry task name — `verification.unitTests`, `sourceQuality.staticAnalysis`, `delivery.build`, … */
 	name: string;
 	/**
 	 * Emit a `.github/workflows/<name>.yml` thin caller and include the task
@@ -29,12 +29,6 @@ export interface TaskEntry {
 	required?: boolean;
 	/** Per-repo overrides on the same channel the reusable workflow reads. */
 	with?: Record<string, unknown>;
-	/**
-	 * `lint` only — the explicit linter list driving both super-linter's
-	 * `VALIDATE_*` env (CI) and the native local run. Omitted → auto-detect
-	 * from the config files present.
-	 */
-	linters?: string[];
 	/** Extra `on.push.paths` entries for the generated CI workflow. */
 	paths?: string[];
 }

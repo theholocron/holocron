@@ -2,29 +2,30 @@
  * `holocron run <task> [job] [-- <passthrough>]` — run a registry task (or one
  * of its sub-jobs) locally.
  *
- * A `job` argument only applies to tasks that declare `jobs` (today: `audit`);
- * for any other task it is folded back into the passthrough (`holocron run
- * build src/`). `holocron run audit performance` runs one job; `holocron run
- * audit` runs every job in declared order.
+ * A `job` argument only applies to tasks that declare `jobs`; for any other
+ * task it is folded back into the passthrough (`holocron run delivery.build
+ * src/`).
  *
  * Resolution:
  *
- *   0. task === "lint" (no job)               → the linter aggregate (see below)
  *   J. job given                              → TASKS[task].jobs[job].local (unknown job → exit 1)
  *   1. turbo.json defines the task            → `turbo run <task>`
  *   2. package.json has a `<task>` script     → `<pm> run <task>`
  *      (unless it's the `holocron run …` thin caller — that recurses)
  *   3. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
+ *   3b. TASKS[task].linterGroup               → run each resolved linter natively (see below)
  *   4. TASKS[task].jobs has entries           → run each job in declared order
  *   5. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
  *   5b. known task, nothing resolved          → "no <task> task" (exit 0, or 1 with --required)
  *   6. unknown task                           → "unknown task" (exit 1)
  *
- * `lint` runs the resolved linter set (`config.tasks` `linters`, else
- * auto-detected): the eslint slot goes through the standard turbo / script /
- * `eslint .` resolution (so turbo caching is kept); every other linter runs
- * its `localBin` when found on PATH. Missing tools are flagged; the exit code
- * is the worst of the lot.
+ * A `linterGroup` task (`sourceQuality.staticAnalysis`, etc.) runs its fixed
+ * set of `linters.ts` entries, each still gated by that linter's own
+ * `detect`/`always` rule — every entry runs its `localBin` natively when
+ * found on PATH. Missing tools are flagged; the exit code is the worst of
+ * the lot. Unlike the old single `lint` task, this check runs *after*
+ * turbo/`package.json` resolution (step 3b, not step 0) — a `linterGroup`
+ * task is a normal turbo-delegatable task like any other.
  */
 
 import { join } from "node:path";
@@ -73,8 +74,6 @@ export interface RunTaskInput extends RunDeps {
 	dryRun?: boolean;
 	/** Turn "no such task for this repo" (normally exit 0) into a failure. */
 	required?: boolean;
-	/** The `lint` task's explicit linter list from `config.tasks`, if any. */
-	linters?: string[];
 	/** `turbo --filter=<pkg>` passthrough (monorepo). Ignored when the repo has no `turbo.json`. */
 	filter?: string;
 }
@@ -133,9 +132,6 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 	const run = makeRunOne(input);
 
-	// ── 0. lint aggregate ─────────────────────────────────────────────
-	if (task === "lint") return runLintAggregate(input, passthrough);
-
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
 	// The org-default flags (`test` → `--coverage`) that step 3 injects for the
 	// registry tool are forwarded through `--` here too, so `holocron run test`
@@ -165,14 +161,23 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		}
 		const runner = resolveRunner(def.local, cwd, listDir);
 		if (runner) {
-			const flags = def.flags?.[runner.tool] ?? [];
+			// Step 1 already forwards these same org-default flags through `--`
+			// when delegating to turbo, so a leaf package whose own script is
+			// itself a `holocron run <task>` wrapper (step 2's recursion-skip)
+			// would otherwise see them twice by the time turbo's fan-out lands
+			// back here — e.g. `vitest run --coverage --coverage`. Drop any
+			// already present in passthrough rather than appending blindly.
+			const flags = (def.flags?.[runner.tool] ?? []).filter((f) => !passthrough.includes(f));
 			const bin = resolveBin(cwd, runner.tool, fileExists);
 			return run(bin, [...runner.args, ...flags, ...passthrough]);
 		}
 		// registry knows the task but nothing in this repo matches — fall through
 	}
 
-	// ── 4. the task is a container of sub-jobs (`audit`) — run them all ─
+	// ── 3b. linter-group aggregate ──────────────────────────────────────
+	if (def?.linterGroup) return runLinterGroup(input, def.linterGroup, passthrough);
+
+	// ── 4. the task is a container of sub-jobs — run them all ──────────
 	// Only when steps 1–3 found nothing: an explicit `"audit"` script / turbo
 	// task still wins.
 	if (def?.jobs && Object.keys(def.jobs).length > 0) {
@@ -278,15 +283,17 @@ function runAllJobs(input: RunTaskInput, jobs: Record<string, JobDef>, passthrou
 }
 
 /**
- * `holocron run lint` — the resolved linter set, run natively. The eslint
- * slot reuses turbo / the `lint` script / `eslint .`; the rest run their
- * `localBin` when it resolves on PATH. Worst exit code wins.
+ * `holocron run <task>` for a `linterGroup` task — the task's fixed linter
+ * set, each still gated by its own `detect`/`always` rule, run natively.
+ * Worst exit code wins. Runs *after* the caller's own turbo/`package.json`
+ * resolution (step 3b) — no per-linter turbo passthrough here, unlike the
+ * old single `lint` task's eslint-only special case; the whole task is what
+ * turbo/a package script would have already caught in steps 1–2.
  */
-function runLintAggregate(input: RunTaskInput, passthrough: string[]): RunTaskReport {
-	const { print, logger, readFile, fileExists, listDir, lookPath, cwd } = input;
+function runLinterGroup(input: RunTaskInput, names: string[], passthrough: string[]): RunTaskReport {
+	const { print, logger, listDir, lookPath, cwd, task } = input;
 	const dryRun = input.dryRun ?? false;
 	const runOne = makeRunOne(input);
-	const pass = passthrough.length ? ["--", ...passthrough] : [];
 
 	let rootFiles: string[];
 	try {
@@ -294,49 +301,27 @@ function runLintAggregate(input: RunTaskInput, passthrough: string[]): RunTaskRe
 	} catch {
 		rootFiles = [];
 	}
-	const resolved = resolveLinters({ explicit: input.linters, rootFiles });
+	const resolved = resolveLinters({ explicit: names, rootFiles });
 	const reports: RunTaskReport[] = [];
 
-	/** Run one linter's `localBin` natively, or flag it. */
-	const runLinter = (name: string, bin: string | undefined, args: string[], hint?: string): void => {
+	for (const { name, def } of resolved) {
+		const bin = def.localBin;
 		if (!bin) {
 			print(`· ${name} (CI only)`);
-			return;
+			continue;
 		}
 		const found = lookPath(cwd, bin);
 		if (!found) {
-			print(`! ${name} — ${bin} not on PATH${hint ? `. ${hint}` : ""} (enforced in CI)`);
-			return;
+			print(`! ${name} — ${bin} not on PATH${def.installHint ? `. ${def.installHint}` : ""} (enforced in CI)`);
+			continue;
 		}
-		reports.push(runOne(found, [...args, ...passthrough]));
-	};
-
-	// eslint slot — through the standard resolution so turbo caching is kept
-	if (resolved.some((r) => r.name === "eslint")) {
-		const script = packageJsonScript(cwd, "lint", readFile, fileExists);
-		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
-		if (turboDefinesTask(cwd, "lint", readFile, fileExists)) {
-			reports.push(runOne(resolveBin(cwd, "turbo", fileExists), ["run", "lint", ...filterArg, ...pass]));
-		} else if (script && !/^holocron run\b/.test(script.trim())) {
-			reports.push(runOne(packageManager(cwd, readFile, fileExists), ["run", "lint", ...pass]));
-		} else {
-			runLinter("eslint", "eslint", ["."]);
-		}
-	}
-
-	// every other resolved linter, natively
-	for (const { name, def } of resolved) {
-		if (name === "eslint") continue;
-		runLinter(name, def.localBin, def.localArgs ?? [], def.installHint);
+		reports.push(runOne(found, [...(def.localArgs ?? []), ...passthrough]));
 	}
 
 	if (reports.length === 0) {
-		const msg = "no lint tooling available locally — every resolved linter is CI-only here";
+		const msg = `no tooling available locally for ${task} — every linter in this group is CI-only here`;
 		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
-		logger[input.required ? "warn" : "debug"](
-			{ task: "lint", status: input.required ? "fail" : "skip" },
-			"run: lint"
-		);
+		logger[input.required ? "warn" : "debug"]({ task, status: input.required ? "fail" : "skip" }, `run: ${task}`);
 		return { status: input.required ? "fail" : "skip", message: msg };
 	}
 

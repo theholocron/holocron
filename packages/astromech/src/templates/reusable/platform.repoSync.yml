@@ -45,7 +45,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   sync:
-    name: Sync repo from config
+    name: Run holocron sync
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

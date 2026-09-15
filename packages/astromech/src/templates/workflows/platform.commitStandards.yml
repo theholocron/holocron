@@ -1,0 +1,17 @@
+name: Platform
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+concurrency:
+  group: platform-commit-standards-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commit-standards:
+    name: Commit Standards
+    uses: theholocron/.github/.github/workflows/platform.commitStandards.yml@main
+    secrets: inherit

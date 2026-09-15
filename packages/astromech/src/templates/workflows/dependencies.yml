@@ -1,4 +1,4 @@
-name: Dependencies
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   pull_request:
@@ -9,5 +9,6 @@ permissions:
 
 jobs:
   dependencies:
+    name: Dependencies
     uses: theholocron/.github/.github/workflows/dependencies.yml@main
     secrets: inherit

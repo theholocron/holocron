@@ -1,4 +1,4 @@
-name: Typecheck
+name: Structured Data Validation
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -7,8 +7,8 @@ on: # yamllint disable-line rule:truthy
         required: false
 
 jobs:
-  typecheck:
-    name: tsc --noEmit
+  structured-data-validation:
+    name: Run yamllint
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -23,21 +23,12 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
-        name: Type check
-        with:
-          task: typecheck
+      # yamllint has no npm distribution — Python ships preinstalled on
+      # ubuntu-latest runners.
+      - name: Install yamllint
+        run: pip install --user yamllint
 
-  conclusion:
-    name: Conclusion
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [typecheck]
-    steps:
-      - name: Check job statuses
-        run: |
-          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
-            exit 1
-          fi
-        env:
-          RESULTS: ${{ join(needs.*.result, ',') }}
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run yamllint
+        with:
+          task: sourceQuality.structuredDataValidation

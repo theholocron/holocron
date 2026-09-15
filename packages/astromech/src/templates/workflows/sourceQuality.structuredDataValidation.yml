@@ -1,0 +1,19 @@
+name: Source Quality
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+concurrency:
+  group: source-quality-structured-data-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  structured-data-validation:
+    name: Structured Data Validation
+    uses: theholocron/.github/.github/workflows/sourceQuality.structuredDataValidation.yml@main
+    secrets: inherit

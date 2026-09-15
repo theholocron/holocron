@@ -42,15 +42,14 @@ export interface CiReport {
 export interface CiInput extends RunDeps, CiOptions {
 	cwd: string;
 	config: TasksConfig;
-	/** Explicit linter list for the `lint` task (the config's lint entry `linters`). */
-	linters?: string[];
 }
 
 export function runCi(input: CiInput): CiReport {
 	const { print } = input;
 
 	// de-dup task entries by name (last wins); keep only the merge-gating tasks
-	// (`CI_ORDER` — excludes `sync` / `wiki`, which aren't checks).
+	// (`CI_ORDER` — excludes `platform.repoSync` / `knowledge.wiki`, which
+	// aren't checks).
 	const byName = new Map<string, ReturnType<typeof normalizeTaskEntry>>();
 	for (const item of input.config?.tasks ?? []) byName.set(taskName(item), normalizeTaskEntry(item));
 	const gating = [...byName.values()].filter((e) => CI_ORDER.includes(e.name));
@@ -73,12 +72,12 @@ export function runCi(input: CiInput): CiReport {
 		const context = WORKFLOW_CHECK_CONTEXTS[entry.name] ?? null;
 		print(`▶ ${context ?? entry.name}`);
 
-		// `local: null` tasks (codeql, deploy) have no built-in runner — but
-		// `runTask` steps 1–2 still honour an explicit turbo task / `package.json`
-		// script (holocron's `"audit": "knip"`), and a job-bearing task (`audit`)
-		// with no such script expands into its sub-jobs, each printed under its
-		// own `▶ audit / <Job>` check context. `runTask` returns "skip" when
-		// nothing runs.
+		// `local: null` tasks (security.codeScanning, delivery.deploy) have no
+		// built-in runner — but `runTask` steps 1–2 still honour an explicit
+		// turbo task / `package.json` script, and a job-bearing task
+		// (`platform.repoValidation`) with no such script expands into its
+		// sub-jobs, each printed under its own `▶ platform.repoValidation / <Job>`
+		// check context. `runTask` returns "skip" when nothing runs.
 		const r = runTask({
 			print: (line) => print(`  ${line}`),
 			logger: input.logger,
@@ -92,7 +91,6 @@ export function runCi(input: CiInput): CiReport {
 			dryRun: input.dryRun ?? false,
 			required: entry.required === true,
 			...(input.filter ? { filter: input.filter } : {}),
-			...(entry.name === "lint" ? { linters: input.linters } : {}),
 		});
 
 		// `runTask` only returns "unknown" for an unrecognised task; every entry
