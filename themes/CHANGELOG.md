@@ -1,3 +1,13 @@
+## [1.10.4](https://github.com/theholocron/themes/compare/v1.10.3...v1.10.4) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#113](https://github.com/theholocron/themes/issues/113)) ([e896a00](https://github.com/theholocron/themes/commit/e896a0028ea47fcc9775f7d488872df1a59a1060))
+
+### Refactoring
+
+* migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/themes/issues/672)) ([#111](https://github.com/theholocron/themes/issues/111)) ([191c765](https://github.com/theholocron/themes/commit/191c765aa6bb12cc681a61397db3dd040d05622c)), closes [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
 ## [1.10.3](https://github.com/theholocron/themes/compare/v1.10.2...v1.10.3) (2026-09-12)
 
 ### Bug Fixes
