@@ -109,11 +109,30 @@ built-in behavior or as a preset parameter fed from data `holocron.config.ts`
      belongs) unconditionally, scoped to a `docs/src/**` glob — a no-op for
      any repo without that directory, so it's safe to always include rather
      than opt into.
-  3. The genuinely repo-specific remainder (`utils`' browser-package list,
-     `themes`' `tsconfigRootDir`) becomes an optional bundle parameter
-     (e.g. `library({ browserPackages: [...] })`), fed from
-     `holocron.config.ts`/`astromech.config.ts` data at resolve time — not
-     hand-rolled override blocks living in a committed file.
+  3. The genuinely repo-specific remainder — done in `configs`#461:
+     `library()` now bakes in `vitest()` unconditionally (glob-scoped to
+     test/setup files, a no-op anywhere it doesn't match, same reasoning
+     as `docsSrcConfig` — this also fixes a doc/code mismatch, the README
+     already described `library()` as including `vitest()` when the code
+     didn't yet) and takes an optional `browserPackages` parameter for
+     `utils`' one real outlier. `themes`' `tsconfigRootDir` override and
+     `holocron`'s `settings.node` version override turned out to be
+     redundant with the shared package's own defaults
+     (`typescript-eslint` already defaults `tsconfigRootDir` to
+     `process.cwd()`; `eslint-plugin-n`'s `node()` already reads
+     `engines.node` from the consuming repo's `package.json`) — no new
+     parameter needed for either; worth just dropping both overrides at
+     #680's migration pass.
+
+     `browserPackages` is real per-repo _data_, though, which a bare
+     `eslint --config <resolved path>` flag can't carry (no way to pass
+     JS-level options through a CLI flag pointing at a static file) — the
+     resolver (next PR-stack item) needs to special-case this: `utils`
+     keeps a tiny `eslint.config.ts` (`export default
+library({ browserPackages: [...] })`) rather than reaching zero
+     committed file, same as any Bucket C content. Every other repo
+     resolves straight to `library()`'s built dist file with no local
+     file needed at all.
 - **`release.config.ts`'s `exec.publishCmd`**: the `prepareCmd` half of
   this already goes through the CLI (`holocron bump-versions` — just fixed
   a live bug where 4 repos called a stale `holocron npm bump-versions` that
