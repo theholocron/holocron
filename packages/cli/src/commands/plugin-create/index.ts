@@ -223,9 +223,9 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 		print("  Verifying scaffold…");
 		try {
 			execFn("pnpm", ["install", "--frozen-lockfile=false"], { cwd, stdio: "inherit" });
-			execFn("pnpm", ["--filter", pkg, "typecheck"], { cwd, stdio: "inherit" });
-			execFn("pnpm", ["--filter", pkg, "lint"], { cwd, stdio: "inherit" });
-			execFn("pnpm", ["--filter", pkg, "test"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "verification.typeSafety"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "sourceQuality.staticAnalysis"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "verification.unitTests"], { cwd, stdio: "inherit" });
 			print("  ✓ scaffold verified");
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);

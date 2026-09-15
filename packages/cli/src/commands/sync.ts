@@ -13,8 +13,11 @@ import { createHeader } from "../utils/create-header.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
 
+// The only content this file ever prefixes with workflowHeader() is thin-caller
+// workflow content from astromech.thinCallers() — sync.ts just writes it. The
+// actual template/generation logic a contributor would edit lives there.
 const { workflowHeader } = createHeader({
-	source: "packages/cli/src/commands/sync.ts",
+	source: "packages/astromech/src/thin-callers.ts",
 	tool: "holocron sync",
 });
 import { runSyncReadme } from "./sync-readme.js";
@@ -368,11 +371,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						continue;
 					}
 
-					const filename = name === "deploy" ? "deploy.yml" : `${name}.yml`;
+					// The combined-content family (delivery.deploy, knowledge.docs,
+					// knowledge.components) all key their generated file by task
+					// name already — no special-casing needed.
+					const filename = `${name}.yml`;
 					const content = files.get(filename);
 					if (content === undefined) continue; // ci: false — nothing to write
 
-					const withPreview = name === "deploy" && content.includes("workflows/preview.yml@main");
+					const withPreview = content.includes("workflows/preview.yml@main");
 					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
 					steps.push(
 						await runSyncStep("local", step, dryRun, async () => {
