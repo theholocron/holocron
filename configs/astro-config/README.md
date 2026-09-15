@@ -8,6 +8,21 @@ An [Astro configuration](https://docs.astro.build/en/reference/configuration-ref
 pnpm add -D @theholocron/astro-config
 ```
 
+`defineConfig()` always wires in the `@astrojs/react` integration (needed by
+`@theholocron/docs-theme` consumers that render React components in their
+docs), so `@astrojs/react`, `react`, and `react-dom` are declared as
+`peerDependencies` — install them alongside this package:
+
+```bash
+pnpm add -D @astrojs/react react react-dom
+```
+
+Without them, `pnpm install` still succeeds (with an unmet-peer warning), but
+`astro build`/`astro dev` fails at build time trying to resolve
+`@astrojs/react/server.js` — Vite resolves that import from the consuming
+project's own `node_modules`, not from this package's, so the peer can't be
+satisfied transitively.
+
 ## Usage
 
 Pass `starlight` and `docsTheme` from your own imports alongside the docs config. This keeps Astro's module loader in control of those framework imports:

@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#454](https://github.com/theholocron/configs/issues/454)) ([314ad47](https://github.com/theholocron/configs/commit/314ad47347c62f22a2400496fd8a8430056218c5))
+- 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#454](https://github.com/theholocron/configs/issues/454)) ([314ad47](https://github.com/theholocron/configs/commit/314ad47347c62f22a2400496fd8a8430056218c5))
 
 ## [8.2.2](https://github.com/theholocron/configs/compare/v8.2.1...v8.2.2) (2026-09-11)
 
