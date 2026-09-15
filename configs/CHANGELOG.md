@@ -1,3 +1,10 @@
+## [8.4.1](https://github.com/theholocron/configs/compare/v8.4.0...v8.4.1) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 give devmoji-config a ready-to-use default export ([#463](https://github.com/theholocron/configs/issues/463)) ([092f7cf](https://github.com/theholocron/configs/commit/092f7cffa0c5be6561064f97cb1cdad72736cade))
+* 🐛 give library() a ready-to-use default export ([#462](https://github.com/theholocron/configs/issues/462)) ([d6b9b44](https://github.com/theholocron/configs/commit/d6b9b441d8ad9d3ac4fc2c256e0f4297f355f944))
+
 ## [8.4.0](https://github.com/theholocron/configs/compare/v8.3.0...v8.4.0) (2026-09-15)
 
 ### Features
