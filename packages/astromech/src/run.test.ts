@@ -111,6 +111,51 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
+	it("adds --config <resolved shared path> when the tool's shared config package is installed (vitest)", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG(),
+			"node_modules/.bin/vitest": "#!/bin/sh",
+			"node_modules/@theholocron/vitest-config/package.json": JSON.stringify({
+				exports: { "./bundles/library": { import: "./dist/bundles/library.js" } },
+			}),
+			"node_modules/@theholocron/vitest-config/dist/bundles/library.js": "export default {};",
+		});
+		call("verification.unitTests");
+		expect(exec).toHaveBeenCalledWith(
+			join(CWD, "node_modules/.bin/vitest"),
+			[
+				"run",
+				"--config",
+				join(CWD, "node_modules/@theholocron/vitest-config/dist/bundles/library.js"),
+				"--coverage",
+			],
+			{ cwd: CWD }
+		);
+	});
+
+	it("adds --config <resolved shared path> for a detect[] runner too (tsdown)", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG(),
+			"tsdown.config.ts": "",
+			"node_modules/@theholocron/tsdown-config/package.json": JSON.stringify({
+				exports: { "./presets/library": { import: "./dist/presets/library.js" } },
+			}),
+			"node_modules/@theholocron/tsdown-config/dist/presets/library.js": "export default {};",
+		});
+		call("delivery.build");
+		expect(exec).toHaveBeenCalledWith(
+			"tsdown",
+			["--config", join(CWD, "node_modules/@theholocron/tsdown-config/dist/presets/library.js")],
+			{ cwd: CWD }
+		);
+	});
+
+	it("adds no --config flag when the shared config package isn't installed — falls back to auto-discovery", () => {
+		const { call, exec } = makeRun({ "package.json": PKG(), "node_modules/.bin/vitest": "#!/bin/sh" });
+		call("verification.unitTests");
+		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/vitest"), ["run", "--coverage"], { cwd: CWD });
+	});
+
 	it("prefers vite when vite.config is present", () => {
 		const { call, exec } = makeRun({ "package.json": PKG(), "vite.config.ts": "" });
 		call("delivery.build");
@@ -416,6 +461,26 @@ describe("runTask — linterGroup aggregate", () => {
 		expect(exec).toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
 		expect(lines.join("\n")).toMatch(/! actionlint — actionlint not on PATH\. brew install actionlint/);
 		expect(lines.join("\n")).toMatch(/· git-merge-conflict-markers \(CI only\)/);
+	});
+
+	it("adds --config <resolved shared path> before the linter's own localArgs when the shared package is installed", () => {
+		const { call, exec } = makeRun(
+			{
+				"package.json": PKG(),
+				"eslint.config.ts": "",
+				"node_modules/@theholocron/eslint-config/package.json": JSON.stringify({
+					exports: { "./bundles/library": { import: "./dist/bundles/library.js" } },
+				}),
+				"node_modules/@theholocron/eslint-config/dist/bundles/library.js": "export default [];",
+			},
+			{ lookPath: onPath("eslint") }
+		);
+		call("sourceQuality.staticAnalysis");
+		expect(exec).toHaveBeenCalledWith(
+			"/usr/local/bin/eslint",
+			["--config", join(CWD, "node_modules/@theholocron/eslint-config/dist/bundles/library.js"), "."],
+			{ cwd: CWD }
+		);
 	});
 
 	it("an explicit package.json script for the task wins over per-linter native execution", () => {
