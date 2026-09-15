@@ -195,8 +195,18 @@ are uniformly Bucket A — no per-repo delta, no runtime merge step, just
   same as everything else. No blocker.
 - **`.editorconfig-checker.json`** (the linter's own settings, not
   `.editorconfig` itself): `editorconfig-checker --help` confirms `-config
-string` — Bucket A, not Bucket B as originally guessed. `.editorconfig`
-  itself (the file editors read directly) stays Bucket B, unaffected.
+string` — Bucket A is possible, not Bucket B as originally guessed.
+  Checked its content across every migrated repo, though (`holocron`,
+  `clients`, `utils`, `themes`, `configs`, `observability`, `skills`) — it's
+  100% byte-identical everywhere, zero per-repo variance, and **already
+  has a working generator**
+  (`packages/cli/src/templates/configs/editorconfig-checker/`,
+  pre-dating this workstream, already wired into `holocron setup`) —
+  the same Bucket B pattern `.editorconfig` itself already uses. Building
+  a whole new `@theholocron/editorconfig-checker-config` package +
+  resolver wiring for a file with no variance to eliminate buys nothing
+  over the generator that already stamps out the same content everywhere
+  — left as Bucket B in practice, not pursued further here.
 
 ## Bucket B — must stay committed, but generated, never hand-authored
 
@@ -278,9 +288,13 @@ away here; not a gap this workstream closes.
       not assumed). Deliberately unwired here: `semantic-release`
       (`defineConfig()` needs real per-repo data — branches, npm options —
       a static `--extends <path>` can't carry; a genuinely separate design
-      question, not a resolver gap), `editorconfig-checker` (no
-      shared-config package exists yet), `knip` (repo-specific by nature,
-      never a shared-config candidate).
+      question, not a resolver gap), `editorconfig-checker` (100%
+      byte-identical content across every repo checked, zero variance to
+      eliminate — already has a working Bucket B generator, same as
+      `.editorconfig`; a new shared package + resolver wiring would buy
+      nothing over what already exists — see "Previously unverified, now
+      confirmed" above), `knip` (repo-specific by nature, never a
+      shared-config candidate).
 - [x] `holocron`: `devmoji` — resolved via its git hook template, not
       `holocron run <task>` (it never runs through the task registry at
       all — `.husky/prepare-commit-msg` calls it directly). The raw shell
