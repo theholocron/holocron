@@ -35,6 +35,7 @@ export {
 export { LINTER_NAMES, type LinterDef, LINTERS, resolveLinters } from "./linters.js";
 export { CI_ORDER, type JobDef, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
 export { requiredChecks } from "./required-checks.js";
+export { RESOLVABLE_TOOLS, type ResolverDeps, resolveToolConfig } from "./resolver.js";
 export { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS, reusableTemplates, WORKFLOW_TEMPLATE_PROPERTIES } from "./reusable.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
 export {

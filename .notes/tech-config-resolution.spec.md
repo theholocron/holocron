@@ -267,7 +267,20 @@ away here; not a gap this workstream closes.
 - [x] `holocron`: extend `runPublish()` to a steady-state (non-`--initial`)
       mode — `skipAlreadyPublished`, `--provenance` default, no bootstrap
       login/next-steps flow (`holocron`#697)
-- [ ] `holocron`: resolver logic wired into `holocron run <task>` for all
-      seven Bucket A tools
+- [x] `holocron`: resolver logic wired into `holocron run <task>` — done for
+      five tools (`eslint`, `prettier`, `vitest`, `tsdown`, `commitlint`),
+      each verified end-to-end against a real fixture through the actually
+      compiled CLI binary, not just source-level unit tests. `configs`#462/
+      #463 gave `eslint`/`devmoji` the ready-to-use default export
+      `--config`/loading needs (a gap #461 didn't close — `library()` had
+      only a named export, and ESLint's `--config` loader requires the
+      file's _default_ export; caught with a minimal repro before shipping,
+      not assumed). Deliberately unwired: `semantic-release` (`defineConfig()`
+      needs real per-repo data — branches, npm options — a static
+      `--extends <path>` can't carry; a genuinely separate design question,
+      not a resolver gap), `devmoji` (runs through a git hook template, not
+      `holocron run <task>`, even though the package itself is now ready),
+      `editorconfig-checker` (no shared-config package exists yet), `knip`
+      (repo-specific by nature, never a shared-config candidate).
 - [ ] `holocron`: Bucket B generators (`tsconfig.json`, `.editorconfig`)
 - [ ] Tests + docs across all of the above
