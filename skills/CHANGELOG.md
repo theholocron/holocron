@@ -1,3 +1,22 @@
+## [1.10.1](https://github.com/theholocron/skills/compare/v1.10.0...v1.10.1) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#99](https://github.com/theholocron/skills/issues/99)) ([b8ddf55](https://github.com/theholocron/skills/commit/b8ddf5568d56569f536529003ea459bf56fa6407))
+
+### Refactoring
+
+* ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/skills/issues/672)) ([#98](https://github.com/theholocron/skills/issues/98)) ([b109803](https://github.com/theholocron/skills/commit/b1098034ee99b241b01f3ccaf93dd747f5f61f45)), closes [theholocron/skills#97](https://github.com/theholocron/skills/issues/97) [theholocron/holocron#692](https://github.com/theholocron/holocron/issues/692) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
+### Documentation
+
+* 📝 pr-workflow — run holocron ci before pushing ([#93](https://github.com/theholocron/skills/issues/93)) ([3b6ed37](https://github.com/theholocron/skills/commit/3b6ed37559ab6bb4be1c7936b73b0d180b9ef105)), closes [theholocron/holocron#586](https://github.com/theholocron/holocron/issues/586) [#92](https://github.com/theholocron/skills/issues/92) [theholocron/holocron#586](https://github.com/theholocron/holocron/issues/586)
+
+### Chores
+
+* ⬆️ migrate to @theholocron/cli 4.16.2 + holocron-config 8.x ([#94](https://github.com/theholocron/skills/issues/94)) ([e266aac](https://github.com/theholocron/skills/commit/e266aac3177b9cf6ee96577a344b1a442b9d5ddc)), closes [#647](https://github.com/theholocron/skills/issues/647)
+* 🔧 holocron setup — ruleset + workflow/config sync ([#96](https://github.com/theholocron/skills/issues/96)) ([8d82e0b](https://github.com/theholocron/skills/commit/8d82e0bbe6965fa6a4a98a514673ccdfa2e62f32)), closes [#647](https://github.com/theholocron/skills/issues/647) [#649](https://github.com/theholocron/skills/issues/649) [#649](https://github.com/theholocron/skills/issues/649) [#647](https://github.com/theholocron/skills/issues/647) [theholocron/holocron#654](https://github.com/theholocron/holocron/issues/654) [theholocron/holocron#647](https://github.com/theholocron/holocron/issues/647) [theholocron/holocron#654](https://github.com/theholocron/holocron/issues/654)
+
 ## [1.10.0](https://github.com/theholocron/skills/compare/v1.9.2...v1.10.0) (2026-09-06)
 
 ### Features
