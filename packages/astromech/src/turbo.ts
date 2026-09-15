@@ -9,6 +9,11 @@
  * workspace build/compile/test steps) get an entry. Whole-repo, single-run
  * tools (prettier, gitleaks, commitlint, yamllint, …) have none — they stay
  * off turbo.json entirely, same as today.
+ *
+ * A task entry's own `turbo.passThroughEnv` (schema.ts) appends extra env
+ * vars to the registry default's cache-key hashing — the one thing that's
+ * genuinely per-repo (e.g. a package tagging Sentry releases during its own
+ * build needs `SENTRY_AUTH_TOKEN` in its cache key; most repos don't).
  */
 
 import { normalizeTaskEntry, type TasksConfig } from "./config/schema.js";
@@ -25,13 +30,17 @@ const GLOBAL_DEPENDENCIES = ["pnpm-workspace.yaml", "tsconfig.json"];
  */
 export function turboConfig(config: TasksConfig): string | null {
 	const entries = (config.tasks ?? []).map(normalizeTaskEntry);
-	const tasks: Record<string, { inputs: string[]; outputs: string[]; dependsOn: string[] }> = {};
+	const tasks: Record<
+		string,
+		{ inputs: string[]; outputs: string[]; dependsOn: string[]; passThroughEnv?: string[] }
+	> = {};
 
 	for (const entry of entries) {
 		if (entry.local === false) continue;
 		const turbo = TASKS[entry.name]?.turbo;
 		if (!turbo) continue;
-		tasks[entry.name] = turbo;
+		const extraEnv = entry.turbo?.passThroughEnv;
+		tasks[entry.name] = extraEnv && extraEnv.length > 0 ? { ...turbo, passThroughEnv: extraEnv } : turbo;
 	}
 
 	if (Object.keys(tasks).length === 0) return null;

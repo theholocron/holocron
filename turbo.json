@@ -20,7 +20,8 @@
     "delivery.build": {
       "inputs": ["src/**", "package.json", "tsdown.config.ts", "vite.config.ts", "rollup.config.ts", "tsconfig.json"],
       "outputs": ["dist/**"],
-      "dependsOn": ["^delivery.build"]
+      "dependsOn": ["^delivery.build"],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
     }
   }
 }

@@ -48,6 +48,12 @@ Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely (t
 
 Generates `turbo.json` — full ownership, never hand-edited. Only tasks with real per-workspace fan-out (a build/compile/test step — `delivery.build`, `verification.typeSafety`, `verification.unitTests`, `sourceQuality.staticAnalysis` today) get an entry; whole-repo, single-run tools (prettier, gitleaks, commitlint, yamllint, …) stay off the file and run once, un-fanned-out, the same way they already do. Skipped with no write when nothing in `tasks` is fan-out-eligible.
 
+A task entry's `turbo.passThroughEnv` appends extra env vars to that task's cache-key hashing, on top of the registry default (a no-op on a task with no fan-out config to add onto):
+
+```typescript
+tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"] } }];
+```
+
 ## Options
 
 | Option              | Description                           |
