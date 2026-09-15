@@ -1,3 +1,9 @@
+## [8.2.6](https://github.com/theholocron/configs/compare/v8.2.5...v8.2.6) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 fold footer-max-line-length into the shared commitlint config ([#459](https://github.com/theholocron/configs/issues/459)) ([102feb4](https://github.com/theholocron/configs/commit/102feb4567e52e81196f0383da3e972c0e929dae)), closes [#676](https://github.com/theholocron/configs/issues/676) [457/#458](https://github.com/457/configs/issues/458)
+
 ## [8.2.5](https://github.com/theholocron/configs/compare/v8.2.4...v8.2.5) (2026-09-15)
 
 ### Bug Fixes
