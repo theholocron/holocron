@@ -188,10 +188,10 @@ describe("runSyncGithub", () => {
 	it("skips a file whose existing blob SHA matches and omits it from the commit tree", async () => {
 		// The header carries no timestamp, so a template's content is deterministic
 		// run-to-run — seed the tree with the real git blob SHA of one file.
-		const releaseContent = reusableTemplates().get(".github/workflows/release.yml")!;
+		const releaseContent = reusableTemplates().get(".github/workflows/delivery.publish.yml")!;
 		const releaseSha = _gitBlobSha(releaseContent);
 
-		const { fn, calls } = makeFetch({ ".github/workflows/release.yml": releaseSha });
+		const { fn, calls } = makeFetch({ ".github/workflows/delivery.publish.yml": releaseSha });
 		const report = await runSyncGithub({
 			token: "ghp_test",
 			branch: "chore/sync",
@@ -209,7 +209,7 @@ describe("runSyncGithub", () => {
 
 	it("reports a file whose blob SHA differs as updated", async () => {
 		const { fn, calls } = makeFetch({
-			".github/workflows/release.yml": "0000000000000000000000000000000000000000",
+			".github/workflows/delivery.publish.yml": "0000000000000000000000000000000000000000",
 		});
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -474,7 +474,7 @@ describe("runSyncGithub", () => {
 			const report = await runSyncGithub({ token: "unused", outputDir: tmpOut, print: () => {} });
 			expect(report.status).toBe("ok");
 			expect(report.created).toBe(PRIMARY_FILE_COUNT);
-			expect(existsSync(join(tmpOut, ".github/workflows/release.yml"))).toBe(true);
+			expect(existsSync(join(tmpOut, ".github/workflows/delivery.publish.yml"))).toBe(true);
 		} finally {
 			await rm(tmpOut, { recursive: true });
 		}
@@ -507,10 +507,10 @@ describe("runSyncGithub", () => {
 		try {
 			// Generate files to disk with frozen time to get deterministic content.
 			await runSyncGithub({ token: "unused", outputDir: tmpOut, print: () => {} });
-			const content = readFileSync(join(tmpOut, ".github/workflows/release.yml"), "utf8");
+			const content = readFileSync(join(tmpOut, ".github/workflows/delivery.publish.yml"), "utf8");
 			const sha = _gitBlobSha(content);
 
-			const { fn } = makeFetch({ ".github/workflows/release.yml": sha });
+			const { fn } = makeFetch({ ".github/workflows/delivery.publish.yml": sha });
 			const report = await runSyncGithub({
 				token: "t",
 				branch: "chore/sync",
