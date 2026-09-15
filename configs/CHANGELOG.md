@@ -1,3 +1,9 @@
+## [8.3.0](https://github.com/theholocron/configs/compare/v8.2.6...v8.3.0) (2026-09-15)
+
+### Features
+
+* ✨ absorb gitignore-based ignoring + docs/src exception into base() ([#460](https://github.com/theholocron/configs/issues/460)) ([ccc0284](https://github.com/theholocron/configs/commit/ccc02847aa01705f3bea44fb445d88255a56a33e)), closes [#676](https://github.com/theholocron/configs/issues/676) [458/#459](https://github.com/458/configs/issues/459)
+
 ## [8.2.6](https://github.com/theholocron/configs/compare/v8.2.5...v8.2.6) (2026-09-15)
 
 ### Bug Fixes
