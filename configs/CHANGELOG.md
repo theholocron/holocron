@@ -1,3 +1,9 @@
+## [8.4.0](https://github.com/theholocron/configs/compare/v8.3.0...v8.4.0) (2026-09-15)
+
+### Features
+
+* ✨ bake vitest() into library() unconditionally + browserPackages option ([#461](https://github.com/theholocron/configs/issues/461)) ([897ec55](https://github.com/theholocron/configs/commit/897ec559aeda50fd4bca7355074fbdd3c315728d)), closes [#676](https://github.com/theholocron/configs/issues/676) [#680](https://github.com/theholocron/configs/issues/680)
+
 ## [8.3.0](https://github.com/theholocron/configs/compare/v8.2.6...v8.3.0) (2026-09-15)
 
 ### Features
