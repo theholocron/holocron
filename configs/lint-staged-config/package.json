@@ -21,20 +21,22 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsdown",
-    "prepare": "husky",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
     "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
     "husky": "^9.1.7",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "@theholocron/vitest-config": "workspace:*",
-    "@vitest/coverage-v8": "catalog:"
+    "vitest": "catalog:"
   },
   "exports": {
     ".": {

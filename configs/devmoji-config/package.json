@@ -19,12 +19,14 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "tsdown",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
