@@ -56,6 +56,14 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
+      - name: Build workspace dependencies
+        # The docs site imports workspace packages (e.g. a shared theme) via
+        # `workspace:*` — its exports map points at dist/, which doesn't
+        # exist until something builds it. Nothing else in this job does,
+        # so without this step Vite fails to resolve the import entirely.
+        if: ${{ inputs.type == 'docs' }}
+        run: pnpm run build
+
       - name: Build docs site
         if: ${{ inputs.type == 'docs' && inputs.name != '' }}
         env:
