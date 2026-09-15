@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 issue: theholocron/holocron#676
 blocked-by:
   - theholocron/holocron#675
@@ -282,5 +282,28 @@ away here; not a gap this workstream closes.
       `holocron run <task>`, even though the package itself is now ready),
       `editorconfig-checker` (no shared-config package exists yet), `knip`
       (repo-specific by nature, never a shared-config candidate).
-- [ ] `holocron`: Bucket B generators (`tsconfig.json`, `.editorconfig`)
-- [ ] Tests + docs across all of the above
+- [x] `holocron`: Bucket B generators — `.editorconfig` already had one
+      (`packages/cli/src/templates/configs/editorconfig/`, pre-dating this
+      workstream); added `tsconfig.json`'s (`astromech.createTsconfig()`).
+      Surveyed 20+ package-level `tsconfig.json` files across `holocron`/
+      `clients`/`utils`: `extends`, `compilerOptions.baseUrl`/`outDir`,
+      `include`, `exclude` are uniform everywhere — safe defaults; `paths`
+      (a `@/*` alias) is a real per-package choice (~40% of packages) —
+      an opt-in parameter. `module`/`moduleResolution` (only the CLI
+      package overrides these, deliberately, away from the shared preset's
+      `nodenext`/`nodenext`) and `rootDir` (present in two packages, always
+      redundant with `include`) checked and left out of the defaults —
+      genuine per-package deviations, not a pattern to generalize (same
+      category as eslint's `tsconfigRootDir`/`settings.node` turning out
+      redundant, `configs`#461). Monorepo-_root_ `tsconfig.json` (a TS
+      project-references solution file, structurally different and
+      genuinely per-repo) is out of scope, same as Bucket C content.
+      Not yet wired into `holocron setup`'s write loop — every other
+      Bucket B file there is a single repo-root file, safely overwritten
+      every run; `tsconfig.json` is per-package, and most packages' files
+      still carry real hand-authored content today (not yet migrated to a
+      fully generated state). That per-package iteration + safe-migration
+      design is #680's job — this PR ships the generator itself, ready
+      for it to call.
+
+- [x] Tests + docs across all of the above
