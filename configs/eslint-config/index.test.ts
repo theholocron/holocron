@@ -1,5 +1,9 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { Linter } from "eslint";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { base } from "./configs/base.js";
 import { packageJson } from "./configs/package-json.js";
 import { typescript } from "./configs/typescript.js";
@@ -13,6 +17,44 @@ describe("eslint-config — individual configs", () => {
 		const config = base();
 		expect(Array.isArray(config)).toBe(true);
 		expect(config.length).toBeGreaterThan(0);
+	});
+
+	it("base() includes the docs/src n/no-extraneous-import exception unconditionally", () => {
+		const config = base();
+		const docsSrc = config.find((c) => "name" in c && c.name === "@theholocron/docs-src");
+		expect(docsSrc).toBeDefined();
+		expect(docsSrc?.files).toContain("docs/src/**");
+		expect(docsSrc?.rules?.["n/no-extraneous-import"]).toBe("off");
+	});
+
+	it("base() doesn't throw and omits gitignore config when cwd has no .gitignore", () => {
+		// packages/eslint-config itself has no .gitignore — this is the ambient
+		// case during a normal test run, not a contrived one.
+		const config = base();
+		expect(config.some((c) => "name" in c && c.name === "@theholocron/gitignore")).toBe(false);
+	});
+
+	describe("base() with a .gitignore present", () => {
+		let tmpDir: string | undefined;
+		let originalCwd: string;
+
+		afterEach(() => {
+			process.chdir(originalCwd);
+			if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+			tmpDir = undefined;
+		});
+
+		it("includes an @theholocron/gitignore config derived from cwd's .gitignore", () => {
+			originalCwd = process.cwd();
+			tmpDir = mkdtempSync(join(tmpdir(), "eslint-config-gitignore-"));
+			writeFileSync(join(tmpDir, ".gitignore"), "dist/\ncoverage/\n");
+			process.chdir(tmpDir);
+
+			const config = base();
+			const gitignore = config.find((c) => "name" in c && c.name === "@theholocron/gitignore");
+			expect(gitignore).toBeDefined();
+			expect(gitignore?.ignores).toContain("**/dist/");
+		});
 	});
 
 	it("typescript() returns a non-empty flat config array", () => {
