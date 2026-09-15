@@ -17,6 +17,20 @@ runs:
 
     - uses: theholocron/.github/.github/actions/install@main
 
+    # `@theholocron/cli`'s `dist/cli.mjs` doesn't exist yet at this point, so
+    # pnpm's workspace bin-linking can't create `node_modules/.bin/holocron`
+    # (silent `WARN ... ENOENT`, not a hard failure). Every package whose
+    # scripts delegate via `holocron run <task> --` then fails at run time
+    # with `holocron: not found` (#698). Build the CLI, then re-run install
+    # so pnpm links the bin now that the target file exists — the second
+    # install is cheap, the store is already warm from the first.
+    - name: Build the Holocron CLI
+      shell: bash
+      run: pnpm --filter @theholocron/cli build
+
+    - name: Re-link workspace bins
+      uses: theholocron/.github/.github/actions/install@main
+
     - name: Cache Turbo artifacts
       if: ${{ hashFiles('turbo.json') != '' }}
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
