@@ -20,10 +20,10 @@ is marked required, it falls back to every `ci: true` task (with a note).
 $ holocron ci
 holocron ci — required checks (3)
 
-▶ Typecheck / Conclusion
+▶ Typecheck / Run tsc --noEmit
   → tsc --noEmit
-▶ Lint / Conclusion
-  → turbo run lint
+▶ Static Analysis / Run eslint and actionlint
+  → turbo run sourceQuality.staticAnalysis
   → prettier --check .
   ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 ▶ Test / Conclusion
@@ -33,17 +33,21 @@ holocron ci — required checks (3)
 ```
 
 - Each task runs through the same resolution as `holocron run <task>` (turbo →
-  a `package.json` script → the registry tool; `lint` runs its full linter set).
+  a `package.json` script → the registry tool; a `linterGroup` task like
+  `sourceQuality.staticAnalysis` runs its full resolved set).
 - A **`required` task whose local runner can't run is a failure** — it claims a
   CI check it can't back locally.
-- Tasks with **no built-in local runner** (`audit`, `codeql`, `deploy`) still
-  honour an explicit `package.json` script — e.g. `"audit": "knip"` makes
-  `holocron ci` run knip for the audit slot. With no script they print
+- Tasks with **no local equivalent at all** (`security.codeScanning`,
+  `delivery.deploy`, `platform.commitStandards`, …) still honour an explicit
+  `package.json` script when one exists. With no script they print
   `· no local equivalent — enforced in CI` and never fail the run, even when
-  marked `required` (a CI-only check isn't a _local_ failure). `audit`'s
-  bundle-size / performance jobs stay CI-only until sub-jobs land.
+  marked `required` (a CI-only check isn't a _local_ failure).
+- Most tasks are a single always-run job now, so their check context names
+  that job directly (`Typecheck / Run tsc --noEmit`) — the `… / Conclusion`
+  fan-in is only used where a task genuinely has several conditionally-run
+  jobs feeding one check (`verification.unitTests`, `platform.repoValidation`).
 - Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
-  first (`typecheck → lint → test → build → …`).
+  first (`typecheck → static analysis → … → test → …`).
 
 ## Options
 

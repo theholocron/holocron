@@ -84,13 +84,12 @@ reads a dedicated file _and_ a parent file), so the persistent
 
 ## Development
 
-| Script               | Description             |
-| -------------------- | ----------------------- |
-| `pnpm build`         | Bundle with tsdown      |
-| `pnpm test`          | Run the vitest suite    |
-| `pnpm test:coverage` | Run tests with coverage |
-| `pnpm typecheck`     | `tsc --noEmit`          |
-| `pnpm lint`          | ESLint                  |
+| Script                                  | Description                                 |
+| --------------------------------------- | ------------------------------------------- |
+| `pnpm run delivery.build`               | Bundle with tsdown                          |
+| `pnpm run verification.unitTests`       | Run the vitest suite (always with coverage) |
+| `pnpm run verification.typeSafety`      | `tsc --noEmit`                              |
+| `pnpm run sourceQuality.staticAnalysis` | ESLint                                      |
 
 ## Releases
 

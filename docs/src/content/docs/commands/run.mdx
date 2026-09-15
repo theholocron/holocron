@@ -7,87 +7,90 @@ description: Run a task locally — holocron figures out turbo vs the tool vs th
 holocron run <task> [job] [-- <passthrough>]
 ```
 
-`holocron run test` runs your tests. You don't tell it whether the repo uses
-turbo, pnpm, npm, or which test runner — it works that out.
+`holocron run verification.unitTests` runs your tests. You don't tell it
+whether the repo uses turbo, pnpm, npm, or which test runner — it works that
+out.
 
 ## Tasks
 
-| Task        | Runs                                                                             |
-| ----------- | -------------------------------------------------------------------------------- |
-| `test`      | `vitest run --coverage`                                                          |
-| `typecheck` | `tsc --noEmit`                                                                   |
-| `lint`      | the resolved linter set — see below                                              |
-| `build`     | `tsdown` / `vite build` / `rollup -c` / `tsc -b` — whichever config the repo has |
-| `audit`     | its sub-jobs — see [Sub-jobs](#sub-jobs)                                         |
-| `sync`      | `holocron sync`                                                                  |
-| `wiki`      | `holocron sync-wiki`                                                             |
+Tasks are named by **intent**, not by tool. See the full
+[task vocabulary table](/holocron/config/#task-vocabulary) for every task
+name and what it actually runs — this page covers how resolution works,
+not the list itself.
 
-The task set matches the CI workflow names. Adding a task is a one-line change
-in the CLI — every repo gets it.
+The task set matches the CI workflow names. Adding a task is a one-line
+change in the CLI — every repo gets it.
 
 ## How a task resolves
 
 ```
-0. task === "lint" (no job)      → the resolved linter set        (see below)
 J. a job is given                → the task's <job> sub-runner     (unknown job → exit 1)
 1. turbo.json defines the task   → turbo run <task>               (monorepo root)
 2. package.json has a <task> script (and it isn't `holocron run …`)
                                  → <detected pm> run <task>
 3. the task registry has a local runner
                                  → <tool> <args> <org-flags>       (e.g. --coverage)
-4. the task is a container of sub-jobs (`audit`)
+3b. the task is a linterGroup    → the resolved linter set        (see below)
+4. the task is a container of sub-jobs (`platform.repoValidation`)
                                  → run each job in declared order
 5. known task, nothing to run    → "no <task> task for this repo", exit 0
 6. unknown task                  → error, exit 1
 ```
 
 An explicit `package.json` script always wins over the registry default — if
-you wrote `"lint": "biome check"`, that's what runs. Likewise a repo-level
-`"audit"` script wins over the built-in sub-jobs.
+you wrote `"sourceQuality.staticAnalysis": "biome check"`, that's what runs.
+Likewise a repo-level script for a job-bearing task wins over the built-in
+sub-jobs.
 
 ## Sub-jobs
 
-Some tasks are a bundle of smaller jobs. `audit` is the one that matters today:
+Some tasks are a bundle of smaller jobs. `platform.repoValidation` is the one
+that matters today — spec/ADR frontmatter, registry-doc completeness, and
+docs-presence, not linters:
 
-| `holocron run …`    | Runs                                                    |
-| ------------------- | ------------------------------------------------------- |
-| `audit bundle-size` | nothing locally — bundle stats upload is CI-only        |
-| `audit knip`        | `knip`                                                  |
-| `audit performance` | `lhci autorun`, when the repo has a `lighthouse.config` |
-| `audit` (no job)    | each of the above, in that order                        |
+| `holocron run …`                       | Runs                                      |
+| -------------------------------------- | ----------------------------------------- |
+| `platform.repoValidation adrs`         | `node scripts/validate-adrs.mjs`          |
+| `platform.repoValidation registry`     | `node scripts/validate-registry.mjs`      |
+| `platform.repoValidation docsPresence` | `node scripts/validate-docs-presence.mjs` |
+| `platform.repoValidation` (no job)     | each of the above, in that order          |
 
-A sub-job whose tool isn't installed (`knip`, `lhci`) or that has no local
-equivalent (`bundle-size`) is skipped with a note — CI enforces it regardless.
-`--required` turns "can't run this here" into a failure. `holocron run audit
-frobnicate` lists the known jobs and exits 1.
+A sub-job whose tool isn't installed is skipped with a note — CI enforces it
+regardless. `--required` turns "can't run this here" into a failure.
+`holocron run platform.repoValidation frobnicate` lists the known jobs and
+exits 1.
 
-## `holocron run lint`
+## `linterGroup` tasks
 
-`lint` doesn't map to a single command — it runs the **resolved linter set**
-(the `lint` task's `linters` list in `holocron.config`, else auto-detected from
-the config files present plus the org always-on set). Locally:
+`sourceQuality.staticAnalysis` and `sourceQuality.formatting` bundle more
+than one tool under a single required check — they don't map to a single
+command. Locally:
 
-- the **eslint slot** goes through the normal resolution above — `turbo run
-lint` at a monorepo root (cache kept), else the `lint` script, else `eslint .`
-- every other linter (`prettier --check .`, `yamllint`, `actionlint`, …) runs
-  its own binary when it's in `node_modules/.bin` or on `PATH`
+- runs _after_ the normal resolution above (steps 1–2) — the whole task
+  delegates to turbo/a package script first, exactly like any other task
+- each resolved linter in the group runs its own binary when it's in
+  `node_modules/.bin` or on `PATH`
 - a linter whose binary isn't found is flagged with an install hint
-  (`! actionlint — actionlint not on PATH. brew install actionlint`); one with
-  no local equivalent prints `· <name> (CI only)`. CI enforces them regardless.
+  (`! actionlint — actionlint not on PATH. brew install actionlint`); one
+  with no local equivalent at all prints `· <name> (CI only)`. CI enforces
+  them regardless.
 - the exit code is the worst of the lot
+- **exception**: if _every_ linter in the group has no local equivalent at
+  all (e.g. `platform.commitStandards` — commitlint has no local
+  equivalent, ever, since there's no PR commit range to diff against
+  outside CI), the task is skipped even when `--required` — the same
+  carve-out a `local: null` task gets. It only fails when a linter _could_
+  run locally but its tool just isn't installed.
 
 ```
-$ holocron run lint
-→ turbo run lint
-→ prettier --check .
-→ yamllint .
+$ holocron run sourceQuality.staticAnalysis
+→ eslint .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
-· commitlint (CI only)
 · git-merge-conflict-markers (CI only)
 ```
 
-Install the missing binaries (`brew install actionlint gitleaks yamllint …`) to
-run the full CI set locally.
+Install the missing binaries (`brew install actionlint gitleaks yamllint …`)
+to run the full CI set locally.
 
 ## Options
 
@@ -103,17 +106,19 @@ See also [`holocron ci`](/holocron/commands/ci/) — run every required check at
 ## Examples
 
 ```bash
-holocron run test                      # vitest run --coverage (or turbo run test at a root)
-holocron run test -- --watch           # forward --watch to vitest
-holocron run build --dry-run           # show what would run
-holocron run e2e --required            # fail if the repo has no e2e task
-holocron run test -- --filter web      # passthrough turbo's --filter at a monorepo root
-holocron run audit                     # every audit sub-job in order
-holocron run audit performance         # just Lighthouse CI
+holocron run verification.unitTests            # vitest run --coverage (or turbo run … at a root)
+holocron run verification.unitTests -- --watch # forward --watch to vitest
+holocron run delivery.build --dry-run          # show what would run
+holocron run e2e --required                    # fail if the repo has no e2e task
+holocron run verification.unitTests -- --filter web  # passthrough turbo's --filter at a monorepo root
+holocron run platform.repoValidation           # every validation sub-job in order
+holocron run verification.performance          # just Lighthouse CI
 ```
 
 ## Monorepos
 
-At a turbo root, `holocron run test` is `turbo run test` — turbo's cache and
-dependency graph are untouched. Inside a package, it runs the tool directly.
-`turbo.json` doesn't change.
+At a turbo root, `holocron run verification.unitTests` is
+`turbo run verification.unitTests` — turbo's cache and dependency graph are
+untouched. Inside a package, it runs the tool directly. `turbo.json` doesn't
+change (its task keys just need to match the task names your
+`holocron.config.ts` uses).
