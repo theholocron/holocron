@@ -162,10 +162,10 @@ describe("createAstromech().thinCallers", () => {
 	it("skips tasks with ci: false and tasks with no template", () => {
 		const astromech = createAstromech({
 			cwd: "/repo",
-			// delivery.build has no dedicated thin-caller template — it's only
-			// ever invoked as a step inside other tasks (delivery.bundleSize, …).
+			// Every real registry task has a template now — use an unknown task
+			// name to exercise the "no template" branch.
 			config: {
-				tasks: [{ name: "security.codeScanning", ci: false }, "delivery.build", "sourceQuality.staticAnalysis"],
+				tasks: [{ name: "security.codeScanning", ci: false }, "made-up.task", "sourceQuality.staticAnalysis"],
 			},
 		});
 		expect([...astromech.thinCallers().keys()]).toEqual(["sourceQuality.staticAnalysis.yml"]);

@@ -18,6 +18,7 @@ import installAction from "./templates/reusable/actions/install.yml";
 import setupAction from "./templates/reusable/actions/setup.yml";
 import setupNodeAction from "./templates/reusable/actions/setup-node.yml";
 import bookkeepingWorkflow from "./templates/reusable/bookkeeping.yml";
+import buildWorkflow from "./templates/reusable/delivery.build.yml";
 import bundleSizeWorkflow from "./templates/reusable/delivery.bundleSize.yml";
 import deployWorkflow from "./templates/reusable/delivery.deploy.yml";
 import publishWorkflow from "./templates/reusable/delivery.publish.yml";
@@ -55,6 +56,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	"sourceQuality.deadCodeAnalysis": deadCodeAnalysisWorkflow,
 	"security.secretDetection": secretDetectionWorkflow,
 	"security.codeScanning": codeScanningWorkflow,
+	"delivery.build": buildWorkflow,
 	"delivery.publish": publishWorkflow,
 	"delivery.deploy": deployWorkflow,
 	"delivery.bundleSize": bundleSizeWorkflow,

@@ -7,6 +7,7 @@
  */
 
 import bookkeepingYml from "./templates/workflows/bookkeeping.yml";
+import buildYml from "./templates/workflows/delivery.build.yml";
 import bundleSizeYml from "./templates/workflows/delivery.bundleSize.yml";
 import deployYml from "./templates/workflows/delivery.deploy.yml";
 import publishYml from "./templates/workflows/delivery.publish.yml";
@@ -39,6 +40,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"sourceQuality.deadCodeAnalysis": deadCodeAnalysisYml,
 	"security.secretDetection": secretDetectionYml,
 	"security.codeScanning": codeScanningYml,
+	"delivery.build": buildYml,
 	"delivery.publish": publishYml,
 	"delivery.deploy": deployYml,
 	"delivery.bundleSize": bundleSizeYml,
@@ -73,6 +75,7 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
+	"delivery.build": "Build / Build every workspace",
 	"verification.unitTests": "Test / Conclusion",
 	"verification.typeSafety": "Typecheck / Run tsc --noEmit",
 	"verification.performance": "Audit the Performance / Run Lighthouse CI",
