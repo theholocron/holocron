@@ -2,30 +2,26 @@
   "$schema": "https://turborepo.org/schema.json",
   "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json"],
   "tasks": {
-    "build": {
+    "delivery.build": {
       "inputs": ["src/**", "tsdown.config.ts", "tsconfig.json", "package.json"],
       "outputs": ["dist/**"],
-      "dependsOn": ["^build"],
+      "dependsOn": ["^delivery.build"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
     },
-    "lint": {
+    "sourceQuality.staticAnalysis": {
       "inputs": ["src/**", "eslint.config.ts", "eslint.config.js"],
-      "outputs": []
+      "outputs": [],
+      "dependsOn": ["^delivery.build"]
     },
-    "test": {
+    "verification.unitTests": {
       "inputs": ["src/**", "vitest.config.ts", "package.json"],
-      "outputs": ["test-report.junit.xml"],
-      "dependsOn": ["build", "^build"]
+      "outputs": ["test-report.junit.xml", "coverage/**"],
+      "dependsOn": ["delivery.build", "^delivery.build"]
     },
-    "test:coverage": {
-      "inputs": ["src/**", "vitest.config.ts", "package.json"],
-      "outputs": ["coverage/**"],
-      "dependsOn": ["build"]
-    },
-    "typecheck": {
+    "verification.typeSafety": {
       "inputs": ["src/**", "tsconfig.json"],
       "outputs": [],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^delivery.build"]
     }
   }
 }

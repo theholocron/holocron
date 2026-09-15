@@ -359,8 +359,13 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 
 				for (const entry of taskEntries) {
 					const name = typeof entry === "string" ? entry : entry.name;
+					// knowledge.docs / knowledge.components have no static
+					// WORKFLOW_TEMPLATES entry (their content is always
+					// combined-generated, astromech.ts) — not in KNOWN_WORKFLOWS,
+					// but not "unknown" either.
+					const isCombinedContentOnly = name === "knowledge.docs" || name === "knowledge.components";
 
-					if (!KNOWN_WORKFLOWS.has(name)) {
+					if (!KNOWN_WORKFLOWS.has(name) && !isCombinedContentOnly) {
 						steps.push({
 							capability: "local",
 							step: `sync workflow ${name}`,

@@ -456,12 +456,23 @@ describe("runTask — linterGroup aggregate", () => {
 		expect(report.message).toBe("one or more linters failed");
 	});
 
-	it("skips (or fails with --required) when every linter in the group is CI-only", () => {
-		// commitlint has no localBin — always CI-only, same as today.
+	it("D8: a group with no local equivalent at all skips even when required (same carve-out as local: null)", () => {
+		// commitlint has no localBin, ever — no PR commit range to diff
+		// locally. Structurally CI-only, not "happens to be uninstalled".
 		const base = { "package.json": PKG() };
 		const skip = makeRun(base).call("platform.commitStandards");
 		expect(skip.status).toBe("skip");
-		const fail = makeRun(base).call("platform.commitStandards", { required: true });
+		const stillSkip = makeRun(base).call("platform.commitStandards", { required: true });
+		expect(stillSkip.status).toBe("skip");
+	});
+
+	it("fails when required and a linter with a real localBin just isn't installed", () => {
+		// gitleaks has a localBin — this is an actionable "go install it" gap,
+		// not a structurally CI-only task, so --required does fail it.
+		const base = { "package.json": PKG() };
+		const skip = makeRun(base).call("security.secretDetection");
+		expect(skip.status).toBe("skip");
+		const fail = makeRun(base).call("security.secretDetection", { required: true });
 		expect(fail.status).toBe("fail");
 	});
 

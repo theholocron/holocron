@@ -2,20 +2,20 @@
 # Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Bookkeeping
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   pull_request:
-    types:
-      - opened
-      - edited
+
+concurrency:
+  group: platform-commit-standards-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
 
 jobs:
-  bookkeeping:
-    uses: theholocron/.github/.github/workflows/bookkeeping.yml@main
+  commit-standards:
+    name: Commit Standards
+    uses: theholocron/.github/.github/workflows/platform.commitStandards.yml@main
     secrets: inherit

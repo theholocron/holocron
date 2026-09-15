@@ -2,22 +2,22 @@
 # Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Review
+name: Source Quality
 
 on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
   pull_request:
 
 concurrency:
-  group: review-${{ github.ref }}
+  group: source-quality-structured-data-validation-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 jobs:
-  review:
-    name: Lint Annotations
-    uses: theholocron/.github/.github/workflows/review.yml@main
+  structured-data-validation:
+    name: Structured Data Validation
+    uses: theholocron/.github/.github/workflows/sourceQuality.structuredDataValidation.yml@main
     secrets: inherit

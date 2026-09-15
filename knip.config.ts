@@ -3,9 +3,10 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
 	workspaces: {
 		".": {
-			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts
-			// auto-detected by Knip plugins
-			entry: ["commitlint.config.ts", "holocron.config.ts", "astromech.config.ts"],
+			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts,
+			// commitlint.config.ts (now that @commitlint/cli is a real dependency) —
+			// all auto-detected by Knip plugins
+			entry: ["holocron.config.ts", "astromech.config.ts"],
 			project: ["*.ts"],
 		},
 		docs: {
@@ -68,6 +69,14 @@ const config: KnipConfig = {
 		"globals",
 		// commitlint uses string-based "extends", not a module import
 		"@theholocron/commitlint-config",
+		// commitlint.config.ts's `extends: ["@theholocron"]` resolves via
+		// commitlint's own shareable-config convention to the package above —
+		// Knip's commitlint plugin doesn't follow that shorthand and reports
+		// the literal string as an unlisted dependency
+		"@theholocron",
+		// satisfies @theholocron/commitlint-config's peerDependencies; nothing
+		// in this repo extends it directly (only via "@theholocron" above)
+		"@commitlint/config-conventional",
 		// passed as --config arg to lint-staged in .husky/pre-commit, not an import
 		"@theholocron/lint-staged-config",
 		// required in devmoji.config.cjs via require() — not a static import Knip can trace
@@ -75,8 +84,6 @@ const config: KnipConfig = {
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
 	],
-	// commitlint binary comes transitively via @theholocron/commitlint-config; not a direct dep
-	ignoreBinaries: ["commitlint"],
 	ignoreExportsUsedInFile: true,
 	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's
 	// glob doesn't traverse dotfiles so it can't trace these as reachable from imports

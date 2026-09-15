@@ -2,20 +2,18 @@
 # Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Bookkeeping
+name: Platform
 
 on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
   pull_request:
-    types:
-      - opened
-      - edited
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
 
 jobs:
-  bookkeeping:
-    uses: theholocron/.github/.github/workflows/bookkeeping.yml@main
+  repo-validation:
+    name: Repo Validation
+    uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main
     secrets: inherit

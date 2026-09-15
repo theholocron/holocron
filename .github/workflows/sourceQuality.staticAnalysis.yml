@@ -2,22 +2,23 @@
 # Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Review
+name: Source Quality
 
 on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
   pull_request:
 
 concurrency:
-  group: review-${{ github.ref }}
+  group: source-quality-static-analysis-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  checks: write
-  pull-requests: write
+  contents: write
+  statuses: write
 
 jobs:
-  review:
-    name: Lint Annotations
-    uses: theholocron/.github/.github/workflows/review.yml@main
+  static-analysis:
+    name: Static Analysis
+    uses: theholocron/.github/.github/workflows/sourceQuality.staticAnalysis.yml@main
     secrets: inherit

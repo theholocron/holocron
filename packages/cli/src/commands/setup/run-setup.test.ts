@@ -1792,6 +1792,39 @@ describe("runSetup", () => {
 		expect(written["delivery.deploy.yml"]).toContain("cloudflare-project: acme-preview");
 	});
 
+	it("writes knowledge.docs / knowledge.components even though neither has a static template (combined-content family)", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			org: "acme",
+			domain: "acme.dev",
+			tasks: [{ name: "knowledge.docs", with: { preview: true } }, "knowledge.components"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.steps.some((s) => s.message?.includes("unknown workflow"))).toBe(false);
+		expect(written["knowledge.docs.yml"]).toContain("- docs/**");
+		expect(written["knowledge.components.yml"]).toContain("- src/**");
+	});
+
 	it("skips workflow writing when project.tasks is absent", async () => {
 		let writeCallCount = 0;
 		const loaded = loadedFrom({

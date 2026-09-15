@@ -34,12 +34,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
@@ -47,6 +46,7 @@
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {

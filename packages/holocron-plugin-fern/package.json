@@ -30,12 +30,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",

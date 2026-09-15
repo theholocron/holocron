@@ -303,6 +303,11 @@ function runLinterGroup(input: RunTaskInput, names: string[], passthrough: strin
 	}
 	const resolved = resolveLinters({ explicit: names, rootFiles });
 	const reports: RunTaskReport[] = [];
+	// Distinguishes "every member of this group is structurally CI-only"
+	// (commitlint has no localBin, ever — no PR commit range to diff locally,
+	// same shape as a `local: null` task) from "a linter has a localBin but
+	// it's just not on PATH right now" (an actionable, install-it gap).
+	let anyHasLocalBin = false;
 
 	for (const { name, def } of resolved) {
 		const bin = def.localBin;
@@ -310,6 +315,7 @@ function runLinterGroup(input: RunTaskInput, names: string[], passthrough: strin
 			print(`· ${name} (CI only)`);
 			continue;
 		}
+		anyHasLocalBin = true;
 		const found = lookPath(cwd, bin);
 		if (!found) {
 			print(`! ${name} — ${bin} not on PATH${def.installHint ? `. ${def.installHint}` : ""} (enforced in CI)`);
@@ -319,10 +325,15 @@ function runLinterGroup(input: RunTaskInput, names: string[], passthrough: strin
 	}
 
 	if (reports.length === 0) {
+		// D8: a genuinely CI-only task (no group member has a local equivalent
+		// at all) is skipped, never failed, even when required — same carve-out
+		// `local: null` tasks already get. Only fail-if-required when at least
+		// one linter *could* run locally but its tool just isn't installed.
+		const required = input.required && anyHasLocalBin;
 		const msg = `no tooling available locally for ${task} — every linter in this group is CI-only here`;
-		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
-		logger[input.required ? "warn" : "debug"]({ task, status: input.required ? "fail" : "skip" }, `run: ${task}`);
-		return { status: input.required ? "fail" : "skip", message: msg };
+		print(required ? `✗ ${msg} (required)` : `· ${msg}`);
+		logger[required ? "warn" : "debug"]({ task, status: required ? "fail" : "skip" }, `run: ${task}`);
+		return { status: required ? "fail" : "skip", message: msg };
 	}
 
 	const command = reports

@@ -37,12 +37,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "dependencies": {
     "@theholocron/datapad": "workspace:*"

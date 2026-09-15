@@ -40,13 +40,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown --config-loader tsx",
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
     "start": "node ./dist/cli.mjs",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "dependencies": {
     "@axiomhq/pino": "catalog:",
@@ -91,8 +90,6 @@
   },
   "publishConfig": {
     "access": "public",
-    "main": "./dist/index.mjs",
-    "types": "./dist/index.d.mts",
     "exports": {
       ".": {
         "types": "./dist/index.d.mts",
@@ -104,6 +101,8 @@
         "import": "./dist/plugin/capabilities.mjs",
         "default": "./dist/plugin/capabilities.mjs"
       }
-    }
+    },
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts"
   }
 }

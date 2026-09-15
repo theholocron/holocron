@@ -1,8 +1,8 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Sync
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -29,7 +29,7 @@ permissions:
 jobs:
   sync:
     name: Sync
-    uses: theholocron/.github/.github/workflows/sync.yml@main
+    uses: theholocron/.github/.github/workflows/platform.repoSync.yml@main
     with:
       steps: ${{ inputs.steps }}
     secrets: inherit

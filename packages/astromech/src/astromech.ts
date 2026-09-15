@@ -177,15 +177,26 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				// each dedicated to exactly one `type:`, so they imply the
 				// corresponding `docs`/`storybook` shorthand rather than requiring
 				// a repo to spell it out. Neither has a static `WORKFLOW_TEMPLATES`
-				// entry (their content is always generated, never a fixed base), so
-				// they're allowed through the `KNOWN_WORKFLOWS` gate explicitly.
+				// entry (their content is always generated, never a fixed base) —
+				// unlike `delivery.deploy`, which falls back to a plain
+				// production-only static template when `preview` is absent, these
+				// two have no such fallback to fall back to, so `preview` defaults
+				// on too (not just `docs`/`storybook`) — a repo declaring
+				// `knowledge.docs` always gets the full production+preview
+				// treatment these tasks exist for, unless it explicitly opts out
+				// with `preview: false`. They're allowed through the
+				// `KNOWN_WORKFLOWS` gate explicitly since neither is in it.
 				const isDocsSite = entry.name === "knowledge.docs";
 				const isComponents = entry.name === "knowledge.components";
 				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(entry.name) && !isDocsSite && !isComponents)) continue;
 				const rawWith: Record<string, unknown> | undefined = isDocsSite
-					? { ...entry.with, docs: entry.with?.["docs"] ?? true }
+					? { preview: true, ...entry.with, docs: entry.with?.["docs"] ?? true }
 					: isComponents
-						? { ...entry.with, storybook: entry.with?.["storybook"] ?? [{ workingDir: "." }] }
+						? {
+								preview: true,
+								...entry.with,
+								storybook: entry.with?.["storybook"] ?? [{ workingDir: "." }],
+							}
 						: entry.with;
 				const normalized = rawWith ? normalizeWorkflowWith(rawWith) : undefined;
 

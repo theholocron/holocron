@@ -1,8 +1,8 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
-name: Greetings
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   pull_request:
@@ -14,5 +14,6 @@ permissions:
 
 jobs:
   greetings:
+    name: Greetings
     uses: theholocron/.github/.github/workflows/greetings.yml@main
     secrets: inherit
