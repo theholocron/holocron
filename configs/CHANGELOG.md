@@ -1,3 +1,9 @@
+## [8.2.4](https://github.com/theholocron/configs/compare/v8.2.3...v8.2.4) (2026-09-15)
+
+### Bug Fixes
+
+* declare @astrojs/react as a peer dependency of astro-config ([#455](https://github.com/theholocron/configs/issues/455)) ([dd7875a](https://github.com/theholocron/configs/commit/dd7875a4c5c55ad56d1f6f5cce9faefcf4c99c21))
+
 ## [8.2.3](https://github.com/theholocron/configs/compare/v8.2.2...v8.2.3) (2026-09-12)
 
 ### Bug Fixes
