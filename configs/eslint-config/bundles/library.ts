@@ -64,3 +64,23 @@ export function library(options: LibraryOptions = {}): Linter.Config[] {
 			: []),
 	];
 }
+
+/**
+ * Ready-to-use config for packages that need no customisation — matches
+ * `@theholocron/vitest-config`'s and `@theholocron/tsdown-config`'s existing
+ * `export default <preset>()` pattern. `eslint --config <path>` loads a
+ * file's *default* export as the flat config directly; a named-export-only
+ * file throws `ConfigError: Unexpected key "library" found` (ESLint treats
+ * the whole module namespace as the config when there's no default) —
+ * required for the resolver (config-resolution workstream, #676 in
+ * theholocron/holocron) to point `--config` straight at this file with zero
+ * committed local content.
+ *
+ * The explicit `Linter.Config[]` binding (rather than `export default
+ * library();` directly) works around TS2742 — declaration-emit can't
+ * portably name library()'s inferred return type without a reference to
+ * @eslint/core's internal types; an explicitly-typed intermediate avoids
+ * needing to re-infer it.
+ */
+const resolvedLibrary: Linter.Config[] = library();
+export default resolvedLibrary;

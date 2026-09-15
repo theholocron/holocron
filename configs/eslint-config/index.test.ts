@@ -11,6 +11,7 @@ import { node } from "./configs/node.js";
 import { react } from "./configs/react.js";
 import { storybook } from "./configs/storybook.js";
 import { library } from "./bundles/library.js";
+import libraryDefault from "./bundles/library.js";
 
 describe("eslint-config — individual configs", () => {
 	it("base() returns a non-empty flat config array", () => {
@@ -155,5 +156,11 @@ describe("eslint-config — bundles", () => {
 		expect(browserPackages).toBeDefined();
 		expect(browserPackages?.files).toEqual(["packages/location-utils/src/**", "packages/misc-utils/src/**"]);
 		expect(browserPackages?.rules?.["n/no-unsupported-features/node-builtins"]).toBe("off");
+	});
+
+	it("has a ready-to-use default export — required for `eslint --config <path>` to load it directly", () => {
+		expect(Array.isArray(libraryDefault)).toBe(true);
+		expect(libraryDefault.length).toBeGreaterThan(0);
+		expect(libraryDefault.some((c) => "name" in c && c.name === "@theholocron/library")).toBe(true);
 	});
 });
