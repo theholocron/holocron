@@ -285,10 +285,9 @@ away here; not a gap this workstream closes.
       `--config`/loading needs (a gap #461 didn't close — `library()` had
       only a named export, and ESLint's `--config` loader requires the
       file's _default_ export; caught with a minimal repro before shipping,
-      not assumed). Deliberately unwired here: `semantic-release`
-      (`defineConfig()` needs real per-repo data — branches, npm options —
-      a static `--extends <path>` can't carry; a genuinely separate design
-      question, not a resolver gap), `editorconfig-checker` (100%
+      not assumed). Deliberately unwired here: `semantic-release` (see
+      below — turned out to be a `--extends <path>` resolver problem that
+      doesn't actually apply here), `editorconfig-checker` (100%
       byte-identical content across every repo checked, zero variance to
       eliminate — already has a working Bucket B generator, same as
       `.editorconfig`; a new shared package + resolver wiring would buy
@@ -307,6 +306,7 @@ away here; not a gap this workstream closes.
       `devmoji-config` package installed, both branches (config present
       and absent), confirming the custom `config` → gear-emoji mapping
       from `configs`#463's fixture applies through the resolved path.
+- [x] `semantic-release` — re-examined after landing the other four. `--extends <path>` was never actually the right mechanism: checked every repo's `release.config.ts` (7 checked, post-#697) and `branches` genuinely varies (4 of 7 add an `alpha` prerelease channel, 3 don't — a real per-repo choice, no majority default), so `defineConfig({...})` can't collapse to a zero-arg call the way `library()` did. But that's fine — `defineConfig()` is _already_ the correct shape for this: a parameterized factory the repo calls with its own real data, same category as `utils`' `eslint.config.ts` (`export default library({ browserPackages: [...] })`) — a tiny, legitimately-parameterized committed file, not a gap. The actual remaining duplication is `publishCmd`'s shell — the old bulk-publish invocation, hand-typed slightly differently in every repo (`configs`' own hand-rolled skip-already-published loop is the most divergent). #697 already built the fix (`pnpm exec holocron publish`), it just hasn't been rolled out to any repo's actual `release.config.ts` yet. That rollout is `#680`'s migration-pass job, not new design work.
 - [x] `holocron`: Bucket B generators — `.editorconfig` already had one
       (`packages/cli/src/templates/configs/editorconfig/`, pre-dating this
       workstream); added `tsconfig.json`'s (`astromech.createTsconfig()`).
