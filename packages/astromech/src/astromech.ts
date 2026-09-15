@@ -24,6 +24,7 @@ import {
 	normalizeWorkflowWith,
 	type OrgContext,
 } from "./thin-callers.js";
+import { turboConfig as resolveTurboConfig } from "./turbo.js";
 
 export interface AstromechOptions {
 	/** Repo root. */
@@ -114,6 +115,12 @@ export interface Astromech {
 	 * as {@link requiredChecks} — `holocron setup` owns writing the result.
 	 */
 	codecovConfig(existing: string | null): string;
+	/**
+	 * The generated `turbo.json` for this repo's manifest, pretty-printed —
+	 * write directly, no merge. `null` when no manifest task has turbo fan-out
+	 * config (nothing to write). See {@link TurboTaskConfig} in `registry.ts`.
+	 */
+	turboConfig(): string | null;
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
@@ -267,5 +274,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		requiredChecks: () => resolveRequiredChecks(options.config ?? {}),
 
 		codecovConfig: (existing: string | null) => resolveCodecovConfig(options.cwd, existing),
+
+		turboConfig: () => resolveTurboConfig(options.config ?? {}),
 	};
 }

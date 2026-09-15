@@ -30,6 +30,7 @@ holocron sync labels properties             # run only labels and properties
 | `readme`      | Regenerates the README Installation/Usage block                                             | No                           |
 | `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                         | No                           |
 | `scripts`     | `package.json#scripts` — the `holocron` entry + `holocron run <task>` wrappers from `tasks` | No                           |
+| `turbo`       | `turbo.json` — generated from the fan-out-eligible tasks in `tasks`                         | No                           |
 | `wiki`        | Publishes engineering docs to the wiki                                                      | No                           |
 
 Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
@@ -42,6 +43,10 @@ Merges into `package.json#scripts` — only the managed keys are touched, every 
 - one `"<task>": "holocron run <task>"` per runnable task in `tasks`
 
 Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely (the Holocron repo itself does this — its root scripts must stay bootstrap-safe).
+
+### `turbo`
+
+Generates `turbo.json` — full ownership, never hand-edited. Only tasks with real per-workspace fan-out (a build/compile/test step — `delivery.build`, `verification.typeSafety`, `verification.unitTests`, `sourceQuality.staticAnalysis` today) get an entry; whole-repo, single-run tools (prettier, gitleaks, commitlint, yamllint, …) stay off the file and run once, un-fanned-out, the same way they already do. Skipped with no write when nothing in `tasks` is fan-out-eligible.
 
 ## Options
 

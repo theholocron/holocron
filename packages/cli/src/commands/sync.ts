@@ -34,6 +34,7 @@ export const SYNC_STEPS = [
 	"readme",
 	"workflows",
 	"scripts",
+	"turbo",
 	"wiki",
 ] as const;
 export type SyncStep = (typeof SYNC_STEPS)[number];
@@ -46,6 +47,7 @@ const LOCAL_STEPS = new Set<SyncStep>([
 	"readme",
 	"workflows",
 	"scripts",
+	"turbo",
 	"wiki",
 ]);
 
@@ -235,7 +237,16 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// files and optionally push to GitHub when source is loaded. They run
 	// outside the `if (loader.has("source"))` block so they work without a token.
 
-	for (const stepName of ["keywords", "description", "homepage", "readme", "workflows", "scripts", "wiki"] as const) {
+	for (const stepName of [
+		"keywords",
+		"description",
+		"homepage",
+		"readme",
+		"workflows",
+		"scripts",
+		"turbo",
+		"wiki",
+	] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
 			continue;
 		}
@@ -419,6 +430,31 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						if (changed === null) return "no package.json";
 						if (changed.length === 0) return `${Object.keys(desired).length} scripts already current`;
 						return `${changed.join(", ")} set`;
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "turbo") {
+			const content = createAstromech({
+				cwd: input.context.repoRoot,
+				config: { tasks: config.tasks as TasksConfig["tasks"] },
+				logger,
+			}).turboConfig();
+
+			if (content === null) {
+				steps.push({
+					capability: "local",
+					step: "sync turbo.json",
+					status: "skip",
+					message: "no fan-out-eligible tasks configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+			} else {
+				steps.push(
+					await runSyncStep("local", "sync turbo.json", dryRun, async () => {
+						await writeFile(join(input.context.repoRoot, "turbo.json"), content, "utf8");
 					})
 				);
 				print(formatSyncStep(steps[steps.length - 1]!));

@@ -100,11 +100,12 @@ describe("runSync", () => {
 			"sync: sync labels"
 		);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
-		expect(report.steps).toHaveLength(11);
+		expect(report.steps).toHaveLength(12);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(7);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
 		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
-		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 4 });
+		expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
+		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 5 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -777,6 +778,51 @@ describe("runSync", () => {
 				scripts: Record<string, string>;
 			};
 			expect(pkg.scripts).toEqual({ holocron: "holocron" });
+		});
+	});
+
+	describe("sync turbo.json", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runTurboStep(rawConfig: Parameters<typeof resolveConfig>[0]) {
+			const loaded = loadedFrom(rawConfig);
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["turbo"], print: () => {} });
+		}
+
+		it("writes turbo.json when the manifest has a fan-out-eligible task", async () => {
+			const report = await runTurboStep({
+				name: "demo",
+				tasks: ["verification.typeSafety", "verification.unitTests"],
+				providers: {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync turbo.json");
+			expect(step?.status).toBe("ok");
+			const written = JSON.parse(await readFile(join(tmpDir, "turbo.json"), "utf8")) as {
+				tasks: Record<string, unknown>;
+			};
+			expect(Object.keys(written.tasks)).toEqual(["verification.typeSafety", "verification.unitTests"]);
+		});
+
+		it("skips when no task in the manifest has turbo fan-out config", async () => {
+			const report = await runTurboStep({ name: "demo", tasks: ["platform.repoSync"], providers: {} });
+
+			const step = report.steps.find((s) => s.step === "sync turbo.json");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("no fan-out-eligible tasks configured");
+			await expect(readFile(join(tmpDir, "turbo.json"), "utf8")).rejects.toThrow();
+		});
+
+		it("skips when no tasks are configured at all", async () => {
+			const report = await runTurboStep({ name: "demo", providers: {} });
+			expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
 		});
 	});
 
