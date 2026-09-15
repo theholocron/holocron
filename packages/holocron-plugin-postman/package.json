@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-postman",
-  "version": "5.0.0-alpha.5",
+  "version": "5.0.0-alpha.6",
   "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API — workspace + collection + spec + environment sync.",
   "keywords": [
     "holocron",
