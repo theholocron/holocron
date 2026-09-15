@@ -87,7 +87,7 @@ navbar-links:
     links:
       - href: https://wiki.theholocron.dev
         text: Cli Template
-      - href: https://wiki.theholocron.dev
+      - href: https://theholocron.dev
         text: Clients
       - href: https://wiki.theholocron.dev
         text: Configs
@@ -103,8 +103,6 @@ navbar-links:
         text: Nextjs Template
       - href: https://wiki.theholocron.dev
         text: Node Template
-      - href: https://wiki.theholocron.dev
-        text: Observability
       - href: https://wiki.theholocron.dev
         text: React Template
       - href: https://wiki.theholocron.dev
