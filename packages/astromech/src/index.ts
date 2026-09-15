@@ -50,3 +50,4 @@ export {
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
 } from "./thin-callers.js";
+export { createTsconfig, type TsconfigOptions } from "./tsconfig.js";
