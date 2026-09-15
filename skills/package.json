@@ -22,9 +22,16 @@
   ],
   "scripts": {
     "build": "pnpm --filter @theholocron/skills-site build",
-    "test": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs",
-    "test:coverage": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "holocron": "holocron",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.formatting": "holocron run sourceQuality.formatting --",
+    "sourceQuality.structuredDataValidation": "holocron run sourceQuality.structuredDataValidation --",
+    "security.secretDetection": "holocron run security.secretDetection --",
+    "platform.commitStandards": "holocron run platform.commitStandards --",
+    "knowledge.wiki": "holocron run knowledge.wiki --",
+    "platform.repoSync": "holocron run platform.repoSync --",
+    "verification.unitTests": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml test/index.mjs"
   },
   "devDependencies": {
     "@astrojs/react": "^6.0.4",
@@ -37,11 +44,11 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.9",
     "@theholocron/astro-config": "catalog:configs",
+    "@theholocron/astromech": "catalog:holocron",
     "@theholocron/cli": "catalog:holocron",
     "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/components-doc": "^1.6.0",
     "@theholocron/docs-theme": "catalog:",
-    "@theholocron/holocron-config": "catalog:holocron",
     "@theholocron/holocron-plugin-cloudflare": "catalog:holocron",
     "@theholocron/holocron-plugin-fern": "catalog:holocron",
     "@theholocron/holocron-plugin-github": "catalog:holocron",

@@ -13,13 +13,13 @@ Prevents accidental data loss from destructive git operations.
 
 These commands require **explicit user permission** before running:
 
-| Command | Risk |
-| --- | --- |
-| `git push --force` / `-f` | Overwrites remote history |
-| `git push --force-with-lease` | Overwrites remote history |
-| `git reset --hard` | Discards all uncommitted changes |
-| `git clean -fd` | Permanently deletes untracked files |
-| `git checkout -- .` | Discards all working tree changes |
+| Command                       | Risk                                |
+| ----------------------------- | ----------------------------------- |
+| `git push --force` / `-f`     | Overwrites remote history           |
+| `git push --force-with-lease` | Overwrites remote history           |
+| `git reset --hard`            | Discards all uncommitted changes    |
+| `git clean -fd`               | Permanently deletes untracked files |
+| `git checkout -- .`           | Discards all working tree changes   |
 
 ## Safe alternatives
 
