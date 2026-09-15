@@ -37,7 +37,6 @@ export default defineConfig({
 	extraRequiredChecks: [
 		"codecov/patch",
 		"codecov/project",
-		"tsdown (every workspace)",
 		"codecov/patch/astromech",
 		"codecov/patch/cli",
 		"codecov/patch/datapad",

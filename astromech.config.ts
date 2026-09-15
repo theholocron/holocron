@@ -14,6 +14,10 @@ import { defineConfig } from "@theholocron/astromech/config";
  */
 export default defineConfig({
 	tasks: [
+		// Build: sanity check that every workspace compiles to dist/. Used to be
+		// a hand-maintained .github/workflows/build.yml — now the same templated
+		// task every repo can opt into (astromech#delivery.build).
+		{ name: "delivery.build", required: true },
 		// Audit, decomposed (epic #672, D3/#675 — the old single `audit` task's
 		// 3 jobs are now separate tasks). This repo has no lighthouse config,
 		// so verification.performance isn't included (matches the old
