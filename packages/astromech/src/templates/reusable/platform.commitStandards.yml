@@ -28,6 +28,17 @@ jobs:
       # No local equivalent (linters.ts: commitlint has no localBin — enforced
       # only at commit time via the commit-msg hook, and here in CI over the
       # PR's commit range). Not run through the holocron composite action.
+      #
+      # --config <resolved shared path> (config-resolution workstream, #676)
+      # — falls back to commitlint's own auto-discovery of a local
+      # commitlint.config.ts when the shared package's built dist/ isn't
+      # present, same guard as the commit-msg hook.
       - name: Run commitlint over the PR range
         if: github.event_name == 'pull_request'
-        run: pnpm exec commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+        run: |
+          COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"
+          if [ -f "$COMMITLINT_CONFIG" ]; then
+            pnpm exec commitlint --config "$COMMITLINT_CONFIG" --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+          else
+            pnpm exec commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+          fi
