@@ -1,16 +1,19 @@
 ---
 title: "publish"
-description: One-shot bootstrap publish for new packages, handling npm login and the Trusted Publishing chicken-and-egg.
+description: Publish @theholocron/* packages to npm — steady-state (CI/OIDC) or the one-shot Trusted Publishing bootstrap.
 ---
 
 ```bash
+holocron publish [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--dry-run]
 holocron publish --initial [--tag <tag>] [--otp <code>] [--dry-run]
 holocron publish --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--dry-run]
 ```
 
-One-shot bootstrap publish for packages that haven't been registered on npm yet. Solves the chicken-and-egg problem: npm Trusted Publishing (OIDC) requires the package to exist before you can configure it, so the first publish must happen with browser auth.
+Three modes:
 
-`--initial` and `--sync-trust` are the two supported modes today — a non-initial, non-sync-trust `holocron publish` (a manual publish outside the semantic-release/OIDC steady state) isn't built yet.
+- **Steady-state** (no flags, or `--provenance`/`--skip-already-published`) — the `exec.publishCmd` a `release.config.ts` should call. Runs under CI, authenticated via OIDC automatically — no interactive step. Replaces each repo's hand-typed `pnpm -r --filter=./packages/* publish ...` shell with one uniform invocation (config-resolution workstream, [#676](https://github.com/theholocron/holocron/issues/676)).
+- **`--initial`** — one-shot bootstrap publish for packages that haven't been registered on npm yet. Solves the chicken-and-egg problem: npm Trusted Publishing (OIDC) requires the package to exist before you can configure it, so the first publish must happen with browser auth.
+- **`--sync-trust`** — bulk-migrate npm Trusted Publisher config to a new workflow filename.
 
 ## Migrating Trusted Publisher config (`--sync-trust`)
 
@@ -29,6 +32,16 @@ See [issue #689](https://github.com/theholocron/holocron/issues/689) for the ful
 ## Workflow
 
 ```bash
+# Steady-state — the exec.publishCmd release.config.ts calls in CI.
+pnpm exec holocron publish
+
+# Skip packages whose exact version already exists on npm — for repos
+# with many independently-versioned packages where a release doesn't
+# bump every one (configs' own case).
+pnpm exec holocron publish --skip-already-published
+```
+
+```bash
 # 1. Build everything
 pnpm install --frozen-lockfile && pnpm build
 
@@ -38,29 +51,31 @@ pnpm install --frozen-lockfile && pnpm build
 holocron publish --initial --otp 123456
 ```
 
-After the command runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)).
+After `--initial` runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)).
 
 ## Repo layouts
 
-- **Monorepo** (a `packages/` directory exists): publishes every public `packages/*` workspace via `pnpm -r --filter=./packages/*`.
+- **Monorepo** (a `packages/` directory exists): publishes every public `packages/*` workspace via `pnpm -r --filter=./packages/*` (or, with `--skip-already-published`, one workspace at a time via `pnpm --filter <dir> publish`).
 - **Single package** (no `packages/` — most `node-template` scaffolds): publishes the root package directly via a plain `pnpm publish`.
 
 The command fails loudly — `nothing to publish` — rather than silently no-op'ing when it finds no publishable package in either layout.
 
 ## Options
 
-| Option         | Default                | Description                                                                |
-| -------------- | ---------------------- | -------------------------------------------------------------------------- |
-| `--initial`    | `false`                | Runs the bootstrap publish                                                 |
-| `--tag`        | `alpha`                | npm distribution tag                                                       |
-| `--otp`        | —                      | TOTP code from your authenticator (if 2FA is required for writes)          |
-| `--sync-trust` | —                      | `<old-file> <new-file>` — migrate every package's Trusted Publisher config |
-| `--repo`       | `theholocron/holocron` | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)        |
-| `--dry-run`    | `false`                | Print what would happen without making any npm calls                       |
+| Option                     | Default                                         | Description                                                                                          |
+| -------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--initial`                | `false`                                         | Runs the one-shot bootstrap publish instead of the steady-state path                                 |
+| `--tag`                    | `alpha` (`--initial`) / `latest` (steady-state) | npm distribution tag                                                                                 |
+| `--otp`                    | —                                               | TOTP code from your authenticator (if 2FA is required for writes)                                    |
+| `--provenance`             | `true`                                          | Steady-state only: publish with `--provenance`                                                       |
+| `--skip-already-published` | `false`                                         | Steady-state only: check `npm view <pkg>@<version>` first, skip a package whose exact version exists |
+| `--sync-trust`             | —                                               | `<old-file> <new-file>` — migrate every package's Trusted Publisher config                           |
+| `--repo`                   | `theholocron/holocron`                          | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)                                  |
+| `--dry-run`                | `false`                                         | Print what would happen without making any npm calls                                                 |
 
 ## Notes
 
 - Packages marked `"private": true` in their `package.json` are skipped automatically.
-- If `npm whoami` shows no authenticated session, the command runs `npm login --auth-type=web` itself (interactive, browser-based) before continuing.
-- If the command detects `NPM_TOKEN` in env, it prints a reminder to revoke the token after the bootstrap.
-- If the publish fails with `EOTP`, the corrected command with `--otp` is printed.
+- Steady-state authenticates via CI's OIDC token exchange — no `npm whoami`/login step, no Trusted Publisher next-steps printout (both `--initial`-only).
+- `--initial`: if `npm whoami` shows no authenticated session, the command runs `npm login --auth-type=web` itself (interactive, browser-based) before continuing. If the command detects `NPM_TOKEN` in env, it prints a reminder to revoke the token afterward.
+- If the (bulk, non-`--skip-already-published`) publish fails with `EOTP`, the corrected command with `--otp` is printed.

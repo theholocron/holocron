@@ -19,7 +19,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runPublish, runSyncTrust } from "./commands/publish.js";
+import { runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -567,13 +567,13 @@ try {
 						default: false,
 						describe:
 							"One-shot bootstrap publish for trusted-publishing-eligible packages (npm needs the " +
-							"package to exist before Trusted Publishing can be configured for it). Required today — " +
-							"a non-initial `publish` isn't implemented yet.",
+							"package to exist before Trusted Publishing can be configured for it). Skips the " +
+							"steady-state OIDC path below — use only for a package's very first publish.",
 					})
 					.option("tag", {
 						type: "string",
-						default: "alpha",
-						describe: "npm distribution tag (defaults to alpha)",
+						describe:
+							"npm distribution tag. Defaults to alpha for --initial, latest for a steady-state publish.",
 					})
 					.option("otp", {
 						type: "string",
@@ -590,6 +590,19 @@ try {
 						type: "string",
 						describe:
 							"owner/repo for Trusted Publisher config (--sync-trust). Defaults to theholocron/holocron.",
+					})
+					.option("provenance", {
+						type: "boolean",
+						default: true,
+						describe: "Publish with --provenance (steady-state only). Default on — free under CI/OIDC.",
+					})
+					.option("skip-already-published", {
+						type: "boolean",
+						default: false,
+						describe:
+							"Steady-state only: check `npm view <pkg>@<version>` before publishing each package and " +
+							"skip it if that exact version already exists, instead of one bulk publish. For repos " +
+							"that ship many independently-versioned packages where a release doesn't bump every one.",
 					}),
 			async (argv) => {
 				if (argv.syncTrust) {
@@ -611,17 +624,24 @@ try {
 					}
 					return;
 				}
-				if (!argv.initial) {
-					getLogger().error(
-						"publish: only `--initial` and `--sync-trust` are supported today. Run `holocron publish --initial`."
-					);
-					process.exitCode = 1;
+				if (argv.initial) {
+					const report = await runPublish({
+						cwd: argv.cwd,
+						dryRun: argv.dryRun,
+						...(argv.tag ? { tag: argv.tag as string } : {}),
+						...(argv.otp ? { otp: argv.otp as string } : {}),
+					});
+					if (report.status === "fail") {
+						process.exitCode = 1;
+					}
 					return;
 				}
-				const report = await runPublish({
+				const report = await runSteadyPublish({
 					cwd: argv.cwd,
-					tag: argv.tag,
 					dryRun: argv.dryRun,
+					provenance: argv.provenance as boolean,
+					skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
+					...(argv.tag ? { tag: argv.tag as string } : {}),
 					...(argv.otp ? { otp: argv.otp as string } : {}),
 				});
 				if (report.status === "fail") {
