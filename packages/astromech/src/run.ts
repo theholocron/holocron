@@ -32,6 +32,7 @@ import { join } from "node:path";
 
 import { resolveLinters } from "./linters.js";
 import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
+import { resolveToolConfig } from "./resolver.js";
 
 /** Minimal structural logger — `@theholocron/observability`'s `Logger` satisfies it. */
 export interface RunLogger {
@@ -168,8 +169,16 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 			// back here — e.g. `vitest run --coverage --coverage`. Drop any
 			// already present in passthrough rather than appending blindly.
 			const flags = (def.flags?.[runner.tool] ?? []).filter((f) => !passthrough.includes(f));
+			// `--config <resolved shared path>` (config-resolution workstream,
+			// #676) — `[]` when the tool isn't a resolvable one, the shared
+			// package isn't installed, or its built dist/ is missing; the tool
+			// then falls back to its own auto-discovery of a local file,
+			// unchanged from today. Read at run time (not from `def.flags`,
+			// which is static) since it depends on what's actually installed
+			// in this repo's node_modules.
+			const configFlags = resolveToolConfig(runner.tool, cwd, { readFile, fileExists });
 			const bin = resolveBin(cwd, runner.tool, fileExists);
-			return run(bin, [...runner.args, ...flags, ...passthrough]);
+			return run(bin, [...runner.args, ...configFlags, ...flags, ...passthrough]);
 		}
 		// registry knows the task but nothing in this repo matches — fall through
 	}
@@ -291,7 +300,7 @@ function runAllJobs(input: RunTaskInput, jobs: Record<string, JobDef>, passthrou
  * turbo/a package script would have already caught in steps 1–2.
  */
 function runLinterGroup(input: RunTaskInput, names: string[], passthrough: string[]): RunTaskReport {
-	const { print, logger, listDir, lookPath, cwd, task } = input;
+	const { print, logger, listDir, lookPath, cwd, task, readFile, fileExists } = input;
 	const dryRun = input.dryRun ?? false;
 	const runOne = makeRunOne(input);
 
@@ -321,7 +330,15 @@ function runLinterGroup(input: RunTaskInput, names: string[], passthrough: strin
 			print(`! ${name} — ${bin} not on PATH${def.installHint ? `. ${def.installHint}` : ""} (enforced in CI)`);
 			continue;
 		}
-		reports.push(runOne(found, [...(def.localArgs ?? []), ...passthrough]));
+		// Same `--config <resolved shared path>` resolution as the tool/detect
+		// runner path (step 3) — `[]` when `name` isn't a resolvable tool, so
+		// this is a no-op for e.g. `gitleaks`/`yamllint`/`actionlint`. Placed
+		// before `localArgs` — verified working in that order against a real
+		// `eslint --config <path> .` invocation; ESLint's own args parser
+		// otherwise treats a trailing `--config` after the path argument
+		// inconsistently across versions.
+		const configFlags = resolveToolConfig(name, cwd, { readFile, fileExists });
+		reports.push(runOne(found, [...configFlags, ...(def.localArgs ?? []), ...passthrough]));
 	}
 
 	if (reports.length === 0) {
