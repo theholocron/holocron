@@ -300,7 +300,11 @@ capability method, no new provider surface.
 
 Creating the 4 new property _definitions_ in the org schema is a one-time,
 org-wide, outward-facing action (same shape as the original 6) — done once
-via `gh api`, not by any per-repo `holocron` command.
+via `gh api`, not by any per-repo `holocron` command. **Done** (2026-09-15):
+all 10 properties now live at `orgs/theholocron/properties/schema`. Values
+don't populate for existing repos until each one re-runs `holocron setup`/
+`sync` — that backfill is exactly what the migration-pass sub-issue (#680)
+covers, not new work here.
 
 `holocron_capabilities`/`holocron_stack` are GitHub `string` type
 (comma-joined), not `multi_select`: `@theholocron/github-client`'s
