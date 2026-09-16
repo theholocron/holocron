@@ -128,6 +128,12 @@ postCheckRun` into a `fetch` export. Needs its own Workers-targeted
   key + webhook secret from vault into Worker secrets. Depends on the
   secret-binding support above.
 
+One piece not in this original list, discovered mid-flight: the handler
+needs an installation-scoped `GitHubClient`, not a static PAT — a
+**GitHub App authentication** module (`clients` repo, alongside the
+webhook-verification and Checks API work already there) had to exist
+first. See the PR-stack below for what actually shipped, in what order.
+
 ## Dependencies
 
 - Vocabulary + registry rename (#675) — **shipped**, merged to alpha across
@@ -229,8 +235,28 @@ postCheckRun` into a `fetch` export. Needs its own Workers-targeted
       will actually call in that order.
 - [x] Deploy-target decision: Cloudflare Workers — see "Resolved — deploy
       target" above.
-- [ ] Cloudflare Workers secret-binding support (`clients` repo).
-- [ ] `Workers` capability extension: `deployScript()`.
+- [x] Cloudflare Workers secret-binding support (`clients` repo, #342):
+      `workers.putSecret`/`listSecrets`/`deleteSecret` — one PUT call
+      both stores the encrypted value and binds it as `env.<name>` in the
+      Worker.
+- [x] GitHub App authentication (`clients` repo, #343 — discovered mid-
+      flight, not in the original decomposition: the handler can't do
+      anything useful without an installation-scoped client).
+      `createAppJWT`/`getInstallationAccessToken`/`createInstallationClient`
+      — Web Crypto only (`globalThis.crypto`/`CryptoKey`, no
+      `node:crypto`), so it runs unchanged on Workers and in Node.
+      Verified end-to-end against real generated key pairs, both PEM
+      formats GitHub hands out, signature checked against `node:crypto`'s
+      own `verify()`.
+- [x] `Workers` capability extension: `deployScript(name, config)`
+      alongside the existing `upsertProxy()` (kept, not replaced — the
+      wiki proxy still uses it) — an arbitrary Worker script with its own
+      secrets and routes, for a consumer that isn't a reverse-proxy.
+      Also refactored `CloudflareWorkers` to delegate to
+      `@theholocron/cloudflare-client`'s `workers` module (via the
+      injected `CloudflareClient`) instead of its own private
+      `putScript`/`cfRequest` reimplementation — pre-existing duplication
+      this touched anyway, eliminated rather than extended.
 - [ ] Sentinel's Workers handler (`src/handler.ts`) + Workers build target.
 - [ ] Sentinel's own `holocron.config.ts`.
 - [ ] GitHub App registration (manual).

@@ -2,8 +2,9 @@
 
 # `@theholocron/holocron-plugin-cloudflare`
 
-Cloudflare plugin for [Holocron](../cli). Implements the `dns` and `deployment`
-capabilities against the [Cloudflare v4 API](https://developers.cloudflare.com/api/).
+Cloudflare plugin for [Holocron](../cli). Implements the `dns`, `deployment`,
+and `workers` capabilities against the
+[Cloudflare v4 API](https://developers.cloudflare.com/api/).
 
 ## Install
 
@@ -40,12 +41,15 @@ Generate a scoped API token at **dash.cloudflare.com/profile/api-tokens**.
     // Cloudflare Pages deployments (requires accountId)
     // accountId falls back to CLOUDFLARE_ACCOUNT_ID env var when omitted
     "deployment": "cloudflare",
+
+    // Workers deployment (also requires accountId)
+    "workers": "cloudflare",
   },
 }
 
 ```
 
-Both capabilities can be enabled together:
+Any combination of capabilities can be enabled together:
 
 <!-- prettier-ignore -->
 ```jsonc
@@ -53,12 +57,15 @@ Both capabilities can be enabled together:
   "providers": {
     "dns": "cloudflare",
     "deployment": "cloudflare",
+    "workers": "cloudflare",
   },
 }
 
 ```
 
-The `deployment` capability is only exposed when `accountId` is resolvable — either passed explicitly in options or set via the `CLOUDFLARE_ACCOUNT_ID` env var.
+The `deployment` and `workers` capabilities are only exposed when `accountId`
+is resolvable — either passed explicitly in options or set via the
+`CLOUDFLARE_ACCOUNT_ID` env var.
 
 ## `dns` capability
 
@@ -82,6 +89,20 @@ Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. U
 | `listDeployments`       | Lists recent deployments for the project.                                                                               |
 | `triggerDeployment`     | Triggers a new Pages deployment from the latest production branch commit.                                               |
 | `updateProjectSettings` | Updates project-level settings (currently a no-op; CF Pages REST API has no direct settings endpoint for these fields). |
+
+## `workers` capability
+
+Deploys and manages [Workers](https://developers.cloudflare.com/workers/) scripts.
+
+| Method         | What it does                                                                                                                                                                                                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `upsertProxy`  | Deploys a generated reverse-proxy Worker forwarding `hostname/*` to `config.target`, injecting `config.headers`. Used by `setup` to wire wiki custom-domain proxies when the wiki provider requires one in addition to the CNAME. |
+| `deployScript` | Deploys (or updates) an arbitrary Worker script — the caller's own code, not a generated proxy — with optional secret bindings and route patterns. For a consumer that isn't a reverse-proxy, e.g. a webhook receiver.            |
+
+Both methods are idempotent: re-running with the same inputs makes no
+route-write call when nothing changed. Zone ids are cached per plugin
+instance for the lifetime of the process — the `workers` capability's own
+cache, separate from `dns`'s.
 
 ### Preview deployment setup
 

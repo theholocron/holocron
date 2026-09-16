@@ -62,11 +62,7 @@ export function workersCapability(ctx: PluginContext): Workers {
 				"set accountId in the plugin options or CLOUDFLARE_ACCOUNT_ID env var"
 		);
 	}
-	return new CloudflareWorkers(() => ctx.client().zones, ctx.options.accountId, {
-		token: ctx.token,
-		baseUrl: ctx.options.baseUrl,
-		fetch: ctx.options.fetch,
-	});
+	return new CloudflareWorkers(ctx.client, ctx.options.accountId);
 }
 
 export function createPlugin(options: CloudflarePluginOptions = {}) {
