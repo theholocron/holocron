@@ -132,17 +132,32 @@ capability. Full list, kept as one running backlog: #674.
       Sentinel's GitHub-fetch). Validates the resulting `tasks` array
       against `astromech`'s `KNOWN_TASKS` (D11 — one canonical table,
       imported not copied).
-- [x] Webhook receiver: `parseWebhookEvent()` verifies `X-Hub-Signature-256`
-      (HMAC-SHA256, `timingSafeEqual` — mirroring `holocron-plugin-clerk`'s
-      Svix verification) and normalizes `installation` (created/deleted),
-      `push` (default-branch only), and `pull_request` (opened/synchronize)
-      deliveries into a `SentinelEvent`. Handler logic only — a plain
-      function over `{ body, headers, secret }`, no HTTP framework, so
-      it's unaffected by the deploy-target decision below. Anything outside
-      v1 scope (other installation actions, non-default-branch pushes,
-      other PR actions, other event categories) comes back
-      `{ handled: false }` rather than throwing — a validly-signed but
-      out-of-scope delivery isn't an error.
+- [x] Webhook receiver: `parseWebhookEvent()` normalizes `installation`
+      (created/deleted), `push` (default-branch only), and `pull_request`
+      (opened/synchronize) deliveries into a `SentinelEvent`. Handler logic
+      only — a plain function over `{ body, headers, secret }`, no HTTP
+      framework, so it's unaffected by the deploy-target decision below.
+      Anything outside v1 scope (other installation actions,
+      non-default-branch pushes, other PR actions, other event categories)
+      comes back `{ handled: false }` rather than throwing — a
+      validly-signed but out-of-scope delivery isn't an error.
+      Verification itself (`X-Hub-Signature-256`, HMAC-SHA256,
+      `timingSafeEqual`) and the header/payload shapes moved to
+      `@theholocron/github-client`'s `verifyGitHubWebhookSignature()` /
+      `parseGitHubWebhookHeaders()` / `GitHub*WebhookPayload` (`clients`
+      repo, published 1.18.0) — GitHub's own webhook mechanics belong with
+      the package that already owns every other GitHub API shape, not
+      reimplemented per-consumer. Checked against `holocron-plugin-clerk`'s
+      Svix verification as the nearest precedent first: that one bundles
+      verification _and_ Clerk-specific `AuthEvent` normalization together
+      in the plugin, a fundamentally different split (Svix's message-to-
+      sign construction, key-rotation-aware multi-signature checking, and
+      replay-window enforcement are real per-vendor logic that wouldn't
+      compress into one shared abstraction with GitHub's flatter
+      single-signature scheme) — so only the mechanically-identical half
+      (verify + header shapes) moved, and only because `github-client` was
+      already a Sentinel dependency, not as a new speculative package built
+      for hypothetical future GitHub Apps.
 - [ ] Custom-properties sync call: invoke the existing `syncProperties()`
       path (#677/#716) from the webhook handler on a push-to-default-branch
       event.

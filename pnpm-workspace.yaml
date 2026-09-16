@@ -33,17 +33,17 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/clerk-client": ^1.14.2
-    "@theholocron/cloudflare-client": ^1.14.2
-    "@theholocron/doppler-client": ^1.14.2
-    "@theholocron/github-client": ^1.17.0
-    "@theholocron/http-client": ^1.17.0
-    "@theholocron/infisical-client": ^1.14.2
-    "@theholocron/neon-client": ^1.14.2
-    "@theholocron/posthog-client": ^1.14.2
-    "@theholocron/postman-client": ^1.14.2
-    "@theholocron/sentry-client": ^1.14.2
-    "@theholocron/vercel-client": ^1.14.2
+    "@theholocron/clerk-client": ^1.18.0
+    "@theholocron/cloudflare-client": ^1.18.0
+    "@theholocron/doppler-client": ^1.18.0
+    "@theholocron/github-client": ^1.18.0
+    "@theholocron/http-client": ^1.18.0
+    "@theholocron/infisical-client": ^1.18.0
+    "@theholocron/neon-client": ^1.18.0
+    "@theholocron/posthog-client": ^1.18.0
+    "@theholocron/postman-client": ^1.18.0
+    "@theholocron/sentry-client": ^1.18.0
+    "@theholocron/vercel-client": ^1.18.0
 
   # Shared utils — release in lockstep; bump all entries together.
   utils:
@@ -68,5 +68,5 @@ catalogs:
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  "@theholocron/http-client": ^1.17.0
+  "@theholocron/http-client": ^1.18.0
   tsx: 4.23.12

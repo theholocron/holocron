@@ -34,7 +34,7 @@ describe("parseWebhookEvent — signature verification", () => {
 			}
 		})();
 		expect(err).toBeInstanceOf(WebhookVerificationError);
-		expect((err as WebhookVerificationError).message).toMatch(/secret is required/);
+		expect((err as WebhookVerificationError).message).toMatch(/verification failed/);
 	});
 
 	it("throws when the signature header is missing", () => {
@@ -46,7 +46,7 @@ describe("parseWebhookEvent — signature verification", () => {
 			}
 		})();
 		expect(err).toBeInstanceOf(WebhookVerificationError);
-		expect((err as WebhookVerificationError).message).toMatch(/Missing or malformed/);
+		expect((err as WebhookVerificationError).message).toMatch(/verification failed/);
 	});
 
 	it("throws when the signature header is malformed (no sha256= prefix)", () => {

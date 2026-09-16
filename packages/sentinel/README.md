@@ -54,15 +54,23 @@ upward `node_modules` resolution finds it.
 
 ## `parseWebhookEvent({ body, headers, secret })`
 
-Verifies an inbound GitHub App webhook delivery's `X-Hub-Signature-256`
-(HMAC-SHA256 over the raw body, `timingSafeEqual`-compared — mirroring
-`holocron-plugin-clerk`'s Svix verification) and normalizes the payload
-into a `SentinelEvent`. A plain function over `{ body, headers, secret }`
-— no HTTP framework, no deploy target assumed, so it slots into whichever
-runtime `.notes/tech-sentinel-v1.spec.md`'s still-open deploy-target
-decision lands on. Throws `WebhookVerificationError` for a missing/wrong
-secret, a missing/malformed signature, or a body that isn't valid JSON.
-Returns one of:
+Verifies an inbound GitHub App webhook delivery and normalizes the payload
+into a `SentinelEvent`. Verification itself — `X-Hub-Signature-256`
+(HMAC-SHA256 over the raw body, `timingSafeEqual`-compared) and the
+header/payload shapes — is `@theholocron/github-client`'s
+`verifyGitHubWebhookSignature()` / `parseGitHubWebhookHeaders()` /
+`GitHub*WebhookPayload`: GitHub's own webhook mechanics, owned by the
+package that already knows every other GitHub API shape, not
+reimplemented here. What's Sentinel's own concern — which event
+categories matter in v1, and what a normalized `SentinelEvent` looks
+like — stays in this function.
+
+A plain function over `{ body, headers, secret }` — no HTTP framework, no
+deploy target assumed, so it slots into whichever runtime
+`.notes/tech-sentinel-v1.spec.md`'s still-open deploy-target decision
+lands on. Throws `WebhookVerificationError` for a missing/wrong secret, a
+missing/malformed signature, a missing `X-GitHub-Event` header, or a body
+that isn't valid JSON. Returns one of:
 
 | Result               | Meaning                                                                                                                                                                    |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

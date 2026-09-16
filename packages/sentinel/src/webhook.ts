@@ -1,19 +1,20 @@
 /**
- * Parses and verifies an inbound GitHub App webhook delivery, and
- * normalizes it into a `SentinelEvent` — the shape the follow-up
- * PR-stack items (custom-properties sync call, check-run posting) will
- * consume. Handler logic only: no HTTP framework, no deploy target
- * assumed — `parseWebhookEvent()` is a plain function over
- * `{ body, headers, secret }` so it slots into Vercel's `Request`,
- * Cloudflare's `Request`, or anything else once the deploy target
- * (still open — see `.notes/tech-sentinel-v1.spec.md`) is decided.
+ * Parses an inbound GitHub App webhook delivery and normalizes it into a
+ * `SentinelEvent` — the shape the follow-up PR-stack items (custom-
+ * properties sync call, check-run posting) will consume. Handler logic
+ * only: no HTTP framework, no deploy target assumed — `parseWebhookEvent()`
+ * is a plain function over `{ body, headers, secret }` so it slots into
+ * Vercel's `Request`, Cloudflare's `Request`, or anything else once the
+ * deploy target (still open — see `.notes/tech-sentinel-v1.spec.md`) is
+ * decided.
  *
- * Verification: GitHub signs each delivery with
- * `X-Hub-Signature-256: sha256=<hex>`, an HMAC-SHA256 of the raw body
- * keyed by the webhook's configured secret
- * (https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
- * Compared with `timingSafeEqual`, mirroring
- * `holocron-plugin-clerk`'s `parse-webhook.ts` Svix verification.
+ * Verification and header/payload shapes are `@theholocron/github-client`'s
+ * `verifyGitHubWebhookSignature()` / `parseGitHubWebhookHeaders()` /
+ * `GitHub*WebhookPayload` — GitHub's own webhook mechanics, the same
+ * "this package owns GitHub's raw JSON shapes" role that package already
+ * plays for REST responses, not reimplemented per-consumer. What stays
+ * here is Sentinel's own concern: which event categories matter in v1,
+ * and what a normalized `SentinelEvent` looks like.
  *
  * D10 — org-portable by construction: every identifier (`repo`,
  * `installationId`) comes from the payload itself, never a hardcoded
@@ -27,7 +28,13 @@
  * validly-signed delivery isn't an error, just not actionable in v1.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+	type GitHubInstallationWebhookPayload,
+	type GitHubPullRequestWebhookPayload,
+	type GitHubPushWebhookPayload,
+	parseGitHubWebhookHeaders,
+	verifyGitHubWebhookSignature,
+} from "@theholocron/github-client";
 
 export type SentinelEventType =
 	| "installation.created"
@@ -63,56 +70,16 @@ export class WebhookVerificationError extends Error {
 	override name = "WebhookVerificationError";
 }
 
-function header(headers: Record<string, string | string[] | undefined>, name: string): string | undefined {
-	const target = name.toLowerCase();
-	for (const [k, v] of Object.entries(headers)) {
-		if (k.toLowerCase() === target) return Array.isArray(v) ? v[0] : v;
-	}
-	return undefined;
-}
-
-function verifySignature(body: string, signatureHeader: string | undefined, secret: string): void {
-	const prefix = "sha256=";
-	if (!signatureHeader || !signatureHeader.startsWith(prefix)) {
-		throw new WebhookVerificationError("Missing or malformed X-Hub-Signature-256 header");
-	}
-	const provided = Buffer.from(signatureHeader.slice(prefix.length), "hex");
-	const computed = createHmac("sha256", secret).update(body).digest();
-	if (provided.length !== computed.length || !timingSafeEqual(provided, computed)) {
-		throw new WebhookVerificationError("X-Hub-Signature-256 verification failed");
-	}
-}
-
-interface InstallationPayload {
-	action: string;
-	installation: { id: number };
-}
-
-interface PushPayload {
-	ref: string;
-	installation?: { id: number };
-	repository: { full_name: string; default_branch: string };
-}
-
-interface PullRequestPayload {
-	action: string;
-	installation?: { id: number };
-	repository: { full_name: string };
-}
-
 export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookResult {
-	if (!input.secret) {
-		throw new WebhookVerificationError("A webhook secret is required to verify the delivery");
-	}
-
 	const bodyStr = typeof input.body === "string" ? input.body : input.body.toString("utf8");
-	verifySignature(bodyStr, header(input.headers, "x-hub-signature-256"), input.secret);
+	const { event: githubEvent, delivery: deliveryId, signature } = parseGitHubWebhookHeaders(input.headers);
 
-	const githubEvent = header(input.headers, "x-github-event");
+	if (!verifyGitHubWebhookSignature({ body: bodyStr, signature, secret: input.secret })) {
+		throw new WebhookVerificationError("X-Hub-Signature-256 verification failed (or missing/empty secret)");
+	}
 	if (!githubEvent) {
 		throw new WebhookVerificationError("Missing X-GitHub-Event header");
 	}
-	const deliveryId = header(input.headers, "x-github-delivery");
 
 	let payload: Record<string, unknown>;
 	try {
@@ -128,7 +95,7 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 
 	switch (githubEvent) {
 		case "installation": {
-			const p = payload as unknown as InstallationPayload;
+			const p = payload as unknown as GitHubInstallationWebhookPayload;
 			if (p.action === "created" || p.action === "deleted") {
 				return {
 					handled: true,
@@ -143,7 +110,7 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 			return { handled: false, reason: `installation action "${p.action}" is not handled in v1`, githubEvent };
 		}
 		case "push": {
-			const p = payload as unknown as PushPayload;
+			const p = payload as unknown as GitHubPushWebhookPayload;
 			if (p.ref !== `refs/heads/${p.repository.default_branch}`) {
 				return { handled: false, reason: `push to "${p.ref}" is not the default branch`, githubEvent };
 			}
@@ -159,7 +126,7 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 			};
 		}
 		case "pull_request": {
-			const p = payload as unknown as PullRequestPayload;
+			const p = payload as unknown as GitHubPullRequestWebhookPayload;
 			if (p.action !== "opened" && p.action !== "synchronize") {
 				return {
 					handled: false,
