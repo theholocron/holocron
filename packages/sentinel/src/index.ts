@@ -8,10 +8,11 @@
  *
  * `src/utils/` — read-only: fetches, parses, verifies, never mutates
  * GitHub (`validateConfig`, `parseWebhookEvent`, plus their shared
- * `decodeContents`/`findPackageRoot` helpers). `src/actions/` — writes:
- * calls a GitHub API that changes repo state (`syncPropertiesFromConfig`,
- * `postCheckRun`). A future webhook handler calls utils to decide, then
- * actions to report — never the other way around.
+ * `decodeContents`/`findPackageRoot`/`SENTINEL_APP_NAME` helpers).
+ * `src/actions/` — writes: calls a GitHub API that changes repo state
+ * (`syncPropertiesFromConfig`, `postCheckRun`). A future webhook handler
+ * calls utils to decide, then actions to report — never the other way
+ * around.
  *
  * Scaffolding — actual deploy wiring lands in a follow-up PR once the
  * deploy target is decided (see the spec's "Open, not yet decided"
@@ -30,6 +31,7 @@ export {
 	type SyncPropertiesInput,
 	type SyncPropertiesResult,
 } from "./actions/sync-properties.js";
+export { SENTINEL_APP_NAME } from "./utils/constants.js";
 export { validateConfig, type ValidateConfigInput, type ValidateConfigResult } from "./utils/validate-config.js";
 export {
 	parseWebhookEvent,

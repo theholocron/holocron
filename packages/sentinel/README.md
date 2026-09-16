@@ -141,7 +141,10 @@ nearest precedent, externally-posted checks with no
 `.github/workflows/*.yml` behind them — rather than a
 `platform.*`-style intent-vocabulary token: that vocabulary (epic #672,
 D3) names `tasks:` entries backed by a reusable CI workflow, and this
-check has no workflow behind it at all.
+check has no workflow behind it at all. Built from `SENTINEL_APP_NAME`
+(`"Sentinel"`, exported from `src/utils/constants.ts`) rather than its
+own literal — the brand prefix any future action reads from one source
+instead of retyping.
 
 ## Development
 

@@ -20,13 +20,18 @@
  * check has no workflow behind it at all — Sentinel posts it directly via
  * the Checks API from a webhook. Exported so a caller checking for this
  * check run by name (a future re-run guard, a test, a dashboard) never
- * hand-copies the string.
+ * hand-copies the string. Built from `SENTINEL_APP_NAME` rather than its
+ * own literal "Sentinel" — the brand prefix a second action (check-run
+ * posting isn't the only one that will want it) reads from the same
+ * source instead of retyping.
  */
 
 import { missingCapabilities } from "@theholocron/cli";
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-export const SENTINEL_CHECK_RUN_NAME = "Sentinel / Capability Compliance";
+import { SENTINEL_APP_NAME } from "../utils/constants.js";
+
+export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / Capability Compliance`;
 
 export interface PostCheckRunInput {
 	client: Pick<GitHubClient, "checks">;
