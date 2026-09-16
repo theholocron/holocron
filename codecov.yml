@@ -41,6 +41,11 @@ component_management:
       paths:
         - packages/datapad/**
 
+    - component_id: github-app
+      name: "github-app"
+      paths:
+        - packages/github-app/**
+
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:

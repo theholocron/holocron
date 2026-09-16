@@ -40,6 +40,11 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
+		"packages/github-app": {
+			// src/index.ts auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 	},
 	ignoreDependencies: [
 		// Loaded at runtime by the CLI plugin loader — not statically imported
@@ -83,6 +88,9 @@ const config: KnipConfig = {
 		"@theholocron/devmoji-config",
 		// binary tools — invoked via CLI or hooks, not module imports
 		"alexjs",
+		// invoked by @theholocron/lint-staged-config's package.json rule
+		// ("package.json": "sort-package-json"), not a module import
+		"sort-package-json",
 	],
 	ignoreExportsUsedInFile: true,
 	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's
