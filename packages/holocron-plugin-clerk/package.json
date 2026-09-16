@@ -41,6 +41,7 @@
     "@theholocron/clerk-client": "catalog:clients",
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",

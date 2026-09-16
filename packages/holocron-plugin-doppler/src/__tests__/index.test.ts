@@ -1,7 +1,7 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { AUTH_HINT, createPlugin } from "../index.js";
-import { stubFetch } from "./helpers.js";
 
 describe("createPlugin", () => {
 	it("wires the vault capability against the given fetch + token", async () => {

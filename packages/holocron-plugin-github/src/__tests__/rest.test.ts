@@ -1,8 +1,8 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const TOKEN = "gh_pat_test";
 

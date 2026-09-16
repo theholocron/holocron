@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { ClerkAuth } from "../capabilities/auth.js";
 import { createClerkClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 function makeAuth(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);

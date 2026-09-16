@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { InfisicalVault } from "../capabilities/vault.js";
 import { createInfisicalClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 function makeClient(responses: Array<{ status?: number; body?: unknown }>) {
 	const stub = stubFetch(responses);

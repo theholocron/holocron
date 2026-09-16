@@ -1,9 +1,9 @@
 import { AuthError, ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { DiscordNotifications } from "../capabilities/notifications.js";
 import { createDiscordClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const BASE = "https://discord.test/api/v10";
 const WEBHOOK = "https://discord.com/api/webhooks/111/abc123";

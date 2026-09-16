@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { AxiomLogs } from "../capabilities/logs.js";
 import { createAxiomClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const BASE = "https://api.axiom.test";
 

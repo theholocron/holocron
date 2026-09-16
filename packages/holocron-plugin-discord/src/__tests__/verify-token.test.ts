@@ -1,7 +1,7 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { verifyToken } from "../verify-token.js";
-import { stubFetch } from "./helpers.js";
 
 const BASE = "https://discord.test/api/v10";
 const WEBHOOK_URL = "https://discord.com/api/webhooks/111/abc123";

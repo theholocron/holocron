@@ -1,10 +1,11 @@
 import { ProviderApiError } from "@theholocron/cli";
 import type { CfPagesDeploymentStage } from "@theholocron/cloudflare-client";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { CloudflareDeployment } from "../capabilities/deployment.js";
 import { createCloudflareClient } from "../rest.js";
-import { cfOk, stubFetch } from "./helpers.js";
+import { cfOk } from "./helpers.js";
 
 const BASE = "https://cf.test/client/v4";
 const ACCOUNT = "acc-123";

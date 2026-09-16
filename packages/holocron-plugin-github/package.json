@@ -45,6 +45,7 @@
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/github-client": "catalog:clients",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",

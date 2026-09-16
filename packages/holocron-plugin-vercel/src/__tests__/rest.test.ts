@@ -1,8 +1,8 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it, vi } from "vitest";
 
 import { createVercelClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const TOKEN = "vercel-pat";
 

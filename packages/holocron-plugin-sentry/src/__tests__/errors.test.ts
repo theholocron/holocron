@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { SentryErrors } from "../capabilities/errors.js";
 import { createSentryClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const BASE = "https://sentry.test/api/0";
 const ORG = "my-org";
