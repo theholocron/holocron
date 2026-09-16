@@ -824,6 +824,37 @@ describe("runSync", () => {
 			const report = await runTurboStep({ name: "demo", providers: {} });
 			expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
 		});
+
+		it("fixes pnpm-workspace.yaml when root has a fan-out-eligible script it isn't a workspace member for (#692)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { "delivery.build": "tsdown" } })
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "docs"\n');
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			const step = report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)");
+			expect(step?.status).toBe("ok");
+			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
+			expect(written).toBe('packages:\n  - "."\n  - "docs"\n');
+		});
+
+		it("does not touch pnpm-workspace.yaml when root has no fan-out-eligible script", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { build: "turbo run delivery.build" } })
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			expect(
+				report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+			).toBeUndefined();
+			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
+			expect(written).toBe('packages:\n  - "packages/*"\n');
+		});
 	});
 
 	it("skips sync description when no description is configured", async () => {

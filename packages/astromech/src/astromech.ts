@@ -24,7 +24,11 @@ import {
 	normalizeWorkflowWith,
 	type OrgContext,
 } from "./thin-callers.js";
-import { turboConfig as resolveTurboConfig } from "./turbo.js";
+import {
+	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
+	type EnsureRootWorkspaceMemberResult,
+	turboConfig as resolveTurboConfig,
+} from "./turbo.js";
 
 export interface AstromechOptions {
 	/** Repo root. */
@@ -121,6 +125,17 @@ export interface Astromech {
 	 * config (nothing to write). See {@link TurboTaskConfig} in `registry.ts`.
 	 */
 	turboConfig(): string | null;
+	/**
+	 * Fixes #692: whenever {@link turboConfig} isn't `null`, this repo's root
+	 * package needs to actually be a workspace member for the tasks it fans
+	 * out — otherwise a root that's genuinely a directly-buildable package
+	 * (not just an orchestrator) silently vanishes from `turbo run <task>`.
+	 * Pass `pnpm-workspace.yaml`'s current content (or `""` if none exists —
+	 * a no-op either way, since no `packages:` key means single-package mode
+	 * already) and root `package.json`'s own `scripts` keys. `changed: false`
+	 * means don't write anything — the file is already correct.
+	 */
+	ensureRootWorkspaceMember(workspaceYaml: string, rootScripts: readonly string[]): EnsureRootWorkspaceMemberResult;
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
@@ -276,5 +291,11 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		codecovConfig: (existing: string | null) => resolveCodecovConfig(options.cwd, existing),
 
 		turboConfig: () => resolveTurboConfig(options.config ?? {}),
+
+		ensureRootWorkspaceMember: (workspaceYaml: string, rootScripts: readonly string[]) => {
+			const entries = (options.config?.tasks ?? []).map(normalizeTaskEntry);
+			const taskNames = entries.filter((e) => e.local !== false).map((e) => e.name);
+			return resolveEnsureRootWorkspaceMember(workspaceYaml, rootScripts, taskNames);
+		},
 	};
 }

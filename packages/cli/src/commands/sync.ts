@@ -437,11 +437,12 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "turbo") {
-			const content = createAstromech({
+			const astromechTurbo = createAstromech({
 				cwd: input.context.repoRoot,
 				config: { tasks: config.tasks as TasksConfig["tasks"] },
 				logger,
-			}).turboConfig();
+			});
+			const content = astromechTurbo.turboConfig();
 
 			if (content === null) {
 				steps.push({
@@ -458,6 +459,35 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					})
 				);
 				print(formatSyncStep(steps[steps.length - 1]!));
+
+				// #692: fix pnpm-workspace.yaml in the same step that introduces
+				// the risk — see run-setup.ts's identical wiring for the full
+				// explanation.
+				const rootPkg = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+					.then((raw) => JSON.parse(raw) as { scripts?: Record<string, string> })
+					.catch(() => null);
+				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
+					() => ""
+				);
+				const rootScripts = Object.keys(rootPkg?.scripts ?? {});
+				const workspaceFix = astromechTurbo.ensureRootWorkspaceMember(workspaceYaml, rootScripts);
+				if (workspaceFix.changed) {
+					steps.push(
+						await runSyncStep(
+							"local",
+							"fix pnpm-workspace.yaml (root workspace member, #692)",
+							dryRun,
+							async () => {
+								await writeFile(
+									join(input.context.repoRoot, "pnpm-workspace.yaml"),
+									workspaceFix.content,
+									"utf8"
+								);
+							}
+						)
+					);
+					print(formatSyncStep(steps[steps.length - 1]!));
+				}
 			}
 		}
 

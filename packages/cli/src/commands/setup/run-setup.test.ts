@@ -3453,6 +3453,61 @@ describe("setup: write codecov.yml", () => {
 		expect(step?.message).toBe("no fan-out-eligible tasks configured");
 	});
 
+	it("fixes pnpm-workspace.yaml when root has a fan-out-eligible script it isn't a workspace member for (#692)", async () => {
+		// theholocron/observability's actual shape: root IS the real package
+		// (delivery.build: tsdown), pnpm-workspace.yaml lists only the
+		// unrelated docs site.
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { "delivery.build": "tsdown" } })
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "docs"\n');
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["pnpm-workspace.yaml"]).toBe('packages:\n  - "."\n  - "docs"\n');
+		expect(
+			report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")?.status
+		).toBe("ok");
+	});
+
+	it("does not touch pnpm-workspace.yaml when root has no fan-out-eligible script", async () => {
+		// holocron's own shape: root's "build" script just orchestrates turbo,
+		// it isn't itself a "delivery.build" script — nothing to fix.
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { build: "turbo run delivery.build" } })
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["pnpm-workspace.yaml"]).toBeUndefined();
+		expect(
+			report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+		).toBeUndefined();
+	});
+
 	it("writes codecov.yml with discovered packages", async () => {
 		const pkgsDir = join(tmpDir, "packages");
 		await mkdir(join(pkgsDir, "foo"), { recursive: true });
