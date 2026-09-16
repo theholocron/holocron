@@ -132,9 +132,17 @@ capability. Full list, kept as one running backlog: #674.
       Sentinel's GitHub-fetch). Validates the resulting `tasks` array
       against `astromech`'s `KNOWN_TASKS` (D11 — one canonical table,
       imported not copied).
-- [ ] Webhook receiver: installation events, push-to-default-branch,
-      PR opened/synchronize — handler logic only, framework-agnostic where
-      possible so it isn't locked to a deploy target before that's decided.
+- [x] Webhook receiver: `parseWebhookEvent()` verifies `X-Hub-Signature-256`
+      (HMAC-SHA256, `timingSafeEqual` — mirroring `holocron-plugin-clerk`'s
+      Svix verification) and normalizes `installation` (created/deleted),
+      `push` (default-branch only), and `pull_request` (opened/synchronize)
+      deliveries into a `SentinelEvent`. Handler logic only — a plain
+      function over `{ body, headers, secret }`, no HTTP framework, so
+      it's unaffected by the deploy-target decision below. Anything outside
+      v1 scope (other installation actions, non-default-branch pushes,
+      other PR actions, other event categories) comes back
+      `{ handled: false }` rather than throwing — a validly-signed but
+      out-of-scope delivery isn't an error.
 - [ ] Custom-properties sync call: invoke the existing `syncProperties()`
       path (#677/#716) from the webhook handler on a push-to-default-branch
       event.
