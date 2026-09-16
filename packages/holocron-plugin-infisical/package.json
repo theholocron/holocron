@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-infisical",
-  "version": "5.0.0-alpha.14",
+  "version": "5.0.0-alpha.15",
   "description": "Holocron plugin for Infisical. Implements the vault capability against Infisical's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
   "keywords": [
     "holocron",
@@ -40,6 +40,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/infisical-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",

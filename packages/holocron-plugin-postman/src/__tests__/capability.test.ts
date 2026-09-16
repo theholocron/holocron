@@ -3,12 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { PostmanPlanLimitError } from "@theholocron/postman-client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { PostmanTooling } from "../capabilities/tooling.js";
 import { createPostmanClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 function makeTooling(
 	responses: Parameters<typeof stubFetch>[0],

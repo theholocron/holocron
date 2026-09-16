@@ -1,7 +1,8 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { verifyToken } from "../verify-token.js";
-import { cfOk, stubFetch } from "./helpers.js";
+import { cfOk } from "./helpers.js";
 
 const BASE = "https://cf.test/client/v4";
 

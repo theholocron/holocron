@@ -1,9 +1,9 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { GitHubSecrets } from "../capabilities/secrets.js";
 import { createGitHubClient } from "../rest.js";
 import { sodium } from "../sodium.js";
-import { stubFetch } from "./helpers.js";
 
 const REPO = "theholocron/holocron";
 

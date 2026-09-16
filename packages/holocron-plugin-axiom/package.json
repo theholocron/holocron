@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-axiom",
-  "version": "5.0.0-alpha.14",
+  "version": "5.0.0-alpha.15",
   "description": "Holocron plugin for Axiom. Implements the logs capability against Axiom's REST API — dataset provisioning and connectivity checks, plus verifyToken + AUTH_HINT for `holocron auth`.",
   "keywords": [
     "axiom",
@@ -40,6 +40,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",

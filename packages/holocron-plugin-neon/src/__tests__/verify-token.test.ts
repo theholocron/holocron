@@ -1,7 +1,7 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { verifyToken } from "../verify-token.js";
-import { stubFetch } from "./helpers.js";
 
 describe("verifyToken", () => {
 	it("returns ok with the user email when /users/me returns 200", async () => {

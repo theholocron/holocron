@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { VercelDeployment } from "../capabilities/deployment.js";
 import { createVercelClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 function makeDeployment(
 	responses: Parameters<typeof stubFetch>[0],

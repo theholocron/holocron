@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-sentry",
-  "version": "5.0.0-alpha.14",
+  "version": "5.0.0-alpha.15",
   "description": "Holocron plugin for Sentry. Implements the errors capability against Sentry's management API — project provisioning and DSN retrieval.",
   "keywords": [
     "errors",
@@ -40,6 +40,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/sentry-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",

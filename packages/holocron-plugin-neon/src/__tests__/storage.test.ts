@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { NeonStorage } from "../capabilities/storage.js";
 import { createNeonClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const PROJECT_ID = "ancient-resonance-12345";
 const BASE = `https://console.neon.tech/api/v2/projects/${PROJECT_ID}`;

@@ -1,9 +1,10 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { CloudflareDns } from "../capabilities/dns.js";
 import { createCloudflareClient } from "../rest.js";
-import { cfOk, stubFetch } from "./helpers.js";
+import { cfOk } from "./helpers.js";
 
 const BASE = "https://cf.test/client/v4";
 const ZONE_ID = "zone-abc";

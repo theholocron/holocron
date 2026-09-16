@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-postman",
-  "version": "5.0.0-alpha.14",
+  "version": "5.0.0-alpha.15",
   "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API — workspace + collection + spec + environment sync.",
   "keywords": [
     "holocron",
@@ -40,6 +40,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/postman-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",

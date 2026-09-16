@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-clerk",
-  "version": "5.0.0-alpha.14",
+  "version": "5.0.0-alpha.15",
   "description": "Holocron plugin for Clerk. Implements the auth capability against Clerk's Backend REST API.",
   "keywords": [
     "auth",
@@ -41,6 +41,7 @@
     "@theholocron/clerk-client": "catalog:clients",
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
