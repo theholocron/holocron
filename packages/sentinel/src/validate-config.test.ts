@@ -3,9 +3,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGitHubClient } from "@theholocron/github-client";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { stubFetch } from "./__tests__/helpers.js";
 import { validateConfig } from "./validate-config.js";
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");

@@ -15,7 +15,7 @@ vi.mock("@theholocron/datapad", async (importOriginal) => {
 describe("validateConfig — non-Error throw from loadConfigFile", () => {
 	it("falls back to String(err) when loadConfigFile rejects with a non-Error value", async () => {
 		const { createGitHubClient } = await import("@theholocron/github-client");
-		const { stubFetch } = await import("./__tests__/helpers.js");
+		const { stubFetch } = await import("@theholocron/http-client/testing");
 		const { validateConfig } = await import("./validate-config.js");
 
 		const content = Buffer.from(JSON.stringify({ name: "demo", tasks: [] }), "utf8").toString("base64");
