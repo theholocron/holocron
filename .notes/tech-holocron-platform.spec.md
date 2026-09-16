@@ -284,13 +284,15 @@ is, what it's actually built with, and whether it's missing anything a repo
 of its kind should have.
 
 Four new properties, added to the org schema (`orgs/theholocron/properties/schema`)
-alongside the existing 6:
+alongside the existing 6 — one of which (`branch_protection_level`) was
+itself renamed to `holocron_branch_protection_level` in the same pass (see
+below):
 
 | Property                | Type          | Derivation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ----------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `holocron_profile`      | single_select | Repo archetype: `library` / `cli` / `plugin` / `template` / `app` / `docs` / `platform`. Heuristic: root `package.json#bin` present → `cli`; repo name matches `*-template` → `template`; monorepo (`pnpm-workspace.yaml` present) whose primary published artifact is a CLI (e.g. `holocron` itself: `packages/cli` has `bin`) → `platform`; a docs-only site (astro/starlight, no publishable package) → `docs`; a private, non-publishable app → `app`; else a single publishable package → `library`. |
-| `holocron_capabilities` | string        | Comma-joined provider capability keys actually wired in `holocron.config.ts`'s `providers: {}` block (`source`, `ci`, `deployment`, `vault`, `storage`, `auth`, `secrets`, `environments`, `issues`, `dns`, `errors`, `logs`, `tooling`, `notifications`, `analytics`, `wiki`, `workers`) — zero heuristics, directly enumerable from resolved config.                                                                                                                                                    |
-| `holocron_stack`        | string        | Comma-joined detected build/framework tooling from root `package.json` dependencies + devDependencies against a curated table (`next`, `vite`, `astro`, `tsdown`, `rollup`, `webpack`, `storybook`, `vitest`, `playwright`, `turbo`, …) — the literal "does this repo need next/vite/tsdown" signal, not derivable from `holocron.config.ts` today since framework choice isn't a config field.                                                                                                           |
+| `holocron_capabilities` | multi_select  | The provider capability keys actually wired in `holocron.config.ts`'s `providers: {}` block (`source`, `ci`, `deployment`, `vault`, `storage`, `auth`, `secrets`, `environments`, `issues`, `dns`, `errors`, `logs`, `tooling`, `notifications`, `analytics`, `wiki`, `workers` — all 17 declared as `allowed_values`) — zero heuristics, directly enumerable from resolved config.                                                                                                                       |
+| `holocron_stack`        | multi_select  | Detected build/framework tooling from root `package.json` dependencies + devDependencies against a curated table, declared as `allowed_values` (`next`, `vite`, `astro`, `tsdown`, `rollup`, `webpack`, `storybook`, `vitest`, `playwright`, `turbo`) — the literal "does this repo need next/vite/tsdown" signal, not derivable from `holocron.config.ts` today since framework choice isn't a config field.                                                                                             |
 | `holocron_compliance`   | single_select | `compliant` / `non-compliant`, checked against a minimal required-capability baseline (`source` + `ci` always required — every repo `holocron setup` touches wires both). Meant to catch drift (a provider manually removed after setup), not to encode a rich per-profile policy yet — that's a future refinement once the GitHub App (Phase B) can post _why_ a repo is non-compliant as a check run.                                                                                                   |
 
 Same wiring point as the existing 6 fields: `source.syncProperties()`,
@@ -306,14 +308,32 @@ don't populate for existing repos until each one re-runs `holocron setup`/
 `sync` — that backfill is exactly what the migration-pass sub-issue (#680)
 covers, not new work here.
 
-`holocron_capabilities`/`holocron_stack` are GitHub `string` type
-(comma-joined), not `multi_select`: `@theholocron/github-client`'s
-`properties.setProperties()` accepts `Record<string, string>` only — no
-plumbing for array-valued properties today. `multi_select` (a proper
-filterable dropdown per value) is a nicer UX but means extending that
-client (a different repo, `theholocron/clients`, per the org's client
-placement rule) — deliberately deferred rather than pulled into this PR's
-scope.
+**`holocron_capabilities`/`holocron_stack` are `multi_select`, not a
+comma-joined `string`** — the first design here used `string` because
+`@theholocron/github-client`'s `properties.setProperties()` only accepted
+`Record<string, string>`. That broke in practice on the very first real
+sync: `holocron` itself wires 11 capabilities, producing an 89-character
+joined value that GitHub's API rejects with `422 "value is too long"` — no
+documented length ceiling on GitHub's side, but a real one for a
+`string`-type property, and one any repo wiring more than ~8-9 capabilities
+would eventually hit. `multi_select` has no such ceiling — GitHub allows up
+to 200 `allowed_values` per property, well above the 17 capability keys or
+10 curated stack entries either field can ever hold. Fixed by extending
+`@theholocron/github-client`'s `setProperties()` to accept
+`Record<string, string | string[]>` (`theholocron/clients#338`), then
+recreating both properties as `multi_select` — GitHub's `value_type` is
+immutable once set, so this was delete + recreate, not an in-place edit.
+
+**`branch_protection_level` renamed to `holocron_branch_protection_level`**
+in the same pass, for consistency: its values (`balanced`/`strict`/`none`)
+are Holocron's own `repo.protection` preset names, not a generic GitHub
+concept — the same category as the 4 new fields, just predating them. The
+other 5 original properties (`lifecycle`, `open_source`,
+`uses_external_packages`, `monorepo`, `runtime_environment`) describe
+generic repo facts any org's tooling could produce and stay unprefixed.
+Renaming means recreate + backfill + delete (same immutable-`property_name`
+constraint) — done for all 16 already-onboarded repos at the same time as
+the schema fix, reading each repo's existing value rather than guessing.
 
 **No separate "publish strategy" field — `monorepo` (existing, pre-dating
 this PR) already covers it.** Considered adding a `holocron_delivery` field

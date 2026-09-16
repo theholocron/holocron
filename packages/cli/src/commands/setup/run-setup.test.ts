@@ -2629,7 +2629,7 @@ describe("runSetup", () => {
 	});
 
 	it("calls syncProperties with derived and manual properties when source supports it", async () => {
-		let captured: Record<string, string> | null = null;
+		let captured: Record<string, string | string[]> | null = null;
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: {
@@ -2660,7 +2660,7 @@ describe("runSetup", () => {
 					listRulesets: async () => [],
 					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
 					writeRepoFile: async () => {},
-					syncProperties: async (values: Record<string, string>) => {
+					syncProperties: async (values: Record<string, string | string[]>) => {
 						captured = values;
 						return `${Object.keys(values).length} properties set`;
 					},
@@ -2671,7 +2671,7 @@ describe("runSetup", () => {
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(captured).not.toBeNull();
-		expect(captured!["branch_protection_level"]).toBe("strict");
+		expect(captured!["holocron_branch_protection_level"]).toBe("strict");
 		expect(captured!["monorepo"]).toBe("false"); // /tmp/test has no pnpm-workspace.yaml
 		expect(captured!["lifecycle"]).toBe("active");
 		expect(captured!["open_source"]).toBe("true");
@@ -2680,16 +2680,16 @@ describe("runSetup", () => {
 		// derived properties (#677) — /tmp/test has no package.json, so these
 		// fall back to their "nothing detected" values.
 		expect(captured!["holocron_profile"]).toBe("library");
-		expect(captured!["holocron_stack"]).toBe("");
-		expect(captured!["holocron_capabilities"]).toBe("source, vault");
+		expect(captured!["holocron_stack"]).toEqual([]);
+		expect(captured!["holocron_capabilities"]).toEqual(["source", "vault"]);
 		expect(captured!["holocron_compliance"]).toBe("non-compliant"); // no `ci` provider wired
 		const step = report.steps.find((s) => s.step === "sync properties");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toContain("properties set");
 	});
 
-	it("does not set branch_protection_level property when no protection is configured", async () => {
-		let captured: Record<string, string> | null = null;
+	it("does not set holocron_branch_protection_level property when no protection is configured", async () => {
+		let captured: Record<string, string | string[]> | null = null;
 		const loaded = loadedFrom({
 			name: "demo",
 			repo: { name: "theholocron/demo", properties: { lifecycle: "experimental" } },
@@ -2706,7 +2706,7 @@ describe("runSetup", () => {
 					enableSecretScanning: async () => {},
 					enablePrivateVulnerabilityReporting: async () => {},
 					writeRepoFile: async () => {},
-					syncProperties: async (values: Record<string, string>) => {
+					syncProperties: async (values: Record<string, string | string[]>) => {
 						captured = values;
 						return `${Object.keys(values).length} properties set`;
 					},
@@ -2717,7 +2717,7 @@ describe("runSetup", () => {
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(captured).not.toBeNull();
-		expect(captured!["branch_protection_level"]).toBeUndefined();
+		expect(captured!["holocron_branch_protection_level"]).toBeUndefined();
 		expect(captured!["lifecycle"]).toBe("experimental");
 	});
 
@@ -3801,9 +3801,9 @@ describe("setup: skills step", () => {
 
 	it("detects monorepo=true in syncProperties when pnpm-workspace.yaml exists", async () => {
 		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
-		let capturedProps: Record<string, string> = {};
+		let capturedProps: Record<string, string | string[]> = {};
 		const source = {
-			syncProperties: async (props: Record<string, string>) => {
+			syncProperties: async (props: Record<string, string | string[]>) => {
 				capturedProps = props;
 				return "synced";
 			},
@@ -3824,9 +3824,9 @@ describe("setup: skills step", () => {
 			join(tmpDir, "package.json"),
 			JSON.stringify({ bin: "cli", devDependencies: { vite: "^7.0.0" } })
 		);
-		let capturedProps: Record<string, string> = {};
+		let capturedProps: Record<string, string | string[]> = {};
 		const source = {
-			syncProperties: async (props: Record<string, string>) => {
+			syncProperties: async (props: Record<string, string | string[]>) => {
 				capturedProps = props;
 				return "synced";
 			},
@@ -3839,8 +3839,8 @@ describe("setup: skills step", () => {
 		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
 		expect(capturedProps["holocron_profile"]).toBe("cli");
-		expect(capturedProps["holocron_stack"]).toBe("vite");
-		expect(capturedProps["holocron_capabilities"]).toBe("ci, source");
+		expect(capturedProps["holocron_stack"]).toEqual(["vite"]);
+		expect(capturedProps["holocron_capabilities"]).toEqual(["ci", "source"]);
 		expect(capturedProps["holocron_compliance"]).toBe("compliant");
 	});
 

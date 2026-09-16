@@ -17,7 +17,7 @@ describe("syncProperties", () => {
 		const { rest, calls } = makeRest([{ status: 204, body: null }]);
 
 		const result = await syncProperties(rest, REPO, {
-			branch_protection_level: "strict",
+			holocron_branch_protection_level: "strict",
 			lifecycle: "active",
 			monorepo: "false",
 		});
@@ -29,11 +29,24 @@ describe("syncProperties", () => {
 			url: expect.stringContaining("/repos/theholocron/holocron/properties/values"),
 			body: {
 				properties: expect.arrayContaining([
-					{ property_name: "branch_protection_level", value: "strict" },
+					{ property_name: "holocron_branch_protection_level", value: "strict" },
 					{ property_name: "lifecycle", value: "active" },
 					{ property_name: "monorepo", value: "false" },
 				]),
 			},
+		});
+	});
+
+	it("passes a string array through untouched for multi_select properties", async () => {
+		const { rest, calls } = makeRest([{ status: 204, body: null }]);
+
+		const result = await syncProperties(rest, REPO, {
+			holocron_capabilities: ["ci", "source"],
+		});
+
+		expect(result).toBe("1 properties set");
+		expect(calls[0]?.body).toMatchObject({
+			properties: [{ property_name: "holocron_capabilities", value: ["ci", "source"] }],
 		});
 	});
 

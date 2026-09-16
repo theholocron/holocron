@@ -187,10 +187,11 @@ export interface Source extends ProviderIdentity {
 	syncLabels?(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string>;
 
 	/**
-	 * Set org-level custom property values on the repo.
+	 * Set org-level custom property values on the repo. `string[]` for
+	 * `multi_select` properties, plain `string` for everything else.
 	 * Optional — providers that don't support custom properties omit this.
 	 */
-	syncProperties?(values: Record<string, string>): Promise<string>;
+	syncProperties?(values: Record<string, string | string[]>): Promise<string>;
 
 	/**
 	 * Replace the repo's topic set with the supplied list.
