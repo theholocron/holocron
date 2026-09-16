@@ -1,13 +1,15 @@
 /**
- * Discover and load `<name>.config.*` files. Holocron-agnostic — no
- * schema, no validation, no defaults. Consumers layer those on top.
+ * Discover and load `<name>.config.*` files, or load one from content that
+ * didn't come from a file at all ({@link loadConfigFromContent}).
+ * Holocron-agnostic — no schema, no validation, no defaults. Consumers
+ * layer those on top.
  *
  * Probe order is **TS-first**: `.ts` → `.js` → `.mjs` → `.cjs` → `.json`.
  * TS is loaded through `tsx`'s `tsImport` (a runtime dependency) so a
  * typed `defineConfig` file works with no build step.
  */
 
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -92,6 +94,40 @@ export async function loadLayered<T>(opts: LoadLayeredOptions): Promise<LayeredR
 	const config = mergeConfig(base as T, dedicated?.config);
 	const sources = [baseFile, dedicated?.filepath ?? null].filter((s): s is string => s !== null);
 	return { config, filepath: dedicated?.filepath ?? baseFile, sources };
+}
+
+export interface LoadConfigFromContentOptions {
+	/**
+	 * Directory to write `<name>.config.<extension>` into before loading —
+	 * this is what upward `node_modules` resolution sees, so a config that
+	 * does `import { defineConfig } from "@theholocron/cli"` only resolves
+	 * if `dir` sits under a tree where that package is a real dependency.
+	 * Callers own creating and cleaning up `dir` — this function only
+	 * writes the one file into it.
+	 */
+	dir: string;
+	/** Raw file content — not necessarily sourced from a local file at all (a network fetch, a git blob, …). */
+	content: string;
+	/** Base name — `"holocron"` writes `holocron.config.<extension>`. */
+	name: string;
+	/** Which of `DEFAULT_EXTENSIONS` `content` is — determines how it's interpreted (ts/js/mjs/cjs parsed as a module, json as `JSON.parse`). */
+	extension: string;
+}
+
+/**
+ * Load config from content that didn't come from a file already on disk —
+ * writes it to `<dir>/<name>.config.<extension>` first, then loads it
+ * through the exact same path {@link loadConfigFile} uses for a file it
+ * discovered itself. Exists because sourcing config content from somewhere
+ * other than the local filesystem (a GitHub API fetch, for one — see
+ * `@theholocron/sentinel`) doesn't change what loading it correctly means:
+ * a `.ts` config still needs real module resolution, `defineConfig` import
+ * included, not a re-implemented parser.
+ */
+export async function loadConfigFromContent<T>(opts: LoadConfigFromContentOptions): Promise<Loaded<T>> {
+	const filepath = join(opts.dir, `${opts.name}.config.${opts.extension}`);
+	await writeFile(filepath, opts.content, "utf8");
+	return { config: await loadFile<T>(filepath, opts.extension), filepath };
 }
 
 // ── loading ──────────────────────────────────────────────────────────────────

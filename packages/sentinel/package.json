@@ -38,6 +38,11 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
+    "@theholocron/astromech": "workspace:*",
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/datapad": "workspace:*",
+    "@theholocron/github-client": "catalog:clients",
+    "@theholocron/http-client": "catalog:clients",
     "tsx": "catalog:"
   },
   "devDependencies": {

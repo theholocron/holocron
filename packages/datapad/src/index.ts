@@ -5,7 +5,9 @@
  * Discover `<name>.config.{ts,js,mjs,cjs,json}`, load it (typed configs
  * via `tsx`, no build step), layer a dedicated file over a key of a
  * parent file, deep-merge, and hand back a plain object. No schema, no
- * validation, no defaults — the consumer owns those.
+ * validation, no defaults — the consumer owns those. `loadConfigFromContent`
+ * covers the same loading for content that didn't come from a file
+ * already on disk (a network fetch, a git blob, …).
  *
  * ```ts
  * import { loadConfigFile, loadLayered, mergeConfig, createDefineConfig } from "@theholocron/datapad";
@@ -26,6 +28,8 @@ export {
 	type LayeredResult,
 	loadConfigFile,
 	type LoadConfigFileOptions,
+	loadConfigFromContent,
+	type LoadConfigFromContentOptions,
 	type Loaded,
 	loadLayered,
 	type LoadLayeredOptions,
