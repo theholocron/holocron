@@ -6,9 +6,9 @@
  * validation, custom-properties sync, one check run per resolution run.
  * Design: `.notes/tech-sentinel-v1.spec.md` (repo root).
  *
- * Scaffolding only — the webhook receiver, schema validation, and
+ * Scaffolding — the webhook receiver, custom-properties sync call, and
  * check-run posting land in follow-up PRs once the deploy target is
  * decided (see the spec's "Open, not yet decided" section).
  */
 
-export {};
+export { validateConfig, type ValidateConfigInput, type ValidateConfigResult } from "./validate-config.js";
