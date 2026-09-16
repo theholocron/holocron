@@ -92,3 +92,45 @@ describe("workers.updateRoute", () => {
 		expect(result).toEqual(route);
 	});
 });
+
+describe("workers.putSecret", () => {
+	it("PUTs name/text/type to the account script's secrets endpoint", async () => {
+		const { workers, calls } = client([cfOk({ name: "WEBHOOK_SECRET", type: "secret_text" })]);
+		const result = await workers.putSecret(ACCOUNT, "sentinel", "WEBHOOK_SECRET", "shh-its-a-secret");
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts/sentinel/secrets`);
+		expect(calls[0]?.body).toEqual({ name: "WEBHOOK_SECRET", text: "shh-its-a-secret", type: "secret_text" });
+		expect(result).toEqual({ name: "WEBHOOK_SECRET", type: "secret_text" });
+	});
+
+	it("URL-encodes the script name", async () => {
+		const { workers, calls } = client([cfOk({ name: "X", type: "secret_text" })]);
+		await workers.putSecret(ACCOUNT, "sentinel.example.com", "X", "v");
+		expect(calls[0]?.url).toContain("sentinel.example.com");
+	});
+});
+
+describe("workers.listSecrets", () => {
+	it("GETs the account script's secrets endpoint — names only, no values", async () => {
+		const { workers, calls } = client([cfOk([{ name: "WEBHOOK_SECRET", type: "secret_text" }])]);
+		const result = await workers.listSecrets(ACCOUNT, "sentinel");
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts/sentinel/secrets`);
+		expect(result).toEqual([{ name: "WEBHOOK_SECRET", type: "secret_text" }]);
+	});
+});
+
+describe("workers.deleteSecret", () => {
+	it("DELETEs the named secret from the account script's secrets endpoint", async () => {
+		const { workers, calls } = client([{ status: 204 }]);
+		await workers.deleteSecret(ACCOUNT, "sentinel", "WEBHOOK_SECRET");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts/sentinel/secrets/WEBHOOK_SECRET`);
+	});
+
+	it("URL-encodes the secret name", async () => {
+		const { workers, calls } = client([{ status: 204 }]);
+		await workers.deleteSecret(ACCOUNT, "sentinel", "A SECRET");
+		expect(calls[0]?.url).toContain("A%20SECRET");
+	});
+});

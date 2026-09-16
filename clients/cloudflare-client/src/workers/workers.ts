@@ -8,6 +8,12 @@ export interface CfWorkerRoute {
 	script: string | null;
 }
 
+/** https://developers.cloudflare.com/api/operations/worker-script-put-encrypted-secret-binding */
+export interface CfWorkerSecret {
+	name: string;
+	type: "secret_text";
+}
+
 export function workers(rest: RestClient, opts: CloudflareClientOptions) {
 	const baseUrl = opts.baseUrl ?? "https://api.cloudflare.com/client/v4";
 	const fetchImpl = opts.fetch ?? globalThis.fetch;
@@ -45,5 +51,32 @@ export function workers(rest: RestClient, opts: CloudflareClientOptions) {
 
 		updateRoute: (zoneId: string, routeId: string, pattern: string, script: string): Promise<CfWorkerRoute> =>
 			cfRequest<CfWorkerRoute>(rest, "PUT", `/zones/${zoneId}/workers/routes/${routeId}`, { pattern, script }),
+
+		// Secret bindings — account-scoped, standard JSON API. One call both
+		// stores the encrypted value and binds it as `env.<name>` in the
+		// Worker; there's no separate "create the binding" step. Values are
+		// write-only — Cloudflare never echoes them back, in this response or
+		// any other.
+		putSecret: (accountId: string, scriptName: string, name: string, value: string): Promise<CfWorkerSecret> =>
+			cfRequest<CfWorkerSecret>(
+				rest,
+				"PUT",
+				`/accounts/${accountId}/workers/scripts/${encodeURIComponent(scriptName)}/secrets`,
+				{ name, text: value, type: "secret_text" }
+			),
+
+		listSecrets: (accountId: string, scriptName: string): Promise<CfWorkerSecret[]> =>
+			cfRequest<CfWorkerSecret[]>(
+				rest,
+				"GET",
+				`/accounts/${accountId}/workers/scripts/${encodeURIComponent(scriptName)}/secrets`
+			),
+
+		deleteSecret: (accountId: string, scriptName: string, name: string): Promise<void> =>
+			cfRequest<void>(
+				rest,
+				"DELETE",
+				`/accounts/${accountId}/workers/scripts/${encodeURIComponent(scriptName)}/secrets/${encodeURIComponent(name)}`
+			),
 	};
 }

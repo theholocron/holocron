@@ -93,6 +93,31 @@ await cf.pages.updateProject(ACCOUNT, "my-docs-preview", {
 });
 ```
 
+## Usage — Workers
+
+```ts
+const cf = createCloudflareClient({ token: process.env.CLOUDFLARE_API_TOKEN! });
+const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID!;
+
+// Deploy (or update) a Worker script
+await cf.workers.putScript(ACCOUNT, "my-worker", "export default { fetch() { … } };");
+
+// Set a secret — one call both stores the encrypted value and binds it as
+// `env.MY_SECRET` in the Worker; values are write-only, never echoed back
+await cf.workers.putSecret(ACCOUNT, "my-worker", "MY_SECRET", "shh");
+
+// List secret names bound to a script (no values)
+const secrets = await cf.workers.listSecrets(ACCOUNT, "my-worker");
+
+// Remove a secret binding
+await cf.workers.deleteSecret(ACCOUNT, "my-worker", "MY_SECRET");
+
+// Route management — zone-scoped
+const routes = await cf.workers.listRoutes("zone-id");
+await cf.workers.createRoute("zone-id", "example.com/*", "my-worker");
+await cf.workers.updateRoute("zone-id", routes[0].id, "example.com/*", "my-worker");
+```
+
 ## Auth
 
 Create an [API Token](https://dash.cloudflare.com/profile/api-tokens) with the permissions your use case requires:
@@ -102,6 +127,8 @@ Create an [API Token](https://dash.cloudflare.com/profile/api-tokens) with the p
 | DNS management     | `Zone:Read`, `DNS:Edit`          |
 | Tunnel management  | `Account:Cloudflare Tunnel:Edit` |
 | Pages deployments  | `Account:Cloudflare Pages:Edit`  |
+| Workers + secrets  | `Account:Workers Scripts:Edit`   |
+| Worker routes      | `Zone:Workers Routes:Edit`       |
 | Token verification | `User:API Tokens:Read`           |
 
 Pass the token directly or via the `CLOUDFLARE_API_TOKEN` environment variable.
