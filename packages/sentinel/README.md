@@ -1,13 +1,14 @@
-# `@theholocron/github-app`
+# `@theholocron/sentinel`
 
 Holocron's minimal GitHub App — webhook receiver, default-branch-only
 `holocron.config.ts` validation, custom-properties sync, one check run per
 resolution run.
 
-> Scaffolding only. The webhook receiver, schema validation, and check-run
-> posting land in follow-up PRs once the deploy target is decided — see
-> `.notes/tech-github-app-v1.spec.md` (repo root) for the full design and
-> what's still open.
+> A sentinel droid: it watches, validates, and reports — never acts on its
+> own. Scaffolding only right now. The webhook receiver, schema validation,
+> and check-run posting land in follow-up PRs once the deploy target is
+> decided — see `.notes/tech-sentinel-v1.spec.md` (repo root) for the full
+> design and what's still open.
 
 ## Scope (v1)
 

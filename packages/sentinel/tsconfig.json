@@ -1,5 +1,5 @@
 {
-  "display": "@theholocron/github-app",
+  "display": "@theholocron/sentinel",
   "extends": "@theholocron/tsconfig/node-lts",
   "compilerOptions": {
     "baseUrl": "./",

@@ -9,11 +9,17 @@ related:
   - theholocron/holocron#677
 ---
 
-# Minimal GitHub App v1
+# Sentinel — minimal GitHub App v1
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672)
 (`.notes/tech-holocron-platform.spec.md`). Covers D2, D4, D6, D8, D10 and the
 "Phase B" section of that spec in full detail.
+
+**Sentinel** is this project's name for the package — a sentinel droid
+watches, validates, and reports, never acting on its own, which is exactly
+what this App does (v1 scope, below). "GitHub App" stays as GitHub's own
+platform term for the underlying integration type; it isn't renamed,
+just the thing we're building on top of it.
 
 ## Scope — in for v1
 
@@ -60,8 +66,8 @@ capability. Full list, kept as one running backlog: #674.
 
 ## Resolved
 
-- **Package location: `packages/github-app`, published as
-  `@theholocron/github-app`.** Matches the naming precedent for
+- **Package location: `packages/sentinel`, published as
+  `@theholocron/sentinel`.** Matches the naming precedent for
   core-platform packages — `astromech`, `datapad`, `cli`, `logger` all
   publish as `@theholocron/<name>`, no prefix (unlike vendor plugins,
   `@theholocron/holocron-plugin-<provider>`). This package isn't a vendor
@@ -105,10 +111,12 @@ capability. Full list, kept as one running backlog: #674.
 
 ## PR-stack
 
-- [ ] Scaffold `packages/github-app` (`@theholocron/github-app`): package.json,
-      tsconfig, its own `holocron.config.ts`, empty webhook-receiver entry
-      point — no deploy target wired yet, just the package existing and
-      typechecking/building in the workspace.
+- [x] Scaffold `packages/sentinel` (`@theholocron/sentinel`): package.json,
+      tsconfig, empty webhook-receiver entry point — no deploy target wired
+      yet, just the package existing and typechecking/building in the
+      workspace (#718). Its own `holocron.config.ts` deferred to the deploy
+      wiring step below — premature to wire a `vault`/`deployment` provider
+      before the deploy target is chosen.
 - [ ] Schema validation: import the same task-vocabulary table
       `astromech`'s CLI-side resolution already uses (per D11 — one
       canonical table, the App imports it rather than owning a copy) and

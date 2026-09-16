@@ -1,19 +1,20 @@
 {
-  "name": "@theholocron/github-app",
+  "name": "@theholocron/sentinel",
   "version": "5.0.0-alpha.13",
   "description": "Holocron's minimal GitHub App — webhook receiver, default-branch-only holocron.config.ts validation, custom-properties sync, capability-compliance check runs.",
   "keywords": [
     "github-app",
     "holocron",
+    "sentinel",
     "theholocron",
     "webhook"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/github-app#readme",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "packages/github-app"
+    "directory": "packages/sentinel"
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",

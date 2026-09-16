@@ -257,7 +257,7 @@ packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
-  github-app/                     — @theholocron/github-app                (minimal GitHub App — webhook receiver, scaffolding only, .notes/tech-github-app-v1.spec.md)
+  sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, .notes/tech-sentinel-v1.spec.md)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
   holocron-plugin-neon/           — storage

@@ -40,7 +40,7 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
-		"packages/github-app": {
+		"packages/sentinel": {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
