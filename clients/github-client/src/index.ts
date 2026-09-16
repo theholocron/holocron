@@ -18,6 +18,13 @@ import { createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
 import { workflows } from "./workflows/workflows.js";
 
 export {
+	createAppJWT,
+	createInstallationClient,
+	getInstallationAccessToken,
+	type GitHubAppCredentials,
+	type InstallationAccessToken,
+} from "./app-auth/app-auth.js";
+export {
 	type CheckRunConclusion,
 	type CheckRunOutput,
 	type CheckRunStatus,

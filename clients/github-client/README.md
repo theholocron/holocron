@@ -90,3 +90,37 @@ A consumer owns what to _do_ with a verified delivery — which event
 categories matter, how to normalize them into its own domain shape.
 `@theholocron/sentinel`'s `parseWebhookEvent()` is the reference
 consumer.
+
+## GitHub App authentication
+
+A signed App JWT, exchanged for a short-lived installation access token,
+exchanged for a ready-to-use `GitHubClient` — Web Crypto only
+(`globalThis.crypto`/`CryptoKey`, no `node:crypto`), so it runs unchanged
+on Cloudflare Workers (no `nodejs_compat` flag needed) and in Node.
+
+```ts
+import { createInstallationClient } from "@theholocron/github-client";
+
+const client = await createInstallationClient(
+  { appId: process.env.GITHUB_APP_ID!, privateKey: process.env.GITHUB_APP_PRIVATE_KEY! },
+  installationId // from the webhook payload that triggered this — never hardcoded (D10)
+);
+const repo = await client.repos.getRepo("owner/name");
+```
+
+`privateKey` accepts either PEM format GitHub hands out — PKCS#1 (an
+`RSA PRIVATE KEY`-headered PEM block, the default download) or PKCS#8
+(a plain `PRIVATE KEY`-headered PEM block); `importRsaPrivateKey`
+(internal) wraps a PKCS#1 key in the PKCS#8 DER structure
+`SubtleCrypto.importKey()` requires — Web Crypto only accepts PKCS#8
+directly.
+
+Lower-level pieces, if you need to manage the installation token's
+lifetime yourself (it lasts about an hour) rather than fetching one per
+call:
+
+- `createAppJWT(creds)` — signs the App-level JWT (not installation-scoped; only good for requesting an installation token, never for calling the REST API directly).
+- `getInstallationAccessToken(creds, installationId)` — exchanges that JWT for `{ token, expiresAt }`.
+
+`@theholocron/sentinel`'s webhook handler is the reference consumer —
+one App, N installations across N orgs/accounts, the same registration.
