@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
-import { createAstromech, KNOWN_WORKFLOWS } from "@theholocron/astromech";
+import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -11,7 +11,15 @@ import type { Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { createHeader } from "../utils/create-header.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
-import { CANONICAL_LABELS, STALE_LABELS } from "./setup/index.js";
+import {
+	CANONICAL_LABELS,
+	deriveCapabilities,
+	deriveCompliance,
+	deriveProfile,
+	deriveStack,
+	readWorkspacePackageJsons,
+	STALE_LABELS,
+} from "./setup/index.js";
 
 // The only content this file ever prefixes with workflowHeader() is thin-caller
 // workflow content from astromech.thinCallers() — sync.ts just writes it. The
@@ -136,6 +144,30 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
 					if (manual.uses_external_packages !== undefined)
 						properties["uses_external_packages"] = String(manual.uses_external_packages);
+
+					// #677 — derived fields, distinct from the manual ones above: signal
+					// that isn't an explicit holocron.config.ts field today (framework
+					// choice, repo archetype, capability drift).
+					{
+						const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+							.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
+							.catch(() => null);
+						const workspacePackages = readWorkspacePackages(input.context.repoRoot);
+						const workspacePackageJsons = await readWorkspacePackageJsons(
+							input.context.repoRoot,
+							workspacePackages
+						);
+						properties["holocron_profile"] = deriveProfile({
+							rootPackageJson,
+							repoName: basename(input.context.repoRoot),
+							isMonorepo,
+							workspacePackageJsons,
+						});
+						properties["holocron_stack"] = deriveStack(rootPackageJson).join(", ");
+						const capabilities = deriveCapabilities(config.providers);
+						properties["holocron_capabilities"] = capabilities.join(", ");
+						properties["holocron_compliance"] = deriveCompliance(capabilities);
+					}
 
 					steps.push(
 						await runSyncStep("source", "sync properties", dryRun, () => source.syncProperties!(properties))

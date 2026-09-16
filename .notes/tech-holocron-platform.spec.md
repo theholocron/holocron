@@ -272,6 +272,58 @@ monorepo-conditional and becomes the normal path everywhere; the
 shrink to genuinely exceptional cases rather than the common path for
 single-package repos.
 
+## Custom-properties sync — field definitions (#677)
+
+D5 says the sync stays one-way; it doesn't pin down what the new fields
+actually contain. Resolved during #677 scoping: the point of new properties
+isn't to mirror what `holocron.config.ts` already states explicitly (that's
+what `lifecycle`/`open_source`/`runtime_environment`/`monorepo` already do)
+— it's to project **derived** classification a human or the future App can
+filter/search on without opening every repo's config: what kind of repo this
+is, what it's actually built with, and whether it's missing anything a repo
+of its kind should have.
+
+Four new properties, added to the org schema (`orgs/theholocron/properties/schema`)
+alongside the existing 6:
+
+| Property                | Type          | Derivation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron_profile`      | single_select | Repo archetype: `library` / `cli` / `plugin` / `template` / `app` / `docs` / `platform`. Heuristic: root `package.json#bin` present → `cli`; repo name matches `*-template` → `template`; monorepo (`pnpm-workspace.yaml` present) whose primary published artifact is a CLI (e.g. `holocron` itself: `packages/cli` has `bin`) → `platform`; a docs-only site (astro/starlight, no publishable package) → `docs`; a private, non-publishable app → `app`; else a single publishable package → `library`. |
+| `holocron_capabilities` | string        | Comma-joined provider capability keys actually wired in `holocron.config.ts`'s `providers: {}` block (`source`, `ci`, `deployment`, `vault`, `storage`, `auth`, `secrets`, `environments`, `issues`, `dns`, `errors`, `logs`, `tooling`, `notifications`, `analytics`, `wiki`, `workers`) — zero heuristics, directly enumerable from resolved config.                                                                                                                                                    |
+| `holocron_stack`        | string        | Comma-joined detected build/framework tooling from root `package.json` dependencies + devDependencies against a curated table (`next`, `vite`, `astro`, `tsdown`, `rollup`, `webpack`, `storybook`, `vitest`, `playwright`, `turbo`, …) — the literal "does this repo need next/vite/tsdown" signal, not derivable from `holocron.config.ts` today since framework choice isn't a config field.                                                                                                           |
+| `holocron_compliance`   | single_select | `compliant` / `non-compliant`, checked against a minimal required-capability baseline (`source` + `ci` always required — every repo `holocron setup` touches wires both). Meant to catch drift (a provider manually removed after setup), not to encode a rich per-profile policy yet — that's a future refinement once the GitHub App (Phase B) can post _why_ a repo is non-compliant as a check run.                                                                                                   |
+
+Same wiring point as the existing 6 fields: `source.syncProperties()`,
+called from both `holocron setup` and `holocron sync`. The four new fields
+are pure functions over already-resolved config + `package.json` — no new
+capability method, no new provider surface.
+
+Creating the 4 new property _definitions_ in the org schema is a one-time,
+org-wide, outward-facing action (same shape as the original 6) — done once
+via `gh api`, not by any per-repo `holocron` command.
+
+`holocron_capabilities`/`holocron_stack` are GitHub `string` type
+(comma-joined), not `multi_select`: `@theholocron/github-client`'s
+`properties.setProperties()` accepts `Record<string, string>` only — no
+plumbing for array-valued properties today. `multi_select` (a proper
+filterable dropdown per value) is a nicer UX but means extending that
+client (a different repo, `theholocron/clients`, per the org's client
+placement rule) — deliberately deferred rather than pulled into this PR's
+scope.
+
+**No separate "publish strategy" field — `monorepo` (existing, pre-dating
+this PR) already covers it.** Considered adding a `holocron_delivery` field
+distinguishing lockstep vs. independent per-package versioning (raised
+while reviewing #677 — "the publish script needs this too"). Checked every
+monorepo in the org (`holocron`, `clients`, `configs`, `utils`, `themes`,
+`observability`): all six have the identical `release.config.ts#prepareCmd`
+— `holocron bump-versions ${nextRelease.version}`, lockstep. No
+independently-versioned monorepo exists anywhere today, so a
+"lockstep"/"independent" field would carry exactly one value everywhere —
+zero information. `monorepo: true` already is "this repo's publish needs
+the lockstep bump" in this org, as things stand. Revisit if an
+independently-versioned monorepo is ever actually added.
+
 ## Phase B — minimal GitHub App
 
 **In scope for v1:**

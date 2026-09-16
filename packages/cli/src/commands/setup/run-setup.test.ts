@@ -2677,6 +2677,12 @@ describe("runSetup", () => {
 		expect(captured!["open_source"]).toBe("true");
 		expect(captured!["runtime_environment"]).toBe("node");
 		expect(captured!["uses_external_packages"]).toBe("false");
+		// derived properties (#677) — /tmp/test has no package.json, so these
+		// fall back to their "nothing detected" values.
+		expect(captured!["holocron_profile"]).toBe("library");
+		expect(captured!["holocron_stack"]).toBe("");
+		expect(captured!["holocron_capabilities"]).toBe("source, vault");
+		expect(captured!["holocron_compliance"]).toBe("non-compliant"); // no `ci` provider wired
 		const step = report.steps.find((s) => s.step === "sync properties");
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toContain("properties set");
@@ -3811,6 +3817,31 @@ describe("setup: skills step", () => {
 		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
 		expect(capturedProps["monorepo"]).toBe("true");
+	});
+
+	it("derives holocron_profile/stack/capabilities/compliance from real repo content (#677)", async () => {
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ bin: "cli", devDependencies: { vite: "^7.0.0" } })
+		);
+		let capturedProps: Record<string, string> = {};
+		const source = {
+			syncProperties: async (props: Record<string, string>) => {
+				capturedProps = props;
+				return "synced";
+			},
+		};
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github", ci: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source }),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(capturedProps["holocron_profile"]).toBe("cli");
+		expect(capturedProps["holocron_stack"]).toBe("vite");
+		expect(capturedProps["holocron_capabilities"]).toBe("ci, source");
+		expect(capturedProps["holocron_compliance"]).toBe("compliant");
 	});
 
 	it("records vault list failure as a fail step when vault.list() throws", async () => {
