@@ -26,6 +26,15 @@ Explicitly out of v1 — tracked in
 autonomously triggering autofix PRs or PR comments from a webhook event,
 and dashboards.
 
+## Layout
+
+`src/utils/` — read-only: fetches, parses, verifies, never mutates GitHub
+(`validateConfig`, `parseWebhookEvent`, plus their shared
+`decodeContents`/`findPackageRoot` helpers). `src/actions/` — writes:
+calls a GitHub API that changes repo state (`syncPropertiesFromConfig`,
+`postCheckRun`). A future webhook handler calls utils to decide, then
+actions to report — never the other way around.
+
 ## `validateConfig({ client, repo })`
 
 Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) from
@@ -123,6 +132,16 @@ to `@theholocron/cli`'s `missingCapabilities(capabilities).length === 0`
 — the same `REQUIRED_BASELINE` table `deriveCompliance()` already checks
 against, imported rather than duplicated (D8), so _why_ a repo is
 non-compliant can never drift from _whether_ it is.
+
+The check's name, `SENTINEL_CHECK_RUN_NAME` (`"Sentinel / Capability
+Compliance"`), is exported so a caller looking it up later (a re-run
+guard, a test, a dashboard) never hand-copies the string. It stays a
+human-readable "App / Report" label — `CodeQL` and `Devin Review` are the
+nearest precedent, externally-posted checks with no
+`.github/workflows/*.yml` behind them — rather than a
+`platform.*`-style intent-vocabulary token: that vocabulary (epic #672,
+D3) names `tasks:` entries backed by a reusable CI workflow, and this
+check has no workflow behind it at all.
 
 ## Development
 

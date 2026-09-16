@@ -2,7 +2,7 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { postCheckRun } from "./post-check-run.js";
+import { postCheckRun, SENTINEL_CHECK_RUN_NAME } from "./post-check-run.js";
 
 function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
@@ -14,7 +14,7 @@ describe("postCheckRun — compliant", () => {
 		const { client, calls } = makeClient([
 			{
 				status: 201,
-				body: { id: 1, name: "Sentinel / Capability Compliance", head_sha: "abc123", conclusion: "success" },
+				body: { id: 1, name: SENTINEL_CHECK_RUN_NAME, head_sha: "abc123", conclusion: "success" },
 			},
 		]);
 
@@ -35,7 +35,7 @@ describe("postCheckRun — compliant", () => {
 			conclusion: string;
 			output: { title: string; summary: string };
 		};
-		expect(body.name).toBe("Sentinel / Capability Compliance");
+		expect(body.name).toBe(SENTINEL_CHECK_RUN_NAME);
 		expect(body.head_sha).toBe("abc123");
 		expect(body.status).toBe("completed");
 		expect(body.conclusion).toBe("success");

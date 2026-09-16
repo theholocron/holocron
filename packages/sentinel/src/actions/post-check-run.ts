@@ -11,12 +11,22 @@
  * `deriveCompliance()` (called by `syncPropertiesFromConfig()`) already
  * checks against, imported rather than duplicated, so *why* a repo is
  * non-compliant can never drift from *whether* it is.
+ *
+ * `SENTINEL_CHECK_RUN_NAME` stays a human-readable "App / Report" label
+ * (`CodeQL`, `Devin Review` are the closest precedent — externally-posted
+ * checks, not `.github/workflows/*.yml` runs) rather than a
+ * `platform.*`-style intent-vocabulary token: the vocabulary (epic #672,
+ * D3) names `tasks:` entries backed by a reusable CI workflow, and this
+ * check has no workflow behind it at all — Sentinel posts it directly via
+ * the Checks API from a webhook. Exported so a caller checking for this
+ * check run by name (a future re-run guard, a test, a dashboard) never
+ * hand-copies the string.
  */
 
 import { missingCapabilities } from "@theholocron/cli";
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-const CHECK_RUN_NAME = "Sentinel / Capability Compliance";
+export const SENTINEL_CHECK_RUN_NAME = "Sentinel / Capability Compliance";
 
 export interface PostCheckRunInput {
 	client: Pick<GitHubClient, "checks">;
@@ -52,7 +62,7 @@ export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckR
 			: `Missing: ${missing.join(", ")}.`;
 
 	const checkRun = await client.checks.createCheckRun(repo, {
-		name: CHECK_RUN_NAME,
+		name: SENTINEL_CHECK_RUN_NAME,
 		head_sha: headSha,
 		status: "completed",
 		conclusion,

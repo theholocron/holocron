@@ -185,6 +185,18 @@ capability. Full list, kept as one running backlog: #674.
       from a new `missingCapabilities()` sibling to `@theholocron/cli`'s
       `deriveCompliance()` — same `REQUIRED_BASELINE` table, returning
       which entries are absent rather than just whether any are, so _why_
-      can never drift from _whether_.
+      can never drift from _whether_. The check's display name stays
+      `"Sentinel / Capability Compliance"` (human-readable "App / Report",
+      matching `CodeQL`/`Devin Review` — externally-posted checks with no
+      `.github/workflows/*.yml` behind them) rather than a
+      `platform.*`-style intent-vocabulary token, since that vocabulary
+      (D3) names `tasks:` entries backed by a reusable CI workflow and
+      this check has no workflow at all; exported as
+      `SENTINEL_CHECK_RUN_NAME` so nothing hand-copies the string.
+      Also reorganized `packages/sentinel/src/` into `utils/` (read-only:
+      `validateConfig`, `parseWebhookEvent`, `decodeContents`,
+      `findPackageRoot`) and `actions/` (writes: `syncPropertiesFromConfig`,
+      `postCheckRun`) — the read/write split a future webhook handler
+      will actually call in that order.
 - [ ] Deploy-target decision + actual deploy wiring — blocked on the open
       question above.
