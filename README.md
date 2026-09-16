@@ -184,6 +184,7 @@ packages/
   holocron-plugin-sentry/         — @theholocron/holocron-plugin-sentry     (errors)
   datapad/                        — @theholocron/datapad                    (config-file loader — <name>.config.*)
   astromech/                      — @theholocron/astromech                  (task runner — holocron run / ci)
+  sentinel/                       — @theholocron/sentinel                   (minimal GitHub App — scaffolding only)
 holocron.config.ts                — this repo's own holocron config (self-hosted)
 .notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins

@@ -41,6 +41,11 @@ component_management:
       paths:
         - packages/datapad/**
 
+    - component_id: sentinel
+      name: "sentinel"
+      paths:
+        - packages/sentinel/**
+
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:
