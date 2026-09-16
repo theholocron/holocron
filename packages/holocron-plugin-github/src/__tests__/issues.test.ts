@@ -1,8 +1,8 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { GitHubIssues } from "../capabilities/issues.js";
 import { createGitHubClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const REPO = "theholocron/holocron";
 const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" };

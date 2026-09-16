@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { GitHubSource } from "../capabilities/source.js";
 import { createGitHubClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 const REPO = "theholocron/holocron";
 

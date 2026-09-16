@@ -1,8 +1,8 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createAxiomClient, DEFAULT_BASE_URL } from "../rest.js";
-import { stubFetch } from "./helpers.js";
 
 describe("createAxiomClient", () => {
 	it("sends bearer + accept headers and returns the parsed body", async () => {

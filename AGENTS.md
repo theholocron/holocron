@@ -174,11 +174,14 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
      code are bugs.
   4. Commit message follows Conventional Commits and references the
      issue (`Closes #N` / `Refs #N`).
-- **Test patterns:** vitest across all packages. Plugins use
-  `stubFetch` (REST plugins) or `stubSpawn` (CLI plugins) — both
-  ported from rando-id/rando.id `__tests__/helpers.ts`. Per-plugin
-  coverage floor: 90%+ lines on the auth + REST/shell + capability
-  surface.
+- **Test patterns:** vitest across all packages. REST plugins import
+  `stubFetch` from `@theholocron/http-client/testing` (published,
+  originally ported from rando-id/rando.id `__tests__/helpers.ts` —
+  every package hand-copied its own until this shared subpath replaced
+  them). CLI-transport plugins (currently only `holocron-plugin-1password`)
+  use their own local `stubSpawn` — no shared equivalent exists yet, it's
+  a one-off. Per-plugin coverage floor: 90%+ lines on the auth +
+  REST/shell + capability surface.
 - **Don't call `expect(...).toThrow()` twice on the same stubbed call.**
   The stub queue advances per call; second invocation gets the default
   empty response. For multi-property error checks use the `.catch` capture
