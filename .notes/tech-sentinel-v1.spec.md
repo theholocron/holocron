@@ -158,9 +158,23 @@ capability. Full list, kept as one running backlog: #674.
       (verify + header shapes) moved, and only because `github-client` was
       already a Sentinel dependency, not as a new speculative package built
       for hypothetical future GitHub Apps.
-- [ ] Custom-properties sync call: invoke the existing `syncProperties()`
-      path (#677/#716) from the webhook handler on a push-to-default-branch
-      event.
+- [x] Custom-properties sync call: `syncPropertiesFromConfig()` resolves
+      the same 10 fields `holocron sync`'s `properties` step computes and
+      calls `client.properties.setProperties()` (#677/#716's mechanism)
+      directly — not through `@theholocron/holocron-plugin-github`'s
+      `syncProperties()` capability wrapper, since Sentinel isn't a plugin
+      and already depends on `@theholocron/github-client` directly; the
+      wrapper is a one-line pass-through with nothing else to reuse. D8
+      satisfied by importing the derivation functions
+      (`deriveProfile`/`deriveStack`/`deriveCapabilities`/`deriveCompliance`,
+      newly exported from `@theholocron/cli`'s public entry point)
+      unchanged — only their inputs are gathered differently (a recursive
+      `git.getTree()` walk for workspace `package.json` files instead of a
+      local `readdir`), inherent to running from a webhook with no
+      checkout. Not yet wired to an actual webhook handler — that's the
+      deploy-target-wiring item below; this is the same "ready to be
+      called once a handler exists" shape `validateConfig()` and
+      `parseWebhookEvent()` already have.
 - [ ] Check-run posting: one check run per resolution run, reflecting
       capability-compliance status.
 - [ ] Deploy-target decision + actual deploy wiring — blocked on the open

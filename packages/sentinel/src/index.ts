@@ -6,13 +6,13 @@
  * validation, custom-properties sync, one check run per resolution run.
  * Design: `.notes/tech-sentinel-v1.spec.md` (repo root).
  *
- * Scaffolding — the custom-properties sync call and check-run posting
- * land in follow-up PRs once the deploy target is decided (see the
- * spec's "Open, not yet decided" section). `parseWebhookEvent()` itself
- * is deploy-target-agnostic already: a plain function over
- * `{ body, headers, secret }`.
+ * Scaffolding — check-run posting lands in a follow-up PR once the deploy
+ * target is decided (see the spec's "Open, not yet decided" section).
+ * Everything exported here is already deploy-target-agnostic: plain
+ * functions over already-fetched/verified inputs, no HTTP framework.
  */
 
+export { syncPropertiesFromConfig, type SyncPropertiesInput, type SyncPropertiesResult } from "./sync-properties.js";
 export { validateConfig, type ValidateConfigInput, type ValidateConfigResult } from "./validate-config.js";
 export {
 	parseWebhookEvent,

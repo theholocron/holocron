@@ -5,10 +5,9 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. The custom-properties sync call and check-run posting land in
-> follow-up PRs once the deploy target is decided — see
-> `.notes/tech-sentinel-v1.spec.md` (repo root) for the full design and
-> what's still open.
+> own. Check-run posting lands in a follow-up PR once the deploy target
+> is decided — see `.notes/tech-sentinel-v1.spec.md` (repo root) for the
+> full design and what's still open.
 
 ## Scope (v1)
 
@@ -17,9 +16,8 @@ resolution run.
 - Read `holocron.config.ts` from a repo's default branch only — never a PR
   branch or fork (hard security boundary, D4/D6 in the epic spec). **Done**
   — `validateConfig()`.
-- Sync resolved capabilities/profile to GitHub custom properties, extending
-  the `syncProperties()` mechanism `@theholocron/holocron-plugin-github`
-  already implements.
+- Sync resolved capabilities/profile to GitHub custom properties. **Done**
+  — `syncPropertiesFromConfig()`.
 - Post a single check run reflecting capability-compliance status.
 
 Explicitly out of v1 — tracked in
@@ -83,6 +81,30 @@ that isn't valid JSON. Returns one of:
 `installationId` come entirely from the payload — never a hardcoded org
 (D10) — so one App registration handles installations across any number
 of orgs/accounts unchanged.
+
+## `syncPropertiesFromConfig({ client, repo, defaultBranch, config })`
+
+Resolves and syncs GitHub custom properties for a repo — the same 10
+fields `holocron sync`'s `properties` step computes (6 manual, straight
+from `holocron.config.ts`'s `repo.properties` / `repo.protection`; 4
+derived — #677) — from data fetched over the GitHub API instead of a
+local checkout, so it can run from a webhook delivery. Pass
+`validateConfig()`'s `config` from its `"valid"` result to avoid
+re-fetching the same file.
+
+The derivation logic itself —
+`deriveProfile()`/`deriveStack()`/`deriveCapabilities()`/`deriveCompliance()`
+— is imported from `@theholocron/cli` unchanged (D8): the same functions
+`holocron sync` calls locally. Only the _inputs_ differ: workspace-package
+discovery walks the default branch's tree via `client.git.getTree()`
+(recursive) instead of a local `readdir`, filtering for
+`packages/*/package.json` and `apps/*/package.json`. Every read goes
+through `client.git.get*()` with no `ref` parameter — the same D4/D6
+default-branch-only boundary `validateConfig()` relies on.
+
+Known limitation: GitHub truncates a tree response over ~100,000 entries
+(`truncated: true`) — no repo in this org is remotely close to that size
+today.
 
 ## Development
 

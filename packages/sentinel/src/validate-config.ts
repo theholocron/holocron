@@ -33,6 +33,8 @@ import { DEFAULT_EXTENSIONS, loadConfigFromContent } from "@theholocron/datapad"
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
+import { decodeContents } from "./decode-contents.js";
+
 // One level up from wherever this module actually runs from (`dist/` built,
 // `src/` under vitest) is always the package root.
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -48,11 +50,6 @@ export interface ValidateConfigInput {
 	client: Pick<GitHubClient, "git">;
 	/** `"owner/repo"`. */
 	repo: string;
-}
-
-/** Base64-decode `GitContents.content` — GitHub's Contents API's only supported encoding. */
-function decodeContents(content: string): string {
-	return Buffer.from(content, "base64").toString("utf8");
 }
 
 export async function validateConfig(input: ValidateConfigInput): Promise<ValidateConfigResult> {

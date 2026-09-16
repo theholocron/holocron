@@ -23,7 +23,7 @@ import type { ResolvedProvidersConfig } from "../../config/config.js";
 // future cross-org (`rando`, D10) repo that's nothing but one plugin.
 export type HolocronProfile = "library" | "cli" | "plugin" | "template" | "app" | "docs" | "platform";
 
-interface PackageJsonLike {
+export interface PackageJsonLike {
 	name?: string;
 	private?: boolean;
 	bin?: unknown;
