@@ -400,6 +400,33 @@ describe("createAstromech().turboConfig", () => {
 	});
 });
 
+describe("createAstromech().ensureRootWorkspaceMember", () => {
+	it("delegates to the bare ensureRootWorkspaceMember(), deriving taskNames from config.tasks (#692)", async () => {
+		const { ensureRootWorkspaceMember } = await import("./turbo.js");
+		const config = { tasks: ["delivery.build"] };
+		const yaml = 'packages:\n  - "docs"\n';
+		const viaFactory = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, [
+			"delivery.build",
+		]);
+		expect(viaFactory).toEqual(ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]));
+		expect(viaFactory.changed).toBe(true);
+	});
+
+	it("excludes tasks marked local: false from the derived taskNames — a CI-only task can't need a local workspace member", () => {
+		const config = { tasks: [{ name: "delivery.build", local: false as const }] };
+		const yaml = 'packages:\n  - "docs"\n';
+		const result = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("is a no-op with no config at all", () => {
+		const result = createAstromech({ cwd: "/repo" }).ensureRootWorkspaceMember('packages:\n  - "docs"\n', [
+			"delivery.build",
+		]);
+		expect(result.changed).toBe(false);
+	});
+});
+
 describe("createAstromech().ci", () => {
 	it("returns ok with no config (nothing to run)", () => {
 		const report = createAstromech({ cwd: "/repo", print: () => {} }).ci();
