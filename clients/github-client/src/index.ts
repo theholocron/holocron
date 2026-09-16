@@ -1,4 +1,5 @@
 import { branches } from "./branches/branches.js";
+import { checks } from "./checks/checks.js";
 import { environments } from "./environments/environments.js";
 import { git } from "./git/git.js";
 import { issues } from "./issues/issues.js";
@@ -16,6 +17,13 @@ import { user } from "./user/user.js";
 import { createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
 import { workflows } from "./workflows/workflows.js";
 
+export {
+	type CheckRunConclusion,
+	type CheckRunOutput,
+	type CheckRunStatus,
+	type CreateCheckRunInput,
+	type GitHubCheckRun,
+} from "./checks/checks.js";
 export type { GitHubEnvironment } from "./environments/environments.js";
 export type {
 	CreatePullInput,
@@ -58,6 +66,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 	const rest = createGitHubRestClient(opts);
 	return {
 		branches: branches(rest),
+		checks: checks(rest),
 		environments: environments(rest),
 		git: git(rest),
 		issues: issues(rest),

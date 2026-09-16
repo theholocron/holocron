@@ -51,6 +51,7 @@ const blob = await client.git.createBlob("owner/name", "file contents");
 | `topics`       | `setTopics`                                                                                                                                                                                             |
 | `properties`   | `setProperties`                                                                                                                                                                                         |
 | `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                                     |
+| `checks`       | `createCheckRun`                                                                                                                                                                                        |
 
 ## Webhooks
 
