@@ -142,6 +142,16 @@ Field definitions and derivation heuristics:
 `.notes/tech-holocron-platform.spec.md` → "Custom-properties sync — field
 definitions (#677)".
 
+The four derived fields' pure computation —
+`deriveProfile()`/`deriveStack()`/`deriveCapabilities()`/`deriveCompliance()`
+(plus their `HolocronProfile`/`DeriveProfileInput`/`PackageJsonLike` types)
+— is exported from this package's public entry point, separate from the
+local-filesystem reads (`readWorkspacePackageJsons()`) that gather their
+inputs here. `@theholocron/sentinel`'s `syncPropertiesFromConfig()` reuses
+these functions unchanged, gathering the same inputs over the GitHub API
+instead (D8 — one derivation, two input sources, not two
+implementations).
+
 ### Required status checks (`protection: "strict"`)
 
 `holocron setup` builds the branch-protection required-check list from the

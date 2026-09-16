@@ -91,12 +91,6 @@ const config: KnipConfig = {
 		// invoked by @theholocron/lint-staged-config's package.json rule
 		// ("package.json": "sort-package-json"), not a module import
 		"sort-package-json",
-		// packages/sentinel declares this so a *fetched* repo's holocron.config.ts
-		// (which commonly does `import { defineConfig } from "@theholocron/cli"`,
-		// the README's own documented pattern) can resolve it via upward
-		// node_modules lookup from the temp dir validate-config.ts writes into —
-		// never statically imported by sentinel's own source
-		"@theholocron/cli",
 	],
 	ignoreExportsUsedInFile: true,
 	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's

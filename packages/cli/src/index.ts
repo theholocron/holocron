@@ -1,5 +1,6 @@
 export * from "./auth/auth-resolver.js";
 export * from "./auth/keyring.js";
+export * from "./commands/setup/derived-properties.js";
 export * from "./config/compose.js";
 export * from "./config/config.js";
 export * from "./config/define-config.js";
