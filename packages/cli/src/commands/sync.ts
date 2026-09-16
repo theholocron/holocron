@@ -130,10 +130,10 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			if (stepName === "properties") {
 				if (source.syncProperties) {
 					const repo = config.repo;
-					const properties: Record<string, string> = {};
+					const properties: Record<string, string | string[]> = {};
 					const effectivePreset = repo?.protection;
 					if (effectivePreset && effectivePreset !== "none")
-						properties["branch_protection_level"] = effectivePreset;
+						properties["holocron_branch_protection_level"] = effectivePreset;
 					const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
 						.then(() => true)
 						.catch(() => false);
@@ -163,9 +163,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							isMonorepo,
 							workspacePackageJsons,
 						});
-						properties["holocron_stack"] = deriveStack(rootPackageJson).join(", ");
+						properties["holocron_stack"] = deriveStack(rootPackageJson);
 						const capabilities = deriveCapabilities(config.providers);
-						properties["holocron_capabilities"] = capabilities.join(", ");
+						properties["holocron_capabilities"] = capabilities;
 						properties["holocron_compliance"] = deriveCompliance(capabilities);
 					}
 

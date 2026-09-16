@@ -471,9 +471,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		const properties: Record<string, string> = {};
+		const properties: Record<string, string | string[]> = {};
 
-		if (effectivePreset && effectivePreset !== "none") properties["branch_protection_level"] = effectivePreset;
+		if (effectivePreset && effectivePreset !== "none")
+			properties["holocron_branch_protection_level"] = effectivePreset;
 
 		const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
 			.then(() => true)
@@ -502,9 +503,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				isMonorepo,
 				workspacePackageJsons,
 			});
-			properties["holocron_stack"] = deriveStack(rootPackageJson).join(", ");
+			properties["holocron_stack"] = deriveStack(rootPackageJson);
 			const capabilities = deriveCapabilities(config.providers);
-			properties["holocron_capabilities"] = capabilities.join(", ");
+			properties["holocron_capabilities"] = capabilities;
 			properties["holocron_compliance"] = deriveCompliance(capabilities);
 		}
 

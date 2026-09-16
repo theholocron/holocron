@@ -129,14 +129,14 @@ properties; properties are never a second editable source of truth):
 
 **Derived** — computed from resolved config + `package.json`, not a config field:
 
-| Property                  | Value                                                                                   |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `monorepo`                | `boolean` — whether `pnpm-workspace.yaml` exists                                        |
-| `branch_protection_level` | the active `repo.protection` preset                                                     |
-| `holocron_profile`        | repo archetype: `library` / `cli` / `plugin` / `template` / `app` / `docs` / `platform` |
-| `holocron_capabilities`   | comma-joined provider capability keys actually wired in `providers: {}`                 |
-| `holocron_stack`          | comma-joined detected build/framework tooling (`next`, `vite`, `astro`, `tsdown`, …)    |
-| `holocron_compliance`     | `"compliant" \| "non-compliant"` against a minimal `source` + `ci` baseline             |
+| Property                           | Value                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `monorepo`                         | `boolean` — whether `pnpm-workspace.yaml` exists                                         |
+| `holocron_branch_protection_level` | the active `repo.protection` preset                                                      |
+| `holocron_profile`                 | repo archetype: `library` / `cli` / `plugin` / `template` / `app` / `docs` / `platform`  |
+| `holocron_capabilities`            | provider capability keys actually wired in `providers: {}` (`multi_select`)              |
+| `holocron_stack`                   | detected build/framework tooling — `next`, `vite`, `astro`, `tsdown`, … (`multi_select`) |
+| `holocron_compliance`              | `"compliant" \| "non-compliant"` against a minimal `source` + `ci` baseline              |
 
 Field definitions and derivation heuristics:
 `.notes/tech-holocron-platform.spec.md` → "Custom-properties sync — field

@@ -37,6 +37,38 @@ describe("deriveProfile", () => {
 		).not.toBe("platform");
 	});
 
+	it("classifies a library monorepo as library, not docs, even when its private root has astro-config for a docs site (real clients repro)", () => {
+		// clients' real shape: root package.json is private + has
+		// @theholocron/astro-config (its docs site is built from the
+		// monorepo root) — without the monorepo-library check this falls
+		// straight into the root-package branch and wrongly resolves to
+		// "docs", when the repo is fundamentally a family of published
+		// client libraries with a docs site as a secondary concern.
+		expect(
+			deriveProfile({
+				rootPackageJson: {
+					name: "@theholocron/clients",
+					private: true,
+					devDependencies: { "@theholocron/astro-config": "^8.0.0", astro: "^5.0.0" },
+				},
+				repoName: "clients",
+				isMonorepo: true,
+				workspacePackageJsons: [{ name: "@theholocron/github-client" }, { name: "@theholocron/http-client" }],
+			})
+		).toBe("library");
+	});
+
+	it("still classifies a genuine docs-only monorepo (no published workspace packages) as docs", () => {
+		expect(
+			deriveProfile({
+				rootPackageJson: { private: true, devDependencies: { "@theholocron/astro-config": "^8.0.0" } },
+				repoName: "docs-site",
+				isMonorepo: true,
+				workspacePackageJsons: [{ name: "@theholocron/internal-tool", private: true }],
+			})
+		).toBe("docs");
+	});
+
 	it("classifies a single-package repo with a bin as cli", () => {
 		expect(
 			deriveProfile({

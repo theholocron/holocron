@@ -167,7 +167,7 @@ export class GitHubSource implements Source {
 		return syncLabels(this.client, this.repo, canonical, stale);
 	}
 
-	async syncProperties(values: Record<string, string>): Promise<string> {
+	async syncProperties(values: Record<string, string | string[]>): Promise<string> {
 		return syncProperties(this.client, this.repo, values);
 	}
 

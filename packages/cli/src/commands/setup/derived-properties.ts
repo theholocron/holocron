@@ -46,11 +46,20 @@ export interface DeriveProfileInput {
  *    package has `bin`) → `platform` — matches `holocron` itself: the CLI is
  *    the deliverable, the plugin packages are supporting infrastructure for
  *    it, not separate products.
- * 3. Single-package repo with `package.json#bin` → `cli`.
- * 4. Docs-only site (astro/starlight present, root package private, no
+ * 3. Monorepo with no CLI but at least one non-private workspace package →
+ *    `library` — matches `clients`/`configs`/`utils`/`themes`/
+ *    `observability`: a family of published packages, none of them a CLI.
+ *    Checked *before* falling into the root-package branch below, because
+ *    these repos' own root `package.json` is private and often carries
+ *    `@theholocron/astro-config` for a docs site built from the monorepo
+ *    root — without this check they'd wrongly resolve to `docs` off that
+ *    root-level signal alone, when the docs site is a secondary concern of
+ *    a library collection, not what the repo fundamentally is.
+ * 4. Single-package repo with `package.json#bin` → `cli`.
+ * 5. Docs-only site (astro/starlight present, root package private, no
  *    publishable exports) → `docs`.
- * 5. Private, non-publishable, non-docs → `app`.
- * 6. Otherwise, a single publishable package → `library`.
+ * 6. Private, non-publishable, non-docs → `app`.
+ * 7. Otherwise, a single publishable package → `library`.
  */
 export function deriveProfile(input: DeriveProfileInput): HolocronProfile {
 	if (/-template$/.test(input.repoName)) return "template";
@@ -58,6 +67,9 @@ export function deriveProfile(input: DeriveProfileInput): HolocronProfile {
 	if (input.isMonorepo) {
 		const hasPublishedCli = input.workspacePackageJsons.some((pkg) => Boolean(pkg.bin));
 		if (hasPublishedCli) return "platform";
+
+		const hasPublishedLibrary = input.workspacePackageJsons.some((pkg) => pkg.private !== true);
+		if (hasPublishedLibrary) return "library";
 	}
 
 	const pkg = input.rootPackageJson;
