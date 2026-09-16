@@ -125,6 +125,13 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// commitlint and the repo-validation scripts have no local runner — they
 		// don't go through the holocron composite action at all.
 		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain("commitlint --from");
+		// --config <resolved shared path> (config-resolution workstream, #676),
+		// guarded so it falls back to auto-discovery when the shared package
+		// isn't installed.
+		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain(
+			'COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"'
+		);
+		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
 		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
 		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
 			/task: platform\.repoValidation\n\s+job: registry/

@@ -47,6 +47,7 @@ import {
 	createIgnoreConfig as createAlexignore,
 	createRcConfig as createAlexrc,
 } from "../../templates/configs/alexjs/index.js";
+import { createConfig as createCommitMsg } from "../../templates/configs/commit-msg/index.js";
 import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
 import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
 import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
@@ -327,6 +328,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		steps.push(
 			await runStep("source", "write .husky/prepare-commit-msg", dryRun, async () => {
 				await source.writeRepoFile(".husky/prepare-commit-msg", createPrepareCommitMsg());
+			})
+		);
+		print(formatStep(steps[steps.length - 1]!));
+		steps.push(
+			await runStep("source", "write .husky/commit-msg", dryRun, async () => {
+				await source.writeRepoFile(".husky/commit-msg", createCommitMsg());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
