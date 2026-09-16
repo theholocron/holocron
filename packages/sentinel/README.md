@@ -41,8 +41,10 @@ against `@theholocron/astromech`'s canonical task registry. Returns one of:
 | `"unknown-tasks"` | Config loaded; `unknownTasks` lists names outside the registry. |
 | `"load-error"`    | A `holocron.config.*` exists but couldn't be parsed/executed.   |
 
-Execution reuses `@theholocron/datapad`'s `loadConfigFile()` unchanged —
-the same loader `holocron setup`/`sync` use locally (D8) — so a real
+Execution reuses `@theholocron/datapad`'s `loadConfigFromContent()`
+(fetched content, not a file already on disk — the same `loadFile`
+internals `loadConfigFile()` uses locally for `holocron setup`/`sync`,
+D8) — so a real
 `holocron.config.ts` that does
 `import { defineConfig } from "@theholocron/cli"` (the CLI README's own
 documented pattern) resolves correctly; the fetched content is written to

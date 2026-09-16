@@ -9,12 +9,9 @@
  * PR branch or fork, not just by policy.
  *
  * D8 parity: the actual execution of `holocron.config.ts` reuses
- * `@theholocron/datapad`'s `loadConfigFile()` unchanged — the same loader
- * `holocron setup`/`sync` use locally, not a bespoke server-side parser.
- * Fetched content is written to a real temp file first because that loader
- * (like the CLI itself) resolves a config by reading a path, not a string —
- * reusing it exactly, rather than adding a second "load from string" mode,
- * is what keeps this one engine instead of two.
+ * `@theholocron/datapad`'s `loadConfigFromContent()` unchanged — the same
+ * `loadFile` internals `holocron setup`/`sync` use locally via
+ * `loadConfigFile()`, not a bespoke server-side parser.
  *
  * The temp directory is created *inside this package* (`packages/sentinel/
  * .tmp/`), not the OS tmp dir — real `holocron.config.ts` files commonly
@@ -26,13 +23,13 @@
  * dependency (below) precisely so this resolves.
  */
 
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { KNOWN_TASKS } from "@theholocron/astromech";
 import { normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
-import { DEFAULT_EXTENSIONS, loadConfigFile } from "@theholocron/datapad";
+import { DEFAULT_EXTENSIONS, loadConfigFromContent } from "@theholocron/datapad";
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
@@ -75,10 +72,14 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 		await mkdir(tmpRoot, { recursive: true });
 		const tmpDir = await mkdtemp(join(tmpRoot, "validate-"));
 		try {
-			await writeFile(join(tmpDir, path), raw, "utf8");
 			let loaded;
 			try {
-				loaded = await loadConfigFile<TasksConfig>({ cwd: tmpDir, name: "holocron" });
+				loaded = await loadConfigFromContent<TasksConfig>({
+					dir: tmpDir,
+					content: raw,
+					name: "holocron",
+					extension: ext,
+				});
 			} catch (err) {
 				return {
 					status: "load-error",
@@ -86,10 +87,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 					message: err instanceof Error ? err.message : String(err),
 				};
 			}
-			// loadConfigFile only returns null when the file it just probed for
-			// is absent — impossible here since we wrote it moments ago.
-			const config = loaded!.config;
-			const unknownTasks = (config.tasks ?? [])
+			const unknownTasks = (loaded.config.tasks ?? [])
 				.map(normalizeTaskEntry)
 				.map((t) => t.name)
 				.filter((name) => !KNOWN_TASKS.has(name));
@@ -97,7 +95,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 			if (unknownTasks.length > 0) {
 				return { status: "unknown-tasks", filepath: path, unknownTasks };
 			}
-			return { status: "valid", filepath: path, config };
+			return { status: "valid", filepath: path, config: loaded.config };
 		} finally {
 			await rm(tmpDir, { recursive: true, force: true });
 		}

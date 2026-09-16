@@ -51,6 +51,22 @@ Loads the first `<name>.config.<ext>` found in `cwd`. Probe order is
 file"; a file that exists but cannot be parsed / loaded / has no default
 export throws `ConfigFileError`.
 
+### `loadConfigFromContent<T>({ dir, content, name, extension })`
+
+Loads config from content that didn't come from a file already on disk —
+writes it to `<dir>/<name>.config.<extension>` first, then loads it through
+the exact same internals `loadConfigFile` uses for a file it discovered
+itself. `dir` matters: it's what upward `node_modules` resolution sees, so
+content that does `import { defineConfig } from "@theholocron/cli"` only
+resolves if `dir` sits under a tree where that package is a real
+dependency. Callers own creating and cleaning up `dir`. Returns
+`{ config, filepath }`; throws `ConfigFileError` the same way
+`loadConfigFile` does on a parse/load failure.
+
+Built for `@theholocron/sentinel`'s `validateConfig()` — it fetches a
+repo's `holocron.config.*` from GitHub's API, not a local checkout, but
+still needs the fetched content to execute as a real module.
+
 ### `loadLayered<T>({ cwd, name, fallback?, extensions? })`
 
 `<name>.config.*` layered over the `[fallback.key]` of

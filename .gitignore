@@ -89,6 +89,9 @@ dist
 # packages/sentinel's temp dir for validating a fetched holocron.config.*
 # (needs a real path under node_modules resolution reach — see validate-config.ts)
 packages/sentinel/.tmp
+# datapad's own loadConfigFromContent tests write real fixture files inside
+# the package tree to prove node_modules resolution (see load.test.ts)
+packages/datapad/.test-tmp-*
 super-linter-output
 .astro/
 docs/.astro/

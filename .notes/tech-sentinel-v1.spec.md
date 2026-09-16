@@ -123,10 +123,15 @@ capability. Full list, kept as one running backlog: #674.
       default branch (D4/D6) — writes it into a temp dir _inside this
       package_ (so `import { defineConfig } from "@theholocron/cli"`, the
       README's own documented config pattern, actually resolves), and loads
-      it through `@theholocron/datapad`'s unmodified `loadConfigFile()` (D8 —
-      same loader `holocron setup`/`sync` use locally). Validates the
-      resulting `tasks` array against `astromech`'s `KNOWN_TASKS` (D11 — one
-      canonical table, imported not copied).
+      it through `@theholocron/datapad`'s `loadConfigFromContent()` (D8 —
+      the same `loadFile` internals `loadConfigFile()` uses locally for
+      `holocron setup`/`sync`; extracted into datapad rather than
+      reimplemented here, since "load config from content that isn't a file
+      on disk yet" is Holocron-agnostic the same way "load config from a
+      file" already is — datapad's own charter, not something specific to
+      Sentinel's GitHub-fetch). Validates the resulting `tasks` array
+      against `astromech`'s `KNOWN_TASKS` (D11 — one canonical table,
+      imported not copied).
 - [ ] Webhook receiver: installation events, push-to-default-branch,
       PR opened/synchronize — handler logic only, framework-agnostic where
       possible so it isn't locked to a deploy target before that's decided.
