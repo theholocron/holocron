@@ -1,12 +1,12 @@
 ---
 status: draft
 issue: theholocron/holocron#679
-blocked-by:
-  - theholocron/holocron#675
-  - theholocron/holocron#677
+blocked-by: []
 related:
   - theholocron/holocron#672
   - theholocron/holocron#674
+  - theholocron/holocron#675
+  - theholocron/holocron#677
 ---
 
 # Minimal GitHub App v1
@@ -58,27 +58,69 @@ capability. Full list, kept as one running backlog: #674.
   `orgContext` pattern `astromech` already uses (tested against a fake
   `"acme"` org, not hardcoded).
 
+## Resolved
+
+- **Package location: `packages/github-app`, published as
+  `@theholocron/github-app`.** Matches the naming precedent for
+  core-platform packages — `astromech`, `datapad`, `cli`, `logger` all
+  publish as `@theholocron/<name>`, no prefix (unlike vendor plugins,
+  `@theholocron/holocron-plugin-<provider>`). This package isn't a vendor
+  integration; it's Holocron's own runtime. Carries its own
+  `holocron.config.ts` (dogfooding, as originally noted) — wires whatever
+  `vault` provider the org already uses (1Password/Doppler/Infisical) for
+  its own secrets, same as every other package in this repo.
+- **Secrets: the existing `vault` capability, not a new path.** The App's
+  GitHub App private key + webhook secret are this package's own deployment
+  secrets — the same shape as any other `holocron-plugin-*` package's
+  vendor token today. `holocron secrets sync` already pushes vault-held
+  values to a deploy target's env vars (Vercel) or platform secrets
+  (Cloudflare Workers) — whichever deploy target below ends up hosting this,
+  the mechanism is already built, not new work. No new secrets
+  infrastructure needed; this was never actually an open question once
+  framed as "this package's own secrets," not "a special App-only path."
+
 ## Open, not yet decided
 
 - **Deploy target** for the App's webhook receiver. Candidates already
   integrated elsewhere in this org: Vercel (`holocron-plugin-vercel` already
   exists) or Cloudflare Workers (`holocron-plugin-cloudflare` already
-  exists). Resolve as part of this spec once Phase A's vocabulary +
-  properties work has landed and the App's actual shape is clearer — not a
-  separate issue.
-- Package location within the monorepo (`packages/github-app`? something
-  else?) and its own `holocron.config.ts` (dogfooding).
-- Whether the App needs a GitHub App private key + webhook secret stored via
-  the existing vault capability, or a new secrets path.
+  exists). Neither existing capability directly models "deploy a general
+  webhook handler" today — `Deployment` (Vercel) models a framework-aware
+  project; `Workers` (Cloudflare) is currently scoped narrowly to
+  reverse-proxying the wiki, not general Worker deployment — so either
+  choice means extending a capability, not just calling one. Deliberately
+  left open rather than decided here; revisit once the webhook
+  receiver's actual shape (framework, if any) is clearer from scaffolding
+  the package itself.
 
 ## Dependencies
 
-- Vocabulary + registry rename (#675) — the App validates against the
-  renamed schema, not the pre-rename one.
-- Custom-properties sync expansion (#677) — the App extends this mechanism
-  rather than building its own.
+- Vocabulary + registry rename (#675) — **shipped**, merged to alpha across
+  #683–#686. The App validates against the renamed schema.
+- Custom-properties sync expansion (#677) — **shipped**, merged to alpha via
+  #714/#716 (the second PR fixed a real `multi_select`/length-limit bug the
+  first one's design missed — see `.notes/tech-holocron-platform.spec.md`'s
+  "Custom-properties sync — field definitions" section). The App extends
+  this mechanism rather than building its own.
 
 ## PR-stack
 
-TBD — filed once the deploy-target decision and package location are
-resolved.
+- [ ] Scaffold `packages/github-app` (`@theholocron/github-app`): package.json,
+      tsconfig, its own `holocron.config.ts`, empty webhook-receiver entry
+      point — no deploy target wired yet, just the package existing and
+      typechecking/building in the workspace.
+- [ ] Schema validation: import the same task-vocabulary table
+      `astromech`'s CLI-side resolution already uses (per D11 — one
+      canonical table, the App imports it rather than owning a copy) and
+      validate a `holocron.config.ts` read from a repo's default branch
+      against it.
+- [ ] Webhook receiver: installation events, push-to-default-branch,
+      PR opened/synchronize — handler logic only, framework-agnostic where
+      possible so it isn't locked to a deploy target before that's decided.
+- [ ] Custom-properties sync call: invoke the existing `syncProperties()`
+      path (#677/#716) from the webhook handler on a push-to-default-branch
+      event.
+- [ ] Check-run posting: one check run per resolution run, reflecting
+      capability-compliance status.
+- [ ] Deploy-target decision + actual deploy wiring — blocked on the open
+      question above.
