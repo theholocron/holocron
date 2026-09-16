@@ -128,6 +128,16 @@ export function deriveCompliance(capabilities: readonly string[]): "compliant" |
 }
 
 /**
+ * The Phase B refinement `deriveCompliance()`'s own doc comment names —
+ * *why* a repo is non-compliant, not just that it is. `[]` when compliant.
+ * Same `REQUIRED_BASELINE` `deriveCompliance()` checks against — one
+ * table, not two independently-maintained baselines.
+ */
+export function missingCapabilities(capabilities: readonly string[]): string[] {
+	return REQUIRED_BASELINE.filter((key) => !capabilities.includes(key));
+}
+
+/**
  * Reads each workspace package's actual `package.json` content (not just
  * `readWorkspacePackages()`'s `{ slug, name, dir }` — `deriveProfile()`'s
  * `platform` detection needs `bin`, which that helper doesn't carry).

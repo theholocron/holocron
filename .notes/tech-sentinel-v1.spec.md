@@ -175,7 +175,16 @@ capability. Full list, kept as one running backlog: #674.
       deploy-target-wiring item below; this is the same "ready to be
       called once a handler exists" shape `validateConfig()` and
       `parseWebhookEvent()` already have.
-- [ ] Check-run posting: one check run per resolution run, reflecting
-      capability-compliance status.
+- [x] Check-run posting: `postCheckRun()` posts one check run per
+      resolution run via `@theholocron/github-client`'s newly-added
+      `checks.createCheckRun()` (`clients` repo, published 1.19.0) —
+      Sentinel calls it directly rather than through a wrapper, since
+      it's a single REST call with nothing else to reuse. Reports exactly
+      the epic spec's own examples: "this repo declares X, Y, Z — all
+      present" (success) or "missing: Y" (failure). D8: "missing" comes
+      from a new `missingCapabilities()` sibling to `@theholocron/cli`'s
+      `deriveCompliance()` — same `REQUIRED_BASELINE` table, returning
+      which entries are absent rather than just whether any are, so _why_
+      can never drift from _whether_.
 - [ ] Deploy-target decision + actual deploy wiring — blocked on the open
       question above.

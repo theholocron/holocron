@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveCapabilities, deriveCompliance, deriveProfile, deriveStack } from "./derived-properties.js";
+import {
+	deriveCapabilities,
+	deriveCompliance,
+	deriveProfile,
+	deriveStack,
+	missingCapabilities,
+} from "./derived-properties.js";
 
 describe("deriveProfile", () => {
 	it("classifies a *-template repo as template regardless of package shape", () => {
@@ -188,5 +194,23 @@ describe("deriveCompliance", () => {
 
 	it("is non-compliant when capabilities is empty", () => {
 		expect(deriveCompliance([])).toBe("non-compliant");
+	});
+});
+
+describe("missingCapabilities", () => {
+	it("returns an empty array when both source and ci are present", () => {
+		expect(missingCapabilities(["ci", "source", "deployment"])).toEqual([]);
+	});
+
+	it("lists ci when it's missing", () => {
+		expect(missingCapabilities(["source"])).toEqual(["ci"]);
+	});
+
+	it("lists source when it's missing", () => {
+		expect(missingCapabilities(["ci"])).toEqual(["source"]);
+	});
+
+	it("lists both when capabilities is empty", () => {
+		expect(missingCapabilities([])).toEqual(["source", "ci"]);
 	});
 });

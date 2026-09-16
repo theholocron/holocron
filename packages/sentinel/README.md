@@ -5,9 +5,9 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. Check-run posting lands in a follow-up PR once the deploy target
-> is decided — see `.notes/tech-sentinel-v1.spec.md` (repo root) for the
-> full design and what's still open.
+> own. Actual deploy wiring lands in a follow-up PR once the deploy
+> target is decided — see `.notes/tech-sentinel-v1.spec.md` (repo root)
+> for the full design and what's still open.
 
 ## Scope (v1)
 
@@ -19,6 +19,7 @@ resolution run.
 - Sync resolved capabilities/profile to GitHub custom properties. **Done**
   — `syncPropertiesFromConfig()`.
 - Post a single check run reflecting capability-compliance status.
+  **Done** — `postCheckRun()`.
 
 Explicitly out of v1 — tracked in
 [#674](https://github.com/theholocron/holocron/issues/674): the App
@@ -105,6 +106,23 @@ default-branch-only boundary `validateConfig()` relies on.
 Known limitation: GitHub truncates a tree response over ~100,000 entries
 (`truncated: true`) — no repo in this org is remotely close to that size
 today.
+
+## `postCheckRun({ client, repo, headSha, capabilities })`
+
+Posts one check run reflecting capability-compliance status — the App's
+v1 report, matching the epic spec's own examples: "this repo declares X,
+Y, Z — all present" (`conclusion: "success"`) or "missing:
+dependencyReview" (`conclusion: "failure"`). Calls
+`@theholocron/github-client`'s `checks.createCheckRun()` directly —
+Sentinel isn't a plugin, and this is a single REST call with nothing else
+to wrap.
+
+`capabilities` is `syncPropertiesFromConfig()`'s result's
+`holocron_capabilities` (or independently resolved). "Compliant" reduces
+to `@theholocron/cli`'s `missingCapabilities(capabilities).length === 0`
+— the same `REQUIRED_BASELINE` table `deriveCompliance()` already checks
+against, imported rather than duplicated (D8), so _why_ a repo is
+non-compliant can never drift from _whether_ it is.
 
 ## Development
 
