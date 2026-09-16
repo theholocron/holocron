@@ -19,7 +19,7 @@
  */
 
 import { access, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
@@ -66,6 +66,13 @@ import { style } from "../../ui/style.js";
 import { createHeader } from "../../utils/create-header.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
+import {
+	deriveCapabilities,
+	deriveCompliance,
+	deriveProfile,
+	deriveStack,
+	readWorkspacePackageJsons,
+} from "./derived-properties.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
@@ -479,6 +486,27 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
 		if (manual.uses_external_packages !== undefined)
 			properties["uses_external_packages"] = String(manual.uses_external_packages);
+
+		// #677 — derived fields, distinct from the manual ones above: signal
+		// that isn't an explicit holocron.config.ts field today (framework
+		// choice, repo archetype, capability drift).
+		{
+			const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+				.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
+				.catch(() => null);
+			const workspacePackages = readWorkspacePackages(input.context.repoRoot);
+			const workspacePackageJsons = await readWorkspacePackageJsons(input.context.repoRoot, workspacePackages);
+			properties["holocron_profile"] = deriveProfile({
+				rootPackageJson,
+				repoName: basename(input.context.repoRoot),
+				isMonorepo,
+				workspacePackageJsons,
+			});
+			properties["holocron_stack"] = deriveStack(rootPackageJson).join(", ");
+			const capabilities = deriveCapabilities(config.providers);
+			properties["holocron_capabilities"] = capabilities.join(", ");
+			properties["holocron_compliance"] = deriveCompliance(capabilities);
+		}
 
 		if (source.syncProperties) {
 			steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));

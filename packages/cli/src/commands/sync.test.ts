@@ -1218,8 +1218,52 @@ describe("runSync", () => {
 		expect(captured!["open_source"]).toBe("true");
 		expect(captured!["runtime_environment"]).toBe("node");
 		expect(captured!["uses_external_packages"]).toBe("false");
+		// derived properties (#677) — /tmp/test has no package.json, so these
+		// fall back to their "nothing detected" values.
+		expect(captured!["holocron_profile"]).toBe("library");
+		expect(captured!["holocron_stack"]).toBe("");
+		expect(captured!["holocron_capabilities"]).toBe("source");
+		expect(captured!["holocron_compliance"]).toBe("non-compliant"); // no `ci` provider wired
 		const step = report.steps.find((s) => s.step === "sync properties");
 		expect(step?.status).toBe("ok");
+	});
+
+	it("derives holocron_profile/stack/capabilities/compliance from real repo content (#677)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ devDependencies: { tsdown: "^0.22.0" } }));
+			let captured: Record<string, string> | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github", ci: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["properties"],
+				print: () => {},
+			});
+
+			expect(captured).not.toBeNull();
+			expect(captured!["holocron_stack"]).toBe("tsdown");
+			expect(captured!["holocron_capabilities"]).toBe("ci, source");
+			expect(captured!["holocron_compliance"]).toBe("compliant");
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
 	});
 
 	it("sets monorepo=true when pnpm-workspace.yaml exists in repoRoot", async () => {

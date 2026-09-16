@@ -112,6 +112,36 @@ Additional `repo` fields recognised by `holocron setup`:
 | `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron setup`. For `"strict"`, the required status checks are derived from the task manifest — see below.                           |
 | `repo.properties` | `RepoProperties`                        | Org-level custom property values synced to the GitHub dashboard.                                                                                                           |
 
+### Custom properties synced to GitHub
+
+`holocron setup` and `holocron sync` both call `syncProperties()` with two
+kinds of fields — always one-way (`holocron.config.ts` → resolved →
+properties; properties are never a second editable source of truth):
+
+**Manual** — `repo.properties` states these explicitly:
+
+| Property                 | Value                                          |
+| ------------------------ | ---------------------------------------------- |
+| `lifecycle`              | `"active" \| "experimental" \| "deprecated"`   |
+| `open_source`            | `boolean`                                      |
+| `runtime_environment`    | `"node" \| "browser" \| "universal" \| "none"` |
+| `uses_external_packages` | `boolean`                                      |
+
+**Derived** — computed from resolved config + `package.json`, not a config field:
+
+| Property                  | Value                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| `monorepo`                | `boolean` — whether `pnpm-workspace.yaml` exists                                        |
+| `branch_protection_level` | the active `repo.protection` preset                                                     |
+| `holocron_profile`        | repo archetype: `library` / `cli` / `plugin` / `template` / `app` / `docs` / `platform` |
+| `holocron_capabilities`   | comma-joined provider capability keys actually wired in `providers: {}`                 |
+| `holocron_stack`          | comma-joined detected build/framework tooling (`next`, `vite`, `astro`, `tsdown`, …)    |
+| `holocron_compliance`     | `"compliant" \| "non-compliant"` against a minimal `source` + `ci` baseline             |
+
+Field definitions and derivation heuristics:
+`.notes/tech-holocron-platform.spec.md` → "Custom-properties sync — field
+definitions (#677)".
+
 ### Required status checks (`protection: "strict"`)
 
 `holocron setup` builds the branch-protection required-check list from the
