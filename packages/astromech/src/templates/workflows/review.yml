@@ -1,4 +1,4 @@
-name: Review
+name: Source Quality
 
 on: # yamllint disable-line rule:truthy
   pull_request:
@@ -14,6 +14,6 @@ permissions:
 
 jobs:
   review:
-    name: Lint Annotations
+    name: Annotations
     uses: theholocron/.github/.github/workflows/review.yml@main
     secrets: inherit
