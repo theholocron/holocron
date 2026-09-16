@@ -44,6 +44,14 @@ export type { CodeScanningSetupResult } from "./security/security.js";
 export type { TeamPermission } from "./teams/teams.js";
 export type { GitHubUser } from "./user/user.js";
 export type { GitHubClientOptions } from "./utils.js";
+export {
+	type GitHubInstallationWebhookPayload,
+	type GitHubPullRequestWebhookPayload,
+	type GitHubPushWebhookPayload,
+	type GitHubWebhookHeaders,
+	parseGitHubWebhookHeaders,
+	verifyGitHubWebhookSignature,
+} from "./webhooks/webhooks.js";
 export type { GitHubWorkflowRun, WorkflowRunFilter } from "./workflows/workflows.js";
 
 export function createGitHubClient(opts: GitHubClientOptions) {

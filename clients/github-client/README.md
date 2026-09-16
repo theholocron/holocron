@@ -51,3 +51,41 @@ const blob = await client.git.createBlob("owner/name", "file contents");
 | `topics`       | `setTopics`                                                                                                                                                                                             |
 | `properties`   | `setProperties`                                                                                                                                                                                         |
 | `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                                     |
+
+## Webhooks
+
+GitHub's own inbound-webhook mechanics — signature verification and
+header/payload shapes — as standalone functions, not part of
+`createGitHubClient()`: these verify a _delivery this package's consumer
+received_, not an outbound REST call, so they need a webhook secret
+instead of an API token.
+
+```ts
+import {
+  parseGitHubWebhookHeaders,
+  verifyGitHubWebhookSignature,
+  type GitHubPushWebhookPayload,
+} from "@theholocron/github-client";
+
+const { event, delivery, signature } = parseGitHubWebhookHeaders(req.headers);
+const ok = verifyGitHubWebhookSignature({ body: rawBody, signature, secret: webhookSecret });
+```
+
+`verifyGitHubWebhookSignature({ body, signature, secret })` — `X-Hub-
+Signature-256` verification (HMAC-SHA256 over the raw body,
+`timingSafeEqual`-compared). Returns `false` for any failure to verify
+(empty secret, missing/malformed signature, mismatch) — never throws;
+the caller decides how to surface that.
+
+`parseGitHubWebhookHeaders(headers)` — extracts `event`, `delivery`, and
+`signature` from GitHub's three webhook headers, case-insensitively.
+
+`GitHubInstallationWebhookPayload`, `GitHubPushWebhookPayload`,
+`GitHubPullRequestWebhookPayload` — the delivery body shapes, scoped to
+the fields a consumer reads today (not a full re-typing of every field
+GitHub sends).
+
+A consumer owns what to _do_ with a verified delivery — which event
+categories matter, how to normalize them into its own domain shape.
+`@theholocron/sentinel`'s `parseWebhookEvent()` is the reference
+consumer.
