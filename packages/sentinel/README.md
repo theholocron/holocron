@@ -5,14 +5,15 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. The webhook receiver and check-run posting land in follow-up PRs
-> once the deploy target is decided — see `.notes/tech-sentinel-v1.spec.md`
-> (repo root) for the full design and what's still open.
+> own. The custom-properties sync call and check-run posting land in
+> follow-up PRs once the deploy target is decided — see
+> `.notes/tech-sentinel-v1.spec.md` (repo root) for the full design and
+> what's still open.
 
 ## Scope (v1)
 
 - Webhook receiver: installation events, push to default branch, PR
-  opened/synchronize.
+  opened/synchronize. **Done** — `parseWebhookEvent()`.
 - Read `holocron.config.ts` from a repo's default branch only — never a PR
   branch or fork (hard security boundary, D4/D6 in the epic spec). **Done**
   — `validateConfig()`.
@@ -50,6 +51,38 @@ D8) — so a real
 documented pattern) resolves correctly; the fetched content is written to
 a temp directory under this package's own tree specifically so that
 upward `node_modules` resolution finds it.
+
+## `parseWebhookEvent({ body, headers, secret })`
+
+Verifies an inbound GitHub App webhook delivery and normalizes the payload
+into a `SentinelEvent`. Verification itself — `X-Hub-Signature-256`
+(HMAC-SHA256 over the raw body, `timingSafeEqual`-compared) and the
+header/payload shapes — is `@theholocron/github-client`'s
+`verifyGitHubWebhookSignature()` / `parseGitHubWebhookHeaders()` /
+`GitHub*WebhookPayload`: GitHub's own webhook mechanics, owned by the
+package that already knows every other GitHub API shape, not
+reimplemented here. What's Sentinel's own concern — which event
+categories matter in v1, and what a normalized `SentinelEvent` looks
+like — stays in this function.
+
+A plain function over `{ body, headers, secret }` — no HTTP framework, no
+deploy target assumed, so it slots into whichever runtime
+`.notes/tech-sentinel-v1.spec.md`'s still-open deploy-target decision
+lands on. Throws `WebhookVerificationError` for a missing/wrong secret, a
+missing/malformed signature, a missing `X-GitHub-Event` header, or a body
+that isn't valid JSON. Returns one of:
+
+| Result               | Meaning                                                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                       |
+| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, `pull_request.closed`, an unrelated `X-GitHub-Event`) — not an error, just not actionable yet. |
+
+`SentinelEventType` is one of `"installation.created"`,
+`"installation.deleted"`, `"push.default-branch"`,
+`"pull_request.opened"`, `"pull_request.synchronize"`. `repo` and
+`installationId` come entirely from the payload — never a hardcoded org
+(D10) — so one App registration handles installations across any number
+of orgs/accounts unchanged.
 
 ## Development
 
