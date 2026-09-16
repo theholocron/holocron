@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-vercel",
-  "version": "5.0.0-alpha.12",
+  "version": "5.0.0-alpha.13",
   "description": "Holocron plugin for Vercel. Implements the deployment capability against the Vercel REST API.",
   "keywords": [
     "deployment",
