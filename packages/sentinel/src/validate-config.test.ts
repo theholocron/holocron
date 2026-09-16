@@ -131,6 +131,15 @@ describe("validateConfig", () => {
 		expect(err).toBeInstanceOf(Error);
 	});
 
+	it("treats a config with no tasks field at all as an empty, valid task list", async () => {
+		const source = ["export default {", '  name: "demo",', "};", ""].join("\n");
+		const { client } = makeClient([{ status: 200, body: { content: b64(source) } }]);
+
+		const result = await validateConfig({ client, repo: "acme/demo" });
+
+		expect(result.status).toBe("valid");
+	});
+
 	it("returns no-config when every extension 404s", async () => {
 		const { client } = makeClient([
 			{ status: 404 },
