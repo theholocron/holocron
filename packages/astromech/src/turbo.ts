@@ -55,3 +55,74 @@ export function turboConfig(config: TasksConfig): string | null {
 		2
 	)}\n`;
 }
+
+export interface EnsureRootWorkspaceMemberResult {
+	content: string;
+	changed: boolean;
+}
+
+/**
+ * Fixes #692: `turboConfig()` writes a `turbo.json` the moment *any* task in
+ * the manifest has fan-out config — with no check for whether the repo's own
+ * root package is actually covered by `pnpm-workspace.yaml`'s `packages:`
+ * list. A repo shaped like `observability` (the library lives at repo root;
+ * `packages:` lists only an unrelated `docs` site) silently breaks the
+ * instant `turbo.json` exists: `holocron run <task>` switches from running
+ * root's own script directly to `turbo run <task>`, which only sees declared
+ * workspace members — root vanishes, the task "succeeds" with zero real work
+ * done (confirmed empirically: `Packages in scope: docs`, root never
+ * mentioned, exit 0).
+ *
+ * Detection is narrow and specific: root only needs to be an explicit
+ * workspace member if its *own* `package.json` has a script literally named
+ * after one of the tasks turbo.json is about to fan out — a plain
+ * orchestrator root (`holocron`'s own `"build": "turbo run delivery.build"`,
+ * which has no `delivery.build` script itself) never trips this; only a root
+ * that's genuinely a directly-buildable package does. Confirmed the fix
+ * empirically too — adding `.` to `packages:` makes turbo pick root back up
+ * (`Packages in scope: docs, root-lib`) without disturbing the sibling
+ * package's own caching.
+ *
+ * A targeted line-based edit, not a full YAML parse/reserialize — same
+ * pattern `codecov.ts`'s `mergeCodecovComponents()` already uses for editing
+ * an existing generated file. `pnpm-workspace.yaml` routinely carries a
+ * `catalog:`/`catalogs:`/`overrides:` block after `packages:`; a real parser
+ * round-trip risks reformatting or reordering content nobody asked to touch.
+ * Only ever *adds* a line — never rewrites or reorders anything already
+ * there — and is a no-op (`changed: false`) whenever root doesn't need it,
+ * root is already listed, or `packages:` isn't in the plain block-list form
+ * every repo checked actually uses.
+ */
+export function ensureRootWorkspaceMember(
+	workspaceYaml: string,
+	rootScripts: readonly string[],
+	taskNames: readonly string[]
+): EnsureRootWorkspaceMemberResult {
+	const rootHasEligibleTask = taskNames.some((t) => rootScripts.includes(t));
+	if (!rootHasEligibleTask) return { content: workspaceYaml, changed: false };
+
+	const lines = workspaceYaml.split("\n");
+	const packagesLineIdx = lines.findIndex((l) => /^packages:\s*$/.test(l));
+	if (packagesLineIdx === -1) return { content: workspaceYaml, changed: false };
+
+	const items: string[] = [];
+	let cursor = packagesLineIdx + 1;
+	while (cursor < lines.length && /^\s*-\s*/.test(lines[cursor]!)) {
+		items.push(lines[cursor]!);
+		cursor++;
+	}
+
+	const alreadyIncluded = items.some((item) => {
+		const value = item
+			.replace(/^\s*-\s*/, "")
+			.replace(/^["']|["']$/g, "")
+			.trim();
+		return value === "." || value === "";
+	});
+	if (alreadyIncluded) return { content: workspaceYaml, changed: false };
+
+	const indent = items[0]?.match(/^(\s*-\s*)/)?.[1] ?? "  - ";
+	const newLine = `${indent}"."`;
+	const newLines = [...lines.slice(0, packagesLineIdx + 1), newLine, ...lines.slice(packagesLineIdx + 1)];
+	return { content: newLines.join("\n"), changed: true };
+}

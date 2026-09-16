@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { turboConfig } from "./turbo.js";
+import { ensureRootWorkspaceMember, turboConfig } from "./turbo.js";
 
 describe("turboConfig", () => {
 	it("returns null with no config", () => {
@@ -111,5 +111,104 @@ describe("turboConfig", () => {
 		// there to add onto an eligible task's config, not to make an
 		// ineligible task suddenly fan out.
 		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { passThroughEnv: ["FOO"] } }] })).toBeNull();
+	});
+});
+
+// theholocron/observability's real pnpm-workspace.yaml (#692's actual repro)
+// — root is the real library, `packages:` lists only the unrelated `docs`
+// site. Used verbatim (not reconstructed) so the fix is proven against the
+// exact shape that broke, not an idealized version of it. Built line-by-line
+// (not a multi-line template literal) so the embedded YAML's own 2-space
+// indentation doesn't read as this *source file's* indentation to
+// editorconfig-checker (tab-indented, like the rest of the repo).
+const OBSERVABILITY_WORKSPACE_YAML = [
+	"packages:",
+	'  - "docs"',
+	"",
+	"# Shared dep versions for this repo.",
+	"catalog:",
+	'  "@astrojs/react": ^6.0.0',
+	"  react: ^19.2.0",
+	"",
+	"catalogs:",
+	"  configs:",
+	'    "@theholocron/eslint-config": ^8.2.0',
+	"",
+	"overrides:",
+	'  "@eslint/json": ^1.2.0',
+	"",
+].join("\n");
+
+describe("ensureRootWorkspaceMember", () => {
+	it("is a no-op when root has no script matching a turbo-eligible task", () => {
+		// holocron's own root shape: "build": "turbo run delivery.build" is an
+		// orchestrator, not a "delivery.build" script itself.
+		const yaml = "packages:\n  - docs\n  - packages/*\n";
+		const result = ensureRootWorkspaceMember(yaml, ["build", "lint", "test"], ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("adds a quoted . entry when root has an eligible task and isn't already listed", () => {
+		const yaml = 'packages:\n  - "docs"\n';
+		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		expect(result.changed).toBe(true);
+		expect(result.content).toBe('packages:\n  - "."\n  - "docs"\n');
+	});
+
+	it("fixes #692's exact real repro — observability's actual pnpm-workspace.yaml", () => {
+		const result = ensureRootWorkspaceMember(
+			OBSERVABILITY_WORKSPACE_YAML,
+			["delivery.build", "verification.unitTests"],
+			["delivery.build", "verification.unitTests", "verification.typeSafety"]
+		);
+		expect(result.changed).toBe(true);
+		expect(result.content).toContain('packages:\n  - "."\n  - "docs"');
+		// Everything after packages: — catalog, catalogs, overrides — survives
+		// completely untouched, not reformatted or reordered.
+		expect(result.content).toContain('catalog:\n  "@astrojs/react": ^6.0.0\n  react: ^19.2.0');
+		expect(result.content).toContain("catalogs:\n  configs:");
+		expect(result.content).toContain('overrides:\n  "@eslint/json": ^1.2.0');
+	});
+
+	it("is idempotent — running it twice doesn't double-insert", () => {
+		const once = ensureRootWorkspaceMember(OBSERVABILITY_WORKSPACE_YAML, ["delivery.build"], ["delivery.build"]);
+		const twice = ensureRootWorkspaceMember(once.content, ["delivery.build"], ["delivery.build"]);
+		expect(twice.changed).toBe(false);
+		expect(twice.content).toBe(once.content);
+	});
+
+	it("is a no-op when root is already listed as .", () => {
+		const yaml = 'packages:\n  - "."\n  - "docs"\n';
+		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("is a no-op when root is already listed as a bare (unquoted) .", () => {
+		const yaml = "packages:\n  - .\n  - docs\n";
+		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("is a no-op when there's no packages: key at all — already single-package mode", () => {
+		const yaml = "# no workspace packages configured\n";
+		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("handles an empty packages: list", () => {
+		const yaml = "packages:\n\ncatalog:\n  foo: ^1.0.0\n";
+		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		expect(result.changed).toBe(true);
+		expect(result.content).toBe('packages:\n  - "."\n\ncatalog:\n  foo: ^1.0.0\n');
+	});
+
+	it("matches against every task name being turbo'd, not just the first", () => {
+		const yaml = "packages:\n  - docs\n";
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			["verification.unitTests"],
+			["delivery.build", "verification.unitTests"]
+		);
+		expect(result.changed).toBe(true);
 	});
 });

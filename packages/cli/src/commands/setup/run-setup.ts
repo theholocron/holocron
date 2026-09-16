@@ -404,11 +404,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 		{
-			const content = createAstromech({
+			const astromechTurbo = createAstromech({
 				cwd: input.context.repoRoot,
 				config: { tasks: config.tasks as TasksConfig["tasks"] },
 				logger,
-			}).turboConfig();
+			});
+			const content = astromechTurbo.turboConfig();
 
 			if (content === null) {
 				steps.push({
@@ -423,6 +424,33 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						await source.writeRepoFile("turbo.json", content);
 					})
 				);
+				print(formatStep(steps[steps.length - 1]!));
+
+				// #692: a root that's genuinely a directly-buildable package (not
+				// just an orchestrator) silently vanishes from `turbo run <task>`
+				// once turbo.json exists, unless it's an explicit workspace
+				// member — fix pnpm-workspace.yaml in the same step that
+				// introduces the risk.
+				const rootPkg = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+					.then((raw) => JSON.parse(raw) as { scripts?: Record<string, string> })
+					.catch(() => null);
+				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
+					() => ""
+				);
+				const rootScripts = Object.keys(rootPkg?.scripts ?? {});
+				const workspaceFix = astromechTurbo.ensureRootWorkspaceMember(workspaceYaml, rootScripts);
+				if (workspaceFix.changed) {
+					steps.push(
+						await runStep(
+							"source",
+							"fix pnpm-workspace.yaml (root workspace member, #692)",
+							dryRun,
+							async () => {
+								await source.writeRepoFile("pnpm-workspace.yaml", workspaceFix.content);
+							}
+						)
+					);
+				}
 			}
 			print(formatStep(steps[steps.length - 1]!));
 		}
