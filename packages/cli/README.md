@@ -154,9 +154,9 @@ implementations).
 
 `missingCapabilities(capabilities)` is `deriveCompliance()`'s sibling —
 same `REQUIRED_BASELINE` table, but returns _which_ required capabilities
-are absent rather than just whether any are. `@theholocron/sentinel`'s
+are absent rather than whether any are. `@theholocron/sentinel`'s
 `postCheckRun()` uses it to name what's missing on the check run it
-posts, instead of just reporting pass/fail.
+posts, instead of reporting pass/fail.
 
 ### Required status checks (`protection: "strict"`)
 
