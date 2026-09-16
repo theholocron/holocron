@@ -5,9 +5,9 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. Check-run posting lands in a follow-up PR once the deploy target
-> is decided — see `.notes/tech-sentinel-v1.spec.md` (repo root) for the
-> full design and what's still open.
+> own. Actual deploy wiring lands in a follow-up PR once the deploy
+> target is decided — see `.notes/tech-sentinel-v1.spec.md` (repo root)
+> for the full design and what's still open.
 
 ## Scope (v1)
 
@@ -19,11 +19,21 @@ resolution run.
 - Sync resolved capabilities/profile to GitHub custom properties. **Done**
   — `syncPropertiesFromConfig()`.
 - Post a single check run reflecting capability-compliance status.
+  **Done** — `postCheckRun()`.
 
 Explicitly out of v1 — tracked in
 [#674](https://github.com/theholocron/holocron/issues/674): the App
 autonomously triggering autofix PRs or PR comments from a webhook event,
 and dashboards.
+
+## Layout
+
+`src/utils/` — read-only: fetches, parses, verifies, never mutates GitHub
+(`validateConfig`, `parseWebhookEvent`, plus their shared
+`decodeContents`/`findPackageRoot` helpers). `src/actions/` — writes:
+calls a GitHub API that changes repo state (`syncPropertiesFromConfig`,
+`postCheckRun`). A future webhook handler calls utils to decide, then
+actions to report — never the other way around.
 
 ## `validateConfig({ client, repo })`
 
@@ -105,6 +115,36 @@ default-branch-only boundary `validateConfig()` relies on.
 Known limitation: GitHub truncates a tree response over ~100,000 entries
 (`truncated: true`) — no repo in this org is remotely close to that size
 today.
+
+## `postCheckRun({ client, repo, headSha, capabilities })`
+
+Posts one check run reflecting capability-compliance status — the App's
+v1 report, matching the epic spec's own examples: "this repo declares X,
+Y, Z — all present" (`conclusion: "success"`) or "missing:
+dependencyReview" (`conclusion: "failure"`). Calls
+`@theholocron/github-client`'s `checks.createCheckRun()` directly —
+Sentinel isn't a plugin, and this is a single REST call with nothing else
+to wrap.
+
+`capabilities` is `syncPropertiesFromConfig()`'s result's
+`holocron_capabilities` (or independently resolved). "Compliant" reduces
+to `@theholocron/cli`'s `missingCapabilities(capabilities).length === 0`
+— the same `REQUIRED_BASELINE` table `deriveCompliance()` already checks
+against, imported rather than duplicated (D8), so _why_ a repo is
+non-compliant can never drift from _whether_ it is.
+
+The check's name, `SENTINEL_CHECK_RUN_NAME` (`"Sentinel / Capability
+Compliance"`), is exported so a caller looking it up later (a re-run
+guard, a test, a dashboard) never hand-copies the string. It stays a
+human-readable "App / Report" label — `CodeQL` and `Devin Review` are the
+nearest precedent, externally-posted checks with no
+`.github/workflows/*.yml` behind them — rather than a
+`platform.*`-style intent-vocabulary token: that vocabulary (epic #672,
+D3) names `tasks:` entries backed by a reusable CI workflow, and this
+check has no workflow behind it at all. Built from `SENTINEL_APP_NAME`
+(`"Sentinel"`, exported from `src/utils/constants.ts`) rather than its
+own literal — the brand prefix any future action reads from one source
+instead of retyping.
 
 ## Development
 

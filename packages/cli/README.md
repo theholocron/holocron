@@ -152,6 +152,12 @@ these functions unchanged, gathering the same inputs over the GitHub API
 instead (D8 — one derivation, two input sources, not two
 implementations).
 
+`missingCapabilities(capabilities)` is `deriveCompliance()`'s sibling —
+same `REQUIRED_BASELINE` table, but returns _which_ required capabilities
+are absent rather than whether any are. `@theholocron/sentinel`'s
+`postCheckRun()` uses it to name what's missing on the check run it
+posts, instead of reporting pass/fail.
+
 ### Required status checks (`protection: "strict"`)
 
 `holocron setup` builds the branch-protection required-check list from the

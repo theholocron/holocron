@@ -34,10 +34,14 @@ import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { decodeContents } from "./decode-contents.js";
+import { findPackageRoot } from "./package-root.js";
 
-// One level up from wherever this module actually runs from (`dist/` built,
-// `src/` under vitest) is always the package root.
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+// tsdown bundles the whole package into one flat `dist/index.mjs`, so
+// "this module's own location" sits one level under package root when
+// built, but two levels under it here in source (`src/utils/`) — walking
+// up to the nearest `package.json` resolves both without hardcoding a
+// depth that only one of the two would get right.
+const packageRoot = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
 const tmpRoot = join(packageRoot, ".tmp");
 
 export type ValidateConfigResult =

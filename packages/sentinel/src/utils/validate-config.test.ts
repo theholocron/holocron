@@ -6,9 +6,10 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { afterAll, describe, expect, it } from "vitest";
 
+import { findPackageRoot } from "./package-root.js";
 import { validateConfig } from "./validate-config.js";
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const packageRoot = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
 
 afterAll(async () => {
 	await rm(join(packageRoot, ".tmp"), { recursive: true, force: true });
