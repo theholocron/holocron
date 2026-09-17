@@ -490,6 +490,12 @@ export interface DeployFunctionResult {
 
 export interface Deployment extends ProviderIdentity {
 	readonly key: "deployment";
+	/**
+	 * Custom domain declared in the deployment provider's configuration.
+	 * `holocron setup` attaches it to the configured project and hands any
+	 * returned verification record to the `dns` capability.
+	 */
+	readonly domain?: string;
 
 	listProjects(): Promise<DeploymentProject[]>;
 	/** Create if missing, otherwise return existing. Idempotent. */
@@ -545,10 +551,21 @@ export interface Deployment extends ProviderIdentity {
 
 	/**
 	 * Add a custom domain (or wildcard) to the project. Idempotent — no-op
-	 * when the domain is already present. Optional: providers without a custom
-	 * domain API omit this (e.g. Vercel manages domains separately).
+	 * when the domain is already present. Optional: providers without a
+	 * custom domain API omit this.
+	 *
+	 * Returns the DNS record needed to finish verification — same shape
+	 * as `WikiDnsRecord` (reused rather than duplicated; it's a generic
+	 * "CNAME to create" descriptor, not wiki-specific despite the name)
+	 * — or `null` when the domain is already verified, or when the
+	 * provider's API doesn't surface DNS-challenge details at all (e.g.
+	 * Cloudflare Pages, whose custom-domain flow doesn't expose the same
+	 * per-request verification handshake Vercel's does). Callers hand a
+	 * non-null result straight to `dns.upsertRecord(result.zone, {
+	 * type: "CNAME", name: result.cname, content: result.target })` —
+	 * the exact pattern `setup` already uses for `Wiki.dnsRecord()`.
 	 */
-	ensureCustomDomain?(projectId: string, hostname: string): Promise<void>;
+	ensureCustomDomain?(projectId: string, hostname: string): Promise<WikiDnsRecord | null>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

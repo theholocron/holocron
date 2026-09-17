@@ -18,6 +18,14 @@ describe("createPlugin", () => {
 		expect(plugin.capabilities.deployment()).toBeInstanceOf(VercelDeployment);
 	});
 
+	it("passes the configured domain to the deployment capability", () => {
+		const deployment = createPlugin({
+			cliToken: "pat-test",
+			domain: "sentinel.holocron.dev",
+		}).capabilities.deployment();
+		expect(deployment.domain).toBe("sentinel.holocron.dev");
+	});
+
 	it("passes teamId + fetch through to the REST client", async () => {
 		let captured: string | null = null;
 		const fakeFetch: typeof fetch = async (input) => {

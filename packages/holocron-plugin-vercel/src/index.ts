@@ -16,6 +16,8 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 	teamId?: string;
 	/** Default framework slug for new project creates. Defaults to "nextjs". */
 	defaultFramework?: string;
+	/** Custom domain that `holocron setup` should attach to the Vercel project. */
+	domain?: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;
 	/** Override `fetch` for tests. */
@@ -45,6 +47,9 @@ export function deployment(ctx: PluginContext): Deployment {
 	const opts: ConstructorParameters<typeof VercelDeployment>[1] = {};
 	if (ctx.options.defaultFramework !== undefined) {
 		opts.defaultFramework = ctx.options.defaultFramework;
+	}
+	if (ctx.options.domain !== undefined) {
+		opts.domain = ctx.options.domain;
 	}
 	return new VercelDeployment(ctx.client, opts);
 }

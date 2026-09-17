@@ -17,13 +17,17 @@
  * item (`holocron secrets sync` → Vercel env vars) to push the GitHub
  * App's private key + webhook secret from. `project: "sentinel"`,
  * `config: "prd"` — confirmed against the real Doppler project.
+ *
+ * `dns`: Cloudflare receives the CNAME challenge returned when Vercel adds
+ * `sentinel.holocron.dev`; `holocron setup` creates or updates that record.
  */
 
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
 	providers: {
-		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop" }],
+		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.holocron.dev" }],
+		dns: "cloudflare",
 		vault: ["doppler", { project: "sentinel", config: "prd" }],
 	},
 });
