@@ -468,6 +468,26 @@ export interface DeploymentRecord {
 	createdAt?: string;
 }
 
+/** Config for `Deployment.deployFunction()` — source files, not a Git ref. */
+export interface DeployFunctionConfig {
+	/**
+	 * Files to deploy, keyed by path relative to the project root (e.g.
+	 * `"api/webhook.js"`, `"package.json"`). Content is plain text — the
+	 * provider handles any wire-format encoding.
+	 */
+	files: Record<string, string>;
+	/**
+	 * Named deployment target. Omit for a preview deployment — same
+	 * semantics as `triggerDeployment`'s `target`.
+	 */
+	target?: DeploymentTrigger;
+}
+
+export interface DeployFunctionResult {
+	deploymentId: string;
+	url: string;
+}
+
 export interface Deployment extends ProviderIdentity {
 	readonly key: "deployment";
 
@@ -499,6 +519,17 @@ export interface Deployment extends ProviderIdentity {
 	}): Promise<DeploymentRecord>;
 
 	getDeployment(deploymentId: string): Promise<DeploymentRecord>;
+
+	/**
+	 * Deploy (or update) a project directly from source files, bypassing
+	 * Git entirely — the non-git counterpart to `triggerDeployment`, for a
+	 * consumer with no repo to link (a webhook receiver shipped as an npm
+	 * package, for instance, rather than deployed from its own Git
+	 * history). `projectId` may be a project name for providers that
+	 * accept either. Optional — providers without a files-based deploy API
+	 * omit this (e.g. Cloudflare Pages, git-source only today).
+	 */
+	deployFunction?(projectId: string, config: DeployFunctionConfig): Promise<DeployFunctionResult>;
 
 	/**
 	 * List preview deployments for a specific branch alias (e.g. "repo-pr-42").

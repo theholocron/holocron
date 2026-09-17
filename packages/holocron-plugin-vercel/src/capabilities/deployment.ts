@@ -18,6 +18,8 @@
  */
 
 import type {
+	DeployFunctionConfig,
+	DeployFunctionResult,
 	Deployment,
 	DeploymentProject,
 	DeploymentProjectSettings,
@@ -126,6 +128,19 @@ export class VercelDeployment implements Deployment {
 	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
 		const raw = await this.client().deployments.get(deploymentId);
 		return mapDeployment(raw, raw.meta?.githubCommitRef ?? null);
+	}
+
+	async deployFunction(projectId: string, config: DeployFunctionConfig): Promise<DeployFunctionResult> {
+		const raw = await this.client().deployments.create({
+			projectName: projectId,
+			files: Object.entries(config.files).map(([file, content]) => ({ file, content })),
+			// No framework preset — deployFunction() ships a bare function,
+			// never an app; this.defaultFramework only applies to
+			// ensureProject()'s Git-linked-project path.
+			framework: null,
+			target: config.target as "production" | "staging" | undefined,
+		});
+		return { deploymentId: raw.id, url: raw.url };
 	}
 
 	// ── internals ───────────────────────────────────────────────────────

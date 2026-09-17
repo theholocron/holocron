@@ -284,10 +284,19 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       to — but only when `validateConfig()` reports `"valid"`; a
       missing/broken config is acknowledged without a check run,
       deferring richer "the config itself is broken" reporting.
-- [ ] `Deployment` capability extension for Vercel — the same shape of
-      work `Workers.deployScript()` just did, needed because `Deployment`
-      currently models a framework-aware project, not "deploy one
-      serverless function." Not yet started.
+- [x] `Deployment` capability extension for Vercel — the same shape of
+      work `Workers.deployScript()` did for Cloudflare, adapted to
+      Vercel's actual model: `deployFunction(projectId, config)` calls
+      the new `@theholocron/vercel-client` `deployments.create()`
+      (clients repo #344) — `POST /v13/deployments` with inline
+      base64-encoded `files`, never `gitSource`, and
+      `projectSettings.framework: null` (a bare function, not an app).
+      Optional on the `Deployment` interface, unlike `Workers.deployScript()`
+      — `holocron-plugin-cloudflare`'s `CloudflareDeployment` (Pages) also
+      implements `Deployment` and has no files-based deploy API today, so
+      a required method would have broken it; matches the existing
+      `listPreviewDeployments?`/`deletePreviewDeployments?`/`ensureCustomDomain?`
+      optional-capability convention on the same interface.
 - [ ] Sentinel's own `holocron.config.ts` — wires `deployment` (Vercel) + `vault` providers. Depends on the Vercel capability extension.
 - [ ] GitHub App registration (manual).
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.
