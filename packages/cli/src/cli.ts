@@ -14,7 +14,7 @@ import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
 import { runClone } from "./commands/clone.js";
 import { commandsInContext } from "./commands/contexts.js";
-import { runDeploy } from "./commands/deploy.js";
+import { runDeploy, runDeployFromFiles } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
@@ -458,7 +458,7 @@ try {
 				y
 					.positional("branch", {
 						type: "string",
-						describe: "Git branch to deploy",
+						describe: "Git branch to deploy (omit when using --files)",
 					})
 					.option("project-id", {
 						type: "string",
@@ -469,21 +469,43 @@ try {
 						type: "string",
 						choices: ["production", "staging"] as const,
 						describe: "Named environment to deploy into. Omit for a branch preview.",
-					}),
+					})
+					.option("files", {
+						type: "string",
+						describe:
+							"Deploy from a local directory of source files instead of a Git branch — calls deployFunction(), no linked repo required. Conflicts with `branch`.",
+					})
+					.conflicts("files", "branch"),
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
-				const [branch] = await promptForPositionals(getEntry("deploy"), argv as Record<string, unknown>);
 				const loaded = await loadConfig(argv.cwd);
 				applyResolvedConfig(argv, loaded.resolved);
+				const context = {
+					repoRoot: argv.cwd,
+					dryRun: argv.dryRun,
+					...tokens,
+					org: resolveOrg(argv, loaded.resolved),
+				};
+
+				if (argv.files) {
+					const report = await runDeployFromFiles({
+						loaded,
+						context,
+						projectId: argv.projectId as string,
+						dir: argv.files as string,
+						...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+					});
+					if (report.status === "fail") {
+						process.exitCode = 1;
+					}
+					return;
+				}
+
+				const [branch] = await promptForPositionals(getEntry("deploy"), argv as Record<string, unknown>);
 				const report = await runDeploy({
 					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
+					context,
 					projectId: argv.projectId as string,
 					branch: branch!,
 					...(argv.target ? { target: argv.target as "production" | "staging" } : {}),

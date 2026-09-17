@@ -297,6 +297,19 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       a required method would have broken it; matches the existing
       `listPreviewDeployments?`/`deletePreviewDeployments?`/`ensureCustomDomain?`
       optional-capability convention on the same interface.
-- [ ] Sentinel's own `holocron.config.ts` — wires `deployment` (Vercel) + `vault` providers. Depends on the Vercel capability extension.
+- [x] `holocron deploy --files <dir>` CLI wiring — `deployFunction()`
+      existing on the capability wasn't enough; nothing in the CLI's
+      command layer called it (`holocron deploy` only ever drove
+      `triggerDeployment()`, the Git-branch path). Added
+      `runDeployFromFiles()` (`packages/cli/src/commands/deploy.ts`) as
+      a separate function from `runDeploy` — inputs (`dir` vs `branch`)
+      and result shapes (`DeployFunctionResult` vs `DeploymentRecord`)
+      genuinely differ — wired to `--files <dir>` on the existing
+      `deploy` command, `.conflicts()`-paired with the `branch`
+      positional. Errors clearly when the configured provider has no
+      `deployFunction` (optional capability method).
+- [ ] Sentinel's own `holocron.config.ts` — wires `deployment` (Vercel,
+      `teamId: "team_YrFqXg1QceAu0CdYdBmrDpop"`) + `vault` providers.
+      Depends on the CLI wiring above, now done.
 - [ ] GitHub App registration (manual).
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.
