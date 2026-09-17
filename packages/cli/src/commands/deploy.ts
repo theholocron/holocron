@@ -38,6 +38,17 @@ import { style } from "../ui/style.js";
 
 export type DeployPrintLine = (line: string) => void;
 
+/**
+ * Provider `url` fields (Vercel's REST API, at least) come back as bare
+ * hostnames — `"my-app.vercel.app"`, no scheme — which terminals don't
+ * linkify and browsers won't navigate to unmodified. Printed output
+ * should be a URL a human can click/paste; structured log fields keep
+ * the raw provider value as-is.
+ */
+function withScheme(url: string): string {
+	return /^https?:\/\//.test(url) ? url : `https://${url}`;
+}
+
 export interface RunDeployInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
@@ -109,7 +120,7 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 				...(input.target ? { target: input.target } : {}),
 			})
 		);
-		print(`  ${style.success(`${record.status} — ${record.url}`)}`);
+		print(`  ${style.success(`${record.status} — ${withScheme(record.url)}`)}`);
 		logger.info({ status: record.status, url: record.url, id: record.id }, "deploy: triggered");
 		return { deployment: record, status: "ok" };
 	} catch (err) {
@@ -226,7 +237,7 @@ export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promis
 			`Deploying ${fileCount} file${fileCount === 1 ? "" : "s"} from ${input.dir}…`,
 			() => deploy.deployFunction!(input.projectId, { files, ...(input.target ? { target: input.target } : {}) })
 		);
-		print(`  ${style.success(result.url)}`);
+		print(`  ${style.success(withScheme(result.url))}`);
 		logger.info({ url: result.url, id: result.deploymentId }, "deploy: triggered (files)");
 		return { deployment: result, status: "ok" };
 	} catch (err) {

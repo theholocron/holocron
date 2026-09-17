@@ -91,6 +91,73 @@ describe("runDeploy", () => {
 		);
 	});
 
+	it("prints the success URL with an https:// scheme (provider returns a bare hostname)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					triggerDeployment: async () => ({
+						id: "dpl_1",
+						url: "demo-abc.vercel.app",
+						branch: "main",
+						status: "queued" as const,
+					}),
+				},
+			}),
+		});
+
+		const lines: string[] = [];
+		await runDeploy({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			branch: "main",
+			loader,
+			print: (line) => lines.push(line),
+		});
+
+		expect(lines.some((l) => l.includes("https://demo-abc.vercel.app"))).toBe(true);
+	});
+
+	it("leaves an already-schemed URL untouched", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					triggerDeployment: async () => ({
+						id: "dpl_1",
+						url: "https://demo-abc.vercel.app",
+						branch: "main",
+						status: "queued" as const,
+					}),
+				},
+			}),
+		});
+
+		const lines: string[] = [];
+		await runDeploy({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			branch: "main",
+			loader,
+			print: (line) => lines.push(line),
+		});
+
+		expect(lines.some((l) => l.includes("https://https://"))).toBe(false);
+		expect(lines.some((l) => l.includes("https://demo-abc.vercel.app"))).toBe(true);
+	});
+
 	it("passes named target through (production / staging)", async () => {
 		const triggerCalls: Array<{ target?: string }> = [];
 		const loaded = loadedFrom({
@@ -325,6 +392,37 @@ describe("runDeployFromFiles", () => {
 		expect(report.status).toBe("ok");
 		expect(report.deployment).toEqual({ deploymentId: "dpl_1", url: "sentinel-abc.vercel.app" });
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ fileCount: 1 }), "deploy: start (files)");
+	});
+
+	it("prints the success URL with an https:// scheme (provider returns a bare hostname)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => ({ deploymentId: "dpl_1", url: "sentinel-abc.vercel.app" }),
+				},
+			}),
+		});
+
+		const lines: string[] = [];
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			print: (line) => lines.push(line),
+			walkFiles,
+			readFile,
+		});
+
+		expect(lines.some((l) => l.includes("https://sentinel-abc.vercel.app"))).toBe(true);
 	});
 
 	it("passes named target through", async () => {
