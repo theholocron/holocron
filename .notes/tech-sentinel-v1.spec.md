@@ -324,5 +324,34 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       (rather than at a repo root) is new territory for this org — no
       prior precedent — but `loadConfig(cwd)` only ever looks in `cwd`
       directly, no git-repo-root assumption, so it works unmodified.
+- [x] A real Vercel Function entry point + dependency resolution — the
+      dry-run above only proved the deploy _mechanism_ worked, not
+      that the deployed code was invokable: `dist/index.mjs` alone has
+      no Vercel routing (nothing under `api/`), and even with one, its
+      `@theholocron/*` imports stay external (the `library` tsdown
+      preset's default) — unresolvable without an install step.
+      Fixed with `api/webhook.mjs` (Vercel's "fetch Web Standard"
+      handler shape, already `handleWebhookRequest`'s own signature —
+      nothing to translate) and `scripts/stage-deploy.mjs`, which
+      assembles `.vercel-deploy/` (`api/` + `dist/` + a **trimmed**
+      `package.json` — name/version/type + `dependencies` only, each
+      pinned to the exact version resolved in `node_modules` right
+      now, not the `workspace:`/`catalog:` pnpm protocol specifiers
+      Vercel's plain `npm install` can't resolve). Chosen over a
+      self-contained inlined bundle (the alternative explored first)
+      because `validateConfig()`'s TS-loading goes through `tsx`'s
+      `register()` — a genuine runtime module-loader-hook API that
+      can't be bundled regardless of approach — so _some_ install step
+      was unavoidable either way; simplest to just let Vercel install
+      normally rather than build a partial-bundle-plus-vendored-tsx
+      hybrid for a smaller but still-nonzero win. Also fixed a real bug
+      found in the process: `deploy --files`'s default file-walker
+      unconditionally skipped any directory named `dist` (copied
+      verbatim from `holocron new`'s scaffolding walker, wrong for a
+      command whose whole point is deploying build output) — silently
+      dropped 1 of 3 files on the first real deploy attempt. Verified
+      against a real Vercel deployment: `BUILDING` → `READY` — the
+      install step resolved every `@theholocron/*` package + `tsx`
+      from the real registry and the build succeeded.
 - [ ] GitHub App registration (manual).
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.

@@ -186,11 +186,35 @@ auto-discovered by any package script; invoked directly:
 
 ```bash
 pnpm run delivery.build
-holocron deploy --files packages/sentinel/dist --project-id sentinel --cwd packages/sentinel
+pnpm run delivery.stageDeploy
+holocron deploy --files packages/sentinel/.vercel-deploy --project-id sentinel --cwd packages/sentinel
 ```
 
 `--files` calls `deployFunction()` — no linked Git repo required, since
 this ships as an npm package, not a deployed-from-source-control app.
+
+### `api/webhook.mjs` and `scripts/stage-deploy.mjs`
+
+`handleWebhookRequest` itself is deliberately deploy-target-agnostic
+(no `req`/`res` translation, no platform-specific wrapper — see
+`src/handler.ts`'s own docstring). `api/webhook.mjs` is the thin
+Vercel-specific adapter: Vercel's Functions convention deploys any
+file under `/api` as a Function, and its "fetch Web Standard" handler
+shape (`export default { fetch(request) {...} }`) is already
+`handleWebhookRequest`'s own signature — nothing to translate.
+
+`dist/index.mjs` (this package's built library) keeps
+`@theholocron/*` imports external, not bundled (the `library` tsdown
+preset's default) — so deploying `dist/` alone isn't enough; Vercel
+needs to `npm install` them. `scripts/stage-deploy.mjs` assembles
+`.vercel-deploy/` — `api/webhook.mjs` + `dist/index.mjs` + a **trimmed**
+`package.json` (name/version/type + `dependencies` only, no
+devDependencies/scripts, each dependency pinned to the exact version
+resolved in `node_modules` right now — not the `workspace:`/`catalog:`
+pnpm protocol specifiers Vercel's plain `npm install` can't resolve).
+Deploy from a synced `alpha` checkout (packages publish on every
+merge), not an unreleased local branch, or a pinned version can 404
+against the registry.
 
 ## Development
 

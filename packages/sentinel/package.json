@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
+    "delivery.stageDeploy": "node scripts/stage-deploy.mjs",
     "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
     "verification.typeSafety": "tsc --noEmit",
