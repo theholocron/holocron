@@ -879,12 +879,36 @@ export interface Wiki extends ProviderIdentity {
 	proxyConfig?(): WikiProxyConfig | null;
 }
 
+/** Config for `Workers.deployScript()` — an arbitrary Worker, not a generated reverse-proxy. */
+export interface DeployScriptConfig {
+	/** The full Worker script source — a single ES module (`export default { fetch(...) {...} }`). */
+	code: string;
+	/**
+	 * Secret bindings — `env.<name>` in the deployed Worker. Values are
+	 * write-only; the provider never echoes them back, here or anywhere else.
+	 */
+	secrets?: Record<string, string>;
+	/**
+	 * Route pattern(s) this Worker should serve (e.g.
+	 * `"sentinel.theholocron.dev/*"`). Omit for a Worker reached only via
+	 * its `*.workers.dev` URL.
+	 */
+	routes?: string[];
+}
+
+export interface DeployScriptResult {
+	/** The deployed script's name at the provider. */
+	scriptName: string;
+}
+
 /**
- * Edge Worker / reverse-proxy management capability.
+ * Edge Worker management capability.
  *
- * Deploys and manages Worker scripts that proxy traffic to a configured
- * target. Used by `setup` to wire wiki custom-domain proxies when the
- * wiki provider requires a Worker in addition to the CNAME.
+ * Deploys and manages Worker scripts. `upsertProxy` is the existing,
+ * narrower case `setup` uses to wire wiki custom-domain reverse-proxies;
+ * `deployScript` is the general case — any Worker, any code, its own
+ * secrets — for a consumer that isn't a reverse-proxy (a webhook
+ * receiver, for instance).
  */
 export interface Workers extends ProviderIdentity {
 	readonly key: "workers";
@@ -894,6 +918,8 @@ export interface Workers extends ProviderIdentity {
 	 * `config.headers` on each request.
 	 */
 	upsertProxy(hostname: string, config: WikiProxyConfig): Promise<void>;
+	/** Deploy (or update) an arbitrary Worker script, optionally with secrets and routes. */
+	deployScript(name: string, config: DeployScriptConfig): Promise<DeployScriptResult>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

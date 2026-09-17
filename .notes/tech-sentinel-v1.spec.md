@@ -85,19 +85,54 @@ capability. Full list, kept as one running backlog: #674.
   infrastructure needed; this was never actually an open question once
   framed as "this package's own secrets," not "a special App-only path."
 
-## Open, not yet decided
+## Resolved — deploy target: Cloudflare Workers
 
-- **Deploy target** for the App's webhook receiver. Candidates already
-  integrated elsewhere in this org: Vercel (`holocron-plugin-vercel` already
-  exists) or Cloudflare Workers (`holocron-plugin-cloudflare` already
-  exists). Neither existing capability directly models "deploy a general
-  webhook handler" today — `Deployment` (Vercel) models a framework-aware
-  project; `Workers` (Cloudflare) is currently scoped narrowly to
-  reverse-proxying the wiki, not general Worker deployment — so either
-  choice means extending a capability, not just calling one. Deliberately
-  left open rather than decided here; revisit once the webhook
-  receiver's actual shape (framework, if any) is clearer from scaffolding
-  the package itself.
+Chosen over Vercel Functions for cold-start fit against GitHub's ~10s
+webhook delivery window (Workers' near-zero cold start vs. Vercel's
+real-but-tolerable one) — both were viable, both need a capability
+extension either way (`Deployment` models a framework-aware project;
+`Workers` is currently scoped to reverse-proxying the wiki, not general
+script deployment). A new vendor (Lambda, Fly.io, Deno Deploy, …) or
+self-hosting were both rejected: this org has no existing plugin for any
+of them, and nothing else here runs self-hosted — both would add new
+operational surface a capability extension doesn't need.
+
+Decomposes into independent-where-possible pieces, not one PR:
+
+- **Cloudflare Workers secret-binding support** (`clients` repo) —
+  `@theholocron/cloudflare-client`'s `workers` module has no secrets
+  endpoint yet (only `putScript`/route management). Foundation for
+  everything below; no dependency on anything else here.
+- **`Workers` capability extension** (`packages/cli/src/plugin/
+capabilities.ts` + `holocron-plugin-cloudflare`) — a general
+  `deployScript(name, config)` alongside the existing `upsertProxy()`
+  (kept, not replaced — the wiki proxy still uses it), plus wiring the
+  new secrets endpoint. Depends on the `clients` piece publishing first.
+- **Sentinel's Workers handler** (`packages/sentinel/src/handler.ts`) —
+  wires `parseWebhookEvent → validateConfig → syncPropertiesFromConfig →
+postCheckRun` into a `fetch` export. Needs its own Workers-targeted
+  build (`workerd`, not Node — `nodejs_compat` for the `node:crypto`
+  calls already in `utils/webhook.ts`) alongside the existing
+  Node-targeted `dist/index.mjs`. Independent of the capability
+  extension — it's the code being deployed, not the deploy mechanism —
+  can land in parallel.
+- **Sentinel's own `holocron.config.ts`** (deferred until now, per
+  "Resolved" above) — wires `workers` + `vault` providers. Depends on
+  both prior pieces existing (the capability to deploy with, the handler
+  to deploy).
+- **GitHub App registration** — creating the App itself (permissions,
+  webhook URL pointed at the deployed Worker, private key) is a largely
+  manual, one-time step in GitHub's UI, not something `holocron setup`
+  automates the way repo-level config is.
+- **Secrets flow** — `holocron secrets sync` pushing the App's private
+  key + webhook secret from vault into Worker secrets. Depends on the
+  secret-binding support above.
+
+One piece not in this original list, discovered mid-flight: the handler
+needs an installation-scoped `GitHubClient`, not a static PAT — a
+**GitHub App authentication** module (`clients` repo, alongside the
+webhook-verification and Checks API work already there) had to exist
+first. See the PR-stack below for what actually shipped, in what order.
 
 ## Dependencies
 
@@ -198,5 +233,31 @@ capability. Full list, kept as one running backlog: #674.
       `findPackageRoot`) and `actions/` (writes: `syncPropertiesFromConfig`,
       `postCheckRun`) — the read/write split a future webhook handler
       will actually call in that order.
-- [ ] Deploy-target decision + actual deploy wiring — blocked on the open
-      question above.
+- [x] Deploy-target decision: Cloudflare Workers — see "Resolved — deploy
+      target" above.
+- [x] Cloudflare Workers secret-binding support (`clients` repo, #342):
+      `workers.putSecret`/`listSecrets`/`deleteSecret` — one PUT call
+      both stores the encrypted value and binds it as `env.<name>` in the
+      Worker.
+- [x] GitHub App authentication (`clients` repo, #343 — discovered mid-
+      flight, not in the original decomposition: the handler can't do
+      anything useful without an installation-scoped client).
+      `createAppJWT`/`getInstallationAccessToken`/`createInstallationClient`
+      — Web Crypto only (`globalThis.crypto`/`CryptoKey`, no
+      `node:crypto`), so it runs unchanged on Workers and in Node.
+      Verified end-to-end against real generated key pairs, both PEM
+      formats GitHub hands out, signature checked against `node:crypto`'s
+      own `verify()`.
+- [x] `Workers` capability extension: `deployScript(name, config)`
+      alongside the existing `upsertProxy()` (kept, not replaced — the
+      wiki proxy still uses it) — an arbitrary Worker script with its own
+      secrets and routes, for a consumer that isn't a reverse-proxy.
+      Also refactored `CloudflareWorkers` to delegate to
+      `@theholocron/cloudflare-client`'s `workers` module (via the
+      injected `CloudflareClient`) instead of its own private
+      `putScript`/`cfRequest` reimplementation — pre-existing duplication
+      this touched anyway, eliminated rather than extended.
+- [ ] Sentinel's Workers handler (`src/handler.ts`) + Workers build target.
+- [ ] Sentinel's own `holocron.config.ts`.
+- [ ] GitHub App registration (manual).
+- [ ] Secrets flow: `holocron secrets sync` → Worker secrets.
