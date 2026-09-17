@@ -64,9 +64,16 @@ Capability covers:
   an app) — `defaultFramework` only applies to `ensureProject()`'s
   Git-linked path.
 - `getDeployment()` — fetch a deployment by id
+- `ensureCustomDomain()` — idempotent add (list → check → add). Adding
+  a domain new to the Vercel account returns `verified: false` with a
+  DNS verification challenge (usually a CNAME to a per-project target
+  Vercel generates — never a fixed well-known host); this method only
+  adds the domain, reading the challenge to finish DNS setup is the
+  caller's own job today (no `Wiki.dnsRecord()`-style shared surface
+  for it yet)
 
 Out of scope for alpha.0 (file a follow-up if needed):
 
-- Domain management (`addDomain` / `removeDomain`)
+- Domain removal (`removeDomain`)
 - Deletion (`deleteProject`)
 - Marketplace integrations (e.g. `vercel install neon` for vault-managed databases)

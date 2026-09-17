@@ -143,6 +143,28 @@ export class VercelDeployment implements Deployment {
 		return { deploymentId: raw.id, url: raw.url };
 	}
 
+	// ── custom domains ─────────────────────────────────────────────────
+
+	/**
+	 * Idempotent — no-op when `hostname` is already on the project,
+	 * matching `Deployment.ensureCustomDomain`'s contract (never break
+	 * on re-runs, per CLAUDE.md's probe-then-act standard). Adding it
+	 * the first time returns `verified: false` for a domain new to this
+	 * Vercel account — Vercel needs a DNS record (usually CNAME, a
+	 * unique per-project target) created before it routes traffic. This
+	 * method only adds the domain; reading the verification challenge
+	 * needed to finish is the caller's job (`client().domains.add()`'s
+	 * own return value carries it) — Sentinel has no `holocron setup`
+	 * orchestration to hand it to, so there's no shared "here's the DNS
+	 * record" surface to route it through the way `Wiki.dnsRecord()`
+	 * does today.
+	 */
+	async ensureCustomDomain(projectId: string, hostname: string): Promise<void> {
+		const { domains: existing } = await this.client().domains.list(projectId);
+		if (existing.some((d) => d.name === hostname)) return;
+		await this.client().domains.add(projectId, hostname);
+	}
+
 	// ── internals ───────────────────────────────────────────────────────
 
 	private async getProjectByName(name: string): Promise<DeploymentProject | null> {
