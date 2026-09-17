@@ -1,9 +1,12 @@
 import { ProviderApiError } from "@theholocron/cli";
-import type { CloudflareClient } from "@theholocron/cloudflare-client";
-import { describe, expect, it, vi } from "vitest";
+import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
 
 import { CloudflareWorkers } from "../capabilities/workers.js";
+import { createCloudflareClient } from "../rest.js";
+import { cfOk } from "./helpers.js";
 
+const BASE = "https://cf.test/client/v4";
 const ACCOUNT = "acct-123";
 const ZONE_ID = "zone-abc";
 const HOSTNAME = "wiki.example.com";
@@ -18,123 +21,171 @@ const PROXY_CONFIG = {
 const zone = { id: ZONE_ID, name: "example.com", status: "active" };
 const route = { id: "route-1", pattern: PATTERN, script: SCRIPT_NAME };
 
-type FakeClient = Pick<CloudflareClient, "workers" | "zones">;
-
-function makeClient(overrides: Partial<FakeClient["workers"]> = {}, zonesList = vi.fn().mockResolvedValue([zone])) {
-	const workers = {
-		putScript: vi.fn().mockResolvedValue(undefined),
-		putSecret: vi.fn().mockResolvedValue({ name: "x", type: "secret_text" as const }),
-		listRoutes: vi.fn().mockResolvedValue([]),
-		createRoute: vi.fn().mockResolvedValue(route),
-		updateRoute: vi.fn().mockResolvedValue(route),
-		deleteSecret: vi.fn().mockResolvedValue(undefined),
-		listSecrets: vi.fn().mockResolvedValue([]),
-		...overrides,
-	} as unknown as FakeClient["workers"];
-	const zones = { list: zonesList } as unknown as FakeClient["zones"];
-	const client: FakeClient = { workers, zones };
-	const cloudflareWorkers = new CloudflareWorkers(() => client, ACCOUNT);
-	return { cloudflareWorkers, workers, zones };
+function makeWorkers(responses: Parameters<typeof stubFetch>[0]) {
+	const { fetch, calls } = stubFetch(responses);
+	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch });
+	return { workers: new CloudflareWorkers(() => client, ACCOUNT), calls };
 }
 
-describe("CloudflareWorkers.upsertProxy", () => {
-	it("deploys the proxy script then creates a route when none exists", async () => {
-		const { cloudflareWorkers, workers } = makeClient({ listRoutes: vi.fn().mockResolvedValue([]) });
-		await cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG);
+describe("CloudflareWorkers.upsertProxy — creates route when none exists", () => {
+	it("deploys script then creates a new route", async () => {
+		// putScript (200), zones.list (resolves zone), listRoutes (empty), createRoute
+		const { workers, calls } = makeWorkers([{ status: 200 }, cfOk([zone]), cfOk([]), cfOk(route)]);
+		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
 
-		expect(workers.putScript).toHaveBeenCalledWith(ACCOUNT, SCRIPT_NAME, expect.stringContaining("fetch"));
-		expect(workers.createRoute).toHaveBeenCalledWith(ZONE_ID, PATTERN, SCRIPT_NAME);
-		expect(workers.updateRoute).not.toHaveBeenCalled();
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/workers/scripts/${SCRIPT_NAME}`);
+		expect(calls[0]?.body).toBeInstanceOf(FormData);
+
+		expect(calls[2]?.method).toBe("GET");
+		expect(calls[2]?.url).toContain(`/zones/${ZONE_ID}/workers/routes`);
+
+		expect(calls[3]?.method).toBe("POST");
+		expect(calls[3]?.body).toEqual({ pattern: PATTERN, script: SCRIPT_NAME });
 	});
+});
 
-	it("updates the existing route when its script name differs", async () => {
+describe("CloudflareWorkers.upsertProxy — updates existing route when script differs", () => {
+	it("deploys script then PUTs the route with the new script name", async () => {
 		const staleRoute = { id: "route-1", pattern: PATTERN, script: "old-script" };
-		const { cloudflareWorkers, workers } = makeClient({ listRoutes: vi.fn().mockResolvedValue([staleRoute]) });
-		await cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG);
+		const { workers, calls } = makeWorkers([
+			{ status: 200 },
+			cfOk([zone]),
+			cfOk([staleRoute]),
+			cfOk({ ...staleRoute, script: SCRIPT_NAME }),
+		]);
+		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
 
-		expect(workers.updateRoute).toHaveBeenCalledWith(ZONE_ID, "route-1", PATTERN, SCRIPT_NAME);
-		expect(workers.createRoute).not.toHaveBeenCalled();
+		expect(calls[3]?.method).toBe("PUT");
+		expect(calls[3]?.url).toContain(`/zones/${ZONE_ID}/workers/routes/route-1`);
+		expect(calls[3]?.body).toEqual({ pattern: PATTERN, script: SCRIPT_NAME });
 	});
+});
 
-	it("makes no route write call when the existing route's script already matches", async () => {
-		const { cloudflareWorkers, workers } = makeClient({ listRoutes: vi.fn().mockResolvedValue([route]) });
-		await cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG);
-
-		expect(workers.createRoute).not.toHaveBeenCalled();
-		expect(workers.updateRoute).not.toHaveBeenCalled();
+describe("CloudflareWorkers.upsertProxy — skips route update when script unchanged", () => {
+	it("makes no route update call when script already matches", async () => {
+		const { workers, calls } = makeWorkers([{ status: 200 }, cfOk([zone]), cfOk([route])]);
+		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
+		expect(calls).toHaveLength(3);
 	});
 });
 
 describe("CloudflareWorkers — zone resolution", () => {
-	it("walks up to the apex zone when the subdomain isn't a direct zone", async () => {
-		const zonesList = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([zone]);
-		const { cloudflareWorkers } = makeClient({}, zonesList);
-		await cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG);
-		expect(zonesList).toHaveBeenCalledTimes(2);
-		expect(zonesList).toHaveBeenLastCalledWith({ name: "example.com" });
+	it("walks up to apex zone when subdomain is not a direct zone", async () => {
+		// putScript, zones.list("wiki.example.com") empty, zones.list("example.com") found, listRoutes, createRoute
+		const { workers, calls } = makeWorkers([{ status: 200 }, cfOk([]), cfOk([zone]), cfOk([]), cfOk(route)]);
+		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
+		const zoneLookups = calls.filter((c) => c.url.includes("/zones?"));
+		expect(zoneLookups).toHaveLength(2);
+		expect(zoneLookups[1]?.url).toContain("name=example.com");
 	});
 
-	it("throws ProviderApiError when no zone is found anywhere up to the apex", async () => {
-		const { cloudflareWorkers } = makeClient({}, vi.fn().mockResolvedValue([]));
-		await expect(cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(ProviderApiError);
+	it("throws ProviderApiError when no zone is found", async () => {
+		// putScript, then both zone-lookup candidates ("wiki.example.com", "example.com") come back empty
+		const { workers } = makeWorkers([{ status: 200 }, cfOk([]), cfOk([])]);
+		await expect(workers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(ProviderApiError);
 	});
 
-	it("caches the resolved zone id across calls", async () => {
-		const zonesList = vi.fn().mockResolvedValue([zone]);
-		const { cloudflareWorkers } = makeClient({}, zonesList);
-		await cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG);
-		await cloudflareWorkers.upsertProxy(HOSTNAME, PROXY_CONFIG);
-		expect(zonesList).toHaveBeenCalledTimes(1);
+	it("uses cached zone id on second call", async () => {
+		// 1st upsertProxy: putScript, zones.list (resolves + caches), listRoutes (matches, no write)
+		// 2nd upsertProxy: putScript, [zone cached — no zones.list], listRoutes (matches, no write)
+		const { workers, calls } = makeWorkers([
+			{ status: 200 },
+			cfOk([zone]),
+			cfOk([route]),
+			{ status: 200 },
+			cfOk([route]),
+		]);
+		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
+		await workers.upsertProxy(HOSTNAME, PROXY_CONFIG);
+		const zoneLookups = calls.filter((c) => c.url.includes("/zones?"));
+		expect(zoneLookups).toHaveLength(1);
+	});
+});
+
+describe("CloudflareWorkers — error handling", () => {
+	it("throws ProviderApiError when putScript returns non-ok", async () => {
+		const { workers } = makeWorkers([{ status: 403, text: "Forbidden" }]);
+		await expect(workers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(
+			`Cloudflare PUT /accounts/${ACCOUNT}/workers/scripts/${SCRIPT_NAME} → 403`
+		);
+	});
+
+	it("throws ProviderApiError when listRoutes returns non-ok status", async () => {
+		const { workers } = makeWorkers([{ status: 200 }, cfOk([zone]), { status: 500, text: "server error" }]);
+		await expect(workers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(
+			`Cloudflare GET /zones/${ZONE_ID}/workers/routes → 500`
+		);
+	});
+
+	it("throws ProviderApiError when listRoutes returns success:false", async () => {
+		const { workers } = makeWorkers([
+			{ status: 200 },
+			cfOk([zone]),
+			{ status: 200, body: { success: false, errors: [{ message: "bad" }], result: null } },
+		]);
+		await expect(workers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(ProviderApiError);
 	});
 });
 
 describe("CloudflareWorkers.deployScript", () => {
 	it("deploys the given code and returns the script name", async () => {
-		const { cloudflareWorkers, workers } = makeClient();
-		const result = await cloudflareWorkers.deployScript("sentinel", { code: "export default { fetch() {} };" });
+		const { workers, calls } = makeWorkers([{ status: 200 }]);
+		const result = await workers.deployScript("sentinel", { code: "export default { fetch() {} };" });
 
-		expect(workers.putScript).toHaveBeenCalledWith(ACCOUNT, "sentinel", "export default { fetch() {} };");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/workers/scripts/sentinel`);
 		expect(result).toEqual({ scriptName: "sentinel" });
-		expect(workers.putSecret).not.toHaveBeenCalled();
 	});
 
 	it("sets every secret in config.secrets", async () => {
-		const { cloudflareWorkers, workers } = makeClient();
-		await cloudflareWorkers.deployScript("sentinel", {
+		const { workers, calls } = makeWorkers([
+			{ status: 200 }, // putScript
+			cfOk({ name: "WEBHOOK_SECRET", type: "secret_text" }),
+			cfOk({ name: "APP_PRIVATE_KEY", type: "secret_text" }),
+		]);
+		await workers.deployScript("sentinel", {
 			code: "export default {};",
 			secrets: { WEBHOOK_SECRET: "shh", APP_PRIVATE_KEY: "-----BEGIN..." },
 		});
 
-		expect(workers.putSecret).toHaveBeenCalledWith(ACCOUNT, "sentinel", "WEBHOOK_SECRET", "shh");
-		expect(workers.putSecret).toHaveBeenCalledWith(ACCOUNT, "sentinel", "APP_PRIVATE_KEY", "-----BEGIN...");
-		expect(workers.putSecret).toHaveBeenCalledTimes(2);
+		expect(calls[1]?.url).toContain(`/accounts/${ACCOUNT}/workers/scripts/sentinel/secrets`);
+		expect(calls[1]?.body).toEqual({ name: "WEBHOOK_SECRET", text: "shh", type: "secret_text" });
+		expect(calls[2]?.body).toEqual({ name: "APP_PRIVATE_KEY", text: "-----BEGIN...", type: "secret_text" });
 	});
 
 	it("creates a route for each pattern in config.routes that doesn't already exist", async () => {
-		const { cloudflareWorkers, workers } = makeClient({ listRoutes: vi.fn().mockResolvedValue([]) });
-		await cloudflareWorkers.deployScript("sentinel", {
-			code: "export default {};",
-			routes: ["sentinel.example.com/*"],
-		});
+		const { workers, calls } = makeWorkers([
+			{ status: 200 }, // putScript
+			cfOk([zone]), // zones.list
+			cfOk([]), // listRoutes — empty
+			cfOk({ id: "r1", pattern: "sentinel.example.com/*", script: "sentinel" }), // createRoute
+		]);
+		await workers.deployScript("sentinel", { code: "export default {};", routes: ["sentinel.example.com/*"] });
 
-		expect(workers.createRoute).toHaveBeenCalledWith(ZONE_ID, "sentinel.example.com/*", "sentinel");
+		expect(calls[3]?.method).toBe("POST");
+		expect(calls[3]?.url).toContain(`/zones/${ZONE_ID}/workers/routes`);
+		expect(calls[3]?.body).toEqual({ pattern: "sentinel.example.com/*", script: "sentinel" });
 	});
 
 	it("updates an existing route when its script name differs", async () => {
 		const existing = { id: "route-9", pattern: "sentinel.example.com/*", script: "old" };
-		const { cloudflareWorkers, workers } = makeClient({ listRoutes: vi.fn().mockResolvedValue([existing]) });
-		await cloudflareWorkers.deployScript("sentinel", {
-			code: "export default {};",
-			routes: ["sentinel.example.com/*"],
-		});
+		const { workers, calls } = makeWorkers([
+			{ status: 200 },
+			cfOk([zone]),
+			cfOk([existing]),
+			cfOk({ ...existing, script: "sentinel" }),
+		]);
+		await workers.deployScript("sentinel", { code: "export default {};", routes: ["sentinel.example.com/*"] });
 
-		expect(workers.updateRoute).toHaveBeenCalledWith(ZONE_ID, "route-9", "sentinel.example.com/*", "sentinel");
+		expect(calls[3]?.method).toBe("PUT");
+		expect(calls[3]?.url).toContain(`/zones/${ZONE_ID}/workers/routes/route-9`);
 	});
 
 	it("wires no routes when config.routes is omitted", async () => {
-		const { cloudflareWorkers, workers } = makeClient();
-		await cloudflareWorkers.deployScript("sentinel", { code: "export default {};" });
-		expect(workers.listRoutes).not.toHaveBeenCalled();
-		expect(workers.createRoute).not.toHaveBeenCalled();
+		const { workers, calls } = makeWorkers([{ status: 200 }]);
+		await workers.deployScript("sentinel", { code: "export default {};" });
+		expect(calls).toHaveLength(1);
 	});
 });
