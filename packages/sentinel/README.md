@@ -249,6 +249,63 @@ Deploy from a synced `alpha` checkout (packages publish on every
 merge), not an unreleased local branch, or a pinned version can 404
 against the registry.
 
+## GitHub App registration (manual, one-time)
+
+Creating the App itself is a web-UI flow — no API for it, nothing to
+automate. Register it at <https://github.com/settings/apps/new> (or
+under an org: `https://github.com/organizations/<org>/settings/apps/new`).
+
+**Order:** deploy first, then register — the App's webhook URL needs a
+real deployed URL. Run the ["Deploying"](#deploying) steps above once
+you have a Vercel token set (`holocron auth set vercel <token>` or
+`VERCEL_TOKEN`), then come back here with the resulting URL.
+
+### Repository permissions
+
+| Permission        | Access | Why                                                                                   |
+| ----------------- | ------ | ------------------------------------------------------------------------------------- |
+| Contents          | Read   | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                       |
+| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties       |
+| Pull requests     | Read   | required to _receive_ `pull_request` webhook events (v1 never writes PR comments)     |
+| Metadata          | Read   | mandatory baseline — auto-included                                                    |
+
+No other permissions — v1 never writes to Contents, never comments,
+never touches Actions/Administration.
+
+### Subscribe to events
+
+`push`, `pull_request`, `installation`
+
+### Webhook
+
+- **Webhook URL** — the deployed Vercel Function's URL from the
+  "Deploying" step above.
+- **Webhook secret** — generate one (e.g. `openssl rand -hex 32`) and
+  set it in the App's "Webhook secret" field. This becomes
+  `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the Doppler
+  `sentinel`/`prd` config right away so it isn't lost.
+- **Where to install it** — this org (`theholocron`) to start;
+  D10 (org-portability) means installing it on another org/account
+  later needs zero code changes.
+
+### Private key
+
+Generate one from the App's settings page after creation — that's
+`GITHUB_APP_PRIVATE_KEY`, also destined for Doppler's `sentinel`/`prd`
+config. Generating a new key at any point invalidates the previous
+one, so only do this once and store the result immediately.
+
+### After registration
+
+Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
+the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
+Doppler — see `holocron.config.ts` in this directory for the
+`vault` provider wiring. The still-open "Secrets flow" work
+(`holocron secrets sync`) will push them from there into Vercel's env
+vars; until then, set them directly via `holocron deploy`'s underlying
+`deployment` capability (`setEnvVar`) or Vercel's own dashboard.
+
 ## Development
 
 | Script                                  | Description                                 |

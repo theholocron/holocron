@@ -353,5 +353,10 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       against a real Vercel deployment: `BUILDING` → `READY` — the
       install step resolved every `@theholocron/*` package + `tsx`
       from the real registry and the build succeeded.
-- [ ] GitHub App registration (manual).
+- [ ] GitHub App registration (manual) — full instructions (permissions,
+      events, webhook URL/secret, private key) documented in
+      `packages/sentinel/README.md`'s "GitHub App registration" section.
+      Blocked on knowing the right webhook URL, which the custom-domain
+      automation above resolves — `sentinel.theholocron.dev` once
+      `holocron setup --cwd packages/sentinel` runs.
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.
