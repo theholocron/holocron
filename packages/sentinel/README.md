@@ -5,9 +5,10 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. Actual deploy wiring lands in a follow-up PR once the deploy
-> target is decided — see `.notes/tech-sentinel-v1.spec.md` (repo root)
-> for the full design and what's still open.
+> own. Deploy target: Vercel Functions — see `.notes/tech-sentinel-v1.spec.md`
+> (repo root)'s "Resolved — deploy target" section for why (reversed from
+> an earlier Cloudflare Workers choice) and what's still open (a thin
+> per-platform adapter, plus Sentinel's own `holocron.config.ts`).
 
 ## Scope (v1)
 
@@ -30,10 +31,11 @@ and dashboards.
 
 `src/utils/` — read-only: fetches, parses, verifies, never mutates GitHub
 (`validateConfig`, `parseWebhookEvent`, plus their shared
-`decodeContents`/`findPackageRoot` helpers). `src/actions/` — writes:
-calls a GitHub API that changes repo state (`syncPropertiesFromConfig`,
-`postCheckRun`). A future webhook handler calls utils to decide, then
-actions to report — never the other way around.
+`decodeContents`/`findPackageRoot`/`SENTINEL_APP_NAME` helpers).
+`src/actions/` — writes: calls a GitHub API that changes repo state
+(`syncPropertiesFromConfig`, `postCheckRun`). `handleWebhookRequest`
+(`src/handler.ts`) is the orchestration sitting above both — utils to
+decide, actions to report, never the other way around.
 
 ## `validateConfig({ client, repo })`
 
@@ -145,6 +147,34 @@ check has no workflow behind it at all. Built from `SENTINEL_APP_NAME`
 (`"Sentinel"`, exported from `src/utils/constants.ts`) rather than its
 own literal — the brand prefix any future action reads from one source
 instead of retyping.
+
+## `handleWebhookRequest(request, env)`
+
+Wires the four functions above into a single request handler:
+`parseWebhookEvent → validateConfig → syncPropertiesFromConfig →
+postCheckRun`, all through an installation-scoped `GitHubClient` built
+via `@theholocron/github-client`'s `createInstallationClient()` — the
+installation id always comes from the webhook payload itself (D10), so
+one App registration handles installations across any number of
+orgs/accounts unchanged.
+
+A plain `(Request, Env) => Response` function — deliberately
+deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
+wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
+SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync` once that
+PR-stack item lands. `installation.created`/`installation.deleted` are
+acknowledged only — no per-installation action is defined in v1.
+`push.default-branch` and `pull_request.opened`/`synchronize` run the
+identical pipeline (D8, same engine — only the commit SHA the check run
+attaches to differs), but only once `validateConfig()` reports
+`"valid"`: a missing/broken config is acknowledged without a check run.
+
+Deploy target: **Vercel Functions**, not Cloudflare Workers — reversed
+mid-build once this handler surfaced why: `validateConfig()` needs a
+real filesystem and real dynamic `import()` (to execute a fetched
+`holocron.config.ts` as an actual module), neither of which Workers'
+V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
+— deploy target" section for the full account.
 
 ## Development
 
