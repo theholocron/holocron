@@ -85,54 +85,59 @@ capability. Full list, kept as one running backlog: #674.
   infrastructure needed; this was never actually an open question once
   framed as "this package's own secrets," not "a special App-only path."
 
-## Resolved — deploy target: Cloudflare Workers
+## Resolved — deploy target: Vercel Functions (reversed from Cloudflare Workers)
 
-Chosen over Vercel Functions for cold-start fit against GitHub's ~10s
-webhook delivery window (Workers' near-zero cold start vs. Vercel's
-real-but-tolerable one) — both were viable, both need a capability
-extension either way (`Deployment` models a framework-aware project;
-`Workers` is currently scoped to reverse-proxying the wiki, not general
-script deployment). A new vendor (Lambda, Fly.io, Deno Deploy, …) or
-self-hosting were both rejected: this org has no existing plugin for any
-of them, and nothing else here runs self-hosted — both would add new
-operational surface a capability extension doesn't need.
+**Originally chosen: Cloudflare Workers**, for cold-start fit against
+GitHub's ~10s webhook delivery window. Built out: Cloudflare Workers
+secret-binding support (`clients` repo, #342), GitHub App authentication
+(`clients` repo, #343 — Web Crypto only, so it'd run unchanged on
+Workers or Node either way), and a `Workers.deployScript()` capability
+extension (`packages/cli` + `holocron-plugin-cloudflare`, #729) for
+deploying an arbitrary script, not just the existing wiki reverse-proxy.
 
-Decomposes into independent-where-possible pieces, not one PR:
+**Reversed once `packages/sentinel/src/handler.ts` actually got built**,
+targeting the real blocker: `validateConfig()` fetches a repo's
+`holocron.config.*` and executes it as a real module — including
+`import { defineConfig } from "@theholocron/cli"`, its own documented
+pattern — by writing the content to a temp file and dynamically
+`import()`-ing that path (D8: reuses `@theholocron/datapad`'s
+`loadFile` internals unchanged, not a bespoke parser). That needs a
+real, writable filesystem and real dynamic `import()` of freshly-written
+content. Cloudflare Workers' V8-isolate model has neither — not even
+with the `nodejs_compat` flag, which polyfills API shapes (`Buffer`,
+`process`, parts of `node:crypto`) but not a virtual disk. This wasn't
+visible in the original comparison, which weighed cold-start and which
+crypto API to use, not whether config-loading's execution model works on
+the target at all — a real gap in that evaluation, not a config flag
+away from fixed.
 
-- **Cloudflare Workers secret-binding support** (`clients` repo) —
-  `@theholocron/cloudflare-client`'s `workers` module has no secrets
-  endpoint yet (only `putScript`/route management). Foundation for
-  everything below; no dependency on anything else here.
-- **`Workers` capability extension** (`packages/cli/src/plugin/
-capabilities.ts` + `holocron-plugin-cloudflare`) — a general
-  `deployScript(name, config)` alongside the existing `upsertProxy()`
-  (kept, not replaced — the wiki proxy still uses it), plus wiring the
-  new secrets endpoint. Depends on the `clients` piece publishing first.
-- **Sentinel's Workers handler** (`packages/sentinel/src/handler.ts`) —
-  wires `parseWebhookEvent → validateConfig → syncPropertiesFromConfig →
-postCheckRun` into a `fetch` export. Needs its own Workers-targeted
-  build (`workerd`, not Node — `nodejs_compat` for the `node:crypto`
-  calls already in `utils/webhook.ts`) alongside the existing
-  Node-targeted `dist/index.mjs`. Independent of the capability
-  extension — it's the code being deployed, not the deploy mechanism —
-  can land in parallel.
-- **Sentinel's own `holocron.config.ts`** (deferred until now, per
-  "Resolved" above) — wires `workers` + `vault` providers. Depends on
-  both prior pieces existing (the capability to deploy with, the handler
-  to deploy).
-- **GitHub App registration** — creating the App itself (permissions,
-  webhook URL pointed at the deployed Worker, private key) is a largely
-  manual, one-time step in GitHub's UI, not something `holocron setup`
-  automates the way repo-level config is.
-- **Secrets flow** — `holocron secrets sync` pushing the App's private
-  key + webhook secret from vault into Worker secrets. Depends on the
-  secret-binding support above.
+Vercel Functions run on a real Node.js runtime with a genuinely writable
+`/tmp` and full dynamic `import()` — `validateConfig()` runs completely
+unchanged there. `handler.ts` itself needed no logic changes either: it
+was already a plain, deploy-target-agnostic `(Request, Env) => Response`
+function (`handleWebhookRequest`), not a Cloudflare-specific `{ fetch }`
+module-worker export.
 
-One piece not in this original list, discovered mid-flight: the handler
-needs an installation-scoped `GitHubClient`, not a static PAT — a
-**GitHub App authentication** module (`clients` repo, alongside the
-webhook-verification and Checks API work already there) had to exist
-first. See the PR-stack below for what actually shipped, in what order.
+**The Cloudflare Workers infrastructure already shipped isn't wasted** —
+`deployScript()`, the secrets support, and the `putScript`/`cfRequest`
+duplication cleanup #729 also did are legitimate, general-purpose
+capability surface for `holocron-plugin-cloudflare` regardless of
+Sentinel's own deploy target (the wiki proxy already used the module;
+future work — this org's or `rando`'s — can use `deployScript()` for any
+other Worker). It's just not what Sentinel itself deploys through.
+
+**Vercel's `Deployment` capability needs the same shape of extension**
+`Workers` just got — it currently models a framework-aware project
+(docs/app deployments), not "deploy one serverless function." Not yet
+started; tracked as its own PR-stack item below, mirroring the Workers
+work rather than repeating its research from scratch.
+
+One piece discovered mid-flight, independent of the deploy-target
+reversal: the handler needs an installation-scoped `GitHubClient`, not a
+static PAT — a **GitHub App authentication** module (`clients` repo,
+#343, alongside the webhook-verification and Checks API work already
+there) had to exist first. See the PR-stack below for what actually
+shipped, in what order.
 
 ## Dependencies
 
@@ -257,7 +262,27 @@ first. See the PR-stack below for what actually shipped, in what order.
       injected `CloudflareClient`) instead of its own private
       `putScript`/`cfRequest` reimplementation — pre-existing duplication
       this touched anyway, eliminated rather than extended.
-- [ ] Sentinel's Workers handler (`src/handler.ts`) + Workers build target.
-- [ ] Sentinel's own `holocron.config.ts`.
+- [x] Deploy-target reversal: Vercel Functions, not Cloudflare Workers —
+      see "Resolved — deploy target" above for why. The Cloudflare
+      `deployScript()` work above stands regardless — general
+      infrastructure, just not what Sentinel itself deploys through.
+- [x] Sentinel's webhook-handling core (`src/handler.ts`,
+      `handleWebhookRequest(request, env)`): wires `parseWebhookEvent →
+validateConfig → syncPropertiesFromConfig → postCheckRun` into a
+      single, deliberately platform-agnostic Fetch-API function — a
+      plain `(Request, Env) => Response`, no deploy-target-specific
+      wrapper, so it needed zero changes across the deploy-target
+      reversal. `installation.*` events are acknowledged only (no
+      per-installation action defined in v1); `push.default-branch` and
+      `pull_request.opened`/`synchronize` run the identical pipeline
+      (D8), differing only in which commit SHA the check run attaches
+      to — but only when `validateConfig()` reports `"valid"`; a
+      missing/broken config is acknowledged without a check run,
+      deferring richer "the config itself is broken" reporting.
+- [ ] `Deployment` capability extension for Vercel — the same shape of
+      work `Workers.deployScript()` just did, needed because `Deployment`
+      currently models a framework-aware project, not "deploy one
+      serverless function." Not yet started.
+- [ ] Sentinel's own `holocron.config.ts` — wires `deployment` (Vercel) + `vault` providers. Depends on the Vercel capability extension.
 - [ ] GitHub App registration (manual).
-- [ ] Secrets flow: `holocron secrets sync` → Worker secrets.
+- [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.

@@ -10,14 +10,17 @@
  * GitHub (`validateConfig`, `parseWebhookEvent`, plus their shared
  * `decodeContents`/`findPackageRoot`/`SENTINEL_APP_NAME` helpers).
  * `src/actions/` — writes: calls a GitHub API that changes repo state
- * (`syncPropertiesFromConfig`, `postCheckRun`). A future webhook handler
- * calls utils to decide, then actions to report — never the other way
- * around.
+ * (`syncPropertiesFromConfig`, `postCheckRun`). `handleWebhookRequest`
+ * (`src/handler.ts`) is the orchestration sitting above both — utils to
+ * decide, actions to report, never the other way around.
  *
- * Scaffolding — actual deploy wiring lands in a follow-up PR once the
- * deploy target is decided (see the spec's "Open, not yet decided"
- * section). Everything exported here is already deploy-target-agnostic:
- * plain functions over already-fetched/verified inputs, no HTTP framework.
+ * `handleWebhookRequest` is deliberately platform-agnostic: a plain
+ * `(Request, Env) => Response` function, no deploy-target-specific
+ * wrapper. Actual deploy wiring — a thin per-platform adapter, plus
+ * Sentinel's own `holocron.config.ts` — is a still-open PR-stack item
+ * (see the spec's "Resolved — deploy target" section: Vercel Functions,
+ * not Cloudflare Workers — `validateConfig()`'s temp-file-based module
+ * loading needs a real filesystem Workers' isolate model doesn't have).
  */
 
 export {
@@ -31,6 +34,7 @@ export {
 	type SyncPropertiesInput,
 	type SyncPropertiesResult,
 } from "./actions/sync-properties.js";
+export { type Env, handleWebhookRequest } from "./handler.js";
 export { SENTINEL_APP_NAME } from "./utils/constants.js";
 export { validateConfig, type ValidateConfigInput, type ValidateConfigResult } from "./utils/validate-config.js";
 export {
