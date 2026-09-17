@@ -263,3 +263,47 @@ describe("deployments.get", () => {
 		expect(result.readyState).toBe("READY");
 	});
 });
+
+describe("domains.list", () => {
+	it("GET /v9/projects/{id}/domains", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }],
+				},
+			},
+		]);
+		const result = await client.domains.list("prj_123");
+		expect(calls[0]?.url).toContain("/v9/projects/prj_123/domains");
+		expect(result.domains).toHaveLength(1);
+		expect(result.domains[0]?.name).toBe("sentinel.theholocron.dev");
+	});
+});
+
+describe("domains.add", () => {
+	it("POST /v10/projects/{id}/domains with the domain name", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					name: "sentinel.theholocron.dev",
+					apexName: "theholocron.dev",
+					verified: false,
+					verification: [
+						{
+							type: "CNAME",
+							domain: "sentinel.theholocron.dev",
+							value: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+							reason: "Set the following record on your DNS provider to continue",
+						},
+					],
+				},
+			},
+		]);
+		const result = await client.domains.add("prj_123", "sentinel.theholocron.dev");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/v10/projects/prj_123/domains");
+		expect(calls[0]?.body).toEqual({ name: "sentinel.theholocron.dev" });
+		expect(result.verified).toBe(false);
+		expect(result.verification?.[0]?.value).toBe("d1d4fc829fe7bc7c.vercel-dns-017.com");
+	});
+});

@@ -1,4 +1,5 @@
 import { deployments } from "./deployments/deployments.js";
+import { domains } from "./domains/domains.js";
 import { env } from "./env/env.js";
 import { projects } from "./projects/projects.js";
 import { user } from "./user/user.js";
@@ -12,6 +13,12 @@ export type {
 	VercelDeploymentTarget,
 	VercelTriggerDeploymentInput,
 } from "./deployments/deployments.js";
+export type {
+	VercelAddDomainResult,
+	VercelDomain,
+	VercelDomainsResponse,
+	VercelDomainVerification,
+} from "./domains/domains.js";
 export type { VercelEnvTarget, VercelEnvVar, VercelEnvVarsResponse } from "./env/env.js";
 export type {
 	VercelCreateProjectInput,
@@ -27,6 +34,7 @@ export function createVercelClient(opts: VercelClientOptions) {
 	const rest = createVercelRestClient(opts);
 	return {
 		deployments: deployments(rest),
+		domains: domains(rest),
 		env: env(rest),
 		projects: projects(rest),
 		user: user(rest),

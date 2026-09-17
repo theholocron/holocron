@@ -63,6 +63,16 @@ const fnDeployment = await vercel.deployments.create({
 
 // Poll deployment status
 const status = await vercel.deployments.get(deployment.id);
+
+// List a project's custom domains
+const { domains } = await vercel.domains.list("project-id");
+
+// Add a custom domain — the CNAME target is generated per-project by
+// Vercel, not a fixed well-known host; always read it from the response
+const added = await vercel.domains.add("project-id", "sentinel.example.com");
+if (!added.verified) {
+  console.log(added.verification); // [{ type: "CNAME", domain, value }]
+}
 ```
 
 ## Status
