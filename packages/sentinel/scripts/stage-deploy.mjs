@@ -23,9 +23,9 @@
  * (they publish on every merge), not an unreleased local branch, or
  * Vercel's install can 404 on a version that was never published.
  *
- * Run after `pnpm run delivery.build`, before `holocron deploy --files
- * packages/sentinel/.vercel-deploy --project-id sentinel --cwd
- * packages/sentinel`.
+ * Not its own package.json script — an internal step of
+ * `delivery.deploy` (build → this → `holocron deploy`). Run that
+ * instead of invoking this file directly.
  */
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";

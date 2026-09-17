@@ -32,7 +32,7 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "delivery.stageDeploy": "node scripts/stage-deploy.mjs",
+    "delivery.deploy": "pnpm run delivery.build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
     "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
     "verification.typeSafety": "tsc --noEmit",

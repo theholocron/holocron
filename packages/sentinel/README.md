@@ -181,17 +181,32 @@ V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
 `holocron.config.ts` in this directory — separate from the monorepo
 root's own config, since Sentinel is deployed as its own product, not
 built/released the way the CLI or the plugins are — wires the
-`deployment` (Vercel) and `vault` (Doppler) providers. Not
-auto-discovered by any package script; invoked directly:
+`deployment` (Vercel) and `vault` (Doppler) providers.
 
 ```bash
-pnpm run delivery.build
-pnpm run delivery.stageDeploy
-holocron deploy --files packages/sentinel/.vercel-deploy --project-id sentinel --cwd packages/sentinel
+pnpm run delivery.deploy
 ```
 
-`--files` calls `deployFunction()` — no linked Git repo required, since
-this ships as an npm package, not a deployed-from-source-control app.
+A real, production deploy — there's no separate staging/dev
+environment for Sentinel (see "Why production only" below). Builds,
+assembles the deploy payload, then calls `holocron deploy --files
+--target production`, which calls `deployFunction()` — no linked Git
+repo required, since this ships as an npm package, not a
+deployed-from-source-control app.
+
+### Why production only
+
+A GitHub App has exactly one webhook URL, configured once in its
+settings. A preview deploy's URL changes on every single deploy — the
+App's webhook URL would need editing after every code change, which
+isn't workable for something that has to keep receiving live
+webhooks. So there's no standing "dev" or "staging" deployment for
+Sentinel the way a typical web app might have one; production is the
+only target that means anything operationally. For testing before a
+real deploy: `holocron deploy --dry-run` verifies the wiring without
+touching Vercel, and the 73+ tests exercise `handleWebhookRequest`
+directly — that's this package's actual "dev environment," not a
+deployed URL.
 
 ### `api/webhook.mjs` and `scripts/stage-deploy.mjs`
 
