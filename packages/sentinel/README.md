@@ -203,6 +203,20 @@ real deployed URL. Run the ["Deploying"](#deploying) steps above once
 you have a Vercel token set (`holocron auth set vercel <token>` or
 `VERCEL_TOKEN`), then come back here with the resulting URL.
 
+### App info
+
+| Field                                                  | Value                                                                                                                                                                                              |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not just this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
+| Description                                            | `Holocron's minimal GitHub App — validates holocron.config.ts, syncs capability status to repo properties, and posts a compliance check run on every push to the default branch and pull request.` |
+| Homepage URL                                           | `https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme` (this package's own `package.json` `homepage`)                                                                        |
+| Callback URL                                           | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |
+| Setup URL (optional)                                   | Leave blank                                                                                                                                                                                        |
+| Request user authorization (OAuth) during installation | Leave **unchecked** — Sentinel only ever uses installation access tokens (App-level auth), never impersonates a user                                                                               |
+| Enable Device Flow                                     | Leave **unchecked** — not a CLI-auth use case                                                                                                                                                      |
+| Webhook → Active                                       | **Checked**                                                                                                                                                                                        |
+| Where can this GitHub App be installed?                | "Only on this account" (`theholocron`) to start — D10 (org-portability) means installing it elsewhere later needs zero code changes, so this isn't a one-way door                                  |
+
 ### Repository permissions
 
 | Permission        | Access | Why                                                                                   |
