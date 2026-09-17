@@ -15,9 +15,8 @@
  *
  * `vault`: Doppler, for the still-separate "secrets flow" PR-stack
  * item (`holocron secrets sync` → Vercel env vars) to push the GitHub
- * App's private key + webhook secret from. `project`/`config` below
- * are a starting guess matching this package's name — adjust to
- * whatever Doppler project actually holds Sentinel's secrets.
+ * App's private key + webhook secret from. `project: "sentinel"`,
+ * `config: "prd"` — confirmed against the real Doppler project.
  */
 
 import { defineConfig } from "@theholocron/cli";

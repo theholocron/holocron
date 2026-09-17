@@ -313,9 +313,10 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       (Vercel, `teamId: "team_YrFqXg1QceAu0CdYdBmrDpop"`) + `vault`
       (Doppler — chosen over Infisical/1Password; the latter is
       CLI-shell-out only, unusable in CI per ADR-0001).
-      `project`/`config: "sentinel"`/`"prd"` are a starting guess, not
-      yet confirmed against a real Doppler project — adjust when the
-      secrets-flow item below actually runs. Verified end-to-end with a
+      `project: "sentinel"`, `config: "prd"` — confirmed. Neither the
+      Doppler project nor the GitHub App exist yet; nothing to
+      populate until the still-pending items below build the App and
+      the actual sync. Verified end-to-end with a
       dry-run invocation (`packages/sentinel/README.md`'s "Deploying"
       section has the exact command) — the config resolves and reports
       `would: vercel.deployFunction(...)` correctly. A
