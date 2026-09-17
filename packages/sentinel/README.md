@@ -176,6 +176,22 @@ real filesystem and real dynamic `import()` (to execute a fetched
 V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
 — deploy target" section for the full account.
 
+## Deploying
+
+`holocron.config.ts` in this directory — separate from the monorepo
+root's own config, since Sentinel is deployed as its own product, not
+built/released the way the CLI or the plugins are — wires the
+`deployment` (Vercel) and `vault` (Doppler) providers. Not
+auto-discovered by any package script; invoked directly:
+
+```bash
+pnpm run delivery.build
+holocron deploy --files packages/sentinel/dist --project-id sentinel --cwd packages/sentinel
+```
+
+`--files` calls `deployFunction()` — no linked Git repo required, since
+this ships as an npm package, not a deployed-from-source-control app.
+
 ## Development
 
 | Script                                  | Description                                 |
