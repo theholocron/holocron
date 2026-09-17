@@ -1,10 +1,14 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../config/config.js";
 import type { LoadedConfig } from "../config/load-config.js";
 import { type PluginImporter, PluginLoader } from "../plugin/loader.js";
-import { runDeploy } from "./deploy.js";
+import { runDeploy, runDeployFromFiles } from "./deploy.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -266,5 +270,360 @@ describe("runDeploy", () => {
 
 		expect(report.status).toBe("fail");
 		expect(report.message).toBe("network timeout");
+	});
+});
+
+describe("runDeployFromFiles", () => {
+	function fakeFs(files: Record<string, string>) {
+		const walkFiles = (dir: string) => Object.keys(files).map((rel) => `${dir}/${rel}`);
+		const readFile = (abs: string) => {
+			for (const [rel, content] of Object.entries(files)) {
+				if (abs.endsWith(rel)) return content;
+			}
+			throw new Error(`unexpected read: ${abs}`);
+		};
+		return { walkFiles, readFile };
+	}
+
+	it("deploys the walked files via the configured provider's deployFunction", async () => {
+		const deployCalls: Array<{ projectId: string; config: { files: Record<string, string>; target?: string } }> =
+			[];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async (projectId: string, config: { files: Record<string, string> }) => {
+						deployCalls.push({ projectId, config });
+						return { deploymentId: "dpl_1", url: "sentinel-abc.vercel.app" };
+					},
+				},
+			}),
+		});
+
+		const log = fakeLogger();
+		const { walkFiles, readFile } = fakeFs({ "api/webhook.js": "export default () => {};" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/sentinel-dist",
+			loader,
+			print: () => {},
+			logger: log,
+			walkFiles,
+			readFile,
+		});
+
+		expect(deployCalls).toHaveLength(1);
+		expect(deployCalls[0]?.projectId).toBe("prj_123");
+		expect(deployCalls[0]?.config.files).toEqual({ "api/webhook.js": "export default () => {};" });
+		expect(report.status).toBe("ok");
+		expect(report.deployment).toEqual({ deploymentId: "dpl_1", url: "sentinel-abc.vercel.app" });
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ fileCount: 1 }), "deploy: start (files)");
+	});
+
+	it("passes named target through", async () => {
+		const deployCalls: Array<{ target?: string }> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async (_projectId: string, config: { target?: string }) => {
+						deployCalls.push(config);
+						return { deploymentId: "dpl_1", url: "x" };
+					},
+				},
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			target: "production",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(deployCalls[0]?.target).toBe("production");
+	});
+
+	it("errors when deployment capability is not configured", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+		});
+
+		await expect(
+			runDeployFromFiles({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				projectId: "prj_123",
+				dir: "/tmp/dist",
+				loader,
+				print: () => {},
+				walkFiles: () => [],
+				readFile: () => "",
+			})
+		).rejects.toThrow(/deployment capability is not configured/);
+	});
+
+	it("errors clearly when the configured provider has no deployFunction", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", {
+				deployment: { providerName: "cloudflare" },
+			}),
+		});
+
+		await expect(
+			runDeployFromFiles({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				projectId: "prj_123",
+				dir: "/tmp/dist",
+				loader,
+				print: () => {},
+				walkFiles: () => [],
+				readFile: () => "",
+			})
+		).rejects.toThrow(/does not support deploying from files/);
+	});
+
+	it("dry-run skips the actual deployFunction call", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => {
+						called = true;
+						return { deploymentId: "", url: "" };
+					},
+				},
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(called).toBe(false);
+		expect(report.status).toBe("dry-run");
+		expect(report.deployment).toBeNull();
+		expect(report.message).toContain("files=1");
+	});
+
+	it("dry-run message includes target when provided", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: { providerName: "vercel", deployFunction: async () => ({ deploymentId: "", url: "" }) },
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			target: "production",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("dry-run");
+		expect(report.message).toContain("target=production");
+	});
+
+	it("returns status=fail with the error message when the provider throws", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => {
+						throw new Error("invalid files array");
+					},
+				},
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("invalid files array");
+	});
+
+	it("returns status=fail with string coercion when a non-Error is thrown", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => {
+						throw "network timeout";
+					},
+				},
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("network timeout");
+	});
+
+	it("defaults print to console.log when omitted", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => ({ deploymentId: "dpl_1", url: "x" }),
+				},
+			}),
+		});
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("ok");
+		expect(logSpy).toHaveBeenCalled();
+		logSpy.mockRestore();
+	});
+
+	describe("default walkFiles/readFile (real filesystem)", () => {
+		let dir: string;
+
+		afterEach(() => {
+			if (dir) rmSync(dir, { recursive: true, force: true });
+		});
+
+		it("recursively reads real files, skipping .git/node_modules/dist/.turbo, keyed relative + POSIX-separated", async () => {
+			dir = mkdtempSync(join(tmpdir(), "holocron-deploy-test-"));
+			mkdirSync(join(dir, "api"), { recursive: true });
+			mkdirSync(join(dir, "node_modules", "x"), { recursive: true });
+			mkdirSync(join(dir, ".git"), { recursive: true });
+			writeFileSync(join(dir, "api", "webhook.js"), "export default () => {};");
+			writeFileSync(join(dir, "package.json"), "{}");
+			writeFileSync(join(dir, "node_modules", "x", "index.js"), "should be skipped");
+			writeFileSync(join(dir, ".git", "HEAD"), "should be skipped");
+
+			const deployCalls: Array<{ files: Record<string, string> }> = [];
+			const loaded = loadedFrom({
+				name: "demo",
+				providers: { vault: "1password", deployment: "vercel" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+					deployment: {
+						providerName: "vercel",
+						deployFunction: async (_projectId: string, config: { files: Record<string, string> }) => {
+							deployCalls.push(config);
+							return { deploymentId: "dpl_1", url: "x" };
+						},
+					},
+				}),
+			});
+
+			const report = await runDeployFromFiles({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				projectId: "prj_123",
+				dir,
+				loader,
+				print: () => {},
+			});
+
+			expect(report.status).toBe("ok");
+			expect(deployCalls[0]?.files).toEqual({
+				"api/webhook.js": "export default () => {};",
+				"package.json": "{}",
+			});
+		});
 	});
 });
