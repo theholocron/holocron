@@ -425,6 +425,7 @@ describe("runSetup", () => {
 			}),
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
 				deployment: {
+					providerName: "cloudflare",
 					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
 					ensureCustomDomain: async (projectId: string, hostname: string) => {
 						customDomainCalls.push([projectId, hostname]);
@@ -458,6 +459,55 @@ describe("runSetup", () => {
 		});
 	});
 
+	it("hands a declared production Vercel domain challenge to the DNS provider", async () => {
+		const dnsCalls: Array<{ zone: string; type: string; name: string; content: string; ttl?: number }> = [];
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { vault: "1password", deployment: "vercel", dns: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					domain: "sentinel.holocron.dev",
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async () => ({
+						zone: "holocron.dev",
+						cname: "sentinel.holocron.dev",
+						target: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				dns: {
+					listRecords: async () => [],
+					upsertRecord: async (
+						zone: string,
+						record: { type: string; name: string; content: string; ttl?: number }
+					) => {
+						dnsCalls.push({ zone, ...record });
+						return record;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(dnsCalls).toEqual([
+			{
+				zone: "holocron.dev",
+				type: "CNAME",
+				name: "sentinel.holocron.dev",
+				content: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+				ttl: 1,
+			},
+		]);
+	});
+
 	it("resolves preview: true using org and domain context to provision project and custom domain", async () => {
 		const ensureProjectCalls: string[] = [];
 		const customDomainCalls: Array<[string, string]> = [];
@@ -475,6 +525,7 @@ describe("runSetup", () => {
 			}),
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
 				deployment: {
+					providerName: "cloudflare",
 					ensureProject: async (input: { name: string }) => {
 						ensureProjectCalls.push(input.name);
 						return { id: input.name, name: input.name };

@@ -676,6 +676,32 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					domain: config.domain,
 				})
 			: null;
+		const ensureCustomDomain = async (projectId: string, hostname: string) => {
+			if (!deploy.ensureCustomDomain) return;
+			const customDomainDns = { value: null as { zone: string; cname: string; target: string } | null };
+			steps.push(
+				await runStep("deployment", `ensureCustomDomain ${hostname}`, dryRun, async () => {
+					customDomainDns.value = await deploy.ensureCustomDomain!(projectId, hostname);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+
+			if (customDomainDns.value && loader.has("dns")) {
+				const dns = loader.get("dns") as Dns;
+				const dnsRecord = customDomainDns.value;
+				steps.push(
+					await runStep("dns", `upsertRecord ${dnsRecord.cname}`, dryRun, async () => {
+						await dns.upsertRecord(dnsRecord.zone, {
+							type: "CNAME",
+							name: dnsRecord.cname,
+							content: dnsRecord.target,
+							ttl: 1,
+						});
+					})
+				);
+				print(formatStep(steps[steps.length - 1]!));
+			}
+		};
 
 		if (!previewCfg) {
 			steps.push(
@@ -684,6 +710,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
+			if (deploy.domain) {
+				await ensureCustomDomain(config.name, deploy.domain);
+			}
 		}
 
 		if (previewCfg) {
@@ -695,16 +724,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		if (previewCfg?.domain && deploy.ensureCustomDomain) {
-			steps.push(
-				await runStep("deployment", `ensureCustomDomain ${previewCfg.domain}`, dryRun, async () => {
-					await deploy.ensureCustomDomain!(previewCfg.project, previewCfg.domain!);
-				})
-			);
-			print(formatStep(steps[steps.length - 1]!));
+		if (previewCfg?.domain) {
+			await ensureCustomDomain(previewCfg.project, previewCfg.domain);
 		}
 
-		if (previewCfg?.domain && loader.has("dns")) {
+		// Cloudflare Pages doesn't expose its DNS challenge, so retain its
+		// provider-specific apex + wildcard records. Other providers return
+		// their required record from ensureCustomDomain() above.
+		if (previewCfg?.domain && deploy.providerName === "cloudflare" && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			const wildcardDomain = `*.${previewCfg.domain}`;
 			steps.push(

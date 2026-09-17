@@ -342,9 +342,10 @@ describe("VercelDeployment.ensureCustomDomain", () => {
 				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
 			},
 		]);
-		await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
 		expect(calls).toHaveLength(1);
 		expect(calls[0]?.method).toBe("GET");
+		expect(result).toBeNull();
 	});
 
 	it("adds the domain when missing (list → POST)", async () => {
@@ -367,10 +368,15 @@ describe("VercelDeployment.ensureCustomDomain", () => {
 				},
 			},
 		]);
-		await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
 		expect(calls).toHaveLength(2);
 		expect(calls[1]?.method).toBe("POST");
 		expect(calls[1]?.url).toBe("https://api.vercel.com/v10/projects/prj_123/domains");
 		expect(calls[1]?.body).toEqual({ name: "sentinel.theholocron.dev" });
+		expect(result).toEqual({
+			zone: "theholocron.dev",
+			cname: "sentinel.theholocron.dev",
+			target: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+		});
 	});
 });

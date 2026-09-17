@@ -26,6 +26,7 @@ import type {
 	DeploymentRecord,
 	DeploymentTarget,
 	DeploymentTrigger,
+	WikiDnsRecord,
 } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
@@ -33,11 +34,14 @@ import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
 export interface DeploymentOptions {
 	/** Optional framework hint passed to project creates. Defaults to "nextjs". */
 	defaultFramework?: string;
+	/** Custom domain that `holocron setup` should attach to this project. */
+	domain?: string;
 }
 
 export class VercelDeployment implements Deployment {
 	readonly key = "deployment" as const;
 	readonly providerName = "vercel";
+	readonly domain?: string;
 
 	private readonly defaultFramework: string;
 
@@ -46,6 +50,7 @@ export class VercelDeployment implements Deployment {
 		opts: DeploymentOptions = {}
 	) {
 		this.defaultFramework = opts.defaultFramework ?? "nextjs";
+		this.domain = opts.domain;
 	}
 
 	// ── projects ────────────────────────────────────────────────────────
@@ -150,19 +155,21 @@ export class VercelDeployment implements Deployment {
 	 * matching `Deployment.ensureCustomDomain`'s contract (never break
 	 * on re-runs, per CLAUDE.md's probe-then-act standard). Adding it
 	 * the first time returns `verified: false` for a domain new to this
-	 * Vercel account — Vercel needs a DNS record (usually CNAME, a
-	 * unique per-project target) created before it routes traffic. This
-	 * method only adds the domain; reading the verification challenge
-	 * needed to finish is the caller's job (`client().domains.add()`'s
-	 * own return value carries it) — Sentinel has no `holocron setup`
-	 * orchestration to hand it to, so there's no shared "here's the DNS
-	 * record" surface to route it through the way `Wiki.dnsRecord()`
-	 * does today.
+	 * Vercel account, plus a `verification` challenge — usually CNAME, a
+	 * unique per-project target Vercel generates (never a fixed
+	 * well-known host, confirmed via Vercel's own docs). Returned as a
+	 * `WikiDnsRecord` — the caller (e.g. `holocron deploy`'s custom-domain
+	 * step) hands it straight to `dns.upsertRecord()`, same as
+	 * `Wiki.dnsRecord()` already does for the wiki's own domain.
 	 */
-	async ensureCustomDomain(projectId: string, hostname: string): Promise<void> {
+	async ensureCustomDomain(projectId: string, hostname: string): Promise<WikiDnsRecord | null> {
 		const { domains: existing } = await this.client().domains.list(projectId);
-		if (existing.some((d) => d.name === hostname)) return;
-		await this.client().domains.add(projectId, hostname);
+		if (existing.some((d) => d.name === hostname)) return null;
+		const result = await this.client().domains.add(projectId, hostname);
+		if (result.verified) return null;
+		const challenge = result.verification?.find((v) => v.type === "CNAME");
+		if (!challenge) return null;
+		return { zone: result.apexName, cname: hostname, target: challenge.value };
 	}
 
 	// ── internals ───────────────────────────────────────────────────────
