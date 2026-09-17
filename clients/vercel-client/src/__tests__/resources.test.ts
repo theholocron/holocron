@@ -175,6 +175,78 @@ describe("deployments.trigger", () => {
 	});
 });
 
+describe("deployments.create", () => {
+	it("POST /v13/deployments with base64-encoded inline files, no gitSource", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					id: "d1",
+					url: "my-app.vercel.app",
+					readyState: "QUEUED",
+				},
+			},
+		]);
+		const result = await client.deployments.create({
+			projectName: "my-app",
+			files: [{ file: "api/webhook.js", content: "export default () => {};" }],
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/v13/deployments");
+		expect(calls[0]?.body).toMatchObject({
+			name: "my-app",
+			files: [
+				{
+					file: "api/webhook.js",
+					data: Buffer.from("export default () => {};", "utf8").toString("base64"),
+					encoding: "base64",
+				},
+			],
+			projectSettings: { framework: null },
+		});
+		expect((calls[0]?.body as { gitSource?: unknown }).gitSource).toBeUndefined();
+		expect(result.id).toBe("d1");
+	});
+
+	it("passes framework through when set, and target when provided", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					id: "d1",
+					url: "my-app.vercel.app",
+					readyState: "QUEUED",
+				},
+			},
+		]);
+		await client.deployments.create({
+			projectName: "my-app",
+			files: [{ file: "index.js", content: "x" }],
+			framework: "nextjs",
+			target: "production",
+		});
+		expect(calls[0]?.body).toMatchObject({
+			projectSettings: { framework: "nextjs" },
+			target: "production",
+		});
+	});
+
+	it("omits target for a preview deployment", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					id: "d1",
+					url: "my-app.vercel.app",
+					readyState: "QUEUED",
+				},
+			},
+		]);
+		await client.deployments.create({
+			projectName: "my-app",
+			files: [{ file: "index.js", content: "x" }],
+		});
+		expect((calls[0]?.body as { target?: unknown }).target).toBeUndefined();
+	});
+});
+
 describe("deployments.get", () => {
 	it("GET /v13/deployments/{id}", async () => {
 		const { client, calls } = makeClient([

@@ -5,6 +5,8 @@ import { user } from "./user/user.js";
 import { createVercelRestClient, type VercelClientOptions } from "./utils.js";
 
 export type {
+	VercelCreateDeploymentInput,
+	VercelDeployFile,
 	VercelDeployment,
 	VercelDeploymentState,
 	VercelDeploymentTarget,

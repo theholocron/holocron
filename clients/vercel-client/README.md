@@ -45,11 +45,19 @@ const { envs } = await vercel.env.list("project-id");
 // Set (upsert) an env var
 await vercel.env.set("project-id", "production", "API_URL", "https://api.example.com");
 
-// Trigger a deployment
+// Trigger a deployment (requires a project linked to a Git repo)
 const deployment = await vercel.deployments.trigger({
   projectName: "my-app",
   branch: "main",
   repoId: project.link?.repoId!,
+  target: "production",
+});
+
+// Create a deployment directly from source files — no linked repo required
+const fnDeployment = await vercel.deployments.create({
+  projectName: "my-fn",
+  files: [{ file: "api/webhook.js", content: "export default () => new Response('ok');" }],
+  framework: null, // no framework preset — a bare function, not an app
   target: "production",
 });
 
