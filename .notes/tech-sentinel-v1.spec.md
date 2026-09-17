@@ -87,6 +87,11 @@ capability. Full list, kept as one running backlog: #674.
 
 ## Resolved — deploy target: Vercel Functions (reversed from Cloudflare Workers)
 
+Full account, decision drivers, and pros/cons:
+`docs/wiki/decisions/0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md`
+(ADR-0011). This section carries the same narrative inline for the spec's
+own flow — keep both in sync.
+
 **Originally chosen: Cloudflare Workers**, for cold-start fit against
 GitHub's ~10s webhook delivery window. Built out: Cloudflare Workers
 secret-binding support (`clients` repo, #342), GitHub App authentication
