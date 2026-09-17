@@ -324,5 +324,7 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       (rather than at a repo root) is new territory for this org — no
       prior precedent — but `loadConfig(cwd)` only ever looks in `cwd`
       directly, no git-repo-root assumption, so it works unmodified.
-- [ ] GitHub App registration (manual).
+- [ ] GitHub App registration (manual) — full instructions (permissions,
+      events, webhook URL/secret, private key) documented in
+      `packages/sentinel/README.md`'s "GitHub App registration" section.
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.
