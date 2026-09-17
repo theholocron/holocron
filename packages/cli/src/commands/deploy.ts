@@ -159,9 +159,13 @@ export interface DeployFilesReport {
 	message?: string;
 }
 
-const SKIP_DIRS = new Set([".git", "node_modules", "dist", ".turbo"]);
+// Deliberately no "dist" here, unlike holocron new's own file-walker this
+// was modeled on: --files exists specifically to deploy build output, so
+// a directory literally named "dist" is exactly what a caller usually
+// means to include, not exclude.
+const SKIP_DIRS = new Set([".git", "node_modules", ".turbo"]);
 
-/** Recursively lists absolute file paths under `dir`, skipping VCS/build noise. */
+/** Recursively lists absolute file paths under `dir`, skipping VCS/tooling noise. */
 function defaultWalkFiles(dir: string): string[] {
 	const results: string[] = [];
 	for (const entry of readdirSync(dir)) {

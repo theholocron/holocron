@@ -680,12 +680,14 @@ describe("runDeployFromFiles", () => {
 			if (dir) rmSync(dir, { recursive: true, force: true });
 		});
 
-		it("recursively reads real files, skipping .git/node_modules/dist/.turbo, keyed relative + POSIX-separated", async () => {
+		it("recursively reads real files (including a dist/ subdir — not skipped, unlike holocron new's walker), skipping .git/node_modules/.turbo, keyed relative + POSIX-separated", async () => {
 			dir = mkdtempSync(join(tmpdir(), "holocron-deploy-test-"));
 			mkdirSync(join(dir, "api"), { recursive: true });
+			mkdirSync(join(dir, "dist"), { recursive: true });
 			mkdirSync(join(dir, "node_modules", "x"), { recursive: true });
 			mkdirSync(join(dir, ".git"), { recursive: true });
 			writeFileSync(join(dir, "api", "webhook.js"), "export default () => {};");
+			writeFileSync(join(dir, "dist", "index.mjs"), "export const handleWebhookRequest = () => {};");
 			writeFileSync(join(dir, "package.json"), "{}");
 			writeFileSync(join(dir, "node_modules", "x", "index.js"), "should be skipped");
 			writeFileSync(join(dir, ".git", "HEAD"), "should be skipped");
@@ -720,6 +722,7 @@ describe("runDeployFromFiles", () => {
 			expect(report.status).toBe("ok");
 			expect(deployCalls[0]?.files).toEqual({
 				"api/webhook.js": "export default () => {};",
+				"dist/index.mjs": "export const handleWebhookRequest = () => {};",
 				"package.json": "{}",
 			});
 		});
