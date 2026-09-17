@@ -55,6 +55,14 @@ Capability covers:
 - `updateProjectSettings()` — toggle preview deploys, git-creates-deploys
 - `setEnvVar()` / `listEnvVars()` — per-target env vars
 - `triggerDeployment()` — branch deploys with optional named target
+  (requires a project already linked to a Git repo)
+- `deployFunction()` — deploy directly from source files, bypassing Git
+  entirely: `POST /v13/deployments` with an inline `files` array, no
+  linked repo required. For a consumer with no repo to deploy from — a
+  webhook receiver shipped as an npm package, for instance. Always
+  deploys with `projectSettings.framework: null` (a bare function, not
+  an app) — `defaultFramework` only applies to `ensureProject()`'s
+  Git-linked path.
 - `getDeployment()` — fetch a deployment by id
 
 Out of scope for alpha.0 (file a follow-up if needed):

@@ -282,3 +282,54 @@ describe("VercelDeployment.getDeployment", () => {
 		expect(result.branch).toBeNull();
 	});
 });
+
+// ──────────────────────────────────────────────────────────────────────
+// deployFunction
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.deployFunction", () => {
+	it("POSTs inline files with no gitSource and framework: null", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_1", url: "sentinel-abc.vercel.app", readyState: "QUEUED" } },
+		]);
+		const result = await deployment.deployFunction("sentinel", {
+			files: { "api/webhook.js": "export default () => {};" },
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe("https://api.vercel.com/v13/deployments");
+		expect(calls[0]?.body).toEqual({
+			name: "sentinel",
+			files: [
+				{
+					file: "api/webhook.js",
+					data: Buffer.from("export default () => {};", "utf8").toString("base64"),
+					encoding: "base64",
+				},
+			],
+			projectSettings: { framework: null },
+		});
+		expect(result).toEqual({ deploymentId: "dpl_1", url: "sentinel-abc.vercel.app" });
+	});
+
+	it("passes every file in the map, and target when provided", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_2", url: "x", readyState: "QUEUED", target: "production" } },
+		]);
+		await deployment.deployFunction("sentinel", {
+			files: { "api/webhook.js": "a", "package.json": "{}" },
+			target: "production",
+		});
+		const body = calls[0]?.body as { files: { file: string }[]; target: string };
+		expect(body.files.map((f) => f.file)).toEqual(["api/webhook.js", "package.json"]);
+		expect(body.target).toBe("production");
+	});
+
+	it("ignores defaultFramework — deployFunction always ships with no framework preset", async () => {
+		const { deployment, calls } = makeDeployment(
+			[{ status: 201, body: { id: "dpl_3", url: "x", readyState: "QUEUED" } }],
+			{ defaultFramework: "nextjs" }
+		);
+		await deployment.deployFunction("sentinel", { files: { "index.js": "x" } });
+		expect((calls[0]?.body as { projectSettings: { framework: unknown } }).projectSettings.framework).toBeNull();
+	});
+});
