@@ -448,6 +448,35 @@ describe("runDeployFromFiles", () => {
 		expect(report.message).toContain("files=1");
 	});
 
+	it("dry-run message includes target when provided", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: { providerName: "vercel", deployFunction: async () => ({ deploymentId: "", url: "" }) },
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			target: "production",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("dry-run");
+		expect(report.message).toContain("target=production");
+	});
+
 	it("returns status=fail with the error message when the provider throws", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
@@ -479,6 +508,71 @@ describe("runDeployFromFiles", () => {
 
 		expect(report.status).toBe("fail");
 		expect(report.message).toContain("invalid files array");
+	});
+
+	it("returns status=fail with string coercion when a non-Error is thrown", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => {
+						throw "network timeout";
+					},
+				},
+			}),
+		});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			print: () => {},
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("network timeout");
+	});
+
+	it("defaults print to console.log when omitted", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					deployFunction: async () => ({ deploymentId: "dpl_1", url: "x" }),
+				},
+			}),
+		});
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_123",
+			dir: "/tmp/dist",
+			loader,
+			walkFiles,
+			readFile,
+		});
+
+		expect(report.status).toBe("ok");
+		expect(logSpy).toHaveBeenCalled();
+		logSpy.mockRestore();
 	});
 
 	describe("default walkFiles/readFile (real filesystem)", () => {
