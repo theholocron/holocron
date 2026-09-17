@@ -308,8 +308,21 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       `deploy` command, `.conflicts()`-paired with the `branch`
       positional. Errors clearly when the configured provider has no
       `deployFunction` (optional capability method).
-- [ ] Sentinel's own `holocron.config.ts` — wires `deployment` (Vercel,
-      `teamId: "team_YrFqXg1QceAu0CdYdBmrDpop"`) + `vault` providers.
-      Depends on the CLI wiring above, now done.
+- [x] Sentinel's own `holocron.config.ts`
+      (`packages/sentinel/holocron.config.ts`) — wires `deployment`
+      (Vercel, `teamId: "team_YrFqXg1QceAu0CdYdBmrDpop"`) + `vault`
+      (Doppler — chosen over Infisical/1Password; the latter is
+      CLI-shell-out only, unusable in CI per ADR-0001).
+      `project: "sentinel"`, `config: "prd"` — confirmed. Neither the
+      Doppler project nor the GitHub App exist yet; nothing to
+      populate until the still-pending items below build the App and
+      the actual sync. Verified end-to-end with a
+      dry-run invocation (`packages/sentinel/README.md`'s "Deploying"
+      section has the exact command) — the config resolves and reports
+      `would: vercel.deployFunction(...)` correctly. A
+      package-root `holocron.config.ts` inside a monorepo package
+      (rather than at a repo root) is new territory for this org — no
+      prior precedent — but `loadConfig(cwd)` only ever looks in `cwd`
+      directly, no git-repo-root assumption, so it works unmodified.
 - [ ] GitHub App registration (manual).
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.
