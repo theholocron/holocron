@@ -335,20 +335,51 @@ describe("VercelDeployment.deployFunction", () => {
 });
 
 describe("VercelDeployment.ensureCustomDomain", () => {
-	it("returns without adding when the domain is already on the project (no POST)", async () => {
+	it("already attached + DNS already routes to Vercel → no-op (list → config, no POST)", async () => {
 		const { deployment, calls } = makeDeployment([
 			{
 				status: 200,
 				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
 			},
+			{
+				status: 200,
+				body: { configuredBy: "CNAME", misconfigured: false, recommendedCNAME: [], recommendedIPv4: [] },
+			},
 		]);
 		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
-		expect(calls).toHaveLength(1);
+		expect(calls).toHaveLength(2);
 		expect(calls[0]?.method).toBe("GET");
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
 		expect(result).toBeNull();
 	});
 
-	it("adds the domain when missing (list → POST)", async () => {
+	it("already attached but DNS never configured → returns the record from config() (the 409-on-readd case)", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: {
+					configuredBy: null,
+					misconfigured: true,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(2);
+		expect(calls[1]?.url).toContain("/v6/domains/sentinel.theholocron.dev/config");
+		expect(calls[1]?.url).toContain("projectIdOrName=prj_123");
+		expect(result).toEqual({
+			zone: "theholocron.dev",
+			record: { type: "CNAME", name: "sentinel.theholocron.dev", content: "d1d4fc829fe7bc7c.vercel-dns-017.com" },
+		});
+	});
+
+	it("adds the domain when missing, then checks DNS config (list → POST → config)", async () => {
 		const { deployment, calls } = makeDeployment([
 			{ status: 200, body: { domains: [] } },
 			{
@@ -361,21 +392,74 @@ describe("VercelDeployment.ensureCustomDomain", () => {
 						{
 							type: "CNAME",
 							domain: "sentinel.theholocron.dev",
-							value: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+							value: "should-be-ignored.vercel-dns.com",
 							reason: "Set the following record",
 						},
 					],
 				},
 			},
+			{
+				status: 200,
+				body: {
+					configuredBy: null,
+					misconfigured: true,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
 		]);
 		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
-		expect(calls).toHaveLength(2);
+		expect(calls).toHaveLength(3);
 		expect(calls[1]?.method).toBe("POST");
 		expect(calls[1]?.url).toBe("https://api.vercel.com/v10/projects/prj_123/domains");
 		expect(calls[1]?.body).toEqual({ name: "sentinel.theholocron.dev" });
+		// The value comes from config(), not add()'s own verification challenge.
 		expect(result).toEqual({
 			zone: "theholocron.dev",
 			record: { type: "CNAME", name: "sentinel.theholocron.dev", content: "d1d4fc829fe7bc7c.vercel-dns-017.com" },
 		});
+	});
+
+	it("a 409 on add (race — already attached) falls back to a re-list for apexName", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: { domains: [] } },
+			{ status: 409, text: "domain already exists" },
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: { configuredBy: "CNAME", misconfigured: false, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(4);
+		expect(result).toBeNull();
+	});
+
+	it("rethrows non-409 errors from add() (does not swallow 500s)", async () => {
+		const { deployment } = makeDeployment([
+			{ status: 200, body: { domains: [] } },
+			{ status: 500, text: "oops" },
+		]);
+		await expect(deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev")).rejects.toBeInstanceOf(
+			ProviderApiError
+		);
+	});
+
+	it("returns null when misconfigured but config() has no CNAME recommendation", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: { configuredBy: null, misconfigured: true, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(result).toBeNull();
 	});
 });

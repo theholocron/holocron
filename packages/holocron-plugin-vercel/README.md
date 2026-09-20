@@ -64,11 +64,16 @@ Capability covers:
   an app) — `defaultFramework` only applies to `ensureProject()`'s
   Git-linked path.
 - `getDeployment()` — fetch a deployment by id
-- `ensureCustomDomain()` — idempotent add (list → check → add). Adding
-  a domain new to the Vercel account returns `verified: false` with a
-  DNS verification challenge (usually a CNAME to a per-project target
-  Vercel generates — never a fixed well-known host). The returned DNS
-  record is handed to the configured `dns` provider by `holocron setup`.
+- `ensureCustomDomain()` — idempotent add (list → add-if-missing →
+  check DNS routing). Ownership (`verified`) and DNS routing are
+  separate: once a team already owns a domain's apex, every new
+  subdomain auto-verifies immediately with no fresh challenge, so
+  attachment alone can't tell you whether traffic is actually routed
+  to Vercel yet. `domains.config()` answers that regardless of
+  ownership state, returning a per-project CNAME target — never a
+  fixed well-known host — only when DNS isn't already configured. The
+  returned DNS record is handed to the configured `dns` provider by
+  `holocron setup`.
 
 Declare the production domain in the Vercel provider options. On `holocron setup`,
 the domain is attached to the project and any Vercel verification CNAME is
