@@ -35,6 +35,18 @@ export interface DopplerVaultOptions {
 	config: string;
 }
 
+/**
+ * Doppler auto-injects these into every config's secrets download —
+ * bookkeeping about the config itself, not something any caller
+ * defined. `readEnvironment()` fans its result out to real destinations
+ * (`holocron secrets sync` → CI secrets, deploy env vars); shipping
+ * these alongside real secrets is pure noise there (theholocron/holocron#742
+ * — found via Sentinel's deploy picking them up as if they were its own
+ * env). Confirmed stable, documented Doppler behavior — not
+ * project/config-specific, so safe to filter by name unconditionally.
+ */
+const DOPPLER_INJECTED_KEYS = new Set(["DOPPLER_PROJECT", "DOPPLER_CONFIG", "DOPPLER_ENVIRONMENT"]);
+
 export class DopplerVault implements Vault {
 	readonly key = "vault" as const;
 	readonly providerName = "doppler";
@@ -83,10 +95,11 @@ export class DopplerVault implements Vault {
 
 	async readEnvironment(environmentId: string): Promise<Record<string, string>> {
 		const res = await this.client().secrets.download(this.project, environmentId);
-		// Filter out any non-string entries defensively.
 		const out: Record<string, string> = {};
 		for (const [k, v] of Object.entries(res)) {
-			if (typeof v === "string") out[k] = v;
+			// Filter out any non-string entries defensively, and Doppler's own
+			// injected bookkeeping keys (see DOPPLER_INJECTED_KEYS).
+			if (typeof v === "string" && !DOPPLER_INJECTED_KEYS.has(k)) out[k] = v;
 		}
 		return out;
 	}

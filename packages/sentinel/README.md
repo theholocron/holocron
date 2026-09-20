@@ -327,11 +327,28 @@ one, so only do this once and store the result immediately.
 
 Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
 the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
-Doppler — see `holocron.config.ts` in this directory for the
-`vault` provider wiring. The still-open "Secrets flow" work
-(`holocron secrets sync`) will push them from there into Vercel's env
-vars; until then, set them directly via `holocron deploy`'s underlying
-`deployment` capability (`setEnvVar`) or Vercel's own dashboard.
+Doppler first — see `holocron.config.ts` in this directory for the
+`vault` provider wiring — then out to Vercel's env vars:
+
+```sh
+holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production
+```
+
+- **`--target production` only.** Sentinel has no branch-based preview
+  deployments (`deployFunction()` ships inline files, no Git-linked
+  preview flow) — the command's `production`+`preview` default would
+  create a `preview`-target env var here that nothing ever reads.
+- **Manual, on-demand — not part of `delivery.deploy`.** Run it once
+  after registration, and again only when a secret actually rotates.
+  Wiring it into every recurring deploy would re-push unchanged
+  secrets on every `delivery.deploy` run for no reason.
+- **Vercel snapshots env vars at deploy time** — a running deployment
+  doesn't pick up a sync until the next deploy. Run
+  `pnpm run delivery.deploy` right after syncing if the App needs the
+  new value immediately, not on its next unrelated deploy.
+- Doppler's own auto-injected bookkeeping (`DOPPLER_PROJECT`,
+  `DOPPLER_CONFIG`, `DOPPLER_ENVIRONMENT`) is filtered out before
+  anything reaches Vercel — only real secrets cross over.
 
 ## Development
 
