@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/sentinel",
-  "version": "5.0.0-alpha.29",
+  "version": "5.0.0-alpha.30",
   "description": "Holocron's minimal GitHub App — webhook receiver, default-branch-only holocron.config.ts validation, custom-properties sync, capability-compliance check runs.",
   "keywords": [
     "github-app",
