@@ -249,6 +249,90 @@ Deploy from a synced `alpha` checkout (packages publish on every
 merge), not an unreleased local branch, or a pinned version can 404
 against the registry.
 
+## GitHub App registration (manual, one-time)
+
+Creating the App itself is a web-UI flow — no API for it, nothing to
+automate. **Register it under the org, not your personal account:**
+`https://github.com/organizations/theholocron/settings/apps/new`. Using
+the personal-account URL (`https://github.com/settings/apps/new`)
+still creates a working App, but "Where can this GitHub App be
+installed?" → "Only on this account" then scopes installation to
+_your_ account, not `theholocron` — the install page will only offer
+you as a target, not the org. Fixable without re-registering (App
+settings → Advanced → Transfer ownership → `theholocron`), but
+registering under the org from the start avoids the detour.
+
+**Order:** deploy first, then attach the custom domain, then register.
+Run the ["Deploying"](#deploying) steps once you have a Vercel token
+set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
+["Custom domain"](#custom-domain-one-time) step — `holocron setup
+--cwd packages/sentinel` attaches `sentinel.theholocron.dev` and hands
+Cloudflare the verification CNAME automatically. That domain, not a
+per-deployment `*.vercel.app` URL, is the stable webhook URL below.
+
+### App info
+
+| Field                                                  | Value                                                                                                                                                                                              |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not just this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
+| Description                                            | `Holocron's minimal GitHub App — validates holocron.config.ts, syncs capability status to repo properties, and posts a compliance check run on every push to the default branch and pull request.` |
+| Homepage URL                                           | `https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme` (this package's own `package.json` `homepage`)                                                                        |
+| Callback URL                                           | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |
+| Identifying and authorizing users                      | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |
+| Setup URL (optional)                                   | Leave blank                                                                                                                                                                                        |
+| Request user authorization (OAuth) during installation | Leave **unchecked** — Sentinel only ever uses installation access tokens (App-level auth), never impersonates a user                                                                               |
+| Enable Device Flow                                     | Leave **unchecked** — not a CLI-auth use case                                                                                                                                                      |
+| Webhook → Active                                       | **Checked**                                                                                                                                                                                        |
+| Where can this GitHub App be installed?                | "Only on this account" (`theholocron`) to start — D10 (org-portability) means installing it elsewhere later needs zero code changes, so this isn't a one-way door                                  |
+
+### Repository permissions
+
+| Permission        | Access | Why                                                                                   |
+| ----------------- | ------ | ------------------------------------------------------------------------------------- |
+| Contents          | Read   | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                       |
+| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties       |
+| Pull requests     | Read   | required to _receive_ `pull_request` webhook events (v1 never writes PR comments)     |
+| Metadata          | Read   | mandatory baseline — auto-included                                                    |
+
+No other permissions — v1 never writes to Contents, never comments,
+never touches Actions/Administration.
+
+### Subscribe to events
+
+`push`, `pull_request`, `installation`
+
+### Webhook
+
+- **Webhook URL** — `https://sentinel.theholocron.dev/api/webhook`,
+  once the ["Custom domain"](#custom-domain-one-time) step has
+  attached it. Stable across every future deploy, unlike a
+  per-deployment `*.vercel.app` URL.
+- **Webhook secret** — generate one (e.g. `openssl rand -hex 32`) and
+  set it in the App's "Webhook secret" field. This becomes
+  `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the Doppler
+  `sentinel`/`prd` config right away so it isn't lost.
+- **Where to install it** — this org (`theholocron`) to start;
+  D10 (org-portability) means installing it on another org/account
+  later needs zero code changes.
+
+### Private key
+
+Generate one from the App's settings page after creation — that's
+`GITHUB_APP_PRIVATE_KEY`, also destined for Doppler's `sentinel`/`prd`
+config. Generating a new key at any point invalidates the previous
+one, so only do this once and store the result immediately.
+
+### After registration
+
+Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
+the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
+Doppler — see `holocron.config.ts` in this directory for the
+`vault` provider wiring. The still-open "Secrets flow" work
+(`holocron secrets sync`) will push them from there into Vercel's env
+vars; until then, set them directly via `holocron deploy`'s underlying
+`deployment` capability (`setEnvVar`) or Vercel's own dashboard.
+
 ## Development
 
 | Script                                  | Description                                 |
