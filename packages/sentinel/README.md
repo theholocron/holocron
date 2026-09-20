@@ -252,8 +252,15 @@ against the registry.
 ## GitHub App registration (manual, one-time)
 
 Creating the App itself is a web-UI flow — no API for it, nothing to
-automate. Register it at <https://github.com/settings/apps/new> (or
-under an org: `https://github.com/organizations/<org>/settings/apps/new`).
+automate. **Register it under the org, not your personal account:**
+`https://github.com/organizations/theholocron/settings/apps/new`. Using
+the personal-account URL (`https://github.com/settings/apps/new`)
+still creates a working App, but "Where can this GitHub App be
+installed?" → "Only on this account" then scopes installation to
+_your_ account, not `theholocron` — the install page will only offer
+you as a target, not the org. Fixable without re-registering (App
+settings → Advanced → Transfer ownership → `theholocron`), but
+registering under the org from the start avoids the detour.
 
 **Order:** deploy first, then attach the custom domain, then register.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
