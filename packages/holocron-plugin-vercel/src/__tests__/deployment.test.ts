@@ -375,8 +375,7 @@ describe("VercelDeployment.ensureCustomDomain", () => {
 		expect(calls[1]?.body).toEqual({ name: "sentinel.theholocron.dev" });
 		expect(result).toEqual({
 			zone: "theholocron.dev",
-			cname: "sentinel.theholocron.dev",
-			target: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+			record: { type: "CNAME", name: "sentinel.theholocron.dev", content: "d1d4fc829fe7bc7c.vercel-dns-017.com" },
 		});
 	});
 });

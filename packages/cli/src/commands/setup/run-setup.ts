@@ -30,6 +30,7 @@ import type {
 	Auth,
 	Deployment,
 	Dns,
+	DnsRecordRequest,
 	Environments,
 	Errors,
 	Logs,
@@ -633,11 +634,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (wikiDns && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			steps.push(
-				await runStep("dns", `upsertRecord ${wikiDns.cname}`, dryRun, async () => {
+				await runStep("dns", `upsertRecord ${wikiDns.record.name}`, dryRun, async () => {
 					await dns.upsertRecord(wikiDns.zone, {
-						type: "CNAME",
-						name: wikiDns.cname,
-						content: wikiDns.target,
+						...wikiDns.record,
 						ttl: 1,
 						...(wikiProxy ? { proxied: true } : {}),
 					});
@@ -649,8 +648,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (wikiProxy && wikiDns && loader.has("workers")) {
 			const workers = loader.get("workers") as Workers;
 			steps.push(
-				await runStep("workers", `upsertProxy ${wikiDns.cname}`, dryRun, async () => {
-					await workers.upsertProxy(wikiDns.cname, wikiProxy);
+				await runStep("workers", `upsertProxy ${wikiDns.record.name}`, dryRun, async () => {
+					await workers.upsertProxy(wikiDns.record.name, wikiProxy);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
@@ -678,7 +677,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			: null;
 		const ensureCustomDomain = async (projectId: string, hostname: string) => {
 			if (!deploy.ensureCustomDomain) return;
-			const customDomainDns = { value: null as { zone: string; cname: string; target: string } | null };
+			const customDomainDns = { value: null as DnsRecordRequest | null };
 			steps.push(
 				await runStep("deployment", `ensureCustomDomain ${hostname}`, dryRun, async () => {
 					customDomainDns.value = await deploy.ensureCustomDomain!(projectId, hostname);
@@ -690,13 +689,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				const dns = loader.get("dns") as Dns;
 				const dnsRecord = customDomainDns.value;
 				steps.push(
-					await runStep("dns", `upsertRecord ${dnsRecord.cname}`, dryRun, async () => {
-						await dns.upsertRecord(dnsRecord.zone, {
-							type: "CNAME",
-							name: dnsRecord.cname,
-							content: dnsRecord.target,
-							ttl: 1,
-						});
+					await runStep("dns", `upsertRecord ${dnsRecord.record.name}`, dryRun, async () => {
+						await dns.upsertRecord(dnsRecord.zone, { ...dnsRecord.record, ttl: 1 });
 					})
 				);
 				print(formatStep(steps[steps.length - 1]!));

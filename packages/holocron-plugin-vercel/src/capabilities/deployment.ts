@@ -26,7 +26,7 @@ import type {
 	DeploymentRecord,
 	DeploymentTarget,
 	DeploymentTrigger,
-	WikiDnsRecord,
+	DnsRecordRequest,
 } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
@@ -158,18 +158,18 @@ export class VercelDeployment implements Deployment {
 	 * Vercel account, plus a `verification` challenge — usually CNAME, a
 	 * unique per-project target Vercel generates (never a fixed
 	 * well-known host, confirmed via Vercel's own docs). Returned as a
-	 * `WikiDnsRecord` — the caller (e.g. `holocron deploy`'s custom-domain
-	 * step) hands it straight to `dns.upsertRecord()`, same as
-	 * `Wiki.dnsRecord()` already does for the wiki's own domain.
+	 * `DnsRecordRequest` — the caller (e.g. `holocron setup`'s
+	 * custom-domain step) hands it straight to `dns.upsertRecord()`,
+	 * same as `Wiki.dnsRecord()` already does for the wiki's own domain.
 	 */
-	async ensureCustomDomain(projectId: string, hostname: string): Promise<WikiDnsRecord | null> {
+	async ensureCustomDomain(projectId: string, hostname: string): Promise<DnsRecordRequest | null> {
 		const { domains: existing } = await this.client().domains.list(projectId);
 		if (existing.some((d) => d.name === hostname)) return null;
 		const result = await this.client().domains.add(projectId, hostname);
 		if (result.verified) return null;
 		const challenge = result.verification?.find((v) => v.type === "CNAME");
 		if (!challenge) return null;
-		return { zone: result.apexName, cname: hostname, target: challenge.value };
+		return { zone: result.apexName, record: { type: "CNAME", name: hostname, content: challenge.value } };
 	}
 
 	// ── internals ───────────────────────────────────────────────────────

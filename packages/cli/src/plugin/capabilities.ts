@@ -554,18 +554,15 @@ export interface Deployment extends ProviderIdentity {
 	 * when the domain is already present. Optional: providers without a
 	 * custom domain API omit this.
 	 *
-	 * Returns the DNS record needed to finish verification — same shape
-	 * as `WikiDnsRecord` (reused rather than duplicated; it's a generic
-	 * "CNAME to create" descriptor, not wiki-specific despite the name)
-	 * — or `null` when the domain is already verified, or when the
-	 * provider's API doesn't surface DNS-challenge details at all (e.g.
-	 * Cloudflare Pages, whose custom-domain flow doesn't expose the same
-	 * per-request verification handshake Vercel's does). Callers hand a
-	 * non-null result straight to `dns.upsertRecord(result.zone, {
-	 * type: "CNAME", name: result.cname, content: result.target })` —
-	 * the exact pattern `setup` already uses for `Wiki.dnsRecord()`.
+	 * Returns the DNS record needed to finish verification — `null` when
+	 * the domain is already verified, or when the provider's API doesn't
+	 * surface DNS-challenge details at all (e.g. Cloudflare Pages, whose
+	 * custom-domain flow doesn't expose the same per-request verification
+	 * handshake Vercel's does). Callers hand a non-null result straight
+	 * to `dns.upsertRecord(result.zone, result.record)` — the exact
+	 * pattern `setup` already uses for `Wiki.dnsRecord()`.
 	 */
-	ensureCustomDomain?(projectId: string, hostname: string): Promise<WikiDnsRecord | null>;
+	ensureCustomDomain?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -796,6 +793,18 @@ export interface DnsRecord {
 	proxied?: boolean;
 }
 
+/**
+ * A DNS record a capability wants created, plus which zone it belongs
+ * to — the shape `Wiki.dnsRecord()` and `Deployment.ensureCustomDomain()`
+ * both hand off to `Dns.upsertRecord()`. Not tied to either capability;
+ * any provider that needs "here's a record, go create it" returns this.
+ */
+export interface DnsRecordRequest {
+	/** Zone apex passed as the first argument to `dns.upsertRecord`. */
+	zone: string;
+	record: DnsRecord;
+}
+
 export interface Dns extends ProviderIdentity {
 	readonly key: "dns";
 	listRecords(domain: string): Promise<DnsRecord[]>;
@@ -877,19 +886,6 @@ export interface WikiProvisionOpts {
 }
 
 /**
- * DNS record that `setup` should create for a wiki custom domain.
- * Returned by `Wiki.dnsRecord()` when a custom domain is configured.
- */
-export interface WikiDnsRecord {
-	/** Zone apex passed as the first argument to `dns.upsertRecord`. */
-	zone: string;
-	/** Full hostname for the CNAME (e.g. "wiki.theholocron.dev"). */
-	cname: string;
-	/** CNAME target (e.g. "holocron.docs.buildwithfern.com"). */
-	target: string;
-}
-
-/**
  * Reverse-proxy configuration returned by `Wiki.proxyConfig()`.
  * Used by `setup` to deploy a Worker that forwards traffic to the wiki
  * provider's ingress with the required headers injected.
@@ -918,7 +914,7 @@ export interface Wiki extends ProviderIdentity {
 	 * Returns null when no custom domain is set.
 	 * Called by `setup` to provision the CNAME via the `dns` capability.
 	 */
-	dnsRecord?(): WikiDnsRecord | null;
+	dnsRecord?(): DnsRecordRequest | null;
 	/**
 	 * Reverse-proxy config when the wiki provider requires a Worker-level
 	 * proxy in addition to the CNAME. Returns null when no proxy is needed.

@@ -476,8 +476,11 @@ describe("runSetup", () => {
 					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
 					ensureCustomDomain: async () => ({
 						zone: "holocron.dev",
-						cname: "sentinel.holocron.dev",
-						target: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+						record: {
+							type: "CNAME",
+							name: "sentinel.holocron.dev",
+							content: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+						},
 					}),
 				},
 			}),
@@ -4181,8 +4184,7 @@ describe("setup: wiki step", () => {
 					provision: async () => "ok",
 					dnsRecord: () => ({
 						zone: "example.com",
-						cname: "wiki.example.com",
-						target: "myorg.docs.buildwithfern.com",
+						record: { type: "CNAME", name: "wiki.example.com", content: "myorg.docs.buildwithfern.com" },
 					}),
 				},
 			}),
@@ -4259,8 +4261,7 @@ describe("setup: wiki step", () => {
 					provision: async () => "ok",
 					dnsRecord: () => ({
 						zone: "example.com",
-						cname: "wiki.example.com",
-						target: "myorg.docs.buildwithfern.com",
+						record: { type: "CNAME", name: "wiki.example.com", content: "myorg.docs.buildwithfern.com" },
 					}),
 					proxyConfig: () => ({
 						target: "https://app.buildwithfern.com",

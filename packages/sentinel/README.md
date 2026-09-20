@@ -181,7 +181,8 @@ V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
 `holocron.config.ts` in this directory — separate from the monorepo
 root's own config, since Sentinel is deployed as its own product, not
 built/released the way the CLI or the plugins are — wires the
-`deployment` (Vercel) and `vault` (Doppler) providers.
+`deployment` (Vercel), `dns` (Cloudflare), and `vault` (Doppler)
+providers.
 
 ```bash
 pnpm run delivery.deploy
@@ -193,6 +194,23 @@ assembles the deploy payload, then calls `holocron deploy --files
 --target production`, which calls `deployFunction()` — no linked Git
 repo required, since this ships as an npm package, not a
 deployed-from-source-control app.
+
+### Custom domain (one-time)
+
+`delivery.deploy` doesn't touch the custom domain — that's a one-time
+setup step, not something to redo on every deploy:
+
+```bash
+holocron setup --cwd packages/sentinel
+```
+
+Attaches `sentinel.theholocron.dev` (declared in `holocron.config.ts`)
+to the Vercel project via `Deployment.ensureCustomDomain()`, then hands
+the CNAME verification challenge Vercel returns straight to
+Cloudflare's `dns` capability — fully automated, no manual DNS entry.
+Sentinel has no `source` provider configured, so every repo-settings
+step `holocron setup` normally runs is cleanly skipped; only the
+`deployment`/`dns`/`vault` steps this config actually declares run.
 
 ### Why production only
 
