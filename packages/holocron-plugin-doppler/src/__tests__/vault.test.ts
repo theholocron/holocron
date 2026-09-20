@@ -162,6 +162,23 @@ describe("DopplerVault.readEnvironment", () => {
 		const env = await vault.readEnvironment("dev");
 		expect(env).toEqual({ A: "x" });
 	});
+
+	it("filters Doppler's own injected bookkeeping keys out of the result", async () => {
+		const { client } = makeClient([
+			{
+				status: 200,
+				body: {
+					API_KEY: "abc",
+					DOPPLER_PROJECT: "demo",
+					DOPPLER_CONFIG: "dev",
+					DOPPLER_ENVIRONMENT: "dev",
+				},
+			},
+		]);
+		const vault = new DopplerVault(() => client, { project: "demo", config: "dev" });
+		const env = await vault.readEnvironment("dev");
+		expect(env).toEqual({ API_KEY: "abc" });
+	});
 });
 
 describe("DopplerVault.ensureProject", () => {
