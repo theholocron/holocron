@@ -255,10 +255,13 @@ Creating the App itself is a web-UI flow — no API for it, nothing to
 automate. Register it at <https://github.com/settings/apps/new> (or
 under an org: `https://github.com/organizations/<org>/settings/apps/new`).
 
-**Order:** deploy first, then register — the App's webhook URL needs a
-real deployed URL. Run the ["Deploying"](#deploying) steps above once
-you have a Vercel token set (`holocron auth set vercel <token>` or
-`VERCEL_TOKEN`), then come back here with the resulting URL.
+**Order:** deploy first, then attach the custom domain, then register.
+Run the ["Deploying"](#deploying) steps once you have a Vercel token
+set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
+["Custom domain"](#custom-domain-one-time) step — `holocron setup
+--cwd packages/sentinel` attaches `sentinel.theholocron.dev` and hands
+Cloudflare the verification CNAME automatically. That domain, not a
+per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 ### App info
 
@@ -293,8 +296,10 @@ never touches Actions/Administration.
 
 ### Webhook
 
-- **Webhook URL** — the deployed Vercel Function's URL from the
-  "Deploying" step above.
+- **Webhook URL** — `https://sentinel.theholocron.dev/api/webhook`,
+  once the ["Custom domain"](#custom-domain-one-time) step has
+  attached it. Stable across every future deploy, unlike a
+  per-deployment `*.vercel.app` URL.
 - **Webhook secret** — generate one (e.g. `openssl rand -hex 32`) and
   set it in the App's "Webhook secret" field. This becomes
   `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the Doppler
