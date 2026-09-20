@@ -307,3 +307,32 @@ describe("domains.add", () => {
 		expect(result.verification?.[0]?.value).toBe("d1d4fc829fe7bc7c.vercel-dns-017.com");
 	});
 });
+
+describe("domains.config", () => {
+	it("GET /v6/domains/{domain}/config with projectIdOrName", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					configuredBy: null,
+					misconfigured: true,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
+		]);
+		const result = await client.domains.config("sentinel.theholocron.dev", "prj_123");
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/v6/domains/sentinel.theholocron.dev/config");
+		expect(calls[0]?.url).toContain("projectIdOrName=prj_123");
+		expect(result.misconfigured).toBe(true);
+		expect(result.recommendedCNAME[0]?.value).toBe("d1d4fc829fe7bc7c.vercel-dns-017.com");
+	});
+
+	it("omits projectIdOrName from the query when not passed", async () => {
+		const { client, calls } = makeClient([
+			{ body: { configuredBy: "CNAME", misconfigured: false, recommendedCNAME: [], recommendedIPv4: [] } },
+		]);
+		await client.domains.config("sentinel.theholocron.dev");
+		expect(calls[0]?.url).not.toContain("projectIdOrName");
+	});
+});

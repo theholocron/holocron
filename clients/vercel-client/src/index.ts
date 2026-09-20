@@ -16,6 +16,8 @@ export type {
 export type {
 	VercelAddDomainResult,
 	VercelDomain,
+	VercelDomainConfig,
+	VercelDomainConfigRecommendation,
 	VercelDomainsResponse,
 	VercelDomainVerification,
 } from "./domains/domains.js";
