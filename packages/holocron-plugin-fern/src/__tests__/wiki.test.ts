@@ -314,8 +314,7 @@ describe("FernWiki.dnsRecord", () => {
 		const record = new FernWiki({ org: "myorg", domain: "wiki.example.com" }).dnsRecord();
 		expect(record).toEqual({
 			zone: "example.com",
-			cname: "wiki.example.com",
-			target: "myorg.docs.buildwithfern.com",
+			record: { type: "CNAME", name: "wiki.example.com", content: "myorg.docs.buildwithfern.com" },
 		});
 	});
 
@@ -325,7 +324,7 @@ describe("FernWiki.dnsRecord", () => {
 			repo: "owner/myrepo",
 			domain: "wiki.example.com/myrepo",
 		}).dnsRecord();
-		expect(record?.cname).toBe("wiki.example.com");
+		expect(record?.record.name).toBe("wiki.example.com");
 		expect(record?.zone).toBe("example.com");
 	});
 
@@ -335,12 +334,12 @@ describe("FernWiki.dnsRecord", () => {
 			fernOrg: "holocron",
 			domain: "wiki.example.com",
 		}).dnsRecord();
-		expect(record?.target).toBe("holocron.docs.buildwithfern.com");
+		expect(record?.record.content).toBe("holocron.docs.buildwithfern.com");
 	});
 
 	it("falls back to 'holocron' when neither fernOrg nor org is set", () => {
 		const record = new FernWiki({ domain: "wiki.example.com" }).dnsRecord();
-		expect(record?.target).toBe("holocron.docs.buildwithfern.com");
+		expect(record?.record.content).toBe("holocron.docs.buildwithfern.com");
 	});
 });
 

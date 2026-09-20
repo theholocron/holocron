@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Wiki, WikiDnsRecord, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
+import type { DnsRecordRequest, Wiki, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
 
 export const FERN_VERSION = "5.114.1";
 
@@ -76,7 +76,7 @@ export class FernWiki implements Wiki {
 		};
 	}
 
-	dnsRecord(): WikiDnsRecord | null {
+	dnsRecord(): DnsRecordRequest | null {
 		const { org, domain, fernOrg } = this.opts;
 		if (!domain) return null;
 		const resolvedFernOrg = fernOrg ?? org ?? "holocron";
@@ -86,7 +86,7 @@ export class FernWiki implements Wiki {
 		const labels = hostname.split(".");
 		const zone = labels.slice(-2).join(".");
 		const target = `${resolvedFernOrg}.docs.buildwithfern.com`;
-		return { zone, cname: hostname, target };
+		return { zone, record: { type: "CNAME", name: hostname, content: target } };
 	}
 }
 

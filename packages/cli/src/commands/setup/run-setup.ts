@@ -30,6 +30,7 @@ import type {
 	Auth,
 	Deployment,
 	Dns,
+	DnsRecordRequest,
 	Environments,
 	Errors,
 	Logs,
@@ -633,11 +634,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (wikiDns && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			steps.push(
-				await runStep("dns", `upsertRecord ${wikiDns.cname}`, dryRun, async () => {
+				await runStep("dns", `upsertRecord ${wikiDns.record.name}`, dryRun, async () => {
 					await dns.upsertRecord(wikiDns.zone, {
-						type: "CNAME",
-						name: wikiDns.cname,
-						content: wikiDns.target,
+						...wikiDns.record,
 						ttl: 1,
 						...(wikiProxy ? { proxied: true } : {}),
 					});
@@ -649,8 +648,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (wikiProxy && wikiDns && loader.has("workers")) {
 			const workers = loader.get("workers") as Workers;
 			steps.push(
-				await runStep("workers", `upsertProxy ${wikiDns.cname}`, dryRun, async () => {
-					await workers.upsertProxy(wikiDns.cname, wikiProxy);
+				await runStep("workers", `upsertProxy ${wikiDns.record.name}`, dryRun, async () => {
+					await workers.upsertProxy(wikiDns.record.name, wikiProxy);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
@@ -676,6 +675,27 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					domain: config.domain,
 				})
 			: null;
+		const ensureCustomDomain = async (projectId: string, hostname: string) => {
+			if (!deploy.ensureCustomDomain) return;
+			const customDomainDns = { value: null as DnsRecordRequest | null };
+			steps.push(
+				await runStep("deployment", `ensureCustomDomain ${hostname}`, dryRun, async () => {
+					customDomainDns.value = await deploy.ensureCustomDomain!(projectId, hostname);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+
+			if (customDomainDns.value && loader.has("dns")) {
+				const dns = loader.get("dns") as Dns;
+				const dnsRecord = customDomainDns.value;
+				steps.push(
+					await runStep("dns", `upsertRecord ${dnsRecord.record.name}`, dryRun, async () => {
+						await dns.upsertRecord(dnsRecord.zone, { ...dnsRecord.record, ttl: 1 });
+					})
+				);
+				print(formatStep(steps[steps.length - 1]!));
+			}
+		};
 
 		if (!previewCfg) {
 			steps.push(
@@ -684,6 +704,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
+			if (deploy.domain) {
+				await ensureCustomDomain(config.name, deploy.domain);
+			}
 		}
 
 		if (previewCfg) {
@@ -695,16 +718,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
-		if (previewCfg?.domain && deploy.ensureCustomDomain) {
-			steps.push(
-				await runStep("deployment", `ensureCustomDomain ${previewCfg.domain}`, dryRun, async () => {
-					await deploy.ensureCustomDomain!(previewCfg.project, previewCfg.domain!);
-				})
-			);
-			print(formatStep(steps[steps.length - 1]!));
+		if (previewCfg?.domain) {
+			await ensureCustomDomain(previewCfg.project, previewCfg.domain);
 		}
 
-		if (previewCfg?.domain && loader.has("dns")) {
+		// Cloudflare Pages doesn't expose its DNS challenge, so retain its
+		// provider-specific apex + wildcard records. Other providers return
+		// their required record from ensureCustomDomain() above.
+		if (previewCfg?.domain && deploy.providerName === "cloudflare" && loader.has("dns")) {
 			const dns = loader.get("dns") as Dns;
 			const wildcardDomain = `*.${previewCfg.domain}`;
 			steps.push(

@@ -67,10 +67,19 @@ Capability covers:
 - `ensureCustomDomain()` — idempotent add (list → check → add). Adding
   a domain new to the Vercel account returns `verified: false` with a
   DNS verification challenge (usually a CNAME to a per-project target
-  Vercel generates — never a fixed well-known host); this method only
-  adds the domain, reading the challenge to finish DNS setup is the
-  caller's own job today (no `Wiki.dnsRecord()`-style shared surface
-  for it yet)
+  Vercel generates — never a fixed well-known host). The returned DNS
+  record is handed to the configured `dns` provider by `holocron setup`.
+
+Declare the production domain in the Vercel provider options. On `holocron setup`,
+the domain is attached to the project and any Vercel verification CNAME is
+upserted through the configured DNS provider:
+
+```ts
+providers: {
+	deployment: ["vercel", { teamId: "team_…", domain: "sentinel.example.com" }],
+	dns: "cloudflare",
+}
+```
 
 Out of scope for alpha.0 (file a follow-up if needed):
 

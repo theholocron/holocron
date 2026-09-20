@@ -5,6 +5,7 @@ import type {
 	DeploymentRecord,
 	DeploymentTarget,
 	DeploymentTrigger,
+	DnsRecordRequest,
 } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { CfPagesProject } from "@theholocron/cloudflare-client";
@@ -125,10 +126,14 @@ export class CloudflareDeployment implements Deployment {
 
 	// ── custom domains ──────────────────────────────────────────────────
 
-	async ensureCustomDomain(projectId: string, hostname: string): Promise<void> {
+	async ensureCustomDomain(projectId: string, hostname: string): Promise<DnsRecordRequest | null> {
 		const existing = await this.client().pages.listDomains(this.accountId, projectId);
-		if (existing.some((d) => d.name === hostname)) return;
+		if (existing.some((d) => d.name === hostname)) return null;
+		// Cloudflare Pages' add-domain response (CfPagesDomain: id/name/status
+		// only) never surfaces a DNS challenge the way Vercel's does — always
+		// null here, same as before this method returned anything at all.
 		await this.client().pages.addDomain(this.accountId, projectId, hostname);
+		return null;
 	}
 
 	// ── internals ───────────────────────────────────────────────────────
