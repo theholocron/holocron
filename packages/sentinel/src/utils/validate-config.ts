@@ -36,13 +36,28 @@ import { ProviderApiError } from "@theholocron/http-client";
 import { decodeContents } from "./decode-contents.js";
 import { findPackageRoot } from "./package-root.js";
 
-// tsdown bundles the whole package into one flat `dist/index.mjs`, so
-// "this module's own location" sits one level under package root when
-// built, but two levels under it here in source (`src/utils/`) — walking
-// up to the nearest `package.json` resolves both without hardcoding a
-// depth that only one of the two would get right.
-const packageRoot = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
-const tmpRoot = join(packageRoot, ".tmp");
+// Lazy + memoized, not a module-level constant: `findPackageRoot` does
+// real filesystem work at import time otherwise, which means *any*
+// webhook delivery — including event types that never call
+// `validateConfig()` at all, like `installation` or `ping` — crashes the
+// whole function if it fails. Found the hard way: a Vercel deploy where
+// it couldn't resolve, taking down 100% of deliveries with
+// `FUNCTION_INVOCATION_FAILED` before a single line of this module's own
+// logic ever ran. Computing it lazily on first real use means a failure
+// here only affects the config-validation path, not every event type.
+let tmpRootCache: string | undefined;
+function getTmpRoot(): string {
+	if (tmpRootCache === undefined) {
+		// tsdown bundles the whole package into one flat `dist/index.mjs`, so
+		// "this module's own location" sits one level under package root when
+		// built, but two levels under it here in source (`src/utils/`) —
+		// walking up to the nearest `node_modules` resolves both without
+		// hardcoding a depth that only one of the two would get right.
+		const packageRoot = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
+		tmpRootCache = join(packageRoot, ".tmp");
+	}
+	return tmpRootCache;
+}
 
 export type ValidateConfigResult =
 	| { status: "valid"; filepath: string; config: TasksConfig }
@@ -70,6 +85,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 			throw err;
 		}
 
+		const tmpRoot = getTmpRoot();
 		await mkdir(tmpRoot, { recursive: true });
 		const tmpDir = await mkdtemp(join(tmpRoot, "validate-"));
 		try {
