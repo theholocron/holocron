@@ -151,25 +151,43 @@ export class VercelDeployment implements Deployment {
 	// ── custom domains ─────────────────────────────────────────────────
 
 	/**
-	 * Idempotent — no-op when `hostname` is already on the project,
-	 * matching `Deployment.ensureCustomDomain`'s contract (never break
-	 * on re-runs, per CLAUDE.md's probe-then-act standard). Adding it
-	 * the first time returns `verified: false` for a domain new to this
-	 * Vercel account, plus a `verification` challenge — usually CNAME, a
-	 * unique per-project target Vercel generates (never a fixed
-	 * well-known host, confirmed via Vercel's own docs). Returned as a
-	 * `DnsRecordRequest` — the caller (e.g. `holocron setup`'s
-	 * custom-domain step) hands it straight to `dns.upsertRecord()`,
-	 * same as `Wiki.dnsRecord()` already does for the wiki's own domain.
+	 * Idempotent — matches `Deployment.ensureCustomDomain`'s contract
+	 * (never break on re-runs, per CLAUDE.md's probe-then-act standard).
+	 *
+	 * Ownership (`domains.add`'s `verified`) and DNS routing are separate
+	 * concerns: once a team already owns the domain's apex (true for any
+	 * org with more than one project on the same domain), every new
+	 * subdomain auto-verifies immediately with no `verification`
+	 * challenge — re-adding an already-attached domain returns 409, not
+	 * a fresh one. So attachment alone can't tell us whether traffic is
+	 * actually routed to Vercel yet. `domains.config()` (Vercel's DNS
+	 * *configuration* check) answers that regardless of ownership state:
+	 * `misconfigured` + a `recommendedCNAME`, per-project, never a fixed
+	 * well-known host — always read it from this response, never
+	 * hardcode it. Returned as a `DnsRecordRequest` — the caller (e.g.
+	 * `holocron setup`'s custom-domain step) hands it straight to
+	 * `dns.upsertRecord()`, same as `Wiki.dnsRecord()` already does for
+	 * the wiki's own domain.
 	 */
 	async ensureCustomDomain(projectId: string, hostname: string): Promise<DnsRecordRequest | null> {
 		const { domains: existing } = await this.client().domains.list(projectId);
-		if (existing.some((d) => d.name === hostname)) return null;
-		const result = await this.client().domains.add(projectId, hostname);
-		if (result.verified) return null;
-		const challenge = result.verification?.find((v) => v.type === "CNAME");
-		if (!challenge) return null;
-		return { zone: result.apexName, record: { type: "CNAME", name: hostname, content: challenge.value } };
+		let apexName = existing.find((d) => d.name === hostname)?.apexName;
+		if (!apexName) {
+			try {
+				apexName = (await this.client().domains.add(projectId, hostname)).apexName;
+			} catch (err) {
+				if (!(err instanceof ProviderApiError && err.status === 409)) throw err;
+				const { domains: refreshed } = await this.client().domains.list(projectId);
+				apexName = refreshed.find((d) => d.name === hostname)?.apexName;
+			}
+		}
+		if (!apexName) return null;
+
+		const config = await this.client().domains.config(hostname, projectId);
+		if (!config.misconfigured) return null;
+		const cname = config.recommendedCNAME[0]?.value;
+		if (!cname) return null;
+		return { zone: apexName, record: { type: "CNAME", name: hostname, content: cname } };
 	}
 
 	// ── internals ───────────────────────────────────────────────────────
