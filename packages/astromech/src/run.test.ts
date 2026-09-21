@@ -111,6 +111,50 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
+	it("falls back to package.json's devDependencies when no detect[] config file exists (#750)", () => {
+		// tsdown.config.ts deleted (the Bucket A migration this was blocking,
+		// #680) -- detect[] has no filename to match on at all, but the
+		// package still genuinely builds with tsdown, and that's still true
+		// without its config file.
+		const { call, exec } = makeRun({
+			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
+		});
+		call("delivery.build");
+		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
+	});
+
+	it("checks dependencies too, not just devDependencies, for the fallback", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG({ dependencies: { vite: "^7.0.0" } }),
+		});
+		call("delivery.build");
+		expect(exec).toHaveBeenCalledWith("vite", ["build"], { cwd: CWD });
+	});
+
+	it("a detect[] filename match still wins over the dependency fallback", () => {
+		// Deliberately conflicting signals: rollup.config.ts on disk, but
+		// tsdown listed in devDependencies too (e.g. mid-migration between
+		// build tools) -- the file is the more specific, in-repo signal.
+		const { call, exec } = makeRun({
+			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
+			"rollup.config.ts": "",
+		});
+		call("delivery.build");
+		expect(exec).toHaveBeenCalledWith("rollup", ["-c"], { cwd: CWD });
+	});
+
+	it("reports no local delivery.build runner when neither a config file nor a known dependency exists", () => {
+		const { call } = makeRun({ "package.json": PKG() });
+		const report = call("delivery.build");
+		expect(report).toEqual({ status: "skip", message: "no delivery.build task for this repo" });
+	});
+
+	it("still reports no runner when package.json itself is missing (dependency fallback degrades gracefully)", () => {
+		const { call } = makeRun({});
+		const report = call("delivery.build");
+		expect(report).toEqual({ status: "skip", message: "no delivery.build task for this repo" });
+	});
+
 	it("adds --config <resolved shared path> when the tool's shared config package is installed (vitest)", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),

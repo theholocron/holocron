@@ -160,7 +160,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 			// A holocron subcommand (sync, sync-wiki) — invoke this CLI.
 			return run(process.execPath, [process.argv[1]!, def.local.command, ...passthrough]);
 		}
-		const runner = resolveRunner(def.local, cwd, listDir);
+		const runner = resolveRunner(def.local, cwd, listDir, readFile);
 		if (runner) {
 			// Step 1 already forwards these same org-default flags through `--`
 			// when delegating to turbo, so a leaf package whose own script is
@@ -234,7 +234,7 @@ function runUnit(
 	run: (cmd: string, args: string[]) => RunTaskReport,
 	passthrough: string[]
 ): RunTaskReport {
-	const { print, logger, listDir, lookPath, cwd } = input;
+	const { print, logger, listDir, lookPath, cwd, readFile } = input;
 
 	const skip = (msg: string): RunTaskReport => {
 		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
@@ -248,7 +248,7 @@ function runUnit(
 	// Jobs are always `tool` / `detect` runners — no `command` (holocron-subcommand)
 	// form; add that branch here if a future job needs it.
 	if (local) {
-		const runner = resolveRunner(local, cwd, listDir);
+		const runner = resolveRunner(local, cwd, listDir, readFile);
 		if (!runner) return skip(`no ${label} runner for this repo`);
 		const found = lookPath(cwd, runner.tool);
 		if (!found) return skip(`${runner.tool} not installed locally for ${label} — enforced in CI`);
@@ -369,14 +369,25 @@ const mkRunner = (tool: string, args: string[] = []): { tool: string; args: stri
 
 /**
  * Resolve `{ tool, args }` for a runner, applying `detect[]` against repo
- * files. Only called for `tool` / `detect` runners — the caller handles
- * `command` runners itself, so `local.detect` is present whenever
- * `local.tool` is not.
+ * files, then (#750) each candidate's `tool` name against `package.json`'s
+ * own declared dependencies. Only called for `tool` / `detect` runners — the
+ * caller handles `command` runners itself, so `local.detect` is present
+ * whenever `local.tool` is not.
+ *
+ * The dependency fallback matters once a Bucket A migration (#680) deletes
+ * a build tool's own config file (`tsdown.config.ts`, `vite.config.ts`, …):
+ * that file was the *only* signal `detect[]` had to offer, so removing it
+ * used to make `delivery.build` report "no task for this repo" and silently
+ * skip the build, even though the tool is still very much in use — a
+ * package can't actually build with `tsdown` without it in
+ * `dependencies`/`devDependencies`, so that's a signal at least as reliable
+ * as the config file, and one deleting the file doesn't remove.
  */
 function resolveRunner(
 	local: LocalRunner,
 	cwd: string,
-	listDir: (p: string) => string[]
+	listDir: (p: string) => string[],
+	readFile: (p: string) => string
 ): { tool: string; args: string[] } | undefined {
 	if (local.tool) return mkRunner(local.tool, local.args);
 
@@ -384,12 +395,30 @@ function resolveRunner(
 	try {
 		files = listDir(cwd);
 	} catch {
-		return undefined;
+		files = [];
 	}
 	for (const candidate of local.detect!) {
 		if (files.some((f) => candidate.when.test(f))) return mkRunner(candidate.tool, candidate.args);
 	}
+
+	const deps = packageJsonDependencies(cwd, readFile);
+	for (const candidate of local.detect!) {
+		if (deps.has(candidate.tool)) return mkRunner(candidate.tool, candidate.args);
+	}
 	return undefined;
+}
+
+/** Every key from `package.json`'s `dependencies` + `devDependencies`, or an empty set on any read/parse failure. */
+function packageJsonDependencies(cwd: string, readFile: (p: string) => string): ReadonlySet<string> {
+	try {
+		const pkg = JSON.parse(readFile(join(cwd, "package.json"))) as {
+			dependencies?: Record<string, string>;
+			devDependencies?: Record<string, string>;
+		};
+		return new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]);
+	} catch {
+		return new Set();
+	}
 }
 
 function resolveBin(cwd: string, tool: string, fileExists: (p: string) => boolean): string {
