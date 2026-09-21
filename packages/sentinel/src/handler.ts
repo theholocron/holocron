@@ -39,11 +39,21 @@
  */
 
 import { createInstallationClient } from "@theholocron/github-client";
+import { createLogger } from "@theholocron/observability/logger";
 
 import { postCheckRun } from "./actions/post-check-run.js";
 import { syncPropertiesFromConfig } from "./actions/sync-properties.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
+
+// No Axiom config wired yet (the still-open "Secrets flow" PR-stack item) --
+// createLogger() with no options is still a real, working Logger, just
+// writing structured NDJSON to stdout instead of shipping to Axiom. That's
+// enough to be visible in Vercel's own function logs, which is the whole
+// point here: an uncaught exception previously meant *nothing* observable
+// beyond a bare 500 (see below) -- found the hard way debugging the
+// read-only-filesystem ENOENT crash with no log line to point at it.
+const { logger } = createLogger();
 
 export interface Env {
 	GITHUB_APP_ID: string;
@@ -90,6 +100,23 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		return new Response("Method Not Allowed", { status: 405 });
 	}
 
+	try {
+		return await handle(request, env);
+	} catch (err) {
+		// The read-only-filesystem ENOENT crash (validateConfig writing outside
+		// os.tmpdir()) previously reached here with nothing observable at all --
+		// a bare 500, no log line, no stack trace anywhere. Log first, then
+		// still respond 500 (this is a genuine unhandled failure, not a
+		// recognized "config didn't validate" case above).
+		logger.error(
+			{ err: err instanceof Error ? { message: err.message, stack: err.stack } : String(err) },
+			"handleWebhookRequest: unhandled error"
+		);
+		return json({ handled: false, reason: "internal error" }, 500);
+	}
+}
+
+async function handle(request: Request, env: Env): Promise<Response> {
 	const body = await request.text();
 	const headers = Object.fromEntries(request.headers);
 
@@ -142,6 +169,7 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 
 	const configResult = await validateConfig({ client, repo });
 	if (configResult.status !== "valid") {
+		logger.warn({ repo, result: configResult }, "validateConfig: not valid");
 		return json({ handled: true, type: event.type, config: configResult.status });
 	}
 
