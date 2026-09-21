@@ -13,17 +13,23 @@
  * `loadFile` internals `holocron setup`/`sync` use locally via
  * `loadConfigFile()`, not a bespoke server-side parser.
  *
- * The temp directory is created *inside this package* (`packages/sentinel/
- * .tmp/`), not the OS tmp dir — real `holocron.config.ts` files commonly
- * `import { defineConfig } from "@theholocron/cli"` (the README's own
- * documented pattern), and Node's module resolution walks upward from the
- * importing file looking for `node_modules`. A file under `/tmp/...` would
- * never find it; a file under this package's own tree resolves through
- * `packages/sentinel/node_modules` — where `@theholocron/cli` is a real
- * dependency (below) precisely so this resolves.
+ * The temp directory itself lives under the OS tmp dir (`os.tmpdir()`) —
+ * Vercel's Node.js Functions ship the deployed bundle read-only (`/var/task`),
+ * so a directory *inside this package* can never be created at runtime there
+ * (`mkdir ENOENT`, found the hard way — crashed every `pull_request`/`push`
+ * delivery). Real `holocron.config.ts` files commonly `import { defineConfig }
+ * from "@theholocron/cli"` (the README's own documented pattern), and Node's
+ * module resolution walks upward from the importing file looking for
+ * `node_modules` — a bare file under `/tmp/...` would never find it. Fixed by
+ * symlinking `<tmpDir>/node_modules` to this package's own real
+ * `node_modules` (guaranteed present and *readable*, even though the
+ * directory it lives in isn't writable) right after creating the temp dir —
+ * the config file resolves `@theholocron/cli` through that symlink exactly as
+ * if it were sitting inside `packages/sentinel/` itself.
  */
 
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -45,18 +51,17 @@ import { findPackageRoot } from "./package-root.js";
 // `FUNCTION_INVOCATION_FAILED` before a single line of this module's own
 // logic ever ran. Computing it lazily on first real use means a failure
 // here only affects the config-validation path, not every event type.
-let tmpRootCache: string | undefined;
-function getTmpRoot(): string {
-	if (tmpRootCache === undefined) {
+let packageRootCache: string | undefined;
+function getPackageRoot(): string {
+	if (packageRootCache === undefined) {
 		// tsdown bundles the whole package into one flat `dist/index.mjs`, so
 		// "this module's own location" sits one level under package root when
 		// built, but two levels under it here in source (`src/utils/`) —
 		// walking up to the nearest `node_modules` resolves both without
 		// hardcoding a depth that only one of the two would get right.
-		const packageRoot = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
-		tmpRootCache = join(packageRoot, ".tmp");
+		packageRootCache = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
 	}
-	return tmpRootCache;
+	return packageRootCache;
 }
 
 export type ValidateConfigResult =
@@ -85,9 +90,14 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 			throw err;
 		}
 
-		const tmpRoot = getTmpRoot();
+		const tmpRoot = tmpdir();
 		await mkdir(tmpRoot, { recursive: true });
-		const tmpDir = await mkdtemp(join(tmpRoot, "validate-"));
+		const tmpDir = await mkdtemp(join(tmpRoot, "sentinel-validate-"));
+		// Symlink, not a copy — this package's node_modules already exists and
+		// is readable (just not writable, per the module docstring); a symlink
+		// makes Node's upward module-resolution walk find it at <tmpDir>/node_modules
+		// without duplicating anything.
+		await symlink(join(getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
 		try {
 			let loaded;
 			try {
