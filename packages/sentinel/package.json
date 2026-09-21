@@ -44,6 +44,7 @@
     "@theholocron/datapad": "workspace:*",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/http-client": "catalog:clients",
+    "@theholocron/observability": "catalog:",
     "tsx": "catalog:"
   },
   "devDependencies": {

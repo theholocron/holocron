@@ -58,11 +58,31 @@ describe("handler — method + verification", () => {
 		expect(await res.text()).toBe("X-Hub-Signature-256 verification failed");
 	});
 
-	it("rethrows a non-WebhookVerificationError from parseWebhookEvent", async () => {
+	it("catches a non-WebhookVerificationError from parseWebhookEvent, logs it, and returns 500 instead of crashing unhandled", async () => {
+		// The read-only-filesystem ENOENT crash previously reached the caller
+		// as an unhandled rejection with nothing logged anywhere -- the
+		// top-level try/catch in handleWebhookRequest() exists specifically so
+		// an unexpected failure like this one is observable instead of silent.
 		vi.mocked(parseWebhookEvent).mockImplementation(() => {
 			throw new Error("something else entirely");
 		});
-		await expect(handleWebhookRequest(req(), ENV)).rejects.toThrow("something else entirely");
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ handled: false, reason: "internal error" });
+	});
+
+	it("falls back to String(err) in the log when a non-Error value is thrown", async () => {
+		// loadConfigFromContent only ever throws real Error instances in
+		// practice (validate-config.non-error.test.ts covers that same
+		// defensive fallback one layer down) -- this covers the equivalent
+		// String(err) branch here, for a hypothetical non-Error throw from
+		// anywhere else in the handle() call chain.
+		vi.mocked(parseWebhookEvent).mockImplementation(() => {
+			throw "a plain string, not an Error";
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ handled: false, reason: "internal error" });
 	});
 });
 
