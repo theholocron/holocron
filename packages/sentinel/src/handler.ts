@@ -39,6 +39,7 @@
  */
 
 import { createInstallationClient } from "@theholocron/github-client";
+import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
 import { postCheckRun } from "./actions/post-check-run.js";
@@ -63,6 +64,24 @@ export interface Env {
 
 function json(body: unknown, status = 200): Response {
 	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+}
+
+/**
+ * `ProviderApiError.details` is a raw response-body string (per this org's
+ * own convention — never parsed JSON), not part of the base `Error`
+ * interface, so a plain `{ message, stack }` log silently drops the actual
+ * validation error GitHub sent back. Included whenever present, alongside
+ * `status` — the two together are what actually explain a 4xx/5xx, not the
+ * generic templated `.message` ("GitHub PATCH ... → 422") on its own.
+ */
+function serializeError(err: unknown): Record<string, unknown> | string {
+	if (err instanceof ProviderApiError) {
+		return { message: err.message, status: err.status, details: err.details, stack: err.stack };
+	}
+	if (err instanceof Error) {
+		return { message: err.message, stack: err.stack };
+	}
+	return String(err);
 }
 
 /** The push/pull_request-specific fields the pipeline needs beyond what `SentinelEvent` already normalizes. */
@@ -108,10 +127,7 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		// a bare 500, no log line, no stack trace anywhere. Log first, then
 		// still respond 500 (this is a genuine unhandled failure, not a
 		// recognized "config didn't validate" case above).
-		logger.error(
-			{ err: err instanceof Error ? { message: err.message, stack: err.stack } : String(err) },
-			"handleWebhookRequest: unhandled error"
-		);
+		logger.error({ err: serializeError(err) }, "handleWebhookRequest: unhandled error");
 		return json({ handled: false, reason: "internal error" }, 500);
 	}
 }

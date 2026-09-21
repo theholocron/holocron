@@ -10,6 +10,7 @@ vi.mock("./utils/webhook.js", async (importOriginal) => {
 });
 
 import { createInstallationClient } from "@theholocron/github-client";
+import { ProviderApiError } from "@theholocron/http-client";
 
 import { postCheckRun } from "./actions/post-check-run.js";
 import { syncPropertiesFromConfig } from "./actions/sync-properties.js";
@@ -65,6 +66,25 @@ describe("handler — method + verification", () => {
 		// an unexpected failure like this one is observable instead of silent.
 		vi.mocked(parseWebhookEvent).mockImplementation(() => {
 			throw new Error("something else entirely");
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ handled: false, reason: "internal error" });
+	});
+
+	it("includes status and details in the log for a ProviderApiError, not just the generic message", async () => {
+		// A ProviderApiError's own .message is a generic template ("GitHub
+		// PATCH ... -> 422") -- .status and .details (the raw response body)
+		// are what actually explain a 4xx/5xx and aren't part of the base
+		// Error interface, so a plain { message, stack } log silently drops
+		// them. Found live: theholocron/clients's syncPropertiesFromConfig
+		// hit a real 422 with no way to see why until this was added.
+		vi.mocked(parseWebhookEvent).mockImplementation(() => {
+			throw new ProviderApiError(
+				"GitHub PATCH /repos/acme/demo/properties/values → 422",
+				422,
+				'{"message":"..."}'
+			);
 		});
 		const res = await handleWebhookRequest(req(), ENV);
 		expect(res.status).toBe(500);
