@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ensureRootWorkspaceMember, turboConfig } from "./turbo.js";
+import { ensureRootWorkspaceMember, ensureTurboDependency, turboConfig } from "./turbo.js";
 
 describe("turboConfig", () => {
 	it("returns null with no config", () => {
@@ -210,5 +210,57 @@ describe("ensureRootWorkspaceMember", () => {
 			["delivery.build", "verification.unitTests"]
 		);
 		expect(result.changed).toBe(true);
+	});
+});
+
+describe("ensureTurboDependency", () => {
+	const pkgWithout = (extra: Record<string, unknown> = {}) =>
+		JSON.stringify({ name: "demo", version: "1.0.0", ...extra });
+
+	it("adds turbo pinned to the fallback version when there's no catalog entry", () => {
+		const result = ensureTurboDependency(pkgWithout(), "packages:\n  - docs\n");
+		expect(result.changed).toBe(true);
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		expect(parsed.devDependencies.turbo).toBe("^2.10.12");
+	});
+
+	it("prefers catalog: when the repo's own pnpm-workspace.yaml already has a turbo entry", () => {
+		const yaml = OBSERVABILITY_WORKSPACE_YAML.replace("catalog:", "catalog:\n  turbo: ^2.10.9");
+		const result = ensureTurboDependency(pkgWithout(), yaml);
+		expect(result.changed).toBe(true);
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		expect(parsed.devDependencies.turbo).toBe("catalog:");
+	});
+
+	it("is a no-op when devDependencies.turbo already exists — never overrides a repo's own pin", () => {
+		const pkg = pkgWithout({ devDependencies: { turbo: "^1.0.0" } });
+		const result = ensureTurboDependency(pkg, "packages:\n  - docs\n");
+		expect(result).toEqual({ content: pkg, changed: false });
+	});
+
+	it("preserves existing devDependencies entries, only adding turbo", () => {
+		const pkg = pkgWithout({ devDependencies: { typescript: "^5.0.0" } });
+		const result = ensureTurboDependency(pkg, "packages:\n  - docs\n");
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		expect(parsed.devDependencies).toEqual({ typescript: "^5.0.0", turbo: "^2.10.12" });
+	});
+
+	it("is idempotent — running it twice doesn't re-touch an already-set entry", () => {
+		const once = ensureTurboDependency(pkgWithout(), "packages:\n  - docs\n");
+		const twice = ensureTurboDependency(once.content, "packages:\n  - docs\n");
+		expect(twice.changed).toBe(false);
+		expect(twice.content).toBe(once.content);
+	});
+
+	it("fixes #692's exact real repro — observability had no turbo devDependency at all", () => {
+		const result = ensureTurboDependency(
+			pkgWithout({ name: "@theholocron/observability" }),
+			OBSERVABILITY_WORKSPACE_YAML
+		);
+		expect(result.changed).toBe(true);
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		// observability's real pnpm-workspace.yaml (above) has no turbo catalog
+		// entry — falls back to the pinned version, not "catalog:".
+		expect(parsed.devDependencies.turbo).toBe("^2.10.12");
 	});
 });

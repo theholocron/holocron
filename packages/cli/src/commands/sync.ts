@@ -495,9 +495,10 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				// #692: fix pnpm-workspace.yaml in the same step that introduces
 				// the risk — see run-setup.ts's identical wiring for the full
 				// explanation.
-				const rootPkg = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
-					.then((raw) => JSON.parse(raw) as { scripts?: Record<string, string> })
-					.catch(() => null);
+				const rootPkgRaw = await readFile(join(input.context.repoRoot, "package.json"), "utf8").catch(
+					() => null
+				);
+				const rootPkg = rootPkgRaw ? (JSON.parse(rootPkgRaw) as { scripts?: Record<string, string> }) : null;
 				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
 					() => ""
 				);
@@ -519,6 +520,22 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						)
 					);
 					print(formatSyncStep(steps[steps.length - 1]!));
+				}
+
+				// turbo.json alone is inert without turbo itself installed —
+				// see ensureTurboDependency()'s own docstring for how this was
+				// found (a global-version fallback that silently broke on an
+				// unrelated turbo install).
+				if (rootPkgRaw) {
+					const depFix = astromechTurbo.ensureTurboDependency(rootPkgRaw, workspaceFix.content);
+					if (depFix.changed) {
+						steps.push(
+							await runSyncStep("local", "add turbo devDependency", dryRun, async () => {
+								await writeFile(join(input.context.repoRoot, "package.json"), depFix.content, "utf8");
+							})
+						);
+						print(formatSyncStep(steps[steps.length - 1]!));
+					}
 				}
 			}
 		}

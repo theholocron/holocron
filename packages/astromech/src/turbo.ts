@@ -126,3 +126,50 @@ export function ensureRootWorkspaceMember(
 	const newLines = [...lines.slice(0, packagesLineIdx + 1), newLine, ...lines.slice(packagesLineIdx + 1)];
 	return { content: newLines.join("\n"), changed: true };
 }
+
+/**
+ * Fallback pin when a repo's own `pnpm-workspace.yaml` has no `turbo`
+ * catalog entry yet — matches this repo's own catalog version (the
+ * canonical source-of-truth repo for the whole org's tooling).
+ */
+const DEFAULT_TURBO_VERSION = "^2.10.12";
+
+export interface EnsureTurboDependencyResult {
+	content: string;
+	changed: boolean;
+}
+
+/**
+ * Ensures `turbo` is declared in `package.json#devDependencies` — found
+ * the hard way rolling this out to `observability` (predates #691):
+ * `turboConfig()` writes a `turbo.json` the moment any task has fan-out
+ * config, but never touches `package.json`, so a repo that predates this
+ * feature (or never had `turbo` installed for any other reason) ends up
+ * with a `turbo.json` and nothing local to run it. `resolveBin()`
+ * (`run.ts`) falls back to a bare `turbo` on `PATH` when
+ * `node_modules/.bin/turbo` doesn't exist — on a machine with no global
+ * `turbo` at all that's a hard failure for every task; on one that
+ * happens to have an unrelated global install, silent version skew
+ * (confirmed empirically: a global 2.6.0 rejected this repo's generated
+ * `turbo.json` outright — `Found an unknown key "globalDependencies"`,
+ * a schema key from a newer version than the one actually resolved).
+ *
+ * Prefers `"catalog:"` when the repo's own `pnpm-workspace.yaml` already
+ * has a `turbo` catalog entry — matches every already-migrated repo
+ * (`holocron`, `clients`, …) — falling back to a real pinned version
+ * otherwise. Never touches an existing `devDependencies.turbo` entry, so
+ * a repo pinning its own version on purpose is left alone — idempotent,
+ * a no-op once set either way.
+ */
+export function ensureTurboDependency(packageJson: string, workspaceYaml: string): EnsureTurboDependencyResult {
+	const pkg = JSON.parse(packageJson) as { devDependencies?: Record<string, string> };
+	if (typeof pkg.devDependencies?.turbo === "string") return { content: packageJson, changed: false };
+
+	const hasTurboCatalogEntry = /^\s*turbo:\s*\S/m.test(workspaceYaml);
+	const devDependencies = {
+		...pkg.devDependencies,
+		turbo: hasTurboCatalogEntry ? "catalog:" : DEFAULT_TURBO_VERSION,
+	};
+	const updated = { ...pkg, devDependencies };
+	return { content: `${JSON.stringify(updated, null, 2)}\n`, changed: true };
+}

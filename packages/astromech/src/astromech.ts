@@ -27,6 +27,8 @@ import {
 import {
 	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
 	type EnsureRootWorkspaceMemberResult,
+	ensureTurboDependency as resolveEnsureTurboDependency,
+	type EnsureTurboDependencyResult,
 	turboConfig as resolveTurboConfig,
 } from "./turbo.js";
 
@@ -136,6 +138,16 @@ export interface Astromech {
 	 * means don't write anything — the file is already correct.
 	 */
 	ensureRootWorkspaceMember(workspaceYaml: string, rootScripts: readonly string[]): EnsureRootWorkspaceMemberResult;
+	/**
+	 * `turboConfig()` writes a `turbo.json` but never touches `package.json`
+	 * — a repo with no local `turbo` devDependency falls back to whatever
+	 * (if anything) is globally on `PATH`, per `run.ts`'s `resolveBin()`.
+	 * Pass root `package.json`'s raw content and `pnpm-workspace.yaml`'s
+	 * current content (checked for an existing `turbo` catalog entry, which
+	 * takes precedence over the hardcoded fallback version). `changed: false`
+	 * means don't write anything — `devDependencies.turbo` already exists.
+	 */
+	ensureTurboDependency(packageJson: string, workspaceYaml: string): EnsureTurboDependencyResult;
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
@@ -297,5 +309,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const taskNames = entries.filter((e) => e.local !== false).map((e) => e.name);
 			return resolveEnsureRootWorkspaceMember(workspaceYaml, rootScripts, taskNames);
 		},
+
+		ensureTurboDependency: (packageJson: string, workspaceYaml: string) =>
+			resolveEnsureTurboDependency(packageJson, workspaceYaml),
 	};
 }

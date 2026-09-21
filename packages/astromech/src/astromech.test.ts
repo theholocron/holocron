@@ -427,6 +427,17 @@ describe("createAstromech().ensureRootWorkspaceMember", () => {
 	});
 });
 
+describe("createAstromech().ensureTurboDependency", () => {
+	it("delegates to the bare ensureTurboDependency()", async () => {
+		const { ensureTurboDependency } = await import("./turbo.js");
+		const pkg = JSON.stringify({ name: "demo" });
+		const yaml = "packages:\n  - docs\n";
+		const viaFactory = createAstromech({ cwd: "/repo" }).ensureTurboDependency(pkg, yaml);
+		expect(viaFactory).toEqual(ensureTurboDependency(pkg, yaml));
+		expect(viaFactory.changed).toBe(true);
+	});
+});
+
 describe("createAstromech().ci", () => {
 	it("returns ok with no config (nothing to run)", () => {
 		const report = createAstromech({ cwd: "/repo", print: () => {} }).ci();

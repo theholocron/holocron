@@ -855,6 +855,47 @@ describe("runSync", () => {
 			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
 			expect(written).toBe('packages:\n  - "packages/*"\n');
 		});
+
+		it("adds turbo as a devDependency when a turbo.json is written and it's missing", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			const step = report.steps.find((s) => s.step === "add turbo devDependency");
+			expect(step?.status).toBe("ok");
+			const written = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies: Record<string, string>;
+			};
+			expect(written.devDependencies.turbo).toBe("^2.10.12");
+		});
+
+		it("does not touch package.json when turbo is already a devDependency", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", devDependencies: { turbo: "^1.0.0" } })
+			);
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "add turbo devDependency")).toBeUndefined();
+			const written = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies: Record<string, string>;
+			};
+			expect(written.devDependencies.turbo).toBe("^1.0.0");
+		});
+
+		it("prefers catalog: over the pinned fallback when pnpm-workspace.yaml already has a turbo entry", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "catalog:\n  turbo: ^2.10.9\n");
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "add turbo devDependency")?.status).toBe("ok");
+			const written = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies: Record<string, string>;
+			};
+			expect(written.devDependencies.turbo).toBe("catalog:");
+		});
 	});
 
 	it("skips sync description when no description is configured", async () => {

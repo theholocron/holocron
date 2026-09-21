@@ -3568,6 +3568,48 @@ describe("setup: write codecov.yml", () => {
 		).toBeUndefined();
 	});
 
+	it("adds turbo as a devDependency when a turbo.json is written and it's missing", async () => {
+		await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "add turbo devDependency");
+		expect(step?.status).toBe("ok");
+		expect(JSON.parse(written["package.json"]!).devDependencies.turbo).toBe("^2.10.12");
+	});
+
+	it("does not touch package.json when turbo is already a devDependency", async () => {
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", devDependencies: { turbo: "^1.0.0" } })
+		);
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === "add turbo devDependency")).toBeUndefined();
+		expect(written["package.json"]).toBeUndefined();
+	});
+
 	it("writes codecov.yml with discovered packages", async () => {
 		const pkgsDir = join(tmpDir, "packages");
 		await mkdir(join(pkgsDir, "foo"), { recursive: true });

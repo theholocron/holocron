@@ -439,9 +439,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				// once turbo.json exists, unless it's an explicit workspace
 				// member — fix pnpm-workspace.yaml in the same step that
 				// introduces the risk.
-				const rootPkg = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
-					.then((raw) => JSON.parse(raw) as { scripts?: Record<string, string> })
-					.catch(() => null);
+				const rootPkgRaw = await readFile(join(input.context.repoRoot, "package.json"), "utf8").catch(
+					() => null
+				);
+				const rootPkg = rootPkgRaw ? (JSON.parse(rootPkgRaw) as { scripts?: Record<string, string> }) : null;
 				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
 					() => ""
 				);
@@ -458,6 +459,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 							}
 						)
 					);
+				}
+
+				// turbo.json alone is inert without turbo itself installed — see
+				// ensureTurboDependency()'s own docstring for how this was found.
+				if (rootPkgRaw) {
+					const depFix = astromechTurbo.ensureTurboDependency(rootPkgRaw, workspaceFix.content);
+					if (depFix.changed) {
+						steps.push(
+							await runStep("source", "add turbo devDependency", dryRun, async () => {
+								await source.writeRepoFile("package.json", depFix.content);
+							})
+						);
+					}
 				}
 			}
 			print(formatStep(steps[steps.length - 1]!));
