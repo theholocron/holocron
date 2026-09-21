@@ -14,6 +14,16 @@
  * original key's public half.
  */
 
+/* eslint-disable n/no-unsupported-features/node-builtins -- Web Crypto (CryptoKey,
+ * crypto.subtle) is deliberate here, not an oversight — it's what lets GitHub App JWT
+ * signing run unchanged on Cloudflare Workers (no node:crypto, no nodejs_compat flag)
+ * and in Node. eslint-plugin-n's node-builtins compat table still flags these as
+ * experimental on this repo's engines floor even though they've been stable and
+ * verified working. Source-level, not config-level, because astromech's --config
+ * resolver currently overrides this package's local eslint.config.ts entirely
+ * (theholocron/holocron#749) — drop this once that's fixed and the local exception is
+ * honored again. */
+
 function pemToDer(pem: string): Uint8Array {
 	const base64 = pem
 		.replace(/-----BEGIN [^-]+-----/, "")

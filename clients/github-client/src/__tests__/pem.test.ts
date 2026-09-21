@@ -1,3 +1,9 @@
+/* eslint-disable n/no-unsupported-features/node-builtins -- this dir only ever runs under
+ * vitest/Node, never Workers, so eslint-plugin-n's node-builtins compat-table warning
+ * (crypto.subtle flagged experimental on this repo's engines floor) doesn't apply here.
+ * Source-level, not config-level, because astromech's --config resolver currently
+ * overrides this package's local eslint.config.ts entirely (theholocron/holocron#749) —
+ * drop this once that's fixed and the local exception is honored again. */
 import { createPublicKey, generateKeyPairSync, verify } from "node:crypto";
 
 import { describe, expect, it } from "vitest";

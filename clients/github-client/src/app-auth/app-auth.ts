@@ -9,6 +9,15 @@
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
  */
 
+/* eslint-disable n/no-unsupported-features/node-builtins -- Web Crypto (crypto.subtle) is
+ * deliberate here, not an oversight — it's what lets GitHub App JWT signing run unchanged
+ * on Cloudflare Workers (no node:crypto, no nodejs_compat flag) and in Node.
+ * eslint-plugin-n's node-builtins compat table still flags the global as experimental on
+ * this repo's engines floor even though it's been stable and verified working.
+ * Source-level, not config-level, because astromech's --config resolver currently
+ * overrides this package's local eslint.config.ts entirely (theholocron/holocron#749) —
+ * drop this once that's fixed and the local exception is honored again. */
+
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { createGitHubClient, type GitHubClient } from "../index.js";
@@ -92,5 +101,9 @@ export async function createInstallationClient(
 	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch"> = {}
 ): Promise<GitHubClient> {
 	const { token } = await getInstallationAccessToken(creds, installationId, opts);
-	return createGitHubClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
+	return createGitHubClient({
+		token,
+		baseUrl: opts.baseUrl,
+		fetch: opts.fetch,
+	});
 }
