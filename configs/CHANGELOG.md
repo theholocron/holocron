@@ -1,3 +1,9 @@
+## [8.4.3](https://github.com/theholocron/configs/compare/v8.4.2...v8.4.3) (2026-09-21)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 walk up from cwd to find the repo's .gitignore ([#472](https://github.com/theholocron/configs/issues/472)) ([60b629b](https://github.com/theholocron/configs/commit/60b629bdf6c6951cddc0bc9eeb1852af30424528)), closes [#460](https://github.com/theholocron/configs/issues/460) [#676](https://github.com/theholocron/configs/issues/676) [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680)
+
 ## [8.4.2](https://github.com/theholocron/configs/compare/v8.4.1...v8.4.2) (2026-09-21)
 
 ### Bug Fixes
