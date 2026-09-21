@@ -26,9 +26,19 @@
  * directory it lives in isn't writable) right after creating the temp dir —
  * the config file resolves `@theholocron/cli` through that symlink exactly as
  * if it were sitting inside `packages/sentinel/` itself.
+ *
+ * That alone isn't enough, though: Node determines whether a `.ts`/`.js` file
+ * is ESM or CommonJS from the nearest ancestor `package.json`'s `"type"`
+ * field, defaulting to CommonJS when none exists — and `tmpDir` starts out
+ * with none. Without an explicit `{"type":"module"}` written into `tmpDir`
+ * itself, `tsx`'s loader (correctly honoring that CJS default) tries to
+ * `require()` `@theholocron/cli`'s pure-ESM `dist/index.mjs`, which Node
+ * rejects outright ("require() of ES Module ... not supported"). Found live
+ * against a real theholocron/clients delivery once #753's logging made the
+ * previously-invisible load-error message visible at all.
  */
 
-import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,6 +108,10 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 		// makes Node's upward module-resolution walk find it at <tmpDir>/node_modules
 		// without duplicating anything.
 		await symlink(join(getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
+		// See the module docstring: without this, Node defaults tmpDir's
+		// .ts/.js files to CommonJS, and tsx's loader correctly honors that --
+		// require()-ing @theholocron/cli's pure-ESM dist/index.mjs fails outright.
+		await writeFile(join(tmpDir, "package.json"), JSON.stringify({ type: "module" }), "utf8");
 		try {
 			let loaded;
 			try {
