@@ -1,26 +1,44 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, parse } from "node:path";
 
 import { includeIgnoreFile } from "@eslint/compat";
 import js from "@eslint/js";
 import type { Linter } from "eslint";
-import globals from "globals";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
+import globals from "globals";
 
 /**
  * Ignore whatever the consuming repo's own .gitignore already ignores
  * (dist/, coverage/, node_modules/, …) instead of every repo hand-maintaining
- * its own `ignores:` array in eslint.config.ts. Resolved against
- * process.cwd() — the repo root ESLint is actually invoked from, whether
- * that's a committed eslint.config.ts re-exporting this bundle or a future
- * `eslint --config <shared path>` invocation with no local file at all
- * (config-resolution workstream, #676 in theholocron/holocron). A repo
- * without a .gitignore (unusual, but not invalid) just gets no extra
- * ignores from this — never throws.
+ * its own `ignores:` array in eslint.config.ts. Walks up from process.cwd()
+ * to find it, rather than checking cwd alone — a monorepo package almost
+ * never has its own .gitignore (the root one covers the whole tree), and
+ * astromech's resolver (config-resolution workstream, #676 in
+ * theholocron/holocron) invokes `eslint --config <shared path>` with cwd set
+ * to the PACKAGE directory for per-package fan-out, not the repo root. A
+ * cwd-only check silently found nothing there and produced no ignores at
+ * all — dist/coverage build output got linted for real, discovered when
+ * theholocron/clients#348 hit real simple-import-sort errors in generated
+ * .d.mts files. Stops at the first .git directory found (the actual repo
+ * root) or the filesystem root, whichever comes first — never walks past
+ * the repo. A repo without a .gitignore anywhere in that walk (unusual, but
+ * not invalid) just gets no extra ignores from this — never throws.
  */
+function findGitignore(startDir: string): string | undefined {
+	let dir = startDir;
+	for (;;) {
+		const candidate = join(dir, ".gitignore");
+		if (existsSync(candidate)) return candidate;
+		if (existsSync(join(dir, ".git"))) return undefined;
+		const parent = dirname(dir);
+		if (parent === dir || dir === parse(dir).root) return undefined;
+		dir = parent;
+	}
+}
+
 function gitignoreConfig(): Linter.Config | undefined {
-	const gitignorePath = join(process.cwd(), ".gitignore");
-	if (!existsSync(gitignorePath)) return undefined;
+	const gitignorePath = findGitignore(process.cwd());
+	if (!gitignorePath) return undefined;
 	return includeIgnoreFile(gitignorePath, "@theholocron/gitignore");
 }
 

@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* 🐛 give lint-staged-config's prettier/eslint an explicit --config ([#470](https://github.com/theholocron/configs/issues/470)) ([a81c401](https://github.com/theholocron/configs/commit/a81c40162e274dd815ab911ed2c26780ea8405f3)), closes [676/#749](https://github.com/676/configs/issues/749) [#672](https://github.com/theholocron/configs/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [#469](https://github.com/theholocron/configs/issues/469)
+- 🐛 give lint-staged-config's prettier/eslint an explicit --config ([#470](https://github.com/theholocron/configs/issues/470)) ([a81c401](https://github.com/theholocron/configs/commit/a81c40162e274dd815ab911ed2c26780ea8405f3)), closes [676/#749](https://github.com/676/configs/issues/749) [#672](https://github.com/theholocron/configs/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [#469](https://github.com/theholocron/configs/issues/469)
 
 ## [8.4.1](https://github.com/theholocron/configs/compare/v8.4.0...v8.4.1) (2026-09-15)
 

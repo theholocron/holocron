@@ -1,17 +1,18 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Linter } from "eslint";
-import { describe, it, expect, afterEach } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import libraryDefault from "./bundles/library.js";
+import { library } from "./bundles/library.js";
 import { base } from "./configs/base.js";
-import { packageJson } from "./configs/package-json.js";
-import { typescript } from "./configs/typescript.js";
 import { node } from "./configs/node.js";
+import { packageJson } from "./configs/package-json.js";
 import { react } from "./configs/react.js";
 import { storybook } from "./configs/storybook.js";
-import { library } from "./bundles/library.js";
-import libraryDefault from "./bundles/library.js";
+import { typescript } from "./configs/typescript.js";
 
 describe("eslint-config — individual configs", () => {
 	it("base() returns a non-empty flat config array", () => {
@@ -28,11 +29,18 @@ describe("eslint-config — individual configs", () => {
 		expect(docsSrc?.rules?.["n/no-extraneous-import"]).toBe("off");
 	});
 
-	it("base() doesn't throw and omits gitignore config when cwd has no .gitignore", () => {
-		// packages/eslint-config itself has no .gitignore — this is the ambient
-		// case during a normal test run, not a contrived one.
+	it("base() walks up from cwd to find the repo's .gitignore even when cwd is a nested package directory", () => {
+		// packages/eslint-config has no .gitignore of its own — the repo ROOT
+		// (configs/.gitignore) does. This is exactly the shape astromech's
+		// resolver invokes eslint in for per-package fan-out (config-resolution
+		// workstream, #676 in theholocron/holocron): cwd is the package
+		// directory, not the repo root. A cwd-only check used to miss this
+		// entirely — discovered when it let real dist/coverage build output
+		// get linted in theholocron/clients#348.
 		const config = base();
-		expect(config.some((c) => "name" in c && c.name === "@theholocron/gitignore")).toBe(false);
+		const gitignore = config.find((c) => "name" in c && c.name === "@theholocron/gitignore");
+		expect(gitignore).toBeDefined();
+		expect(gitignore?.ignores).toContain("**/dist");
 	});
 
 	describe("base() with a .gitignore present", () => {
@@ -45,7 +53,7 @@ describe("eslint-config — individual configs", () => {
 			tmpDir = undefined;
 		});
 
-		it("includes an @theholocron/gitignore config derived from cwd's .gitignore", () => {
+		it("includes an @theholocron/gitignore config derived from cwd's own .gitignore", () => {
 			originalCwd = process.cwd();
 			tmpDir = mkdtempSync(join(tmpdir(), "eslint-config-gitignore-"));
 			writeFileSync(join(tmpDir, ".gitignore"), "dist/\ncoverage/\n");
@@ -55,6 +63,36 @@ describe("eslint-config — individual configs", () => {
 			const gitignore = config.find((c) => "name" in c && c.name === "@theholocron/gitignore");
 			expect(gitignore).toBeDefined();
 			expect(gitignore?.ignores).toContain("**/dist/");
+		});
+
+		it("finds a .gitignore in a parent directory when cwd itself has none", () => {
+			originalCwd = process.cwd();
+			tmpDir = mkdtempSync(join(tmpdir(), "eslint-config-gitignore-parent-"));
+			writeFileSync(join(tmpDir, ".gitignore"), "dist/\ncoverage/\n");
+			const nested = join(tmpDir, "packages", "some-package");
+			mkdirSync(nested, { recursive: true });
+			process.chdir(nested);
+
+			const config = base();
+			const gitignore = config.find((c) => "name" in c && c.name === "@theholocron/gitignore");
+			expect(gitignore).toBeDefined();
+			expect(gitignore?.ignores).toContain("**/dist/");
+		});
+
+		it("stops at a .git directory and doesn't walk past the repo root", () => {
+			originalCwd = process.cwd();
+			tmpDir = mkdtempSync(join(tmpdir(), "eslint-config-gitignore-boundary-"));
+			// A .gitignore OUTSIDE the repo root must never be picked up —
+			// only .git marks where the walk is allowed to stop searching.
+			writeFileSync(join(tmpDir, ".gitignore"), "should-not-be-found/\n");
+			const repoRoot = join(tmpDir, "repo");
+			mkdirSync(join(repoRoot, ".git"), { recursive: true });
+			const nested = join(repoRoot, "packages", "some-package");
+			mkdirSync(nested, { recursive: true });
+			process.chdir(nested);
+
+			const config = base();
+			expect(config.some((c) => "name" in c && c.name === "@theholocron/gitignore")).toBe(false);
 		});
 	});
 
