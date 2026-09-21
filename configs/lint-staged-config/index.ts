@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * `<tool> --write`/`<tool>` alone falls back to the tool's own auto-discovery
@@ -10,12 +11,21 @@ import { existsSync } from "node:fs";
  * #672 Phase 5, theholocron/holocron#680) — same requirement astromech's
  * `resolveToolConfig()` already established for `holocron run <task>`
  * (theholocron/holocron#676/#749) and `.husky/commit-msg`'s commitlint
- * invocation. Resolved relative to the consuming repo's root, since
- * `lint-staged` — like every git hook — always runs from there regardless
- * of which subdirectory a staged file lives in.
+ * invocation.
+ *
+ * Resolved to an ABSOLUTE path, not left relative — lint-staged spawns each
+ * command in a context where a relative path silently fails to resolve
+ * (confirmed: `--config node_modules/@theholocron/prettier-config/dist/index.js`
+ * resolved correctly under a plain manual shell invocation from the repo
+ * root, but silently missed under lint-staged itself, falling back to
+ * prettier's built-in printWidth 80 instead of the shared config's 120 —
+ * found via theholocron/clients#348, where a lint-staged-driven commit
+ * produced different line-wrapping than the identical command run by hand).
+ * An absolute path removes any dependency on the spawned process's cwd.
  */
 function resolveConfig(relativePath: string): string | null {
-	return existsSync(relativePath) ? relativePath : null;
+	const absolute = resolve(process.cwd(), relativePath);
+	return existsSync(absolute) ? absolute : null;
 }
 
 const prettierConfig = resolveConfig("node_modules/@theholocron/prettier-config/dist/index.js");
