@@ -185,6 +185,44 @@ describe("resolveToolConfig", () => {
 	});
 });
 
+describe("resolveToolConfig — local config file wins (#749)", () => {
+	const sharedInstalled = {
+		"node_modules/@theholocron/eslint-config/package.json": JSON.stringify(
+			exportsMap("./bundles/library", "./dist/bundles/library.js")
+		),
+		"node_modules/@theholocron/eslint-config/dist/bundles/library.js": "export default [];",
+	};
+
+	it("returns [] when a local eslint.config.ts exists, even though the shared package is installed", () => {
+		const files = { ...sharedInstalled, "eslint.config.ts": "export default [];" };
+		expect(resolveToolConfig("eslint", CWD, makeFs(files))).toEqual([]);
+	});
+
+	it("returns [] for a local config's .js/.mjs/.cjs variants too, not just .ts", () => {
+		expect(resolveToolConfig("eslint", CWD, makeFs({ ...sharedInstalled, "eslint.config.js": "x" }))).toEqual([]);
+		expect(resolveToolConfig("eslint", CWD, makeFs({ ...sharedInstalled, "eslint.config.mjs": "x" }))).toEqual([]);
+		expect(resolveToolConfig("eslint", CWD, makeFs({ ...sharedInstalled, "eslint.config.cjs": "x" }))).toEqual([]);
+	});
+
+	it("still resolves the shared bundle when no local config file exists (unchanged behavior)", () => {
+		expect(resolveToolConfig("eslint", CWD, makeFs(sharedInstalled))).toEqual([
+			"--config",
+			"/repo/node_modules/@theholocron/eslint-config/dist/bundles/library.js",
+		]);
+	});
+
+	it("checks every resolvable tool's own local config filename, not just eslint's", () => {
+		const vitestInstalled = {
+			"node_modules/@theholocron/vitest-config/package.json": JSON.stringify(
+				exportsMap("./bundles/library", "./dist/bundles/library.js")
+			),
+			"node_modules/@theholocron/vitest-config/dist/bundles/library.js": "export default {};",
+			"vitest.config.ts": "export default mergeConfig(base, { test: { coverage: { exclude: [] } } });",
+		};
+		expect(resolveToolConfig("vitest", CWD, makeFs(vitestInstalled))).toEqual([]);
+	});
+});
+
 describe("RESOLVABLE_TOOLS", () => {
 	it("lists exactly the tools with a resolver mapping", () => {
 		expect([...RESOLVABLE_TOOLS].sort()).toEqual(["commitlint", "eslint", "prettier", "tsdown", "vitest"]);

@@ -133,7 +133,12 @@ describe("runTask", () => {
 		);
 	});
 
-	it("adds --config <resolved shared path> for a detect[] runner too (tsdown)", () => {
+	it("skips --config for a detect[] runner when the local config file it detected off of still wins (tsdown, #749)", () => {
+		// tsdown.config.ts is both what `detect[]` matched to pick "tsdown" as
+		// the tool *and* the local file `resolveToolConfig` now defers to
+		// (#749) — the shared package being installed too doesn't force
+		// --config over it; tsdown's own auto-discovery of tsdown.config.ts
+		// takes over instead, unchanged from pre-resolver behavior.
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"tsdown.config.ts": "",
@@ -143,11 +148,7 @@ describe("runTask", () => {
 			"node_modules/@theholocron/tsdown-config/dist/presets/library.js": "export default {};",
 		});
 		call("delivery.build");
-		expect(exec).toHaveBeenCalledWith(
-			"tsdown",
-			["--config", join(CWD, "node_modules/@theholocron/tsdown-config/dist/presets/library.js")],
-			{ cwd: CWD }
-		);
+		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
 	it("adds no --config flag when the shared config package isn't installed — falls back to auto-discovery", () => {
@@ -463,11 +464,32 @@ describe("runTask — linterGroup aggregate", () => {
 		expect(lines.join("\n")).toMatch(/· git-merge-conflict-markers \(CI only\)/);
 	});
 
-	it("adds --config <resolved shared path> before the linter's own localArgs when the shared package is installed", () => {
+	it("skips --config when the repo already has its own eslint.config.ts, even with the shared package installed (#749)", () => {
 		const { call, exec } = makeRun(
 			{
 				"package.json": PKG(),
 				"eslint.config.ts": "",
+				"node_modules/@theholocron/eslint-config/package.json": JSON.stringify({
+					exports: { "./bundles/library": { import: "./dist/bundles/library.js" } },
+				}),
+				"node_modules/@theholocron/eslint-config/dist/bundles/library.js": "export default [];",
+			},
+			{ lookPath: onPath("eslint") }
+		);
+		call("sourceQuality.staticAnalysis");
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
+	});
+
+	it("adds --config <resolved shared path> for a legacy .eslintrc.json repo with no flat eslint.config.* yet", () => {
+		// .eslintrc.json satisfies linters.ts's own detect[] gate (so eslint
+		// still runs in the group) but isn't one of resolver.ts's flat-config
+		// filenames, so resolveToolConfig still splices the shared bundle --
+		// unchanged pre-#749 behavior for a repo that hasn't migrated to flat
+		// config at all yet.
+		const { call, exec } = makeRun(
+			{
+				"package.json": PKG(),
+				".eslintrc.json": "{}",
 				"node_modules/@theholocron/eslint-config/package.json": JSON.stringify({
 					exports: { "./bundles/library": { import: "./dist/bundles/library.js" } },
 				}),

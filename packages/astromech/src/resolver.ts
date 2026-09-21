@@ -11,8 +11,18 @@
  * each tool's real `--config`/`--extends` loader, not just the file's shape).
  * A repo doesn't need this package installed at all — every lookup degrades to
  * `[]` (no flag added, the tool falls back to its own auto-discovery of a
- * local file, unchanged from today) rather than throwing, so this is additive
- * and safe to run unconditionally.
+ * local file, unchanged from today) rather than throwing.
+ *
+ * **Local file wins.** A `<tool>.config.*` sitting in `cwd` (whether it's
+ * pure boilerplate or has real per-package customization on top of the
+ * shared bundle, e.g. `mergeConfig(base, { test: { coverage: { exclude }
+ * } })`) always skips the splice, even when the shared package is also
+ * installed — an explicit `--config <shared path>` flag beats a tool's own
+ * auto-discovery every time, so splicing it unconditionally would silently
+ * discard that customization the file is still sitting right there on disk.
+ * The shared bundle is only ever the fallback for a package with *no* local
+ * file at all — that's still the "delete the file to go fully shared" path
+ * this was designed for (#676); it just isn't unconditional (#749).
  *
  * `semantic-release`, `devmoji`, `editorconfig-checker`, and `knip` are
  * deliberately absent — `semantic-release-config`'s `defineConfig()` needs
@@ -54,19 +64,45 @@ const TOOL_CONFIGS: Readonly<Record<string, ToolConfigSpec>> = {
 	commitlint: { package: "@theholocron/commitlint-config", exportPath: ".", flag: ["--config"] },
 };
 
+/**
+ * Every filename a tool's own auto-discovery would pick up from `cwd` —
+ * same extension set `registry.ts`'s `turbo.inputs`/`local.detect` entries
+ * already use for these tools, kept in sync by hand (no shared source of
+ * truth between the two today). Presence of any one of these means the
+ * package has its own local config — customized or not, `resolveToolConfig`
+ * can't tell the difference from the filename alone, so it defers to it
+ * either way (#749).
+ */
+const LOCAL_CONFIG_FILES: Readonly<Record<string, readonly string[]>> = {
+	eslint: ["eslint.config.ts", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"],
+	prettier: ["prettier.config.ts", "prettier.config.js", "prettier.config.mjs", "prettier.config.cjs"],
+	vitest: ["vitest.config.ts", "vitest.config.js", "vitest.config.mjs"],
+	tsdown: ["tsdown.config.ts", "tsdown.config.js", "tsdown.config.mjs", "tsdown.config.cjs"],
+	commitlint: ["commitlint.config.ts", "commitlint.config.js", "commitlint.config.mjs", "commitlint.config.cjs"],
+};
+
 /** Every tool name the resolver knows how to point at a shared config. */
 export const RESOLVABLE_TOOLS: ReadonlySet<string> = new Set(Object.keys(TOOL_CONFIGS));
 
 /**
  * `<flag> <absolute path>` for `tool`, resolved against `cwd`'s
- * `node_modules` — or `[]` when the tool isn't mapped, the package isn't
- * installed, its `package.json` doesn't declare the export subpath this
- * needs, or the resolved file doesn't actually exist on disk (a stale
- * install, or a package version that predates the export existing).
+ * `node_modules` — or `[]` when the tool isn't mapped, `cwd` already has its
+ * own local config file for it (#749 — local always wins, customized or
+ * not), the shared package isn't installed, its `package.json` doesn't
+ * declare the export subpath this needs, or the resolved file doesn't
+ * actually exist on disk (a stale install, or a package version that
+ * predates the export existing).
  */
 export function resolveToolConfig(tool: string, cwd: string, deps: ResolverDeps): string[] {
 	const spec = TOOL_CONFIGS[tool];
 	if (!spec) return [];
+
+	// `?? []` is defensive only — every key in TOOL_CONFIGS has a matching
+	// LOCAL_CONFIG_FILES entry today, and the `!spec` guard above already
+	// returns for any tool absent from TOOL_CONFIGS.
+	/* istanbul ignore next -- see comment above */
+	const localFiles = LOCAL_CONFIG_FILES[tool] ?? [];
+	if (localFiles.some((name) => deps.fileExists(joinPath(cwd, name)))) return [];
 
 	const pkgDir = joinPath(cwd, "node_modules", ...spec.package.split("/"));
 	const pkgJsonPath = joinPath(pkgDir, "package.json");
