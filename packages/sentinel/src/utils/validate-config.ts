@@ -33,7 +33,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { KNOWN_TASKS } from "@theholocron/astromech";
+import { KNOWN_TASKS, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import { normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
 import { DEFAULT_EXTENSIONS, loadConfigFromContent } from "@theholocron/datapad";
 import type { GitHubClient } from "@theholocron/github-client";
@@ -114,10 +114,18 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 					message: err instanceof Error ? err.message : String(err),
 				};
 			}
+			// A task-array entry is legitimate if it resolves to either a real
+			// runnable task (KNOWN_TASKS, e.g. "verification.unitTests") or a
+			// workflow-only community-health automation with no local runner at
+			// all (KNOWN_WORKFLOWS, e.g. "stale"/"greetings"/"bookkeeping") --
+			// thinCallers() itself accepts either shape when generating CI, so
+			// validation here needs to match. Checking KNOWN_TASKS alone flagged
+			// every repo using these bare workflow-only names as "unknown-tasks",
+			// discovered live against theholocron/clients's real config.
 			const unknownTasks = (loaded.config.tasks ?? [])
 				.map(normalizeTaskEntry)
 				.map((t) => t.name)
-				.filter((name) => !KNOWN_TASKS.has(name));
+				.filter((name) => !KNOWN_TASKS.has(name) && !KNOWN_WORKFLOWS.has(name));
 
 			if (unknownTasks.length > 0) {
 				return { status: "unknown-tasks", filepath: path, unknownTasks };

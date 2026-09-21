@@ -101,6 +101,34 @@ describe("validateConfig", () => {
 		expect((result as { unknownTasks: string[] }).unknownTasks).toEqual(["totally-made-up-task"]);
 	});
 
+	it("accepts KNOWN_WORKFLOWS-only entries (community-health automations with no local runner) as valid, not unknown-tasks", async () => {
+		// Found live against theholocron/clients's real config: "stale"/"greetings"/
+		// "bookkeeping"/"dependencies"/"review" are legitimate thinCallers()
+		// entries (real generated workflows) but were never in KNOWN_TASKS,
+		// which only covers runnable astromech tasks.
+		const { client } = makeClient([
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 404 },
+			{
+				status: 200,
+				body: {
+					content: b64(
+						JSON.stringify({
+							name: "demo",
+							tasks: ["stale", "greetings", "bookkeeping", "dependencies", "review"],
+						})
+					),
+				},
+			},
+		]);
+
+		const result = await validateConfig({ client, repo: "acme/demo" });
+
+		expect(result.status).toBe("valid");
+	});
+
 	it("accepts object-form task entries, checking their name against the registry", async () => {
 		const { client } = makeClient([
 			{ status: 404 },
