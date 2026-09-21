@@ -335,3 +335,34 @@ away here; not a gap this workstream closes.
       for it to call.
 
 - [x] Tests + docs across all of the above
+
+## Update (2026-09-21, #749) — "fold into the shared bundle" doesn't close every gap
+
+Hit in production migrating `clients` (#680): `http-client`'s
+`vitest.config.ts` excludes `src/testing.ts` from coverage — a genuine
+per-package customization (`testing.ts` is a helper re-exported for other
+packages to import, not tested in-place here), but not a _pattern_, unlike
+the `docs/src`/`browserPackages` cases above that this spec generalized
+into `eslint-config`'s `library()`. There's no universal bundle option for
+"exclude this one specific file in this one specific package" — every
+package's own filename is different, by definition.
+
+`resolver.ts`'s `resolveToolConfig()` spliced `--config <shared bundle
+path>` unconditionally whenever the shared package was installed, with no
+check for whether the package's own local config file still existed
+alongside it. Once `clients` bumped its `@theholocron/cli` catalog pin,
+`http-client`'s local file went from "authoritative" to "silently ignored
+in favor of the shared bundle" with no visible warning — `testing.ts`
+started counting at 0% coverage and failed the 80% threshold, despite the
+file on disk being completely untouched.
+
+Fixed (not a new design, a correction to this one): `resolveToolConfig()`
+now checks for a local `<tool>.config.*` in `cwd` first and defers to it —
+skips the splice entirely — before ever looking at the shared package.
+This is the complement to the "fold into the shared bundle" strategy
+above, not a replacement for it: fold in whatever _is_ a generalizable
+pattern (still the right move — fewer repos need a local file at all),
+but for the genuinely one-off remainder, local-file-wins is the permanent
+fallback, not a bug to eventually design away. "All seven tools uniformly
+Bucket A" (above) means _most_ packages reach zero local file, not that
+resolution can ever safely ignore one that's still there.
