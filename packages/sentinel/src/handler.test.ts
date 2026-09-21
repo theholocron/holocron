@@ -70,6 +70,20 @@ describe("handler — method + verification", () => {
 		expect(res.status).toBe(500);
 		expect(await res.json()).toEqual({ handled: false, reason: "internal error" });
 	});
+
+	it("falls back to String(err) in the log when a non-Error value is thrown", async () => {
+		// loadConfigFromContent only ever throws real Error instances in
+		// practice (validate-config.non-error.test.ts covers that same
+		// defensive fallback one layer down) -- this covers the equivalent
+		// String(err) branch here, for a hypothetical non-Error throw from
+		// anywhere else in the handle() call chain.
+		vi.mocked(parseWebhookEvent).mockImplementation(() => {
+			throw "a plain string, not an Error";
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({ handled: false, reason: "internal error" });
+	});
 });
 
 describe("handler — unhandled and installation events", () => {
