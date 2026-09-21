@@ -201,35 +201,65 @@ today: internal to `astromech`'s registry and `theholocron/configs`. They
 never need to appear in a repo's `holocron.config.ts` for the intents this
 table covers.
 
-## Ruleset investigation (Phase A)
+## Ruleset investigation (Phase A) — RESOLVED: not viable, this org's plan
+
+**Investigated 2026-09-20. Verdict: the `workflows` ruleset rule type
+cannot be adopted — not a design tradeoff, a hard plan restriction.**
 
 GitHub organization/repo rulesets support a `workflows` rule type ("require
 workflows to pass before merging") that references a **workflow file**
 directly (by repository + path + ref) — the ruleset itself is what invokes
-and gates on that workflow, not a locally-triggered `uses:` caller. This is
-one lever with three separate payoffs, all stemming from the same root
-fix — required checks stop being **name strings the ruleset matches**
-and become **workflows the ruleset runs**:
+and gates on that workflow, not a locally-triggered `uses:` caller. On
+paper, one lever with three separate payoffs, all stemming from the same
+root fix — required checks stop being **name strings the ruleset
+matches** and become **workflows the ruleset runs**:
 
-1. **Incident 2's bug class disappears.** A renamed/consolidated job can
+1. Incident 2's bug class disappears — a renamed/consolidated job can
    never orphan a stale required-check string, because the ruleset isn't
    tracking a string at all.
-2. **The synthetic `Conclusion` job (incident 4) becomes unnecessary.**
-   GitHub already computes a workflow run's overall conclusion by
-   aggregating every job in it, matrix legs included — that's exactly what
-   the hand-rolled `Conclusion` job exists to fake today under
-   check-run-name matching. Gate on the workflow's own run conclusion and
-   the aggregator layer has nothing left to do.
-3. **Possibly no thin-caller file in the consumer repo at all** — see the
-   current-state table above.
+2. The synthetic `Conclusion` job (incident 4) becomes unnecessary — GitHub
+   already computes a workflow run's overall conclusion by aggregating
+   every job in it, matrix legs included.
+3. Possibly no thin-caller file in the consumer repo at all.
 
-**To confirm before committing to this as the mechanism**: whether the rule
-targets the _caller_ repo's workflow (thin caller) or can point at the
-_reusable_ workflow in `.github` directly; how it interacts with a matrix
-job (Storybook per-project fan-out) whose individual outputs are what we
-actually want gated; whether `astromech`'s `requiredChecks()` needs to keep
-existing at all, shrink to the handful of checks this rule type can't cover
-(codecov flags, external Chromatic checks), or go away entirely.
+**Two of those three resolved on paper, before hitting the actual
+blocker:**
+
+- **Payoff 3 doesn't hold.** Confirmed via GitHub's own community
+  discussions (orgs/community#170628): a reusable workflow (`on:
+workflow_call` only, no direct trigger) can't be selected as a required
+  workflow — "a status check appears on a pull request or commit when a
+  workflow runs; only actual workflow runs generate status checks." The
+  rule must target the **caller** (the thin-caller file that has
+  `on: pull_request`/`push`) — every consumer repo keeps its thin-caller
+  files regardless. Payoffs 1 and 2 don't depend on this, so they'd still
+  hold on their own.
+- **The actual blocker: this rule type is Enterprise-only, full stop.**
+  GitHub staff, directly, in orgs/community#67754 (the feature's own beta
+  thread): asked whether it would come to non-Enterprise orgs, answer was
+  no — it will not be released to Team or Free plans. Confirmed
+  empirically too: `theholocron` is on the **free** plan
+  (`gh api orgs/theholocron` → `plan.name: "free"`); attempting
+  `POST /repos/theholocron/monorepo-nextjs-template/rulesets` with a
+  `workflows`-type rule (in `enforcement: "evaluate"` — a safe, non-blocking
+  prototype ruleset, not touching the repo's real enforced one) returns a
+  content-free `422`: `"Invalid rule 'workflows': Invalid parameter
+workflows: Workflow error at index 0: "` — no plan-restriction message,
+  just a validation failure with an empty detail. That vagueness is itself
+  worth knowing: this rule type fails silently-ish on an unsupported plan
+  rather than telling you why.
+
+**Consequence: `astromech.requiredChecks()`'s existing check-run-name-string
+matching stays the permanent mechanism** — not a stepping stone to
+something better, the actual answer, unless/until this org moves to GitHub
+Enterprise (a real cost/organizational decision, far outside this epic's
+scope — not being proposed here). Incident 2's underlying bug class (a
+workflow rename/consolidation silently orphaning a required-check string
+forever) still needs a fix — just not this one. Real candidate, not yet
+designed: a `holocron doctor` check that diffs the ruleset's
+`required_status_checks` list against the check-run names a repo's most
+recent default-branch run actually produced, flagging drift instead of
+letting it go unnoticed until a PR mysteriously can't merge.
 
 ## Selective execution — universal, generated `turbo.json`
 
@@ -448,9 +478,14 @@ open.
   not all, today), a tool version bump is one Dependabot PR against
   `theholocron/configs`, not twenty. Not a redesign of Dependabot itself —
   a consequence of there being less for it to find.
-- App deploy target (Vercel vs. Cloudflare Workers) — deferred to its own
-  ADR ahead of Phase 4.
-- Whether `astromech.requiredChecks()` is fully replaced by the `workflows`
-  ruleset rule or continues to exist for checks that rule type can't cover
-  (codecov flags, third-party checks like Chromatic) — depends on the
-  Phase A investigation's findings.
+- ~~App deploy target (Vercel vs. Cloudflare Workers) — deferred to its own
+  ADR ahead of Phase 4.~~ **Resolved**: Vercel Functions, per ADR-0011 and
+  `.notes/tech-sentinel-v1.spec.md`'s "Resolved — deploy target" section.
+  Phase B (GitHub App v1, #679) shipped and closed.
+- ~~Whether `astromech.requiredChecks()` is fully replaced by the `workflows`
+  ruleset rule or continues to exist for checks that rule type can't
+  cover~~ **Resolved (Phase A, above)**: not replaced at all — the rule
+  type is Enterprise-only, unavailable on this org's plan.
+  `requiredChecks()`'s check-run-name matching stays the permanent
+  mechanism. Incident 2's bug class needs a different fix (a `holocron
+doctor` drift check, not yet designed) — not this one.
