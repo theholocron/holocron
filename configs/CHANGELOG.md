@@ -2,42 +2,42 @@
 
 ### Bug Fixes
 
-* 🐛 give devmoji-config a ready-to-use default export ([#463](https://github.com/theholocron/configs/issues/463)) ([092f7cf](https://github.com/theholocron/configs/commit/092f7cffa0c5be6561064f97cb1cdad72736cade))
-* 🐛 give library() a ready-to-use default export ([#462](https://github.com/theholocron/configs/issues/462)) ([d6b9b44](https://github.com/theholocron/configs/commit/d6b9b441d8ad9d3ac4fc2c256e0f4297f355f944))
+- 🐛 give devmoji-config a ready-to-use default export ([#463](https://github.com/theholocron/configs/issues/463)) ([092f7cf](https://github.com/theholocron/configs/commit/092f7cffa0c5be6561064f97cb1cdad72736cade))
+- 🐛 give library() a ready-to-use default export ([#462](https://github.com/theholocron/configs/issues/462)) ([d6b9b44](https://github.com/theholocron/configs/commit/d6b9b441d8ad9d3ac4fc2c256e0f4297f355f944))
 
 ## [8.4.0](https://github.com/theholocron/configs/compare/v8.3.0...v8.4.0) (2026-09-15)
 
 ### Features
 
-* ✨ bake vitest() into library() unconditionally + browserPackages option ([#461](https://github.com/theholocron/configs/issues/461)) ([897ec55](https://github.com/theholocron/configs/commit/897ec559aeda50fd4bca7355074fbdd3c315728d)), closes [#676](https://github.com/theholocron/configs/issues/676) [#680](https://github.com/theholocron/configs/issues/680)
+- ✨ bake vitest() into library() unconditionally + browserPackages option ([#461](https://github.com/theholocron/configs/issues/461)) ([897ec55](https://github.com/theholocron/configs/commit/897ec559aeda50fd4bca7355074fbdd3c315728d)), closes [#676](https://github.com/theholocron/configs/issues/676) [#680](https://github.com/theholocron/configs/issues/680)
 
 ## [8.3.0](https://github.com/theholocron/configs/compare/v8.2.6...v8.3.0) (2026-09-15)
 
 ### Features
 
-* ✨ absorb gitignore-based ignoring + docs/src exception into base() ([#460](https://github.com/theholocron/configs/issues/460)) ([ccc0284](https://github.com/theholocron/configs/commit/ccc02847aa01705f3bea44fb445d88255a56a33e)), closes [#676](https://github.com/theholocron/configs/issues/676) [458/#459](https://github.com/458/configs/issues/459)
+- ✨ absorb gitignore-based ignoring + docs/src exception into base() ([#460](https://github.com/theholocron/configs/issues/460)) ([ccc0284](https://github.com/theholocron/configs/commit/ccc02847aa01705f3bea44fb445d88255a56a33e)), closes [#676](https://github.com/theholocron/configs/issues/676) [458/#459](https://github.com/458/configs/issues/459)
 
 ## [8.2.6](https://github.com/theholocron/configs/compare/v8.2.5...v8.2.6) (2026-09-15)
 
 ### Bug Fixes
 
-* 🐛 fold footer-max-line-length into the shared commitlint config ([#459](https://github.com/theholocron/configs/issues/459)) ([102feb4](https://github.com/theholocron/configs/commit/102feb4567e52e81196f0383da3e972c0e929dae)), closes [#676](https://github.com/theholocron/configs/issues/676) [457/#458](https://github.com/457/configs/issues/458)
+- 🐛 fold footer-max-line-length into the shared commitlint config ([#459](https://github.com/theholocron/configs/issues/459)) ([102feb4](https://github.com/theholocron/configs/commit/102feb4567e52e81196f0383da3e972c0e929dae)), closes [#676](https://github.com/theholocron/configs/issues/676) [457/#458](https://github.com/457/configs/issues/458)
 
 ## [8.2.5](https://github.com/theholocron/configs/compare/v8.2.4...v8.2.5) (2026-09-15)
 
 ### Bug Fixes
 
-* 🐛 drop stale npm prefix from release prepareCmd ([#458](https://github.com/theholocron/configs/issues/458)) ([df22f85](https://github.com/theholocron/configs/commit/df22f85e11ffa8c62cc3309830b2bf424099d83a)), closes [#457](https://github.com/theholocron/configs/issues/457)
+- 🐛 drop stale npm prefix from release prepareCmd ([#458](https://github.com/theholocron/configs/issues/458)) ([df22f85](https://github.com/theholocron/configs/commit/df22f85e11ffa8c62cc3309830b2bf424099d83a)), closes [#457](https://github.com/theholocron/configs/issues/457)
 
 ### Refactoring
 
-* ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/configs/issues/672)) ([#457](https://github.com/theholocron/configs/issues/457)) ([1ab954c](https://github.com/theholocron/configs/commit/1ab954ca33e4476847f19273e776097f4482e872)), closes [#455](https://github.com/theholocron/configs/issues/455) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+- ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/configs/issues/672)) ([#457](https://github.com/theholocron/configs/issues/457)) ([1ab954c](https://github.com/theholocron/configs/commit/1ab954ca33e4476847f19273e776097f4482e872)), closes [#455](https://github.com/theholocron/configs/issues/455) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
 
 ## [8.2.4](https://github.com/theholocron/configs/compare/v8.2.3...v8.2.4) (2026-09-15)
 
 ### Bug Fixes
 
-* declare @astrojs/react as a peer dependency of astro-config ([#455](https://github.com/theholocron/configs/issues/455)) ([dd7875a](https://github.com/theholocron/configs/commit/dd7875a4c5c55ad56d1f6f5cce9faefcf4c99c21))
+- declare @astrojs/react as a peer dependency of astro-config ([#455](https://github.com/theholocron/configs/issues/455)) ([dd7875a](https://github.com/theholocron/configs/commit/dd7875a4c5c55ad56d1f6f5cce9faefcf4c99c21))
 
 ## [8.2.3](https://github.com/theholocron/configs/compare/v8.2.2...v8.2.3) (2026-09-12)
 
