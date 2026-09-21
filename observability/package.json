@@ -65,11 +65,11 @@
     "security.secretDetection": "holocron run security.secretDetection --",
     "sourceQuality.deadCodeAnalysis": "holocron run sourceQuality.deadCodeAnalysis --",
     "sourceQuality.formatting": "holocron run sourceQuality.formatting --",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "sourceQuality.structuredDataValidation": "holocron run sourceQuality.structuredDataValidation --",
     "test:coverage": "vitest run --coverage",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "devDependencies": {
     "@astrojs/react": "catalog:",
@@ -119,6 +119,7 @@
     "semantic-release": "catalog:",
     "sort-package-json": "catalog:",
     "tsdown": "catalog:",
+    "turbo": "^2.10.12",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vitest": "catalog:"
