@@ -711,25 +711,88 @@ describe("runSync", () => {
 		});
 
 		it("updates a drifted value and is a no-op when already current", async () => {
+			// platform.commitStandards has no turbo entry — the #747 protection
+			// below is specifically about turbo-eligible tasks, so a plain
+			// drift/idempotency check uses a task that's never subject to it.
 			await writeFile(
 				join(tmpDir, "package.json"),
 				JSON.stringify(
-					{ name: "demo", scripts: { holocron: "holocron", "verification.unitTests": "vitest" } },
+					{ name: "demo", scripts: { holocron: "holocron", "platform.commitStandards": "commitlint" } },
 					null,
 					2
 				) + "\n"
 			);
 			const raw = {
 				name: "demo",
-				tasks: ["verification.unitTests"],
+				tasks: ["platform.commitStandards"],
 				providers: {},
 			} as Parameters<typeof resolveConfig>[0];
 
 			const first = await runScriptsStep(raw);
-			expect(first.steps.find((s) => s.step === "sync scripts")?.message).toBe("verification.unitTests set");
+			expect(first.steps.find((s) => s.step === "sync scripts")?.message).toBe("platform.commitStandards set");
 
 			const second = await runScriptsStep(raw);
 			expect(second.steps.find((s) => s.step === "sync scripts")?.message).toBe("2 scripts already current");
+		});
+
+		it("never overwrites an existing direct-tool command for a turbo-eligible task (#747)", async () => {
+			// observability's real shape: root is a directly-buildable package
+			// with its own "tsc --noEmit", not an orchestrator's generated
+			// wrapper — overwriting it would silently discard the real command
+			// and (once turbo.json exists + root is a real workspace member,
+			// #692) reintroduce infinite recursion.
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify(
+					{ name: "demo", scripts: { holocron: "holocron", "verification.typeSafety": "tsc --noEmit" } },
+					null,
+					2
+				) + "\n"
+			);
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toBe("2 scripts already current");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts["verification.typeSafety"]).toBe("tsc --noEmit");
+		});
+
+		it("still writes the wrapper for a turbo-eligible task when no script exists yet", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toContain("set");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts["verification.typeSafety"]).toBe("holocron run verification.typeSafety --");
+		});
+
+		it("replaces a stale wrapper for a turbo-eligible task (not a custom command, safe to update)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify(
+					{
+						name: "demo",
+						scripts: {
+							"verification.typeSafety": "node packages/cli/dist/cli.mjs run verification.typeSafety --",
+						},
+					},
+					null,
+					2
+				) + "\n"
+			);
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toContain("verification.typeSafety");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts["verification.typeSafety"]).toBe("holocron run verification.typeSafety --");
 		});
 
 		it("honours a custom holocronScript", async () => {

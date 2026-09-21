@@ -450,15 +450,25 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			} else {
 				const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
 				if (config.holocronScript !== undefined) tasksConfig.holocronScript = config.holocronScript;
-				const desired = createAstromech({
+				const astromechScripts = createAstromech({
 					cwd: input.context.repoRoot,
 					config: tasksConfig,
 					logger,
-				}).packageScripts();
+				});
+				const desired = astromechScripts.packageScripts();
+				// #747: which of `desired`'s keys turbo.json would fan out — the
+				// only ones an existing direct-tool root script is ever protected
+				// for. See mergePackageJsonScripts()'s own docstring.
+				const turboContent = astromechScripts.turboConfig();
+				const turboEligible = new Set<string>(
+					turboContent
+						? Object.keys((JSON.parse(turboContent) as { tasks: Record<string, unknown> }).tasks)
+						: []
+				);
 
 				steps.push(
 					await runSyncStep("local", "sync scripts", dryRun, async () => {
-						const changed = await mergePackageJsonScripts(input.context.repoRoot, desired);
+						const changed = await mergePackageJsonScripts(input.context.repoRoot, desired, turboEligible);
 						if (changed === null) return "no package.json";
 						if (changed.length === 0) return `${Object.keys(desired).length} scripts already current`;
 						return `${changed.join(", ")} set`;
@@ -625,8 +635,25 @@ async function writePackageJsonField(repoRoot: string, field: string, value: unk
  * Merge `desired` script entries into `package.json#scripts` — sets only the
  * listed keys, never touches the rest. Returns the sorted list of keys that
  * drifted (empty when all current), or `null` when there is no `package.json`.
+ *
+ * `turboEligible` (#747): task names `turbo.json` fans out — the same set
+ * {@link EnsureRootWorkspaceMemberResult} above already keys off. For those
+ * only, an *existing* script that isn't the generated `holocron run <task>
+ * --` wrapper is left untouched: root may genuinely be a directly-buildable
+ * package (not an orchestrator) with its own real command (`tsc --noEmit`,
+ * `vitest run`, …) for that task. Overwriting it would silently discard the
+ * real command and, once `turbo.json` exists and root is a real workspace
+ * member (#692), reintroduce infinite recursion — `turbo run <task>` →
+ * root's own `<task>` script → the wrapper → `holocron run <task>` sees
+ * `turbo.json` still defines the task → `turbo run <task>` again, forever.
+ * Every other key (non-turbo tasks, `holocron`, `prepare`, …) has no
+ * legitimate direct-command alternative and stays fully generator-owned.
  */
-async function mergePackageJsonScripts(repoRoot: string, desired: Record<string, string>): Promise<string[] | null> {
+async function mergePackageJsonScripts(
+	repoRoot: string,
+	desired: Record<string, string>,
+	turboEligible: ReadonlySet<string>
+): Promise<string[] | null> {
 	const pkgPath = join(repoRoot, "package.json");
 	let content: string;
 	try {
@@ -638,7 +665,9 @@ async function mergePackageJsonScripts(repoRoot: string, desired: Record<string,
 	const scripts = (pkg.scripts ?? {}) as Record<string, string>;
 	const changed: string[] = [];
 	for (const [name, command] of Object.entries(desired)) {
-		if (scripts[name] !== command) {
+		const existing = scripts[name];
+		if (turboEligible.has(name) && existing !== undefined && !isGeneratedRunWrapper(existing, name)) continue;
+		if (existing !== command) {
 			scripts[name] = command;
 			changed.push(name);
 		}
@@ -647,6 +676,19 @@ async function mergePackageJsonScripts(repoRoot: string, desired: Record<string,
 	pkg.scripts = scripts;
 	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
 	return changed.sort();
+}
+
+/**
+ * Matches the exact shape `packageScripts()` generates for `taskName` —
+ * `<bin> run <taskName> --`, `<bin>` normally `holocron` but substitutable
+ * (`holocronScript`, itself allowed to be multi-word, e.g. `"node
+packages/cli/dist/cli.mjs"` — see its own test). Checking the *suffix*
+ * rather than the whole string means an old wrapper survives a
+ * `holocronScript` rename intact — it's still recognized as a wrapper (safe
+ * to update to the new one), not mistaken for a real command.
+ */
+function isGeneratedRunWrapper(command: string, taskName: string): boolean {
+	return command.endsWith(` run ${taskName} --`);
 }
 
 const README_DESC_START = "<!-- holocron:description -->";
