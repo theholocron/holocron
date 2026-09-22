@@ -95,8 +95,9 @@ are worth pursuing the same way.
 
 ## Success criteria
 
-- `Sentinel / Commit Standards` posts correctly on real PRs across multiple
-  repos, catching a genuinely bad commit message (not just always green).
+- `Sentinel / Platform / Commit Standards / Run commitlint` posts correctly
+  on real PRs across multiple repos, catching a genuinely bad commit
+  message (not just always green).
 - Once required and swept: `platform.commitStandards.yml` removed from
   each repo that's adopted it — a real, measurable drop in per-PR CI
   wall-clock (one fewer checkout + `pnpm install` + runner per PR, org-wide,
@@ -163,15 +164,39 @@ posts the check on every `pull_request` event regardless of target branch
 (cheap, no reason not to) — only whether it's required to merge is what's
 scoped.
 
-### D5 — Check-run naming: specific enough to mean something at a glance
+### D5 — Check-run naming: carry the intent vocabulary through, not a new ad-hoc label
 
-Mirrors `Sentinel / Capability Compliance`'s own shape rather than a vague
-"commitlint was verified" label: `Sentinel / Commit Standards`, with a
-title/summary pattern like `"Commit standards: OK"` (all commits pass) or
-`"Commit standards: N commit(s) failed"` + a summary naming which commit(s)
-violated which rule(s) (e.g. `abc1234: subject may not be empty
-[subject-empty]`) — actionable from the check-run alone, not just a
-pass/fail badge.
+GitHub check-run names are plain strings — no structural tiering in the
+API, just a convention this org already leans on both ways: GitHub
+Actions auto-generates `<Workflow name> / <Job name>` (e.g. `"Formatting /
+Run prettier, editorconfig-checker, markdownlint"`, `"Commit Standards /
+Run commitlint"` — namespace already dropped, just the humanized task name
+
+- what ran), and Sentinel's own `Capability Compliance` check hand-authors
+  `"Sentinel / Capability Compliance"` (App / Report, no task to namespace
+  under — it isn't in the `astromech` TASKS registry at all).
+
+Commit-message linting _does_ map onto a real vocabulary task
+(`platform.commitStandards`), so its check-run name should say so:
+
+```
+Sentinel / Platform / Commit Standards / Run commitlint
+```
+
+Mechanical rule for any future check that follows this pattern: `Sentinel
+/ <namespace, humanized> / <the existing CI check's own name, unchanged>`
+— makes it visually obvious in a PR's checks list which CI check a given
+Sentinel check is the centralized replacement for, and generalizes
+directly to whatever comes after commitlint (`Sentinel / Source Quality /
+Static Analysis / Run eslint and actionlint`, when eslint's turn comes).
+`Capability Compliance` stays the deliberate 2-tier exception — no
+namespace to carry through.
+
+Title/summary still does the actionable work `"Commit standards: OK"`
+(all commits pass) or `"Commit standards: N commit(s) failed"` + a
+summary naming which commit(s) violated which rule(s) (e.g. `abc1234:
+subject may not be empty [subject-empty]`) — the 4-tier name says _what_
+this is, the output says _what happened_.
 
 ### D6 — Path-scoping is a real principle for _future_ checks, not this one
 
@@ -208,8 +233,8 @@ than filed as its own issue.
   parallel shape to `sync-properties.ts`/`post-check-run.ts`): fetch PR
   commits, lint each message, aggregate pass/fail + which commit(s)
   violated which rule(s).
-- New check run: `Sentinel / Commit Standards` (distinct from `Sentinel /
-Capability Compliance`), wired into `handler.ts`'s pipeline for
+- New check run: `Sentinel / Platform / Commit Standards / Run commitlint`
+  (see D5), wired into `handler.ts`'s pipeline for
   `pull_request.opened`/`pull_request.synchronize` only — this check is
   structurally PR-scoped, unlike capability compliance which also runs on
   `push.default-branch`.
@@ -237,13 +262,14 @@ Two sub-issues under #769, same prototype-then-sweep shape as #762/#763:
 - [ ] Drop the now-redundant duplicate `footer-max-line-length` rule from
       `holocron`'s own root `commitlint.config.ts` (small, standalone —
       doesn't block anything else here).
-- [ ] **Prototype (`clients`)**: `lint-commits.ts` action + `Sentinel /
-Commit Standards` check run, wired into the webhook pipeline for
-      `pull_request.*` only. Verify live — a clean PR passes, a
-      deliberately bad commit message on a throwaway PR is actually
-      caught. Make required on `clients` once proven, same ruleset-PATCH
-      mechanism already used for Capability Compliance. Then remove
-      `clients`' own `platform.commitStandards.yml` job + devDependency,
-      and record the CI wall-clock delta (Success criteria, above).
+- [ ] **Prototype (`clients`)**: `lint-commits.ts` action + the
+      `Sentinel / Platform / Commit Standards / Run commitlint` check run
+      (see D5), wired into the webhook pipeline for `pull_request.*` only.
+      Verify live — a clean PR passes, a deliberately bad commit message
+      on a throwaway PR is actually caught. Make required on `clients`
+      once proven, same ruleset-PATCH mechanism already used for
+      Capability Compliance. Then remove `clients`' own
+      `platform.commitStandards.yml` job + devDependency, and record the
+      CI wall-clock delta (Success criteria, above).
 - [ ] **Sweep**: repeat — make required + remove the redundant CI job +
       devDependency — across every other repo, one PR/batch each.
