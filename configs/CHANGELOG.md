@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* **lint-staged-config:** 🐛 resolve --config to an absolute path ([#473](https://github.com/theholocron/configs/issues/473)) ([e2a8fe6](https://github.com/theholocron/configs/commit/e2a8fe69776e33966f5b960e9ced3d33776093f1)), closes [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [#469](https://github.com/theholocron/configs/issues/469)
+- **lint-staged-config:** 🐛 resolve --config to an absolute path ([#473](https://github.com/theholocron/configs/issues/473)) ([e2a8fe6](https://github.com/theholocron/configs/commit/e2a8fe69776e33966f5b960e9ced3d33776093f1)), closes [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [#469](https://github.com/theholocron/configs/issues/469)
 
 ## [8.4.3](https://github.com/theholocron/configs/compare/v8.4.2...v8.4.3) (2026-09-21)
 
