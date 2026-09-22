@@ -358,4 +358,26 @@ describe("handler — commit standards pipeline (holocron#769/#771)", () => {
 		expect(body.config).toBe("no-config");
 		expect(body.commitStandardsCheckRun).toEqual({ checkRunId: 7, conclusion: "failure", htmlUrl: "" });
 	});
+
+	it("soft-skips a lintCommits failure -- capability compliance still posts, request still succeeds", async () => {
+		// Real regression, found live: a real deploy where lintCommits()
+		// threw (a module-resolution bug in an unrelated dependency) took
+		// down the *entire* request with a bare 500, silently killing
+		// capability compliance too -- a check that had nothing to do with
+		// what actually broke, and worked fine before commit standards
+		// existed. This is the fix: commit standards failing must never
+		// take capability compliance down with it.
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintCommits).mockRejectedValue(new Error("Cannot find module (some unrelated failure)"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postCommitStandardsCheck).not.toHaveBeenCalled();
+		expect(syncPropertiesFromConfig).toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { commitStandardsCheckRun: unknown; checkRun: unknown };
+		expect(body.commitStandardsCheckRun).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
 });
