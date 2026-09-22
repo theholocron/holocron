@@ -94,6 +94,36 @@ Signed-off-by: Your Name <you@example.com>
 
 Never skip `-s`. Branch protection and CI enforce DCO.
 
+## Validate before committing, don't just guess
+
+Per [commitlint's own AI-agent guidance](https://commitlint.js.org/guides/ai-agents.html):
+treat the resolved commitlint config as a contract, not a memory exercise — verify a
+draft message actually passes before running `git commit`, the same way you'd run a
+type checker before trusting your own types are right.
+
+```sh
+# Resolved rules for this repo, if unsure what applies
+npx commitlint --print-config json
+
+# Validate a draft message before committing
+printf '%s' "feat: 💥 add OAuth2 login flow" | npx commitlint
+# exit 0 = passes
+```
+
+If a repo has `@theholocron/commitlint-config` installed, point at its built output
+directly rather than relying on auto-discovery (same pattern this org's own
+`commit-msg` hook and CI already use):
+
+```sh
+printf '%s' "<message>" | npx commitlint --config node_modules/@theholocron/commitlint-config/dist/index.js
+```
+
+If the `commit-msg` hook rejects a commit, the rejected rule name is in the error —
+fix the message and retry. **Don't reach for `git commit --no-verify` to get past an
+actual commit-message failure** — fix the message. (This is scoped to the message
+itself: bypassing a hook for a separately-confirmed, pre-existing, unrelated failure
+elsewhere in the repo is a different, occasionally legitimate call — see `git-safety`.)
+
 ## No agent attribution
 
 Do not add `Co-Authored-By: Claude` or any agent attribution in commits, PRs,
