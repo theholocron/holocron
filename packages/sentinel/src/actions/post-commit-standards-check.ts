@@ -20,10 +20,10 @@
 
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_APP_NAME } from "../utils/constants.js";
+import { SENTINEL_APP_NAME, SENTINEL_NAMESPACES } from "../utils/constants.js";
 import type { CommitViolation, LintCommitsResult } from "./lint-commits.js";
 
-export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / Platform / Commit Standards / Run commitlint`;
+export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / ${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
 
 export interface PostCommitStandardsCheckInput {
 	client: Pick<GitHubClient, "checks">;
