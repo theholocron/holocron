@@ -197,15 +197,29 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// holocron.config.ts, so it runs independent of validateConfig()'s
 	// result below, and only for pull_request.* events (a push has no PR
 	// commits to fetch; capability compliance still covers push separately).
+	//
+	// Soft-skip over hard-fail (CLAUDE.md's own standing convention for
+	// orchestrator-shaped code): a failure here must never take down
+	// capability compliance below it. Found the hard way -- the two
+	// pipelines used to be independent request handlers in effect (nothing
+	// upstream of capability compliance could fail), but sharing one
+	// handle() call means an uncaught throw here reaches the SAME top-level
+	// catch that used to only ever catch capability-compliance's own
+	// failures, silently killing a check that had nothing to do with the
+	// one that actually broke.
 	let commitStandardsCheckRun;
 	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
-		const lintResult = await lintCommits({ client, repo, pullNumber: context.pullNumber });
-		commitStandardsCheckRun = await postCommitStandardsCheck({
-			client,
-			repo,
-			headSha: context.headSha,
-			result: lintResult,
-		});
+		try {
+			const lintResult = await lintCommits({ client, repo, pullNumber: context.pullNumber });
+			commitStandardsCheckRun = await postCommitStandardsCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+			});
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintCommits: failed, continuing without it");
+		}
 	}
 
 	const configResult = await validateConfig({ client, repo });
