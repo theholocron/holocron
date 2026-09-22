@@ -45,14 +45,10 @@ catalogs:
     "@theholocron/sentry-client": ^1.24.0
     "@theholocron/vercel-client": ^1.24.0
 
-  # Shared utils — release in lockstep; bump all entries together.
-  utils:
-    "@theholocron/env-utils": ^1.6.0
-
   # Shared configs — release in lockstep; bump all entries together.
   configs:
     "@theholocron/astro-config": ^8.0.0
-    "@theholocron/commitlint-config": ^8.0.0
+    "@theholocron/commitlint-config": ^8.4.5
     "@theholocron/devmoji-config": ^8.0.0
     "@theholocron/docs-theme": ^1.10.1
     "@theholocron/eslint-config": ^8.0.0
@@ -63,6 +59,10 @@ catalogs:
     "@theholocron/tsconfig": ^8.0.0
     "@theholocron/tsdown-config": ^8.0.0
     "@theholocron/vitest-config": ^8.0.0
+
+  # Shared utils — release in lockstep; bump all entries together.
+  utils:
+    "@theholocron/env-utils": ^1.6.0
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError
