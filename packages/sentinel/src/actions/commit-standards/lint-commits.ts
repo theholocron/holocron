@@ -41,26 +41,25 @@
  * from a fork PR, not just a same-repo one; this action needs no `ref`
  * parameter anywhere, unlike `validateConfig()`'s default-branch-only reads.
  *
- * `@theholocron/commitlint-config` / `@commitlint/config-conventional`
- * imports below, deliberately unused otherwise: `@commitlint/resolve-extends`
- * resolves each *dynamically* by string name — `@theholocron/commitlint-config`
- * via `extends: ["@theholocron/commitlint-config"]` here, and
- * `@commitlint/config-conventional` one hop further, inside
- * `@theholocron/commitlint-config`'s own `extends: [...]` (it's a
- * `peerDependency` of that package, not a transitive `dependency` — needs
- * its own explicit entry in this package's own `dependencies` too, or
- * Vercel's build never installs it at all). Vercel's `@vercel/nft`
- * build-time file tracer can't see either edge — nft only bundles files
- * reachable through a real `import`/`require` edge from the entry point.
- * Without these two lines, both packages resolve fine locally (a real
- * `node_modules` on disk) but throw `Cannot find module "..."` once
- * deployed, one after the other, because nft never traced (and so never
- * included) their files in the Lambda bundle — found live, holocron#776
- * and holocron#777. These imports force both edges to exist.
+ * `@theholocron/commitlint-config` resolves `extends: [...]` chains by
+ * *string name* at runtime (`@commitlint/resolve-extends`), several hops
+ * deep (`@theholocron/commitlint-config` → `@commitlint/config-conventional`
+ * → `conventional-changelog-conventionalcommits` → ...) — never through a
+ * real `import`/`require` edge. Vercel's `@vercel/nft` build-time file
+ * tracer only bundles files reachable through such an edge, so it silently
+ * dropped each of these packages from the deployed Lambda one at a time as
+ * they were found live (holocron#776-#778), even though every one of them
+ * resolves fine locally against a real `node_modules` on disk. Chasing
+ * individual `import "pkg"` workarounds down an open-ended, version-shifting
+ * chain doesn't scale — fixed once, structurally, via `vercel.json`'s
+ * `functions["api/webhook.mjs"].includeFiles: "node_modules/**"` (see
+ * `scripts/stage-deploy.mjs`'s own docstring), which ships this function's
+ * entire installed `node_modules` regardless of what nft can trace. `@commitlint/
+ * config-conventional` still needs its own explicit `dependencies` entry in
+ * this package's `package.json` even so — it's a `peerDependency` of
+ * `@theholocron/commitlint-config`, not a transitive `dependency`, so it
+ * still wouldn't get installed at all without one.
  */
-
-import "@commitlint/config-conventional";
-import "@theholocron/commitlint-config";
 
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

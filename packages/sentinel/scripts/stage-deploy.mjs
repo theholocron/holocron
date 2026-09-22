@@ -9,6 +9,21 @@
  *   .vercel-deploy/
  *     api/webhook.mjs   — the Vercel Function entry point (checked-in, copied verbatim)
  *     dist/index.mjs    — this package's built library (run delivery.build first)
+ *     vercel.json       — checked-in, copied verbatim: `functions["api/webhook.mjs"]
+ *                          .includeFiles: "node_modules/**"` forces Vercel to ship this
+ *                          function's ENTIRE installed node_modules, bypassing
+ *                          `@vercel/nft`'s static file tracer. Needed because
+ *                          commitlint's own config-resolution chain
+ *                          (`@theholocron/commitlint-config` → `@commitlint/
+ *                          config-conventional` → `conventional-changelog-
+ *                          conventionalcommits` → ...) is resolved by *string name*
+ *                          at runtime (`extends: [...]`), never through a real
+ *                          import/require nft could trace — found live chasing one
+ *                          "Cannot find module" at a time through that exact chain
+ *                          (holocron#776-#778) before landing on this instead. Since
+ *                          this function's node_modules is already fully controlled
+ *                          by the trimmed `package.json` below (nothing extra to
+ *                          prune), there's no upside to nft's pruning here, only risk.
  *     package.json      — trimmed: name/version/type + dependencies only,
  *                          each pinned to the exact version actually
  *                          resolved in node_modules right now (not the
@@ -57,6 +72,7 @@ function main() {
 
 	copyFileSync(join(packageDir, "api", "webhook.mjs"), join(outDir, "api", "webhook.mjs"));
 	copyFileSync(distIndex, join(outDir, "dist", "index.mjs"));
+	copyFileSync(join(packageDir, "vercel.json"), join(outDir, "vercel.json"));
 
 	const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
 	const dependencies = Object.fromEntries(
