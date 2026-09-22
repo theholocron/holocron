@@ -10,9 +10,11 @@
  * GitHub (`validateConfig`, `parseWebhookEvent`, plus their shared
  * `decodeContents`/`findPackageRoot`/`SENTINEL_APP_NAME` helpers).
  * `src/actions/` — writes: calls a GitHub API that changes repo state
- * (`syncPropertiesFromConfig`, `postCheckRun`). `handleWebhookRequest`
- * (`src/handler.ts`) is the orchestration sitting above both — utils to
- * decide, actions to report, never the other way around.
+ * (`syncPropertiesFromConfig`, `postCheckRun`, `lintCommits` +
+ * `postCommitStandardsCheck` — the org-wide centralized commit-message
+ * linting, holocron#769/#771). `handleWebhookRequest` (`src/handler.ts`)
+ * is the orchestration sitting above both — utils to decide, actions to
+ * report, never the other way around.
  *
  * `handleWebhookRequest` is deliberately platform-agnostic: a plain
  * `(Request, Env) => Response` function, no deploy-target-specific
@@ -24,11 +26,23 @@
  */
 
 export {
+	type CommitViolation,
+	lintCommits,
+	type LintCommitsInput,
+	type LintCommitsResult,
+} from "./actions/lint-commits.js";
+export {
 	postCheckRun,
 	type PostCheckRunInput,
 	type PostCheckRunResult,
 	SENTINEL_CHECK_RUN_NAME,
 } from "./actions/post-check-run.js";
+export {
+	postCommitStandardsCheck,
+	type PostCommitStandardsCheckInput,
+	type PostCommitStandardsCheckResult,
+	SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME,
+} from "./actions/post-commit-standards-check.js";
 export {
 	syncPropertiesFromConfig,
 	type SyncPropertiesInput,

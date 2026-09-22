@@ -2,7 +2,7 @@
   "name": "@theholocron/sentinel",
   "version": "5.0.0-alpha.38",
   "private": true,
-  "description": "Holocron's minimal GitHub App — webhook receiver, default-branch-only holocron.config.ts validation, custom-properties sync, capability-compliance check runs.",
+  "description": "Holocron's minimal GitHub App — webhook receiver, default-branch-only holocron.config.ts validation, custom-properties sync, capability-compliance and commit-standards check runs.",
   "keywords": [
     "github-app",
     "holocron",
@@ -40,8 +40,11 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
+    "@commitlint/lint": "catalog:",
+    "@commitlint/load": "catalog:",
     "@theholocron/astromech": "workspace:*",
     "@theholocron/cli": "workspace:*",
+    "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/datapad": "workspace:*",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/http-client": "catalog:clients",
@@ -49,6 +52,7 @@
     "tsx": "catalog:"
   },
   "devDependencies": {
+    "@commitlint/types": "catalog:",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
