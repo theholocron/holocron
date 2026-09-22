@@ -123,6 +123,28 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
+	it("doesn't let tsconfig.json's own fallback rule win over an earlier candidate's dependency match, just because tsconfig.json always exists (regression)", () => {
+		// The real bug this caught: delivery.build's detect[] ends with
+		// { when: /^tsconfig\.json$/, tool: "tsc" } as its last-resort
+		// fallback -- and tsconfig.json exists in essentially every real
+		// package regardless of build tool. A "check every candidate's
+		// filename in one pass, then every candidate's dependency in a
+		// second pass" design would hit tsconfig.json's filename match in
+		// the first pass before ever reaching tsdown's dependency check in
+		// the second -- silently resolving to `tsc -b` instead of `tsdown`
+		// the moment a Bucket A migration (#680) deleted tsdown.config.ts
+		// from a real repo. Caught live in clients (#762) immediately after
+		// #750 shipped, with real package.json fixtures always carrying a
+		// tsconfig.json alongside them -- the earlier fixtures in this file
+		// never included one, so this never failed here first.
+		const { call, exec } = makeRun({
+			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
+			"tsconfig.json": "{}",
+		});
+		call("delivery.build");
+		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
+	});
+
 	it("checks dependencies too, not just devDependencies, for the fallback", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG({ dependencies: { vite: "^7.0.0" } }),
@@ -131,16 +153,20 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith("vite", ["build"], { cwd: CWD });
 	});
 
-	it("a detect[] filename match still wins over the dependency fallback", () => {
-		// Deliberately conflicting signals: rollup.config.ts on disk, but
-		// tsdown listed in devDependencies too (e.g. mid-migration between
-		// build tools) -- the file is the more specific, in-repo signal.
+	it("an earlier candidate's dependency match wins over a later candidate's file match", () => {
+		// Deliberately conflicting signals: rollup.config.ts on disk (a real
+		// file, for the 3rd detect[] candidate), but tsdown -- the 1st
+		// candidate -- still listed in devDependencies too (e.g. a
+		// mid-migration repo that added rollup.config.ts but hasn't cleaned
+		// up the old devDependency yet). detect[]'s declared order is the
+		// tie-breaker: tsdown's dependency signal is checked, and matches,
+		// before rollup's file signal is ever reached.
 		const { call, exec } = makeRun({
 			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
 			"rollup.config.ts": "",
 		});
 		call("delivery.build");
-		expect(exec).toHaveBeenCalledWith("rollup", ["-c"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
 	it("reports no local delivery.build runner when neither a config file nor a known dependency exists", () => {
