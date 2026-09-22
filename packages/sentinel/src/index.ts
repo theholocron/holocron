@@ -30,19 +30,19 @@ export {
 	lintCommits,
 	type LintCommitsInput,
 	type LintCommitsResult,
-} from "./actions/lint-commits.js";
+} from "./actions/commit-standards/lint-commits.js";
+export {
+	postCommitStandardsCheck,
+	type PostCommitStandardsCheckInput,
+	type PostCommitStandardsCheckResult,
+	SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME,
+} from "./actions/commit-standards/post-commit-standards-check.js";
 export {
 	postCheckRun,
 	type PostCheckRunInput,
 	type PostCheckRunResult,
 	SENTINEL_CHECK_RUN_NAME,
 } from "./actions/post-check-run.js";
-export {
-	postCommitStandardsCheck,
-	type PostCommitStandardsCheckInput,
-	type PostCommitStandardsCheckResult,
-	SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME,
-} from "./actions/post-commit-standards-check.js";
 export {
 	syncPropertiesFromConfig,
 	type SyncPropertiesInput,

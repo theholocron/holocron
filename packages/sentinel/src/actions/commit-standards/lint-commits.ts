@@ -51,7 +51,7 @@ import load from "@commitlint/load";
 import type { LintOptions, ParserPreset } from "@commitlint/types";
 import type { GitHubClient } from "@theholocron/github-client";
 
-import { getPackageRoot } from "../utils/package-root.js";
+import { getPackageRoot } from "../../utils/package-root.js";
 
 export interface LintCommitsInput {
 	client: Pick<GitHubClient, "pulls">;

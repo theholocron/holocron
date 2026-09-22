@@ -46,9 +46,9 @@ import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
-import { lintCommits } from "./actions/lint-commits.js";
+import { lintCommits } from "./actions/commit-standards/lint-commits.js";
+import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { postCheckRun } from "./actions/post-check-run.js";
-import { postCommitStandardsCheck } from "./actions/post-commit-standards-check.js";
 import { syncPropertiesFromConfig } from "./actions/sync-properties.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
