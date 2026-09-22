@@ -19,6 +19,21 @@ repo — starting with commit-message linting, chosen deliberately as the
 lowest-risk, highest-value first slice (see "Why commit-message linting
 first," below).
 
+## Design principle: minimal config, not zero config
+
+"Zero per-repo config" is a consequence of commit-message rules having no
+real variance today, not a rule this epic is bound by. The actual
+principle: `holocron.config.ts` should declare as little as possible —
+genuine per-repo variance (providers, capabilities, what makes this repo
+different) — and nothing that's common across every repo because everyone
+here writes code the same way, regardless of whether a given repo happens
+to be a CLI, a monorepo, or a library. Commit-message linting has no
+per-repo variance to declare, so it needs none — that's minimalism doing
+its job, not an extreme "never any config" stance the rest of this
+workstream is bound by. A future check that genuinely needs a per-repo
+knob (an opt-out, a threshold, whatever) should get one without
+contradicting this spec's direction.
+
 ## Problem
 
 The platform epic's actual goal was never just "one shared config file
@@ -141,8 +156,9 @@ Capability Compliance`), wired into `handler.ts`'s pipeline for
   `push.default-branch`.
 - `@theholocron/commitlint-config` + `commitlint` become real Sentinel
   dependencies (`packages/sentinel/package.json`).
-- No `holocron.config.ts` schema change — this needs zero per-repo
-  declaration, by design.
+- No `holocron.config.ts` schema change for this slice — commit-message
+  rules have no genuine per-repo variance to declare (see "Design
+  principle," above). Not a constraint on future checks that might.
 
 ## Out of scope (for now)
 
