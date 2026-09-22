@@ -26,6 +26,17 @@
  */
 
 export {
+	postCheckRun,
+	type PostCheckRunInput,
+	type PostCheckRunResult,
+	SENTINEL_CHECK_RUN_NAME,
+} from "./actions/capability-compliance/post-check-run.js";
+export {
+	syncPropertiesFromConfig,
+	type SyncPropertiesInput,
+	type SyncPropertiesResult,
+} from "./actions/capability-compliance/sync-properties.js";
+export {
 	type CommitViolation,
 	lintCommits,
 	type LintCommitsInput,
@@ -37,17 +48,6 @@ export {
 	type PostCommitStandardsCheckResult,
 	SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME,
 } from "./actions/commit-standards/post-commit-standards-check.js";
-export {
-	postCheckRun,
-	type PostCheckRunInput,
-	type PostCheckRunResult,
-	SENTINEL_CHECK_RUN_NAME,
-} from "./actions/post-check-run.js";
-export {
-	syncPropertiesFromConfig,
-	type SyncPropertiesInput,
-	type SyncPropertiesResult,
-} from "./actions/sync-properties.js";
 export { type Env, handleWebhookRequest } from "./handler.js";
 export { SENTINEL_APP_NAME } from "./utils/constants.js";
 export { validateConfig, type ValidateConfigInput, type ValidateConfigResult } from "./utils/validate-config.js";

@@ -36,7 +36,7 @@ import {
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
-import { decodeContents } from "../utils/decode-contents.js";
+import { decodeContents } from "../../utils/decode-contents.js";
 
 export interface SyncPropertiesInput {
 	client: Pick<GitHubClient, "git" | "properties">;

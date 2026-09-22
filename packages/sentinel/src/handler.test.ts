@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
 vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.fn() }));
-vi.mock("./actions/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
+vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
-vi.mock("./actions/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
+vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("./utils/webhook.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./utils/webhook.js")>();
@@ -14,10 +14,10 @@ vi.mock("./utils/webhook.js", async (importOriginal) => {
 import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
+import { postCheckRun } from "./actions/capability-compliance/post-check-run.js";
+import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
-import { postCheckRun } from "./actions/post-check-run.js";
-import { syncPropertiesFromConfig } from "./actions/sync-properties.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, WebhookVerificationError } from "./utils/webhook.js";
