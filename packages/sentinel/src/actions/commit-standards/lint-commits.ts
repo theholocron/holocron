@@ -41,18 +41,25 @@
  * from a fork PR, not just a same-repo one; this action needs no `ref`
  * parameter anywhere, unlike `validateConfig()`'s default-branch-only reads.
  *
- * `@theholocron/commitlint-config` import below, deliberately unused
- * otherwise: `@commitlint/resolve-extends` resolves it *dynamically* by
- * string name (`extends: ["@theholocron/commitlint-config"]`), which
- * Vercel's `@vercel/nft` build-time file tracer can't see — nft only
- * bundles files reachable through a real `import`/`require` edge from the
- * entry point. Without this line, the package resolves fine locally (a
- * real `node_modules` on disk) but throws `Cannot find module
- * "@theholocron/commitlint-config"` once deployed, because nft never
- * traced (and so never included) its files in the Lambda bundle — found
- * live, holocron#776. This import forces that edge to exist.
+ * `@theholocron/commitlint-config` / `@commitlint/config-conventional`
+ * imports below, deliberately unused otherwise: `@commitlint/resolve-extends`
+ * resolves each *dynamically* by string name — `@theholocron/commitlint-config`
+ * via `extends: ["@theholocron/commitlint-config"]` here, and
+ * `@commitlint/config-conventional` one hop further, inside
+ * `@theholocron/commitlint-config`'s own `extends: [...]` (it's a
+ * `peerDependency` of that package, not a transitive `dependency` — needs
+ * its own explicit entry in this package's own `dependencies` too, or
+ * Vercel's build never installs it at all). Vercel's `@vercel/nft`
+ * build-time file tracer can't see either edge — nft only bundles files
+ * reachable through a real `import`/`require` edge from the entry point.
+ * Without these two lines, both packages resolve fine locally (a real
+ * `node_modules` on disk) but throw `Cannot find module "..."` once
+ * deployed, one after the other, because nft never traced (and so never
+ * included) their files in the Lambda bundle — found live, holocron#776
+ * and holocron#777. These imports force both edges to exist.
  */
 
+import "@commitlint/config-conventional";
 import "@theholocron/commitlint-config";
 
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";

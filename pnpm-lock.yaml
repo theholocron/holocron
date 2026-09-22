@@ -80,6 +80,9 @@ catalogs:
     '@axiomhq/pino':
       specifier: ^2.0.0
       version: 2.0.0
+    '@commitlint/config-conventional':
+      specifier: ^21.2.3
+      version: 21.2.3
     '@commitlint/lint':
       specifier: ^21.2.3
       version: 21.2.3
@@ -1372,6 +1375,9 @@ importers:
 
   packages/sentinel:
     dependencies:
+      '@commitlint/config-conventional':
+        specifier: 'catalog:'
+        version: 21.2.3
       '@commitlint/lint':
         specifier: 'catalog:'
         version: 21.2.3
@@ -1386,7 +1392,7 @@ importers:
         version: link:../cli
       '@theholocron/commitlint-config':
         specifier: catalog:configs
-        version: 8.4.5(@commitlint/cli@21.2.2(@types/node@26.1.2)(typescript@5.9.3))(@commitlint/config-conventional@21.2.2)
+        version: 8.4.5(@commitlint/cli@21.2.2(@types/node@26.1.2)(typescript@5.9.3))(@commitlint/config-conventional@21.2.3)
       '@theholocron/datapad':
         specifier: workspace:*
         version: link:../datapad
@@ -1845,6 +1851,10 @@ packages:
 
   '@commitlint/config-conventional@21.2.2':
     resolution: {integrity: sha512-NxA37SZviusFUEYOQZ5hNnZ1h7O/KiemPkxjOlpzKJNnWxThiwc6/SaZhaPa8fyLvfRBAywhQhJJk8XESHWlpQ==}
+    engines: {node: '>=22.12.0'}
+
+  '@commitlint/config-conventional@21.2.3':
+    resolution: {integrity: sha512-EP2n5DN2GwRWNVrLX0Jx3mpQlW5PfFi9HnD9OJ8hN/H0xFqpCFyHeGDhg+0P8/21iMMcdkcQgbNqmVklebqYsQ==}
     engines: {node: '>=22.12.0'}
 
   '@commitlint/config-validator@21.2.0':
@@ -8516,6 +8526,11 @@ snapshots:
       '@commitlint/types': 21.2.0
       conventional-changelog-conventionalcommits: 10.3.0
 
+  '@commitlint/config-conventional@21.2.3':
+    dependencies:
+      '@commitlint/types': 21.2.3
+      conventional-changelog-conventionalcommits: 10.3.0
+
   '@commitlint/config-validator@21.2.0':
     dependencies:
       '@commitlint/types': 21.2.0
@@ -8528,7 +8543,7 @@ snapshots:
 
   '@commitlint/ensure@21.2.0':
     dependencies:
-      '@commitlint/types': 21.2.0
+      '@commitlint/types': 21.2.3
       es-toolkit: 1.52.0
 
   '@commitlint/ensure@21.2.3':
@@ -9930,10 +9945,10 @@ snapshots:
       - posthog-node
       - vitest
 
-  '@theholocron/commitlint-config@8.4.5(@commitlint/cli@21.2.2(@types/node@26.1.2)(typescript@5.9.3))(@commitlint/config-conventional@21.2.2)':
+  '@theholocron/commitlint-config@8.4.5(@commitlint/cli@21.2.2(@types/node@26.1.2)(typescript@5.9.3))(@commitlint/config-conventional@21.2.3)':
     dependencies:
       '@commitlint/cli': 21.2.2(@types/node@26.1.2)(typescript@5.9.3)
-      '@commitlint/config-conventional': 21.2.2
+      '@commitlint/config-conventional': 21.2.3
 
   '@theholocron/commitlint-config@8.4.5(@commitlint/cli@21.2.2(@types/node@26.4.1)(typescript@5.9.3))(@commitlint/config-conventional@21.2.2)':
     dependencies:

@@ -40,6 +40,7 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
+    "@commitlint/config-conventional": "catalog:",
     "@commitlint/lint": "catalog:",
     "@commitlint/load": "catalog:",
     "@theholocron/astromech": "workspace:*",
