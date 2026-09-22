@@ -27,7 +27,7 @@
     "typecheck": "holocron run verification.typeSafety --"
   },
   "devDependencies": {
-    "@astrojs/react": "^5.0.0",
+    "@astrojs/react": "^6.0.6",
     "@astrojs/starlight": "^0.41.7",
     "@commitlint/cli": "^21.2.0",
     "@commitlint/config-conventional": "^21.2.0",
