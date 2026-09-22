@@ -19,6 +19,20 @@ repo — starting with commit-message linting, chosen deliberately as the
 lowest-risk, highest-value first slice (see "Why commit-message linting
 first," below).
 
+## Program shape: one config type at a time, same prototype-then-sweep pattern as #680
+
+This is the first of a series, not a one-off. The full target is every
+Bucket-A-eligible check (commitlint now; eslint, prettier, and others as
+they're picked up) moving from "every repo runs its own copy" to "Sentinel
+enforces it once, centrally." Each one follows the same shape #680 already
+proved works: prove it in `clients` first (own PR, own check-run, own
+"done" signal), sweep the same mechanism across every other repo once
+proven, _then_ — and only then — start the next config type. Not done in
+parallel across config types; each one ships and is verified live before
+the next starts. `#769`'s own sub-issues track this: commit-message linting
+first, with its own prototype + sweep pair, same as `#762`/`#763` for
+`tsdown.config.ts`.
+
 ## Design principle: minimal config, not zero config
 
 "Zero per-repo config" is a consequence of commit-message rules having no
@@ -79,6 +93,17 @@ config" model with the simplest possible real case, before deciding whether
 riskier checks (eslint, prettier — which _would_ need real PR file content)
 are worth pursuing the same way.
 
+## Success criteria
+
+- `Sentinel / Commit Standards` posts correctly on real PRs across multiple
+  repos, catching a genuinely bad commit message (not just always green).
+- Once required and swept: `platform.commitStandards.yml` removed from
+  each repo that's adopted it — a real, measurable drop in per-PR CI
+  wall-clock (one fewer checkout + `pnpm install` + runner per PR, org-wide,
+  for a check that never depended on anything repo-specific). Worth
+  recording the before/after number on the sweep PR-stack item, not just
+  asserting it's faster.
+
 ## Decisions
 
 ### D1 — Real `commitlint`, real shared config, fed via API-sourced messages, not a git checkout
@@ -124,6 +149,40 @@ by pushing real traffic through it repeatedly). Only add it to a repo's
 required-checks ruleset once proven there, one repo at a time — `clients`
 first, matching the prototype-then-sweep pattern already established for
 #680.
+
+**"Required" only ever matters where a PR targets the default branch** — a
+direct human push to `main` should never happen (PRs are the norm; the
+existing ruleset's `bypass_actors` only exempts the repo-admin role, which
+is how semantic-release's own automated commits land without a PR) and a
+PR targeting anything else isn't gated by the repo's ruleset at all
+(`conditions.ref_name.include: ["~DEFAULT_BRANCH"]`, already how
+`holocron-default-branch` is scoped). This isn't new wiring — it's the
+same ruleset-PATCH mechanism already used for Capability Compliance,
+which is _already_ base-branch-scoped by construction. Sentinel still
+posts the check on every `pull_request` event regardless of target branch
+(cheap, no reason not to) — only whether it's required to merge is what's
+scoped.
+
+### D5 — Check-run naming: specific enough to mean something at a glance
+
+Mirrors `Sentinel / Capability Compliance`'s own shape rather than a vague
+"commitlint was verified" label: `Sentinel / Commit Standards`, with a
+title/summary pattern like `"Commit standards: OK"` (all commits pass) or
+`"Commit standards: N commit(s) failed"` + a summary naming which commit(s)
+violated which rule(s) (e.g. `abc1234: subject may not be empty
+[subject-empty]`) — actionable from the check-run alone, not just a
+pass/fail badge.
+
+### D6 — Path-scoping is a real principle for _future_ checks, not this one
+
+Commit-message linting applies to every PR regardless of which files
+changed — there's no "only run if X files touched" condition that makes
+sense here, so this slice doesn't need it. But it's a real requirement to
+carry into whichever check follows (eslint, prettier): those should only
+run — and only be required — when a PR actually touches files they'd lint,
+the same way `turbo.json`'s `inputs` already scope _local_ task execution
+today. Noted here so the pattern isn't lost by the time it's needed, not
+because it applies yet.
 
 ### D4 — `commitlint-config`'s remaining repo-specific override — confirmed already folded in
 
@@ -171,17 +230,20 @@ Capability Compliance`), wired into `handler.ts`'s pipeline for
 
 ## PR-stack
 
+Two sub-issues under #769, same prototype-then-sweep shape as #762/#763:
+
 - [x] Confirm `commitlint-config`'s `footer-max-line-length` fold-in status
       (D4) — already done in `configs`.
 - [ ] Drop the now-redundant duplicate `footer-max-line-length` rule from
       `holocron`'s own root `commitlint.config.ts` (small, standalone —
       doesn't block anything else here).
-- [ ] `lint-commits.ts` action + `Sentinel / Commit Standards` check run,
-      wired into the webhook pipeline for `pull_request.*` only.
-- [ ] Verify live: a clean PR passes, a deliberately bad commit message on
-      a throwaway PR is actually caught (not just always green).
-- [ ] Make required on `clients` (prototype), same ruleset-PATCH mechanism
-      already used for Capability Compliance.
-- [ ] Sweep: make required across remaining repos, then remove the now-
-      redundant `platform.commitStandards.yml` CI job + devDependency
-      per repo (own PR-stack item, not bundled with proving the mechanism).
+- [ ] **Prototype (`clients`)**: `lint-commits.ts` action + `Sentinel /
+Commit Standards` check run, wired into the webhook pipeline for
+      `pull_request.*` only. Verify live — a clean PR passes, a
+      deliberately bad commit message on a throwaway PR is actually
+      caught. Make required on `clients` once proven, same ruleset-PATCH
+      mechanism already used for Capability Compliance. Then remove
+      `clients`' own `platform.commitStandards.yml` job + devDependency,
+      and record the CI wall-clock delta (Success criteria, above).
+- [ ] **Sweep**: repeat — make required + remove the redundant CI job +
+      devDependency — across every other repo, one PR/batch each.
