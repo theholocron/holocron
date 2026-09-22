@@ -29,7 +29,7 @@
 import { missingCapabilities } from "@theholocron/cli";
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_APP_NAME } from "../utils/constants.js";
+import { SENTINEL_APP_NAME } from "../../utils/constants.js";
 
 export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / Capability Compliance`;
 

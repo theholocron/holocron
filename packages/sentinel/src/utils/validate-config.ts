@@ -40,8 +40,7 @@
 
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { KNOWN_TASKS, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import { normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
@@ -50,29 +49,7 @@ import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { decodeContents } from "./decode-contents.js";
-import { findPackageRoot } from "./package-root.js";
-
-// Lazy + memoized, not a module-level constant: `findPackageRoot` does
-// real filesystem work at import time otherwise, which means *any*
-// webhook delivery — including event types that never call
-// `validateConfig()` at all, like `installation` or `ping` — crashes the
-// whole function if it fails. Found the hard way: a Vercel deploy where
-// it couldn't resolve, taking down 100% of deliveries with
-// `FUNCTION_INVOCATION_FAILED` before a single line of this module's own
-// logic ever ran. Computing it lazily on first real use means a failure
-// here only affects the config-validation path, not every event type.
-let packageRootCache: string | undefined;
-function getPackageRoot(): string {
-	if (packageRootCache === undefined) {
-		// tsdown bundles the whole package into one flat `dist/index.mjs`, so
-		// "this module's own location" sits one level under package root when
-		// built, but two levels under it here in source (`src/utils/`) —
-		// walking up to the nearest `node_modules` resolves both without
-		// hardcoding a depth that only one of the two would get right.
-		packageRootCache = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
-	}
-	return packageRootCache;
-}
+import { getPackageRoot } from "./package-root.js";
 
 export type ValidateConfigResult =
 	| { status: "valid"; filepath: string; config: TasksConfig }

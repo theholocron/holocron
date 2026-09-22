@@ -1,10 +1,22 @@
 /**
- * The webhook receiver's core logic — wires `parseWebhookEvent →
- * validateConfig → syncPropertiesFromConfig → postCheckRun` into a
- * single Fetch-API request handler, all through an installation-scoped
- * `GitHubClient` (D10: the installation id always comes from the
- * webhook payload itself, never hardcoded, so one App registration
- * handles installations across any number of orgs/accounts unchanged).
+ * The webhook receiver's core logic — wires two independent check
+ * pipelines into a single Fetch-API request handler, both through an
+ * installation-scoped `GitHubClient` (D10: the installation id always
+ * comes from the webhook payload itself, never hardcoded, so one App
+ * registration handles installations across any number of orgs/accounts
+ * unchanged):
+ *
+ * - **Capability compliance** (`validateConfig → syncPropertiesFromConfig
+ *   → postCheckRun`): `push.default-branch` and `pull_request.*` both run
+ *   it (same engine, D8 — only the commit SHA the check run attaches to
+ *   differs), but only when `validateConfig()` reports `"valid"` — a
+ *   missing/broken config is acknowledged without posting a check run.
+ * - **Commit standards** (`lintCommits → postCommitStandardsCheck`,
+ *   holocron#769/#771): `pull_request.*` only — a push has no PR commits
+ *   to fetch. Config-free by design (D6,
+ *   `.notes/tech-sentinel-enforcement.spec.md`) — runs independent of
+ *   `validateConfig()`'s result, since it never reads `holocron.config.ts`
+ *   at all.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -17,15 +29,7 @@
  * `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`.
  *
  * v1 scope only: `installation.created`/`installation.deleted` are
- * acknowledged, not acted on — no per-installation action is defined
- * yet. `push.default-branch` and `pull_request.opened`/`synchronize`
- * both run the full resolution pipeline (same engine, D8 — the only
- * difference is which commit SHA the check run attaches to), but only
- * when `validateConfig()` reports `"valid"`: the spec's stated v1 scope
- * is "capability-compliance status", which presupposes a valid config
- * to check compliance *against* — a missing/broken config is
- * acknowledged without posting a check run, deferring richer "the
- * config itself is broken" reporting to a later iteration.
+ * acknowledged, not acted on — no per-installation action is defined yet.
  *
  * Deploy target: Vercel Functions (Node.js runtime), not Cloudflare
  * Workers — reversed from the spec's earlier "Resolved" call once
@@ -42,8 +46,10 @@ import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
-import { postCheckRun } from "./actions/post-check-run.js";
-import { syncPropertiesFromConfig } from "./actions/sync-properties.js";
+import { postCheckRun } from "./actions/capability-compliance/post-check-run.js";
+import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
+import { lintCommits } from "./actions/commit-standards/lint-commits.js";
+import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
@@ -88,12 +94,15 @@ function serializeError(err: unknown): Record<string, unknown> | string {
 interface ResolutionContext {
 	defaultBranch: string;
 	headSha: string;
+	/** Only present for `pull_request.*` events — `lintCommits()`'s own input. `push.default-branch` has no PR to fetch commits from. */
+	pullNumber?: number;
 }
 
 /**
- * Reads `defaultBranch` and the commit SHA to check from `event.raw` —
- * `SentinelEvent`'s normalized shape doesn't carry either, since
- * `postCheckRun`/`syncPropertiesFromConfig` are the only consumers that
+ * Reads `defaultBranch`, the commit SHA to check, and (for `pull_request.*`
+ * events) the PR number from `event.raw` — `SentinelEvent`'s normalized
+ * shape doesn't carry any of these, since `postCheckRun`/
+ * `syncPropertiesFromConfig`/`lintCommits` are the only consumers that
  * need them, and `webhook.ts`'s own job stops at "which event category,
  * which repo, which installation" (see its own module docstring).
  */
@@ -101,7 +110,7 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 	const raw = event.raw as {
 		repository?: { default_branch?: string };
 		after?: string;
-		pull_request?: { head?: { sha?: string } };
+		pull_request?: { number?: number; head?: { sha?: string } };
 	};
 	const defaultBranch = raw.repository?.default_branch;
 	const headSha = event.type === "push.default-branch" ? raw.after : raw.pull_request?.head?.sha;
@@ -110,7 +119,7 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 			`${event.type}: payload missing repository.default_branch or the commit SHA to check`
 		);
 	}
-	return { defaultBranch, headSha };
+	return { defaultBranch, headSha, pullNumber: raw.pull_request?.number };
 }
 
 /** Handles one inbound webhook request. Platform adapters call this directly — no `{ fetch }` wrapper required. */
@@ -183,10 +192,26 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		event.installationId
 	);
 
+	// Commit-message linting (holocron#769/#771) is config-free by design
+	// (D6, tech-sentinel-enforcement.spec.md) -- it never reads
+	// holocron.config.ts, so it runs independent of validateConfig()'s
+	// result below, and only for pull_request.* events (a push has no PR
+	// commits to fetch; capability compliance still covers push separately).
+	let commitStandardsCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		const lintResult = await lintCommits({ client, repo, pullNumber: context.pullNumber });
+		commitStandardsCheckRun = await postCommitStandardsCheck({
+			client,
+			repo,
+			headSha: context.headSha,
+			result: lintResult,
+		});
+	}
+
 	const configResult = await validateConfig({ client, repo });
 	if (configResult.status !== "valid") {
 		logger.warn({ repo, result: configResult }, "validateConfig: not valid");
-		return json({ handled: true, type: event.type, config: configResult.status });
+		return json({ handled: true, type: event.type, config: configResult.status, commitStandardsCheckRun });
 	}
 
 	const { properties } = await syncPropertiesFromConfig({
@@ -206,5 +231,5 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		capabilities: Array.isArray(capabilities) ? capabilities : [],
 	});
 
-	return json({ handled: true, type: event.type, checkRun });
+	return json({ handled: true, type: event.type, checkRun, commitStandardsCheckRun });
 }

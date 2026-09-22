@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
-vi.mock("./actions/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
-vi.mock("./actions/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
+vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.fn() }));
+vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
+vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
+vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("./utils/webhook.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./utils/webhook.js")>();
@@ -12,8 +14,10 @@ vi.mock("./utils/webhook.js", async (importOriginal) => {
 import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
-import { postCheckRun } from "./actions/post-check-run.js";
-import { syncPropertiesFromConfig } from "./actions/sync-properties.js";
+import { postCheckRun } from "./actions/capability-compliance/post-check-run.js";
+import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
+import { lintCommits } from "./actions/commit-standards/lint-commits.js";
+import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -42,6 +46,8 @@ beforeEach(() => {
 	vi.mocked(validateConfig).mockReset();
 	vi.mocked(syncPropertiesFromConfig).mockReset();
 	vi.mocked(postCheckRun).mockReset();
+	vi.mocked(lintCommits).mockReset();
+	vi.mocked(postCommitStandardsCheck).mockReset();
 });
 
 describe("handler — method + verification", () => {
@@ -208,6 +214,10 @@ describe("handler — push.default-branch full pipeline", () => {
 			type: "push.default-branch",
 			checkRun: { checkRunId: 7, conclusion: "success", htmlUrl: "https://x" },
 		});
+		// Commit standards is pull_request-only -- a push has no PR commits to
+		// fetch, and capability compliance already covers push separately.
+		expect(lintCommits).not.toHaveBeenCalled();
+		expect(postCommitStandardsCheck).not.toHaveBeenCalled();
 	});
 
 	it("skips properties sync and the check run when config isn't valid", async () => {
@@ -273,5 +283,79 @@ describe("handler — pull_request pipeline", () => {
 		await handleWebhookRequest(req(), ENV);
 
 		expect(postCheckRun).toHaveBeenCalledWith(expect.objectContaining({ headSha: "pr-head-sha" }));
+	});
+});
+
+describe("handler — commit standards pipeline (holocron#769/#771)", () => {
+	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
+		return {
+			type,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+			},
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("runs lintCommits with the PR number, and posts the result", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintCommits).mockResolvedValue({ valid: true, commitCount: 2, violations: [] });
+		vi.mocked(postCommitStandardsCheck).mockResolvedValue({
+			checkRunId: 5,
+			conclusion: "success",
+			htmlUrl: "https://x/5",
+		});
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(lintCommits).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo", pullNumber: 9 });
+		expect(postCommitStandardsCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			result: { valid: true, commitCount: 2, violations: [] },
+		});
+		const body = (await res.json()) as { commitStandardsCheckRun: unknown };
+		expect(body.commitStandardsCheckRun).toEqual({ checkRunId: 5, conclusion: "success", htmlUrl: "https://x/5" });
+	});
+
+	it("runs on pull_request.synchronize too, not just opened", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
+		vi.mocked(lintCommits).mockResolvedValue({ valid: true, commitCount: 1, violations: [] });
+		vi.mocked(postCommitStandardsCheck).mockResolvedValue({ checkRunId: 6, conclusion: "success", htmlUrl: "" });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(lintCommits).toHaveBeenCalled();
+	});
+
+	it("runs independent of validateConfig's result -- config invalid, commit standards still posts (D6: config-free)", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(validateConfig).mockResolvedValue({ status: "no-config" });
+		vi.mocked(lintCommits).mockResolvedValue({
+			valid: false,
+			commitCount: 1,
+			violations: [{ sha: "bad0001", rule: "subject-empty", message: "subject may not be empty" }],
+		});
+		vi.mocked(postCommitStandardsCheck).mockResolvedValue({ checkRunId: 7, conclusion: "failure", htmlUrl: "" });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(lintCommits).toHaveBeenCalled();
+		expect(postCommitStandardsCheck).toHaveBeenCalled();
+		expect(syncPropertiesFromConfig).not.toHaveBeenCalled();
+		expect(postCheckRun).not.toHaveBeenCalled();
+		const body = (await res.json()) as { commitStandardsCheckRun: unknown; config: string };
+		expect(body.config).toBe("no-config");
+		expect(body.commitStandardsCheckRun).toEqual({ checkRunId: 7, conclusion: "failure", htmlUrl: "" });
 	});
 });

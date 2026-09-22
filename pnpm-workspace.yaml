@@ -6,6 +6,9 @@ packages:
 # plugin packages grow.
 catalog:
   "@axiomhq/pino": ^2.0.0
+  "@commitlint/lint": ^21.2.3
+  "@commitlint/load": ^21.2.3
+  "@commitlint/types": ^21.2.3
   "@inquirer/prompts": ^8.5.2
   "@inquirer/search": ^4.3.3
   "@sentry/node": ^10.70.0
@@ -33,17 +36,17 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/clerk-client": ^1.24.0
-    "@theholocron/cloudflare-client": ^1.24.0
-    "@theholocron/doppler-client": ^1.24.0
-    "@theholocron/github-client": ^1.24.0
-    "@theholocron/http-client": ^1.24.0
-    "@theholocron/infisical-client": ^1.24.0
-    "@theholocron/neon-client": ^1.24.0
-    "@theholocron/posthog-client": ^1.24.0
-    "@theholocron/postman-client": ^1.24.0
-    "@theholocron/sentry-client": ^1.24.0
-    "@theholocron/vercel-client": ^1.24.0
+    "@theholocron/clerk-client": ^1.25.0
+    "@theholocron/cloudflare-client": ^1.25.0
+    "@theholocron/doppler-client": ^1.25.0
+    "@theholocron/github-client": ^1.25.0
+    "@theholocron/http-client": ^1.25.0
+    "@theholocron/infisical-client": ^1.25.0
+    "@theholocron/neon-client": ^1.25.0
+    "@theholocron/posthog-client": ^1.25.0
+    "@theholocron/postman-client": ^1.25.0
+    "@theholocron/sentry-client": ^1.25.0
+    "@theholocron/vercel-client": ^1.25.0
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
