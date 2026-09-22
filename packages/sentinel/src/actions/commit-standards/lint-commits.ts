@@ -40,7 +40,20 @@
  * and no code from the PR branch or fork ever read, imported, or run. Safe
  * from a fork PR, not just a same-repo one; this action needs no `ref`
  * parameter anywhere, unlike `validateConfig()`'s default-branch-only reads.
+ *
+ * `@theholocron/commitlint-config` import below, deliberately unused
+ * otherwise: `@commitlint/resolve-extends` resolves it *dynamically* by
+ * string name (`extends: ["@theholocron/commitlint-config"]`), which
+ * Vercel's `@vercel/nft` build-time file tracer can't see — nft only
+ * bundles files reachable through a real `import`/`require` edge from the
+ * entry point. Without this line, the package resolves fine locally (a
+ * real `node_modules` on disk) but throws `Cannot find module
+ * "@theholocron/commitlint-config"` once deployed, because nft never
+ * traced (and so never included) its files in the Lambda bundle — found
+ * live, holocron#776. This import forces that edge to exist.
  */
+
+import "@theholocron/commitlint-config";
 
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
