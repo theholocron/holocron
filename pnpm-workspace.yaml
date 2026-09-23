@@ -56,7 +56,7 @@ catalogs:
     "@theholocron/devmoji-config": ^8.4.5
     "@theholocron/docs-theme": ^1.10.3
     "@theholocron/eslint-config": ^8.4.5
-    "@theholocron/holocron-config": ^8.4.5
+    "@theholocron/holocron-config": ^8.4.6
     "@theholocron/lint-staged-config": ^8.4.5
     "@theholocron/prettier-config": ^8.4.5
     "@theholocron/semantic-release-config": ^8.4.5
