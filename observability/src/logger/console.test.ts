@@ -57,4 +57,8 @@ describe("ConsoleLogger", () => {
 		new ConsoleLogger().child({ runId: "r1" }).info("hello");
 		expect(spies.info).toHaveBeenCalledWith("hello", { runId: "r1" });
 	});
+
+	it("flush() resolves immediately — console.* is synchronous", async () => {
+		await expect(new ConsoleLogger().flush()).resolves.toBeUndefined();
+	});
 });

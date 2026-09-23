@@ -10,6 +10,7 @@ export interface FakeLogger extends Logger {
 	warn: Mock;
 	error: Mock;
 	child: Mock;
+	flush: Mock;
 }
 
 /**
@@ -29,6 +30,7 @@ export function fakeLogger(): FakeLogger {
 		warn: vi.fn(),
 		error: vi.fn(),
 		child: vi.fn(() => log),
+		flush: vi.fn().mockResolvedValue(undefined),
 	} as unknown as FakeLogger;
 	return log;
 }

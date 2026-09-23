@@ -23,6 +23,12 @@ describe("fakeLogger", () => {
 		child.info("from the child");
 		expect(log.info).toHaveBeenCalledWith("from the child");
 	});
+
+	it("flush() is a spy that resolves", async () => {
+		const log = fakeLogger();
+		await expect(log.flush()).resolves.toBeUndefined();
+		expect(log.flush).toHaveBeenCalled();
+	});
 });
 
 describe("fakeErrorSink", () => {

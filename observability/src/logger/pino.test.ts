@@ -48,6 +48,20 @@ describe("PinoLogger", () => {
 		expect(lines.map((l) => l.msg)).toEqual(["kept"]);
 	});
 
+	it("flush() resolves once Pino's own callback-based flush acks", async () => {
+		const { logger } = makeLogger();
+		await expect(logger.flush()).resolves.toBeUndefined();
+	});
+
+	it("flush() rejects when Pino's own flush calls back with an error", async () => {
+		const { stream } = capture();
+		const instance = pino({ level: "info" }, stream);
+		const boom = new Error("boom");
+		instance.flush = (cb?: (err?: Error) => void) => cb?.(boom);
+		const logger = new PinoLogger(instance);
+		await expect(logger.flush()).rejects.toBe(boom);
+	});
+
 	it("child loggers inherit parent bindings and add their own", () => {
 		const { lines, stream } = capture();
 		const root = new PinoLogger(pino({ level: "info", base: { runId: "r1" } }, stream));

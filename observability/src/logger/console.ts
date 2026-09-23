@@ -59,6 +59,10 @@ export class ConsoleLogger implements Logger {
 		});
 	}
 
+	flush(): Promise<void> {
+		return Promise.resolve();
+	}
+
 	#emit(level: LogLevel, objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		if (RANK[level] < this.#level) return;
 

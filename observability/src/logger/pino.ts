@@ -45,6 +45,18 @@ export class PinoLogger implements Logger {
 		return new PinoLogger(this.#pino.child(bindings));
 	}
 
+	/**
+	 * Wraps Pino's own callback-based `flush()` — for a worker-thread
+	 * transport (Axiom) this sends a `flushSync` message to the worker and
+	 * waits for its ack; for a plain destination (no transport) Pino resolves
+	 * it immediately. See {@link Logger.flush}'s own doc for why this exists.
+	 */
+	flush(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.#pino.flush((err) => (err ? reject(err) : resolve()));
+		});
+	}
+
 	#emit(level: LogLevel, objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		if (typeof objOrMsg === "string") this.#pino[level](objOrMsg);
 		else this.#pino[level](objOrMsg, msg);

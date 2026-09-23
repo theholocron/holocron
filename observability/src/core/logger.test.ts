@@ -17,4 +17,8 @@ describe("NoopLogger", () => {
 		expect(child).toBe(log);
 		expect(child.child({ repo: "holocron" })).toBe(log);
 	});
+
+	it("flush() resolves immediately — nothing buffered to wait for", async () => {
+		await expect(new NoopLogger().flush()).resolves.toBeUndefined();
+	});
 });

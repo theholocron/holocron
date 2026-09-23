@@ -25,6 +25,19 @@ export interface Logger {
 	 * without threading extra fields through every call.
 	 */
 	child(bindings: Record<string, unknown>): Logger;
+	/**
+	 * Resolve once every line logged so far has actually left the process.
+	 *
+	 * Matters specifically for a worker-thread transport (Axiom): the call
+	 * that enqueues a line returns before that line reaches the network — the
+	 * worker thread needs its own event-loop turn to flush the batch over
+	 * HTTP. A short-lived process (a serverless function returning its
+	 * response) can exit before that turn happens, silently dropping every
+	 * buffered line. Call this before returning from such a handler; a
+	 * synchronous sink (`ConsoleLogger`, `NoopLogger`, plain stdout NDJSON
+	 * with no transport) has nothing to wait for and resolves immediately.
+	 */
+	flush(): Promise<void>;
 }
 
 /** Log levels, ordered least to most severe. */
@@ -54,5 +67,8 @@ export class NoopLogger implements Logger {
 	error(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
 	child(_bindings?: Record<string, unknown>): Logger {
 		return this;
+	}
+	flush(): Promise<void> {
+		return Promise.resolve();
 	}
 }
