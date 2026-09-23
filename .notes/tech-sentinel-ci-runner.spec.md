@@ -137,13 +137,27 @@ system keyed on that vocabulary, eslint moves from Bucket 2 to Bucket 1: no
 per-repo config needed, no PR-branch code to read, Sentinel selects the
 right preset centrally from already-known, already-trusted signal.
 
-**knip — verify, don't assume.** Might not cleanly fit Bucket 1: it traces
-real import graphs across the actual repo tree, which could mean it needs
-more than one file's content even without a full `npm install`/execution.
-Same discipline the epic spec's own Bucket A used (`eslint --config`,
-`prettier --config`, etc. were each individually verified against the real
-CLI, not assumed to generalize) — check knip's actual requirements during
-implementation before classifying it.
+**knip — verified (#796): neither bucket cleanly, lands in Bucket 2.** Its
+whole purpose is "is X used _anywhere_ in the codebase" (unused exports,
+unused dependencies) — inherently whole-repo-scoped, since answering that
+for even one changed file means cross-referencing every _other_ file, not
+just the changed set. Doesn't fit Bucket 1's "single file's content" shape
+at all, changed-files scoping or not.
+
+Not clean Bucket 2 either, strictly — it doesn't need `npm install` + real
+code execution (no type-checking, no running tests, just AST-level
+import/export tracing across relative paths). It needs the _whole file
+tree's content_, not the ability to execute it — a genuine third shape.
+Sentinel could technically fetch that (it already does recursive
+`git.getTree()` walks for other purposes, per `tech-sentinel-v1.spec.md`),
+but fetching every file in a large repo via the GitHub API on every PR push
+is a much heavier operation than any Bucket 1 tool does today, and risks
+the same Vercel time/response-size ceilings Bucket 2 exists to avoid — a
+real checkout is actually _cheaper_ to get "every file's content" than N
+individual API calls, even without needing an install step. **Verdict:
+knip rides the Bucket 2 dispatch mechanism once built** (checkout, skip the
+install step if genuinely unneeded, run knip) — not because of execution
+risk, but because of the resource shape.
 
 ## D8, reaffirmed and now applied uniformly
 
