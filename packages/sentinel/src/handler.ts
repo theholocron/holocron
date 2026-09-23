@@ -138,6 +138,20 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		// recognized "config didn't validate" case above).
 		logger.error({ err: serializeError(err) }, "handleWebhookRequest: unhandled error");
 		return json({ handled: false, reason: "internal error" }, 500);
+	} finally {
+		// Axiom's transport runs on a worker thread -- a line logged above is
+		// only *enqueued*, not yet sent, when the try/catch above returns.
+		// Vercel can freeze this Lambda right after the Response goes out, so
+		// without this the buffered lines (including the one unhandled-error
+		// line above) silently never reach Axiom at all. `finally`'s own
+		// `await` delays the function's real return until the flush settles.
+		// A flush failure is itself just an observability gap, never a reason
+		// to turn an otherwise-successful response into a 500.
+		try {
+			await logger.flush();
+		} catch (err) {
+			console.error("handleWebhookRequest: logger.flush() failed", err);
+		}
 	}
 }
 

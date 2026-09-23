@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const { fakeFlush } = vi.hoisted(() => ({ fakeFlush: vi.fn().mockResolvedValue(undefined) }));
+
+vi.mock("@theholocron/observability/logger", () => ({
+	createLogger: () => ({
+		logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), flush: fakeFlush },
+	}),
+}));
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
 vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.fn() }));
 vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
@@ -48,6 +55,7 @@ beforeEach(() => {
 	vi.mocked(postCheckRun).mockReset();
 	vi.mocked(lintCommits).mockReset();
 	vi.mocked(postCommitStandardsCheck).mockReset();
+	fakeFlush.mockClear();
 });
 
 describe("handler — method + verification", () => {
@@ -109,6 +117,40 @@ describe("handler — method + verification", () => {
 		const res = await handleWebhookRequest(req(), ENV);
 		expect(res.status).toBe(500);
 		expect(await res.json()).toEqual({ handled: false, reason: "internal error" });
+	});
+});
+
+describe("handler — logger.flush() (Axiom worker-thread transport)", () => {
+	it("flushes once on the unhandled-error path -- the very line just logged must not get lost", async () => {
+		vi.mocked(parseWebhookEvent).mockImplementation(() => {
+			throw new Error("something else entirely");
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(fakeFlush).toHaveBeenCalledTimes(1);
+	});
+
+	it("flushes once on a normal successful response too", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: false,
+			reason: "unrelated event",
+			githubEvent: "issues",
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(fakeFlush).toHaveBeenCalledTimes(1);
+	});
+
+	it("a flush() rejection is swallowed -- an observability gap never turns a successful response into a 500", async () => {
+		fakeFlush.mockRejectedValueOnce(new Error("Axiom unreachable"));
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: false,
+			reason: "unrelated event",
+			githubEvent: "issues",
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ handled: false, reason: "unrelated event" });
 	});
 });
 
