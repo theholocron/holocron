@@ -56,7 +56,7 @@ catalogs:
     "@theholocron/devmoji-config": ^8.4.5
     "@theholocron/docs-theme": ^1.10.3
     "@theholocron/eslint-config": ^8.4.5
-    "@theholocron/holocron-config": ^8.4.6
+    "@theholocron/holocron-config": ^8.4.8
     "@theholocron/lint-staged-config": ^8.4.5
     "@theholocron/prettier-config": ^8.4.5
     "@theholocron/semantic-release-config": ^8.4.5
@@ -71,6 +71,17 @@ catalogs:
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
+# @sentry/node and posthog-node are pinned alongside it for the same
+# reason, one level removed: http-client itself peers on both, and pnpm
+# creates a SEPARATE physical http-client instance per distinct
+# peer-resolved version set it sees anywhere in the graph — even with
+# http-client's own version pinned, an external published dependency
+# (e.g. holocron-config's npm-resolved @theholocron/cli, which doesn't
+# read this workspace's catalog) can still resolve a newer sentry/posthog
+# and silently reintroduce the split. Found live: holocron#782's
+# @theholocron/holocron-config dependency pulled in exactly this.
 overrides:
   "@theholocron/http-client": ^1.24.0
+  "@sentry/node": ^10.70.0
+  posthog-node: ^5.51.6
   tsx: 4.23.12
