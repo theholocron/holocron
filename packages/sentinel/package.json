@@ -48,6 +48,7 @@
     "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/datapad": "workspace:*",
     "@theholocron/github-client": "catalog:clients",
+    "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/observability": "catalog:",
     "tsx": "catalog:"

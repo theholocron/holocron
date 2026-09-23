@@ -194,6 +194,43 @@ describe("validateConfig", () => {
 		expect((result as { filepath: string }).filepath).toBe("holocron.config.ts");
 	});
 
+	it("resolves @theholocron/holocron-config's shared presets, matching a real repo's config shape", async () => {
+		// Found live: the very first real log line to reach Axiom after
+		// holocron#780 shipped was theholocron/react-template's Capability
+		// Compliance check failing with "Cannot find package
+		// '@theholocron/holocron-config'" -- this package was never a
+		// dependency of packages/sentinel itself, so it was never installed
+		// into the symlinked node_modules validateConfig() resolves through.
+		// react-template's own config (compose/react/wiki, mirrored below) was
+		// always valid; the gap was entirely on this side (holocron#782).
+		//
+		// Deliberately overrides `tasks` rather than spreading `...preset.tasks`:
+		// @theholocron/holocron-config@8.4.5's react() preset still emits
+		// pre-decomposition task names ("lint", "test", "typecheck") that
+		// astromech's KNOWN_TASKS no longer recognizes -- a real, separate gap
+		// in that package (unrelated to module resolution, not this test's
+		// concern). Proving the import itself resolves is the point here; a
+		// `load-error` mentioning "Cannot find package" is exactly what this
+		// regresses to without holocron#782's fix.
+		const source = [
+			'import { defineConfig } from "@theholocron/cli";',
+			'import { compose, react, wikiCapability as wiki } from "@theholocron/holocron-config";',
+			"",
+			"const preset = compose(react({}), wiki());",
+			"export default defineConfig({",
+			"  ...preset,",
+			'  name: "demo",',
+			'  tasks: ["verification.typeSafety"],',
+			"});",
+			"",
+		].join("\n");
+		const { client } = makeClient([{ status: 200, body: { content: b64(source) } }]);
+
+		const result = await validateConfig({ client, repo: "theholocron/react-template" });
+
+		expect(result.status).toBe("valid");
+	});
+
 	it("never passes a ref, so it can only ever read the default branch (D4/D6)", async () => {
 		const source = ["export default {", '  name: "demo",', "  tasks: [],", "};", ""].join("\n");
 		const { client, calls } = makeClient([{ status: 200, body: { content: b64(source) } }]);
