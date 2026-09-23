@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* **tsdown-config:** resolve entry to an absolute path ([#474](https://github.com/theholocron/configs/issues/474)) ([67c9f90](https://github.com/theholocron/configs/commit/67c9f90b959053f16d44315b3b564057972523d8)), closes [750/#680](https://github.com/750/configs/issues/680) [holocron#680](https://github.com/theholocron/holocron/issues/680) [#762](https://github.com/theholocron/configs/issues/762) [holocron#680](https://github.com/theholocron/holocron/issues/680) [holocron#749](https://github.com/theholocron/holocron/issues/749) [holocron#750](https://github.com/theholocron/holocron/issues/750)
+- **tsdown-config:** resolve entry to an absolute path ([#474](https://github.com/theholocron/configs/issues/474)) ([67c9f90](https://github.com/theholocron/configs/commit/67c9f90b959053f16d44315b3b564057972523d8)), closes [750/#680](https://github.com/750/configs/issues/680) [holocron#680](https://github.com/theholocron/holocron/issues/680) [#762](https://github.com/theholocron/configs/issues/762) [holocron#680](https://github.com/theholocron/holocron/issues/680) [holocron#749](https://github.com/theholocron/holocron/issues/749) [holocron#750](https://github.com/theholocron/holocron/issues/750)
 
 ## [8.4.4](https://github.com/theholocron/configs/compare/v8.4.3...v8.4.4) (2026-09-21)
 
