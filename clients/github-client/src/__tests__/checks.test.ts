@@ -39,6 +39,23 @@ describe("checks.createCheckRun", () => {
 		expect(result.html_url).toBe("https://github.com/theholocron/test-repo/runs/1234");
 	});
 
+	it("forwards details_url when given", async () => {
+		const { fetch, calls } = stubFetch([{ status: 201, body: RAW_CHECK_RUN }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+
+		await client.checks.createCheckRun(REPO, {
+			name: "Sentinel / Capability Compliance",
+			head_sha: "abc123",
+			status: "completed",
+			conclusion: "success",
+			details_url: "https://app.axiom.co/theholocron/datasets/holocron-sentinel",
+		});
+
+		expect(calls[0]?.body).toMatchObject({
+			details_url: "https://app.axiom.co/theholocron/datasets/holocron-sentinel",
+		});
+	});
+
 	it("omits status/conclusion/output when not given, matching GitHub's own defaults", async () => {
 		const { fetch, calls } = stubFetch([
 			{ status: 201, body: { ...RAW_CHECK_RUN, status: "queued" as const, conclusion: null } },

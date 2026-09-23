@@ -21,6 +21,8 @@ export interface CreateCheckRunInput {
 	/** Required when `status` is `"completed"`. */
 	conclusion?: CheckRunConclusion;
 	output?: CheckRunOutput;
+	/** URL for the "Details" link on the check run. GitHub defaults to the check suite's own summary page when omitted. */
+	details_url?: string;
 }
 
 export interface GitHubCheckRun {
