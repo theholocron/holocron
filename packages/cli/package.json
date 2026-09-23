@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/cli",
-  "version": "5.0.0-alpha.50",
+  "version": "5.0.0-alpha.51",
   "description": "The Holocron CLI - a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "keywords": [
     "cli",
