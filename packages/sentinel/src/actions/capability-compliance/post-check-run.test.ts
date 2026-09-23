@@ -23,6 +23,7 @@ describe("postCheckRun — compliant", () => {
 			repo: "acme/demo",
 			headSha: "abc123",
 			capabilities: ["ci", "deployment", "source"],
+			runId: "run-1",
 		});
 
 		expect(result).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: undefined });
@@ -45,6 +46,28 @@ describe("postCheckRun — compliant", () => {
 		);
 	});
 
+	it("posts details_url and an output.text breakdown including the runId", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "success" } }]);
+
+		await postCheckRun({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			capabilities: ["ci", "source"],
+			runId: "run-xyz",
+		});
+
+		const body = calls[0]?.body as {
+			details_url: string;
+			output: { text: string };
+		};
+		expect(body.details_url).toBe("https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel");
+		expect(body.output.text).toContain("Declared capabilities (2)");
+		expect(body.output.text).toContain("ci, source");
+		expect(body.output.text).toContain("all present");
+		expect(body.output.text).toContain("Run ID: `run-xyz`");
+	});
+
 	it("handles a repo with capabilities beyond just the required baseline", async () => {
 		const { client } = makeClient([{ status: 201, body: { id: 2, conclusion: "success" } }]);
 
@@ -53,6 +76,7 @@ describe("postCheckRun — compliant", () => {
 			repo: "acme/demo",
 			headSha: "def456",
 			capabilities: ["source", "ci", "vault", "auth"],
+			runId: "run-1",
 		});
 
 		expect(result.conclusion).toBe("success");
@@ -68,6 +92,7 @@ describe("postCheckRun — non-compliant", () => {
 			repo: "acme/demo",
 			headSha: "abc123",
 			capabilities: ["source"],
+			runId: "run-1",
 		});
 
 		expect(result.conclusion).toBe("failure");
@@ -75,15 +100,18 @@ describe("postCheckRun — non-compliant", () => {
 		expect(body.conclusion).toBe("failure");
 		expect(body.output.title).toBe("Capability compliance: missing required capabilities");
 		expect(body.output.summary).toBe("Missing: ci.");
+		const bodyWithText = calls[0]?.body as { output: { text: string } };
+		expect(bodyWithText.output.text).toContain("**Missing required:** ci");
 	});
 
 	it("lists every missing capability when none are present", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "failure" } }]);
 
-		await postCheckRun({ client, repo: "acme/demo", headSha: "abc123", capabilities: [] });
+		await postCheckRun({ client, repo: "acme/demo", headSha: "abc123", capabilities: [], runId: "run-1" });
 
-		const body = calls[0]?.body as { output: { summary: string } };
+		const body = calls[0]?.body as { output: { summary: string; text: string } };
 		expect(body.output.summary).toBe("Missing: source, ci.");
+		expect(body.output.text).toContain("**Declared capabilities (0):** (none)");
 	});
 });
 
@@ -101,6 +129,7 @@ describe("postCheckRun — result shape", () => {
 			repo: "acme/demo",
 			headSha: "abc123",
 			capabilities: ["source", "ci"],
+			runId: "run-1",
 		});
 
 		expect(result).toEqual({

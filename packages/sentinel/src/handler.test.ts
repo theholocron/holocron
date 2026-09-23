@@ -5,6 +5,7 @@ const { fakeFlush } = vi.hoisted(() => ({ fakeFlush: vi.fn().mockResolvedValue(u
 vi.mock("@theholocron/observability/logger", () => ({
 	createLogger: () => ({
 		logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), flush: fakeFlush },
+		runId: "test-run-id",
 	}),
 }));
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
@@ -250,6 +251,7 @@ describe("handler — push.default-branch full pipeline", () => {
 			repo: "acme/demo",
 			headSha: "sha-after",
 			capabilities: ["source", "ci"],
+			runId: "test-run-id",
 		});
 		expect(await res.json()).toEqual({
 			handled: true,
@@ -365,6 +367,7 @@ describe("handler — commit standards pipeline (holocron#769/#771)", () => {
 			repo: "acme/demo",
 			headSha: "pr-head-sha",
 			result: { valid: true, commitCount: 2, violations: [] },
+			runId: "test-run-id",
 		});
 		const body = (await res.json()) as { commitStandardsCheckRun: unknown };
 		expect(body.commitStandardsCheckRun).toEqual({ checkRunId: 5, conclusion: "success", htmlUrl: "https://x/5" });

@@ -19,3 +19,13 @@ export const SENTINEL_APP_NAME = "Sentinel";
 export const SENTINEL_NAMESPACES = {
 	platform: "Platform",
 } as const satisfies Record<string, string>;
+
+/**
+ * `details_url` target for every check run Sentinel posts — the Axiom
+ * dataset its own structured logs ship to (holocron#780). A check run
+ * posted directly via the Checks API (no workflow run behind it) has no
+ * GitHub-native log viewer to link to on its own; this is the closest
+ * equivalent. Each check run's own `output.text` also carries its
+ * `runId` so a viewer can search this dataset for the exact invocation.
+ */
+export const SENTINEL_AXIOM_DATASET_URL = "https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel";
