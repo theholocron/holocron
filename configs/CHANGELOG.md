@@ -1,3 +1,9 @@
+## [8.4.7](https://github.com/theholocron/configs/compare/v8.4.6...v8.4.7) (2026-09-23)
+
+### Bug Fixes
+
+* **holocron-config:** 🐛 drop @theholocron/cli peerDependencies check ([#477](https://github.com/theholocron/configs/issues/477)) ([7cc03e6](https://github.com/theholocron/configs/commit/7cc03e65ff71327ea33172fd2573f3a2edf1257a)), closes [#769](https://github.com/theholocron/configs/issues/769) [#771](https://github.com/theholocron/configs/issues/771) [#782](https://github.com/theholocron/configs/issues/782)
+
 ## [8.4.6](https://github.com/theholocron/configs/compare/v8.4.5...v8.4.6) (2026-09-23)
 
 ### Bug Fixes
