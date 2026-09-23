@@ -44,3 +44,22 @@ describe("pulls.listCommits", () => {
 		expect(result[0]?.commit.message).toBe("feat: 💥 add thing");
 	});
 });
+
+describe("pulls.listFiles", () => {
+	it("GETs /repos/{owner}/{name}/pulls/{number}/files with per_page=100", async () => {
+		const files = [
+			{ filename: "README.md", status: "modified" as const },
+			{ filename: "old-name.ts", status: "renamed" as const, previous_filename: "name.ts" },
+		];
+		const { fetch, calls } = stubFetch([{ body: files }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listFiles(REPO, 42);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/pulls/42/files");
+		expect(calls[0]?.url).toContain("per_page=100");
+		expect(result).toHaveLength(2);
+		expect(result[0]?.filename).toBe("README.md");
+		expect(result[0]?.status).toBe("modified");
+		expect(result[1]?.previous_filename).toBe("name.ts");
+	});
+});
