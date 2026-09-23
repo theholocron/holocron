@@ -82,6 +82,10 @@ const config: KnipConfig = {
 		// satisfies @theholocron/commitlint-config's peerDependencies; nothing
 		// in this repo extends it directly (only via "@theholocron" above)
 		"@commitlint/config-conventional",
+		// resolved dynamically by validateConfig() when a consuming repo's
+		// holocron.config.ts imports it -- never a static import in Sentinel's
+		// own source (holocron#782)
+		"@theholocron/holocron-config",
 		// passed as --config arg to lint-staged in .husky/pre-commit, not an import
 		"@theholocron/lint-staged-config",
 		// required in devmoji.config.cjs via require() — not a static import Knip can trace
