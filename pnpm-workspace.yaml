@@ -6,26 +6,26 @@ packages:
 # plugin packages grow.
 catalog:
   "@axiomhq/pino": ^2.0.0
-  "@inquirer/prompts": ^8.5.2
+  "@inquirer/prompts": ^8.7.2
   "@inquirer/search": ^4.3.3
-  "@sentry/node": ^10.70.0
-  "@theholocron/observability": ^0.3.0
+  "@sentry/node": ^10.75.0
+  "@theholocron/observability": ^0.3.2
   "@types/node": ^26
   "@types/yargs": ^17.0.35
   "@vitest/coverage-v8": ^4.1.11
   "@vitest/eslint-plugin": ^1.6.27
   chalk: ^6.0.0
-  eslint: ^10.8.1
+  eslint: ^10.11.0
   eslint-plugin-n: ^18.3.0
   eslint-plugin-simple-import-sort: ^14.0.0
-  globals: ^17.11.0
+  globals: ^17.12.0
   ora: ^9.4.1
   pino: ^10.3.1
   pino-pretty: ^13.1.3
-  posthog-node: ^5.51.6
-  tsdown: ^0.22.14
-  tsx: 4.23.12
-  turbo: ^2.10.12
+  posthog-node: ^5.52.4
+  tsdown: ^0.23.0
+  tsx: 4.23.15
+  turbo: ^2.11.2
   typescript: ^5.9.3
   vitest: ^4.1.11
   yargs: ^18.1.0
@@ -33,40 +33,40 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/clerk-client": ^1.14.2
-    "@theholocron/cloudflare-client": ^1.14.2
-    "@theholocron/doppler-client": ^1.14.2
-    "@theholocron/github-client": ^1.14.2
-    "@theholocron/http-client": ^1.14.2
-    "@theholocron/infisical-client": ^1.14.2
-    "@theholocron/neon-client": ^1.14.2
-    "@theholocron/posthog-client": ^1.14.2
-    "@theholocron/postman-client": ^1.14.2
-    "@theholocron/sentry-client": ^1.14.2
-    "@theholocron/vercel-client": ^1.14.2
+    "@theholocron/clerk-client": ^1.23.0
+    "@theholocron/cloudflare-client": ^1.23.0
+    "@theholocron/doppler-client": ^1.23.0
+    "@theholocron/github-client": ^1.23.0
+    "@theholocron/http-client": ^1.23.0
+    "@theholocron/infisical-client": ^1.23.0
+    "@theholocron/neon-client": ^1.23.0
+    "@theholocron/posthog-client": ^1.23.0
+    "@theholocron/postman-client": ^1.23.0
+    "@theholocron/sentry-client": ^1.23.0
+    "@theholocron/vercel-client": ^1.23.0
 
   # Shared utils — release in lockstep; bump all entries together.
   utils:
-    "@theholocron/env-utils": ^1.6.0
+    "@theholocron/env-utils": ^1.8.2
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
-    "@theholocron/astro-config": ^8.0.0
-    "@theholocron/commitlint-config": ^8.0.0
-    "@theholocron/devmoji-config": ^8.0.0
-    "@theholocron/docs-theme": ^1.10.1
-    "@theholocron/eslint-config": ^8.0.0
-    "@theholocron/holocron-config": ^8.2.0
-    "@theholocron/lint-staged-config": ^8.0.0
-    "@theholocron/prettier-config": ^8.0.0
-    "@theholocron/semantic-release-config": ^8.0.0
-    "@theholocron/tsconfig": ^8.0.0
-    "@theholocron/tsdown-config": ^8.0.0
-    "@theholocron/vitest-config": ^8.0.0
+    "@theholocron/astro-config": ^8.2.4
+    "@theholocron/commitlint-config": ^8.2.4
+    "@theholocron/devmoji-config": ^8.2.4
+    "@theholocron/docs-theme": ^1.10.3
+    "@theholocron/eslint-config": ^8.2.4
+    "@theholocron/holocron-config": ^8.2.4
+    "@theholocron/lint-staged-config": ^8.2.4
+    "@theholocron/prettier-config": ^8.2.4
+    "@theholocron/semantic-release-config": ^8.2.4
+    "@theholocron/tsconfig": ^8.2.4
+    "@theholocron/tsdown-config": ^8.2.4
+    "@theholocron/vitest-config": ^8.2.4
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError
 # dual-module hazard when github-client and cli both depend on it.
 overrides:
-  "@theholocron/http-client": ^1.14.2
-  tsx: 4.23.12
+  "@theholocron/http-client": ^1.23.0
+  tsx: 4.23.15
