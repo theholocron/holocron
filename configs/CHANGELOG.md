@@ -1,3 +1,9 @@
+## [8.4.8](https://github.com/theholocron/configs/compare/v8.4.7...v8.4.8) (2026-09-23)
+
+### Bug Fixes
+
+* **holocron-config:** 🐛 declare @theholocron/cli as a real dependency ([#478](https://github.com/theholocron/configs/issues/478)) ([7bd83e9](https://github.com/theholocron/configs/commit/7bd83e9f5c93f94b1cc45888ae6f74786851572f)), closes [#769](https://github.com/theholocron/configs/issues/769) [#771](https://github.com/theholocron/configs/issues/771) [#782](https://github.com/theholocron/configs/issues/782)
+
 ## [8.4.7](https://github.com/theholocron/configs/compare/v8.4.6...v8.4.7) (2026-09-23)
 
 ### Bug Fixes
