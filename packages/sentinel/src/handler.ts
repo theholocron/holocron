@@ -53,14 +53,13 @@ import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
-// No Axiom config wired yet (the still-open "Secrets flow" PR-stack item) --
-// createLogger() with no options is still a real, working Logger, just
-// writing structured NDJSON to stdout instead of shipping to Axiom. That's
-// enough to be visible in Vercel's own function logs, which is the whole
-// point here: an uncaught exception previously meant *nothing* observable
-// beyond a bare 500 (see below) -- found the hard way debugging the
-// read-only-filesystem ENOENT crash with no log line to point at it.
-const { logger } = createLogger();
+// createLogger() with no options auto-detects AXIOM_TOKEN/AXIOM_DATASET
+// from process.env (holocron#780) -- wired directly on the Vercel project
+// rather than through holocron secrets sync, which needs its own vault
+// config Sentinel doesn't have yet (holocron#781). `runId` is threaded
+// into every check run's own output.text so a viewer can find the exact
+// invocation's structured log line in Axiom without leaving GitHub.
+const { logger, runId } = createLogger();
 
 export interface Env {
 	GITHUB_APP_ID: string;
@@ -230,6 +229,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				repo,
 				headSha: context.headSha,
 				result: lintResult,
+				runId,
 			});
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintCommits: failed, continuing without it");
@@ -257,6 +257,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		repo,
 		headSha: context.headSha,
 		capabilities: Array.isArray(capabilities) ? capabilities : [],
+		runId,
 	});
 
 	return json({ handled: true, type: event.type, checkRun, commitStandardsCheckRun });

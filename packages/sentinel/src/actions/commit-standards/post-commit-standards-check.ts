@@ -20,7 +20,7 @@
 
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_APP_NAME, SENTINEL_NAMESPACES } from "../../utils/constants.js";
+import { SENTINEL_APP_NAME, SENTINEL_AXIOM_DATASET_URL, SENTINEL_NAMESPACES } from "../../utils/constants.js";
 import type { CommitViolation, LintCommitsResult } from "./lint-commits.js";
 
 export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / ${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
@@ -32,6 +32,8 @@ export interface PostCommitStandardsCheckInput {
 	/** The commit SHA to attach the check run to — a pull_request event's `pull_request.head.sha`. */
 	headSha: string;
 	result: LintCommitsResult;
+	/** `createLogger()`'s own runId for this invocation — surfaced in the check run's `output.text` so a viewer can search Axiom for the exact request. */
+	runId: string;
 }
 
 export interface PostCommitStandardsCheckResult {
@@ -48,22 +50,32 @@ function formatViolation(v: CommitViolation): string {
 export async function postCommitStandardsCheck(
 	input: PostCommitStandardsCheckInput
 ): Promise<PostCommitStandardsCheckResult> {
-	const { client, repo, headSha, result } = input;
+	const { client, repo, headSha, result, runId } = input;
 	const conclusion: CheckRunConclusion = result.valid ? "success" : "failure";
 
+	const affectedCommits = new Set(result.violations.map((v) => v.sha)).size;
 	const title = result.valid
 		? "Commit standards: OK"
-		: `Commit standards: ${result.violations.length} violation(s) across ${new Set(result.violations.map((v) => v.sha)).size} commit(s)`;
+		: `Commit standards: ${result.violations.length} violation(s) across ${affectedCommits} commit(s)`;
 	const summary = result.valid
 		? `All ${result.commitCount} commit(s) pass.`
-		: result.violations.map(formatViolation).join("\n");
+		: `${result.violations.length} violation(s) across ${affectedCommits} commit(s) — see details below.`;
+
+	// `text` renders as a collapsible "Show more" section on the check
+	// run's own GitHub page — the full per-commit breakdown lives here
+	// instead of crammed into the always-visible `summary`. `details_url`
+	// still points at Axiom for the underlying structured log line.
+	const text = [result.valid ? undefined : result.violations.map(formatViolation).join("\n"), `Run ID: \`${runId}\``]
+		.filter((line) => line !== undefined)
+		.join("\n\n");
 
 	const checkRun = await client.checks.createCheckRun(repo, {
 		name: SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME,
 		head_sha: headSha,
 		status: "completed",
 		conclusion,
-		output: { title, summary },
+		output: { title, summary, text },
+		details_url: SENTINEL_AXIOM_DATASET_URL,
 	});
 
 	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };

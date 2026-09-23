@@ -26,6 +26,7 @@ describe("postCommitStandardsCheck — valid", () => {
 			repo: "acme/demo",
 			headSha: "abc123",
 			result: { valid: true, commitCount: 3, violations: [] },
+			runId: "run-1",
 		});
 
 		expect(result).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: undefined });
@@ -35,12 +36,15 @@ describe("postCommitStandardsCheck — valid", () => {
 			name: string;
 			head_sha: string;
 			conclusion: string;
-			output: { title: string; summary: string };
+			details_url: string;
+			output: { title: string; summary: string; text: string };
 		};
 		expect(body.name).toBe(SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME);
 		expect(body.head_sha).toBe("abc123");
 		expect(body.output.title).toBe("Commit standards: OK");
 		expect(body.output.summary).toBe("All 3 commit(s) pass.");
+		expect(body.details_url).toBe("https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel");
+		expect(body.output.text).toBe("Run ID: `run-1`");
 	});
 });
 
@@ -60,13 +64,15 @@ describe("postCommitStandardsCheck — invalid", () => {
 					{ sha: "bad00011234567", rule: "type-empty", message: "type may not be empty" },
 				],
 			},
+			runId: "run-2",
 		});
 
 		expect(result.conclusion).toBe("failure");
-		const body = calls[0]?.body as { output: { title: string; summary: string } };
+		const body = calls[0]?.body as { output: { title: string; summary: string; text: string } };
 		expect(body.output.title).toBe("Commit standards: 2 violation(s) across 1 commit(s)");
-		expect(body.output.summary).toBe(
-			"bad0001: subject may not be empty [subject-empty]\nbad0001: type may not be empty [type-empty]"
+		expect(body.output.summary).toBe("2 violation(s) across 1 commit(s) — see details below.");
+		expect(body.output.text).toBe(
+			"bad0001: subject may not be empty [subject-empty]\nbad0001: type may not be empty [type-empty]\n\nRun ID: `run-2`"
 		);
 	});
 
@@ -85,6 +91,7 @@ describe("postCommitStandardsCheck — invalid", () => {
 					{ sha: "bbb0002", rule: "type-empty", message: "type may not be empty" },
 				],
 			},
+			runId: "run-3",
 		});
 
 		const body = calls[0]?.body as { output: { title: string } };

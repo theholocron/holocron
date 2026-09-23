@@ -40,7 +40,7 @@ catalogs:
     "@theholocron/clerk-client": ^1.25.0
     "@theholocron/cloudflare-client": ^1.25.0
     "@theholocron/doppler-client": ^1.25.0
-    "@theholocron/github-client": ^1.25.0
+    "@theholocron/github-client": ^1.26.0
     "@theholocron/http-client": ^1.25.0
     "@theholocron/infisical-client": ^1.25.0
     "@theholocron/neon-client": ^1.25.0
@@ -80,8 +80,17 @@ catalogs:
 # read this workspace's catalog) can still resolve a newer sentry/posthog
 # and silently reintroduce the split. Found live: holocron#782's
 # @theholocron/holocron-config dependency pulled in exactly this.
+#
+# All three are EXACT pins (no caret) -- a caret range only constrains
+# what's ACCEPTABLE, and pnpm is still free to resolve different exact
+# versions for different consumers as long as each satisfies the range,
+# recreating the exact same split one version bump later. Found live a
+# second time: bumping github-client alone (a real, otherwise-unrelated
+# feature addition) pulled in http-client@1.26.0 for that one edge while
+# every other consumer stayed on the already-locked 1.25.0, splitting
+# ProviderApiError again under a caret override that permitted both.
 overrides:
-  "@theholocron/http-client": ^1.24.0
-  "@sentry/node": ^10.70.0
-  posthog-node: ^5.51.6
+  "@theholocron/http-client": 1.26.0
+  "@sentry/node": 10.75.2
+  posthog-node: 5.52.5
   tsx: 4.23.12

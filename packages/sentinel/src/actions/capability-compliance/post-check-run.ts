@@ -29,7 +29,7 @@
 import { missingCapabilities } from "@theholocron/cli";
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_APP_NAME } from "../../utils/constants.js";
+import { SENTINEL_APP_NAME, SENTINEL_AXIOM_DATASET_URL } from "../../utils/constants.js";
 
 export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / Capability Compliance`;
 
@@ -41,6 +41,8 @@ export interface PostCheckRunInput {
 	headSha: string;
 	/** From `syncPropertiesFromConfig()`'s result's `holocron_capabilities`, or independently resolved. */
 	capabilities: readonly string[];
+	/** `createLogger()`'s own runId for this invocation — surfaced in the check run's `output.text` so a viewer can search Axiom for the exact request. */
+	runId: string;
 }
 
 export interface PostCheckRunResult {
@@ -50,7 +52,7 @@ export interface PostCheckRunResult {
 }
 
 export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckRunResult> {
-	const { client, repo, headSha, capabilities } = input;
+	const { client, repo, headSha, capabilities, runId } = input;
 	const missing = missingCapabilities(capabilities);
 	const conclusion: CheckRunConclusion = missing.length === 0 ? "success" : "failure";
 
@@ -66,12 +68,24 @@ export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckR
 				`This repo declares ${capabilities.length > 0 ? capabilities.join(", ") : "no"} capabilities — all required capabilities present.`
 			: `Missing: ${missing.join(", ")}.`;
 
+	// `text` renders as a collapsible "Show more" section on the check
+	// run's own GitHub page — real native detail beyond the one-line
+	// `summary`, no external click required. `details_url` still points
+	// at Axiom for the underlying structured log line (timings, raw
+	// error, etc.) that's overkill to reproduce here.
+	const text = [
+		`**Declared capabilities (${capabilities.length}):** ${capabilities.length > 0 ? capabilities.join(", ") : "(none)"}`,
+		missing.length === 0 ? "**Required baseline:** all present." : `**Missing required:** ${missing.join(", ")}`,
+		`Run ID: \`${runId}\``,
+	].join("\n\n");
+
 	const checkRun = await client.checks.createCheckRun(repo, {
 		name: SENTINEL_CHECK_RUN_NAME,
 		head_sha: headSha,
 		status: "completed",
 		conclusion,
-		output: { title, summary },
+		output: { title, summary, text },
+		details_url: SENTINEL_AXIOM_DATASET_URL,
 	});
 
 	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };
