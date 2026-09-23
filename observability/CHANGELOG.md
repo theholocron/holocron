@@ -1,3 +1,23 @@
+## [0.4.0](https://github.com/theholocron/observability/compare/v0.3.2...v0.4.0) (2026-09-23)
+
+### Features
+
+* ✨ add Logger.flush() to drain worker-thread transports before exit ([#18](https://github.com/theholocron/observability/issues/18)) ([03f5080](https://github.com/theholocron/observability/commit/03f5080bb0d8259829cbc9d35067f6196b344ccd))
+* ✨ adopt universal generated turbo.json (epic [#672](https://github.com/theholocron/observability/issues/672) Phase 6) ([#16](https://github.com/theholocron/observability/issues/16)) ([7c9e2a7](https://github.com/theholocron/observability/commit/7c9e2a76781902a3a800d394781cfafaad406162)), closes [#691](https://github.com/theholocron/observability/issues/691)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#14](https://github.com/theholocron/observability/issues/14)) ([ac393d7](https://github.com/theholocron/observability/commit/ac393d7407581db0acb0b08c3274905bb0c0c468))
+
+### Refactoring
+
+* ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/observability/issues/672)) ([#12](https://github.com/theholocron/observability/issues/12)) ([6cb3fba](https://github.com/theholocron/observability/commit/6cb3fba58da2e74930cca1ec9fc265bac3af5782)), closes [theholocron/holocron#692](https://github.com/theholocron/holocron/issues/692) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
+### Chores
+
+* sync README and repo metadata ([#11](https://github.com/theholocron/observability/issues/11)) ([326e87e](https://github.com/theholocron/observability/commit/326e87ea23be4bdac06195e7e799b506a2d7e061))
+* sync README and repo metadata ([#7](https://github.com/theholocron/observability/issues/7)) ([d670e58](https://github.com/theholocron/observability/commit/d670e58fcd20618676dd4e7242d52e7c6b7fe6bf))
+
 ## [0.3.2](https://github.com/theholocron/observability/compare/v0.3.1...v0.3.2) (2026-09-11)
 
 ### Bug Fixes
