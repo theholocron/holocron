@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* **holocron-config:** 🐛 allow prerelease @theholocron/cli in peer range ([#476](https://github.com/theholocron/configs/issues/476)) ([ec78af9](https://github.com/theholocron/configs/commit/ec78af9a73b34c4f929b2f60286241f92f6ac5b6)), closes [782/#783](https://github.com/782/configs/issues/783)
+- **holocron-config:** 🐛 allow prerelease @theholocron/cli in peer range ([#476](https://github.com/theholocron/configs/issues/476)) ([ec78af9](https://github.com/theholocron/configs/commit/ec78af9a73b34c4f929b2f60286241f92f6ac5b6)), closes [782/#783](https://github.com/782/configs/issues/783)
 
 ## [8.4.5](https://github.com/theholocron/configs/compare/v8.4.4...v8.4.5) (2026-09-22)
 
