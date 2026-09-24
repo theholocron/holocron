@@ -40,3 +40,16 @@ export const SENTINEL_AXIOM_DATASET_URL = "https://app.axiom.co/the-holocron-7bb
 export const SENTINEL_DISPATCH_REPO = "theholocron/.github";
 export const SENTINEL_DISPATCH_WORKFLOW_FILE = "platform.dispatchedCheck.yml";
 export const SENTINEL_DISPATCH_REF = "main";
+
+/**
+ * The one Bucket 2 task this prototype phase dispatches (holocron#769,
+ * `tech-sentinel-ci-runner.spec.md`'s explicit scope: "one Bucket 2 tool
+ * prototype against tsc"). Only fires for a repo whose `holocron.config`
+ * actually declares this task — every other repo is untouched. Runs
+ * *alongside* the existing GitHub Actions thin-caller for the same task,
+ * not instead of it, until this mechanism is trusted enough to replace
+ * it — "(prototype)" in the check name exists specifically so that's
+ * never mistaken for the real, authoritative check.
+ */
+export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
+export const SENTINEL_DISPATCHED_CHECK_NAME = `${SENTINEL_APP_NAME} / Platform / Dispatched: ${SENTINEL_DISPATCHABLE_TASK} (prototype)`;

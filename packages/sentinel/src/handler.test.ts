@@ -13,6 +13,7 @@ vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.f
 vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
+vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("./utils/webhook.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./utils/webhook.js")>();
@@ -26,6 +27,7 @@ import { postCheckRun } from "./actions/capability-compliance/post-check-run.js"
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
+import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -56,6 +58,7 @@ beforeEach(() => {
 	vi.mocked(postCheckRun).mockReset();
 	vi.mocked(lintCommits).mockReset();
 	vi.mocked(postCommitStandardsCheck).mockReset();
+	vi.mocked(dispatchCheck).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -423,6 +426,104 @@ describe("handler — commit standards pipeline (holocron#769/#771)", () => {
 		expect(postCheckRun).toHaveBeenCalled();
 		const body = (await res.json()) as { commitStandardsCheckRun: unknown; checkRun: unknown };
 		expect(body.commitStandardsCheckRun).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+});
+
+describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
+	function pushEvent() {
+		return {
+			type: "push.default-branch" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: { repository: { default_branch: "main" }, after: "sha-after" },
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("dispatches when the repo's config declares verification.typeSafety", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["lint", "verification.typeSafety"] },
+		});
+		vi.mocked(dispatchCheck).mockResolvedValue({ checkRunId: 99, htmlUrl: "https://x/99" });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(dispatchCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "sha-after",
+			ref: "sha-after",
+			task: "verification.typeSafety",
+			checkName: "Sentinel / Platform / Dispatched: verification.typeSafety (prototype)",
+		});
+		const body = (await res.json()) as { dispatchedCheckRun: unknown };
+		expect(body.dispatchedCheckRun).toEqual({ checkRunId: 99, htmlUrl: "https://x/99" });
+	});
+
+	it("also matches the task when declared as an object entry, not just a bare string", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: [{ name: "verification.typeSafety", required: true }] },
+		});
+		vi.mocked(dispatchCheck).mockResolvedValue({ checkRunId: 1, htmlUrl: "" });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(dispatchCheck).toHaveBeenCalled();
+	});
+
+	it("does not dispatch when the config has no tasks array at all", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: {} });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(dispatchCheck).not.toHaveBeenCalled();
+		const body = (await res.json()) as { dispatchedCheckRun: unknown };
+		expect(body.dispatchedCheckRun).toBeUndefined();
+	});
+
+	it("does not dispatch when the repo's config doesn't declare the task", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["lint", "verification.unitTests"] },
+		});
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(dispatchCheck).not.toHaveBeenCalled();
+		const body = (await res.json()) as { dispatchedCheckRun: unknown };
+		expect(body.dispatchedCheckRun).toBeUndefined();
+	});
+
+	it("soft-skips a dispatch failure -- capability compliance's own check run still posts, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["verification.typeSafety"] },
+		});
+		vi.mocked(dispatchCheck).mockRejectedValue(new Error("workflow dispatch failed"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { dispatchedCheckRun: unknown; checkRun: unknown };
+		expect(body.dispatchedCheckRun).toBeUndefined();
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
 	});
 });
