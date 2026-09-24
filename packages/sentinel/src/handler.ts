@@ -1,6 +1,6 @@
 /**
- * The webhook receiver's core logic — wires two independent check
- * pipelines into a single Fetch-API request handler, both through an
+ * The webhook receiver's core logic — wires three independent check
+ * pipelines into a single Fetch-API request handler, all through an
  * installation-scoped `GitHubClient` (D10: the installation id always
  * comes from the webhook payload itself, never hardcoded, so one App
  * registration handles installations across any number of orgs/accounts
@@ -17,6 +17,13 @@
  *   `.notes/tech-sentinel-enforcement.spec.md`) — runs independent of
  *   `validateConfig()`'s result, since it never reads `holocron.config.ts`
  *   at all.
+ * - **Bucket 2 dispatch** (`dispatchBucket2Check`, holocron#769/#794,
+ *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
+ *   capability compliance, but only when the repo's *valid* config declares
+ *   `SENTINEL_DISPATCHABLE_TASK` — one hardcoded task for this prototype
+ *   phase, not a general Bucket-2-task sweep. Runs *alongside* the existing
+ *   GitHub Actions thin-caller for that same task, not instead of it, until
+ *   this mechanism is trusted enough to replace it.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -42,6 +49,7 @@
  * has both natively; this handler's own logic needed no changes.
  */
 
+import { normalizeTaskEntry } from "@theholocron/astromech/config";
 import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
@@ -50,6 +58,8 @@ import { postCheckRun } from "./actions/capability-compliance/post-check-run.js"
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
+import { dispatchBucket2Check } from "./actions/dispatched-check/dispatch-check.js";
+import { SENTINEL_DISPATCHABLE_TASK, SENTINEL_DISPATCHED_CHECK_NAME } from "./utils/constants.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
@@ -260,5 +270,29 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		runId,
 	});
 
-	return json({ handled: true, type: event.type, checkRun, commitStandardsCheckRun });
+	// Bucket 2 dispatch prototype (holocron#769/#794, tech-sentinel-ci-runner.spec.md):
+	// fires only for a repo that actually declares the one dispatchable task
+	// this phase covers -- every other repo untouched. Runs alongside the
+	// existing GitHub Actions thin-caller for the same task, not instead of
+	// it (see SENTINEL_DISPATCHED_CHECK_NAME's own "(prototype)" suffix).
+	// Soft-skip over hard-fail, same reasoning as commit standards above: a
+	// dispatch failure must never take capability compliance down with it.
+	let dispatchedCheckRun;
+	const taskNames = (configResult.config.tasks ?? []).map(normalizeTaskEntry).map((t) => t.name);
+	if (taskNames.includes(SENTINEL_DISPATCHABLE_TASK)) {
+		try {
+			dispatchedCheckRun = await dispatchBucket2Check({
+				client,
+				repo,
+				headSha: context.headSha,
+				ref: context.headSha,
+				task: SENTINEL_DISPATCHABLE_TASK,
+				checkName: SENTINEL_DISPATCHED_CHECK_NAME,
+			});
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "dispatchBucket2Check: failed, continuing without it");
+		}
+	}
+
+	return json({ handled: true, type: event.type, checkRun, commitStandardsCheckRun, dispatchedCheckRun });
 }
