@@ -183,6 +183,14 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 		expect(wf).toContain('gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}"');
 		expect(wf).toContain("CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}");
 	});
+
+	it("points details_url at the specific job's log view, not just the run summary", () => {
+		expect(wf).toContain("id: job-info");
+		expect(wf).toContain(".jobs[0].id");
+		expect(wf).toContain(
+			"RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.job-info.outputs.job_id }}"
+		);
+	});
 });
 
 describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", () => {
