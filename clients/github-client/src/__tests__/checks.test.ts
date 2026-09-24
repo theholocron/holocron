@@ -69,3 +69,25 @@ describe("checks.createCheckRun", () => {
 		expect(result.conclusion).toBeNull();
 	});
 });
+
+describe("checks.updateCheckRun", () => {
+	it("PATCHes /repos/{owner}/{name}/check-runs/{id}", async () => {
+		const { fetch, calls } = stubFetch([{ status: 200, body: { ...RAW_CHECK_RUN, status: "completed" as const } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+
+		const result = await client.checks.updateCheckRun(REPO, 1234, {
+			status: "completed",
+			conclusion: "success",
+			details_url: "https://github.com/theholocron/.github/actions/runs/9999",
+		});
+
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/check-runs/1234");
+		expect(calls[0]?.body).toEqual({
+			status: "completed",
+			conclusion: "success",
+			details_url: "https://github.com/theholocron/.github/actions/runs/9999",
+		});
+		expect(result.status).toBe("completed");
+	});
+});

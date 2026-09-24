@@ -34,11 +34,27 @@ export interface GitHubCheckRun {
 	html_url: string;
 }
 
+export interface UpdateCheckRunInput {
+	status?: CheckRunStatus;
+	/** Required when `status` is `"completed"`. */
+	conclusion?: CheckRunConclusion;
+	output?: CheckRunOutput;
+	/** URL for the "Details" link on the check run. */
+	details_url?: string;
+}
+
 export function checks(rest: RestClient) {
 	return {
 		createCheckRun: (repo: string, input: CreateCheckRunInput): Promise<GitHubCheckRun> =>
 			rest.request<GitHubCheckRun>(`${repoBase(repo)}/check-runs`, {
 				method: "POST",
+				body: input,
+			}),
+
+		/** Patches an existing check run — used to move a `"queued"` run posted before a dispatched task ran to `"completed"` once it finishes. */
+		updateCheckRun: (repo: string, checkRunId: number, input: UpdateCheckRunInput): Promise<GitHubCheckRun> =>
+			rest.request<GitHubCheckRun>(`${repoBase(repo)}/check-runs/${checkRunId}`, {
+				method: "PATCH",
 				body: input,
 			}),
 	};

@@ -39,5 +39,25 @@ export function workflows(rest: RestClient) {
 
 		getRun: (repo: string, id: string | number): Promise<GitHubWorkflowRun> =>
 			rest.request<GitHubWorkflowRun>(`${repoBase(repo)}/actions/runs/${id}`),
+
+		/**
+		 * Triggers a `workflow_dispatch` run. `workflowFile` is the workflow's
+		 * filename (e.g. `"platform.dispatchedCheck.yml"`) — GitHub accepts the
+		 * filename directly, no numeric workflow ID lookup needed. Fire-and-forget:
+		 * the API returns `204` with no run ID, so callers needing to correlate
+		 * the resulting run back to this call must pass their own correlation
+		 * value through `inputs` (visible in the Actions UI/logs — never a secret).
+		 */
+		createWorkflowDispatch: (
+			repo: string,
+			workflowFile: string,
+			ref: string,
+			inputs?: Record<string, string>
+		): Promise<void> =>
+			rest.request<void>(`${repoBase(repo)}/actions/workflows/${workflowFile}/dispatches`, {
+				method: "POST",
+				body: { ref, inputs },
+				expectNoContent: true,
+			}),
 	};
 }

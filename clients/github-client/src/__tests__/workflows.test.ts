@@ -48,4 +48,27 @@ describe("workflows", () => {
 		expect(calls[0]?.url).toContain("/actions/runs/1");
 		expect(result).toEqual(RAW_RUN);
 	});
+
+	it("POST /repos/{owner}/{name}/actions/workflows/{file}/dispatches", async () => {
+		const { fetch, calls } = stubFetch([{ status: 204 }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.workflows.createWorkflowDispatch(REPO, "platform.dispatchedCheck.yml", "main", {
+			repo: "theholocron/other-repo",
+			task: "verification.typeSafety",
+			check_run_id: "1234",
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain(
+			"/repos/theholocron/test-repo/actions/workflows/platform.dispatchedCheck.yml/dispatches"
+		);
+		expect(calls[0]?.body).toEqual({
+			ref: "main",
+			inputs: {
+				repo: "theholocron/other-repo",
+				task: "verification.typeSafety",
+				check_run_id: "1234",
+			},
+		});
+		expect(result).toBeUndefined();
+	});
 });

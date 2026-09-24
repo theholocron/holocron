@@ -30,6 +30,7 @@ export {
 	type CheckRunStatus,
 	type CreateCheckRunInput,
 	type GitHubCheckRun,
+	type UpdateCheckRunInput,
 } from "./checks/checks.js";
 export type { GitHubEnvironment } from "./environments/environments.js";
 export type {
