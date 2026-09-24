@@ -29,3 +29,14 @@ export const SENTINEL_NAMESPACES = {
  * `runId` so a viewer can search this dataset for the exact invocation.
  */
 export const SENTINEL_AXIOM_DATASET_URL = "https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel";
+
+/**
+ * Where the Bucket 2 dispatch mechanism's shared workflow lives
+ * (holocron#769, holocron#794, `tech-sentinel-ci-runner.spec.md`) — one
+ * `workflow_dispatch`-triggered workflow in `theholocron/.github`, always
+ * dispatched against its own default branch. Never the *target* repo the
+ * dispatch checks out — that's a per-call `repo`/`ref` input, not this.
+ */
+export const SENTINEL_DISPATCH_REPO = "theholocron/.github";
+export const SENTINEL_DISPATCH_WORKFLOW_FILE = "platform.dispatchedCheck.yml";
+export const SENTINEL_DISPATCH_REF = "main";

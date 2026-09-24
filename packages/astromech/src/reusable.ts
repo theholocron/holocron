@@ -26,6 +26,7 @@ import dependenciesWorkflow from "./templates/reusable/dependencies.yml";
 import greetingsWorkflow from "./templates/reusable/greetings.yml";
 import wikiWorkflow from "./templates/reusable/knowledge.wiki.yml";
 import commitStandardsWorkflow from "./templates/reusable/platform.commitStandards.yml";
+import dispatchedCheckWorkflow from "./templates/reusable/platform.dispatchedCheck.yml";
 import repoSyncWorkflow from "./templates/reusable/platform.repoSync.yml";
 import repoValidationWorkflow from "./templates/reusable/platform.repoValidation.yml";
 import previewWorkflow from "./templates/reusable/preview.yml";
@@ -63,6 +64,11 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	"platform.repoSync": repoSyncWorkflow,
 	"platform.commitStandards": commitStandardsWorkflow,
 	"platform.repoValidation": repoValidationWorkflow,
+	// Not run via any repo's own thin caller — Sentinel dispatches this
+	// directly via the Actions API (holocron#769, holocron#794). No
+	// WORKFLOW_TEMPLATES entry either: no repo needs to generate a
+	// caller for a workflow it never invokes itself.
+	"platform.dispatchedCheck": dispatchedCheckWorkflow,
 	"knowledge.wiki": wikiWorkflow,
 	bookkeeping: bookkeepingWorkflow,
 	dependencies: dependenciesWorkflow,

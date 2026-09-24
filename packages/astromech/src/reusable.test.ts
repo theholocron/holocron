@@ -148,6 +148,43 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2 dispatch target (holocron#794)", () => {
+	const wf = REUSABLE_WORKFLOWS["platform.dispatchedCheck"]!;
+
+	it("is workflow_dispatch-triggered, not workflow_call — Sentinel invokes it directly via the Actions API", () => {
+		expect(wf).toContain("workflow_dispatch:");
+		expect(wf).not.toContain("workflow_call:");
+	});
+
+	it("has no WORKFLOW_TEMPLATES/thin-caller entry — no repo invokes this itself", () => {
+		expect(WORKFLOW_TEMPLATES).not.toHaveProperty("platform.dispatchedCheck");
+	});
+
+	it("checks out the target repo/ref from the dispatch inputs, not the calling repo", () => {
+		expect(wf).toMatch(/repository: \$\{\{ inputs\.repo \}\}/);
+		expect(wf).toMatch(/ref: \$\{\{ inputs\.ref \}\}/);
+	});
+
+	it("mints its own installation token from stored App credentials — never a token passed through an input", () => {
+		expect(wf).toContain("actions/create-github-app-token@");
+		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_APP_ID }}");
+		expect(wf).toContain("private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}");
+		expect(wf).not.toMatch(/token:\s*\$\{\{\s*inputs\./);
+	});
+
+	it("runs the dispatched task through the holocron action, not a hard-coded command", () => {
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("task: ${{ inputs.task }}");
+	});
+
+	it("patches the check run back on the target repo regardless of task outcome", () => {
+		expect(wf).toContain("continue-on-error: true");
+		expect(wf).toMatch(/if: always\(\)/);
+		expect(wf).toContain('gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}"');
+		expect(wf).toContain("CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}");
+	});
+});
+
 describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", () => {
 	const wiki = REUSABLE_WORKFLOWS["knowledge.wiki"]!;
 
