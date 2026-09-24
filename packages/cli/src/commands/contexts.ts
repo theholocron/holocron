@@ -50,6 +50,7 @@ export const COMMAND_CONTEXTS = {
 	"skills install": "global",
 	"skills remove": "global",
 	"skills update": "global",
+	"lint commit-msg": "global",
 
 	run: "repo-aware",
 	ci: "repo-aware",

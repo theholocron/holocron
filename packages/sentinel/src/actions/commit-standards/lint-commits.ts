@@ -6,13 +6,14 @@
  * `.notes/tech-sentinel-enforcement.spec.md`).
  *
  * D1: real `@commitlint/lint` + `@commitlint/load` — the exact
- * programmatic API `@commitlint/cli`'s own CLI wires together internally
- * (mirrored from its `cli.js`: `load()` resolves the config's `rules`
- * `ignores`/`plugins`/`parserOpts`, then `lint(message, rules, opts)` runs
- * per commit) — never a reimplementation of commitlint's rules. The CLI
- * mode itself isn't used (no `child_process`, no PATH-resolved binary) —
- * this is a Vercel Function, and the programmatic API is both simpler and
- * avoids spawning a subprocess in that runtime.
+ * programmatic API `@commitlint/cli`'s own CLI wires together internally.
+ * The actual "lint one message against a loaded config" step is shared with
+ * `@theholocron/cli`'s `holocron lint commit-msg` (`lintCommitMessage()`,
+ * holocron#789) — genuinely identical logic either way. What stays
+ * Sentinel-specific is *how the config gets loaded*: Sentinel runs
+ * standalone, away from any real repo checkout, so it can't rely on
+ * `@commitlint/load`'s normal ambient discovery the way a local CLI command
+ * (running inside a real checkout) safely can.
  *
  * `@commitlint/load`'s ambient config discovery, deliberately defeated:
  * it uses `cosmiconfig` with a `"global"` search strategy that walks
@@ -65,9 +66,8 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import lint from "@commitlint/lint";
 import load from "@commitlint/load";
-import type { LintOptions, ParserPreset } from "@commitlint/types";
+import { lintCommitMessage } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";
 
 import { getPackageRoot } from "../../utils/package-root.js";
@@ -91,11 +91,6 @@ export interface LintCommitsResult {
 	valid: boolean;
 	commitCount: number;
 	violations: CommitViolation[];
-}
-
-/** `parserPreset.parserOpts`, if the loaded config sets one — same lookup `@commitlint/cli`'s own `selectParserOpts()` does. */
-function selectParserOpts(parserPreset: ParserPreset | undefined): ParserPreset["parserOpts"] {
-	return parserPreset?.parserOpts;
 }
 
 /**
@@ -122,29 +117,12 @@ export async function lintCommits(input: LintCommitsInput): Promise<LintCommitsR
 	const commits = await client.pulls.listCommits(repo, pullNumber);
 
 	const loaded = await loadIsolatedConfig();
-	const opts: LintOptions = {
-		// `@theholocron/commitlint-config` sets no parserPreset of its own
-		// (relies on commitlint's built-in default parser) or a non-empty
-		// `ignores` today beyond the one dependabot-bump matcher it does set —
-		// both `?? {}`/`?? []` are real fallbacks for a config that could set
-		// either, not dead code, even though this org's own shared config
-		// never exercises the "unset" side for `ignores` and never exercises
-		// the "set" side for `parserPreset`.
-		/* istanbul ignore next -- see comment above */
-		parserOpts: selectParserOpts(loaded.parserPreset) ?? {},
-		plugins: loaded.plugins,
-		/* istanbul ignore next -- see comment above */
-		ignores: loaded.ignores ?? [],
-		defaultIgnores: loaded.defaultIgnores !== false,
-	};
 
 	const violations: CommitViolation[] = [];
 	for (const commit of commits) {
-		const outcome = await lint(commit.commit.message, loaded.rules, opts);
-		if (!outcome.valid) {
-			for (const error of outcome.errors) {
-				violations.push({ sha: commit.sha, rule: error.name, message: error.message });
-			}
+		const messageViolations = await lintCommitMessage(commit.commit.message, loaded);
+		for (const v of messageViolations) {
+			violations.push({ sha: commit.sha, rule: v.rule, message: v.message });
 		}
 	}
 

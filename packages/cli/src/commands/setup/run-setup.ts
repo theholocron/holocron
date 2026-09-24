@@ -341,7 +341,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .husky/commit-msg", dryRun, async () => {
-				await source.writeRepoFile(".husky/commit-msg", createCommitMsg());
+				await source.writeRepoFile(".husky/commit-msg", createCommitMsg(config.holocronScript));
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));

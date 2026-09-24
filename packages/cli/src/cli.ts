@@ -29,6 +29,7 @@ import { runSyncGithub } from "./commands/sync-github.js";
 import { runSyncReadme } from "./commands/sync-readme.js";
 import { runUpgradeDeps } from "./commands/upgrade-deps.js";
 import { runUpgradeNode } from "./commands/upgrade-node.js";
+import { lintCommitMsgFile } from "./commit-lint/lint-commit-msg-file.js";
 import type { TelemetryConfig } from "./config/config.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
@@ -780,6 +781,31 @@ try {
 				});
 				if (report.status === "fail") process.exitCode = 1;
 			}
+		)
+		.command(
+			"lint",
+			"Lint content locally against the org's shared rules",
+			(y) =>
+				y.command(
+					"commit-msg <file>",
+					"Lint a commit message file — matches `commitlint --edit`'s own contract, for use from .husky/commit-msg",
+					(yy) =>
+						yy.positional("file", {
+							type: "string",
+							demandOption: true,
+							describe: "Path to the commit message file (git's commit-msg hook passes this as $1).",
+						}),
+					async (argv) => {
+						const result = await lintCommitMsgFile(argv.file as string, argv.cwd as string);
+						if (!result.valid) {
+							for (const violation of result.violations) {
+								console.error(`✖ ${violation.rule}: ${violation.message}`);
+							}
+							process.exitCode = 1;
+						}
+					}
+				),
+			() => {}
 		)
 		.command(
 			"sync-github",

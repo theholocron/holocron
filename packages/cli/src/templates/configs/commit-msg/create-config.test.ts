@@ -16,22 +16,20 @@ describe("commit-msg createConfig", () => {
 		expect(headerLine).toBeGreaterThan(shebangLine);
 	});
 
-	it("runs commitlint against the commit message file", () => {
-		const out = createConfig();
-		expect(out).toContain("commitlint");
-		expect(out).toContain('--edit "$1"');
+	it("lints the commit message via `holocron lint commit-msg` (holocron#789)", () => {
+		expect(createConfig()).toContain('pnpm exec holocron lint commit-msg "$1"');
 	});
 
-	it("resolves --config against the shared commitlint-config package's built dist when present", () => {
-		const out = createConfig();
-		expect(out).toContain('COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"');
-		expect(out).toContain('npx --no -- commitlint --config "$COMMITLINT_CONFIG" --edit "$1"');
-	});
-
-	it("falls back to commitlint's own auto-discovery when the shared package isn't installed", () => {
-		const out = createConfig();
-		expect(out).toMatch(
-			/if \[ -f "\$COMMITLINT_CONFIG" \]; then[\s\S]*else\s*\n\s*npx --no -- commitlint --edit "\$1"\s*\n\s*fi/
+	it("substitutes a custom holocron script", () => {
+		expect(createConfig("node packages/cli/dist/cli.mjs")).toContain(
+			'node packages/cli/dist/cli.mjs lint commit-msg "$1"'
 		);
+		expect(createConfig("node packages/cli/dist/cli.mjs")).not.toContain("__HOLOCRON_SCRIPT__");
+	});
+
+	it("no longer shells out to the commitlint binary directly", () => {
+		const out = createConfig();
+		expect(out).not.toContain("npx");
+		expect(out).not.toContain("commitlint");
 	});
 });
