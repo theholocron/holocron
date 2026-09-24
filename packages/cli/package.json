@@ -49,6 +49,9 @@
   },
   "dependencies": {
     "@axiomhq/pino": "catalog:",
+    "@commitlint/lint": "catalog:",
+    "@commitlint/load": "catalog:",
+    "@commitlint/types": "catalog:",
     "@inquirer/prompts": "catalog:",
     "@inquirer/search": "catalog:",
     "@napi-rs/keyring": "^1.3.0",
@@ -69,6 +72,8 @@
     "yargs": "catalog:"
   },
   "devDependencies": {
+    "@commitlint/config-conventional": "catalog:",
+    "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/rollup-plugin-transform-template": "workspace:*",
     "@theholocron/tsconfig": "catalog:configs",

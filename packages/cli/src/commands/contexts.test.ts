@@ -23,6 +23,7 @@ const EVERY_COMMAND = [
 	"skills install",
 	"skills remove",
 	"skills update",
+	"lint commit-msg",
 	"run",
 	"ci",
 	"config show",

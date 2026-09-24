@@ -41,7 +41,6 @@
   },
   "dependencies": {
     "@commitlint/config-conventional": "catalog:",
-    "@commitlint/lint": "catalog:",
     "@commitlint/load": "catalog:",
     "@theholocron/astromech": "workspace:*",
     "@theholocron/cli": "workspace:*",
@@ -54,7 +53,6 @@
     "tsx": "catalog:"
   },
   "devDependencies": {
-    "@commitlint/types": "catalog:",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
