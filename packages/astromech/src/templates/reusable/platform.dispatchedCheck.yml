@@ -63,6 +63,19 @@ jobs:
         with:
           task: ${{ inputs.task }}
 
+      # A bare .../actions/runs/<id> link lands on the run summary, one click
+      # short of the actual step-by-step log a normal check's details_url
+      # points at. This job is always alone in its run, so the first (only)
+      # job in the run's own job list is unambiguously this one.
+      - name: Resolve this job's numeric ID
+        id: job-info
+        if: always()
+        run: |
+          job_id=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" --jq '.jobs[0].id')
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
       # Always runs, success or failure — the queued check run on the target
       # repo must be resolved either way, not left hanging.
       - name: Report result to the target repo's check run
@@ -82,4 +95,4 @@ jobs:
           REPO: ${{ inputs.repo }}
           CHECK_RUN_ID: ${{ inputs.check-run-id }}
           CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.job-info.outputs.job_id }}
