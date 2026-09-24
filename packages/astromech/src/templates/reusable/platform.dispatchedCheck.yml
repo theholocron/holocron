@@ -73,6 +73,11 @@ jobs:
             -f "conclusion=${CONCLUSION}" \
             -f "details_url=${RUN_URL}"
         env:
+          # `GH_TOKEN` is the literal name `gh api` requires to auto-authenticate
+          # -- not a stand-in for a shared/blanket credential. Its value is the
+          # short-lived, Sentinel-App-scoped token minted above, same as the
+          # checkout step uses; never secrets.HOLOCRON_SYNC_TOKEN (the one
+          # genuinely shared PAT in this org, used by sync-dispatch.yml).
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ inputs.repo }}
           CHECK_RUN_ID: ${{ inputs.check-run-id }}
