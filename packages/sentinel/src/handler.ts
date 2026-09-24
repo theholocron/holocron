@@ -17,7 +17,7 @@
  *   `.notes/tech-sentinel-enforcement.spec.md`) — runs independent of
  *   `validateConfig()`'s result, since it never reads `holocron.config.ts`
  *   at all.
- * - **Bucket 2 dispatch** (`dispatchBucket2Check`, holocron#769/#794,
+ * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
  *   `SENTINEL_DISPATCHABLE_TASK` — one hardcoded task for this prototype
@@ -58,7 +58,7 @@ import { postCheckRun } from "./actions/capability-compliance/post-check-run.js"
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
-import { dispatchBucket2Check } from "./actions/dispatched-check/dispatch-check.js";
+import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { SENTINEL_DISPATCHABLE_TASK, SENTINEL_DISPATCHED_CHECK_NAME } from "./utils/constants.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -281,7 +281,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	const taskNames = (configResult.config.tasks ?? []).map(normalizeTaskEntry).map((t) => t.name);
 	if (taskNames.includes(SENTINEL_DISPATCHABLE_TASK)) {
 		try {
-			dispatchedCheckRun = await dispatchBucket2Check({
+			dispatchedCheckRun = await dispatchCheck({
 				client,
 				repo,
 				headSha: context.headSha,
@@ -290,7 +290,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				checkName: SENTINEL_DISPATCHED_CHECK_NAME,
 			});
 		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "dispatchBucket2Check: failed, continuing without it");
+			logger.error({ repo, err: serializeError(err) }, "dispatchCheck: failed, continuing without it");
 		}
 	}
 

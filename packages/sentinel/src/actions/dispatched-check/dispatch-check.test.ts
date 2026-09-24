@@ -2,21 +2,21 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { dispatchBucket2Check } from "./dispatch-check.js";
+import { dispatchCheck } from "./dispatch-check.js";
 
 function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
 
-describe("dispatchBucket2Check", () => {
+describe("dispatchCheck", () => {
 	it("posts a queued check run on the target repo, then dispatches the shared .github workflow", async () => {
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 42, html_url: "https://github.com/acme/demo/runs/42" } },
 			{ status: 204 },
 		]);
 
-		const result = await dispatchBucket2Check({
+		const result = await dispatchCheck({
 			client,
 			repo: "acme/demo",
 			headSha: "abc123",
@@ -53,7 +53,7 @@ describe("dispatchBucket2Check", () => {
 	it("passes the created check run's own id as the dispatch's correlation token — no separate id generated", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: 9001 } }, { status: 204 }]);
 
-		await dispatchBucket2Check({
+		await dispatchCheck({
 			client,
 			repo: "acme/other",
 			headSha: "def456",

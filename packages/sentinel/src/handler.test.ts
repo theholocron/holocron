@@ -13,7 +13,7 @@ vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.f
 vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
-vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchBucket2Check: vi.fn() }));
+vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("./utils/webhook.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./utils/webhook.js")>();
@@ -27,7 +27,7 @@ import { postCheckRun } from "./actions/capability-compliance/post-check-run.js"
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
-import { dispatchBucket2Check } from "./actions/dispatched-check/dispatch-check.js";
+import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -58,7 +58,7 @@ beforeEach(() => {
 	vi.mocked(postCheckRun).mockReset();
 	vi.mocked(lintCommits).mockReset();
 	vi.mocked(postCommitStandardsCheck).mockReset();
-	vi.mocked(dispatchBucket2Check).mockReset();
+	vi.mocked(dispatchCheck).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -453,11 +453,11 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 			filepath: "x",
 			config: { tasks: ["lint", "verification.typeSafety"] },
 		});
-		vi.mocked(dispatchBucket2Check).mockResolvedValue({ checkRunId: 99, htmlUrl: "https://x/99" });
+		vi.mocked(dispatchCheck).mockResolvedValue({ checkRunId: 99, htmlUrl: "https://x/99" });
 
 		const res = await handleWebhookRequest(req(), ENV);
 
-		expect(dispatchBucket2Check).toHaveBeenCalledWith({
+		expect(dispatchCheck).toHaveBeenCalledWith({
 			client: FAKE_CLIENT,
 			repo: "acme/demo",
 			headSha: "sha-after",
@@ -476,11 +476,11 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 			filepath: "x",
 			config: { tasks: [{ name: "verification.typeSafety", required: true }] },
 		});
-		vi.mocked(dispatchBucket2Check).mockResolvedValue({ checkRunId: 1, htmlUrl: "" });
+		vi.mocked(dispatchCheck).mockResolvedValue({ checkRunId: 1, htmlUrl: "" });
 
 		await handleWebhookRequest(req(), ENV);
 
-		expect(dispatchBucket2Check).toHaveBeenCalled();
+		expect(dispatchCheck).toHaveBeenCalled();
 	});
 
 	it("does not dispatch when the config has no tasks array at all", async () => {
@@ -489,7 +489,7 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 
 		const res = await handleWebhookRequest(req(), ENV);
 
-		expect(dispatchBucket2Check).not.toHaveBeenCalled();
+		expect(dispatchCheck).not.toHaveBeenCalled();
 		const body = (await res.json()) as { dispatchedCheckRun: unknown };
 		expect(body.dispatchedCheckRun).toBeUndefined();
 	});
@@ -504,7 +504,7 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 
 		const res = await handleWebhookRequest(req(), ENV);
 
-		expect(dispatchBucket2Check).not.toHaveBeenCalled();
+		expect(dispatchCheck).not.toHaveBeenCalled();
 		const body = (await res.json()) as { dispatchedCheckRun: unknown };
 		expect(body.dispatchedCheckRun).toBeUndefined();
 	});
@@ -516,7 +516,7 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 			filepath: "x",
 			config: { tasks: ["verification.typeSafety"] },
 		});
-		vi.mocked(dispatchBucket2Check).mockRejectedValue(new Error("workflow dispatch failed"));
+		vi.mocked(dispatchCheck).mockRejectedValue(new Error("workflow dispatch failed"));
 
 		const res = await handleWebhookRequest(req(), ENV);
 

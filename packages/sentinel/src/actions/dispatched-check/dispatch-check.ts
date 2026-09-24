@@ -36,7 +36,7 @@ import {
 	SENTINEL_DISPATCH_WORKFLOW_FILE,
 } from "../../utils/constants.js";
 
-export interface DispatchBucket2CheckInput {
+export interface DispatchCheckInput {
 	client: Pick<GitHubClient, "checks" | "workflows">;
 	/** `"owner/repo"` — the repo the task actually runs against, not `theholocron/.github`. */
 	repo: string;
@@ -50,12 +50,12 @@ export interface DispatchBucket2CheckInput {
 	checkName: string;
 }
 
-export interface DispatchBucket2CheckResult {
+export interface DispatchCheckResult {
 	checkRunId: number;
 	htmlUrl: string;
 }
 
-export async function dispatchBucket2Check(input: DispatchBucket2CheckInput): Promise<DispatchBucket2CheckResult> {
+export async function dispatchCheck(input: DispatchCheckInput): Promise<DispatchCheckResult> {
 	const { client, repo, headSha, ref, task, checkName } = input;
 
 	const checkRun = await client.checks.createCheckRun(repo, {
