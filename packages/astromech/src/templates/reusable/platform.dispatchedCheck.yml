@@ -1,0 +1,85 @@
+name: Dispatched Check
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: Target repo, "owner/name", to check out and run the task against.
+        type: string
+        required: true
+      ref:
+        description: Git ref (branch or commit SHA) to check out.
+        type: string
+        required: true
+      task:
+        description: The holocron task name to run (e.g. "verification.typeSafety").
+        type: string
+        required: true
+      check-run-id:
+        description: >
+          ID of the check run already posted as "queued" on the target repo —
+          patched to "completed" once the task finishes.
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  run-task:
+    name: Run a Sentinel-dispatched task against another repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      # Sentinel's own dispatch call only carries plain, non-secret inputs
+      # (repo/ref/task/check-run-id — all visible in the Actions UI/logs).
+      # This step mints a fresh, short-lived installation token here instead,
+      # scoped by the same App's stored credentials — never a raw token
+      # passed through a dispatch input.
+      - name: Generate installation token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.SENTINEL_APP_ID }}
+          private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout target repository
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Run the task
+        id: run-task
+        continue-on-error: true
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          task: ${{ inputs.task }}
+
+      # Always runs, success or failure — the queued check run on the target
+      # repo must be resolved either way, not left hanging.
+      - name: Report result to the target repo's check run
+        if: always()
+        run: |
+          gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}" \
+            -f status=completed \
+            -f "conclusion=${CONCLUSION}" \
+            -f "details_url=${RUN_URL}"
+        env:
+          # `GH_TOKEN` is the literal name `gh api` requires to auto-authenticate
+          # -- not a stand-in for a shared/blanket credential. Its value is the
+          # short-lived, Sentinel-App-scoped token minted above, same as the
+          # checkout step uses; never secrets.HOLOCRON_SYNC_TOKEN (the one
+          # genuinely shared PAT in this org, used by sync-dispatch.yml).
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ inputs.repo }}
+          CHECK_RUN_ID: ${{ inputs.check-run-id }}
+          CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
