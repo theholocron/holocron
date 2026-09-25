@@ -172,6 +172,13 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 		expect(wf).not.toMatch(/token:\s*\$\{\{\s*inputs\./);
 	});
 
+	it("scopes the minted token to the parsed target repo, not the default current-repo scope (holocron#794 live test finding)", () => {
+		expect(wf).toContain('echo "owner=${INPUT_REPO%%/*}" >> "$GITHUB_OUTPUT"');
+		expect(wf).toContain('echo "name=${INPUT_REPO##*/}" >> "$GITHUB_OUTPUT"');
+		expect(wf).toContain("owner: ${{ steps.target.outputs.owner }}");
+		expect(wf).toContain("repositories: ${{ steps.target.outputs.name }}");
+	});
+
 	it("runs the dispatched task through the holocron action, not a hard-coded command", () => {
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
 		expect(wf).toContain("task: ${{ inputs.task }}");

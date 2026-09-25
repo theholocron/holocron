@@ -34,6 +34,19 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
+      # actions/create-github-app-token defaults to scoping its token to the
+      # *current* repo (.github, where this workflow runs) when owner/
+      # repositories are omitted — useless here, since every real use of this
+      # token targets inputs.repo instead. Split "owner/name" up front so the
+      # token step below can scope explicitly to the actual target.
+      - name: Parse target repo
+        id: target
+        run: |
+          echo "owner=${INPUT_REPO%%/*}" >> "$GITHUB_OUTPUT"
+          echo "name=${INPUT_REPO##*/}" >> "$GITHUB_OUTPUT"
+        env:
+          INPUT_REPO: ${{ inputs.repo }}
+
       # Sentinel's own dispatch call only carries plain, non-secret inputs
       # (repo/ref/task/check-run-id — all visible in the Actions UI/logs).
       # This step mints a fresh, short-lived installation token here instead,
@@ -45,6 +58,8 @@ jobs:
         with:
           app-id: ${{ secrets.SENTINEL_APP_ID }}
           private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}
+          owner: ${{ steps.target.outputs.owner }}
+          repositories: ${{ steps.target.outputs.name }}
 
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout target repository
