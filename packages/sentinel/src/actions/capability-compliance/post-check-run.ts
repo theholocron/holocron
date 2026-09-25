@@ -25,7 +25,11 @@
 import { missingCapabilities } from "@theholocron/cli";
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_AXIOM_DATASET_URL, SENTINEL_NAMESPACES } from "../../utils/constants.js";
+import {
+	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
+	SENTINEL_NAMESPACES,
+	sentinelAxiomLogUrl,
+} from "../../utils/constants.js";
 
 export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Capability Compliance`;
 
@@ -81,7 +85,7 @@ export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckR
 		status: "completed",
 		conclusion,
 		output: { title, summary, text },
-		details_url: SENTINEL_AXIOM_DATASET_URL,
+		details_url: sentinelAxiomLogUrl(runId, SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG),
 	});
 
 	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };

@@ -22,15 +22,31 @@ export const SENTINEL_NAMESPACES = {
 	verification: "Verification",
 } as const satisfies Record<string, string>;
 
+export const SENTINEL_AXIOM_ORG = "the-holocron-7bbe";
+export const SENTINEL_AXIOM_DATASET = "holocron-sentinel";
+
 /**
- * `details_url` target for every check run Sentinel posts — the Axiom
- * dataset its own structured logs ship to (holocron#780). A check run
- * posted directly via the Checks API (no workflow run behind it) has no
- * GitHub-native log viewer to link to on its own; this is the closest
- * equivalent. Each check run's own `output.text` also carries its
- * `runId` so a viewer can search this dataset for the exact invocation.
+ * `details_url` target for a check run Sentinel posts directly (no workflow
+ * run behind it, unlike the dispatched check) — a permalink filtered to the
+ * exact structured log line this check's own post logged, not a bare
+ * dataset view (holocron#780, found live: capability-compliance and
+ * commit-standards both linked the whole dataset with nothing to scope the
+ * search to). `runId` is auto-bound to every line `createLogger()` emits
+ * (Pino's `base` option) so it alone would work, but one webhook request
+ * can post more than one check (capability compliance + commit standards
+ * together) — `msg` (the exact string each one logs, matched with its own
+ * post) disambiguates which of that request's lines is this one.
  */
-export const SENTINEL_AXIOM_DATASET_URL = "https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel";
+export function sentinelAxiomLogUrl(runId: string, msg: string): string {
+	const apl = `['${SENTINEL_AXIOM_DATASET}'] | where runId == "${runId}" and msg == "${msg}"`;
+	const initForm = JSON.stringify({ apl });
+	return `https://app.axiom.co/${SENTINEL_AXIOM_ORG}/query?initForm=${encodeURIComponent(initForm)}`;
+}
+
+/** Logged (and linked to) once `postCheckRun()` actually posts — never hand-copy this string elsewhere. */
+export const SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG = "postCheckRun: posted";
+/** Logged (and linked to) once `postCommitStandardsCheck()` actually posts — never hand-copy this string elsewhere. */
+export const SENTINEL_COMMIT_STANDARDS_LOG_MSG = "postCommitStandardsCheck: posted";
 
 /**
  * Where the Bucket 2 dispatch mechanism's shared workflow lives
