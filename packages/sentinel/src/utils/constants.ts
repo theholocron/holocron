@@ -1,23 +1,25 @@
 /**
- * This App's brand name — the "Sentinel /" prefix any action posts as
- * part of a check run, report, or comment. One source, so a second
- * action never hardcodes its own copy (or a typo of it).
+ * This App's brand name. No longer prefixed onto check-run names — GitHub's
+ * own check-run detail page already shows the posting App's display name
+ * ("The Holocron Sentinel") ahead of whatever name is set here, so a
+ * hand-added "Sentinel /" prefix just duplicated it (found live: "The
+ * Holocron Sentinel / Sentinel / Platform / ..."). Still used for anything
+ * that isn't rendered next to GitHub's own App-name UI (log messages, etc).
  */
 export const SENTINEL_APP_NAME = "Sentinel";
 
 /**
  * Humanized display form of each `astromech` task namespace prefix Sentinel
  * carries through a check-run name (D5, `tech-sentinel-enforcement.spec.md`:
- * `Sentinel / <namespace, humanized> / <the existing CI check's own name>`).
- * Keyed by the same prefix the task itself uses (`platform.commitStandards`
- * → `platform`), so a future check adds one entry here instead of a second
- * hand-typed copy of the string. Only `platform` exists today — the next
- * namespace (`sourceQuality`, for eslint/prettier once those checks move to
- * Sentinel too) gets added here when it's actually built, not guessed at
- * now.
+ * `<namespace, humanized> / <the existing CI check's own name>` — no
+ * "Sentinel /" prefix, per the constant above). Keyed by the same prefix
+ * the task itself uses (`platform.commitStandards` → `platform`), so a
+ * future check adds one entry here instead of a second hand-typed copy of
+ * the string.
  */
 export const SENTINEL_NAMESPACES = {
 	platform: "Platform",
+	verification: "Verification",
 } as const satisfies Record<string, string>;
 
 /**
@@ -47,9 +49,12 @@ export const SENTINEL_DISPATCH_REF = "main";
  * prototype against tsc"). Only fires for a repo whose `holocron.config`
  * actually declares this task — every other repo is untouched. Runs
  * *alongside* the existing GitHub Actions thin-caller for the same task,
- * not instead of it, until this mechanism is trusted enough to replace
- * it — "(prototype)" in the check name exists specifically so that's
- * never mistaken for the real, authoritative check.
+ * not instead of it, until this mechanism is trusted enough to replace it.
+ *
+ * Check name matches the same `<Namespace> / <label> / <command>` shape
+ * every other Sentinel-posted check uses (see `SENTINEL_NAMESPACES`), and
+ * mirrors the native thin-caller check's own command name ("Run tsc
+ * --noEmit") for a task that only ever has one dispatchable command today.
  */
 export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
-export const SENTINEL_DISPATCHED_CHECK_NAME = `${SENTINEL_APP_NAME} / Platform / Dispatched: ${SENTINEL_DISPATCHABLE_TASK} (prototype)`;
+export const SENTINEL_DISPATCHED_CHECK_NAME = `${SENTINEL_NAMESPACES.verification} / Type Safety / Run tsc --noEmit`;

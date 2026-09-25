@@ -274,7 +274,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// fires only for a repo that actually declares the one dispatchable task
 	// this phase covers -- every other repo untouched. Runs alongside the
 	// existing GitHub Actions thin-caller for the same task, not instead of
-	// it (see SENTINEL_DISPATCHED_CHECK_NAME's own "(prototype)" suffix).
+	// it, until this mechanism is trusted enough to replace it.
 	// Soft-skip over hard-fail, same reasoning as commit standards above: a
 	// dispatch failure must never take capability compliance down with it.
 	let dispatchedCheckRun;

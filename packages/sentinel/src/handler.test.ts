@@ -463,7 +463,7 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 			headSha: "sha-after",
 			ref: "sha-after",
 			task: "verification.typeSafety",
-			checkName: "Sentinel / Platform / Dispatched: verification.typeSafety (prototype)",
+			checkName: "Verification / Type Safety / Run tsc --noEmit",
 		});
 		const body = (await res.json()) as { dispatchedCheckRun: unknown };
 		expect(body.dispatchedCheckRun).toEqual({ checkRunId: 99, htmlUrl: "https://x/99" });

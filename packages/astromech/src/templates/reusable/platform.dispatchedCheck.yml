@@ -105,14 +105,18 @@ jobs:
         if: always()
         run: |
           message=$(tail -c 40000 "$LOG_FILE" 2>/dev/null || echo "(no output captured)")
+          # "level" is one of the field names Axiom's Stream/Query tabs
+          # recognize for severity-color highlighting (docs: level, @level,
+          # severity, @severity, status.code) -- conclusion alone isn't.
+          level=$([ "$CONCLUSION" = "success" ] && echo "info" || echo "error")
           event=$(jq -cn \
             --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg repo "$REPO" --arg task "$TASK" --arg run_id "$GITHUB_RUN_ID" \
             --arg job_id "$JOB_ID" --arg check_run_id "$CHECK_RUN_ID" \
-            --arg conclusion "$CONCLUSION" --arg message "$message" \
+            --arg conclusion "$CONCLUSION" --arg level "$level" --arg message "$message" \
             '{_time: $time, source: "dispatched-check", repo: $repo, task: $task,
               run_id: $run_id, job_id: $job_id, check_run_id: $check_run_id,
-              conclusion: $conclusion, message: $message}')
+              conclusion: $conclusion, level: $level, message: $message}')
           curl -sf -X POST "https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest" \
             -H "Authorization: Bearer ${AXIOM_TOKEN}" \
             -H "Content-Type: application/json" \

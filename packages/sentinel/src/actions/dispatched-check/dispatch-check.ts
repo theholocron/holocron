@@ -46,7 +46,7 @@ export interface DispatchCheckInput {
 	ref: string;
 	/** The `astromech` task name to run, e.g. `"verification.typeSafety"`. */
 	task: string;
-	/** Check run name, e.g. `"Sentinel / Platform / Typecheck"` — same naming convention as every other Sentinel-posted check. */
+	/** Check run name, e.g. `"Verification / Type Safety / Run tsc --noEmit"` — same naming convention as every other Sentinel-posted check. No "Sentinel /" prefix: GitHub's own check-run detail page already shows the posting App's name ahead of this. */
 	checkName: string;
 }
 

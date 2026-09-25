@@ -22,7 +22,7 @@ describe("dispatchCheck", () => {
 			headSha: "abc123",
 			ref: "abc123",
 			task: "verification.typeSafety",
-			checkName: "Sentinel / Platform / Typecheck",
+			checkName: "Verification / Type Safety / Run tsc --noEmit",
 		});
 
 		expect(result).toEqual({ checkRunId: 42, htmlUrl: "https://github.com/acme/demo/runs/42" });
@@ -30,7 +30,7 @@ describe("dispatchCheck", () => {
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/repos/acme/demo/check-runs");
 		expect(calls[0]?.body).toMatchObject({
-			name: "Sentinel / Platform / Typecheck",
+			name: "Verification / Type Safety / Run tsc --noEmit",
 			head_sha: "abc123",
 			status: "queued",
 		});
@@ -59,7 +59,7 @@ describe("dispatchCheck", () => {
 			headSha: "def456",
 			ref: "feature/x",
 			task: "verification.unitTests",
-			checkName: "Sentinel / Platform / Unit Tests",
+			checkName: "Verification / Unit Tests / Run vitest",
 		});
 
 		const dispatchBody = calls[1]?.body as { inputs: Record<string, string> };
