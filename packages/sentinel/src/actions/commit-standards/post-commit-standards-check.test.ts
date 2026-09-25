@@ -10,10 +10,8 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 }
 
 describe("postCommitStandardsCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Sentinel / Platform / Commit Standards / Run commitlint", () => {
-		expect(SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME).toBe(
-			"Sentinel / Platform / Commit Standards / Run commitlint"
-		);
+	it("names the check run Platform / Commit Standards / Run commitlint", () => {
+		expect(SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME).toBe("Platform / Commit Standards / Run commitlint");
 	});
 });
 

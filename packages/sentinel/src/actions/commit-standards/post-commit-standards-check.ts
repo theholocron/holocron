@@ -8,22 +8,23 @@
  * else to wrap.
  *
  * D5: `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` carries the intent
- * vocabulary through — `Sentinel / <namespace, humanized> / <the existing
- * CI check's own name, unchanged>` — rather than inventing a new ad-hoc
- * label. `platform.commitStandards`'s own reusable workflow job is named
- * "Commit Standards / Run commitlint" (`platform.commitStandards.yml`);
- * this is that same name with `Sentinel / Platform /` carried in front of
- * it, so it's visually obvious in a PR's checks list which CI check this
- * one centralizes. `Sentinel / Capability Compliance` stays its own
- * 2-tier exception — no `astromech` task to namespace it under.
+ * vocabulary through — `<namespace, humanized> / <the existing CI check's
+ * own name, unchanged>` — rather than inventing a new ad-hoc label.
+ * `platform.commitStandards`'s own reusable workflow job is named "Commit
+ * Standards / Run commitlint" (`platform.commitStandards.yml`); this is
+ * that same name with `Platform /` carried in front of it, so it's
+ * visually obvious in a PR's checks list which CI check this one
+ * centralizes. No "Sentinel /" prefix — GitHub's own check-run detail page
+ * already shows the posting App's display name ahead of whatever name is
+ * set here, so a hand-added prefix just duplicated it.
  */
 
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_APP_NAME, SENTINEL_AXIOM_DATASET_URL, SENTINEL_NAMESPACES } from "../../utils/constants.js";
+import { SENTINEL_AXIOM_DATASET_URL, SENTINEL_NAMESPACES } from "../../utils/constants.js";
 import type { CommitViolation, LintCommitsResult } from "./lint-commits.js";
 
-export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / ${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
+export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
 
 export interface PostCommitStandardsCheckInput {
 	client: Pick<GitHubClient, "checks">;

@@ -227,6 +227,11 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
 	});
 
+	it("tags the shipped event with a level field so Axiom's severity highlighting applies", () => {
+		expect(wf).toContain('level=$([ "$CONCLUSION" = "success" ] && echo "info" || echo "error")');
+		expect(wf).toContain("level: $level");
+	});
+
 	it("embeds the real log excerpt and the Axiom link directly in output.text, not just a bare link", () => {
 		expect(wf).toContain("QUERY_URL: ${{ steps.axiom.outputs.query-url }}");
 		expect(wf).toContain("[Full logs on Axiom](%s)");

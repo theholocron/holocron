@@ -12,26 +12,22 @@
  * checks against, imported rather than duplicated, so *why* a repo is
  * non-compliant can never drift from *whether* it is.
  *
- * `SENTINEL_CHECK_RUN_NAME` stays a human-readable "App / Report" label
- * (`CodeQL`, `Devin Review` are the closest precedent — externally-posted
- * checks, not `.github/workflows/*.yml` runs) rather than a
- * `platform.*`-style intent-vocabulary token: the vocabulary (epic #672,
- * D3) names `tasks:` entries backed by a reusable CI workflow, and this
- * check has no workflow behind it at all — Sentinel posts it directly via
- * the Checks API from a webhook. Exported so a caller checking for this
- * check run by name (a future re-run guard, a test, a dashboard) never
- * hand-copies the string. Built from `SENTINEL_APP_NAME` rather than its
- * own literal "Sentinel" — the brand prefix a second action (check-run
- * posting isn't the only one that will want it) reads from the same
- * source instead of retyping.
+ * `SENTINEL_CHECK_RUN_NAME` folds under the `platform` namespace
+ * (`SENTINEL_NAMESPACES`) even though this check has no `platform.*` task or
+ * workflow behind it at all — Sentinel posts it directly via the Checks API
+ * from a webhook. No "Sentinel /" prefix: GitHub's own check-run detail
+ * page already shows the posting App's display name ahead of whatever name
+ * is set here, so a hand-added prefix just duplicated it. Exported so a
+ * caller checking for this check run by name (a future re-run guard, a
+ * test, a dashboard) never hand-copies the string.
  */
 
 import { missingCapabilities } from "@theholocron/cli";
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_APP_NAME, SENTINEL_AXIOM_DATASET_URL } from "../../utils/constants.js";
+import { SENTINEL_AXIOM_DATASET_URL, SENTINEL_NAMESPACES } from "../../utils/constants.js";
 
-export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_APP_NAME} / Capability Compliance`;
+export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Capability Compliance`;
 
 export interface PostCheckRunInput {
 	client: Pick<GitHubClient, "checks">;
