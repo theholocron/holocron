@@ -217,7 +217,7 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 		expect(wf).toContain("LOG_FILE: ${{ steps.run-task.outputs.log-file }}");
 		expect(wf).toContain("https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest");
 		expect(wf).toContain("check_run_id: $check_run_id");
-		expect(wf).toContain("AXIOM_TOKEN: ${{ secrets.AXIOM_CI_INGEST_TOKEN }}");
+		expect(wf).toContain("AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}");
 		// ingest failing must never break the actual check-run report
 		expect(wf).toMatch(/curl[\s\S]*\|\|\s*echo "::warning::Axiom ingest failed/);
 	});

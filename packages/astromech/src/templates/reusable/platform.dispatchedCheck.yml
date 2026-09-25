@@ -135,7 +135,7 @@ jobs:
           CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
           AXIOM_ORG: the-holocron-7bbe
           AXIOM_DATASET: holocron-sentinel
-          AXIOM_TOKEN: ${{ secrets.AXIOM_CI_INGEST_TOKEN }}
+          AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}
 
       # Always runs, success or failure — the queued check run on the target
       # repo must be resolved either way, not left hanging. Full JSON body via
