@@ -91,15 +91,77 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
+      # Ships the task's real captured output (tsc/vitest/etc — whatever
+      # `holocron run` actually printed) to the same Axiom dataset Sentinel's
+      # own structured logs already flow into, tagged so it's queryable by
+      # this exact run. Reuses the existing dataset rather than provisioning
+      # a new one — a prototype-stage call, revisit if CI-log volume ever
+      # warrants a dedicated dataset. Builds a permalink filtered to this
+      # run's own logs (Axiom's own "copy query link" URL shape:
+      # /<org>/query?initForm={"apl":"..."} ) so a viewer lands directly on
+      # the relevant lines, not a bare dataset view.
+      - name: Ship task output to Axiom
+        id: axiom
+        if: always()
+        run: |
+          message=$(tail -c 40000 "$LOG_FILE" 2>/dev/null || echo "(no output captured)")
+          event=$(jq -cn \
+            --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg repo "$REPO" --arg task "$TASK" --arg run_id "$GITHUB_RUN_ID" \
+            --arg job_id "$JOB_ID" --arg check_run_id "$CHECK_RUN_ID" \
+            --arg conclusion "$CONCLUSION" --arg message "$message" \
+            '{_time: $time, source: "dispatched-check", repo: $repo, task: $task,
+              run_id: $run_id, job_id: $job_id, check_run_id: $check_run_id,
+              conclusion: $conclusion, message: $message}')
+          curl -sf -X POST "https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest" \
+            -H "Authorization: Bearer ${AXIOM_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "[${event}]" || echo "::warning::Axiom ingest failed — continuing, the check itself still reports the real result"
+
+          # The ['...'] is Axiom's own APL array-dataset-reference syntax, not
+          # a shell quote boundary — $AXIOM_DATASET/$CHECK_RUN_ID both expand
+          # fine here; shellcheck's single-quote heuristic just can't tell.
+          # shellcheck disable=SC2016
+          apl="['${AXIOM_DATASET}'] | where check_run_id == \"${CHECK_RUN_ID}\""
+          init_form=$(jq -cn --arg apl "$apl" '{apl: $apl}')
+          encoded=$(jq -rn --arg s "$init_form" '$s | @uri')
+          echo "query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}" >> "$GITHUB_OUTPUT"
+        env:
+          LOG_FILE: ${{ steps.run-task.outputs.log-file }}
+          REPO: ${{ inputs.repo }}
+          TASK: ${{ inputs.task }}
+          JOB_ID: ${{ steps.job-info.outputs.job_id }}
+          CHECK_RUN_ID: ${{ inputs.check-run-id }}
+          CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
+          AXIOM_ORG: the-holocron-7bbe
+          AXIOM_DATASET: holocron-sentinel
+          AXIOM_TOKEN: ${{ secrets.AXIOM_CI_INGEST_TOKEN }}
+
       # Always runs, success or failure — the queued check run on the target
-      # repo must be resolved either way, not left hanging.
+      # repo must be resolved either way, not left hanging. Full JSON body via
+      # jq + --input, not -f flags: output.text needs real nesting (gh api -f
+      # has no dot-notation for that), and the captured task output can
+      # contain characters (quotes, $, backticks) that would break a
+      # hand-built -f string.
       - name: Report result to the target repo's check run
         if: always()
         run: |
-          gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}" \
-            -f status=completed \
-            -f "conclusion=${CONCLUSION}" \
-            -f "details_url=${RUN_URL}"
+          excerpt=$(tail -c 3000 "$LOG_FILE" 2>/dev/null || echo "(no output captured)")
+          # The single-quoted format string is intentional — every %s fills
+          # via printf's own args below, not shell expansion; nothing in it
+          # needs to expand.
+          # shellcheck disable=SC2016
+          text=$(printf '**Task:** `%s`\n\n**Result:** %s\n\n[Full logs on Axiom](%s)\n\n### Last output\n\n```\n%s\n```\n' \
+            "$TASK" "$CONCLUSION" "$QUERY_URL" "$excerpt")
+          body=$(jq -n \
+            --arg conclusion "$CONCLUSION" \
+            --arg details_url "$RUN_URL" \
+            --arg title "$TASK ($CONCLUSION)" \
+            --arg summary "Dispatched via theholocron/.github — see the log excerpt below, or the full run/Axiom links." \
+            --arg text "$text" \
+            '{status: "completed", conclusion: $conclusion, details_url: $details_url,
+              output: {title: $title, summary: $summary, text: $text}}')
+          echo "$body" | gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}" --input -
         env:
           # `GH_TOKEN` is the literal name `gh api` requires to auto-authenticate
           # -- not a stand-in for a shared/blanket credential. Its value is the
@@ -108,6 +170,9 @@ jobs:
           # genuinely shared PAT in this org, used by sync-dispatch.yml).
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ inputs.repo }}
+          TASK: ${{ inputs.task }}
           CHECK_RUN_ID: ${{ inputs.check-run-id }}
           CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
+          LOG_FILE: ${{ steps.run-task.outputs.log-file }}
+          QUERY_URL: ${{ steps.axiom.outputs.query-url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.job-info.outputs.job_id }}
