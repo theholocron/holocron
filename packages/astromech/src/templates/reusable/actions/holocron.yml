@@ -31,6 +31,15 @@ inputs:
     required: false
     default: ""
 
+outputs:
+  log-file:
+    description: >
+      Path to a file holding the full captured stdout+stderr of this
+      invocation — the same text the live Actions log shows, saved for a
+      caller that wants to ship it elsewhere (e.g. Sentinel's dispatched
+      checks shipping it to Axiom, holocron#769/#794).
+    value: ${{ steps.run.outputs.log-file }}
+
 runs:
   using: composite
 
@@ -60,6 +69,7 @@ runs:
         fi
 
     - name: holocron ${{ inputs.command }} ${{ inputs.task }}
+      id: run
       shell: bash
       env:
         HOLOCRON_COMMAND: ${{ inputs.command }}
@@ -89,4 +99,12 @@ runs:
           exit 1
         fi
         echo "→ $cli $*" >&2
-        node "$cli" "$@"
+        # `tee` keeps the live Actions log streaming exactly as before while
+        # also capturing it to a file callers can ship elsewhere (log-file
+        # output, above). PIPESTATUS[0] -- not $? -- is `node`'s own exit
+        # code; $? after a pipe is tee's, which succeeds even when node fails.
+        log_file="${RUNNER_TEMP}/holocron-output.log"
+        node "$cli" "$@" 2>&1 | tee "$log_file"
+        exit_code=${PIPESTATUS[0]}
+        echo "log-file=$log_file" >> "$GITHUB_OUTPUT"
+        exit "$exit_code"

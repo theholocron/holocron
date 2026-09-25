@@ -44,6 +44,19 @@ describe("reusableTemplates()", () => {
 		expect(action).toMatch(/if \[ "\$HOLOCRON_COMMAND" = "run" \]/);
 	});
 
+	it("captures the holocron invocation's full output to a file, exposed as log-file (holocron#769/#794)", () => {
+		const action = batch.get(".github/actions/holocron/action.yml")!;
+		expect(action).toContain("outputs:");
+		expect(action).toContain("log-file:");
+		expect(action).toContain("value: ${{ steps.run.outputs.log-file }}");
+		// tee, not just redirect — the live Actions log still streams normally
+		expect(action).toContain('node "$cli" "$@" 2>&1 | tee "$log_file"');
+		// PIPESTATUS[0], not $? -- $? after a pipe is tee's exit code (always 0),
+		// which would silently mask a real task failure.
+		expect(action).toContain("exit_code=${PIPESTATUS[0]}");
+		expect(action).toContain('exit "$exit_code"');
+	});
+
 	it("platform.repoSync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
 		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
@@ -187,7 +200,7 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 	it("patches the check run back on the target repo regardless of task outcome", () => {
 		expect(wf).toContain("continue-on-error: true");
 		expect(wf).toMatch(/if: always\(\)/);
-		expect(wf).toContain('gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}"');
+		expect(wf).toContain('gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}" --input -');
 		expect(wf).toContain("CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}");
 	});
 
@@ -197,6 +210,28 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 		expect(wf).toContain(
 			"RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.job-info.outputs.job_id }}"
 		);
+	});
+
+	it("ships the task's real captured output to Axiom, tagged with this check run's own id", () => {
+		expect(wf).toContain("id: axiom");
+		expect(wf).toContain("LOG_FILE: ${{ steps.run-task.outputs.log-file }}");
+		expect(wf).toContain("https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest");
+		expect(wf).toContain("check_run_id: $check_run_id");
+		expect(wf).toContain("AXIOM_TOKEN: ${{ secrets.AXIOM_CI_INGEST_TOKEN }}");
+		// ingest failing must never break the actual check-run report
+		expect(wf).toMatch(/curl[\s\S]*\|\|\s*echo "::warning::Axiom ingest failed/);
+	});
+
+	it("builds an Axiom permalink filtered to this run's own logs, not a bare dataset view", () => {
+		expect(wf).toContain("query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}");
+		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
+	});
+
+	it("embeds the real log excerpt and the Axiom link directly in output.text, not just a bare link", () => {
+		expect(wf).toContain("QUERY_URL: ${{ steps.axiom.outputs.query-url }}");
+		expect(wf).toContain("[Full logs on Axiom](%s)");
+		expect(wf).toContain('tail -c 3000 "$LOG_FILE"');
+		expect(wf).toContain("output: {title: $title, summary: $summary, text: $text}");
 	});
 });
 
