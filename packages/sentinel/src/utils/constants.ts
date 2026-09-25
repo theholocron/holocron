@@ -20,6 +20,7 @@ export const SENTINEL_APP_NAME = "Sentinel";
 export const SENTINEL_NAMESPACES = {
 	platform: "Platform",
 	verification: "Verification",
+	sourceQuality: "Source Quality",
 } as const satisfies Record<string, string>;
 
 export const SENTINEL_AXIOM_ORG = "the-holocron-7bbe";
@@ -47,6 +48,8 @@ export function sentinelAxiomLogUrl(runId: string, msg: string): string {
 export const SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG = "postCheckRun: posted";
 /** Logged (and linked to) once `postCommitStandardsCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_COMMIT_STANDARDS_LOG_MSG = "postCommitStandardsCheck: posted";
+/** Logged (and linked to) once `postInclusiveLanguageCheck()` actually posts — never hand-copy this string elsewhere. */
+export const SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG = "postInclusiveLanguageCheck: posted";
 
 /**
  * Where the Bucket 2 dispatch mechanism's shared workflow lives
