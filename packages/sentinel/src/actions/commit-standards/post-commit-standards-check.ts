@@ -21,7 +21,7 @@
 
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_AXIOM_DATASET_URL, SENTINEL_NAMESPACES } from "../../utils/constants.js";
+import { SENTINEL_COMMIT_STANDARDS_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
 import type { CommitViolation, LintCommitsResult } from "./lint-commits.js";
 
 export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
@@ -76,7 +76,7 @@ export async function postCommitStandardsCheck(
 		status: "completed",
 		conclusion,
 		output: { title, summary, text },
-		details_url: SENTINEL_AXIOM_DATASET_URL,
+		details_url: sentinelAxiomLogUrl(runId, SENTINEL_COMMIT_STANDARDS_LOG_MSG),
 	});
 
 	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };

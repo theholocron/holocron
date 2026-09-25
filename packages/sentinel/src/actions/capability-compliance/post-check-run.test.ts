@@ -61,7 +61,13 @@ describe("postCheckRun — compliant", () => {
 			details_url: string;
 			output: { text: string };
 		};
-		expect(body.details_url).toBe("https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel");
+		// A permalink filtered to this exact log line, not the bare dataset —
+		// runId scopes it to the request, msg to this specific check within it.
+		const url = new URL(body.details_url);
+		expect(url.origin + url.pathname).toBe("https://app.axiom.co/the-holocron-7bbe/query");
+		const apl = (JSON.parse(url.searchParams.get("initForm")!) as { apl: string }).apl;
+		expect(apl).toContain('runId == "run-xyz"');
+		expect(apl).toContain('msg == "postCheckRun: posted"');
 		expect(body.output.text).toContain("Declared capabilities (2)");
 		expect(body.output.text).toContain("ci, source");
 		expect(body.output.text).toContain("all present");

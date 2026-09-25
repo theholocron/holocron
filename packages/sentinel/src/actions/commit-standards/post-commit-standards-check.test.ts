@@ -41,7 +41,13 @@ describe("postCommitStandardsCheck — valid", () => {
 		expect(body.head_sha).toBe("abc123");
 		expect(body.output.title).toBe("Commit standards: OK");
 		expect(body.output.summary).toBe("All 3 commit(s) pass.");
-		expect(body.details_url).toBe("https://app.axiom.co/the-holocron-7bbe/datasets/holocron-sentinel");
+		// A permalink filtered to this exact log line, not the bare dataset —
+		// runId scopes it to the request, msg to this specific check within it.
+		const url = new URL(body.details_url);
+		expect(url.origin + url.pathname).toBe("https://app.axiom.co/the-holocron-7bbe/query");
+		const apl = (JSON.parse(url.searchParams.get("initForm")!) as { apl: string }).apl;
+		expect(apl).toContain('runId == "run-1"');
+		expect(apl).toContain('msg == "postCommitStandardsCheck: posted"');
 		expect(body.output.text).toBe("Run ID: `run-1`");
 	});
 });

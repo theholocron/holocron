@@ -59,7 +59,12 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
-import { SENTINEL_DISPATCHABLE_TASK, SENTINEL_DISPATCHED_CHECK_NAME } from "./utils/constants.js";
+import {
+	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
+	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
+	SENTINEL_DISPATCHABLE_TASK,
+	SENTINEL_DISPATCHED_CHECK_NAME,
+} from "./utils/constants.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
@@ -241,6 +246,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				result: lintResult,
 				runId,
 			});
+			// Matches SENTINEL_COMMIT_STANDARDS_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{ repo, valid: lintResult.valid, violationCount: lintResult.violations.length },
+				SENTINEL_COMMIT_STANDARDS_LOG_MSG
+			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintCommits: failed, continuing without it");
 		}
@@ -269,6 +280,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		capabilities: Array.isArray(capabilities) ? capabilities : [],
 		runId,
 	});
+	// Matches SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG exactly -- the check's own
+	// details_url is a query filtered to find this precise line.
+	logger.info({ repo, conclusion: checkRun.conclusion }, SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG);
 
 	// Bucket 2 dispatch prototype (holocron#769/#794, tech-sentinel-ci-runner.spec.md):
 	// fires only for a repo that actually declares the one dispatchable task
