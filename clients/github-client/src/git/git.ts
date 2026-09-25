@@ -63,8 +63,16 @@ export function git(rest: RestClient) {
 		getTree: (repo: string, sha: string, recursive = false): Promise<GitTree> =>
 			rest.request<GitTree>(`${repoBase(repo)}/git/trees/${sha}${recursive ? "?recursive=1" : ""}`),
 
-		getContents: (repo: string, path: string): Promise<GitContents> =>
-			rest.request<GitContents>(`${repoBase(repo)}/contents/${path}`),
+		/**
+		 * `ref` defaults to the repo's default branch (GitHub's own default)
+		 * when omitted — the security-relevant choice every existing caller
+		 * relies on (D4/D6, `validateConfig()`'s own docstring). Pass it
+		 * explicitly to read a specific commit/branch's content instead — a
+		 * same-repo PR branch is no longer a new trust boundary for this org
+		 * (D6-amended, `tech-sentinel-ci-runner.spec.md`), just never a fork's.
+		 */
+		getContents: (repo: string, path: string, ref?: string): Promise<GitContents> =>
+			rest.request<GitContents>(`${repoBase(repo)}/contents/${path}`, ref ? { query: { ref } } : undefined),
 
 		createBlob: (repo: string, content: string, encoding = "utf-8"): Promise<GitBlob> =>
 			rest.request<GitBlob>(`${repoBase(repo)}/git/blobs`, {

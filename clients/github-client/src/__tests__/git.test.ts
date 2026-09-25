@@ -27,6 +27,27 @@ describe("git", () => {
 		expect(calls[0]?.url).toContain("?recursive=1");
 	});
 
+	it("GET /repos/{owner}/{name}/contents/{path}", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { content: "aGVsbG8=", encoding: "base64", sha: "file123", name: "README.md", path: "README.md" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.git.getContents(REPO, "README.md");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/contents/README.md");
+		expect(calls[0]?.url).not.toContain("?ref=");
+		expect(result.sha).toBe("file123");
+	});
+
+	it("GET /repos/{owner}/{name}/contents/{path}?ref={ref} when a ref is given", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { content: "aGVsbG8=", encoding: "base64", sha: "file123", name: "README.md", path: "README.md" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.getContents(REPO, "README.md", "pr-head-sha");
+		expect(calls[0]?.url).toContain("/contents/README.md");
+		expect(calls[0]?.url).toContain("ref=pr-head-sha");
+	});
+
 	it("POST /repos/{owner}/{name}/git/blobs", async () => {
 		const { fetch, calls } = stubFetch([{ body: { sha: "blob123", url: "" } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
