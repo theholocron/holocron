@@ -29,12 +29,24 @@
  * `UndefinedParserError` from `check()`/`format()` directly; `getFileInfo()`
  * reports `inferredParser: null` for it instead, letting this skip
  * cleanly rather than catching an exception as control flow).
+ *
+ * `overrides` resolution (holocron#829 follow-up — found live, a false
+ * positive on `alexrc.json`): `PRETTIER_CONFIG.overrides` is a `Config`-only
+ * field (`.prettierrc` semantics) that `resolveConfig()`'s file-system
+ * cascade normally applies — `check()`/`format()` themselves take
+ * `Options`, which has no `overrides` key at all and silently ignores it
+ * when spread in directly. Since Sentinel checks fetched content with no
+ * real file on disk, `resolveConfig()` (which requires an actual path to
+ * search from) isn't usable here — `resolveOverrideOptions()` below
+ * re-implements just enough of that matching (every entry here is a plain
+ * `*.ext` or `prefix*.ext` pattern, never a real glob) to merge the right
+ * override before calling `check()`/`format()`.
  */
 
 import { PRETTIER_IGNORE_PATTERNS } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";
 import PRETTIER_CONFIG from "@theholocron/prettier-config";
-import { check, format, getFileInfo } from "prettier";
+import { check, format, getFileInfo, type Options } from "prettier";
 
 import { decodeContents } from "../../utils/decode-contents.js";
 import { isIgnored } from "../../utils/is-ignored.js";
@@ -62,6 +74,35 @@ export interface LintFormattingResult {
 	/** Files prettier actually checked — narrower than every changed file, since files with no `inferredParser` (or matching `PRETTIER_IGNORE_PATTERNS`) are skipped entirely. */
 	fileCount: number;
 	messages: FormattingMessage[];
+}
+
+/** Matches a plain `*.ext` or `prefix*.ext` pattern against a bare filename — every `PRETTIER_CONFIG.overrides[].files` entry is one of these two shapes, never a real glob, so this is deliberately not a general-purpose matcher. */
+function matchesOverridePattern(basename: string, pattern: string): boolean {
+	const starIndex = pattern.indexOf("*");
+	/* istanbul ignore next -- every real PRETTIER_CONFIG.overrides[].files entry contains a "*" today; the exact-match branch is defensive, for a pattern shape that isn't in use yet */
+	if (starIndex === -1) return basename === pattern;
+	return basename.startsWith(pattern.slice(0, starIndex)) && basename.endsWith(pattern.slice(starIndex + 1));
+}
+
+/**
+ * Merges every matching `overrides` entry into the base config, in array
+ * order (later matches win per-key on conflict) — the same cumulative
+ * cascade `.prettierrc`'s own resolution uses, confirmed live against a
+ * real `resolveConfig()` call: a `tsconfig.json` matches *both* the
+ * `*.json` entry (`tabWidth`/`useTabs`) and the `tsconfig*.json` entry
+ * (`printWidth`), and real prettier applies both together, not just the
+ * first match. See the module docstring for why this exists instead of
+ * spreading `PRETTIER_CONFIG` (with its `overrides` key) directly into
+ * `check()`/`format()`'s options, which silently drops every override.
+ */
+function resolveOverrideOptions(filepath: string): Options {
+	// `?? filepath` is defensive: `.split("/")` always returns at least one
+	// element, so `.pop()` can never actually be undefined here.
+	/* istanbul ignore next */
+	const basename = filepath.split("/").pop() ?? filepath;
+	const { overrides, ...base } = PRETTIER_CONFIG;
+	const matches = overrides.filter((o) => o.files.some((pattern) => matchesOverridePattern(basename, pattern)));
+	return matches.reduce<Options>((acc, o) => ({ ...acc, ...o.options }), { ...base, filepath });
 }
 
 /** The first 1-indexed line where `original` and `formatted` diverge. */
@@ -93,7 +134,7 @@ export async function lintFormatting(input: LintFormattingInput): Promise<LintFo
 
 		const contents = await client.git.getContents(repo, target.filename, ref);
 		const text = decodeContents(contents.content);
-		const options = { ...PRETTIER_CONFIG, filepath: target.filename };
+		const options = resolveOverrideOptions(target.filename);
 		const isValid = await check(text, options);
 		if (isValid) continue;
 

@@ -80,6 +80,44 @@ describe("lintInclusiveLanguage — the org's canonical allow-list", () => {
 
 		expect(result).toEqual({ valid: true, fileCount: 1, messages: [] });
 	});
+
+	it("doesn't flag execute/execution -- found live, a false positive in ordinary CI/workflow writing", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("README.md")] },
+			{ status: 200, body: contentsBody("Execution of this workflow triggers the deploy step.") },
+		]);
+
+		const result = await lintInclusiveLanguage({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [] });
+	});
+});
+
+describe("lintInclusiveLanguage — per-message severity metadata", () => {
+	it("carries source and profanitySeverity through for a retext-profanities finding", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("README.md")] },
+			{ status: 200, body: contentsBody("Please don't kill the process abruptly.") },
+		]);
+
+		const result = await lintInclusiveLanguage({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result.messages[0]).toMatchObject({ ruleId: "kill", source: "retext-profanities" });
+		expect(typeof result.messages[0]?.profanitySeverity).toBe("number");
+	});
+
+	it("leaves source undefined for a retext-equality finding, which has no severity rating", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("README.md")] },
+			{ status: 200, body: contentsBody("He wrote this guide.") },
+		]);
+
+		const result = await lintInclusiveLanguage({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		const heShe = result.messages.find((m) => m.ruleId === "he-she");
+		expect(heShe?.source).toBe("retext-equality");
+		expect(heShe?.profanitySeverity).toBeUndefined();
+	});
 });
 
 describe("lintInclusiveLanguage — scoping", () => {
