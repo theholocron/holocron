@@ -36,23 +36,31 @@
  *   phase, not a general Bucket-2-task sweep. Runs *alongside* the existing
  *   GitHub Actions thin-caller for that same task, not instead of it, until
  *   this mechanism is trusted enough to replace it.
+ * - **PR Config Validation** (`validateConfig` against the PR's own head
+ *   ref, holocron#827): advisory, never required, deliberately separate
+ *   from capability compliance below — a PR proposing a new task/provider
+ *   gets real feedback on whether `holocron.config.ts` still parses and
+ *   declares only known tasks *immediately*, rather than only after
+ *   merge. `pull_request.*` only. Hoisted (not scoped to its own try) so
+ *   the auto-fix-commit gate further down reuses this same PR-branch read
+ *   instead of fetching it a second time.
  * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
  *   exception to every check above being config-free — opt-in via `{
  *   name: "sourceQuality.formatting", with: { autoFix: true } }` in
  *   `holocron.config.ts`'s `tasks` array, since writing to repo content is
- *   qualitatively different from reading and reporting. Checked via a
- *   *second* `validateConfig()` call reading the PR's own head ref
- *   (`ref`-aware since holocron#820's follow-up) — a PR inherits whatever's
- *   merged to main automatically (its branch started as a copy of it), and
- *   can also add the flag fresh in its own diff, with no main-branch merge
- *   required either way. Falls back to the main-derived flag too (OR'd),
- *   for a PR branch created before the flag was merged and never rebased
- *   since. Fires only when either resolves true *and* the Formatting check
- *   above actually found something to fix — reuses `lintFormatting()`'s
- *   already-computed `format()` output rather than re-running prettier.
- *   One atomic commit via the Git Data API (blob → tree → commit →
- *   ref-update), pushed directly onto the PR's own head branch. Requires
- *   `Contents: Write` — see the README's permissions table.
+ *   qualitatively different from reading and reporting. Reuses PR Config
+ *   Validation's own PR-branch read above — a PR inherits whatever's
+ *   merged to main automatically (its branch started as a copy of it),
+ *   and can also add the flag fresh in its own diff, with no main-branch
+ *   merge required either way. Falls back to the main-derived flag too
+ *   (OR'd), for a PR branch created before the flag was merged and never
+ *   rebased since. Fires only when either resolves true *and* the
+ *   Formatting check above actually found something to fix — reuses
+ *   `lintFormatting()`'s already-computed `format()` output rather than
+ *   re-running prettier. One atomic commit via the Git Data API (blob →
+ *   tree → commit → ref-update), pushed directly onto the PR's own head
+ *   branch. Requires `Contents: Write` — see the README's permissions
+ *   table.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -98,6 +106,7 @@ import { lintFormatting, type LintFormattingResult } from "./actions/formatting/
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
+import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
 import {
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
@@ -106,8 +115,9 @@ import {
 	SENTINEL_FORMATTING_FIX_LOG_MSG,
 	SENTINEL_FORMATTING_LOG_MSG,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
+	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
 } from "./utils/constants.js";
-import { validateConfig } from "./utils/validate-config.js";
+import { validateConfig, type ValidateConfigResult } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
 // Explicit token, not createLogger()'s own AXIOM_TOKEN auto-detection
@@ -391,6 +401,35 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// PR Config Validation (holocron#827) -- advisory, never required,
+	// deliberately separate from capability compliance below. Validates the
+	// PR's OWN branch (ref-aware validateConfig(), holocron#820's follow-up)
+	// so a PR proposing a new task/provider gets real feedback immediately,
+	// rather than only after merge. `prConfigResult` is hoisted so the
+	// auto-fix-commit gate further down reuses this same PR-branch read
+	// instead of fetching it a second time.
+	let prConfigValidationCheckRun;
+	let prConfigResult: ValidateConfigResult | undefined;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const result = await validateConfig({ client, repo, ref: context.headSha });
+			prConfigResult = result;
+			prConfigValidationCheckRun = await postPrConfigValidationCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result,
+				runId,
+			});
+			// Matches SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG exactly -- the
+			// check's own details_url is a query filtered to find this
+			// precise line.
+			logger.info({ repo, status: result.status }, SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "validateConfig (PR ref): failed, continuing without it");
+		}
+	}
+
 	const configResult = await validateConfig({ client, repo });
 	if (configResult.status !== "valid") {
 		logger.warn({ repo, result: configResult }, "validateConfig: not valid");
@@ -401,6 +440,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			commitStandardsCheckRun,
 			inclusiveLanguageCheckRun,
 			formattingCheckRun,
+			prConfigValidationCheckRun,
 		});
 	}
 
@@ -452,40 +492,31 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
 	// Auto-fix-commit (holocron#820) -- opt-in either via the repo's merged
 	// `with: { autoFix: true }` on the sourceQuality.formatting task, or via
-	// that same flag freshly added in the PR's own branch. A PR inherits
-	// whatever's already merged to main automatically (its branch started
-	// as a copy of it), and can also add the flag fresh in its own diff --
-	// no main-branch merge required either way. The PR-branch read only
-	// ever feeds this boolean decision, never anything persisted (see
-	// validate-config.ts's own module docstring for the boundary that
-	// keeps this safe) -- unlike every other check above, config-free by
-	// design, this is the one exception, since writing to repo content is
-	// qualitatively different from reading and reporting. Only fires when:
-	// either resolves true, lintFormatting actually ran and found
-	// something to fix, and this is a PR event with a real head branch to
-	// push to (a push to the default branch has no PR branch to commit
-	// onto). Soft-skip over hard-fail, same reasoning as every check
-	// above: a commit failure must never take capability compliance down
-	// with it.
+	// that same flag freshly added in the PR's own branch (reusing PR
+	// Config Validation's own PR-branch read above, holocron#827 -- no
+	// second fetch). A PR inherits whatever's already merged to main
+	// automatically (its branch started as a copy of it), and can also add
+	// the flag fresh in its own diff -- no main-branch merge required
+	// either way. The PR-branch read only ever feeds this boolean
+	// decision, never anything persisted (see validate-config.ts's own
+	// module docstring for the boundary that keeps this safe) -- unlike
+	// every other check above, config-free by design, this is the one
+	// exception, since writing to repo content is qualitatively different
+	// from reading and reporting. Only fires when: either resolves true,
+	// lintFormatting actually ran and found something to fix, and this is
+	// a PR event with a real head branch to push to (a push to the default
+	// branch has no PR branch to commit onto). Soft-skip over hard-fail,
+	// same reasoning as every check above: a commit failure must never
+	// take capability compliance down with it.
 	let formattingFixResult;
 	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
 	if (formattingLintResult && !formattingLintResult.valid && context.headRef) {
 		let autoFixOptedIn = formattingTask?.with?.["autoFix"] === true;
-		if (!autoFixOptedIn) {
-			try {
-				const prConfigResult = await validateConfig({ client, repo, ref: context.headSha });
-				if (prConfigResult.status === "valid") {
-					const prFormattingTask = (prConfigResult.config.tasks ?? [])
-						.map(normalizeTaskEntry)
-						.find((t) => t.name === "sourceQuality.formatting");
-					autoFixOptedIn = prFormattingTask?.with?.["autoFix"] === true;
-				}
-			} catch (err) {
-				logger.error(
-					{ repo, err: serializeError(err) },
-					"validateConfig (PR ref): failed, continuing without the PR-branch auto-fix opt-in check"
-				);
-			}
+		if (!autoFixOptedIn && prConfigResult?.status === "valid") {
+			const prFormattingTask = (prConfigResult.config.tasks ?? [])
+				.map(normalizeTaskEntry)
+				.find((t) => t.name === "sourceQuality.formatting");
+			autoFixOptedIn = prFormattingTask?.with?.["autoFix"] === true;
 		}
 
 		if (autoFixOptedIn) {
@@ -514,6 +545,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		commitStandardsCheckRun,
 		inclusiveLanguageCheckRun,
 		formattingCheckRun,
+		prConfigValidationCheckRun,
 		formattingFixResult,
 		dispatchedCheckRun,
 	});
