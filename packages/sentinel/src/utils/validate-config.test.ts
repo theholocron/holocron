@@ -69,6 +69,12 @@ describe("validateConfig", () => {
 		]);
 	});
 
+	// Real work, not a mock: writes the fetched source to a temp file and
+	// dynamically import()s it, which lazily registers tsx's ESM loader the
+	// first time a .ts config is loaded in this process (datapad's load.ts).
+	// The default 5000ms testTimeout is consistently too tight on CI's
+	// shared runners specifically (never seen locally) — found live,
+	// holocron#814, 3 flaky failures in a row, always ~5-6s.
 	it("executes holocron.config.ts through defineConfig imported from @theholocron/cli, matching the README's documented pattern", async () => {
 		const source = [
 			'import { defineConfig } from "@theholocron/cli";',
@@ -84,7 +90,7 @@ describe("validateConfig", () => {
 
 		expect(result.status).toBe("valid");
 		expect((result as { filepath: string }).filepath).toBe("holocron.config.ts");
-	});
+	}, 15000);
 
 	it("reports unknown-tasks when tasks includes a name outside the registry", async () => {
 		const { client } = makeClient([
