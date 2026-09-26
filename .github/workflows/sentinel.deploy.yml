@@ -1,0 +1,53 @@
+# Sentinel's own CI-based deploy (holocron#800). NOT astromech-templated —
+# this repo owns Sentinel directly (packages/sentinel/), so this workflow is
+# hand-maintained here rather than generated + synced to theholocron/.github
+# for other repos to use.
+#
+# Two triggers, not a replacement of the local `pnpm run delivery.deploy`
+# path (packages/sentinel/README.md's own "Deploying" section still applies
+# for a from-source-checkout deploy):
+#   - `workflow_dispatch` — manual, on demand, no local Vercel credentials
+#     or local build needed.
+#   - `push` to `main` (not `alpha`) touching `packages/sentinel/**` — this
+#     repo's stable/prerelease split (CLAUDE.md's Releases section) means
+#     Sentinel only redeploys once work is promoted to the stable channel,
+#     not on every alpha merge. `main`'s branch protection only allows
+#     squash-merges, so this `push` trigger only ever fires on a real merge.
+#
+# `pnpm run delivery.deploy` (build → stage → `holocron deploy`) stays the
+# actual mechanism this invokes — the same command a human runs locally,
+# per D8's "one engine" convention.
+name: Sentinel Deploy
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/sentinel/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: sentinel-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build, stage, and deploy
+        working-directory: packages/sentinel
+        run: pnpm run delivery.deploy

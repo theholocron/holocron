@@ -38,9 +38,13 @@
  * entry-point convention and reading its real secrets into `Env` — is
  * the still-open "Sentinel's own holocron.config.ts" PR-stack item.
  *
- * `Env` fields this handler expects (wired via `holocron secrets sync`
- * once the still-open "Secrets flow" PR-stack item lands):
- * `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`.
+ * `Env` fields this handler expects, wired via `holocron secrets sync`
+ * (holocron#781) from Doppler's `sentinel`/`prd` config: `GITHUB_APP_ID`,
+ * `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`. The module-level
+ * logger below reads two more via `@theholocron/env-utils` (see its own
+ * comment — never bare `process.env`, this org's own convention) — not
+ * through this `Env` parameter, since it's built once at module load,
+ * before any request (and its `env`) exists.
  *
  * v1 scope only: `installation.created`/`installation.deleted` are
  * acknowledged, not acted on — no per-installation action is defined yet.
@@ -57,6 +61,7 @@
  */
 
 import { normalizeTaskEntry } from "@theholocron/astromech/config";
+import { createEnvLookup } from "@theholocron/env-utils";
 import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
@@ -78,13 +83,24 @@ import {
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
-// createLogger() with no options auto-detects AXIOM_TOKEN/AXIOM_DATASET
-// from process.env (holocron#780) -- wired directly on the Vercel project
-// rather than through holocron secrets sync, which needs its own vault
-// config Sentinel doesn't have yet (holocron#781). `runId` is threaded
-// into every check run's own output.text so a viewer can find the exact
-// invocation's structured log line in Axiom without leaving GitHub.
-const { logger, runId } = createLogger();
+// Explicit token, not createLogger()'s own AXIOM_TOKEN auto-detection
+// (holocron#780/#781): SENTINEL_AXIOM_INGEST_TOKEN is a separate,
+// narrower-scoped (ingest-only) token, deliberately distinct from
+// whatever a broader AXIOM_TOKEN might mean elsewhere in this org — using
+// the generic auto-detected name here would silently widen the
+// credential this deployment actually needs. Falls back to no Axiom
+// transport (not a throw) when either var is unset, matching
+// createLogger()'s own "absent → no transport" contract — true in every
+// test run, and in any environment before the two Doppler-sourced values
+// have been synced to Vercel. `runId` is threaded into every check run's
+// own output.text so a viewer can find the exact invocation's structured
+// log line in Axiom without leaving GitHub.
+const env = createEnvLookup();
+const axiomToken = env.get("SENTINEL_AXIOM_INGEST_TOKEN");
+const axiomDataset = env.get("AXIOM_DATASET");
+const { logger, runId } = createLogger(
+	axiomToken && axiomDataset ? { axiom: { token: axiomToken, dataset: axiomDataset } } : {}
+);
 
 export interface Env {
 	GITHUB_APP_ID: string;

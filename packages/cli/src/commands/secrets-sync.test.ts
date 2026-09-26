@@ -258,6 +258,115 @@ describe("runSecretsSync", () => {
 		expect(failedRow?.message).toBe("403 forbidden string");
 	});
 
+	it("githubSecretKeys restricts secrets to only the listed keys", async () => {
+		const setSecretCalls: Array<{ name: string }> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ INGEST_TOKEN: "t", OTHER_KEY: "o", DEPLOY_ONLY: "d" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => {
+						setSecretCalls.push({ name });
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			githubSecretKeys: ["INGEST_TOKEN"],
+			loader,
+			print: () => {},
+		});
+
+		expect(setSecretCalls).toEqual([{ name: "INGEST_TOKEN" }]);
+		expect(report.summary.ok).toBe(1);
+	});
+
+	it("githubSecretScope: organization passes the given scope straight through to setSecret", async () => {
+		const scopesSeen: unknown[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ ORG_TOKEN: "t" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (scope: unknown) => {
+						scopesSeen.push(scope);
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			githubSecretKeys: ["ORG_TOKEN"],
+			githubSecretScope: { kind: "organization", name: "theholocron" },
+			loader,
+			print: () => {},
+		});
+
+		expect(scopesSeen).toEqual([{ kind: "organization", name: "theholocron" }]);
+		expect(report.summary.ok).toBe(1);
+	});
+
+	it("githubSecretScope: environment scope routes to the environment endpoint", async () => {
+		const scopesSeen: unknown[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ ENV_TOKEN: "t" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (scope: unknown) => {
+						scopesSeen.push(scope);
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			githubSecretScope: { kind: "environment", name: "production" },
+			loader,
+			print: () => {},
+		});
+
+		expect(scopesSeen).toEqual([{ kind: "environment", name: "production" }]);
+		expect(report.summary.ok).toBe(1);
+	});
+
 	it("soft-skips individual key failures (continues with other keys)", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

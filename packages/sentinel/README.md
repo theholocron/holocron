@@ -161,8 +161,11 @@ orgs/accounts unchanged.
 A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
-SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync` once that
-PR-stack item lands. `installation.created`/`installation.deleted` are
+SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Two more
+Doppler-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
+feed the module-level logger directly, via `@theholocron/env-utils`
+(never bare `process.env`, this org's own convention) — see
+`src/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
 acknowledged only — no per-installation action is defined in v1.
 `push.default-branch` and `pull_request.opened`/`synchronize` run the
 identical pipeline (D8, same engine — only the commit SHA the check run
@@ -187,6 +190,15 @@ providers.
 ```bash
 pnpm run delivery.deploy
 ```
+
+**CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.deploy.yml`
+runs this same command on every merge to `main` (not `alpha` — this repo's
+stable channel only, matching the release-branch split in the repo root's
+`CLAUDE.md`), scoped to `packages/sentinel/**` changes, or on demand via
+`gh workflow run sentinel.deploy.yml`. Hand-maintained directly in this
+repo, not astromech-templated — Sentinel is owned here, not synced to
+`theholocron/.github` for other repos to use. See `docs/tokens.md` (repo
+root) for the `VERCEL_TOKEN` repo secret it needs.
 
 A real, production deploy — there's no separate staging/dev
 environment for Sentinel (see "Why production only" below). Builds,
@@ -328,16 +340,48 @@ one, so only do this once and store the result immediately.
 Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
 the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
 Doppler first — see `holocron.config.ts` in this directory for the
-`vault` provider wiring — then out to Vercel's env vars:
+`vault` provider wiring — then out to Vercel's env vars. Two more keys
+already live in the same Doppler config for the Axiom log-shipping
+transport (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a
+narrower-scoped, ingest-only token — deliberately not the same
+credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
+`AXIOM_DATASET` (`holocron-sentinel`, not a secret, but synced the same
+way for one source of truth).
 
 ```sh
-holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production
+holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production \
+  --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
+  --org theholocron --token github=$(gh auth token)
 ```
+
+**CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.secretsSync.yml`
+runs the same invocation via `gh workflow run sentinel.secretsSync.yml`
+(`workflow_dispatch` only, never automatic — matches "run once after
+registration, again only when a secret rotates" below). Uses a dedicated
+`HOLOCRON_SECRETS_TOKEN` repo secret in place of `gh auth token`, since CI
+has no equivalent of a human's already-authenticated session — see
+`docs/tokens.md`'s "CI-only exception: org-scoped secret writes" (repo
+root) for why a new, narrowly-scoped token rather than widening an existing
+one.
 
 - **`--target production` only.** Sentinel has no branch-based preview
   deployments (`deployFunction()` ships inline files, no Git-linked
   preview flow) — the command's `production`+`preview` default would
   create a `preview`-target env var here that nothing ever reads.
+- **`--github-secret`/`--github-secret-scope`.** Of the 5 Doppler keys,
+  only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
+  (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
+  needs **org** scope, since any repo with Bucket 2 dispatch enabled
+  needs `.github`'s workflow to see it, not only this one. Omitting
+  these two flags would push every key as a pointless repo secret on
+  `holocron` instead (nothing there reads them).
+- **`--token github=$(gh auth token)`.** None of holocron's own
+  provisioned GitHub tokens (`docs/tokens.md`, repo root) carry the
+  org-level Secrets permission this write needs — `github.admin` is
+  repo-scoped, `github.org` doesn't include it. Your own `gh` CLI
+  session already has it (it's almost certainly how this org secret
+  was first set) — reuse it inline rather than provisioning a new
+  token for one recurring write.
 - **Manual, on-demand — not part of `delivery.deploy`.** Run it once
   after registration, and again only when a secret actually rotates.
   Wiring it into every recurring deploy would re-push unchanged
