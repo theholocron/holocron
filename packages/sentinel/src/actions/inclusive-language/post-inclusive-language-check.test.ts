@@ -163,6 +163,120 @@ describe("postInclusiveLanguageCheck — inline annotations (holocron#816)", () 
 		]);
 	});
 
+	it("elevates a retext-profanities message with profanitySeverity >= 1 to warning (holocron#816 follow-up)", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 9, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						column: 1,
+						reason: "Be careful with `asshat`",
+						ruleId: "asshat",
+						source: "retext-profanities",
+						profanitySeverity: 2,
+					},
+				],
+			},
+			runId: "run-9",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ annotation_level: string }> } };
+		expect(body.output.annotations[0]?.annotation_level).toBe("warning");
+	});
+
+	it("keeps a retext-profanities message at notice when profanitySeverity is 0 -- likely a false positive (e.g. execute/kill)", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 10, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						column: 1,
+						reason: "Be careful with `kill`",
+						ruleId: "kill",
+						source: "retext-profanities",
+						profanitySeverity: 0,
+					},
+				],
+			},
+			runId: "run-10",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ annotation_level: string }> } };
+		expect(body.output.annotations[0]?.annotation_level).toBe("notice");
+	});
+
+	it("keeps a retext-profanities message at notice when profanitySeverity is entirely absent, not just 0", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 12, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						column: 1,
+						reason: "Be careful with `beaver`",
+						ruleId: "beaver",
+						source: "retext-profanities",
+					},
+				],
+			},
+			runId: "run-12",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ annotation_level: string }> } };
+		expect(body.output.annotations[0]?.annotation_level).toBe("notice");
+	});
+
+	it("keeps a retext-equality message at notice regardless -- no severity rating to elevate on", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 11, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						column: 1,
+						reason: "`He` may be insensitive, use `They` instead",
+						ruleId: "he-she",
+						source: "retext-equality",
+					},
+				],
+			},
+			runId: "run-11",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ annotation_level: string }> } };
+		expect(body.output.annotations[0]?.annotation_level).toBe("notice");
+	});
+
 	it("omits start/end_column when column is 0 (alex's own fallback for a column-less message)", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
 
