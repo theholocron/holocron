@@ -165,9 +165,11 @@ three more independent Bucket 1 check pipelines — commit standards
 holocron#819) — the Bucket 2 dispatch prototype, the auto-fix-commit
 capability (holocron#820, formatting only for now — opt in via the
 repo's merged config or fresh in a PR's own branch, either way), and the
-advisory PR Config Validation check (holocron#827 — validates a PR's own
-branch immediately, without waiting for merge, kept separate from the
-required Capability Compliance check above), all through an
+advisory PR Config Validation check (holocron#827 — posted as `Platform
+/ Capability Compliance (pull_request)`, a "(pull_request)" suffix on
+the same concept, not a distinct name; validates a PR's own branch
+immediately, without waiting for merge, kept separate from the required
+`Platform / Capability Compliance` check above), all through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
 webhook payload itself (D10), so one App registration handles
