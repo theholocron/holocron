@@ -55,6 +55,7 @@ describe("lintFormatting — a file that needs reformatting", () => {
 				file: "src/index.js",
 				line: 1,
 				reason: "Not formatted according to this org's shared prettier config — run `prettier --write` to fix.",
+				formatted: "const x = 1;\n",
 			},
 		]);
 	});

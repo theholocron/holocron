@@ -154,7 +154,9 @@ Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
 three more independent Bucket 1 check pipelines — commit standards
 (commitlint), inclusive language (alex), and formatting (prettier,
-holocron#819) — plus the Bucket 2 dispatch prototype, all through an
+holocron#819) — the Bucket 2 dispatch prototype, and the auto-fix-commit
+capability (holocron#820, opt-in per repo, formatting only for now), all
+through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
 webhook payload itself (D10), so one App registration handles
@@ -304,16 +306,24 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 ### Repository permissions
 
-| Permission        | Access | Why                                                                                   |
-| ----------------- | ------ | ------------------------------------------------------------------------------------- |
-| Contents          | Read   | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree |
-| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                       |
-| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties       |
-| Pull requests     | Read   | required to _receive_ `pull_request` webhook events (v1 never writes PR comments)     |
-| Metadata          | Read   | mandatory baseline — auto-included                                                    |
+| Permission        | Access | Why                                                                                                                                                                                           |
+| ----------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), opt-in per repo |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                               |
+| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                               |
+| Pull requests     | Read   | required to _receive_ `pull_request` webhook events (never writes PR comments yet — #674)                                                                                                     |
+| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                            |
 
-No other permissions — v1 never writes to Contents, never comments,
-never touches Actions/Administration.
+No other permissions — never comments, never touches Actions/Administration.
+
+**Contents bumped from Read to Write for holocron#820** — a real permission
+escalation, not something code or an API call can grant. Update it in the
+App's own settings page (Settings → Developer settings → GitHub Apps →
+Holocron Sentinel → Permissions & events), then accept the updated
+permissions for the `theholocron` installation. Every other repo's Bucket 1
+checks are unaffected either way — only a repo that opts in via `with: {
+autoFix: true }` (see `handleWebhookRequest`'s own docstring in
+`src/handler.ts`) ever triggers a write.
 
 ### Subscribe to events
 

@@ -1,5 +1,5 @@
 /**
- * The webhook receiver's core logic — wires three independent check
+ * The webhook receiver's core logic — wires several independent check
  * pipelines into a single Fetch-API request handler, all through an
  * installation-scoped `GitHubClient` (D10: the installation id always
  * comes from the webhook payload itself, never hardcoded, so one App
@@ -36,6 +36,17 @@
  *   phase, not a general Bucket-2-task sweep. Runs *alongside* the existing
  *   GitHub Actions thin-caller for that same task, not instead of it, until
  *   this mechanism is trusted enough to replace it.
+ * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
+ *   exception to every check above being config-free — opt-in per repo via
+ *   `{ name: "sourceQuality.formatting", with: { autoFix: true } }` in
+ *   `holocron.config.ts`'s `tasks` array, since writing to repo content is
+ *   qualitatively different from reading and reporting. Fires only when
+ *   the repo opted in *and* the Formatting check above actually found
+ *   something to fix — reuses `lintFormatting()`'s already-computed
+ *   `format()` output rather than re-running prettier. One atomic commit
+ *   via the Git Data API (blob → tree → commit → ref-update), pushed
+ *   directly onto the PR's own head branch. Requires `Contents: Write` —
+ *   see the README's permissions table.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -76,7 +87,8 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
-import { lintFormatting } from "./actions/formatting/lint-formatting.js";
+import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
+import { lintFormatting, type LintFormattingResult } from "./actions/formatting/lint-formatting.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
@@ -85,6 +97,7 @@ import {
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
+	SENTINEL_FORMATTING_FIX_LOG_MSG,
 	SENTINEL_FORMATTING_LOG_MSG,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
 } from "./utils/constants.js";
@@ -144,6 +157,8 @@ interface ResolutionContext {
 	headSha: string;
 	/** Only present for `pull_request.*` events — `lintCommits()`'s own input. `push.default-branch` has no PR to fetch commits from. */
 	pullNumber?: number;
+	/** Only present for `pull_request.*` events — the PR's head *branch name*, not a SHA. `commitFormattingFix()`'s own `updateRef()` input (holocron#820); nothing else needs it. */
+	headRef?: string;
 }
 
 /**
@@ -158,7 +173,7 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 	const raw = event.raw as {
 		repository?: { default_branch?: string };
 		after?: string;
-		pull_request?: { number?: number; head?: { sha?: string } };
+		pull_request?: { number?: number; head?: { sha?: string; ref?: string } };
 	};
 	const defaultBranch = raw.repository?.default_branch;
 	const headSha = event.type === "push.default-branch" ? raw.after : raw.pull_request?.head?.sha;
@@ -167,7 +182,12 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 			`${event.type}: payload missing repository.default_branch or the commit SHA to check`
 		);
 	}
-	return { defaultBranch, headSha, pullNumber: raw.pull_request?.number };
+	return {
+		defaultBranch,
+		headSha,
+		pullNumber: raw.pull_request?.number,
+		headRef: raw.pull_request?.head?.ref,
+	};
 }
 
 /** Handles one inbound webhook request. Platform adapters call this directly — no `{ fetch }` wrapper required. */
@@ -327,8 +347,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	}
 
 	// Same PR-only scoping and soft-skip reasoning as commit standards/
-	// inclusive language above.
+	// inclusive language above. `formattingLintResult` is hoisted (not
+	// declared inside the try) so the auto-fix-commit gate further down
+	// (holocron#820, after config validation) can read it without re-running
+	// lintFormatting a second time.
 	let formattingCheckRun;
+	let formattingLintResult: LintFormattingResult | undefined;
 	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
 		try {
 			const lintResult = await lintFormatting({
@@ -337,6 +361,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				pullNumber: context.pullNumber,
 				ref: context.headSha,
 			});
+			formattingLintResult = lintResult;
 			formattingCheckRun = await postFormattingCheck({
 				client,
 				repo,
@@ -402,7 +427,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// Soft-skip over hard-fail, same reasoning as commit standards above: a
 	// dispatch failure must never take capability compliance down with it.
 	let dispatchedCheckRun;
-	const taskNames = (configResult.config.tasks ?? []).map(normalizeTaskEntry).map((t) => t.name);
+	const normalizedTasks = (configResult.config.tasks ?? []).map(normalizeTaskEntry);
+	const taskNames = normalizedTasks.map((t) => t.name);
 	if (taskNames.includes(SENTINEL_DISPATCHABLE_TASK)) {
 		try {
 			dispatchedCheckRun = await dispatchCheck({
@@ -418,6 +444,39 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Auto-fix-commit (holocron#820) -- opt-in per repo via `with: { autoFix:
+	// true }` on the sourceQuality.formatting task entry, unlike every other
+	// Bucket 1 check above (config-free by design). Only fires when: the
+	// repo opted in, lintFormatting actually ran and found something to fix,
+	// and this is a PR event with a real head branch to push to (a push to
+	// the default branch has no PR branch to commit onto). Soft-skip over
+	// hard-fail, same reasoning as every check above: a commit failure must
+	// never take capability compliance down with it.
+	let formattingFixResult;
+	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
+	if (
+		formattingTask?.with?.["autoFix"] === true &&
+		formattingLintResult &&
+		!formattingLintResult.valid &&
+		context.headRef
+	) {
+		try {
+			formattingFixResult = await commitFormattingFix({
+				client,
+				repo,
+				headSha: context.headSha,
+				headRef: context.headRef,
+				result: formattingLintResult,
+			});
+			logger.info(
+				{ repo, committed: formattingFixResult.committed, fileCount: formattingFixResult.fileCount },
+				SENTINEL_FORMATTING_FIX_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
+		}
+	}
+
 	return json({
 		handled: true,
 		type: event.type,
@@ -425,6 +484,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		commitStandardsCheckRun,
 		inclusiveLanguageCheckRun,
 		formattingCheckRun,
+		formattingFixResult,
 		dispatchedCheckRun,
 	});
 }
