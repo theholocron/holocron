@@ -182,7 +182,7 @@ security find-generic-password -s "com.theholocron.cli" -a "vercel" -w | gh secr
 
 macOS will prompt to approve keychain access the first time — allow it.
 A dedicated CI-only token (generated at `vercel.com/account/tokens`) works
-just as well if you'd rather keep local and CI usage separated; there's no
+as well if you'd rather keep local and CI usage separated; there's no
 scoped-down "service token" alternative either way, since Vercel doesn't
 have one.
 

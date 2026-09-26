@@ -371,7 +371,7 @@ one.
   only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
   (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
   needs **org** scope, since any repo with Bucket 2 dispatch enabled
-  needs `.github`'s workflow to see it, not just this one. Omitting
+  needs `.github`'s workflow to see it, not only this one. Omitting
   these two flags would push every key as a pointless repo secret on
   `holocron` instead (nothing there reads them).
 - **`--token github=$(gh auth token)`.** None of holocron's own
