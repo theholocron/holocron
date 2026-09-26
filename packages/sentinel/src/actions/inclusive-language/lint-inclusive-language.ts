@@ -50,6 +50,17 @@ export interface InclusiveLanguageMessage {
 	/** commitlint's own message for the failure, e.g. "`He` may be insensitive, use `They`, `It` instead". */
 	reason: string;
 	ruleId: string;
+	/** Which underlying retext plugin raised this — `"retext-profanities"` (violent/vulgar wording) or `"retext-equality"` (gendered/insensitive phrasing), the two `alex` bundles. Drives `post-inclusive-language-check.ts`'s per-message annotation severity. */
+	source?: string;
+	/**
+	 * `retext-profanities`-only: `cuss`'s 0-2 sureness rating for how likely
+	 * `actual` is used as profanity rather than clean text (0 = "beaver",
+	 * unlikely; 2 = "asshat", likely) — not how severe the word itself is.
+	 * Not a field `vfile-message`'s own type declares (each retext plugin
+	 * attaches its own extra data to the message object at runtime), hence
+	 * the cast at the one call site that reads it.
+	 */
+	profanitySeverity?: number;
 }
 
 export interface LintInclusiveLanguageResult {
@@ -81,6 +92,13 @@ export async function lintInclusiveLanguage(input: LintInclusiveLanguageInput): 
 				column: m.column ?? 0,
 				reason: m.reason,
 				ruleId: m.ruleId ?? "unknown",
+				// `m.source` is typed `string | null` by the vfile-message version
+				// alex resolves to; every real retext plugin (profanities,
+				// equality) always sets a real string, so the null branch is
+				// defensive only, not reachable through real alex output.
+				/* istanbul ignore next -- see comment above */
+				source: m.source ?? undefined,
+				profanitySeverity: (m as unknown as { profanitySeverity?: number }).profanitySeverity,
 			});
 		}
 	}
