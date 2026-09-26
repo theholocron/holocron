@@ -93,6 +93,39 @@ holocron clone --token github=ghp_xxx theholocron
 holocron sync-github --token github=ghp_zzz
 ```
 
+### CI-only exception: org-scoped secret writes
+
+`secrets sync`'s `secrets` (GH Actions) destination always resolves through
+`HOLOCRON_ADMIN_TOKEN`/`github.admin` by default — same as `setup`,
+`doctor`, and `secret-set` — a **repo-scoped** fine-grained PAT. Writing an
+**organization**-scoped secret (`--github-secret-scope org=<name>`, e.g.
+Sentinel's `SENTINEL_AXIOM_INGEST_TOKEN` — holocron#781/#800) needs a
+different, org-resource-owner credential with the org-level `secrets:
+read/write` permission — none of the 7 tokens above carry it (`github.admin`
+is repo-scoped; `github.org` is org-scoped but for
+administration/members/properties, not secrets).
+
+Rather than widening an existing token's blast radius, `.github/workflows/
+sentinel.secretsSync.yml` passes a dedicated one via the explicit-override
+form above: `--token github=${{ secrets.HOLOCRON_SECRETS_TOKEN }}`. This is
+a repo secret on `holocron` only (not a `HOLOCRON_<FEATURE>_TOKEN` env var
+in the resolution chain — it only ever reaches the CLI via `--token`, never
+by env-var auto-detection), so it can't accidentally widen what any other
+command's default resolution picks up. Locally, the equivalent is `--token
+github=$(gh auth token)` — your own already-authenticated `gh` CLI session
+already has org-secrets permission (it's almost certainly how this secret
+was set in the first place), so no dedicated token is needed for a one-off
+manual run outside CI.
+
+**Provisioning `HOLOCRON_SECRETS_TOKEN`** (one-time): a fine-grained PAT,
+resource owner **organization** (`theholocron`), with only the
+organization-level **Secrets: read/write** permission — nothing else.
+Store it as a repo secret on `holocron`:
+
+```sh
+gh secret set HOLOCRON_SECRETS_TOKEN --repo theholocron/holocron
+```
+
 ---
 
 # Third-party provider tokens
@@ -128,6 +161,26 @@ export FERN_TOKEN=<token>
 **CI (GitHub Actions):** add `HOLOCRON_FERN_TOKEN` as a repository or org
 secret. The `wiki.yml` reusable workflow picks it up via `secrets: inherit`
 and maps it to `FERN_TOKEN` for the Fern CLI.
+
+## Vercel + Doppler (Sentinel's CI, `.github/workflows/sentinel.*.yml`)
+
+Sentinel's two hand-maintained workflows (holocron#800) — `sentinel.deploy.yml`
+and `sentinel.secretsSync.yml` — read these as plain repo secrets on `holocron`
+(not the `HOLOCRON_<FEATURE>_TOKEN` chain — `holocron-plugin-vercel`/
+`holocron-plugin-doppler` fall back to each vendor's own native env var name
+directly):
+
+| Secret                   | Vendor env var  | Used by                                                                      | Scope                                                                                                                                                                                                                                      |
+| ------------------------ | --------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VERCEL_TOKEN`           | `VERCEL_TOKEN`  | both workflows — `holocron deploy`/`secrets sync`'s `deployment` destination | A Vercel personal access token (Vercel has no separate "service token" concept) — same one `holocron auth set vercel <token>` stores locally                                                                                               |
+| `SENTINEL_DOPPLER_TOKEN` | `DOPPLER_TOKEN` | `sentinel.secretsSync.yml` only — reads the vault                            | A Doppler **Service Token** scoped to the `sentinel` project's `prd` config, **read-only** — CI only ever reads, never writes, so a scoped-down service token (not the personal CLI login token used locally) is the right credential here |
+
+Provision both as repo secrets on `holocron`:
+
+```sh
+gh secret set VERCEL_TOKEN --repo theholocron/holocron
+gh secret set SENTINEL_DOPPLER_TOKEN --repo theholocron/holocron
+```
 
 Password protection is configured in the Fern Dashboard only — no token is
 needed for `holocron setup`.

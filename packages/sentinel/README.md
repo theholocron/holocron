@@ -190,6 +190,15 @@ providers.
 pnpm run delivery.deploy
 ```
 
+**CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.deploy.yml`
+runs this same command on every merge to `main` (not `alpha` — this repo's
+stable channel only, matching the release-branch split in the repo root's
+`CLAUDE.md`), scoped to `packages/sentinel/**` changes, or on demand via
+`gh workflow run sentinel.deploy.yml`. Hand-maintained directly in this
+repo, not astromech-templated — Sentinel is owned here, not synced to
+`theholocron/.github` for other repos to use. See `docs/tokens.md` (repo
+root) for the `VERCEL_TOKEN` repo secret it needs.
+
 A real, production deploy — there's no separate staging/dev
 environment for Sentinel (see "Why production only" below). Builds,
 assembles the deploy payload, then calls `holocron deploy --files
@@ -343,6 +352,16 @@ holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target
   --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
   --org theholocron --token github=$(gh auth token)
 ```
+
+**CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.secretsSync.yml`
+runs the same invocation via `gh workflow run sentinel.secretsSync.yml`
+(`workflow_dispatch` only, never automatic — matches "run once after
+registration, again only when a secret rotates" below). Uses a dedicated
+`HOLOCRON_SECRETS_TOKEN` repo secret in place of `gh auth token`, since CI
+has no equivalent of a human's already-authenticated session — see
+`docs/tokens.md`'s "CI-only exception: org-scoped secret writes" (repo
+root) for why a new, narrowly-scoped token rather than widening an existing
+one.
 
 - **`--target production` only.** Sentinel has no branch-based preview
   deployments (`deployFunction()` ships inline files, no Git-linked
