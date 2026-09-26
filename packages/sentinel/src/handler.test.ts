@@ -14,6 +14,7 @@ vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckR
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
 vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
+vi.mock("./actions/formatting/commit-formatting-fix.js", () => ({ commitFormattingFix: vi.fn() }));
 vi.mock("./actions/formatting/lint-formatting.js", () => ({ lintFormatting: vi.fn() }));
 vi.mock("./actions/formatting/post-formatting-check.js", () => ({ postFormattingCheck: vi.fn() }));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
@@ -30,6 +31,7 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
+import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting } from "./actions/formatting/lint-formatting.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
@@ -65,6 +67,7 @@ beforeEach(() => {
 	vi.mocked(dispatchCheck).mockReset();
 	vi.mocked(lintFormatting).mockReset();
 	vi.mocked(postFormattingCheck).mockReset();
+	vi.mocked(commitFormattingFix).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -604,6 +607,105 @@ describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 		expect(postCheckRun).toHaveBeenCalled();
 		const body = (await res.json()) as { dispatchedCheckRun: unknown; checkRun: unknown };
 		expect(body.dispatchedCheckRun).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+});
+
+describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
+	function prEvent() {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha", ref: "feature-branch" } },
+			},
+		};
+	}
+
+	const invalidLintResult = {
+		valid: false,
+		fileCount: 1,
+		messages: [{ file: "src/index.js", line: 1, reason: "reformat me", formatted: "const x = 1;\n" }],
+	};
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 2, conclusion: "neutral", htmlUrl: "" });
+	});
+
+	it("commits the fix when the repo opted in and lintFormatting found something to fix", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: true } }] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			headRef: "feature-branch",
+			result: invalidLintResult,
+		});
+		const body = (await res.json()) as { formattingFixResult: unknown };
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("does not commit when the repo has not opted in via with: { autoFix: true }", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["sourceQuality.formatting"] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+		const body = (await res.json()) as { formattingFixResult: unknown };
+		expect(body.formattingFixResult).toBeUndefined();
+	});
+
+	it("does not commit when lintFormatting reports the PR is already valid", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: true } }] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue({ valid: true, fileCount: 2, messages: [] });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+	});
+
+	it("soft-skips a commitFormattingFix failure -- capability compliance still posts, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: true } }] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitFormattingFix).mockRejectedValue(new Error("git commit failed"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { formattingFixResult: unknown; checkRun: unknown };
+		expect(body.formattingFixResult).toBeUndefined();
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
 	});
 });

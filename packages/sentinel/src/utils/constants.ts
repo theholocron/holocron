@@ -52,6 +52,8 @@ export const SENTINEL_COMMIT_STANDARDS_LOG_MSG = "postCommitStandardsCheck: post
 export const SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG = "postInclusiveLanguageCheck: posted";
 /** Logged (and linked to) once `postFormattingCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_FORMATTING_LOG_MSG = "postFormattingCheck: posted";
+/** Logged once `commitFormattingFix()` actually commits a fix (holocron#820) — never hand-copy this string elsewhere. */
+export const SENTINEL_FORMATTING_FIX_LOG_MSG = "commitFormattingFix: committed";
 
 /**
  * Where the Bucket 2 dispatch mechanism's shared workflow lives
