@@ -17,6 +17,13 @@
  *   `.notes/tech-sentinel-enforcement.spec.md`) — runs independent of
  *   `validateConfig()`'s result, since it never reads `holocron.config.ts`
  *   at all.
+ * - **Inclusive language** (`lintInclusiveLanguage → postInclusiveLanguageCheck`,
+ *   holocron#769/#793): `pull_request.*` only, same reason as commit
+ *   standards — needs the PR's own changed-files list. Config-free in the
+ *   same sense: reads the org's canonical `ALEX_CONFIG` directly, never a
+ *   per-repo file. `conclusion: "neutral"` on findings, not `"failure"` —
+ *   advisory suggestions, reporting-only for this phase, same rollout
+ *   shape commit standards used before it was ever made required.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -59,11 +66,14 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
+import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
+import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
 import {
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
+	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
 } from "./utils/constants.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -257,10 +267,51 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Same PR-only scoping and soft-skip reasoning as commit standards above
+	// -- a push has no PR changed-files list to fetch, and a failure here
+	// must never take capability compliance down with it.
+	let inclusiveLanguageCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const lintResult = await lintInclusiveLanguage({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			inclusiveLanguageCheckRun = await postInclusiveLanguageCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG exactly -- the check's
+			// own details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: lintResult.valid,
+					fileCount: lintResult.fileCount,
+					messageCount: lintResult.messages.length,
+				},
+				SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintInclusiveLanguage: failed, continuing without it");
+		}
+	}
+
 	const configResult = await validateConfig({ client, repo });
 	if (configResult.status !== "valid") {
 		logger.warn({ repo, result: configResult }, "validateConfig: not valid");
-		return json({ handled: true, type: event.type, config: configResult.status, commitStandardsCheckRun });
+		return json({
+			handled: true,
+			type: event.type,
+			config: configResult.status,
+			commitStandardsCheckRun,
+			inclusiveLanguageCheckRun,
+		});
 	}
 
 	const { properties } = await syncPropertiesFromConfig({
@@ -308,5 +359,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
-	return json({ handled: true, type: event.type, checkRun, commitStandardsCheckRun, dispatchedCheckRun });
+	return json({
+		handled: true,
+		type: event.type,
+		checkRun,
+		commitStandardsCheckRun,
+		inclusiveLanguageCheckRun,
+		dispatchedCheckRun,
+	});
 }

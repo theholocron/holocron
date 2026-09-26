@@ -50,6 +50,7 @@
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/observability": "catalog:",
+    "alex": "catalog:",
     "tsx": "catalog:"
   },
   "devDependencies": {
