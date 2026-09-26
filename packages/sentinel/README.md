@@ -339,13 +339,29 @@ credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
 way for one source of truth).
 
 ```sh
-holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production
+holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production \
+  --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
+  --org theholocron --token github=$(gh auth token)
 ```
 
 - **`--target production` only.** Sentinel has no branch-based preview
   deployments (`deployFunction()` ships inline files, no Git-linked
   preview flow) — the command's `production`+`preview` default would
   create a `preview`-target env var here that nothing ever reads.
+- **`--github-secret`/`--github-secret-scope`.** Of the 5 Doppler keys,
+  only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
+  (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
+  needs **org** scope, since any repo with Bucket 2 dispatch enabled
+  needs `.github`'s workflow to see it, not just this one. Omitting
+  these two flags would push every key as a pointless repo secret on
+  `holocron` instead (nothing there reads them).
+- **`--token github=$(gh auth token)`.** None of holocron's own
+  provisioned GitHub tokens (`docs/tokens.md`, repo root) carry the
+  org-level Secrets permission this write needs — `github.admin` is
+  repo-scoped, `github.org` doesn't include it. Your own `gh` CLI
+  session already has it (it's almost certainly how this org secret
+  was first set) — reuse it inline rather than provisioning a new
+  token for one recurring write.
 - **Manual, on-demand — not part of `delivery.deploy`.** Run it once
   after registration, and again only when a secret actually rotates.
   Wiring it into every recurring deploy would re-push unchanged

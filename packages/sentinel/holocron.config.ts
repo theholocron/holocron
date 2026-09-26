@@ -20,10 +20,19 @@
  * credential — same non-secret-identifier status as Cloudflare's
  * `accountId` elsewhere in this org — safe to commit directly.
  *
- * `vault`: Doppler, for the still-separate "secrets flow" PR-stack
- * item (`holocron secrets sync` → Vercel env vars) to push the GitHub
- * App's private key + webhook secret from. `project: "sentinel"`,
- * `config: "prd"` — confirmed against the real Doppler project.
+ * `vault`: Doppler (holocron#781) — `project: "sentinel"`, `config:
+ * "prd"`, confirmed against the real Doppler project. All 5 runtime
+ * secrets live there; `holocron secrets sync` fans them out.
+ *
+ * `secrets`: GitHub — only ONE of the 5 Doppler keys has a GH Actions
+ * consumer at all (`SENTINEL_AXIOM_INGEST_TOKEN`, read by
+ * `theholocron/.github`'s `platform.dispatchedCheck.yml`, org-wide since
+ * any repo with Bucket 2 dispatch enabled needs it there, not just this
+ * one) — every sync invocation must pass `--github-secret
+ * SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron` to
+ * scope it down to that one key; the other 4 are Vercel-only and would
+ * otherwise get pushed as pointless repo secrets on `holocron` (nothing
+ * in this repo's own CI reads them).
  *
  * `dns`: Cloudflare — receives the CNAME challenge `holocron setup`
  * gets back from `Deployment.ensureCustomDomain()` when it adds
@@ -37,6 +46,7 @@ export default defineConfig({
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
+		secrets: "github",
 		vault: ["doppler", { project: "sentinel", config: "prd" }],
 	},
 });

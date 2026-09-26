@@ -12,9 +12,19 @@
  *
  * Per-secret routing rules:
  *
- *  - All keys go to `secrets` (CI needs them)
  *  - All keys go to `deployment` for each target the caller asks for
  *    (defaults: production + preview)
+ *  - `secrets` (GH Actions) defaults to every key, repo-scoped — but a
+ *    caller can pass `githubSecretKeys` (an allowlist, from repeatable
+ *    `--github-secret KEY` CLI values) to restrict `secrets` to only
+ *    those keys, and `githubSecretScope` (same `{ kind }` shape `secret
+ *    set`'s own `--scope repo|env=NAME|org=NAME` parses to) to apply one
+ *    scope to all of them. A key not in the allowlist is skipped for
+ *    `secrets` entirely — still synced to `deployment` if configured.
+ *    Needed for a vault holding a mix of deploy-only secrets and one
+ *    CI-consumed, org-wide secret (holocron#781's Sentinel case: 4
+ *    Vercel-only keys + one org-scoped Axiom ingest token
+ *    `theholocron/.github`'s dispatched-check workflow also reads).
  *
  * The vault MUST implement `readEnvironment(envId)` (optional method).
  * If it doesn't, the command errors with a hint to populate the keys
@@ -25,7 +35,7 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
-import type { Deployment, DeploymentTarget, Secrets, Vault } from "../plugin/capabilities.js";
+import type { Deployment, DeploymentTarget, Secrets, SecretScope, Vault } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { assertPluginsResolvable } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
@@ -58,6 +68,13 @@ export interface RunSecretsSyncInput {
 	targets?: DeploymentTarget[];
 	/** Vercel project id (or equivalent). Required if `deployment` is loaded. */
 	projectId?: string;
+	/**
+	 * Allowlist restricting which vault keys reach `secrets`. Omit to push
+	 * every key (the default). See this module's own docstring.
+	 */
+	githubSecretKeys?: string[];
+	/** Scope applied to every `githubSecretKeys` entry. Omit for `{ kind: "repo" }` (the default). */
+	githubSecretScope?: SecretScope;
 	loader?: PluginLoader;
 	print?: SyncPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
@@ -102,11 +119,18 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	// ── Push to `secrets` (CI/Actions secrets) ─────────────────────────
 	if (loader.has("secrets")) {
 		const secrets = loader.get("secrets") as Secrets;
-		print(style.step("secrets (repo scope)"));
+		const scope = input.githubSecretScope ?? { kind: "repo" };
+		const allowedKeys = input.githubSecretKeys ? new Set(input.githubSecretKeys) : undefined;
+		print(style.step("secrets"));
 		for (const key of keys) {
+			// No allowlist → every key (original default). With one → only
+			// listed keys; an unlisted key is skipped for `secrets` entirely
+			// (still reaches `deployment` above, if configured).
+			if (allowedKeys && !allowedKeys.has(key)) continue;
+
 			rows.push(
-				await runRow(`secrets:${secrets.providerName}`, "scope=repo", key, dryRun, async () => {
-					await secrets.setSecret({ kind: "repo" }, key, envVars[key]!);
+				await runRow(`secrets:${secrets.providerName}`, scopeLabel(scope), key, dryRun, async () => {
+					await secrets.setSecret(scope, key, envVars[key]!);
 				})
 			);
 			print(formatRow(rows[rows.length - 1]!));
@@ -212,6 +236,12 @@ function formatRow(row: SyncRow): string {
 	if (row.status === "fail") return `    ${style.fail(label)}`;
 	if (row.status === "dry-run") return `    ${style.dim(`… ${label}`)}`;
 	return `    ${style.dim(`· ${label}`)}`;
+}
+
+function scopeLabel(scope: SecretScope): string {
+	if (scope.kind === "repo") return "scope=repo";
+	if (scope.kind === "organization") return `scope=organization,org=${scope.name}`;
+	return `scope=environment,env=${scope.name}`;
 }
 
 function vaultProviderName(loader: PluginLoader): string {

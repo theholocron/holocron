@@ -425,10 +425,21 @@ try {
 						type: "array",
 						default: ["production", "preview"] as Array<"development" | "preview" | "production">,
 						describe: "Deployment targets to sync to. Defaults to production + preview.",
+					})
+					.option("github-secret", {
+						type: "array",
+						describe: "Vault key(s) to push to GH Actions secrets (repeatable). Omit to push every key.",
+					})
+					.option("github-secret-scope", {
+						type: "string",
+						default: "repo",
+						describe:
+							'Scope applied to every --github-secret key: "repo" (default), "env=<name>", or "org=<name>".',
 					}),
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
 				if (!tokens) return;
+				const githubSecretScope = parseScope(argv.githubSecretScope as string);
 				const [environmentId] = await promptForPositionals(
 					getEntry("secrets sync"),
 					argv as Record<string, unknown>
@@ -445,6 +456,8 @@ try {
 					},
 					environmentId: environmentId!,
 					...(argv.projectId ? { projectId: argv.projectId } : {}),
+					...(argv.githubSecret?.length ? { githubSecretKeys: argv.githubSecret as string[] } : {}),
+					githubSecretScope,
 					targets: argv.target as Array<"development" | "preview" | "production">,
 				});
 				if (report.summary.fail > 0) {
