@@ -110,3 +110,139 @@ describe("postInclusiveLanguageCheck — findings", () => {
 		expect(body.output.text).toContain("Run ID: `run-3`");
 	});
 });
+
+describe("postInclusiveLanguageCheck — inline annotations (holocron#816)", () => {
+	it("builds one annotation per message, at notice level", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 55,
+						column: 1,
+						reason: "Be careful with execution",
+						ruleId: "execution",
+					},
+				],
+			},
+			runId: "run-4",
+		});
+
+		const body = calls[0]?.body as {
+			output: {
+				annotations: Array<{
+					path: string;
+					start_line: number;
+					end_line: number;
+					start_column?: number;
+					end_column?: number;
+					annotation_level: string;
+					message: string;
+					title: string;
+				}>;
+			};
+		};
+		expect(body.output.annotations).toEqual([
+			{
+				path: "README.md",
+				start_line: 55,
+				end_line: 55,
+				start_column: 1,
+				end_column: 1,
+				annotation_level: "notice",
+				message: "Be careful with execution",
+				title: "execution",
+			},
+		]);
+	});
+
+	it("omits start/end_column when column is 0 (alex's own fallback for a column-less message)", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [{ file: "README.md", line: 10, column: 0, reason: "some reason", ruleId: "some-rule" }],
+			},
+			runId: "run-5",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<Record<string, unknown>> } };
+		expect(body.output.annotations[0]).toEqual({
+			path: "README.md",
+			start_line: 10,
+			end_line: 10,
+			annotation_level: "notice",
+			message: "some reason",
+			title: "some-rule",
+		});
+	});
+
+	it("skips a message with line 0 (lint-inclusive-language.ts's own fallback for a line-less message) -- can't be placed on the diff", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 6, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [{ file: "README.md", line: 0, column: 0, reason: "some reason", ruleId: "some-rule" }],
+			},
+			runId: "run-6",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: unknown[] } };
+		expect(body.output.annotations).toEqual([]);
+	});
+
+	it("caps annotations at 50, GitHub's own per-request limit -- the full list still reaches output.text uncapped", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 7, conclusion: "neutral" } }]);
+		const messages = Array.from({ length: 55 }, (_, i) => ({
+			file: "README.md",
+			line: i + 1,
+			column: 1,
+			reason: `reason ${i}`,
+			ruleId: "some-rule",
+		}));
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: { valid: false, fileCount: 1, messages },
+			runId: "run-7",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: unknown[]; text: string } };
+		expect(body.output.annotations).toHaveLength(50);
+		expect(body.output.text).toContain("reason 54");
+	});
+
+	it("posts an empty annotations array for a valid (no findings) result", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 8, conclusion: "success" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: { valid: true, fileCount: 2, messages: [] },
+			runId: "run-8",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: unknown[] } };
+		expect(body.output.annotations).toEqual([]);
+	});
+});
