@@ -36,17 +36,20 @@
  *   phase, not a general Bucket-2-task sweep. Runs *alongside* the existing
  *   GitHub Actions thin-caller for that same task, not instead of it, until
  *   this mechanism is trusted enough to replace it.
- * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
- *   exception to every check above being config-free — opt-in per repo via
- *   `{ name: "sourceQuality.formatting", with: { autoFix: true } }` in
- *   `holocron.config.ts`'s `tasks` array, since writing to repo content is
- *   qualitatively different from reading and reporting. Fires only when
- *   the repo opted in *and* the Formatting check above actually found
- *   something to fix — reuses `lintFormatting()`'s already-computed
- *   `format()` output rather than re-running prettier. One atomic commit
- *   via the Git Data API (blob → tree → commit → ref-update), pushed
- *   directly onto the PR's own head branch. Requires `Contents: Write` —
- *   see the README's permissions table.
+ * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820/#825): the one
+ *   exception to every check above being config-free — opt-in either per
+ *   repo (`{ name: "sourceQuality.formatting", with: { autoFix: true } }`
+ *   in `holocron.config.ts`'s `tasks` array) or per PR (adding the
+ *   `SENTINEL_AUTOFIX_LABEL` label — `pull_request.labeled` is its own
+ *   event type, handled only for that exact label; any other label add is
+ *   left unhandled). Either way, writing to repo content is qualitatively
+ *   different from reading and reporting. Fires only when the repo/PR
+ *   opted in *and* the Formatting check above actually found something to
+ *   fix — reuses `lintFormatting()`'s already-computed `format()` output
+ *   rather than re-running prettier. One atomic commit via the Git Data
+ *   API (blob → tree → commit → ref-update), pushed directly onto the
+ *   PR's own head branch. Requires `Contents: Write` — see the README's
+ *   permissions table.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -93,6 +96,7 @@ import { postFormattingCheck } from "./actions/formatting/post-formatting-check.
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
 import {
+	SENTINEL_AUTOFIX_LABEL,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
@@ -159,6 +163,8 @@ interface ResolutionContext {
 	pullNumber?: number;
 	/** Only present for `pull_request.*` events — the PR's head *branch name*, not a SHA. `commitFormattingFix()`'s own `updateRef()` input (holocron#820); nothing else needs it. */
 	headRef?: string;
+	/** Only present for `pull_request.*` events — the PR's *current* label names. Only consumer today is the auto-fix-commit gate (holocron#825): reflects removal for free, since every `pull_request.*` event carries the PR's current label set, not just the one that triggered `pull_request.labeled`. */
+	labels?: string[];
 }
 
 /**
@@ -173,7 +179,11 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 	const raw = event.raw as {
 		repository?: { default_branch?: string };
 		after?: string;
-		pull_request?: { number?: number; head?: { sha?: string; ref?: string } };
+		pull_request?: {
+			number?: number;
+			head?: { sha?: string; ref?: string };
+			labels?: Array<{ name?: string }>;
+		};
 	};
 	const defaultBranch = raw.repository?.default_branch;
 	const headSha = event.type === "push.default-branch" ? raw.after : raw.pull_request?.head?.sha;
@@ -187,6 +197,7 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 		headSha,
 		pullNumber: raw.pull_request?.number,
 		headRef: raw.pull_request?.head?.ref,
+		labels: raw.pull_request?.labels?.map((l) => l.name).filter((n): n is string => n !== undefined),
 	};
 }
 
@@ -444,22 +455,25 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
-	// Auto-fix-commit (holocron#820) -- opt-in per repo via `with: { autoFix:
-	// true }` on the sourceQuality.formatting task entry, unlike every other
-	// Bucket 1 check above (config-free by design). Only fires when: the
-	// repo opted in, lintFormatting actually ran and found something to fix,
-	// and this is a PR event with a real head branch to push to (a push to
-	// the default branch has no PR branch to commit onto). Soft-skip over
+	// Auto-fix-commit (holocron#820) -- opt-in either per repo (`with: {
+	// autoFix: true }` on the sourceQuality.formatting task entry) or per PR
+	// (the repo's own default-branch config plays no role either way; the
+	// SENTINEL_AUTOFIX_LABEL PR label, holocron#825 -- a PR labeled by a
+	// collaborator is exactly as trusted as one they'd have pushed the fix
+	// to by hand, so no config change or new permission is needed for this
+	// path). Either trigger is the one exception to every Bucket 1 check
+	// above being config-free — writing to repo content is qualitatively
+	// different from reading and reporting. Only fires when: the repo/PR
+	// opted in, lintFormatting actually ran and found something to fix, and
+	// this is a PR event with a real head branch to push to (a push to the
+	// default branch has no PR branch to commit onto). Soft-skip over
 	// hard-fail, same reasoning as every check above: a commit failure must
 	// never take capability compliance down with it.
 	let formattingFixResult;
 	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
-	if (
-		formattingTask?.with?.["autoFix"] === true &&
-		formattingLintResult &&
-		!formattingLintResult.valid &&
-		context.headRef
-	) {
+	const autoFixOptedIn =
+		formattingTask?.with?.["autoFix"] === true || Boolean(context.labels?.includes(SENTINEL_AUTOFIX_LABEL));
+	if (autoFixOptedIn && formattingLintResult && !formattingLintResult.valid && context.headRef) {
 		try {
 			formattingFixResult = await commitFormattingFix({
 				client,

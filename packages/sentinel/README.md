@@ -155,8 +155,8 @@ validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
 three more independent Bucket 1 check pipelines — commit standards
 (commitlint), inclusive language (alex), and formatting (prettier,
 holocron#819) — the Bucket 2 dispatch prototype, and the auto-fix-commit
-capability (holocron#820, opt-in per repo, formatting only for now), all
-through an
+capability (holocron#820/#825, formatting only for now — opt in either per
+repo via config or per PR via the `sentinel:autofix` label), all through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
 webhook payload itself (D10), so one App registration handles
@@ -324,6 +324,17 @@ permissions for the `theholocron` installation. Every other repo's Bucket 1
 checks are unaffected either way — only a repo that opts in via `with: {
 autoFix: true }` (see `handleWebhookRequest`'s own docstring in
 `src/handler.ts`) ever triggers a write.
+
+**Per-PR opt-in (holocron#825), no permission change needed**: labeling a
+PR `sentinel:autofix` triggers the same auto-fix-commit path for that one
+PR, independent of the repo-wide config flag above. `pull_request.labeled`
+is still a `pull_request` webhook event — already covered by the `Pull
+requests: Read` permission above. Only repo collaborators can apply a
+label (GitHub's own ACL), so this needs no new trust boundary either —
+same level as "this person could've pushed the fix by hand." A
+comment-based trigger (`/sentinel autofix`) was considered and rejected
+for this reason: PR comments ride on the `issue_comment` event category,
+which would need a new `Issues: Read` permission scope the label doesn't.
 
 ### Subscribe to events
 

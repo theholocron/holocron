@@ -709,3 +709,86 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
 	});
 });
+
+describe("handler — auto-fix-commit per-PR label opt-in (holocron#825)", () => {
+	function prEventWithLabels(labels: string[]) {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: {
+					number: 9,
+					head: { sha: "pr-head-sha", ref: "feature-branch" },
+					labels: labels.map((name) => ({ name })),
+				},
+			},
+		};
+	}
+
+	const invalidLintResult = {
+		valid: false,
+		fileCount: 1,
+		messages: [{ file: "src/index.js", line: 1, reason: "reformat me", formatted: "const x = 1;\n" }],
+	};
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 2, conclusion: "neutral", htmlUrl: "" });
+	});
+
+	it("commits the fix when the PR carries the sentinel:autofix label, even with no repo-wide opt-in", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEventWithLabels(["sentinel:autofix"]) });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["sourceQuality.formatting"] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalled();
+		const body = (await res.json()) as { formattingFixResult: unknown };
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("does not commit when the PR's labels don't include the auto-fix marker", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: prEventWithLabels(["bug", "needs-review"]),
+		});
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["sourceQuality.formatting"] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+	});
+
+	it("commits via the label even on a bare pull_request.labeled event, not just opened/synchronize", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: { ...prEventWithLabels(["sentinel:autofix"]), type: "pull_request.labeled" as const },
+		});
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: ["sourceQuality.formatting"] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalled();
+	});
+});

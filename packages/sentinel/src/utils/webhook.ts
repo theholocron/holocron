@@ -36,12 +36,15 @@ import {
 	verifyGitHubWebhookSignature,
 } from "@theholocron/github-client";
 
+import { SENTINEL_AUTOFIX_LABEL } from "./constants.js";
+
 export type SentinelEventType =
 	| "installation.created"
 	| "installation.deleted"
 	| "push.default-branch"
 	| "pull_request.opened"
-	| "pull_request.synchronize";
+	| "pull_request.synchronize"
+	| "pull_request.labeled";
 
 export interface SentinelEvent {
 	type: SentinelEventType;
@@ -127,6 +130,30 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 		}
 		case "pull_request": {
 			const p = payload as unknown as GitHubPullRequestWebhookPayload;
+			if (p.action === "labeled") {
+				// holocron#825: only OUR marker label is handled -- any other label
+				// add (e.g. "bug", "help wanted") is left unhandled, same as any
+				// other out-of-scope pull_request action, so it doesn't trigger a
+				// wasted re-run of every check for unrelated repo activity.
+				const label = (payload as { label?: { name?: string } }).label;
+				if (label?.name !== SENTINEL_AUTOFIX_LABEL) {
+					return {
+						handled: false,
+						reason: `pull_request.labeled: label "${label?.name}" is not "${SENTINEL_AUTOFIX_LABEL}"`,
+						githubEvent,
+					};
+				}
+				return {
+					handled: true,
+					event: {
+						type: "pull_request.labeled",
+						repo: p.repository.full_name,
+						installationId: p.installation?.id ?? 0,
+						...(deliveryId ? { deliveryId } : {}),
+						raw: payload,
+					},
+				};
+			}
 			if (p.action !== "opened" && p.action !== "synchronize") {
 				return {
 					handled: false,

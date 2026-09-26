@@ -338,6 +338,48 @@ describe("parseWebhookEvent — pull_request events", () => {
 		expect(result.handled).toBe(false);
 		expect((result as { reason: string }).reason).toMatch(/closed/);
 	});
+
+	it("normalizes a pull_request.labeled action when the label is the auto-fix marker (holocron#825)", () => {
+		const body = JSON.stringify({
+			action: "labeled",
+			label: { name: "sentinel:autofix" },
+			installation: { id: 3 },
+			repository: { full_name: "acme/widgets" },
+		});
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+		expect(result.handled).toBe(true);
+		expect((result as { event: { type: string } }).event.type).toBe("pull_request.labeled");
+	});
+
+	it("leaves a pull_request.labeled action unhandled when the label isn't the auto-fix marker", () => {
+		const body = JSON.stringify({
+			action: "labeled",
+			label: { name: "bug" },
+			installation: { id: 3 },
+			repository: { full_name: "acme/widgets" },
+		});
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+		expect(result.handled).toBe(false);
+		expect((result as { reason: string }).reason).toMatch(/"bug"/);
+	});
+
+	it("defaults installationId to 0 and omits deliveryId for a labeled event too", () => {
+		const body = JSON.stringify({
+			action: "labeled",
+			label: { name: "sentinel:autofix" },
+			repository: { full_name: "acme/widgets" },
+		});
+		const result = parseWebhookEvent({
+			body,
+			headers: { "x-github-event": "pull_request", "x-hub-signature-256": sign(body) },
+			secret: SECRET,
+		});
+		expect(result.handled).toBe(true);
+		expect((result as { event: { installationId: number; deliveryId?: string } }).event).toMatchObject({
+			installationId: 0,
+		});
+		expect((result as { event: { deliveryId?: string } }).event.deliveryId).toBeUndefined();
+	});
 });
 
 describe("parseWebhookEvent — unrecognized event categories", () => {

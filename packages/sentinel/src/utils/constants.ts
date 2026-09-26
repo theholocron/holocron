@@ -27,6 +27,18 @@ export const SENTINEL_AXIOM_ORG = "the-holocron-7bbe";
 export const SENTINEL_AXIOM_DATASET = "holocron-sentinel";
 
 /**
+ * PR label that opts *that one PR* into auto-fix-commit (holocron#825),
+ * independent of the repo-wide `with: { autoFix: true }` config flag
+ * (holocron#820). Only repo collaborators can apply a label (GitHub's own
+ * ACL already gates it) — the same trust level as "could have pushed the
+ * fix by hand" — so this needs no config change and no new permission
+ * scope, unlike a comment-based trigger would (`issue_comment` needs
+ * `Issues: Read`; a label add is still a `pull_request` event, already
+ * covered by `Pull requests: Read`).
+ */
+export const SENTINEL_AUTOFIX_LABEL = "sentinel:autofix";
+
+/**
  * `details_url` target for a check run Sentinel posts directly (no workflow
  * run behind it, unlike the dispatched check) — a permalink filtered to the
  * exact structured log line this check's own post logged, not a bare
