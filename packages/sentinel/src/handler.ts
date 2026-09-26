@@ -24,6 +24,11 @@
  *   per-repo file. `conclusion: "neutral"` on findings, not `"failure"` —
  *   advisory suggestions, reporting-only for this phase, same rollout
  *   shape commit standards used before it was ever made required.
+ * - **Formatting** (`lintFormatting → postFormattingCheck`,
+ *   holocron#769/#819): `pull_request.*` only, same reason and same
+ *   config-free/advisory shape as inclusive language — reads
+ *   `@theholocron/prettier-config`'s canonical export directly, never a
+ *   per-repo file.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -71,6 +76,8 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
+import { lintFormatting } from "./actions/formatting/lint-formatting.js";
+import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
 import {
@@ -78,6 +85,7 @@ import {
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
+	SENTINEL_FORMATTING_LOG_MSG,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
 } from "./utils/constants.js";
 import { validateConfig } from "./utils/validate-config.js";
@@ -318,6 +326,40 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Same PR-only scoping and soft-skip reasoning as commit standards/
+	// inclusive language above.
+	let formattingCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const lintResult = await lintFormatting({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			formattingCheckRun = await postFormattingCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_FORMATTING_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: lintResult.valid,
+					fileCount: lintResult.fileCount,
+					messageCount: lintResult.messages.length,
+				},
+				SENTINEL_FORMATTING_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintFormatting: failed, continuing without it");
+		}
+	}
+
 	const configResult = await validateConfig({ client, repo });
 	if (configResult.status !== "valid") {
 		logger.warn({ repo, result: configResult }, "validateConfig: not valid");
@@ -327,6 +369,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			config: configResult.status,
 			commitStandardsCheckRun,
 			inclusiveLanguageCheckRun,
+			formattingCheckRun,
 		});
 	}
 
@@ -381,6 +424,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		checkRun,
 		commitStandardsCheckRun,
 		inclusiveLanguageCheckRun,
+		formattingCheckRun,
 		dispatchedCheckRun,
 	});
 }

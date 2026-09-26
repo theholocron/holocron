@@ -7,6 +7,7 @@ export * from "./config/compose.js";
 export * from "./config/config.js";
 export * from "./config/define-config.js";
 export * from "./config/load-config.js";
+export * from "./formatting/config.js";
 export * from "./inclusive-language/config.js";
 export * from "./plugin/capabilities.js";
 export * from "./plugin/rest-client.js";

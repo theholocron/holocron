@@ -150,13 +150,18 @@ instead of retyping.
 
 ## `handleWebhookRequest(request, env)`
 
-Wires the four functions above into a single request handler:
-`parseWebhookEvent → validateConfig → syncPropertiesFromConfig →
-postCheckRun`, all through an installation-scoped `GitHubClient` built
-via `@theholocron/github-client`'s `createInstallationClient()` — the
-installation id always comes from the webhook payload itself (D10), so
-one App registration handles installations across any number of
-orgs/accounts unchanged.
+Wires the capability-compliance pipeline above (`parseWebhookEvent →
+validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
+three more independent Bucket 1 check pipelines — commit standards
+(commitlint), inclusive language (alex), and formatting (prettier,
+holocron#819) — plus the Bucket 2 dispatch prototype, all through an
+installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
+`createInstallationClient()` — the installation id always comes from the
+webhook payload itself (D10), so one App registration handles
+installations across any number of orgs/accounts unchanged. See
+`src/handler.ts`'s own module docstring for the full, current pipeline
+list — kept there as the one source of truth rather than duplicated here,
+since this section had already drifted out of sync with it once.
 
 A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`

@@ -50,6 +50,8 @@ export const SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG = "postCheckRun: posted";
 export const SENTINEL_COMMIT_STANDARDS_LOG_MSG = "postCommitStandardsCheck: posted";
 /** Logged (and linked to) once `postInclusiveLanguageCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG = "postInclusiveLanguageCheck: posted";
+/** Logged (and linked to) once `postFormattingCheck()` actually posts — never hand-copy this string elsewhere. */
+export const SENTINEL_FORMATTING_LOG_MSG = "postFormattingCheck: posted";
 
 /**
  * Where the Bucket 2 dispatch mechanism's shared workflow lives

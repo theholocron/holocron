@@ -51,7 +51,9 @@
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/observability": "catalog:",
+    "@theholocron/prettier-config": "catalog:configs",
     "alex": "catalog:",
+    "prettier": "catalog:",
     "tsx": "catalog:"
   },
   "devDependencies": {

@@ -30,15 +30,9 @@ import type { GitHubClient } from "@theholocron/github-client";
 import { markdown, mdx } from "alex";
 
 import { decodeContents } from "../../utils/decode-contents.js";
+import { isIgnored } from "../../utils/is-ignored.js";
 
 const MARKDOWN_EXTENSIONS = [".md", ".mdx"];
-
-/** `.alexignore`'s only pattern shape today: an exact path, or a `dir/*` prefix. Not a general glob matcher — matches what's actually there. */
-function isIgnored(path: string, patterns: readonly string[]): boolean {
-	return patterns.some((pattern) =>
-		pattern.endsWith("/*") ? path.startsWith(pattern.slice(0, -1)) : path === pattern
-	);
-}
 
 export interface LintInclusiveLanguageInput {
 	client: Pick<GitHubClient, "pulls" | "git">;
