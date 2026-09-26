@@ -22,7 +22,10 @@ describe("checks.createCheckRun", () => {
 			head_sha: "abc123",
 			status: "completed",
 			conclusion: "success",
-			output: { title: "Capability compliance: OK", summary: "All required capabilities present." },
+			output: {
+				title: "Capability compliance: OK",
+				summary: "All required capabilities present.",
+			},
 		});
 
 		expect(calls[0]?.method).toBe("POST");
@@ -32,7 +35,10 @@ describe("checks.createCheckRun", () => {
 			head_sha: "abc123",
 			status: "completed",
 			conclusion: "success",
-			output: { title: "Capability compliance: OK", summary: "All required capabilities present." },
+			output: {
+				title: "Capability compliance: OK",
+				summary: "All required capabilities present.",
+			},
 		});
 		expect(result.id).toBe(1234);
 		expect(result.conclusion).toBe("success");
@@ -56,15 +62,71 @@ describe("checks.createCheckRun", () => {
 		});
 	});
 
+	it("forwards output.annotations when given", async () => {
+		const { fetch, calls } = stubFetch([{ status: 201, body: RAW_CHECK_RUN }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+
+		await client.checks.createCheckRun(REPO, {
+			name: "Sentinel / Inclusive Language",
+			head_sha: "abc123",
+			status: "completed",
+			conclusion: "neutral",
+			output: {
+				title: "Inclusive language: 1 suggestion(s)",
+				summary: "1 suggestion(s) across 1 file(s).",
+				annotations: [
+					{
+						path: "README.md",
+						start_line: 55,
+						end_line: 55,
+						start_column: 1,
+						end_column: 1,
+						annotation_level: "notice",
+						message: "Be careful with 'Execution', it's profane in some cases",
+						title: "execution",
+					},
+				],
+			},
+		});
+
+		expect(calls[0]?.body).toMatchObject({
+			output: {
+				annotations: [
+					{
+						path: "README.md",
+						start_line: 55,
+						end_line: 55,
+						annotation_level: "notice",
+						message: "Be careful with 'Execution', it's profane in some cases",
+						title: "execution",
+					},
+				],
+			},
+		});
+	});
+
 	it("omits status/conclusion/output when not given, matching GitHub's own defaults", async () => {
 		const { fetch, calls } = stubFetch([
-			{ status: 201, body: { ...RAW_CHECK_RUN, status: "queued" as const, conclusion: null } },
+			{
+				status: 201,
+				body: {
+					...RAW_CHECK_RUN,
+					status: "queued" as const,
+					conclusion: null,
+				},
+			},
 		]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 
-		const result = await client.checks.createCheckRun(REPO, { name: "Sentinel", head_sha: "abc123" });
+		const result = await client.checks.createCheckRun(REPO, {
+			name: "Sentinel",
+			head_sha: "abc123",
+		});
 
-		expect(calls[0]?.body).toEqual({ name: "Sentinel", head_sha: "abc123" });
+		expect(calls[0]?.body).toEqual({
+			name: "Sentinel",
+			head_sha: "abc123",
+		});
 		expect(result.status).toBe("queued");
 		expect(result.conclusion).toBeNull();
 	});
@@ -72,7 +134,12 @@ describe("checks.createCheckRun", () => {
 
 describe("checks.updateCheckRun", () => {
 	it("PATCHes /repos/{owner}/{name}/check-runs/{id}", async () => {
-		const { fetch, calls } = stubFetch([{ status: 200, body: { ...RAW_CHECK_RUN, status: "completed" as const } }]);
+		const { fetch, calls } = stubFetch([
+			{
+				status: 200,
+				body: { ...RAW_CHECK_RUN, status: "completed" as const },
+			},
+		]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
 
 		const result = await client.checks.updateCheckRun(REPO, 1234, {

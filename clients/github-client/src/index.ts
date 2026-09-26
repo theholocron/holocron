@@ -25,6 +25,8 @@ export {
 	type InstallationAccessToken,
 } from "./app-auth/app-auth.js";
 export {
+	type CheckRunAnnotation,
+	type CheckRunAnnotationLevel,
 	type CheckRunConclusion,
 	type CheckRunOutput,
 	type CheckRunStatus,

@@ -6,10 +6,36 @@ export type CheckRunStatus = "queued" | "in_progress" | "completed";
 export type CheckRunConclusion =
 	"success" | "failure" | "neutral" | "cancelled" | "timed_out" | "action_required" | "skipped";
 
+export type CheckRunAnnotationLevel = "notice" | "warning" | "failure";
+
+export interface CheckRunAnnotation {
+	/** File path relative to the repo root. */
+	path: string;
+	/** 1-indexed. */
+	start_line: number;
+	end_line: number;
+	/** Only valid when `start_line === end_line`. */
+	start_column?: number;
+	end_column?: number;
+	annotation_level: CheckRunAnnotationLevel;
+	/** Max 64KB. */
+	message: string;
+	/** Max 255 characters. */
+	title?: string;
+	/** Max 64KB. */
+	raw_details?: string;
+}
+
 export interface CheckRunOutput {
 	title: string;
 	summary: string;
 	text?: string;
+	/**
+	 * Inline PR annotations — up to 50 per request. Sending more requires a
+	 * follow-up `updateCheckRun()` PATCH per GitHub's own docs; this client
+	 * doesn't paginate them for you.
+	 */
+	annotations?: CheckRunAnnotation[];
 }
 
 export interface CreateCheckRunInput {
