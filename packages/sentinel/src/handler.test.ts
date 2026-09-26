@@ -630,6 +630,14 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		messages: [{ file: "src/index.js", line: 1, reason: "reformat me", formatted: "const x = 1;\n" }],
 	};
 
+	function configWithAutoFix(autoFix: boolean) {
+		return {
+			status: "valid" as const,
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+		};
+	}
+
 	beforeEach(() => {
 		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
 		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
@@ -637,13 +645,9 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 2, conclusion: "neutral", htmlUrl: "" });
 	});
 
-	it("commits the fix when the repo opted in and lintFormatting found something to fix", async () => {
+	it("commits the fix when the repo's merged (default-branch) config opted in, with no second PR-branch check needed", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: true } }] },
-		});
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
 		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
 		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
 
@@ -656,17 +660,34 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 			headRef: "feature-branch",
 			result: invalidLintResult,
 		});
+		expect(validateConfig).toHaveBeenCalledTimes(1);
 		const body = (await res.json()) as { formattingFixResult: unknown };
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
 	});
 
-	it("does not commit when the repo has not opted in via with: { autoFix: true }", async () => {
+	it("commits the fix when only the PR's own branch has opted in, not yet merged to main", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: ["sourceQuality.formatting"] },
+		vi.mocked(validateConfig).mockImplementation(async (input) =>
+			input.ref === "pr-head-sha" ? configWithAutoFix(true) : configWithAutoFix(false)
+		);
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(validateConfig).toHaveBeenNthCalledWith(2, {
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			ref: "pr-head-sha",
 		});
+		expect(commitFormattingFix).toHaveBeenCalled();
+		const body = (await res.json()) as { formattingFixResult: unknown };
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("does not commit when neither the default-branch nor the PR's own branch opted in", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(false));
 		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
 
 		const res = await handleWebhookRequest(req(), ENV);
@@ -678,11 +699,7 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 
 	it("does not commit when lintFormatting reports the PR is already valid", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: true } }] },
-		});
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
 		vi.mocked(lintFormatting).mockResolvedValue({ valid: true, fileCount: 2, messages: [] });
 
 		await handleWebhookRequest(req(), ENV);
@@ -692,11 +709,7 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 
 	it("soft-skips a commitFormattingFix failure -- capability compliance still posts, request still succeeds", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: true } }] },
-		});
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
 		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
 		vi.mocked(commitFormattingFix).mockRejectedValue(new Error("git commit failed"));
 
@@ -707,5 +720,44 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		const body = (await res.json()) as { formattingFixResult: unknown; checkRun: unknown };
 		expect(body.formattingFixResult).toBeUndefined();
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("does not commit when the PR's own branch config is valid but declares no tasks array at all", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockImplementation(async (input) =>
+			input.ref === "pr-head-sha" ? { status: "valid", filepath: "x", config: {} } : configWithAutoFix(false)
+		);
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+	});
+
+	it("does not commit when the PR-branch validateConfig call resolves non-valid (e.g. no-config), rather than opted-in", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockImplementation(async (input) =>
+			input.ref === "pr-head-sha" ? { status: "no-config" } : configWithAutoFix(false)
+		);
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+	});
+
+	it("soft-skips a failed PR-branch validateConfig call (e.g. malformed config on that branch) -- still doesn't commit, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockImplementation(async (input) => {
+			if (input.ref === "pr-head-sha") throw new Error("PR branch config fetch failed");
+			return configWithAutoFix(false);
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
 	});
 });

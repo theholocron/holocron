@@ -1,12 +1,23 @@
 /**
- * Reads a repo's `holocron.config.*` from its default branch and validates
- * its `tasks` array against `@theholocron/astromech`'s canonical task
- * registry (D11 — one table, imported rather than duplicated).
+ * Reads a repo's `holocron.config.*` and validates its `tasks` array
+ * against `@theholocron/astromech`'s canonical task registry (D11 — one
+ * table, imported rather than duplicated). Defaults to the repo's default
+ * branch (`ref` omitted — GitHub's Contents API resolves that on its own);
+ * a caller passes `ref` explicitly to validate a specific commit/branch
+ * instead (holocron#820 — the auto-fix-commit opt-in flag needs to see
+ * what a PR's *own* branch currently declares, not just what's merged).
  *
- * Security boundary (D4/D6): `client.git.getContents()` takes no `ref`
- * parameter by design here — GitHub's Contents API defaults to the repo's
- * default branch when none is given, so this can structurally never read a
- * PR branch or fork, not just by policy.
+ * Security boundary (D4/D6, amended for #820): a `ref`-based read is safe
+ * for *validation only* — this function never persists or writes
+ * anything itself, so no derived state can leak in from an unreviewed PR
+ * branch. What must never happen: feeding a `ref`-based result into
+ * anything that writes persistent state (`syncPropertiesFromConfig()`'s
+ * GitHub custom-properties write, the capability-compliance check) or
+ * anything that gates on the *repo's* declared task list as opposed to
+ * one PR's own proposal (Bucket 2 dispatch). Those stay on the ref-less,
+ * default-branch call — same as before this amendment. Same-repo only
+ * either way (D6): a fork's branch is never a valid `ref` here, no
+ * different from every other Sentinel read.
  *
  * D8 parity: the actual execution of `holocron.config.ts` reuses
  * `@theholocron/datapad`'s `loadConfigFromContent()` unchanged — the same
@@ -61,16 +72,18 @@ export interface ValidateConfigInput {
 	client: Pick<GitHubClient, "git">;
 	/** `"owner/repo"`. */
 	repo: string;
+	/** A specific commit/branch to validate instead of the default branch. See the module docstring for what a `ref`-based result may (and may not) be used for. */
+	ref?: string;
 }
 
 export async function validateConfig(input: ValidateConfigInput): Promise<ValidateConfigResult> {
-	const { client, repo } = input;
+	const { client, repo, ref } = input;
 
 	for (const ext of DEFAULT_EXTENSIONS) {
 		const path = `holocron.config.${ext}`;
 		let raw: string;
 		try {
-			const contents = await client.git.getContents(repo, path);
+			const contents = await client.git.getContents(repo, path, ref);
 			raw = decodeContents(contents.content);
 		} catch (err) {
 			if (err instanceof ProviderApiError && err.status === 404) continue;

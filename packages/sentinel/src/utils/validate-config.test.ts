@@ -69,6 +69,35 @@ describe("validateConfig", () => {
 		]);
 	});
 
+	it("forwards a given ref to every getContents() probe, instead of the default branch (holocron#820)", async () => {
+		const { client, calls } = makeClient([
+			{ status: 404 }, // .ts
+			{ status: 404 }, // .js
+			{ status: 404 }, // .mjs
+			{ status: 404 }, // .cjs
+			{ status: 200, body: { content: b64(JSON.stringify({ name: "demo", tasks: [] })) } }, // .json
+		]);
+
+		const result = await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+
+		expect(result.status).toBe("valid");
+		expect(calls.every((c) => c.url.includes("ref=pr-head-sha"))).toBe(true);
+	});
+
+	it("omits ref (falls back to the default branch) when none is given", async () => {
+		const { client, calls } = makeClient([
+			{ status: 404 }, // .ts
+			{ status: 404 }, // .js
+			{ status: 404 }, // .mjs
+			{ status: 404 }, // .cjs
+			{ status: 200, body: { content: b64(JSON.stringify({ name: "demo", tasks: [] })) } }, // .json
+		]);
+
+		await validateConfig({ client, repo: "acme/demo" });
+
+		expect(calls.every((c) => !c.url.includes("ref="))).toBe(true);
+	});
+
 	// Real work, not a mock: writes the fetched source to a temp file and
 	// dynamically import()s it, which lazily registers tsx's ESM loader the
 	// first time a .ts config is loaded in this process (datapad's load.ts).
