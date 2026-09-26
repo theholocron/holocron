@@ -169,7 +169,9 @@ advisory PR Config Validation check (holocron#827 — posted as `Platform
 / Capability Compliance (pull_request)`, a "(pull_request)" suffix on
 the same concept, not a distinct name; validates a PR's own branch
 immediately, without waiting for merge, kept separate from the required
-`Platform / Capability Compliance` check above), all through an
+`Platform / Capability Compliance` check above), and a PR comment
+explaining what auto-fix-commit just changed (holocron#674/#834, fires
+only when a fix was actually committed), all through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
 webhook payload itself (D10), so one App registration handles
@@ -324,22 +326,24 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 | Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), opt-in per repo |
 | Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                               |
 | Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                               |
-| Pull requests     | Read   | required to _receive_ `pull_request` webhook events (never writes PR comments yet — #674)                                                                                                     |
+| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                         |
+| Pull requests     | Read   | required to _receive_ `pull_request` webhook events                                                                                                                                           |
 | Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                            |
 
-No other permissions — never comments, never touches Actions/Administration.
+No other permissions — never touches Actions/Administration.
 
-**Contents bumped from Read to Write for holocron#820** — a real permission
-escalation, not something code or an API call can grant. Update it in the
-App's own settings page (Settings → Developer settings → GitHub Apps →
-Holocron Sentinel → Permissions & events), then accept the updated
-permissions for the `theholocron` installation. Every other repo's Bucket 1
-checks are unaffected either way — only a repo/PR that opts in via `with:
-{ autoFix: true }` on `sourceQuality.formatting` — merged to the repo's
-default branch, or added fresh in a PR's own branch (see
+**Contents bumped from Read to Write for holocron#820, Issues bumped from
+none to Write for holocron#834** — real permission escalations, not
+something code or an API call can grant. Update both in the App's own
+settings page (Settings → Developer settings → GitHub Apps → Holocron
+Sentinel → Permissions & events), then accept the updated permissions for
+the `theholocron` installation. Every other repo's Bucket 1 checks are
+unaffected either way — only a repo/PR that opts in via `with: { autoFix:
+true }` on `sourceQuality.formatting` — merged to the repo's default
+branch, or added fresh in a PR's own branch (see
 `handleWebhookRequest`'s own docstring in `src/handler.ts`, and
 `validate-config.ts`'s module docstring for the read-only boundary that
-makes a PR-branch read safe) — ever triggers a write.
+makes a PR-branch read safe) — ever triggers a write or a comment.
 
 ### Subscribe to events
 
