@@ -38,17 +38,17 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/clerk-client": ^1.25.0
-    "@theholocron/cloudflare-client": ^1.25.0
-    "@theholocron/doppler-client": ^1.25.0
-    "@theholocron/github-client": ^1.30.0
-    "@theholocron/http-client": ^1.25.0
-    "@theholocron/infisical-client": ^1.25.0
-    "@theholocron/neon-client": ^1.25.0
-    "@theholocron/posthog-client": ^1.25.0
-    "@theholocron/postman-client": ^1.25.0
-    "@theholocron/sentry-client": ^1.25.0
-    "@theholocron/vercel-client": ^1.25.0
+    "@theholocron/clerk-client": ^1.31.0
+    "@theholocron/cloudflare-client": ^1.31.0
+    "@theholocron/doppler-client": ^1.31.0
+    "@theholocron/github-client": ^1.31.0
+    "@theholocron/http-client": ^1.31.0
+    "@theholocron/infisical-client": ^1.31.0
+    "@theholocron/neon-client": ^1.31.0
+    "@theholocron/posthog-client": ^1.31.0
+    "@theholocron/postman-client": ^1.31.0
+    "@theholocron/sentry-client": ^1.30.0
+    "@theholocron/vercel-client": ^1.31.0
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
@@ -91,7 +91,7 @@ catalogs:
 # every other consumer stayed on the already-locked 1.25.0, splitting
 # ProviderApiError again under a caret override that permitted both.
 overrides:
-  "@theholocron/http-client": 1.30.0
+  "@theholocron/http-client": 1.31.0
   "@sentry/node": 10.75.2
   posthog-node: 5.52.5
   tsx: 4.23.12

@@ -7,7 +7,7 @@
  * to wrap.
  */
 
-import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
+import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
 import {
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
@@ -54,6 +54,37 @@ function formatMessage(m: InclusiveLanguageMessage): string {
 	return `${m.file}:${m.line}:${m.column}: ${m.reason} [${m.ruleId}]`;
 }
 
+/**
+ * GitHub's own cap per `createCheckRun()` call (holocron#816) — a PR with
+ * more findings than this would need a follow-up `updateCheckRun()` PATCH
+ * to attach the rest, which this doesn't do yet. `text`'s full breakdown
+ * (`formatMessage()`, above) never truncates, so nothing is silently lost
+ * even when annotations are capped — just less visible inline.
+ */
+const MAX_ANNOTATIONS_PER_REQUEST = 50;
+
+/**
+ * One annotation per message, skipped when `line` is the `?? 0` fallback
+ * (`lint-inclusive-language.ts`) — GitHub's API requires `start_line` >= 1,
+ * and a line-less finding can't be placed on the diff anyway. `notice`
+ * (not `warning`/`failure`) matches this check's own `conclusion: "neutral"`
+ * — advisory, not a hard gate.
+ */
+function buildAnnotations(messages: InclusiveLanguageMessage[]): CheckRunAnnotation[] {
+	return messages
+		.filter((m) => m.line > 0)
+		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.map((m) => ({
+			path: m.file,
+			start_line: m.line,
+			end_line: m.line,
+			...(m.column > 0 ? { start_column: m.column, end_column: m.column } : {}),
+			annotation_level: "notice" as const,
+			message: m.reason,
+			title: m.ruleId,
+		}));
+}
+
 export async function postInclusiveLanguageCheck(
 	input: PostInclusiveLanguageCheckInput
 ): Promise<PostInclusiveLanguageCheckResult> {
@@ -80,7 +111,7 @@ export async function postInclusiveLanguageCheck(
 		head_sha: headSha,
 		status: "completed",
 		conclusion,
-		output: { title, summary, text },
+		output: { title, summary, text, annotations: buildAnnotations(result.messages) },
 		details_url: sentinelAxiomLogUrl(runId, SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG),
 	});
 
