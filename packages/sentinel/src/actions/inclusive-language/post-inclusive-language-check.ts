@@ -64,11 +64,33 @@ function formatMessage(m: InclusiveLanguageMessage): string {
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
+ * Per-message severity, not a blanket level for the whole check. `alex`
+ * bundles two underlying retext plugins with very different confidence
+ * profiles:
+ *
+ * - `retext-equality` (gendered/insensitive phrasing — "he", "actor") has
+ *   no severity signal of its own; every finding here is a soft "consider
+ *   rewording" suggestion, so it stays `notice` (grey).
+ * - `retext-profanities` (violent/vulgar wording — "execute", "kill")
+ *   carries `profanitySeverity`, `cuss`'s own 0-2 rating for how likely
+ *   the word is used *as* profanity rather than clean text (not how bad
+ *   the word is) — 0 ("beaver"): likely clean text, frequently a false
+ *   positive in technical writing; 1-2 ("addict"/"asshat"): actually
+ *   likely profane. Only the latter is worth calling out more loudly than
+ *   the equality suggestions above, hence `warning` (yellow) at severity
+ *   >= 1. Capped at `warning`, never `failure` — this check's own overall
+ *   `conclusion` stays `"neutral"` (advisory, not a hard gate), and a red
+ *   annotation on a non-failing check reads as a mismatched signal.
+ */
+function annotationLevel(m: InclusiveLanguageMessage): CheckRunAnnotation["annotation_level"] {
+	if (m.source === "retext-profanities" && (m.profanitySeverity ?? 0) >= 1) return "warning";
+	return "notice";
+}
+
+/**
  * One annotation per message, skipped when `line` is the `?? 0` fallback
  * (`lint-inclusive-language.ts`) — GitHub's API requires `start_line` >= 1,
- * and a line-less finding can't be placed on the diff anyway. `notice`
- * (not `warning`/`failure`) matches this check's own `conclusion: "neutral"`
- * — advisory, not a hard gate.
+ * and a line-less finding can't be placed on the diff anyway.
  */
 function buildAnnotations(messages: InclusiveLanguageMessage[]): CheckRunAnnotation[] {
 	return messages
@@ -79,7 +101,7 @@ function buildAnnotations(messages: InclusiveLanguageMessage[]): CheckRunAnnotat
 			start_line: m.line,
 			end_line: m.line,
 			...(m.column > 0 ? { start_column: m.column, end_column: m.column } : {}),
-			annotation_level: "notice" as const,
+			annotation_level: annotationLevel(m),
 			message: m.reason,
 			title: m.ruleId,
 		}));
