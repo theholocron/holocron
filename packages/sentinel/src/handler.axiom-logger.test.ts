@@ -43,6 +43,11 @@ describe("handler.ts module load — SENTINEL_AXIOM_INGEST_TOKEN/AXIOM_DATASET r
 		delete process.env.AXIOM_DATASET;
 	});
 
+	// The default 5000ms testTimeout is consistently too tight on CI's shared
+	// runners specifically (never seen locally) -- found live, the same
+	// class of flake validate-config.test.ts's own defineConfig execution
+	// test hit (holocron#814): real dynamic import()/module-evaluation work,
+	// not a hang.
 	it("passes an explicit axiom config through when both env vars are set", async () => {
 		process.env.SENTINEL_AXIOM_INGEST_TOKEN = "tok_abc";
 		process.env.AXIOM_DATASET = "holocron-sentinel";
@@ -50,8 +55,10 @@ describe("handler.ts module load — SENTINEL_AXIOM_INGEST_TOKEN/AXIOM_DATASET r
 		await import("./handler.js");
 
 		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { token: "tok_abc", dataset: "holocron-sentinel" } });
-	});
+	}, 15000);
 
+	// Same CI-timing exposure as the test above -- identical vi.resetModules()
+	// + dynamic import() work, so the same bumped timeout.
 	it("omits axiom config when either env var is unset", async () => {
 		process.env.SENTINEL_AXIOM_INGEST_TOKEN = "tok_abc";
 		// AXIOM_DATASET deliberately left unset.
@@ -59,5 +66,5 @@ describe("handler.ts module load — SENTINEL_AXIOM_INGEST_TOKEN/AXIOM_DATASET r
 		await import("./handler.js");
 
 		expect(createLoggerMock).toHaveBeenCalledWith({});
-	});
+	}, 15000);
 });

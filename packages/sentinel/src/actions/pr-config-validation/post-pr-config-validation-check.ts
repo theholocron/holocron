@@ -26,7 +26,11 @@ import {
 } from "../../utils/constants.js";
 import type { ValidateConfigResult } from "../../utils/validate-config.js";
 
-export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / PR Config Validation`;
+// "(pull_request)" suffix, not a distinct name -- this is the same
+// Capability Compliance concept, just validated against the PR's own
+// branch instead of the default branch (see the module docstring for
+// why that's a separate check rather than a change to the existing one).
+export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Capability Compliance (pull_request)`;
 
 export interface PostPrConfigValidationCheckInput {
 	client: Pick<GitHubClient, "checks">;
