@@ -92,6 +92,11 @@ export async function lintInclusiveLanguage(input: LintInclusiveLanguageInput): 
 				column: m.column ?? 0,
 				reason: m.reason,
 				ruleId: m.ruleId ?? "unknown",
+				// `m.source` is typed `string | null` by the vfile-message version
+				// alex resolves to; every real retext plugin (profanities,
+				// equality) always sets a real string, so the null branch is
+				// defensive only, not reachable through real alex output.
+				/* istanbul ignore next -- see comment above */
 				source: m.source ?? undefined,
 				profanitySeverity: (m as unknown as { profanitySeverity?: number }).profanitySeverity,
 			});
