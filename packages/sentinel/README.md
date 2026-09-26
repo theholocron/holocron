@@ -161,8 +161,10 @@ orgs/accounts unchanged.
 A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
-SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync` once that
-PR-stack item lands. `installation.created`/`installation.deleted` are
+SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Two more
+Doppler-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
+feed the module-level logger directly off `process.env` instead — see
+`src/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
 acknowledged only — no per-installation action is defined in v1.
 `push.default-branch` and `pull_request.opened`/`synchronize` run the
 identical pipeline (D8, same engine — only the commit SHA the check run
@@ -328,7 +330,13 @@ one, so only do this once and store the result immediately.
 Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
 the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
 Doppler first — see `holocron.config.ts` in this directory for the
-`vault` provider wiring — then out to Vercel's env vars:
+`vault` provider wiring — then out to Vercel's env vars. Two more keys
+already live in the same Doppler config for the Axiom log-shipping
+transport (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a
+narrower-scoped, ingest-only token — deliberately not the same
+credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
+`AXIOM_DATASET` (`holocron-sentinel`, not a secret, but synced the same
+way for one source of truth).
 
 ```sh
 holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production
