@@ -37,13 +37,21 @@ and dashboards.
 (`src/handler.ts`) is the orchestration sitting above both — utils to
 decide, actions to report, never the other way around.
 
-## `validateConfig({ client, repo })`
+## `validateConfig({ client, repo, ref? })`
 
-Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) from
-`repo`'s default branch via `@theholocron/github-client`'s
-`git.getContents()` — which takes no `ref` parameter, so it structurally
-can never read a PR branch or fork — and validates its `tasks` array
-against `@theholocron/astromech`'s canonical task registry. Returns one of:
+Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) via
+`@theholocron/github-client`'s `git.getContents()` and validates its
+`tasks` array against `@theholocron/astromech`'s canonical task registry.
+`ref` omitted (the common case, every check except auto-fix-commit) reads
+the repo's default branch. A caller passes `ref` explicitly to validate a
+specific commit/branch instead — used only by the auto-fix-commit opt-in
+check (holocron#820), which needs to see what a PR's _own_ branch
+currently declares. Safe because this function only ever validates —
+never persists or writes anything — so nothing derived from an
+unreviewed PR branch can leak into anything that does (properties sync,
+the capability-compliance check, Bucket 2 dispatch gating all stay on the
+ref-less, default-branch call). Same-repo only either way (D6): a fork's
+branch is never a valid `ref` here. Returns one of:
 
 | `status`          | Meaning                                                         |
 | ----------------- | --------------------------------------------------------------- |
@@ -155,7 +163,8 @@ validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
 three more independent Bucket 1 check pipelines — commit standards
 (commitlint), inclusive language (alex), and formatting (prettier,
 holocron#819) — the Bucket 2 dispatch prototype, and the auto-fix-commit
-capability (holocron#820, opt-in per repo, formatting only for now), all
+capability (holocron#820, formatting only for now — opt in via the
+repo's merged config or fresh in a PR's own branch, either way), all
 through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
@@ -321,9 +330,12 @@ escalation, not something code or an API call can grant. Update it in the
 App's own settings page (Settings → Developer settings → GitHub Apps →
 Holocron Sentinel → Permissions & events), then accept the updated
 permissions for the `theholocron` installation. Every other repo's Bucket 1
-checks are unaffected either way — only a repo that opts in via `with: {
-autoFix: true }` (see `handleWebhookRequest`'s own docstring in
-`src/handler.ts`) ever triggers a write.
+checks are unaffected either way — only a repo/PR that opts in via `with:
+{ autoFix: true }` on `sourceQuality.formatting` — merged to the repo's
+default branch, or added fresh in a PR's own branch (see
+`handleWebhookRequest`'s own docstring in `src/handler.ts`, and
+`validate-config.ts`'s module docstring for the read-only boundary that
+makes a PR-branch read safe) — ever triggers a write.
 
 ### Subscribe to events
 

@@ -37,16 +37,22 @@
  *   GitHub Actions thin-caller for that same task, not instead of it, until
  *   this mechanism is trusted enough to replace it.
  * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
- *   exception to every check above being config-free — opt-in per repo via
- *   `{ name: "sourceQuality.formatting", with: { autoFix: true } }` in
+ *   exception to every check above being config-free — opt-in via `{
+ *   name: "sourceQuality.formatting", with: { autoFix: true } }` in
  *   `holocron.config.ts`'s `tasks` array, since writing to repo content is
- *   qualitatively different from reading and reporting. Fires only when
- *   the repo opted in *and* the Formatting check above actually found
- *   something to fix — reuses `lintFormatting()`'s already-computed
- *   `format()` output rather than re-running prettier. One atomic commit
- *   via the Git Data API (blob → tree → commit → ref-update), pushed
- *   directly onto the PR's own head branch. Requires `Contents: Write` —
- *   see the README's permissions table.
+ *   qualitatively different from reading and reporting. Checked via a
+ *   *second* `validateConfig()` call reading the PR's own head ref
+ *   (`ref`-aware since holocron#820's follow-up) — a PR inherits whatever's
+ *   merged to main automatically (its branch started as a copy of it), and
+ *   can also add the flag fresh in its own diff, with no main-branch merge
+ *   required either way. Falls back to the main-derived flag too (OR'd),
+ *   for a PR branch created before the flag was merged and never rebased
+ *   since. Fires only when either resolves true *and* the Formatting check
+ *   above actually found something to fix — reuses `lintFormatting()`'s
+ *   already-computed `format()` output rather than re-running prettier.
+ *   One atomic commit via the Git Data API (blob → tree → commit →
+ *   ref-update), pushed directly onto the PR's own head branch. Requires
+ *   `Contents: Write` — see the README's permissions table.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -444,36 +450,60 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
-	// Auto-fix-commit (holocron#820) -- opt-in per repo via `with: { autoFix:
-	// true }` on the sourceQuality.formatting task entry, unlike every other
-	// Bucket 1 check above (config-free by design). Only fires when: the
-	// repo opted in, lintFormatting actually ran and found something to fix,
-	// and this is a PR event with a real head branch to push to (a push to
-	// the default branch has no PR branch to commit onto). Soft-skip over
-	// hard-fail, same reasoning as every check above: a commit failure must
-	// never take capability compliance down with it.
+	// Auto-fix-commit (holocron#820) -- opt-in either via the repo's merged
+	// `with: { autoFix: true }` on the sourceQuality.formatting task, or via
+	// that same flag freshly added in the PR's own branch. A PR inherits
+	// whatever's already merged to main automatically (its branch started
+	// as a copy of it), and can also add the flag fresh in its own diff --
+	// no main-branch merge required either way. The PR-branch read only
+	// ever feeds this boolean decision, never anything persisted (see
+	// validate-config.ts's own module docstring for the boundary that
+	// keeps this safe) -- unlike every other check above, config-free by
+	// design, this is the one exception, since writing to repo content is
+	// qualitatively different from reading and reporting. Only fires when:
+	// either resolves true, lintFormatting actually ran and found
+	// something to fix, and this is a PR event with a real head branch to
+	// push to (a push to the default branch has no PR branch to commit
+	// onto). Soft-skip over hard-fail, same reasoning as every check
+	// above: a commit failure must never take capability compliance down
+	// with it.
 	let formattingFixResult;
 	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
-	if (
-		formattingTask?.with?.["autoFix"] === true &&
-		formattingLintResult &&
-		!formattingLintResult.valid &&
-		context.headRef
-	) {
-		try {
-			formattingFixResult = await commitFormattingFix({
-				client,
-				repo,
-				headSha: context.headSha,
-				headRef: context.headRef,
-				result: formattingLintResult,
-			});
-			logger.info(
-				{ repo, committed: formattingFixResult.committed, fileCount: formattingFixResult.fileCount },
-				SENTINEL_FORMATTING_FIX_LOG_MSG
-			);
-		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
+	if (formattingLintResult && !formattingLintResult.valid && context.headRef) {
+		let autoFixOptedIn = formattingTask?.with?.["autoFix"] === true;
+		if (!autoFixOptedIn) {
+			try {
+				const prConfigResult = await validateConfig({ client, repo, ref: context.headSha });
+				if (prConfigResult.status === "valid") {
+					const prFormattingTask = (prConfigResult.config.tasks ?? [])
+						.map(normalizeTaskEntry)
+						.find((t) => t.name === "sourceQuality.formatting");
+					autoFixOptedIn = prFormattingTask?.with?.["autoFix"] === true;
+				}
+			} catch (err) {
+				logger.error(
+					{ repo, err: serializeError(err) },
+					"validateConfig (PR ref): failed, continuing without the PR-branch auto-fix opt-in check"
+				);
+			}
+		}
+
+		if (autoFixOptedIn) {
+			try {
+				formattingFixResult = await commitFormattingFix({
+					client,
+					repo,
+					headSha: context.headSha,
+					headRef: context.headRef,
+					result: formattingLintResult,
+				});
+				logger.info(
+					{ repo, committed: formattingFixResult.committed, fileCount: formattingFixResult.fileCount },
+					SENTINEL_FORMATTING_FIX_LOG_MSG
+				);
+			} catch (err) {
+				logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
+			}
 		}
 	}
 
