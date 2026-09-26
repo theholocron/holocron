@@ -46,6 +46,7 @@
     "@theholocron/cli": "workspace:*",
     "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/datapad": "workspace:*",
+    "@theholocron/env-utils": "catalog:utils",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",

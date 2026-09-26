@@ -163,7 +163,8 @@ deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
 SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Two more
 Doppler-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
-feed the module-level logger directly off `process.env` instead — see
+feed the module-level logger directly, via `@theholocron/env-utils`
+(never bare `process.env`, this org's own convention) — see
 `src/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
 acknowledged only — no per-installation action is defined in v1.
 `push.default-branch` and `pull_request.opened`/`synchronize` run the

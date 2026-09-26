@@ -41,9 +41,10 @@
  * `Env` fields this handler expects, wired via `holocron secrets sync`
  * (holocron#781) from Doppler's `sentinel`/`prd` config: `GITHUB_APP_ID`,
  * `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`. The module-level
- * logger below reads two more directly off `process.env` (see its own
- * comment) — not through this `Env` parameter, since it's built once at
- * module load, before any request (and its `env`) exists.
+ * logger below reads two more via `@theholocron/env-utils` (see its own
+ * comment — never bare `process.env`, this org's own convention) — not
+ * through this `Env` parameter, since it's built once at module load,
+ * before any request (and its `env`) exists.
  *
  * v1 scope only: `installation.created`/`installation.deleted` are
  * acknowledged, not acted on — no per-installation action is defined yet.
@@ -60,6 +61,7 @@
  */
 
 import { normalizeTaskEntry } from "@theholocron/astromech/config";
+import { createEnvLookup } from "@theholocron/env-utils";
 import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
@@ -93,8 +95,9 @@ import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from 
 // have been synced to Vercel. `runId` is threaded into every check run's
 // own output.text so a viewer can find the exact invocation's structured
 // log line in Axiom without leaving GitHub.
-const axiomToken = process.env.SENTINEL_AXIOM_INGEST_TOKEN;
-const axiomDataset = process.env.AXIOM_DATASET;
+const env = createEnvLookup();
+const axiomToken = env.get("SENTINEL_AXIOM_INGEST_TOKEN");
+const axiomDataset = env.get("AXIOM_DATASET");
 const { logger, runId } = createLogger(
 	axiomToken && axiomDataset ? { axiom: { token: axiomToken, dataset: axiomDataset } } : {}
 );
