@@ -17,6 +17,9 @@ vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: 
 vi.mock("./actions/formatting/commit-formatting-fix.js", () => ({ commitFormattingFix: vi.fn() }));
 vi.mock("./actions/formatting/lint-formatting.js", () => ({ lintFormatting: vi.fn() }));
 vi.mock("./actions/formatting/post-formatting-check.js", () => ({ postFormattingCheck: vi.fn() }));
+vi.mock("./actions/pr-config-validation/post-pr-config-validation-check.js", () => ({
+	postPrConfigValidationCheck: vi.fn(),
+}));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("./utils/webhook.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./utils/webhook.js")>();
@@ -34,6 +37,7 @@ import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting } from "./actions/formatting/lint-formatting.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
+import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
 import { validateConfig } from "./utils/validate-config.js";
 import { parseWebhookEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -68,6 +72,7 @@ beforeEach(() => {
 	vi.mocked(lintFormatting).mockReset();
 	vi.mocked(postFormattingCheck).mockReset();
 	vi.mocked(commitFormattingFix).mockReset();
+	vi.mocked(postPrConfigValidationCheck).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -513,6 +518,97 @@ describe("handler — formatting pipeline (holocron#769/#819)", () => {
 	});
 });
 
+describe("handler — PR Config Validation pipeline (holocron#827)", () => {
+	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
+		return {
+			type,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+			},
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("validates the PR's own branch, not the default branch, and posts the result", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "holocron.config.ts",
+			config: { tasks: [] },
+		});
+		vi.mocked(postPrConfigValidationCheck).mockResolvedValue({ checkRunId: 5, conclusion: "success", htmlUrl: "" });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(validateConfig).toHaveBeenNthCalledWith(1, {
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			ref: "pr-head-sha",
+		});
+		expect(postPrConfigValidationCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			result: { status: "valid", filepath: "holocron.config.ts", config: { tasks: [] } },
+			runId: "test-run-id",
+		});
+		const body = (await res.json()) as { prConfigValidationCheckRun: unknown };
+		expect(body.prConfigValidationCheckRun).toEqual({ checkRunId: 5, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("runs on pull_request.synchronize too, not just opened", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+		vi.mocked(postPrConfigValidationCheck).mockResolvedValue({ checkRunId: 6, conclusion: "success", htmlUrl: "" });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(postPrConfigValidationCheck).toHaveBeenCalled();
+	});
+
+	it("does not run for a push event -- there's no PR branch to validate separately from the default branch", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				type: "push.default-branch" as const,
+				repo: "acme/demo",
+				installationId: 42,
+				raw: { repository: { default_branch: "main" }, after: "sha-after" },
+			},
+		});
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(postPrConfigValidationCheck).not.toHaveBeenCalled();
+	});
+
+	it("soft-skips a failed PR-branch validateConfig call -- capability compliance still posts, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(validateConfig).mockImplementation(async (input) => {
+			if (input.ref === "pr-head-sha") throw new Error("PR branch fetch failed");
+			return { status: "valid", filepath: "x", config: { tasks: [] } };
+		});
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postPrConfigValidationCheck).not.toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { prConfigValidationCheckRun: unknown; checkRun: unknown };
+		expect(body.prConfigValidationCheckRun).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+});
+
 describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
 	function pushEvent() {
 		return {
@@ -645,7 +741,7 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 2, conclusion: "neutral", htmlUrl: "" });
 	});
 
-	it("commits the fix when the repo's merged (default-branch) config opted in, with no second PR-branch check needed", async () => {
+	it("commits the fix when the repo's merged (default-branch) config opted in", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
 		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
 		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
@@ -660,7 +756,10 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 			headRef: "feature-branch",
 			result: invalidLintResult,
 		});
-		expect(validateConfig).toHaveBeenCalledTimes(1);
+		// Exactly 2: PR Config Validation's own PR-branch read (holocron#827)
+		// and capability-compliance's default-branch read -- the auto-fix
+		// gate itself never makes its own extra call, it reuses the first.
+		expect(validateConfig).toHaveBeenCalledTimes(2);
 		const body = (await res.json()) as { formattingFixResult: unknown };
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
 	});
@@ -675,7 +774,9 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 
 		const res = await handleWebhookRequest(req(), ENV);
 
-		expect(validateConfig).toHaveBeenNthCalledWith(2, {
+		// PR Config Validation's own block makes the ref-based call first;
+		// the auto-fix gate reuses that result rather than fetching again.
+		expect(validateConfig).toHaveBeenNthCalledWith(1, {
 			client: FAKE_CLIENT,
 			repo: "acme/demo",
 			ref: "pr-head-sha",
