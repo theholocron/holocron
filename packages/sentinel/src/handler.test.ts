@@ -16,6 +16,7 @@ vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPrope
 vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
 vi.mock("./actions/formatting/commit-formatting-fix.js", () => ({ commitFormattingFix: vi.fn() }));
 vi.mock("./actions/formatting/lint-formatting.js", () => ({ lintFormatting: vi.fn() }));
+vi.mock("./actions/formatting/post-auto-fix-comment.js", () => ({ postAutoFixComment: vi.fn() }));
 vi.mock("./actions/formatting/post-formatting-check.js", () => ({ postFormattingCheck: vi.fn() }));
 vi.mock("./actions/pr-config-validation/post-pr-config-validation-check.js", () => ({
 	postPrConfigValidationCheck: vi.fn(),
@@ -36,6 +37,7 @@ import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting } from "./actions/formatting/lint-formatting.js";
+import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
@@ -73,6 +75,7 @@ beforeEach(() => {
 	vi.mocked(postFormattingCheck).mockReset();
 	vi.mocked(commitFormattingFix).mockReset();
 	vi.mocked(postPrConfigValidationCheck).mockReset();
+	vi.mocked(postAutoFixComment).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -860,5 +863,84 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		expect(res.status).toBe(200);
 		expect(commitFormattingFix).not.toHaveBeenCalled();
 		expect(postCheckRun).toHaveBeenCalled();
+	});
+});
+
+describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
+	function prEvent() {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha", ref: "feature-branch" } },
+			},
+		};
+	}
+
+	const invalidLintResult = {
+		valid: false,
+		fileCount: 1,
+		messages: [{ file: "src/index.js", line: 1, reason: "reformat me", formatted: "const x = 1;\n" }],
+	};
+
+	function configWithAutoFix(autoFix: boolean) {
+		return {
+			status: "valid" as const,
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 2, conclusion: "neutral", htmlUrl: "" });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+	});
+
+	it("posts a comment when commitFormattingFix actually committed", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+		vi.mocked(postAutoFixComment).mockResolvedValue({ posted: true });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(postAutoFixComment).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			pullNumber: 9,
+			fixResult: { committed: true, commitSha: "new-commit", fileCount: 1 },
+			lintResult: invalidLintResult,
+		});
+		const body = (await res.json()) as { autoFixCommentResult: unknown };
+		expect(body.autoFixCommentResult).toEqual({ posted: true });
+	});
+
+	it("does not post a comment when commitFormattingFix resolves committed: false", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: false, fileCount: 0 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(postAutoFixComment).not.toHaveBeenCalled();
+		const body = (await res.json()) as { autoFixCommentResult: unknown };
+		expect(body.autoFixCommentResult).toBeUndefined();
+	});
+
+	it("soft-skips a postAutoFixComment failure -- the commit itself still reports success, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+		vi.mocked(postAutoFixComment).mockRejectedValue(new Error("comment failed"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { autoFixCommentResult: unknown; formattingFixResult: unknown };
+		expect(body.autoFixCommentResult).toBeUndefined();
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
 	});
 });

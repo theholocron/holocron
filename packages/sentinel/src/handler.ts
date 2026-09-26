@@ -64,6 +64,15 @@
  *   tree → commit → ref-update), pushed directly onto the PR's own head
  *   branch. Requires `Contents: Write` — see the README's permissions
  *   table.
+ * - **Auto-fix PR comment** (`postAutoFixComment`, holocron#674/#834):
+ *   explains what the commit above just changed — which files, and the
+ *   commit SHA. Fires only when `commitFormattingFix` actually committed
+ *   (nothing to say otherwise). Uses `issues.createComment()` — requires
+ *   `Issues: Write`, a second permission escalation alongside auto-fix-
+ *   commit's own `Contents: Write`; see the README's permissions table.
+ *   Its own soft-skip is independent of the commit's: a comment failure
+ *   must never make an otherwise-successful auto-fix commit look like it
+ *   failed too.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -106,6 +115,7 @@ import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting, type LintFormattingResult } from "./actions/formatting/lint-formatting.js";
+import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
@@ -512,6 +522,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// same reasoning as every check above: a commit failure must never
 	// take capability compliance down with it.
 	let formattingFixResult;
+	let autoFixCommentResult;
 	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
 	if (formattingLintResult && !formattingLintResult.valid && context.headRef) {
 		let autoFixOptedIn = formattingTask?.with?.["autoFix"] === true;
@@ -535,6 +546,27 @@ async function handle(request: Request, env: Env): Promise<Response> {
 					{ repo, committed: formattingFixResult.committed, fileCount: formattingFixResult.fileCount },
 					SENTINEL_FORMATTING_FIX_LOG_MSG
 				);
+
+				// PR comment (holocron#674/#834) -- explains what the commit
+				// above just changed. Its own soft-skip, separate from the
+				// commit's: a comment failure must never make an otherwise-
+				// successful auto-fix commit look like it failed too.
+				if (formattingFixResult.committed && context.pullNumber !== undefined) {
+					try {
+						autoFixCommentResult = await postAutoFixComment({
+							client,
+							repo,
+							pullNumber: context.pullNumber,
+							fixResult: formattingFixResult,
+							lintResult: formattingLintResult,
+						});
+					} catch (err) {
+						logger.error(
+							{ repo, err: serializeError(err) },
+							"postAutoFixComment: failed, continuing without it"
+						);
+					}
+				}
 			} catch (err) {
 				logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
 			}
@@ -550,6 +582,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		formattingCheckRun,
 		prConfigValidationCheckRun,
 		formattingFixResult,
+		autoFixCommentResult,
 		dispatchedCheckRun,
 	});
 }
