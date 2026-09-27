@@ -10,8 +10,8 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 }
 
 describe("postMarkdownLintCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Markdown Lint / Run markdownlint", () => {
-		expect(SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME).toBe("Source Quality / Markdown Lint / Run markdownlint");
+	it("names the check run Source Quality / Documentation / Run markdownlint", () => {
+		expect(SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME).toBe("Source Quality / Documentation / Run markdownlint");
 	});
 });
 

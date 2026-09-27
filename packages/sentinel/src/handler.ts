@@ -29,7 +29,7 @@
  *   config-free/advisory shape as inclusive language — reads
  *   `@theholocron/prettier-config`'s canonical export directly, never a
  *   per-repo file.
- * - **Markdown Lint** (`lintMarkdown → postMarkdownLintCheck`,
+ * - **Documentation** (`lintMarkdown → postMarkdownLintCheck`,
  *   holocron#769/#821): `pull_request.*` only, same reason and same
  *   config-free/advisory shape as the other three Bucket 1 checks — reads
  *   `@theholocron/markdownlint-config`'s canonical export directly, never
