@@ -963,13 +963,10 @@ describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
 describe("handler — TEMP DEBUG installation permissions check (holocron#834)", () => {
 	function pushEvent() {
 		return {
-			handled: true,
-			event: {
-				type: "push.default-branch" as const,
-				repo: "acme/demo",
-				installationId: 42,
-				raw: { repository: { default_branch: "main" }, after: "sha-after" },
-			},
+			type: "push.default-branch" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: { repository: { default_branch: "main" }, after: "sha-after" },
 		};
 	}
 
@@ -981,7 +978,7 @@ describe("handler — TEMP DEBUG installation permissions check (holocron#834)",
 	});
 
 	it("hits the App-authenticated installation endpoint and logs the response, without changing the handler's own response", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue(pushEvent());
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
 
 		const res = await handleWebhookRequest(req(), ENV);
 
@@ -994,7 +991,7 @@ describe("handler — TEMP DEBUG installation permissions check (holocron#834)",
 	});
 
 	it("soft-skips a failure from this check -- the handler's own response is unaffected", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue(pushEvent());
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
 		vi.mocked(createAppJWT).mockRejectedValue(new Error("jwt signing failed"));
 
 		const res = await handleWebhookRequest(req(), ENV);
