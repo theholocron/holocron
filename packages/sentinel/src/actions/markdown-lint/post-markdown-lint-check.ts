@@ -24,7 +24,7 @@ import type { LintMarkdownResult, MarkdownLintMessage } from "./lint-markdown.js
  * spec's own forecast ("the next namespace... once eslint/prettier move to
  * Sentinel too") named exactly this kind of tool.
  */
-export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Markdown Lint / Run markdownlint`;
+export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Documentation / Run markdownlint`;
 
 /** One message as one summary line: `README.md:12: reason [rule-name]`. */
 function formatMessage(m: MarkdownLintMessage): string {
