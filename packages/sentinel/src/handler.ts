@@ -29,6 +29,13 @@
  *   config-free/advisory shape as inclusive language — reads
  *   `@theholocron/prettier-config`'s canonical export directly, never a
  *   per-repo file.
+ * - **Markdown Lint** (`lintMarkdown → postMarkdownLintCheck`,
+ *   holocron#769/#821): `pull_request.*` only, same reason and same
+ *   config-free/advisory shape as the other three Bucket 1 checks — reads
+ *   `@theholocron/markdownlint-config`'s canonical export directly, never
+ *   a per-repo file. One `markdownlint.lint()` call batching every
+ *   changed markdown file's content, not a per-file loop the way
+ *   prettier/alex run.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -119,6 +126,8 @@ import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.j
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
+import { lintMarkdown } from "./actions/markdown-lint/lint-markdown.js";
+import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
 import {
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
@@ -128,6 +137,7 @@ import {
 	SENTINEL_FORMATTING_FIX_LOG_MSG,
 	SENTINEL_FORMATTING_LOG_MSG,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
+	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
 } from "./utils/constants.js";
 import { validateConfig, type ValidateConfigResult } from "./utils/validate-config.js";
@@ -414,6 +424,40 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Same PR-only scoping and soft-skip reasoning as every Bucket 1 check
+	// above -- the fourth (holocron#769/#821).
+	let markdownLintCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const lintResult = await lintMarkdown({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			markdownLintCheckRun = await postMarkdownLintCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_MARKDOWN_LINT_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: lintResult.valid,
+					fileCount: lintResult.fileCount,
+					messageCount: lintResult.messages.length,
+				},
+				SENTINEL_MARKDOWN_LINT_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintMarkdown: failed, continuing without it");
+		}
+	}
+
 	// PR Config Validation (holocron#827) -- advisory, never required,
 	// deliberately separate from capability compliance below. Validates the
 	// PR's OWN branch (ref-aware validateConfig(), holocron#820's follow-up)
@@ -453,6 +497,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			commitStandardsCheckRun,
 			inclusiveLanguageCheckRun,
 			formattingCheckRun,
+			markdownLintCheckRun,
 			prConfigValidationCheckRun,
 		});
 	}
@@ -580,6 +625,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		commitStandardsCheckRun,
 		inclusiveLanguageCheckRun,
 		formattingCheckRun,
+		markdownLintCheckRun,
 		prConfigValidationCheckRun,
 		formattingFixResult,
 		autoFixCommentResult,

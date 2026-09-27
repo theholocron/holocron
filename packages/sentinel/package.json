@@ -50,9 +50,11 @@
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
+    "@theholocron/markdownlint-config": "catalog:configs",
     "@theholocron/observability": "catalog:",
     "@theholocron/prettier-config": "catalog:configs",
     "alex": "catalog:",
+    "markdownlint": "catalog:",
     "prettier": "catalog:",
     "tsx": "catalog:"
   },

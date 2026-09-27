@@ -56,6 +56,8 @@ export const SENTINEL_FORMATTING_LOG_MSG = "postFormattingCheck: posted";
 export const SENTINEL_FORMATTING_FIX_LOG_MSG = "commitFormattingFix: committed";
 /** Logged (and linked to) once `postPrConfigValidationCheck()` actually posts (holocron#827) — never hand-copy this string elsewhere. */
 export const SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG = "postPrConfigValidationCheck: posted";
+/** Logged (and linked to) once `postMarkdownLintCheck()` actually posts (holocron#821) — never hand-copy this string elsewhere. */
+export const SENTINEL_MARKDOWN_LINT_LOG_MSG = "postMarkdownLintCheck: posted";
 
 /**
  * Where the Bucket 2 dispatch mechanism's shared workflow lives

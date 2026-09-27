@@ -160,9 +160,10 @@ instead of retyping.
 
 Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
-three more independent Bucket 1 check pipelines — commit standards
-(commitlint), inclusive language (alex), and formatting (prettier,
-holocron#819) — the Bucket 2 dispatch prototype, the auto-fix-commit
+four more independent Bucket 1 check pipelines — commit standards
+(commitlint), inclusive language (alex), formatting (prettier,
+holocron#819), and markdown lint (markdownlint, holocron#821) — the
+Bucket 2 dispatch prototype, the auto-fix-commit
 capability (holocron#820, formatting only for now — opt in via the
 repo's merged config or fresh in a PR's own branch, either way), and the
 advisory PR Config Validation check (holocron#827 — posted as `Platform

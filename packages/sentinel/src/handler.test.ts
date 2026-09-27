@@ -18,6 +18,8 @@ vi.mock("./actions/formatting/commit-formatting-fix.js", () => ({ commitFormatti
 vi.mock("./actions/formatting/lint-formatting.js", () => ({ lintFormatting: vi.fn() }));
 vi.mock("./actions/formatting/post-auto-fix-comment.js", () => ({ postAutoFixComment: vi.fn() }));
 vi.mock("./actions/formatting/post-formatting-check.js", () => ({ postFormattingCheck: vi.fn() }));
+vi.mock("./actions/markdown-lint/lint-markdown.js", () => ({ lintMarkdown: vi.fn() }));
+vi.mock("./actions/markdown-lint/post-markdown-lint-check.js", () => ({ postMarkdownLintCheck: vi.fn() }));
 vi.mock("./actions/pr-config-validation/post-pr-config-validation-check.js", () => ({
 	postPrConfigValidationCheck: vi.fn(),
 }));
@@ -39,6 +41,8 @@ import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.
 import { lintFormatting } from "./actions/formatting/lint-formatting.js";
 import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
+import { lintMarkdown } from "./actions/markdown-lint/lint-markdown.js";
+import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
 import { validateConfig } from "./utils/validate-config.js";
@@ -73,6 +77,8 @@ beforeEach(() => {
 	vi.mocked(dispatchCheck).mockReset();
 	vi.mocked(lintFormatting).mockReset();
 	vi.mocked(postFormattingCheck).mockReset();
+	vi.mocked(lintMarkdown).mockReset();
+	vi.mocked(postMarkdownLintCheck).mockReset();
 	vi.mocked(commitFormattingFix).mockReset();
 	vi.mocked(postPrConfigValidationCheck).mockReset();
 	vi.mocked(postAutoFixComment).mockReset();
@@ -517,6 +523,80 @@ describe("handler — formatting pipeline (holocron#769/#819)", () => {
 		expect(postCheckRun).toHaveBeenCalled();
 		const body = (await res.json()) as { formattingCheckRun: unknown; checkRun: unknown };
 		expect(body.formattingCheckRun).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+});
+
+describe("handler — markdown lint pipeline (holocron#769/#821)", () => {
+	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
+		return {
+			type,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+			},
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("runs lintMarkdown with the PR's ref, and posts the result", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 2, messages: [] });
+		vi.mocked(postMarkdownLintCheck).mockResolvedValue({
+			checkRunId: 20,
+			conclusion: "success",
+			htmlUrl: "https://x/20",
+		});
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(lintMarkdown).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			pullNumber: 9,
+			ref: "pr-head-sha",
+		});
+		expect(postMarkdownLintCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			result: { valid: true, fileCount: 2, messages: [] },
+			runId: "test-run-id",
+		});
+		const body = (await res.json()) as { markdownLintCheckRun: unknown };
+		expect(body.markdownLintCheckRun).toEqual({ checkRunId: 20, conclusion: "success", htmlUrl: "https://x/20" });
+	});
+
+	it("runs on pull_request.synchronize too, not just opened", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
+		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 1, messages: [] });
+		vi.mocked(postMarkdownLintCheck).mockResolvedValue({ checkRunId: 21, conclusion: "success", htmlUrl: "" });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(lintMarkdown).toHaveBeenCalled();
+	});
+
+	it("soft-skips a lintMarkdown failure -- other checks still post, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintMarkdown).mockRejectedValue(new Error("Cannot find module (some unrelated failure)"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postMarkdownLintCheck).not.toHaveBeenCalled();
+		expect(syncPropertiesFromConfig).toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { markdownLintCheckRun: unknown; checkRun: unknown };
+		expect(body.markdownLintCheckRun).toBeUndefined();
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
 	});
 });
