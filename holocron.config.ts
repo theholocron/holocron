@@ -67,7 +67,9 @@ export default defineConfig({
 	// in by astromech's `loadTasksConfig`.
 	tasks: [
 		{ name: "sourceQuality.staticAnalysis", required: true },
-		{ name: "sourceQuality.formatting", required: true },
+		// Disposable: cross-repo differential test for holocron#834's PR
+		// comment live-verification -- not merged to alpha.
+		{ name: "sourceQuality.formatting", required: true, with: { autoFix: true } },
 		{ name: "sourceQuality.structuredDataValidation", required: true },
 		{ name: "security.secretDetection", required: true },
 		{ name: "platform.commitStandards", required: true },
