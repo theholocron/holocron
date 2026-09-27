@@ -1,6 +1,7 @@
 import vitest from "@vitest/eslint-plugin";
+import type { Linter } from "eslint";
 
-export function vitestConfig() {
+export function vitestConfig(): Linter.Config[] {
 	return [
 		{
 			name: "@theholocron/vitest",

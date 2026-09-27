@@ -1,6 +1,7 @@
+import type { Linter } from "eslint";
 import tseslint from "typescript-eslint";
 
-export function typescript() {
+export function typescript(): Linter.Config[] {
 	return [
 		...tseslint.configs.recommended,
 		{
