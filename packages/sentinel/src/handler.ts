@@ -104,7 +104,7 @@
 
 import { normalizeTaskEntry } from "@theholocron/astromech/config";
 import { createEnvLookup } from "@theholocron/env-utils";
-import { createAppJWT, createInstallationClient } from "@theholocron/github-client";
+import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
@@ -302,28 +302,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
 		event.installationId
 	);
-
-	// TEMPORARY (holocron#834 403 debugging) -- logs the App's own live view
-	// of this installation's permissions, straight from GitHub, at the exact
-	// moment of this request. Remove once the postAutoFixComment 403 is
-	// root-caused.
-	try {
-		const jwt = await createAppJWT({ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY });
-		const res = await fetch(`https://api.github.com/app/installations/${event.installationId}`, {
-			headers: {
-				authorization: `Bearer ${jwt}`,
-				accept: "application/vnd.github+json",
-				"x-github-api-version": "2022-11-28",
-			},
-		});
-		const body = (await res.json()) as { permissions?: unknown };
-		logger.info(
-			{ repo, status: res.status, permissions: body.permissions },
-			"TEMP DEBUG: installation permissions"
-		);
-	} catch (err) {
-		logger.error({ repo, err: serializeError(err) }, "TEMP DEBUG: installation permissions check failed");
-	}
 
 	// Commit-message linting (holocron#769/#771) is config-free by design
 	// (D6, tech-sentinel-enforcement.spec.md) -- it never reads

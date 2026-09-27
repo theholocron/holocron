@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { fakeFlush } = vi.hoisted(() => ({ fakeFlush: vi.fn().mockResolvedValue(undefined) }));
 
@@ -8,7 +8,7 @@ vi.mock("@theholocron/observability/logger", () => ({
 		runId: "test-run-id",
 	}),
 }));
-vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn(), createAppJWT: vi.fn() }));
+vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
 vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.fn() }));
 vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
@@ -27,7 +27,7 @@ vi.mock("./utils/webhook.js", async (importOriginal) => {
 	return { ...actual, parseWebhookEvent: vi.fn() };
 });
 
-import { createAppJWT, createInstallationClient } from "@theholocron/github-client";
+import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
 import { postCheckRun } from "./actions/capability-compliance/post-check-run.js";
@@ -65,7 +65,6 @@ function req(body = "{}", method = "POST"): Request {
 beforeEach(() => {
 	vi.mocked(parseWebhookEvent).mockReset();
 	vi.mocked(createInstallationClient).mockReset();
-	vi.mocked(createAppJWT).mockReset();
 	vi.mocked(validateConfig).mockReset();
 	vi.mocked(syncPropertiesFromConfig).mockReset();
 	vi.mocked(postCheckRun).mockReset();
@@ -77,21 +76,7 @@ beforeEach(() => {
 	vi.mocked(commitFormattingFix).mockReset();
 	vi.mocked(postPrConfigValidationCheck).mockReset();
 	vi.mocked(postAutoFixComment).mockReset();
-	vi.mocked(createAppJWT).mockResolvedValue("fake-jwt");
-	// TEMPORARY (holocron#834 403 debugging) -- handler.ts's own diagnostic
-	// block calls global fetch directly (not the mocked GitHubClient), so it
-	// needs its own stub here or every test past createInstallationClient
-	// would attempt a real network call. Default: succeeds harmlessly:
-	// nothing under test asserts on this beyond the dedicated test below.
-	vi.stubGlobal(
-		"fetch",
-		vi.fn().mockResolvedValue({ status: 200, json: () => Promise.resolve({ permissions: { issues: "write" } }) })
-	);
 	fakeFlush.mockClear();
-});
-
-afterEach(() => {
-	vi.unstubAllGlobals();
 });
 
 describe("handler — method + verification", () => {
@@ -957,46 +942,5 @@ describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
 		const body = (await res.json()) as { autoFixCommentResult: unknown; formattingFixResult: unknown };
 		expect(body.autoFixCommentResult).toBeUndefined();
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
-	});
-});
-
-describe("handler — TEMP DEBUG installation permissions check (holocron#834)", () => {
-	function pushEvent() {
-		return {
-			type: "push.default-branch" as const,
-			repo: "acme/demo",
-			installationId: 42,
-			raw: { repository: { default_branch: "main" }, after: "sha-after" },
-		};
-	}
-
-	beforeEach(() => {
-		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
-		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
-		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
-		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
-	});
-
-	it("hits the App-authenticated installation endpoint and logs the response, without changing the handler's own response", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(createAppJWT).toHaveBeenCalledWith({ appId: ENV.GITHUB_APP_ID, privateKey: ENV.GITHUB_APP_PRIVATE_KEY });
-		expect(fetch).toHaveBeenCalledWith(
-			"https://api.github.com/app/installations/42",
-			expect.objectContaining({ headers: expect.objectContaining({ authorization: "Bearer fake-jwt" }) })
-		);
-		expect(res.status).toBe(200);
-	});
-
-	it("soft-skips a failure from this check -- the handler's own response is unaffected", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-		vi.mocked(createAppJWT).mockRejectedValue(new Error("jwt signing failed"));
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual(expect.objectContaining({ handled: true, type: "push.default-branch" }));
 	});
 });
