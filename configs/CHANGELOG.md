@@ -1,3 +1,9 @@
+## [8.5.0](https://github.com/theholocron/configs/compare/v8.4.8...v8.5.0) (2026-09-27)
+
+### Features
+
+* **markdownlint-config:** add markdownlint config package (holocron[#821](https://github.com/theholocron/configs/issues/821)) ([#479](https://github.com/theholocron/configs/issues/479)) ([f67dbee](https://github.com/theholocron/configs/commit/f67dbeed702133390646417fc701bf683064fb22))
+
 ## [8.4.8](https://github.com/theholocron/configs/compare/v8.4.7...v8.4.8) (2026-09-23)
 
 ### Bug Fixes
