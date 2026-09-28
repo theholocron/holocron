@@ -173,7 +173,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (effectivePreset && effectivePreset !== "none") {
 			steps.push(
 				await runStep("source", "updateRepoSettings", dryRun, async () => {
-					await source.updateRepoSettings(BALANCED_REPO_SETTINGS);
+					await source.updateRepoSettings({
+						...BALANCED_REPO_SETTINGS,
+						...(repo?.defaultBranch ? { default_branch: repo.defaultBranch } : {}),
+					});
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));

@@ -192,6 +192,26 @@ lockfile — no coverable change) passes instead of hanging on a `codecov/*`
 required check that never posts. A re-run of `holocron setup` backfills both into
 an existing repo.
 
+### Default branch (`repo.defaultBranch`)
+
+```ts
+export default defineConfig({
+  repo: { protection: "strict", defaultBranch: "alpha" },
+  providers: { source: "github" },
+});
+```
+
+`holocron setup` syncs GitHub's repo-level default branch (`HEAD`) — what a
+fresh clone checks out, what `gh pr create`/the compare UI target by default,
+and what Sentinel's `validateConfig()` reads (it only ever reads config from
+the repo's default branch, never a PR ref — a deliberate security boundary).
+Omit this field to leave GitHub's current setting untouched; most repos never
+need it. It exists for a repo using a `main`/`alpha` prerelease-channel split
+where active development happens on a non-`main` branch: set this to that
+branch so Sentinel validates against what's actually being developed, then
+change it back once that branch merges to `main` for a stable cut and stops
+being the active branch.
+
 ### Git hooks
 
 ```ts

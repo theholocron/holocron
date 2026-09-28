@@ -1064,6 +1064,40 @@ describe("runSetup", () => {
 		expect(rules.some((r) => r.type === "required_status_checks")).toBe(false);
 		const policySteps = report.steps.filter((s) => s.capability === "source" && s.step === "updateRepoSettings");
 		expect(policySteps[0]?.status).toBe("ok");
+		// repo.defaultBranch wasn't set -- GitHub's current default branch setting
+		// is left untouched, not overwritten with some implicit value.
+		expect(settingsApplied).not.toHaveProperty("default_branch");
+	});
+
+	it("passes repo.defaultBranch through as default_branch -- a repo using a main/alpha prerelease-channel split can point Sentinel's default-branch-only read at the actively-developed branch", async () => {
+		let settingsApplied: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced", defaultBranch: "alpha" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async (s: Record<string, unknown>) => {
+						settingsApplied = s;
+					},
+					listRulesets: async () => [],
+					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(settingsApplied).toMatchObject({ default_branch: "alpha" });
 	});
 
 	it("derives required_status_checks from required tasks when repo.protection is 'strict'", async () => {
