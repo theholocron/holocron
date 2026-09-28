@@ -1,3 +1,9 @@
+## [8.5.2](https://github.com/theholocron/configs/compare/v8.5.1...v8.5.2) (2026-09-28)
+
+### Bug Fixes
+
+* **turbo:** 🐛 watch every *.ts file for build/test tasks, not just src/** ([#483](https://github.com/theholocron/configs/issues/483)) ([8910c82](https://github.com/theholocron/configs/commit/8910c82b630c85cae89ed19e2c7beda12d5f0a65)), closes [holocron#672](https://github.com/theholocron/holocron/issues/672) [holocron#680](https://github.com/theholocron/holocron/issues/680) [holocron#681](https://github.com/theholocron/holocron/issues/681) [holocron#845](https://github.com/theholocron/holocron/issues/845)
+
 ## [8.5.1](https://github.com/theholocron/configs/compare/v8.5.0...v8.5.1) (2026-09-28)
 
 ### Bug Fixes
