@@ -1,3 +1,9 @@
+## [8.5.1](https://github.com/theholocron/configs/compare/v8.5.0...v8.5.1) (2026-09-28)
+
+### Bug Fixes
+
+* **tsdown-config:** 🐛 externalize all dependencies in library(), not just @theholocron/* ([#482](https://github.com/theholocron/configs/issues/482)) ([4466501](https://github.com/theholocron/configs/commit/4466501cc1c43670137fce0fca4e2a0ca8a29e46)), closes [#481](https://github.com/theholocron/configs/issues/481)
+
 ## [8.5.0](https://github.com/theholocron/configs/compare/v8.4.8...v8.5.0) (2026-09-27)
 
 ### Features
