@@ -66,6 +66,15 @@ describe("tsdown-config", () => {
 			expect(config.dts).toBe(true);
 		});
 
+		it("externalizes every dependency by default, not just @theholocron/* peers", () => {
+			// a package with real third-party runtime deps (e.g. google-client's
+			// googleapis) must not get them bundled -- confirmed this was
+			// happening under the old narrower regex, saved only by tree-shaking
+			// stripping the unreachable code back out before final emit
+			const config = library();
+			expect(config.deps).toEqual({ neverBundle: true });
+		});
+
 		it("accepts option overrides", () => {
 			const config = library({ clean: false });
 			expect(config.clean).toBe(false);
