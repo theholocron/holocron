@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown",
+    "delivery.build": "holocron run delivery.build -- && node ../../scripts/check-bundle-size.mjs",
     "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
     "test:watch": "vitest",
     "verification.typeSafety": "holocron run verification.typeSafety --",
