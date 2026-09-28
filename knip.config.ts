@@ -4,8 +4,7 @@ const config: KnipConfig = {
 	workspaces: {
 		".": {
 			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts,
-			// commitlint.config.ts (now that @commitlint/cli is a real dependency) —
-			// all auto-detected by Knip plugins
+			// commitlint.config.ts — all auto-detected by Knip plugins
 			entry: ["holocron.config.ts", "astromech.config.ts"],
 			project: ["*.ts"],
 		},
@@ -82,6 +81,13 @@ const config: KnipConfig = {
 		// satisfies @theholocron/commitlint-config's peerDependencies; nothing
 		// in this repo extends it directly (only via "@theholocron" above)
 		"@commitlint/config-conventional",
+		// never invoked directly (.husky/commit-msg calls `holocron lint
+		// commit-msg` instead) -- kept as a devDependency purely because its
+		// presence is what activates Knip's own commitlint plugin, which is
+		// what makes commitlint.config.ts count as a real entry point at all.
+		// Removing this dependency breaks that detection instead of finding
+		// a genuinely unused package -- confirmed live.
+		"@commitlint/cli",
 		// resolved dynamically by validateConfig() when a consuming repo's
 		// holocron.config.ts imports it -- never a static import in Sentinel's
 		// own source (holocron#782)

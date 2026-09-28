@@ -9,10 +9,12 @@ coverage:
     project:
       default:
         target: auto
+        if_not_found: success
         threshold: 2%
     patch:
       default:
         target: 80%
+        if_not_found: success
         threshold: 2%
 
 comment:
@@ -25,26 +27,22 @@ component_management:
     statuses:
       - type: patch
         target: 80%
+        if_not_found: success
   individual_components:
-    - component_id: cli
-      name: "cli"
-      paths:
-        - packages/cli/**
-
     - component_id: astromech
       name: "astromech"
       paths:
         - packages/astromech/**
 
+    - component_id: cli
+      name: "cli"
+      paths:
+        - packages/cli/**
+
     - component_id: datapad
       name: "datapad"
       paths:
         - packages/datapad/**
-
-    - component_id: sentinel
-      name: "sentinel"
-      paths:
-        - packages/sentinel/**
 
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
@@ -120,3 +118,13 @@ component_management:
       name: "holocron-plugin-vercel"
       paths:
         - packages/holocron-plugin-vercel/**
+
+    - component_id: rollup-plugin-transform-template
+      name: "rollup-plugin-transform-template"
+      paths:
+        - packages/rollup-plugin-transform-template/**
+
+    - component_id: sentinel
+      name: "sentinel"
+      paths:
+        - packages/sentinel/**

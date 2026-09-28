@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/templates/configs/prepare-commit-msg/create-config.ts
+# Tool:    holocron setup
+# Changes: edit source in theholocron/holocron
 NAME=$(git config user.name)
 EMAIL=$(git config user.email)
 
@@ -17,4 +21,13 @@ git interpret-trailers --if-exists doNothing --trailer \
 	"Signed-off-by: $NAME <$EMAIL>" \
 	--in-place "$1"
 
-npx devmoji -e
+# --config <resolved shared path> (config-resolution workstream, #676) — falls
+# back to devmoji's own auto-discovery of a local devmoji.config.cjs when the
+# shared package's built dist/ isn't present (not installed, or a stale
+# install predating this file).
+DEVMOJI_CONFIG="node_modules/@theholocron/devmoji-config/dist/index.cjs"
+if [ -f "$DEVMOJI_CONFIG" ]; then
+	npx devmoji --config "$DEVMOJI_CONFIG" -e
+else
+	npx devmoji -e
+fi

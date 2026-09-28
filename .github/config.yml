@@ -1,0 +1,13 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/commands/setup/run-setup.ts
+# Tool:    holocron setup
+# Changes: edit source in theholocron/holocron
+# Configuration for sentiment-bot - https://github.com/behaviorbot/sentiment-bot
+
+# *Required* toxicity threshold between 0 and .99 with the higher numbers being the most toxic
+# Anything higher than this threshold will be marked as toxic and commented on
+sentimentBotToxicityThreshold: .7
+
+# *Required* Comment to reply with
+sentimentBotReplyComment: >
+  Please be sure to review the [Code of Conduct](https://docs.theholocron.dev/reference/code-of-conduct/) and be respectful of other users.
