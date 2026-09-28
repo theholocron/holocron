@@ -24,6 +24,14 @@ export default defineConfig({
 		...repo,
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
 		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
+		// GitHub's default branch was still main while all v2 alpha work lands
+		// on alpha (CLAUDE.md's Releases section) -- Sentinel's validateConfig()
+		// only ever reads a repo's default branch (D6, a security boundary),
+		// so it's been silently validating main's stale pre-#675-vocabulary
+		// holocron.config.ts instead of what's actually being developed.
+		// Revert to "main" (or drop this field) once alpha merges to main for
+		// the v2.0.0 stable cut and stops being the active branch.
+		defaultBranch: "alpha",
 	},
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron setup` appends these to the task-derived contexts from

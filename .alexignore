@@ -1,3 +1,7 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/cli/src/templates/configs/alexjs/create-config.ts
+# Tool:    holocron setup
+# Changes: edit source in theholocron/holocron
 .github/*
 CHANGELOG.md
 LICENSE

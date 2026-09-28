@@ -1,8 +1,7 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/setup.ts
-# Tool:    holocron sync-github
-# Changes: edit source in theholocron/holocron and push to alpha or main.
-
+# Source:  theholocron/holocron · packages/cli/src/templates/configs/editorconfig/create-config.ts
+# Tool:    holocron setup
+# Changes: edit source in theholocron/holocron
 root = true
 
 [*]
