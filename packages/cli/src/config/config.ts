@@ -147,6 +147,21 @@ export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
 	name?: string;
 	/**
+	 * GitHub's repo-level default branch (`HEAD`) — what a fresh clone checks
+	 * out, what `gh pr create`/the compare UI target by default, and what
+	 * Sentinel's `validateConfig()` reads (D6: the App only ever reads config
+	 * from the repo's default branch, never a PR ref, as a security boundary
+	 * — never widen that to read PR branches instead of fixing this field).
+	 * Synced by `holocron setup`. Omit to leave GitHub's current setting
+	 * untouched — most repos never need this. Exists for a repo using a
+	 * `main`/`alpha` prerelease-channel split (CLAUDE.md's Releases section)
+	 * where active development happens on a non-`main` branch: set this to
+	 * that branch so Sentinel validates against what's actually being
+	 * developed, then change it back once that branch merges to `main` for a
+	 * stable cut and stops being the active branch.
+	 */
+	defaultBranch?: string;
+	/**
 	 * Branch protection preset applied by `holocron setup`. When omitted,
 	 * no protection is applied and no `branch_protection_level` property is set.
 	 * Required-status-check contexts for `"strict"` are derived from the task
