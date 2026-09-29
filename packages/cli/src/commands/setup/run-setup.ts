@@ -449,7 +449,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
 					() => ""
 				);
-				const rootScripts = Object.keys(rootPkg?.scripts ?? {});
+				const rootScripts = rootPkg?.scripts ?? {};
 				const workspaceFix = astromechTurbo.ensureRootWorkspaceMember(workspaceYaml, rootScripts);
 				if (workspaceFix.changed) {
 					steps.push(

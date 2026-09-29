@@ -83,6 +83,17 @@ export interface EnsureRootWorkspaceMemberResult {
  * (`Packages in scope: docs, root-lib`) without disturbing the sibling
  * package's own caching.
  *
+ * A matching script key alone isn't enough — its *value* has to be a real
+ * command, not the generated `holocron run <task> --` wrapper (#846, the
+ * counterpart `mergePackageJsonScripts()` already had to learn for #747/
+ * #748). A repo whose root predates this tooling can already have that exact
+ * wrapper sitting in a task-name-matching script with nothing ever having
+ * generated it this session; adding `.` there fires #747's recursion
+ * immediately (`turbo run <task>` → root's own `<task>` script → the wrapper
+ * → `holocron run <task>` sees `turbo.json` still defines it → `turbo run
+ * <task>` again, forever). Only a matching script whose value is *not* that
+ * wrapper counts as "root is genuinely a directly-buildable package".
+ *
  * A targeted line-based edit, not a full YAML parse/reserialize — same
  * pattern `codecov.ts`'s `mergeCodecovComponents()` already uses for editing
  * an existing generated file. `pnpm-workspace.yaml` routinely carries a
@@ -95,10 +106,13 @@ export interface EnsureRootWorkspaceMemberResult {
  */
 export function ensureRootWorkspaceMember(
 	workspaceYaml: string,
-	rootScripts: readonly string[],
+	rootScripts: Readonly<Record<string, string>>,
 	taskNames: readonly string[]
 ): EnsureRootWorkspaceMemberResult {
-	const rootHasEligibleTask = taskNames.some((t) => rootScripts.includes(t));
+	const rootHasEligibleTask = taskNames.some((t) => {
+		const script = rootScripts[t];
+		return script !== undefined && !isGeneratedRunWrapper(script, t);
+	});
 	if (!rootHasEligibleTask) return { content: workspaceYaml, changed: false };
 
 	const lines = workspaceYaml.split("\n");
@@ -125,6 +139,22 @@ export function ensureRootWorkspaceMember(
 	const newLine = `${indent}"."`;
 	const newLines = [...lines.slice(0, packagesLineIdx + 1), newLine, ...lines.slice(packagesLineIdx + 1)];
 	return { content: newLines.join("\n"), changed: true };
+}
+
+/**
+ * Matches the exact shape `packageScripts()` generates for `taskName` —
+ * `<bin> run <taskName> --`, `<bin>` normally `holocron` but substitutable
+ * (`holocronScript`, itself allowed to be multi-word, e.g. `"node
+ * packages/cli/dist/cli.mjs"` — see its own test). Checking the *suffix*
+ * rather than the whole string means an old wrapper survives a
+ * `holocronScript` rename intact — it's still recognized as a wrapper (safe
+ * to update to the new one), not mistaken for a real command. Mirrors
+ * `sync.ts`'s private `isGeneratedRunWrapper()` — same predicate, needed on
+ * both sides of #692/#747: whether to *write* the wrapper, and here, whether
+ * an *existing* one should count as "root is directly buildable".
+ */
+function isGeneratedRunWrapper(command: string, taskName: string): boolean {
+	return command.endsWith(` run ${taskName} --`);
 }
 
 /**

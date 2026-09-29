@@ -134,10 +134,17 @@ export interface Astromech {
 	 * (not just an orchestrator) silently vanishes from `turbo run <task>`.
 	 * Pass `pnpm-workspace.yaml`'s current content (or `""` if none exists —
 	 * a no-op either way, since no `packages:` key means single-package mode
-	 * already) and root `package.json`'s own `scripts` keys. `changed: false`
-	 * means don't write anything — the file is already correct.
+	 * already) and root `package.json`'s own `scripts` object — values and
+	 * all, not just keys, so a task-name-matching script that's already the
+	 * generated `holocron run <task> --` wrapper (predating this call, not
+	 * written by it) is correctly excluded rather than treated as proof root
+	 * is directly buildable (#846). `changed: false` means don't write
+	 * anything — the file is already correct.
 	 */
-	ensureRootWorkspaceMember(workspaceYaml: string, rootScripts: readonly string[]): EnsureRootWorkspaceMemberResult;
+	ensureRootWorkspaceMember(
+		workspaceYaml: string,
+		rootScripts: Readonly<Record<string, string>>
+	): EnsureRootWorkspaceMemberResult;
 	/**
 	 * `turboConfig()` writes a `turbo.json` but never touches `package.json`
 	 * — a repo with no local `turbo` devDependency falls back to whatever
@@ -304,7 +311,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 		turboConfig: () => resolveTurboConfig(options.config ?? {}),
 
-		ensureRootWorkspaceMember: (workspaceYaml: string, rootScripts: readonly string[]) => {
+		ensureRootWorkspaceMember: (workspaceYaml: string, rootScripts: Readonly<Record<string, string>>) => {
 			const entries = (options.config?.tasks ?? []).map(normalizeTaskEntry);
 			const taskNames = entries.filter((e) => e.local !== false).map((e) => e.name);
 			return resolveEnsureRootWorkspaceMember(workspaceYaml, rootScripts, taskNames);
