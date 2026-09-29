@@ -310,7 +310,15 @@ function runLinterGroup(input: RunTaskInput, names: string[], passthrough: strin
 	} catch {
 		rootFiles = [];
 	}
-	const resolved = resolveLinters({ explicit: names, rootFiles });
+	// A linter with no local config file of its own still counts as
+	// "configured" when its shared `@theholocron/*-config` package resolves
+	// (holocron#795) — same resolution `resolveToolConfig` does for the
+	// actual command below, reused here just to decide inclusion rather than
+	// to build args yet.
+	const sharedConfigAvailable = new Set(
+		names.filter((name) => resolveToolConfig(name, cwd, { readFile, fileExists }).length > 0)
+	);
+	const resolved = resolveLinters({ explicit: names, rootFiles, sharedConfigAvailable });
 	const reports: RunTaskReport[] = [];
 	// Distinguishes "every member of this group is structurally CI-only"
 	// (commitlint has no localBin, ever — no PR commit range to diff locally,

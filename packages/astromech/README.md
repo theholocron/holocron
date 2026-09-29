@@ -83,8 +83,10 @@ publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
 **`linterGroup` tasks** (`sourceQuality.staticAnalysis`,
 `sourceQuality.formatting`) bundle more than one tool under a single
-required check. Each tool is still gated by its own detection rule (e.g.
-`eslint` only runs if `eslint.config.*` is present) — the
+required check. Each tool is still gated by its own detection rule — e.g.
+`eslint` runs when either a local `eslint.config.*` is present, or the
+package has no local file but `@theholocron/eslint-config` resolves
+(the same shared-config splice the `tool`/`detect` runner path uses) — the
 `tool name → detection rule → local binary` mapping lives in one place,
 `src/linters.ts`. A repo's choice of which of these run is just which
 tasks it includes in `tasks: [...]`, same as any other task.

@@ -592,6 +592,26 @@ describe("runTask — linterGroup aggregate", () => {
 		expect(exec).not.toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
 	});
 
+	it("runs eslint via the shared config with NO local eslint.config.* at all, once the package is installed (#795)", () => {
+		const { call, exec } = makeRun(
+			{
+				"package.json": PKG(),
+				"node_modules/@theholocron/eslint-config/package.json": JSON.stringify({
+					exports: { "./bundles/library": { import: "./dist/bundles/library.js" } },
+				}),
+				"node_modules/@theholocron/eslint-config/dist/bundles/library.js": "export default [];",
+			},
+			{ lookPath: onPath("eslint") }
+		);
+		const report = call("sourceQuality.staticAnalysis");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(
+			"/usr/local/bin/eslint",
+			["--config", join(CWD, "node_modules/@theholocron/eslint-config/dist/bundles/library.js"), "."],
+			{ cwd: CWD }
+		);
+	});
+
 	it("reports fail when any linter exits non-zero (and treats an unreadable root as no config files)", () => {
 		const exec = vi.fn((_c: string, _a: string[], _o: { cwd: string }) => ({ exitCode: 1 }));
 		const report = runTask({

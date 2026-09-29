@@ -147,11 +147,20 @@ export const LINTER_NAMES: ReadonlySet<string> = new Set(Object.keys(LINTERS));
  * Resolve the linter set for a repo. An `explicit` list (from `config.tasks`)
  * picks the candidate set; otherwise the candidates are every `always` linter
  * plus every `detect`-gated linter whose filenames are present at the repo
- * root. Either way, a `detect`-gated linter (eslint, markdownlint) only makes
- * the final set when its config file is actually present — a repo can't run
- * eslint without an `eslint.config.*`, and super-linter FATALs if you ask it
- * to (theholocron/holocron#654). `always` linters are unconditional. Result
- * is ordered by {@link LINTERS} declaration order.
+ * root, OR whose mapped `@theholocron/*-config` package resolves per
+ * {@link sharedConfigAvailable} — a repo can't run eslint with genuinely no
+ * config anywhere (super-linter FATALs if you ask it to,
+ * theholocron/holocron#654), but a *shared* one it has installed counts
+ * (holocron#795: proving `clients`' eslint.config.ts files reduce to zero
+ * remaining content is only half the story — the file itself was still load-
+ * bearing here as the sole "eslint is even configured" signal until this
+ * fallback existed). `always` linters are unconditional. Result is ordered
+ * by {@link LINTERS} declaration order.
+ *
+ * `sharedConfigAvailable` is caller-computed (`run.ts`'s `runLinterGroup`
+ * already resolves each linter's `resolveToolConfig()` per member to build
+ * its actual command — reusing that instead of duplicating the package-
+ * resolution logic here keeps this function itself pure and file-I/O-free).
  *
  * @throws when an `explicit` name is not in the registry — a typo is a
  * config bug, not a linter to silently skip.
@@ -159,11 +168,13 @@ export const LINTER_NAMES: ReadonlySet<string> = new Set(Object.keys(LINTERS));
 export function resolveLinters(opts: {
 	explicit?: string[];
 	rootFiles: string[];
+	sharedConfigAvailable?: ReadonlySet<string>;
 }): Array<{ name: string; def: LinterDef }> {
 	const order = Object.keys(LINTERS);
 	const present = new Set(opts.rootFiles);
-	const configPresent = (def: LinterDef): boolean =>
-		def.always === true || (def.detect ?? []).some((f) => present.has(f));
+	const shared = opts.sharedConfigAvailable ?? new Set<string>();
+	const configPresent = (name: string, def: LinterDef): boolean =>
+		def.always === true || (def.detect ?? []).some((f) => present.has(f)) || shared.has(name);
 
 	if (opts.explicit && opts.explicit.length > 0) {
 		const unknown = opts.explicit.filter((n) => !LINTER_NAMES.has(n));
@@ -175,9 +186,9 @@ export function resolveLinters(opts: {
 		}
 		const wanted = new Set(opts.explicit);
 		return order
-			.filter((n) => wanted.has(n) && configPresent(LINTERS[n]!))
+			.filter((n) => wanted.has(n) && configPresent(n, LINTERS[n]!))
 			.map((name) => ({ name, def: LINTERS[name]! }));
 	}
 
-	return order.filter((name) => configPresent(LINTERS[name]!)).map((name) => ({ name, def: LINTERS[name]! }));
+	return order.filter((name) => configPresent(name, LINTERS[name]!)).map((name) => ({ name, def: LINTERS[name]! }));
 }
