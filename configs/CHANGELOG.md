@@ -1,3 +1,9 @@
+## [8.5.3](https://github.com/theholocron/configs/compare/v8.5.2...v8.5.3) (2026-09-29)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 make eslint-plugin-n and @vitest/eslint-plugin required peers ([#485](https://github.com/theholocron/configs/issues/485)) ([a958b1e](https://github.com/theholocron/configs/commit/a958b1eb433f792c83fc3aac4ea79b9783fa0cc5)), closes [theholocron/holocron#855](https://github.com/theholocron/holocron/issues/855) [#484](https://github.com/theholocron/configs/issues/484)
+
 ## [8.5.2](https://github.com/theholocron/configs/compare/v8.5.1...v8.5.2) (2026-09-28)
 
 ### Bug Fixes
