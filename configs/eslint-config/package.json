@@ -2,14 +2,6 @@
   "name": "@theholocron/eslint-config",
   "version": "8.5.2",
   "description": "A ESLint configuration for writing well-formed Javascript within the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/eslint-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
-  },
-  "license": "GPL-3.0",
-  "author": "Newton Koumantzelis",
   "keywords": [
     "eslint",
     "eslintconfig",
@@ -20,31 +12,15 @@
     "vitest",
     "storybook"
   ],
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/eslint-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
   "type": "module",
-  "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
-    "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
-  },
-  "dependencies": {
-    "@eslint/compat": "^2.1.0",
-    "eslint-package-json": "^0.3.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.0",
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/tsconfig": "workspace:*",
-    "@theholocron/vitest-config": "workspace:*",
-    "@vitest/coverage-v8": "catalog:",
-    "eslint-plugin-simple-import-sort": "^14.0.0",
-    "globals": "^17.11.0",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "typescript-eslint": "^8.67.0",
-    "vitest": "catalog:"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -126,6 +102,32 @@
   "files": [
     "dist/"
   ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "dependencies": {
+    "@eslint/compat": "^2.1.0",
+    "eslint-package-json": "^0.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "^1.6.23",
+    "eslint-plugin-n": "^18.3.0",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "globals": "^17.11.0",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "catalog:"
+  },
   "peerDependencies": {
     "@eslint/js": "^10",
     "@next/eslint-plugin-next": "^16",
@@ -144,16 +146,10 @@
     "@next/eslint-plugin-next": {
       "optional": true
     },
-    "eslint-plugin-jsdoc": {
-      "optional": true
-    },
-    "@vitest/eslint-plugin": {
-      "optional": true
-    },
     "eslint-plugin-cypress": {
       "optional": true
     },
-    "eslint-plugin-n": {
+    "eslint-plugin-jsdoc": {
       "optional": true
     },
     "eslint-plugin-react": {
