@@ -41,7 +41,7 @@ amendment called out below (D6-amended).
 
 **Why this spec exists**: the actual target kept moving across several
 redesigns in the same conversation, because the ask — "Sentinel becomes a
-centralized CI runner, not just a policy-check poster" — hadn't been stated
+centralized CI runner, not only a policy-check poster" — hadn't been stated
 plainly until now. Capturing it once, completely, so the next round of work
 doesn't re-derive it from scratch.
 
@@ -56,7 +56,7 @@ be the first prototype repo, still has all ~45 of them (15 packages ×
 `eslint.config.ts`/`vitest.config.ts`/`tsdown.config.ts`). The mechanism
 solving "one shared config" already exists; what's missing is (a) actually
 using it everywhere, and (b) going further than the original plan ever
-scoped — Sentinel _running_ checks centrally, not just each repo's own CI
+scoped — Sentinel _running_ checks centrally, not only each repo's own CI
 pointing at a shared config file.
 
 ## The core split: not a security boundary, an execution-environment question
@@ -84,7 +84,7 @@ credential. "No forks" removes the _malicious external actor_ case, not the
 _general caution around running arbitrary code with elevated credentials_
 case — a typo'd PR or a compromised dependency pulled in by a trusted PR
 could still misuse the token if Sentinel's own process executes untrusted
-code carelessly. Not a blocker, just don't build recklessly. **If this org
+code carelessly. Not a blocker, but don't build recklessly. **If this org
 ever accepts external/fork contributions, this amendment needs to be
 revisited before anything below runs against a fork.**
 
@@ -109,13 +109,13 @@ original epic's own founding complaint, closed all the way down.
 workflow.** `tsc`, `vitest`, `tsdown`/build, and eslint _unless_ the preset
 caveat below is resolved first. These fundamentally need the repo's own
 dependency tree installed and real code execution (type resolution walks
-real imports; tests run real files) — a materially bigger, longer-running
+real imports; tests run real files) — a materially larger, longer-running
 operation than "fetch one file's content." GitHub Actions' per-run isolated
 runner is already well-suited to this regardless of trust; a serverless
 webhook handler (Sentinel's actual shape — tight execution-time ceilings, no
 warm `node_modules` cache across invocations) isn't a natural fit for it.
 **What moves is trigger ownership, not execution**: instead of each repo's
-own thin-caller `.github/workflows/*.yml` file firing on its own `on:
+own thin-caller `.github/workflows/*.yml` file running on its own `on:
 pull_request`, Sentinel dispatches one canonical workflow living in
 `.github` — see mechanism below. Per-repo thin-caller _files_ disappear;
 Actions itself stays exactly where it already works.
@@ -137,15 +137,28 @@ system keyed on that vocabulary, eslint moves from Bucket 2 to Bucket 1: no
 per-repo config needed, no PR-branch code to read, Sentinel selects the
 right preset centrally from already-known, already-trusted signal.
 
+**Update: shipped.** `#795` proved the preset system is already expressive
+enough (`library()`'s existing `browserPackages` option plus `base()`'s
+gitignore absorption cover every real delta found in `clients`), `#848`
+fixed the actual blocker (`resolveLinters()` required a local
+`eslint.config.*` to exist before eslint would even be attempted locally/in
+CI, independent of this spec's own Bucket 1/2 question), and `#849` shipped
+the Sentinel-side Bucket 1 check itself — gated on `runtime_environment !==
+"none"`, `library()` only for now (a `holocron_profile`-driven bundle switch
+stays a real, deliberately deferred follow-up per `#849`'s own scope, until
+a non-`library`-profiled repo needs this check). Type-aware rules, which
+would force eslint back into Bucket 2 org-wide, are tracked separately as a
+deliberate future decision (`#851`), not folded into this.
+
 **knip — verified (#796): neither bucket cleanly, lands in Bucket 2.** Its
 whole purpose is "is X used _anywhere_ in the codebase" (unused exports,
 unused dependencies) — inherently whole-repo-scoped, since answering that
 for even one changed file means cross-referencing every _other_ file, not
-just the changed set. Doesn't fit Bucket 1's "single file's content" shape
+only the changed set. Doesn't fit Bucket 1's "single file's content" shape
 at all, changed-files scoping or not.
 
 Not clean Bucket 2 either, strictly — it doesn't need `npm install` + real
-code execution (no type-checking, no running tests, just AST-level
+code execution (no type-checking, no running tests, only AST-level
 import/export tracing across relative paths). It needs the _whole file
 tree's content_, not the ability to execute it — a genuine third shape.
 Sentinel could technically fetch that (it already does recursive
