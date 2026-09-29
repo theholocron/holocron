@@ -33,6 +33,7 @@ const report = astromech.run("verification.unitTests", { passthrough: ["--watch"
 `holocron run verification.unitTests` runs your tests — you don't tell it
 turbo vs pnpm vs npm, or which runner:
 
+```text
 1. turbo.json defines the task            → turbo run <task>
 2. package.json has a <task> script       → <detected pm> run <task>
    (a "holocron run …" thin caller is skipped — no recursion)
@@ -41,6 +42,7 @@ turbo vs pnpm vs npm, or which runner:
 4. the task is a container of jobs        → each job, in declared order
 5. known task, nothing to run             → "no <task> task", exit 0  (exit 1 with --required)
 6. unknown task                           → error, exit 1
+```
 
 ## Intent → technology
 
