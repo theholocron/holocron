@@ -137,6 +137,19 @@ system keyed on that vocabulary, eslint moves from Bucket 2 to Bucket 1: no
 per-repo config needed, no PR-branch code to read, Sentinel selects the
 right preset centrally from already-known, already-trusted signal.
 
+**Update: shipped.** `#795` proved the preset system is already expressive
+enough (`library()`'s existing `browserPackages` option plus `base()`'s
+gitignore absorption cover every real delta found in `clients`), `#848`
+fixed the actual blocker (`resolveLinters()` required a local
+`eslint.config.*` to exist before eslint would even be attempted locally/in
+CI, independent of this spec's own Bucket 1/2 question), and `#849` shipped
+the Sentinel-side Bucket 1 check itself — gated on `runtime_environment !==
+"none"`, `library()` only for now (a `holocron_profile`-driven bundle switch
+stays a real, deliberately deferred follow-up per `#849`'s own scope, until
+a non-`library`-profiled repo needs this check). Type-aware rules, which
+would force eslint back into Bucket 2 org-wide, are tracked separately as a
+deliberate future decision (`#851`), not folded into this.
+
 **knip — verified (#796): neither bucket cleanly, lands in Bucket 2.** Its
 whole purpose is "is X used _anywhere_ in the codebase" (unused exports,
 unused dependencies) — inherently whole-repo-scoped, since answering that

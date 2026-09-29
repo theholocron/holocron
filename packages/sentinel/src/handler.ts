@@ -36,6 +36,16 @@
  *   a per-repo file. One `markdownlint.lint()` call batching every
  *   changed markdown file's content, not a per-file loop the way
  *   prettier/alex run.
+ * - **Static analysis** (`lintStaticAnalysis → postStaticAnalysisCheck`,
+ *   holocron#769/#849): `pull_request.*` only, same reason and same
+ *   advisory shape as the other Bucket 1 checks — reads
+ *   `@theholocron/eslint-config`'s `library()` bundle directly, via
+ *   eslint's real `Linter.verify()` API against fetched file content, no
+ *   checkout. **Not** config-free like its four siblings, though — skipped
+ *   entirely when this repo's `runtime_environment` property (resolved by
+ *   capability compliance's `syncPropertiesFromConfig()` call above, reused
+ *   here rather than refetched) is explicitly `"none"`, since a docs-only
+ *   repo has no JS/TS to lint at all.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -129,6 +139,8 @@ import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-in
 import { lintMarkdown } from "./actions/markdown-lint/lint-markdown.js";
 import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
+import { lintStaticAnalysis } from "./actions/static-analysis/lint-static-analysis.js";
+import { postStaticAnalysisCheck } from "./actions/static-analysis/post-static-analysis-check.js";
 import {
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
@@ -139,6 +151,7 @@ import {
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
+	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 } from "./utils/constants.js";
 import { validateConfig, type ValidateConfigResult } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
@@ -548,6 +561,49 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Fifth Bucket 1 static-analysis check (holocron#769/#849) -- unlike its
+	// four siblings above, NOT config-free: skipped entirely when this repo's
+	// own `runtime_environment` property is explicitly "none" (a docs-only
+	// repo has no JS/TS to lint at all). `properties` was already resolved
+	// for capability compliance above -- reusing it here costs nothing extra.
+	// Same PR-only scoping and soft-skip reasoning as every Bucket 1 check
+	// above.
+	let staticAnalysisCheckRun;
+	if (
+		event.type !== "push.default-branch" &&
+		context.pullNumber !== undefined &&
+		properties["runtime_environment"] !== "none"
+	) {
+		try {
+			const lintResult = await lintStaticAnalysis({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			staticAnalysisCheckRun = await postStaticAnalysisCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_STATIC_ANALYSIS_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: lintResult.valid,
+					fileCount: lintResult.fileCount,
+					messageCount: lintResult.messages.length,
+				},
+				SENTINEL_STATIC_ANALYSIS_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintStaticAnalysis: failed, continuing without it");
+		}
+	}
+
 	// Auto-fix-commit (holocron#820) -- opt-in either via the repo's merged
 	// `with: { autoFix: true }` on the sourceQuality.formatting task, or via
 	// that same flag freshly added in the PR's own branch (reusing PR
@@ -630,5 +686,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		formattingFixResult,
 		autoFixCommentResult,
 		dispatchedCheckRun,
+		staticAnalysisCheckRun,
 	});
 }
