@@ -109,13 +109,13 @@ original epic's own founding complaint, closed all the way down.
 workflow.** `tsc`, `vitest`, `tsdown`/build, and eslint _unless_ the preset
 caveat below is resolved first. These fundamentally need the repo's own
 dependency tree installed and real code execution (type resolution walks
-real imports; tests run real files) — a materially bigger, longer-running
+real imports; tests run real files) — a materially larger, longer-running
 operation than "fetch one file's content." GitHub Actions' per-run isolated
 runner is already well-suited to this regardless of trust; a serverless
 webhook handler (Sentinel's actual shape — tight execution-time ceilings, no
 warm `node_modules` cache across invocations) isn't a natural fit for it.
 **What moves is trigger ownership, not execution**: instead of each repo's
-own thin-caller `.github/workflows/*.yml` file firing on its own `on:
+own thin-caller `.github/workflows/*.yml` file running on its own `on:
 pull_request`, Sentinel dispatches one canonical workflow living in
 `.github` — see mechanism below. Per-repo thin-caller _files_ disappear;
 Actions itself stays exactly where it already works.

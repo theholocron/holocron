@@ -1,3 +1,15 @@
 {
-  "allow": ["dead", "execute", "execution", "failure", "failures", "hook", "hooks", "husky", "period"]
+  "allow": [
+    "dead",
+    "execute",
+    "execution",
+    "executes",
+    "failure",
+    "failures",
+    "hook",
+    "hooks",
+    "husky",
+    "just",
+    "period"
+  ]
 }

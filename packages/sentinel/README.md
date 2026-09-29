@@ -171,7 +171,7 @@ advisory PR Config Validation check (holocron#827 — posted as `Platform
 the same concept, not a distinct name; validates a PR's own branch
 immediately, without waiting for merge, kept separate from the required
 `Platform / Capability Compliance` check above), and a PR comment
-explaining what auto-fix-commit just changed (holocron#674/#834, fires
+explaining what auto-fix-commit just changed (holocron#674/#834, executes
 only when a fix was actually committed), all through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
