@@ -919,6 +919,25 @@ describe("runSync", () => {
 			expect(written).toBe('packages:\n  - "packages/*"\n');
 		});
 
+		it("does not touch pnpm-workspace.yaml when root's matching script is a pre-existing holocron run <task> -- wrapper (#846)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({
+					name: "demo",
+					scripts: { "verification.typeSafety": "holocron run verification.typeSafety --" },
+				})
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+
+			const report = await runTurboStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(
+				report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+			).toBeUndefined();
+			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
+			expect(written).toBe('packages:\n  - "packages/*"\n');
+		});
+
 		it("adds turbo as a devDependency when a turbo.json is written and it's missing", async () => {
 			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
 

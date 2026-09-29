@@ -3602,6 +3602,44 @@ describe("setup: write codecov.yml", () => {
 		).toBeUndefined();
 	});
 
+	it("does not touch pnpm-workspace.yaml when root's matching script is a pre-existing holocron run <task> -- wrapper (#846)", async () => {
+		// theholocron/clients' actual shape: root already had
+		// "verification.typeSafety": "holocron run verification.typeSafety --"
+		// before any of this tooling ever touched the repo. Adding "." here
+		// would make turbo invoke that wrapper, which re-delegates to turbo
+		// again — #747's infinite recursion, confirmed empirically (~410
+		// processes spawned before being killed by hand).
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({
+				name: "demo",
+				scripts: { "verification.typeSafety": "holocron run verification.typeSafety --" },
+			})
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.typeSafety"],
+				providers: { source: "github" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["pnpm-workspace.yaml"]).toBeUndefined();
+		expect(
+			report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+		).toBeUndefined();
+	});
+
 	it("adds turbo as a devDependency when a turbo.json is written and it's missing", async () => {
 		await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
 		const written: Record<string, string> = {};

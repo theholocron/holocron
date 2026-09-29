@@ -405,25 +405,36 @@ describe("createAstromech().ensureRootWorkspaceMember", () => {
 		const { ensureRootWorkspaceMember } = await import("./turbo.js");
 		const config = { tasks: ["delivery.build"] };
 		const yaml = 'packages:\n  - "docs"\n';
-		const viaFactory = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, [
-			"delivery.build",
-		]);
-		expect(viaFactory).toEqual(ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]));
+		const viaFactory = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
+			"delivery.build": "tsdown",
+		});
+		expect(viaFactory).toEqual(ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]));
 		expect(viaFactory.changed).toBe(true);
 	});
 
 	it("excludes tasks marked local: false from the derived taskNames — a CI-only task can't need a local workspace member", () => {
 		const config = { tasks: [{ name: "delivery.build", local: false as const }] };
 		const yaml = 'packages:\n  - "docs"\n';
-		const result = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, ["delivery.build"]);
+		const result = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
+			"delivery.build": "tsdown",
+		});
 		expect(result).toEqual({ content: yaml, changed: false });
 	});
 
 	it("is a no-op with no config at all", () => {
-		const result = createAstromech({ cwd: "/repo" }).ensureRootWorkspaceMember('packages:\n  - "docs"\n', [
-			"delivery.build",
-		]);
+		const result = createAstromech({ cwd: "/repo" }).ensureRootWorkspaceMember('packages:\n  - "docs"\n', {
+			"delivery.build": "tsdown",
+		});
 		expect(result.changed).toBe(false);
+	});
+
+	it("treats a pre-existing holocron run <task> -- wrapper as not directly buildable (#846)", () => {
+		const config = { tasks: ["verification.typeSafety"] };
+		const yaml = 'packages:\n  - "packages/*"\n';
+		const result = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
+			"verification.typeSafety": "holocron run verification.typeSafety --",
+		});
+		expect(result).toEqual({ content: yaml, changed: false });
 	});
 });
 

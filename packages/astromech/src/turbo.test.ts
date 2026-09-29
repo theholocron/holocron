@@ -144,13 +144,17 @@ describe("ensureRootWorkspaceMember", () => {
 		// holocron's own root shape: "build": "turbo run delivery.build" is an
 		// orchestrator, not a "delivery.build" script itself.
 		const yaml = "packages:\n  - docs\n  - packages/*\n";
-		const result = ensureRootWorkspaceMember(yaml, ["build", "lint", "test"], ["delivery.build"]);
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{ build: "turbo run delivery.build", lint: "eslint .", test: "vitest run" },
+			["delivery.build"]
+		);
 		expect(result).toEqual({ content: yaml, changed: false });
 	});
 
 	it("adds a quoted . entry when root has an eligible task and isn't already listed", () => {
 		const yaml = 'packages:\n  - "docs"\n';
-		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
 		expect(result.changed).toBe(true);
 		expect(result.content).toBe('packages:\n  - "."\n  - "docs"\n');
 	});
@@ -158,7 +162,7 @@ describe("ensureRootWorkspaceMember", () => {
 	it("fixes #692's exact real repro — observability's actual pnpm-workspace.yaml", () => {
 		const result = ensureRootWorkspaceMember(
 			OBSERVABILITY_WORKSPACE_YAML,
-			["delivery.build", "verification.unitTests"],
+			{ "delivery.build": "tsdown", "verification.unitTests": "vitest run" },
 			["delivery.build", "verification.unitTests", "verification.typeSafety"]
 		);
 		expect(result.changed).toBe(true);
@@ -171,45 +175,84 @@ describe("ensureRootWorkspaceMember", () => {
 	});
 
 	it("is idempotent — running it twice doesn't double-insert", () => {
-		const once = ensureRootWorkspaceMember(OBSERVABILITY_WORKSPACE_YAML, ["delivery.build"], ["delivery.build"]);
-		const twice = ensureRootWorkspaceMember(once.content, ["delivery.build"], ["delivery.build"]);
+		const once = ensureRootWorkspaceMember(OBSERVABILITY_WORKSPACE_YAML, { "delivery.build": "tsdown" }, [
+			"delivery.build",
+		]);
+		const twice = ensureRootWorkspaceMember(once.content, { "delivery.build": "tsdown" }, ["delivery.build"]);
 		expect(twice.changed).toBe(false);
 		expect(twice.content).toBe(once.content);
 	});
 
 	it("is a no-op when root is already listed as .", () => {
 		const yaml = 'packages:\n  - "."\n  - "docs"\n';
-		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
 		expect(result).toEqual({ content: yaml, changed: false });
 	});
 
 	it("is a no-op when root is already listed as a bare (unquoted) .", () => {
 		const yaml = "packages:\n  - .\n  - docs\n";
-		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
 		expect(result).toEqual({ content: yaml, changed: false });
 	});
 
 	it("is a no-op when there's no packages: key at all — already single-package mode", () => {
 		const yaml = "# no workspace packages configured\n";
-		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
 		expect(result).toEqual({ content: yaml, changed: false });
 	});
 
 	it("handles an empty packages: list", () => {
 		const yaml = "packages:\n\ncatalog:\n  foo: ^1.0.0\n";
-		const result = ensureRootWorkspaceMember(yaml, ["delivery.build"], ["delivery.build"]);
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
 		expect(result.changed).toBe(true);
 		expect(result.content).toBe('packages:\n  - "."\n\ncatalog:\n  foo: ^1.0.0\n');
 	});
 
 	it("matches against every task name being turbo'd, not just the first", () => {
 		const yaml = "packages:\n  - docs\n";
+		const result = ensureRootWorkspaceMember(yaml, { "verification.unitTests": "vitest run" }, [
+			"delivery.build",
+			"verification.unitTests",
+		]);
+		expect(result.changed).toBe(true);
+	});
+
+	it("is a no-op when the only matching script is the generated holocron run <task> -- wrapper (#846)", () => {
+		// theholocron/clients' actual pre-existing shape: root has
+		// "verification.typeSafety": "holocron run verification.typeSafety --"
+		// predating any of this tooling. Adding "." here would make turbo
+		// invoke that exact wrapper, which re-delegates to turbo again — #747's
+		// infinite recursion, confirmed empirically (~410 processes spawned).
+		const yaml = "packages:\n  - packages/*\n";
 		const result = ensureRootWorkspaceMember(
 			yaml,
-			["verification.unitTests"],
-			["delivery.build", "verification.unitTests"]
+			{ "verification.typeSafety": "holocron run verification.typeSafety --" },
+			["verification.typeSafety"]
+		);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("still adds . when at least one matching script is a real command, even if others are wrappers", () => {
+		const yaml = 'packages:\n  - "docs"\n';
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{
+				"delivery.build": "tsdown",
+				"verification.typeSafety": "holocron run verification.typeSafety --",
+			},
+			["delivery.build", "verification.typeSafety"]
 		);
 		expect(result.changed).toBe(true);
+	});
+
+	it("recognizes a wrapper built from a substituted holocronScript, not just the literal binary name", () => {
+		const yaml = "packages:\n  - packages/*\n";
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{ "delivery.build": "node packages/cli/dist/cli.mjs run delivery.build --" },
+			["delivery.build"]
+		);
+		expect(result).toEqual({ content: yaml, changed: false });
 	});
 });
 
