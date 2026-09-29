@@ -33,7 +33,6 @@ const report = astromech.run("verification.unitTests", { passthrough: ["--watch"
 `holocron run verification.unitTests` runs your tests — you don't tell it
 turbo vs pnpm vs npm, or which runner:
 
-```
 1. turbo.json defines the task            → turbo run <task>
 2. package.json has a <task> script       → <detected pm> run <task>
    (a "holocron run …" thin caller is skipped — no recursion)
@@ -42,7 +41,6 @@ turbo vs pnpm vs npm, or which runner:
 4. the task is a container of jobs        → each job, in declared order
 5. known task, nothing to run             → "no <task> task", exit 0  (exit 1 with --required)
 6. unknown task                           → error, exit 1
-```
 
 ## Intent → technology
 
@@ -88,7 +86,7 @@ required check. Each tool is still gated by its own detection rule — e.g.
 package has no local file but `@theholocron/eslint-config` resolves
 (the same shared-config splice the `tool`/`detect` runner path uses) — the
 `tool name → detection rule → local binary` mapping lives in one place,
-`src/linters.ts`. A repo's choice of which of these run is just which
+`src/linters.ts`. A repo's choice of which of these run is based on which
 tasks it includes in `tasks: [...]`, same as any other task.
 
 **No super-linter.** Each task above runs its own tool directly, through
