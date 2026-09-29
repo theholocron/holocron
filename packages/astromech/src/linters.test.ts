@@ -106,4 +106,31 @@ describe("resolveLinters", () => {
 		expect(first!.def.localBin).toBe("prettier");
 		expect(first!.def.validate).toContain("VALIDATE_TYPESCRIPT_PRETTIER");
 	});
+
+	it("adds eslint via sharedConfigAvailable even with no local config file (holocron#795)", () => {
+		const got = resolveLinters({
+			explicit: ["eslint"],
+			rootFiles: [],
+			sharedConfigAvailable: new Set(["eslint"]),
+		}).map((r) => r.name);
+		expect(got).toEqual(["eslint"]);
+	});
+
+	it("a local config file still wins with no sharedConfigAvailable entry", () => {
+		const got = resolveLinters({
+			explicit: ["eslint"],
+			rootFiles: ["eslint.config.ts"],
+			sharedConfigAvailable: new Set(),
+		}).map((r) => r.name);
+		expect(got).toEqual(["eslint"]);
+	});
+
+	it("drops eslint when neither a local file nor a shared config is available", () => {
+		expect(resolveLinters({ explicit: ["eslint"], rootFiles: [], sharedConfigAvailable: new Set() })).toEqual([]);
+	});
+
+	it("sharedConfigAvailable also applies to auto-detect, not just an explicit list", () => {
+		const got = resolveLinters({ rootFiles: [], sharedConfigAvailable: new Set(["eslint"]) }).map((r) => r.name);
+		expect(got).toContain("eslint");
+	});
 });
