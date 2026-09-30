@@ -47,6 +47,20 @@ describe("tsdown-config", () => {
 			const config = cli({ entry: ["src/other-cli.ts"] });
 			expect(config.entry).toEqual([resolve(process.cwd(), "src/other-cli.ts")]);
 		});
+
+		it("resolves outDir to an absolute path (tsdown-config#regression — clients#376's broken release, see resolve-entry.ts)", () => {
+			// Same bug class as entry above, just never patched for outDir until
+			// it silently published 14 packages with an empty dist/ -- confirmed
+			// live, the real output landed in
+			// node_modules/@theholocron/tsdown-config/dist/presets/dist/.
+			const config = cli();
+			expect(config.outDir).toBe(resolve(process.cwd(), "dist"));
+		});
+
+		it("resolves an overridden outDir to an absolute path too, not just the default", () => {
+			const config = cli({ outDir: "build" });
+			expect(config.outDir).toBe(resolve(process.cwd(), "build"));
+		});
 	});
 
 	describe("library preset", () => {
@@ -91,6 +105,20 @@ describe("tsdown-config", () => {
 				resolve(process.cwd(), "src/index.ts"),
 				resolve(process.cwd(), "src/testing.ts"),
 			]);
+		});
+
+		it("resolves outDir to an absolute path (tsdown-config#regression — clients#376's broken release, see resolve-entry.ts)", () => {
+			// Same bug class as entry above, just never patched for outDir until
+			// it silently published 14 packages with an empty dist/ -- confirmed
+			// live, the real output landed in
+			// node_modules/@theholocron/tsdown-config/dist/presets/dist/.
+			const config = library();
+			expect(config.outDir).toBe(resolve(process.cwd(), "dist"));
+		});
+
+		it("resolves an overridden outDir to an absolute path too, not just the default", () => {
+			const config = library({ outDir: "build" });
+			expect(config.outDir).toBe(resolve(process.cwd(), "build"));
 		});
 	});
 });

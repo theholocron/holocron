@@ -1,6 +1,6 @@
 import { defineConfig, type UserConfig } from "tsdown";
 
-import { resolveEntry } from "./resolve-entry.js";
+import { resolveEntry, resolveOutDir } from "./resolve-entry.js";
 
 /**
  * tsdown preset for a published ESM library.
@@ -19,13 +19,18 @@ import { resolveEntry } from "./resolve-entry.js";
 export function library(options: UserConfig = {}) {
 	const merged: UserConfig = {
 		entry: ["src/index.ts"],
+		outDir: "dist",
 		format: "esm",
 		dts: true,
 		clean: true,
 		deps: { neverBundle: true },
 		...options,
 	};
-	return defineConfig({ ...merged, entry: resolveEntry(merged.entry) });
+	return defineConfig({
+		...merged,
+		entry: resolveEntry(merged.entry),
+		outDir: resolveOutDir(merged.outDir ?? "dist"),
+	});
 }
 
 /** Ready-to-use config for packages that need no customisation. */
