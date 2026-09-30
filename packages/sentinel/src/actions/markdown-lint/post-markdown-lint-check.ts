@@ -35,7 +35,11 @@ function formatMessage(m: MarkdownLintMessage): string {
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
- * One annotation per message, at the line markdownlint reported.
+ * One annotation per warning-severity message, at the line markdownlint
+ * reported. Error-severity messages are excluded here (holocron#860) — they
+ * move to a PR review instead (posted separately by the caller, once
+ * `@theholocron/github-client`'s `createReview()` is available), and posting
+ * both would show two separate inline markers on the same line.
  * `start_column`/`end_column` only when `errorRange` localizes the
  * finding to a specific span — some rules (e.g. a whole-heading-level
  * finding) can't. `notice` (not `warning`/`failure`) matches this check's
@@ -43,15 +47,20 @@ const MAX_ANNOTATIONS_PER_REQUEST = 50;
  * rollout shape every other Bucket 1 check used before being made required.
  */
 function buildAnnotations(messages: MarkdownLintMessage[]): CheckRunAnnotation[] {
-	return messages.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((m) => ({
-		path: m.file,
-		start_line: m.line,
-		end_line: m.line,
-		...(m.errorRange ? { start_column: m.errorRange[0], end_column: m.errorRange[0]! + m.errorRange[1]! - 1 } : {}),
-		annotation_level: "notice" as const,
-		message: m.reason,
-		title: m.ruleNames.join("/"),
-	}));
+	return messages
+		.filter((m) => m.severity === "warning")
+		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.map((m) => ({
+			path: m.file,
+			start_line: m.line,
+			end_line: m.line,
+			...(m.errorRange
+				? { start_column: m.errorRange[0], end_column: m.errorRange[0]! + m.errorRange[1]! - 1 }
+				: {}),
+			annotation_level: "notice" as const,
+			message: m.reason,
+			title: m.ruleNames.join("/"),
+		}));
 }
 
 export interface PostMarkdownLintCheckInput {

@@ -140,7 +140,7 @@ describe("postStaticAnalysisCheck — findings", () => {
 });
 
 describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => {
-	it("builds one annotation per message, at notice level", async () => {
+	it("builds one annotation per warning-severity message, at notice level", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
 
 		await postStaticAnalysisCheck({
@@ -157,7 +157,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 						column: 5,
 						ruleId: "@typescript-eslint/no-unused-vars",
 						reason: "unused var",
-						severity: "error",
+						severity: "warning",
 					},
 				],
 			},
@@ -205,7 +205,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 						column: 1,
 						ruleId: null,
 						reason: "Unexpected token",
-						severity: "error",
+						severity: "warning",
 					},
 				],
 			},
@@ -224,7 +224,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 			column: 1,
 			ruleId: "some-rule",
 			reason: `reason ${i}`,
-			severity: "error" as const,
+			severity: "warning" as const,
 		}));
 
 		await postStaticAnalysisCheck({
@@ -253,5 +253,43 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 
 		const body = calls[0]?.body as { output: { annotations: unknown[] } };
 		expect(body.output.annotations).toEqual([]);
+	});
+
+	it("excludes error-severity messages from annotations (holocron#860) -- they move to a PR review instead", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 9, conclusion: "neutral" } }]);
+
+		await postStaticAnalysisCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "src/index.ts",
+						line: 12,
+						column: 7,
+						ruleId: "@typescript-eslint/no-unused-vars",
+						reason: "'x' is defined but never used",
+						severity: "error",
+					},
+					{
+						file: "src/index.ts",
+						line: 20,
+						column: 1,
+						ruleId: "vitest/no-disabled-tests",
+						reason: "test is disabled",
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-9",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ title: string }>; text: string } };
+		expect(body.output.annotations).toHaveLength(1);
+		expect(body.output.annotations[0]?.title).toBe("vitest/no-disabled-tests");
+		expect(body.output.text).toContain("'x' is defined but never used [@typescript-eslint/no-unused-vars]");
 	});
 });

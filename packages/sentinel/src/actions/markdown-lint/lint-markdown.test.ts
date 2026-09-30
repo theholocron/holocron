@@ -52,6 +52,9 @@ describe("lintMarkdown — a file with real findings", () => {
 		expect(result.fileCount).toBe(1);
 		expect(result.messages[0]?.file).toBe("README.md");
 		expect(result.messages[0]?.ruleNames).toContain("MD001");
+		// @theholocron/markdownlint-config doesn't configure a per-rule severity today (holocron#860) --
+		// markdownlint's own default of "error" applies to every rule until that's curated.
+		expect(result.messages[0]?.severity).toBe("error");
 	});
 
 	it("doesn't flag a long unwrapped prose line -- line-length (MD013) conflicts with Prettier's own proseWrap: preserve", async () => {

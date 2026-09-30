@@ -34,20 +34,27 @@ function formatMessage(m: StaticAnalysisMessage): string {
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
- * One annotation per message, at the line/column eslint reported. `notice`
+ * One annotation per warning-severity message, at the line/column eslint
+ * reported. Error-severity messages are excluded here (holocron#860) — they
+ * move to a PR review instead (posted separately by the caller, once
+ * `@theholocron/github-client`'s `createReview()` is available), and posting
+ * both would show two separate inline markers on the same line. `notice`
  * (not `warning`/`failure`) matches this check's own `conclusion: "neutral"`
  * — advisory, not a hard gate, same rollout shape every other Bucket 1 check
  * used before being made required.
  */
 function buildAnnotations(messages: StaticAnalysisMessage[]): CheckRunAnnotation[] {
-	return messages.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((m) => ({
-		path: m.file,
-		start_line: m.line,
-		end_line: m.line,
-		annotation_level: "notice" as const,
-		message: m.reason,
-		title: m.ruleId ?? "parse error",
-	}));
+	return messages
+		.filter((m) => m.severity === "warning")
+		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.map((m) => ({
+			path: m.file,
+			start_line: m.line,
+			end_line: m.line,
+			annotation_level: "notice" as const,
+			message: m.reason,
+			title: m.ruleId ?? "parse error",
+		}));
 }
 
 export interface PostStaticAnalysisCheckInput {

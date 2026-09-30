@@ -67,6 +67,7 @@ describe("postMarkdownLintCheck — findings", () => {
 						ruleNames: ["MD001", "heading-increment"],
 						reason: "Heading levels should only increment by one level at a time",
 						errorRange: null,
+						severity: "error",
 					},
 				],
 			},
@@ -94,6 +95,7 @@ describe("postMarkdownLintCheck — findings", () => {
 						ruleNames: ["MD001", "heading-increment"],
 						reason: "increment by one",
 						errorRange: null,
+						severity: "error",
 					},
 				],
 			},
@@ -109,7 +111,7 @@ describe("postMarkdownLintCheck — findings", () => {
 });
 
 describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
-	it("builds one annotation per message, at notice level, with start/end column when errorRange is present", async () => {
+	it("builds one annotation per warning-severity message, at notice level, with start/end column when errorRange is present", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "neutral" } }]);
 
 		await postMarkdownLintCheck({
@@ -120,7 +122,14 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [
-					{ file: "README.md", line: 42, ruleNames: ["MD013"], reason: "line too long", errorRange: [5, 10] },
+					{
+						file: "README.md",
+						line: 42,
+						ruleNames: ["MD013"],
+						reason: "line too long",
+						errorRange: [5, 10],
+						severity: "warning",
+					},
 				],
 			},
 			runId: "run-4",
@@ -164,7 +173,16 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 			result: {
 				valid: false,
 				fileCount: 1,
-				messages: [{ file: "README.md", line: 1, ruleNames: ["MD041"], reason: "no h1", errorRange: null }],
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						ruleNames: ["MD041"],
+						reason: "no h1",
+						errorRange: null,
+						severity: "warning",
+					},
+				],
 			},
 			runId: "run-5",
 		});
@@ -182,6 +200,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 			ruleNames: ["MD001"],
 			reason: `reason ${i}`,
 			errorRange: null,
+			severity: "warning" as const,
 		}));
 
 		await postMarkdownLintCheck({
@@ -210,5 +229,43 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 
 		const body = calls[0]?.body as { output: { annotations: unknown[] } };
 		expect(body.output.annotations).toEqual([]);
+	});
+
+	it("excludes error-severity messages from annotations (holocron#860) -- they move to a PR review instead", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 8, conclusion: "neutral" } }]);
+
+		await postMarkdownLintCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						ruleNames: ["MD041"],
+						reason: "no h1",
+						errorRange: null,
+						severity: "error",
+					},
+					{
+						file: "README.md",
+						line: 2,
+						ruleNames: ["MD013"],
+						reason: "line too long",
+						errorRange: null,
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-8",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ title: string }>; text: string } };
+		expect(body.output.annotations).toHaveLength(1);
+		expect(body.output.annotations[0]?.title).toBe("MD013");
+		expect(body.output.text).toContain("no h1 [MD041]");
 	});
 });
