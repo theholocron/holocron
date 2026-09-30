@@ -14,7 +14,7 @@ import { security } from "./security/security.js";
 import { teams } from "./teams/teams.js";
 import { topics } from "./topics/topics.js";
 import { user } from "./user/user.js";
-import { createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
+import { createGitHubGraphQLApiClient, createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
 import { workflows } from "./workflows/workflows.js";
 
 export {
@@ -54,7 +54,15 @@ export type {
 	PagesBuildType,
 	UpdatePagesPayload,
 } from "./pages/pages.js";
-export type { GitHubPullRequest, GitHubPullRequestCommit, GitHubPullRequestFile } from "./pulls/pulls.js";
+export type {
+	CreateReviewComment,
+	CreateReviewInput,
+	GitHubPullRequest,
+	GitHubPullRequestCommit,
+	GitHubPullRequestFile,
+	GitHubPullRequestReview,
+	ReviewThread,
+} from "./pulls/pulls.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
 export type { GitHubRuleset } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
@@ -74,6 +82,7 @@ export type { GitHubWorkflowRun, WorkflowRunFilter } from "./workflows/workflows
 
 export function createGitHubClient(opts: GitHubClientOptions) {
 	const rest = createGitHubRestClient(opts);
+	const graphql = createGitHubGraphQLApiClient(opts);
 	return {
 		branches: branches(rest),
 		checks: checks(rest),
@@ -83,7 +92,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		labels: labels(rest),
 		pages: pages(rest),
 		properties: properties(rest),
-		pulls: pulls(rest),
+		pulls: pulls(rest, graphql),
 		repos: repos(rest),
 		rulesets: rulesets(rest),
 		secrets: secrets(rest),
