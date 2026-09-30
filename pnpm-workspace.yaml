@@ -58,10 +58,10 @@ catalogs:
     "@theholocron/commitlint-config": ^8.4.5
     "@theholocron/devmoji-config": ^8.4.5
     "@theholocron/docs-theme": ^1.10.3
-    "@theholocron/eslint-config": ^8.4.5
+    "@theholocron/eslint-config": ^8.6.0
     "@theholocron/holocron-config": ^8.4.8
     "@theholocron/lint-staged-config": ^8.4.5
-    "@theholocron/markdownlint-config": ^8.5.0
+    "@theholocron/markdownlint-config": ^8.6.0
     "@theholocron/prettier-config": ^8.4.5
     "@theholocron/semantic-release-config": ^8.4.5
     "@theholocron/tsconfig": ^8.4.5
@@ -94,7 +94,7 @@ catalogs:
 # every other consumer stayed on the already-locked 1.25.0, splitting
 # ProviderApiError again under a caret override that permitted both.
 overrides:
-  "@theholocron/http-client": 1.31.0
   "@sentry/node": 10.75.2
+  "@theholocron/http-client": 1.31.0
   posthog-node: 5.52.5
   tsx: 4.23.12
