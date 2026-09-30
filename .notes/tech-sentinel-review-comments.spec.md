@@ -118,6 +118,20 @@ vs. "advisory, use judgment"), not a config value that already exists
 upstream. Real, valuable, genuinely separate scope — tracked as a follow-up
 issue, not folded into this spec.
 
+**Update: shipped, differently than predicted (holocron#865).** A per-word
+map turned out to be the wrong shape once the real ruleset was inspected —
+`retext-equality`'s 425 patterns split into exactly three categories (`a`,
+`male`, `female`), and the org decided the entire plugin is one
+already-decided bucket rather than something needing word-by-word
+curation. Shipped as a plain per-source/category rule in
+`post-inclusive-language-check.ts`: every `retext-equality` finding is
+`"error"` unconditionally; `retext-profanities` still splits on its own
+real `profanitySeverity` signal. No new org-side map needed after all —
+this is still **not** wired into the review-posting mechanism this spec
+describes (alex still posts check-run annotations only), but it does mean
+alex's severity signal no longer needs inventing if a future version of
+this spec's own review split ever reaches alex.
+
 ## Review shape (eslint and markdownlint, identical mechanism)
 
 ```text
@@ -264,9 +278,10 @@ comments is invalid` with no clear threshold GitHub has ever confirmed,
   no file/line to attach to (see above).
 - **Prettier** moving to either surface — resolved via default-on auto-fix
   instead (`#864`); not an annotations-vs-reviews question.
-- **Alex** moving to either surface — no native severity axis exists;
-  needs a new org-side classification layer first, tracked as a separate
-  follow-up issue, not folded into this spec.
+- **Alex** moving to either surface — its severity axis now exists
+  (`#865`, error/warning by source/category), but wiring it into a
+  review-posting mechanism is still separate, unstarted scope, not folded
+  into this spec.
 - A `holocron_profile`- or `runtime_environment`-driven opt-out for review
   posting specifically — not asked for; if a repo wants no reviews at all,
   that's a separate future knob, not assumed here.
