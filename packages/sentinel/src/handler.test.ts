@@ -732,6 +732,84 @@ describe("handler — static analysis pipeline (holocron#769/#849)", () => {
 			expect(lintStaticAnalysis).toHaveBeenCalled();
 		});
 	});
+
+	describe("eslint.browserPackages passthrough (holocron#858)", () => {
+		it("passes holocron.config.ts's eslint.browserPackages through to lintStaticAnalysis", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+			vi.mocked(validateConfig).mockResolvedValue({
+				status: "valid",
+				filepath: "x",
+				config: { tasks: [], eslint: { browserPackages: ["packages/github-client/src/app-auth"] } } as never,
+			});
+			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
+			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
+				checkRunId: 34,
+				conclusion: "success",
+				htmlUrl: "",
+			});
+
+			await handleWebhookRequest(req(), ENV);
+
+			expect(lintStaticAnalysis).toHaveBeenCalledWith(
+				expect.objectContaining({ browserPackages: ["packages/github-client/src/app-auth"] })
+			);
+		});
+
+		it("passes undefined when holocron.config.ts declares no eslint field -- the common case", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
+			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
+				checkRunId: 35,
+				conclusion: "success",
+				htmlUrl: "",
+			});
+
+			await handleWebhookRequest(req(), ENV);
+
+			expect(lintStaticAnalysis).toHaveBeenCalledWith(expect.objectContaining({ browserPackages: undefined }));
+		});
+
+		it("ignores a malformed eslint.browserPackages (non-array) rather than throwing", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+			vi.mocked(validateConfig).mockResolvedValue({
+				status: "valid",
+				filepath: "x",
+				config: { tasks: [], eslint: { browserPackages: "not-an-array" } } as never,
+			});
+			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
+			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
+				checkRunId: 36,
+				conclusion: "success",
+				htmlUrl: "",
+			});
+
+			const res = await handleWebhookRequest(req(), ENV);
+
+			expect(res.status).toBe(200);
+			expect(lintStaticAnalysis).toHaveBeenCalledWith(expect.objectContaining({ browserPackages: undefined }));
+		});
+
+		it("filters out non-string entries from a malformed eslint.browserPackages array", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+			vi.mocked(validateConfig).mockResolvedValue({
+				status: "valid",
+				filepath: "x",
+				config: { tasks: [], eslint: { browserPackages: ["src/app-auth", 42, null] } } as never,
+			});
+			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
+			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
+				checkRunId: 37,
+				conclusion: "success",
+				htmlUrl: "",
+			});
+
+			await handleWebhookRequest(req(), ENV);
+
+			expect(lintStaticAnalysis).toHaveBeenCalledWith(
+				expect.objectContaining({ browserPackages: ["src/app-auth"] })
+			);
+		});
+	});
 });
 
 describe("handler — PR Config Validation pipeline (holocron#827)", () => {

@@ -493,6 +493,31 @@ holds the orchestration + the Holocron-specific credential resolution
 (`telemetry/resolve.ts`). See the
 [telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
 
+### ESLint bundle options
+
+Most repos need nothing here — `@theholocron/eslint-config`'s `library()`
+bundle resolves with zero committed file (Bucket A: `eslint --config
+<shared path>`, no per-repo `eslint.config.ts` needed). A package with a
+genuine, deliberate exception — e.g. Web Crypto globals a Node-targeted
+package still needs, exempted via `library()`'s own `browserPackages`
+option in that package's own `eslint.config.ts` — should also declare the
+same paths in `holocron.config`'s `eslint.browserPackages`:
+
+```ts
+export default defineConfig({
+  eslint: {
+    browserPackages: ["packages/github-client/src/app-auth"],
+  },
+});
+```
+
+This doesn't replace the package's own `eslint.config.ts` (local/CI linting
+still resolves that file directly) — it's the signal Sentinel's centralized
+static-analysis check (holocron#849/#858) reads instead, since that check
+never reads a PR's own committed config files. Without it, Sentinel flags a
+false-positive `eslint-plugin-n` node-builtins finding on exactly the files
+the local override exists to exempt.
+
 ## What's in here
 
 - `src/capabilities/` — the 14 capability interfaces that providers

@@ -150,6 +150,19 @@ a non-`library`-profiled repo needs this check). Type-aware rules, which
 would force eslint back into Bucket 2 org-wide, are tracked separately as a
 deliberate future decision (`#851`), not folded into this.
 
+**Update: `browserPackages` bridged (`#858`).** `#849`'s hardcoded
+`library()` (no options) meant a repo like `clients`' own `github-client`
+package — whose local `eslint.config.ts` passes `library({ browserPackages:
+[...] })` for its deliberate Web Crypto usage — got a false-positive
+`eslint-plugin-n` finding from Sentinel's centralized check, since Bucket 1
+never reads a PR's own committed `eslint.config.ts` (the whole design
+boundary). Fixed by adding an `eslint.browserPackages` field to
+`holocron.config.ts` itself — the one thing Sentinel _does_ already read —
+which `handler.ts` passes through to `lintStaticAnalysis()`. Duplicated
+against the package's own `eslint.config.ts`, not derived from it; accepted
+as a small, explicit cost to keep the Bucket 1 boundary intact rather than
+teaching Sentinel to parse committed config files.
+
 **knip — verified (#796): neither bucket cleanly, lands in Bucket 2.** Its
 whole purpose is "is X used _anywhere_ in the codebase" (unused exports,
 unused dependencies) — inherently whole-repo-scoped, since answering that

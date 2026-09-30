@@ -489,6 +489,30 @@ export interface HolocronConfig {
 	 * { analytics: "none" }
 	 */
 	telemetry?: TelemetryConfig;
+	/**
+	 * ESLint bundle option overrides that Sentinel's centralized static-
+	 * analysis check (holocron#849) can't otherwise see. Bucket 1 checks
+	 * never read a PR's own committed files for config — this is the
+	 * declared source of truth Sentinel reads instead, so its check stays
+	 * in sync with what each package's own `eslint.config.ts` already
+	 * enforces locally and in CI.
+	 */
+	eslint?: EslintConfig;
+}
+
+/**
+ * Repo-root-relative directories treated as browser-targeted for eslint's
+ * node-builtins compatibility checks — mirrors
+ * `@theholocron/eslint-config`'s `library({ browserPackages })` option.
+ * Only needed for a package whose own `eslint.config.ts` already declares
+ * `browserPackages` (a deliberate outlier, not the norm — see that
+ * package's own config file for why).
+ *
+ * @example
+ * { browserPackages: ["packages/github-client/src/app-auth"] }
+ */
+export interface EslintConfig {
+	browserPackages?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -529,6 +553,7 @@ export interface ResolvedHolocronConfig {
 	env?: EnvConfig;
 	log?: LogConfig;
 	telemetry?: TelemetryConfig;
+	eslint?: EslintConfig;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -673,5 +698,6 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		env: raw.env,
 		log: raw.log,
 		telemetry: raw.telemetry,
+		eslint: raw.eslint,
 	};
 }

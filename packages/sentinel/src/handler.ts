@@ -575,11 +575,20 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		properties["runtime_environment"] !== "none"
 	) {
 		try {
+			// TasksConfig has no `eslint` field (astromech's own concern is just
+			// the task manifest) -- same loose-read-by-design cast
+			// syncPropertiesFromConfig's own call above already uses for
+			// repo/providers.
+			const rawConfig = configResult.config as unknown as { eslint?: { browserPackages?: unknown } };
+			const browserPackages = Array.isArray(rawConfig.eslint?.browserPackages)
+				? rawConfig.eslint.browserPackages.filter((p): p is string => typeof p === "string")
+				: undefined;
 			const lintResult = await lintStaticAnalysis({
 				client,
 				repo,
 				pullNumber: context.pullNumber,
 				ref: context.headSha,
+				browserPackages,
 			});
 			staticAnalysisCheckRun = await postStaticAnalysisCheck({
 				client,
