@@ -1,3 +1,10 @@
+## [8.5.4](https://github.com/theholocron/configs/compare/v8.5.3...v8.5.4) (2026-09-30)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 library()/nodeApp() no longer clobber the docs/src exemption ([#488](https://github.com/theholocron/configs/issues/488)) ([08ad56f](https://github.com/theholocron/configs/commit/08ad56f3c307aef2651f5d3532093fd323dd871c)), closes [#487](https://github.com/theholocron/configs/issues/487)
+* **eslint-config:** 🐛 pin node-builtins compat check to the org-wide >=22 floor ([#490](https://github.com/theholocron/configs/issues/490)) ([eb694e4](https://github.com/theholocron/configs/commit/eb694e44ba085a0397d0c2d128845eec0229e1a0)), closes [holocron#849](https://github.com/theholocron/holocron/issues/849) [#489](https://github.com/theholocron/configs/issues/489)
+
 ## [8.5.3](https://github.com/theholocron/configs/compare/v8.5.2...v8.5.3) (2026-09-29)
 
 ### Bug Fixes
