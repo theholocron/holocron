@@ -2,6 +2,5 @@
 // the real deployed Sentinel instance. Not meant to merge -- delete this
 // file (and verify-860-review.md) before closing the test PR.
 export function verifySentinelReview(): number {
-	const unusedVariable = "this triggers @typescript-eslint/no-unused-vars, an error-severity eslint rule";
 	return 42;
 }
