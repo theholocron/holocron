@@ -27,26 +27,3 @@ export const ALEX_CONFIG: { allow: string[] } = alexrc;
  * hand; it changes rarely.
  */
 export const ALEX_IGNORE_PATTERNS: string[] = [".github/*", "CHANGELOG.md", "LICENSE"];
-
-/**
- * Org-defined severity for a specific flagged word — alex's `ruleId` for a
- * `retext-equality` finding *is* the word itself (e.g. `"just"`, `"easy"`),
- * confirmed directly against real alex output. Distinct from
- * `retext-profanities`' own `profanitySeverity` (a confidence rating for
- * how likely a word is used *as* profanity, not an editorial judgment
- * about the word) — this map is Sentinel's own signal for "the org has
- * already made a real call about this specific word," not alex's.
- *
- * Every word not listed here defaults to `"notice"` (unchanged from
- * today's behavior for every retext-equality finding).
- *
- * `"just"` is the one concrete case so far (holocron#865): explicitly
- * decided *not* to allow-list it — a genuine editorial call, unlike most
- * retext-equality flags, which are context-dependent, use-your-own-
- * judgment suggestions — rewording every real occurrence instead. That's
- * the "already decided this is a real problem" vs. "advisory, use
- * judgment" split this map exists to carry.
- */
-export const ALEX_SEVERITY_OVERRIDES: Record<string, "notice" | "warning"> = {
-	just: "warning",
-};

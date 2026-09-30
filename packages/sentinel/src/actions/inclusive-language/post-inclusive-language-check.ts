@@ -7,7 +7,6 @@
  * to wrap.
  */
 
-import { ALEX_SEVERITY_OVERRIDES } from "@theholocron/cli";
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
 import {
@@ -65,36 +64,37 @@ function formatMessage(m: InclusiveLanguageMessage): string {
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
- * Per-message severity, not a blanket level for the whole check. Three
- * tiers, checked in order:
+ * Two tiers only — no `notice` (holocron#865 follow-up: too easy to miss,
+ * too hard to discern from `warning` at a glance; if it's worth flagging
+ * at all, it's worth actually seeing). `"error"` fails the whole check
+ * (`conclusion: "failure"` below) — a real merge-blocker, not advisory.
  *
- * 1. **`ALEX_SEVERITY_OVERRIDES`** (`@theholocron/cli`, holocron#865) — an
- *    org-defined call on a *specific word*, keyed by `ruleId` (alex's
- *    `ruleId` for a `retext-equality` finding *is* the flagged word, e.g.
- *    `"just"`). Distinct from either signal below: this is "the org has
- *    already decided this one is a real problem," not a property of the
- *    underlying retext plugin. Wins over both tiers below when present.
- * 2. **`retext-profanities`** (violent/vulgar wording — "execute", "kill")
- *    carries `profanitySeverity`, `cuss`'s own 0-2 rating for how likely
- *    the word is used *as* profanity rather than clean text (not how bad
- *    the word is) — 0 ("beaver"): likely clean text, frequently a false
- *    positive in technical writing; 1-2 ("addict"/"asshat"): actually
- *    likely profane. Only the latter is worth calling out more loudly,
- *    hence `warning` (yellow) at severity >= 1.
- * 3. **`retext-equality`** (gendered/insensitive phrasing — "he", "actor")
- *    has no severity signal of its own beyond tier 1 above; every
- *    unlisted finding here is a soft "consider rewording" suggestion, so
- *    it stays `notice` (grey) — the default every message falls back to.
+ * - **`retext-equality`** (gendered/insensitive phrasing) is `"error"`,
+ *   unconditionally. Confirmed directly against the real ruleset: all 425
+ *   patterns split across exactly three categories — `a` (dismissive
+ *   language and slurs, 222 patterns — "just"/"basically" alongside
+ *   "retard"/"japs"), `male`/`female` (203 gendered-noun-pair
+ *   suggestions) — every one of them a deliberate call this org isn't
+ *   walking back per-word. No severity signal within retext-equality
+ *   itself to split on (confirmed: every message comes back `fatal:
+ *   false` regardless of word) — org policy is the signal here, not the
+ *   tool's own data.
+ * - **`retext-profanities`** (violent/vulgar wording) splits on its own
+ *   real signal: `profanitySeverity`, `cuss`'s 0-2 rating for how likely
+ *   the word is used *as* profanity rather than clean text (not how bad
+ *   the word is) — 0 ("beaver"): likely clean text, a frequent false
+ *   positive in technical writing, stays `"warning"`; 1-2
+ *   ("addict"/"asshat"): actually likely profane, promoted to `"error"`.
  *
- * Capped at `warning`, never `failure` — this check's own overall
- * `conclusion` stays `"neutral"` (advisory, not a hard gate), and a red
- * annotation on a non-failing check reads as a mismatched signal.
+ * Supersedes holocron#865/#867's per-word `ALEX_SEVERITY_OVERRIDES` —
+ * that mechanism assumed retext-equality needed case-by-case curation;
+ * this treats the whole plugin as one already-decided bucket instead, so
+ * there's nothing left for a per-word map to differentiate.
  */
 function annotationLevel(m: InclusiveLanguageMessage): CheckRunAnnotation["annotation_level"] {
-	const override = ALEX_SEVERITY_OVERRIDES[m.ruleId];
-	if (override) return override;
-	if (m.source === "retext-profanities" && (m.profanitySeverity ?? 0) >= 1) return "warning";
-	return "notice";
+	if (m.source === "retext-equality") return "failure";
+	if (m.source === "retext-profanities" && (m.profanitySeverity ?? 0) >= 1) return "failure";
+	return "warning";
 }
 
 /**
@@ -121,14 +121,19 @@ export async function postInclusiveLanguageCheck(
 	input: PostInclusiveLanguageCheckInput
 ): Promise<PostInclusiveLanguageCheckResult> {
 	const { client, repo, headSha, result, runId } = input;
-	const conclusion: CheckRunConclusion = result.valid ? "success" : "neutral";
+	const errorCount = result.messages.filter((m) => annotationLevel(m) === "failure").length;
+	const warningCount = result.messages.length - errorCount;
+	// A real merge-blocker, not advisory, the moment even one finding is
+	// error-tier (holocron#865 follow-up) -- warnings alone stay neutral,
+	// same as every other Bucket 1 check's advisory stance.
+	const conclusion: CheckRunConclusion = errorCount > 0 ? "failure" : result.valid ? "success" : "neutral";
 
 	const title = result.valid
 		? "Inclusive language: OK"
-		: `Inclusive language: ${result.messages.length} suggestion(s) across ${result.fileCount} file(s)`;
+		: `Inclusive language: ${errorCount} error(s), ${warningCount} warning(s) across ${result.fileCount} file(s)`;
 	const summary = result.valid
 		? `All ${result.fileCount} changed markdown file(s) pass.`
-		: `${result.messages.length} suggestion(s) across ${result.fileCount} file(s) — see details below.`;
+		: `${errorCount} error(s), ${warningCount} warning(s) across ${result.fileCount} file(s) — see details below.`;
 
 	// `text` renders as a collapsible "Show more" section on the check run's
 	// own GitHub page — the full per-file breakdown lives here instead of

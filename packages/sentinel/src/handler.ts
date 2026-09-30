@@ -21,12 +21,15 @@
  *   holocron#769/#793): `pull_request.*` only, same reason as commit
  *   standards — needs the PR's own changed-files list. Config-free in the
  *   same sense: reads the org's canonical `ALEX_CONFIG` directly, never a
- *   per-repo file. `conclusion: "neutral"` on findings, not `"failure"` —
- *   advisory suggestions, reporting-only for this phase, same rollout
- *   shape commit standards used before it was ever made required.
+ *   per-repo file. **Not purely advisory** (holocron#865 follow-up):
+ *   `conclusion: "failure"` the moment any finding is `retext-equality`
+ *   (gendered/insensitive phrasing — org policy decided per-plugin, not
+ *   per-word) or high-confidence `retext-profanities` — a real
+ *   merge-blocker. Only a low-confidence profanity guess (`cuss`'s own
+ *   sureness rating) stays `"neutral"`/advisory.
  * - **Formatting** (`lintFormatting → postFormattingCheck`,
- *   holocron#769/#819): `pull_request.*` only, same reason and same
- *   config-free/advisory shape as inclusive language — reads
+ *   holocron#769/#819): `pull_request.*` only, same config-free shape as
+ *   inclusive language, but purely advisory unlike it — reads
  *   `@theholocron/prettier-config`'s canonical export directly, never a
  *   per-repo file.
  * - **Documentation** (`lintMarkdown → postMarkdownLintCheck`,
