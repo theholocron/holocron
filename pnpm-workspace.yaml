@@ -43,7 +43,7 @@ catalogs:
     "@theholocron/clerk-client": ^1.31.0
     "@theholocron/cloudflare-client": ^1.31.0
     "@theholocron/doppler-client": ^1.31.0
-    "@theholocron/github-client": ^1.32.1
+    "@theholocron/github-client": ^1.33.0
     "@theholocron/http-client": ^1.31.0
     "@theholocron/infisical-client": ^1.31.0
     "@theholocron/neon-client": ^1.31.0
