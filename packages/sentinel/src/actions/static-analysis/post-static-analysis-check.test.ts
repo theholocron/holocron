@@ -9,6 +9,11 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
 
+/** postErrorReview()'s own listReviewThreads() lookup -- queued after every check-run response in these tests, an empty result unless a test says otherwise. */
+const EMPTY_THREADS = { body: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } } };
+/** postErrorReview()'s own createReview() call -- queued whenever a test's messages include at least one error-severity finding. */
+const REVIEW_POSTED = { body: { id: 999, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-999" } };
+
 describe("postStaticAnalysisCheck — carries the intent vocabulary through (D5)", () => {
 	it("names the check run Source Quality / Static Analysis / Run eslint", () => {
 		expect(SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME).toBe("Source Quality / Static Analysis / Run eslint");
@@ -17,11 +22,12 @@ describe("postStaticAnalysisCheck — carries the intent vocabulary through (D5)
 
 describe("postStaticAnalysisCheck — valid", () => {
 	it("posts a success check run naming how many files passed", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 1, conclusion: "success" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 1, conclusion: "success" } }, EMPTY_THREADS]);
 
 		const result = await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: { valid: true, fileCount: 3, messages: [] },
 			runId: "run-1",
@@ -51,11 +57,16 @@ describe("postStaticAnalysisCheck — valid", () => {
 
 describe("postStaticAnalysisCheck — findings", () => {
 	it("posts a neutral (not failure) check run listing each finding, actionable from the check run alone", async () => {
-		const { client } = makeClient([{ status: 201, body: { id: 2, conclusion: "neutral" } }]);
+		const { client } = makeClient([
+			{ status: 201, body: { id: 2, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
 
 		const result = await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -79,11 +90,16 @@ describe("postStaticAnalysisCheck — findings", () => {
 	});
 
 	it("formats each message as one summary line: file:line:column: reason [rule-id]", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 3, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 3, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
 
 		await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -110,11 +126,16 @@ describe("postStaticAnalysisCheck — findings", () => {
 	});
 
 	it("omits the [rule-id] suffix for a parse error (ruleId null)", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 4, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
 
 		await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -140,12 +161,13 @@ describe("postStaticAnalysisCheck — findings", () => {
 });
 
 describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => {
-	it("builds one annotation per message, at notice level", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
+	it("builds one annotation per warning-severity message, at notice level", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }, EMPTY_THREADS]);
 
 		await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -157,7 +179,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 						column: 5,
 						ruleId: "@typescript-eslint/no-unused-vars",
 						reason: "unused var",
-						severity: "error",
+						severity: "warning",
 					},
 				],
 			},
@@ -189,11 +211,12 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 	});
 
 	it("titles a parse-error annotation 'parse error' when ruleId is null", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 6, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 6, conclusion: "neutral" } }, EMPTY_THREADS]);
 
 		await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -205,7 +228,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 						column: 1,
 						ruleId: null,
 						reason: "Unexpected token",
-						severity: "error",
+						severity: "warning",
 					},
 				],
 			},
@@ -217,19 +240,20 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 	});
 
 	it("caps annotations at 50, GitHub's own per-request limit -- the full list still reaches output.text uncapped", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 7, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 7, conclusion: "neutral" } }, EMPTY_THREADS]);
 		const messages = Array.from({ length: 55 }, (_, i) => ({
 			file: `src/file-${i}.ts`,
 			line: 1,
 			column: 1,
 			ruleId: "some-rule",
 			reason: `reason ${i}`,
-			severity: "error" as const,
+			severity: "warning" as const,
 		}));
 
 		await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: { valid: false, fileCount: 55, messages },
 			runId: "run-7",
@@ -241,11 +265,12 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 	});
 
 	it("posts an empty annotations array for a valid (no findings) result", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 8, conclusion: "success" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 8, conclusion: "success" } }, EMPTY_THREADS]);
 
 		await postStaticAnalysisCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: { valid: true, fileCount: 2, messages: [] },
 			runId: "run-8",
@@ -253,5 +278,135 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 
 		const body = calls[0]?.body as { output: { annotations: unknown[] } };
 		expect(body.output.annotations).toEqual([]);
+	});
+
+	it("excludes error-severity messages from annotations (holocron#860) -- they move to a PR review instead", async () => {
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 9, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
+
+		await postStaticAnalysisCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "src/index.ts",
+						line: 12,
+						column: 7,
+						ruleId: "@typescript-eslint/no-unused-vars",
+						reason: "'x' is defined but never used",
+						severity: "error",
+					},
+					{
+						file: "src/index.ts",
+						line: 20,
+						column: 1,
+						ruleId: "vitest/no-disabled-tests",
+						reason: "test is disabled",
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-9",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ title: string }>; text: string } };
+		expect(body.output.annotations).toHaveLength(1);
+		expect(body.output.annotations[0]?.title).toBe("vitest/no-disabled-tests");
+		expect(body.output.text).toContain("'x' is defined but never used [@typescript-eslint/no-unused-vars]");
+	});
+});
+
+describe("postStaticAnalysisCheck — PR review for error-severity findings (holocron#860)", () => {
+	it("posts a review with one marked comment per error, naming the warning count and check run", async () => {
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 10, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
+
+		await postStaticAnalysisCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "src/index.ts",
+						line: 12,
+						column: 7,
+						ruleId: "@typescript-eslint/no-unused-vars",
+						reason: "'x' is defined but never used",
+						severity: "error",
+					},
+					{
+						file: "src/index.ts",
+						line: 20,
+						column: 1,
+						ruleId: "vitest/no-disabled-tests",
+						reason: "test is disabled",
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-10",
+		});
+
+		expect(calls).toHaveLength(3);
+		expect(calls[2]?.url).toContain("/repos/acme/demo/pulls/42/reviews");
+		expect(calls[2]?.body).toEqual({
+			commit_id: "abc123",
+			event: "COMMENT",
+			body:
+				"1 error(s) found by static analysis — see inline comments below.\n" +
+				"1 warning(s) also found; see the Source Quality / Static Analysis / Run eslint check run for the full list.",
+			comments: [
+				{
+					path: "src/index.ts",
+					line: 12,
+					side: "RIGHT",
+					body: "<!-- sentinel:static-analysis -->\n`@typescript-eslint/no-unused-vars` (line 12, col 7): 'x' is defined but never used",
+				},
+			],
+		});
+	});
+
+	it("posts no review at all when every message is warning-severity", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 11, conclusion: "neutral" } }, EMPTY_THREADS]);
+
+		await postStaticAnalysisCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "src/index.ts",
+						line: 20,
+						column: 1,
+						ruleId: "vitest/no-disabled-tests",
+						reason: "test is disabled",
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-11",
+		});
+
+		// checkRun + listReviewThreads only -- no createReview POST.
+		expect(calls).toHaveLength(2);
 	});
 });

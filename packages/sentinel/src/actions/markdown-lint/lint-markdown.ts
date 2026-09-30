@@ -60,6 +60,8 @@ export interface MarkdownLintMessage {
 	reason: string;
 	/** `[startColumn, length]`, 1-indexed — `null` when the rule can't localize the finding to a specific span on the line. */
 	errorRange: number[] | null;
+	/** markdownlint's own per-rule severity — defaults to `"error"` unless `@theholocron/markdownlint-config` configures a rule as `{ severity: "warning" }`. */
+	severity: "error" | "warning";
 }
 
 export interface LintMarkdownResult {
@@ -96,6 +98,7 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 				ruleNames: e.ruleNames,
 				reason: e.ruleDescription,
 				errorRange: e.errorRange,
+				severity: e.severity,
 			});
 		}
 	}

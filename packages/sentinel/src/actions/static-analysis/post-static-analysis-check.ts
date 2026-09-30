@@ -10,6 +10,7 @@
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
 import { SENTINEL_NAMESPACES, SENTINEL_STATIC_ANALYSIS_LOG_MSG, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import { postErrorReview } from "../../utils/post-error-review.js";
 import type { LintStaticAnalysisResult, StaticAnalysisMessage } from "./lint-static-analysis.js";
 
 /**
@@ -30,30 +31,43 @@ function formatMessage(m: StaticAnalysisMessage): string {
 	return `${m.file}:${m.line}:${m.column}: ${m.reason}${m.ruleId ? ` [${m.ruleId}]` : ""}`;
 }
 
+/** One error-severity message as its own review-comment body — GitHub anchors a comment to a line, not a column, so the column lives in the text. */
+function formatErrorComment(m: StaticAnalysisMessage): string {
+	return `\`${m.ruleId ?? "parse error"}\` (line ${m.line}, col ${m.column}): ${m.reason}`;
+}
+
 /** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as `post-formatting-check.ts`'s own cap. */
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
- * One annotation per message, at the line/column eslint reported. `notice`
+ * One annotation per warning-severity message, at the line/column eslint
+ * reported. Error-severity messages are excluded here (holocron#860) — they
+ * move to a PR review instead (posted separately by the caller, once
+ * `@theholocron/github-client`'s `createReview()` is available), and posting
+ * both would show two separate inline markers on the same line. `notice`
  * (not `warning`/`failure`) matches this check's own `conclusion: "neutral"`
  * — advisory, not a hard gate, same rollout shape every other Bucket 1 check
  * used before being made required.
  */
 function buildAnnotations(messages: StaticAnalysisMessage[]): CheckRunAnnotation[] {
-	return messages.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((m) => ({
-		path: m.file,
-		start_line: m.line,
-		end_line: m.line,
-		annotation_level: "notice" as const,
-		message: m.reason,
-		title: m.ruleId ?? "parse error",
-	}));
+	return messages
+		.filter((m) => m.severity === "warning")
+		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.map((m) => ({
+			path: m.file,
+			start_line: m.line,
+			end_line: m.line,
+			annotation_level: "notice" as const,
+			message: m.reason,
+			title: m.ruleId ?? "parse error",
+		}));
 }
 
 export interface PostStaticAnalysisCheckInput {
-	client: Pick<GitHubClient, "checks">;
+	client: Pick<GitHubClient, "checks" | "pulls">;
 	/** `"owner/repo"`. */
 	repo: string;
+	pullNumber: number;
 	/** The commit SHA to attach the check run to — a pull_request event's `pull_request.head.sha`. */
 	headSha: string;
 	result: LintStaticAnalysisResult;
@@ -70,7 +84,7 @@ export interface PostStaticAnalysisCheckResult {
 export async function postStaticAnalysisCheck(
 	input: PostStaticAnalysisCheckInput
 ): Promise<PostStaticAnalysisCheckResult> {
-	const { client, repo, headSha, result, runId } = input;
+	const { client, repo, pullNumber, headSha, result, runId } = input;
 	const conclusion: CheckRunConclusion = result.valid ? "success" : "neutral";
 
 	const title = result.valid ? "Static analysis: OK" : `Static analysis: ${result.messages.length} finding(s)`;
@@ -89,6 +103,20 @@ export async function postStaticAnalysisCheck(
 		conclusion,
 		output: { title, summary, text, annotations: buildAnnotations(result.messages) },
 		details_url: sentinelAxiomLogUrl(runId, SENTINEL_STATIC_ANALYSIS_LOG_MSG),
+	});
+
+	const errors = result.messages.filter((m) => m.severity === "error");
+	const warningCount = result.messages.length - errors.length;
+	await postErrorReview({
+		client,
+		repo,
+		pullNumber,
+		headSha,
+		checkKey: "static-analysis",
+		checkLabel: "static analysis",
+		checkRunName: SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME,
+		errors: errors.map((m) => ({ file: m.file, line: m.line, body: formatErrorComment(m) })),
+		warningCount,
 	});
 
 	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };
