@@ -1,3 +1,9 @@
+## [8.6.0](https://github.com/theholocron/configs/compare/v8.5.4...v8.6.0) (2026-09-30)
+
+### Features
+
+* **markdownlint-config:** ✨ require a language on every fenced code block ([#492](https://github.com/theholocron/configs/issues/492)) ([4ec68f8](https://github.com/theholocron/configs/commit/4ec68f8efd4112cd957c4c847c85c42eed957368)), closes [holocron#859](https://github.com/theholocron/holocron/issues/859) [#491](https://github.com/theholocron/configs/issues/491)
+
 ## [8.5.4](https://github.com/theholocron/configs/compare/v8.5.3...v8.5.4) (2026-09-30)
 
 ### Bug Fixes

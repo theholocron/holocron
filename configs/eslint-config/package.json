@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/eslint-config",
-  "version": "8.5.4",
+  "version": "8.6.0",
   "description": "A ESLint configuration for writing well-formed Javascript within the Galaxy.",
   "keywords": [
     "eslint",
