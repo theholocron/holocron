@@ -23,6 +23,12 @@ import type { LintStaticAnalysisResult, StaticAnalysisMessage } from "./lint-sta
  * Same `sourceQuality` namespace as Inclusive Language, Formatting, and
  * Documentation — the spec's own forecast ("the next namespace... once
  * eslint/prettier move to Sentinel too") named exactly this kind of tool.
+ *
+ * **Not purely advisory** (same treatment inclusive language got in
+ * holocron#865): `conclusion: "failure"` the moment any message is
+ * error-severity — eslint's own `m.severity`, a real merge-blocker, not
+ * only a PR-review comment (holocron#860). Warning-severity-only findings
+ * still resolve to `"neutral"` — advisory, same as before.
  */
 export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Static Analysis / Run eslint`;
 
@@ -42,12 +48,13 @@ const MAX_ANNOTATIONS_PER_REQUEST = 50;
 /**
  * One annotation per warning-severity message, at the line/column eslint
  * reported. Error-severity messages are excluded here (holocron#860) — they
- * move to a PR review instead (posted separately by the caller, once
- * `@theholocron/github-client`'s `createReview()` is available), and posting
- * both would show two separate inline markers on the same line. `notice`
- * (not `warning`/`failure`) matches this check's own `conclusion: "neutral"`
- * — advisory, not a hard gate, same rollout shape every other Bucket 1 check
- * used before being made required.
+ * move to a PR review instead (posted separately by the caller via
+ * `postErrorReview()`), and posting both would show two separate inline
+ * markers on the same line. `notice`, not `warning`/`failure` — a
+ * warning-severity finding stays advisory-styled regardless of the overall
+ * check run's own `conclusion` now being failure-aware; the merge-blocking
+ * signal lives entirely in `conclusion`, not in any individual annotation's
+ * level.
  */
 function buildAnnotations(messages: StaticAnalysisMessage[]): CheckRunAnnotation[] {
 	return messages
@@ -85,12 +92,18 @@ export async function postStaticAnalysisCheck(
 	input: PostStaticAnalysisCheckInput
 ): Promise<PostStaticAnalysisCheckResult> {
 	const { client, repo, pullNumber, headSha, result, runId } = input;
-	const conclusion: CheckRunConclusion = result.valid ? "success" : "neutral";
 
-	const title = result.valid ? "Static analysis: OK" : `Static analysis: ${result.messages.length} finding(s)`;
+	const errors = result.messages.filter((m) => m.severity === "error");
+	const errorCount = errors.length;
+	const warningCount = result.messages.length - errorCount;
+	const conclusion: CheckRunConclusion = errorCount > 0 ? "failure" : result.valid ? "success" : "neutral";
+
+	const title = result.valid
+		? "Static analysis: OK"
+		: `Static analysis: ${errorCount} error(s), ${warningCount} warning(s)`;
 	const summary = result.valid
 		? `All ${result.fileCount} changed file(s) pass.`
-		: `${result.messages.length} finding(s) across ${result.fileCount} changed file(s) — see details below.`;
+		: `${errorCount} error(s), ${warningCount} warning(s) across ${result.fileCount} changed file(s) — see details below.`;
 
 	const text = [result.valid ? undefined : result.messages.map(formatMessage).join("\n"), `Run ID: \`${runId}\``]
 		.filter((line) => line !== undefined)
@@ -105,8 +118,6 @@ export async function postStaticAnalysisCheck(
 		details_url: sentinelAxiomLogUrl(runId, SENTINEL_STATIC_ANALYSIS_LOG_MSG),
 	});
 
-	const errors = result.messages.filter((m) => m.severity === "error");
-	const warningCount = result.messages.length - errors.length;
 	await postErrorReview({
 		client,
 		repo,

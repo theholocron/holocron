@@ -56,9 +56,9 @@ describe("postStaticAnalysisCheck — valid", () => {
 });
 
 describe("postStaticAnalysisCheck — findings", () => {
-	it("posts a neutral (not failure) check run listing each finding, actionable from the check run alone", async () => {
+	it("posts a failure check run when any message is error-severity (holocron#860) -- a real merge-blocker, not advisory", async () => {
 		const { client } = makeClient([
-			{ status: 201, body: { id: 2, conclusion: "neutral" } },
+			{ status: 201, body: { id: 2, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -85,13 +85,40 @@ describe("postStaticAnalysisCheck — findings", () => {
 			runId: "run-2",
 		});
 
-		// Advisory suggestions, not a hard gate -- "neutral", not "failure".
+		expect(result.conclusion).toBe("failure");
+	});
+
+	it("posts a neutral (not failure) check run when every message is warning-severity", async () => {
+		const { client } = makeClient([{ status: 201, body: { id: 2.5, conclusion: "neutral" } }, EMPTY_THREADS]);
+
+		const result = await postStaticAnalysisCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "src/index.ts",
+						line: 1,
+						column: 7,
+						ruleId: "vitest/no-disabled-tests",
+						reason: "test is disabled",
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-2b",
+		});
+
 		expect(result.conclusion).toBe("neutral");
 	});
 
 	it("formats each message as one summary line: file:line:column: reason [rule-id]", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 3, conclusion: "neutral" } },
+			{ status: 201, body: { id: 3, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -119,15 +146,15 @@ describe("postStaticAnalysisCheck — findings", () => {
 		});
 
 		const body = calls[0]?.body as { output: { title: string; summary: string; text: string } };
-		expect(body.output.title).toBe("Static analysis: 1 finding(s)");
-		expect(body.output.summary).toBe("1 finding(s) across 1 changed file(s) — see details below.");
+		expect(body.output.title).toBe("Static analysis: 1 error(s), 0 warning(s)");
+		expect(body.output.summary).toBe("1 error(s), 0 warning(s) across 1 changed file(s) — see details below.");
 		expect(body.output.text).toContain("src/index.ts:12:3: unused var [@typescript-eslint/no-unused-vars]");
 		expect(body.output.text).toContain("Run ID: `run-3`");
 	});
 
 	it("omits the [rule-id] suffix for a parse error (ruleId null)", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 4, conclusion: "neutral" } },
+			{ status: 201, body: { id: 4, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -282,7 +309,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 
 	it("excludes error-severity messages from annotations (holocron#860) -- they move to a PR review instead", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 9, conclusion: "neutral" } },
+			{ status: 201, body: { id: 9, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -327,7 +354,7 @@ describe("postStaticAnalysisCheck — inline annotations (holocron#816)", () => 
 describe("postStaticAnalysisCheck — PR review for error-severity findings (holocron#860)", () => {
 	it("posts a review with one marked comment per error, naming the warning count and check run", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 10, conclusion: "neutral" } },
+			{ status: 201, body: { id: 10, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
