@@ -65,22 +65,25 @@
  *   the auto-fix-commit gate further down reuses this same PR-branch read
  *   instead of fetching it a second time.
  * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
- *   exception to every check above being config-free — opt-in via `{
- *   name: "sourceQuality.formatting", with: { autoFix: true } }` in
- *   `holocron.config.ts`'s `tasks` array, since writing to repo content is
- *   qualitatively different from reading and reporting. Reuses PR Config
- *   Validation's own PR-branch read above — a PR inherits whatever's
- *   merged to main automatically (its branch started as a copy of it),
- *   and can also add the flag fresh in its own diff, with no main-branch
- *   merge required either way. Falls back to the main-derived flag too
- *   (OR'd), for a PR branch created before the flag was merged and never
- *   rebased since. Fires only when either resolves true *and* the
+ *   exception to every check above being config-free — writing to repo
+ *   content is qualitatively different from reading and reporting.
+ *   Default-on (holocron#860 follow-up: prettier's fix is mechanical and
+ *   deterministic, so there's no human judgment call for a finding to
+ *   surface in the first place); opt out via `{ name:
+ *   "sourceQuality.formatting", with: { autoFix: false } }` in
+ *   `holocron.config.ts`'s `tasks` array. Reuses PR Config Validation's own
+ *   PR-branch read above — the PR's own branch gets the final say when it
+ *   declares an explicit value (letting a PR opt itself in or out before
+ *   that same config change merges to main); the merged config's explicit
+ *   value is the fallback. Fires only when not opted out *and* the
  *   Formatting check above actually found something to fix — reuses
  *   `lintFormatting()`'s already-computed `format()` output rather than
  *   re-running prettier. One atomic commit via the Git Data API (blob →
  *   tree → commit → ref-update), pushed directly onto the PR's own head
  *   branch. Requires `Contents: Write` — see the README's permissions
- *   table.
+ *   table. **Trade-off, not a bug**: this is a new push, so it retriggers
+ *   the full required-checks suite a second time — real CI cost and merge
+ *   latency for any PR that needed reformatting.
  * - **Auto-fix PR comment** (`postAutoFixComment`, holocron#674/#834):
  *   explains what the commit above just changed — which files, and the
  *   commit SHA. Fires only when `commitFormattingFix` actually committed
@@ -613,35 +616,47 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
-	// Auto-fix-commit (holocron#820) -- opt-in either via the repo's merged
-	// `with: { autoFix: true }` on the sourceQuality.formatting task, or via
-	// that same flag freshly added in the PR's own branch (reusing PR
-	// Config Validation's own PR-branch read above, holocron#827 -- no
-	// second fetch). A PR inherits whatever's already merged to main
-	// automatically (its branch started as a copy of it), and can also add
-	// the flag fresh in its own diff -- no main-branch merge required
-	// either way. The PR-branch read only ever feeds this boolean
-	// decision, never anything persisted (see validate-config.ts's own
-	// module docstring for the boundary that keeps this safe) -- unlike
-	// every other check above, config-free by design, this is the one
-	// exception, since writing to repo content is qualitatively different
-	// from reading and reporting. Only fires when: either resolves true,
-	// lintFormatting actually ran and found something to fix, and this is
-	// a PR event with a real head branch to push to (a push to the default
-	// branch has no PR branch to commit onto). Soft-skip over hard-fail,
-	// same reasoning as every check above: a commit failure must never
-	// take capability compliance down with it.
+	// Auto-fix-commit (holocron#820) -- default-on (holocron#860 follow-up),
+	// opt-out either via the repo's merged `with: { autoFix: false }` on the
+	// sourceQuality.formatting task, or via that same flag freshly added in
+	// the PR's own branch (reusing PR Config Validation's own PR-branch read
+	// above, holocron#827 -- no second fetch). The PR's own branch has the
+	// final say when it declares an explicit value (letting a PR opt itself
+	// in or out before that same config change merges to main); the merged
+	// config's explicit value is the fallback; absent either, on by default,
+	// since prettier's fix is mechanical and deterministic -- there's no
+	// human judgment call for a finding to surface in the first place. The
+	// PR-branch read only ever feeds this boolean decision, never anything
+	// persisted (see validate-config.ts's own module docstring for the
+	// boundary that keeps this safe) -- unlike every other check above,
+	// config-free by design, this is the one exception, since writing to
+	// repo content is qualitatively different from reading and reporting.
+	// Only fires when: not opted out, lintFormatting actually ran and found
+	// something to fix, and this is a PR event with a real head branch to
+	// push to (a push to the default branch has no PR branch to commit
+	// onto). Soft-skip over hard-fail, same reasoning as every check above:
+	// a commit failure must never take capability compliance down with it.
 	let formattingFixResult;
 	let autoFixCommentResult;
 	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
 	if (formattingLintResult && !formattingLintResult.valid && context.headRef) {
-		let autoFixOptedIn = formattingTask?.with?.["autoFix"] === true;
-		if (!autoFixOptedIn && prConfigResult?.status === "valid") {
+		// Default-on (holocron#860 follow-up): prettier's fix is mechanical and
+		// deterministic -- surfacing it as a finding for a human to act on is
+		// the wrong shape when the tool can just apply it. The PR's own branch
+		// gets the final say when it has an explicit opinion (matching the
+		// pre-default-on precedent: a PR could opt in for itself before that
+		// same config change merged to main); the merged config's explicit
+		// value is the fallback; absent either, default to on.
+		const mergedAutoFix = formattingTask?.with?.["autoFix"];
+		let prAutoFix: unknown;
+		if (prConfigResult?.status === "valid") {
 			const prFormattingTask = (prConfigResult.config.tasks ?? [])
 				.map(normalizeTaskEntry)
 				.find((t) => t.name === "sourceQuality.formatting");
-			autoFixOptedIn = prFormattingTask?.with?.["autoFix"] === true;
+			prAutoFix = prFormattingTask?.with?.["autoFix"];
 		}
+		const autoFixOptedIn =
+			typeof prAutoFix === "boolean" ? prAutoFix : typeof mergedAutoFix === "boolean" ? mergedAutoFix : true;
 
 		if (autoFixOptedIn) {
 			try {

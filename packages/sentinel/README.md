@@ -44,7 +44,7 @@ Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) via
 `tasks` array against `@theholocron/astromech`'s canonical task registry.
 `ref` omitted (the common case, every check except auto-fix-commit) reads
 the repo's default branch. A caller passes `ref` explicitly to validate a
-specific commit/branch instead — used only by the auto-fix-commit opt-in
+specific commit/branch instead — used only by the auto-fix-commit
 check (holocron#820), which needs to see what a PR's _own_ branch
 currently declares. Safe because this function only ever validates —
 never persists or writes anything — so nothing derived from an
@@ -328,29 +328,30 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 ### Repository permissions
 
-| Permission        | Access | Why                                                                                                                                                                                           |
-| ----------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), opt-in per repo |
-| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                               |
-| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                               |
-| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                         |
-| Pull requests     | Read   | required to _receive_ `pull_request` webhook events                                                                                                                                           |
-| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                            |
+| Permission        | Access | Why                                                                                                                                                                                                     |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), default-on (holocron#860) |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                                         |
+| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                         |
+| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                   |
+| Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write escalation tracked for holocron#860 (posting PR reviews for eslint errors), not yet consumed                                                 |
+| Actions           | Write  | `actions.createWorkflowDispatch()` — the Bucket 2 dispatch prototype (holocron#769/#794, `tech-sentinel-ci-runner.spec.md`)                                                                             |
+| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                      |
 
-No other permissions — never touches Actions/Administration.
+No other permissions — never touches Administration.
 
 **Contents bumped from Read to Write for holocron#820, Issues bumped from
-none to Write for holocron#834** — real permission escalations, not
-something code or an API call can grant. Update both in the App's own
-settings page (Settings → Developer settings → GitHub Apps → Holocron
-Sentinel → Permissions & events), then accept the updated permissions for
-the `theholocron` installation. Every other repo's Bucket 1 checks are
-unaffected either way — only a repo/PR that opts in via `with: { autoFix:
-true }` on `sourceQuality.formatting` — merged to the repo's default
-branch, or added fresh in a PR's own branch (see
-`handleWebhookRequest`'s own docstring in `src/handler.ts`, and
-`validate-config.ts`'s module docstring for the read-only boundary that
-makes a PR-branch read safe) — ever triggers a write or a comment.
+none to Write for holocron#834, Pull requests bumped from Read to Write and
+Actions added at Write for the Bucket 2 dispatch prototype** — real
+permission escalations, not something code or an API call can grant. Update
+in the App's own settings page (Settings → Developer settings → GitHub Apps
+→ Holocron Sentinel → Permissions & events), then accept the updated
+permissions for the `theholocron` installation. Auto-fix-commit is
+default-on (holocron#860) — opt out via `with: { autoFix: false }` on
+`sourceQuality.formatting`, merged to the repo's default branch or added
+fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
+`src/handler.ts`, and `validate-config.ts`'s module docstring for the
+read-only boundary that makes a PR-branch read safe).
 
 ### Subscribe to events
 

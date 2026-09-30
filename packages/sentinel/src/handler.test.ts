@@ -1092,6 +1092,37 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		expect(body.formattingFixResult).toBeUndefined();
 	});
 
+	it("commits by default when neither the merged nor the PR's own branch config declares autoFix at all (holocron#860)", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({
+			status: "valid",
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting" }] },
+		});
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalled();
+		const body = (await res.json()) as { formattingFixResult: unknown };
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("the PR's own branch can opt out even when the merged config declares nothing (holocron#860)", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockImplementation(async (input) =>
+			input.ref === "pr-head-sha"
+				? configWithAutoFix(false)
+				: { status: "valid", filepath: "x", config: { tasks: [{ name: "sourceQuality.formatting" }] } }
+		);
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+	});
+
 	it("does not commit when lintFormatting reports the PR is already valid", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
 		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
