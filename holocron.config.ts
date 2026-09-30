@@ -63,6 +63,8 @@ export default defineConfig({
 		"codecov/patch/holocron-plugin-sentry",
 		"codecov/patch/holocron-plugin-slack",
 		"codecov/patch/holocron-plugin-vercel",
+		"Platform / Capability Compliance",
+		"Platform / Commit Standards / Run commitlint",
 	],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `nodeDocs()`'s bundled `lint` (8 linters) is now 5 separately-gated
