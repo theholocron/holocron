@@ -328,15 +328,15 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 ### Repository permissions
 
-| Permission        | Access | Why                                                                                                                                                                                                     |
-| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), default-on (holocron#860) |
-| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                                         |
-| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                         |
-| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                   |
-| Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write escalation tracked for holocron#860 (posting PR reviews for eslint errors), not yet consumed                                                 |
-| Actions           | Write  | `actions.createWorkflowDispatch()` — the Bucket 2 dispatch prototype (holocron#769/#794, `tech-sentinel-ci-runner.spec.md`)                                                                             |
-| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                      |
+| Permission        | Access | Why                                                                                                                                                                                                                                                              |
+| ----------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), default-on (holocron#864)                                                          |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                                                                                                  |
+| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                                                                                  |
+| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                                                                            |
+| Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write is consumed by `pulls.createReview()`/`listReviewThreads()`/`resolveReviewThread()` — error-severity eslint/markdownlint findings post as a PR review, not only a check-run annotation (holocron#860) |
+| Actions           | Write  | `actions.createWorkflowDispatch()` — the Bucket 2 dispatch prototype (holocron#769/#794, `tech-sentinel-ci-runner.spec.md`)                                                                                                                                      |
+| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                                                                               |
 
 No other permissions — never touches Administration.
 
@@ -347,7 +347,7 @@ permission escalations, not something code or an API call can grant. Update
 in the App's own settings page (Settings → Developer settings → GitHub Apps
 → Holocron Sentinel → Permissions & events), then accept the updated
 permissions for the `theholocron` installation. Auto-fix-commit is
-default-on (holocron#860) — opt out via `with: { autoFix: false }` on
+default-on (holocron#864) — opt out via `with: { autoFix: false }` on
 `sourceQuality.formatting`, merged to the repo's default branch or added
 fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
 `src/handler.ts`, and `validate-config.ts`'s module docstring for the

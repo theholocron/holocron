@@ -34,21 +34,31 @@
  *   per-repo file.
  * - **Documentation** (`lintMarkdown → postMarkdownLintCheck`,
  *   holocron#769/#821): `pull_request.*` only, same reason and same
- *   config-free/advisory shape as the other three Bucket 1 checks — reads
+ *   config-free shape as the other three Bucket 1 checks — reads
  *   `@theholocron/markdownlint-config`'s canonical export directly, never
  *   a per-repo file. One `markdownlint.lint()` call batching every
  *   changed markdown file's content, not a per-file loop the way
- *   prettier/alex run.
+ *   prettier/alex run. **Not purely check-run advisory** (holocron#860):
+ *   an error-severity finding (markdownlint's own per-rule `severity`,
+ *   `"error"` by default until `@theholocron/markdownlint-config` curates
+ *   individual rules down to `"warning"`) posts as an inline PR review
+ *   comment instead of a check-run annotation — see `postErrorReview()`.
+ *   The check run's own `conclusion` is unaffected; only where the
+ *   finding surfaces changes.
  * - **Static analysis** (`lintStaticAnalysis → postStaticAnalysisCheck`,
  *   holocron#769/#849): `pull_request.*` only, same reason and same
- *   advisory shape as the other Bucket 1 checks — reads
+ *   check-run shape as the other Bucket 1 checks — reads
  *   `@theholocron/eslint-config`'s `library()` bundle directly, via
  *   eslint's real `Linter.verify()` API against fetched file content, no
  *   checkout. **Not** config-free like its four siblings, though — skipped
  *   entirely when this repo's `runtime_environment` property (resolved by
  *   capability compliance's `syncPropertiesFromConfig()` call above, reused
  *   here rather than refetched) is explicitly `"none"`, since a docs-only
- *   repo has no JS/TS to lint at all.
+ *   repo has no JS/TS to lint at all. Same **not purely check-run
+ *   advisory** treatment as Documentation above (holocron#860) — an
+ *   error-severity eslint finding posts as a PR review comment via the
+ *   same shared `postErrorReview()`, scoped separately so a re-push never
+ *   resolves the sibling check's own threads.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -70,7 +80,7 @@
  * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
  *   exception to every check above being config-free — writing to repo
  *   content is qualitatively different from reading and reporting.
- *   Default-on (holocron#860 follow-up: prettier's fix is mechanical and
+ *   Default-on (holocron#864 follow-up: prettier's fix is mechanical and
  *   deterministic, so there's no human judgment call for a finding to
  *   surface in the first place); opt out via `{ name:
  *   "sourceQuality.formatting", with: { autoFix: false } }` in
@@ -621,7 +631,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
-	// Auto-fix-commit (holocron#820) -- default-on (holocron#860 follow-up),
+	// Auto-fix-commit (holocron#820) -- default-on (holocron#864 follow-up),
 	// opt-out either via the repo's merged `with: { autoFix: false }` on the
 	// sourceQuality.formatting task, or via that same flag freshly added in
 	// the PR's own branch (reusing PR Config Validation's own PR-branch read
@@ -645,7 +655,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	let autoFixCommentResult;
 	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
 	if (formattingLintResult && !formattingLintResult.valid && context.headRef) {
-		// Default-on (holocron#860 follow-up): prettier's fix is mechanical and
+		// Default-on (holocron#864 follow-up): prettier's fix is mechanical and
 		// deterministic -- surfacing it as a finding for a human to act on is
 		// the wrong shape when the tool can just apply it. The PR's own branch
 		// gets the final say when it has an explicit opinion (matching the
