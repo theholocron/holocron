@@ -95,6 +95,6 @@ catalogs:
 # ProviderApiError again under a caret override that permitted both.
 overrides:
   "@sentry/node": 10.75.2
-  "@theholocron/http-client": 1.31.0
+  "@theholocron/http-client": 1.33.0
   posthog-node: 5.52.5
   tsx: 4.23.12
