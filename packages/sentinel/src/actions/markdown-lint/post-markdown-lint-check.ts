@@ -24,6 +24,14 @@ import type { LintMarkdownResult, MarkdownLintMessage } from "./lint-markdown.js
  * Same `sourceQuality` namespace as Inclusive Language and Formatting — the
  * spec's own forecast ("the next namespace... once eslint/prettier move to
  * Sentinel too") named exactly this kind of tool.
+ *
+ * **Not purely advisory** (same treatment inclusive language got in
+ * holocron#865, and static analysis in holocron#873): `conclusion:
+ * "failure"` the moment any message is error-severity — markdownlint's own
+ * `m.severity`, `"error"` by default until `@theholocron/markdownlint-config`
+ * curates individual rules down to `"warning"` — a real merge-blocker, not
+ * only a PR-review comment (holocron#860). Warning-severity-only findings
+ * still resolve to `"neutral"` — advisory, same as before.
  */
 export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Documentation / Run markdownlint`;
 
@@ -48,14 +56,15 @@ const MAX_ANNOTATIONS_PER_REQUEST = 50;
 /**
  * One annotation per warning-severity message, at the line markdownlint
  * reported. Error-severity messages are excluded here (holocron#860) — they
- * move to a PR review instead (posted separately by the caller, once
- * `@theholocron/github-client`'s `createReview()` is available), and posting
- * both would show two separate inline markers on the same line.
- * `start_column`/`end_column` only when `errorRange` localizes the
- * finding to a specific span — some rules (e.g. a whole-heading-level
- * finding) can't. `notice` (not `warning`/`failure`) matches this check's
- * own `conclusion: "neutral"` — advisory, not a hard gate, same
- * rollout shape every other Bucket 1 check used before being made required.
+ * move to a PR review instead (posted separately by the caller via
+ * `postErrorReview()`), and posting both would show two separate inline
+ * markers on the same line. `start_column`/`end_column` only when
+ * `errorRange` localizes the finding to a specific span — some rules (e.g.
+ * a whole-heading-level finding) can't. `notice`, not `warning`/`failure` —
+ * a warning-severity finding stays advisory-styled regardless of the
+ * overall check run's own `conclusion` now being failure-aware; the
+ * merge-blocking signal lives entirely in `conclusion`, not in any
+ * individual annotation's level.
  */
 function buildAnnotations(messages: MarkdownLintMessage[]): CheckRunAnnotation[] {
 	return messages
@@ -94,12 +103,18 @@ export interface PostMarkdownLintCheckResult {
 
 export async function postMarkdownLintCheck(input: PostMarkdownLintCheckInput): Promise<PostMarkdownLintCheckResult> {
 	const { client, repo, pullNumber, headSha, result, runId } = input;
-	const conclusion: CheckRunConclusion = result.valid ? "success" : "neutral";
 
-	const title = result.valid ? "Markdown lint: OK" : `Markdown lint: ${result.messages.length} finding(s)`;
+	const errors = result.messages.filter((m) => m.severity === "error");
+	const errorCount = errors.length;
+	const warningCount = result.messages.length - errorCount;
+	const conclusion: CheckRunConclusion = errorCount > 0 ? "failure" : result.valid ? "success" : "neutral";
+
+	const title = result.valid
+		? "Markdown lint: OK"
+		: `Markdown lint: ${errorCount} error(s), ${warningCount} warning(s)`;
 	const summary = result.valid
 		? `All ${result.fileCount} changed markdown file(s) pass.`
-		: `${result.messages.length} finding(s) across ${result.fileCount} changed markdown file(s) — see details below.`;
+		: `${errorCount} error(s), ${warningCount} warning(s) across ${result.fileCount} changed markdown file(s) — see details below.`;
 
 	const text = [result.valid ? undefined : result.messages.map(formatMessage).join("\n"), `Run ID: \`${runId}\``]
 		.filter((line) => line !== undefined)
@@ -114,8 +129,6 @@ export async function postMarkdownLintCheck(input: PostMarkdownLintCheckInput): 
 		details_url: sentinelAxiomLogUrl(runId, SENTINEL_MARKDOWN_LINT_LOG_MSG),
 	});
 
-	const errors = result.messages.filter((m) => m.severity === "error");
-	const warningCount = result.messages.length - errors.length;
 	await postErrorReview({
 		client,
 		repo,

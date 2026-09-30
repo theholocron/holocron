@@ -56,9 +56,9 @@ describe("postMarkdownLintCheck — valid", () => {
 });
 
 describe("postMarkdownLintCheck — findings", () => {
-	it("posts a neutral (not failure) check run listing each finding, actionable from the check run alone", async () => {
+	it("posts a failure check run when any message is error-severity (holocron#860) -- a real merge-blocker, not advisory", async () => {
 		const { client } = makeClient([
-			{ status: 201, body: { id: 2, conclusion: "neutral" } },
+			{ status: 201, body: { id: 2, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -85,13 +85,40 @@ describe("postMarkdownLintCheck — findings", () => {
 			runId: "run-2",
 		});
 
-		// Advisory suggestions, not a hard gate -- "neutral", not "failure".
+		expect(result.conclusion).toBe("failure");
+	});
+
+	it("posts a neutral (not failure) check run when every message is warning-severity", async () => {
+		const { client } = makeClient([{ status: 201, body: { id: 2.5, conclusion: "neutral" } }, EMPTY_THREADS]);
+
+		const result = await postMarkdownLintCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 3,
+						ruleNames: ["MD013"],
+						reason: "line too long",
+						errorRange: null,
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-2b",
+		});
+
 		expect(result.conclusion).toBe("neutral");
 	});
 
 	it("formats each message as one summary line: file:line: reason [rule-names]", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 3, conclusion: "neutral" } },
+			{ status: 201, body: { id: 3, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -119,8 +146,10 @@ describe("postMarkdownLintCheck — findings", () => {
 		});
 
 		const body = calls[0]?.body as { output: { title: string; summary: string; text: string } };
-		expect(body.output.title).toBe("Markdown lint: 1 finding(s)");
-		expect(body.output.summary).toBe("1 finding(s) across 1 changed markdown file(s) — see details below.");
+		expect(body.output.title).toBe("Markdown lint: 1 error(s), 0 warning(s)");
+		expect(body.output.summary).toBe(
+			"1 error(s), 0 warning(s) across 1 changed markdown file(s) — see details below."
+		);
 		expect(body.output.text).toContain("README.md:12: increment by one [MD001/heading-increment]");
 		expect(body.output.text).toContain("Run ID: `run-3`");
 	});
@@ -253,7 +282,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 
 	it("excludes error-severity messages from annotations (holocron#860) -- they move to a PR review instead", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 8, conclusion: "neutral" } },
+			{ status: 201, body: { id: 8, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -298,7 +327,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 describe("postMarkdownLintCheck — PR review for error-severity findings (holocron#860)", () => {
 	it("posts a review with one marked comment per error, naming the warning count and check run", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 9, conclusion: "neutral" } },
+			{ status: 201, body: { id: 9, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
@@ -354,7 +383,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 
 	it("includes the column in the comment body when errorRange localizes the finding", async () => {
 		const { client, calls } = makeClient([
-			{ status: 201, body: { id: 10, conclusion: "neutral" } },
+			{ status: 201, body: { id: 10, conclusion: "failure" } },
 			EMPTY_THREADS,
 			REVIEW_POSTED,
 		]);
