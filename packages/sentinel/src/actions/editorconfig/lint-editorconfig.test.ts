@@ -121,6 +121,49 @@ describe("lintEditorConfig — real violations", () => {
 		]);
 	});
 
+	it("passes a clean CRLF file when end_of_line is crlf -- no bare LF present", async () => {
+		const crlfConfig = "root = true\n\n[*]\nend_of_line = crlf\n";
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(crlfConfig) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{ status: 200, body: contentsBody("const a = 1;\r\nconst b = 2;\r\n") },
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [] });
+	});
+
+	it("catches tab indentation when indent_style is space", async () => {
+		const spaceConfig = "root = true\n\n[*]\nindent_style = space\n";
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(spaceConfig) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{ status: 200, body: contentsBody("function f() {\n\treturn 1;\n}\n") },
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.messages).toEqual([{ file: "src/index.ts", line: 2, reason: "Expected space indentation." }]);
+	});
+
+	it("catches a file ending in a newline when insert_final_newline is false", async () => {
+		const noFinalNewlineConfig = "root = true\n\n[*]\ninsert_final_newline = false\n";
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(noFinalNewlineConfig) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{ status: 200, body: contentsBody("const x = 1;\n") },
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.messages).toEqual([
+			{ file: "src/index.ts", line: 2, reason: "File should not end with a newline." },
+		]);
+	});
+
 	it("catches a CRLF where LF is expected", async () => {
 		const { client } = makeClient([
 			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
