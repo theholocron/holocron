@@ -277,6 +277,63 @@ describe("postInclusiveLanguageCheck — inline annotations (holocron#816)", () 
 		expect(body.output.annotations[0]?.annotation_level).toBe("notice");
 	});
 
+	it("elevates a retext-equality message to warning when ALEX_SEVERITY_OVERRIDES has an entry for it (holocron#865)", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 12, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						column: 1,
+						reason: "`just` may be insensitive, try not to use it",
+						ruleId: "just",
+						source: "retext-equality",
+					},
+				],
+			},
+			runId: "run-12",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ annotation_level: string }> } };
+		expect(body.output.annotations[0]?.annotation_level).toBe("warning");
+	});
+
+	it("the org-defined override wins even over a retext-profanities profanitySeverity of 0", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 13, conclusion: "neutral" } }]);
+
+		await postInclusiveLanguageCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						column: 1,
+						reason: "`just` may be insensitive, try not to use it",
+						ruleId: "just",
+						source: "retext-profanities",
+						profanitySeverity: 0,
+					},
+				],
+			},
+			runId: "run-13",
+		});
+
+		const body = calls[0]?.body as { output: { annotations: Array<{ annotation_level: string }> } };
+		expect(body.output.annotations[0]?.annotation_level).toBe("warning");
+	});
+
 	it("omits start/end_column when column is 0 (alex's own fallback for a column-less message)", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
 

@@ -7,6 +7,7 @@
  * to wrap.
  */
 
+import { ALEX_SEVERITY_OVERRIDES } from "@theholocron/cli";
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
 import {
@@ -64,25 +65,34 @@ function formatMessage(m: InclusiveLanguageMessage): string {
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
- * Per-message severity, not a blanket level for the whole check. `alex`
- * bundles two underlying retext plugins with very different confidence
- * profiles:
+ * Per-message severity, not a blanket level for the whole check. Three
+ * tiers, checked in order:
  *
- * - `retext-equality` (gendered/insensitive phrasing — "he", "actor") has
- *   no severity signal of its own; every finding here is a soft "consider
- *   rewording" suggestion, so it stays `notice` (grey).
- * - `retext-profanities` (violent/vulgar wording — "execute", "kill")
- *   carries `profanitySeverity`, `cuss`'s own 0-2 rating for how likely
- *   the word is used *as* profanity rather than clean text (not how bad
- *   the word is) — 0 ("beaver"): likely clean text, frequently a false
- *   positive in technical writing; 1-2 ("addict"/"asshat"): actually
- *   likely profane. Only the latter is worth calling out more loudly than
- *   the equality suggestions above, hence `warning` (yellow) at severity
- *   >= 1. Capped at `warning`, never `failure` — this check's own overall
- *   `conclusion` stays `"neutral"` (advisory, not a hard gate), and a red
- *   annotation on a non-failing check reads as a mismatched signal.
+ * 1. **`ALEX_SEVERITY_OVERRIDES`** (`@theholocron/cli`, holocron#865) — an
+ *    org-defined call on a *specific word*, keyed by `ruleId` (alex's
+ *    `ruleId` for a `retext-equality` finding *is* the flagged word, e.g.
+ *    `"just"`). Distinct from either signal below: this is "the org has
+ *    already decided this one is a real problem," not a property of the
+ *    underlying retext plugin. Wins over both tiers below when present.
+ * 2. **`retext-profanities`** (violent/vulgar wording — "execute", "kill")
+ *    carries `profanitySeverity`, `cuss`'s own 0-2 rating for how likely
+ *    the word is used *as* profanity rather than clean text (not how bad
+ *    the word is) — 0 ("beaver"): likely clean text, frequently a false
+ *    positive in technical writing; 1-2 ("addict"/"asshat"): actually
+ *    likely profane. Only the latter is worth calling out more loudly,
+ *    hence `warning` (yellow) at severity >= 1.
+ * 3. **`retext-equality`** (gendered/insensitive phrasing — "he", "actor")
+ *    has no severity signal of its own beyond tier 1 above; every
+ *    unlisted finding here is a soft "consider rewording" suggestion, so
+ *    it stays `notice` (grey) — the default every message falls back to.
+ *
+ * Capped at `warning`, never `failure` — this check's own overall
+ * `conclusion` stays `"neutral"` (advisory, not a hard gate), and a red
+ * annotation on a non-failing check reads as a mismatched signal.
  */
 function annotationLevel(m: InclusiveLanguageMessage): CheckRunAnnotation["annotation_level"] {
+	const override = ALEX_SEVERITY_OVERRIDES[m.ruleId];
+	if (override) return override;
 	if (m.source === "retext-profanities" && (m.profanitySeverity ?? 0) >= 1) return "warning";
 	return "notice";
 }
