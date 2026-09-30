@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/markdownlint-config",
-  "version": "8.6.0",
+  "version": "8.6.1",
   "description": "A markdownlint configuration for documentation in the Galaxy.",
   "keywords": [
     "markdownlint",

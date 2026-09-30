@@ -1,3 +1,9 @@
+## [8.6.1](https://github.com/theholocron/configs/compare/v8.6.0...v8.6.1) (2026-09-30)
+
+### Bug Fixes
+
+* **tsdown-config:** 🐛 resolve outDir against cwd, not the config file's own dir ([#494](https://github.com/theholocron/configs/issues/494)) ([c02ff69](https://github.com/theholocron/configs/commit/c02ff69830ca5f3ed123ff7da8a05786e0a00ad1)), closes [theholocron/clients#376](https://github.com/theholocron/clients/issues/376)
+
 ## [8.6.0](https://github.com/theholocron/configs/compare/v8.5.4...v8.6.0) (2026-09-30)
 
 ### Features
