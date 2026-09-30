@@ -31,8 +31,14 @@
 
 import type { GitHubClient } from "@theholocron/github-client";
 
-/** The GitHub App's own bot account login — every review this posts is authored here. */
-export const SENTINEL_BOT_LOGIN = "the-holocron-sentinel[bot]";
+/**
+ * The GitHub App's own bot account login — every review this posts is
+ * authored here. Confirmed live (holocron#860's own test PR, #871): a
+ * `Bot` actor's `login` here has no `[bot]` suffix, unlike a comment
+ * author's `login` elsewhere in this org's tooling -- don't assume the
+ * two match without checking again if this ever needs re-deriving.
+ */
+export const SENTINEL_BOT_LOGIN = "the-holocron-sentinel";
 
 /** One error-severity finding, already formatted into its own review-comment body. */
 export interface ReviewFinding {
