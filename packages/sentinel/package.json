@@ -56,6 +56,7 @@
     "@theholocron/prettier-config": "catalog:configs",
     "@vitest/eslint-plugin": "catalog:",
     "alex": "catalog:",
+    "editorconfig": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "markdownlint": "catalog:",

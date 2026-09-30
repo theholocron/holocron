@@ -60,6 +60,8 @@ export const SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG = "postPrConfigValidationChec
 export const SENTINEL_MARKDOWN_LINT_LOG_MSG = "postMarkdownLintCheck: posted";
 /** Logged (and linked to) once `postStaticAnalysisCheck()` actually posts (holocron#849) — never hand-copy this string elsewhere. */
 export const SENTINEL_STATIC_ANALYSIS_LOG_MSG = "postStaticAnalysisCheck: posted";
+/** Logged (and linked to) once `postEditorConfigCheck()` actually posts — never hand-copy this string elsewhere. */
+export const SENTINEL_EDITORCONFIG_LOG_MSG = "postEditorConfigCheck: posted";
 
 /**
  * Where the Bucket 2 dispatch mechanism's shared workflow lives
