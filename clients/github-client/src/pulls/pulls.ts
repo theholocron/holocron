@@ -68,6 +68,19 @@ export interface ReviewThread {
 	isResolved: boolean;
 	/** The thread's first comment's author login (e.g. `"the-holocron-sentinel[bot]"`) — `undefined` if GitHub ever returns a thread with no comments, which shouldn't happen in practice. Callers filter on this before resolving anything, so a bot never touches a human reviewer's own thread. */
 	authorLogin: string | undefined;
+	/** The file the thread is anchored to on the PR's current diff — `null` once GitHub can no longer place it there (e.g. the file was since deleted). */
+	path: string | null;
+	/** 1-indexed line the thread is anchored to — `null` in the same "can no longer place it" case as `path`. */
+	line: number | null;
+	/**
+	 * The thread's first comment's own body — the exact text a caller like
+	 * Sentinel posted for a specific finding. Lets a caller diff a prior
+	 * thread's own content against the current push's findings (holocron#860)
+	 * to decide whether that finding is still live, rather than only knowing
+	 * a thread exists. `undefined` in the same no-comments case as
+	 * `authorLogin`.
+	 */
+	body: string | undefined;
 }
 
 interface ListReviewThreadsResponse {
@@ -77,7 +90,9 @@ interface ListReviewThreadsResponse {
 				nodes: Array<{
 					id: string;
 					isResolved: boolean;
-					comments: { nodes: Array<{ author: { login: string } | null }> };
+					path: string | null;
+					line: number | null;
+					comments: { nodes: Array<{ author: { login: string } | null; body: string }> };
 				}>;
 			};
 		};
@@ -92,9 +107,12 @@ const LIST_REVIEW_THREADS_QUERY = `
 					nodes {
 						id
 						isResolved
+						path
+						line
 						comments(first: 1) {
 							nodes {
 								author { login }
+								body
 							}
 						}
 					}
@@ -158,7 +176,10 @@ export function pulls(rest: RestClient, graphql: GraphQLClient) {
 			return result.repository.pullRequest.reviewThreads.nodes.map((node) => ({
 				id: node.id,
 				isResolved: node.isResolved,
+				path: node.path,
+				line: node.line,
 				authorLogin: node.comments.nodes[0]?.author?.login,
+				body: node.comments.nodes[0]?.body,
 			}));
 		},
 

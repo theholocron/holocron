@@ -120,12 +120,23 @@ describe("pulls.listReviewThreads", () => {
 										{
 											id: "PRRT_1",
 											isResolved: false,
-											comments: { nodes: [{ author: { login: "the-holocron-sentinel[bot]" } }] },
+											path: "src/index.ts",
+											line: 12,
+											comments: {
+												nodes: [
+													{
+														author: { login: "the-holocron-sentinel[bot]" },
+														body: "`no-unused-vars` (line 12): 'x' is defined but never used.",
+													},
+												],
+											},
 										},
 										{
 											id: "PRRT_2",
 											isResolved: true,
-											comments: { nodes: [{ author: { login: "octocat" } }] },
+											path: "README.md",
+											line: 3,
+											comments: { nodes: [{ author: { login: "octocat" }, body: "looks good" }] },
 										},
 									],
 								},
@@ -145,12 +156,26 @@ describe("pulls.listReviewThreads", () => {
 		expect(body.variables).toEqual({ owner: "theholocron", name: "test-repo", number: 42 });
 		expect(body.query).toContain("reviewThreads");
 		expect(result).toEqual([
-			{ id: "PRRT_1", isResolved: false, authorLogin: "the-holocron-sentinel[bot]" },
-			{ id: "PRRT_2", isResolved: true, authorLogin: "octocat" },
+			{
+				id: "PRRT_1",
+				isResolved: false,
+				path: "src/index.ts",
+				line: 12,
+				authorLogin: "the-holocron-sentinel[bot]",
+				body: "`no-unused-vars` (line 12): 'x' is defined but never used.",
+			},
+			{
+				id: "PRRT_2",
+				isResolved: true,
+				path: "README.md",
+				line: 3,
+				authorLogin: "octocat",
+				body: "looks good",
+			},
 		]);
 	});
 
-	it("returns authorLogin undefined for a thread with no comments -- shouldn't happen in practice, but doesn't throw", async () => {
+	it("returns authorLogin/body undefined for a thread with no comments -- shouldn't happen in practice, but doesn't throw", async () => {
 		const { fetch } = stubFetch([
 			{
 				body: {
@@ -158,7 +183,15 @@ describe("pulls.listReviewThreads", () => {
 						repository: {
 							pullRequest: {
 								reviewThreads: {
-									nodes: [{ id: "PRRT_3", isResolved: false, comments: { nodes: [] } }],
+									nodes: [
+										{
+											id: "PRRT_3",
+											isResolved: false,
+											path: null,
+											line: null,
+											comments: { nodes: [] },
+										},
+									],
 								},
 							},
 						},
@@ -171,6 +204,9 @@ describe("pulls.listReviewThreads", () => {
 		const result = await client.pulls.listReviewThreads(REPO, 42);
 
 		expect(result[0]?.authorLogin).toBeUndefined();
+		expect(result[0]?.body).toBeUndefined();
+		expect(result[0]?.path).toBeNull();
+		expect(result[0]?.line).toBeNull();
 	});
 
 	it("throws when the GraphQL response carries an errors array, even with a 200 status", async () => {
