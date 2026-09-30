@@ -21,7 +21,7 @@ Run `holocron` with no command, a parent command with no subcommand
 missing a required positional (`holocron deploy`, `holocron secret set`), and
 you get a prompt instead of a `--help` dead end:
 
-```
+```console
 $ holocron
 ? What would you like to do? › dep
 ────────────────────────────────────────────────
@@ -421,7 +421,7 @@ holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
 
 The resolution chain per capability is:
 
-```
+```text
 --token flag → HOLOCRON_<FEATURE>_TOKEN env var → keyring("github.<feature>")
 ```
 
