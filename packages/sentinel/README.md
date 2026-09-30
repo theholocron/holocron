@@ -166,7 +166,10 @@ holocron#819), markdown lint (markdownlint, holocron#821), and static
 analysis (eslint, holocron#849 — the one Bucket 1 check that isn't
 config-free: skipped entirely when a repo's `runtime_environment`
 property is explicitly `"none"`, since a docs-only repo has no JS/TS to
-lint) — the Bucket 2 dispatch prototype, the auto-fix-commit
+lint; honors `holocron.config.ts`'s own `eslint.browserPackages`,
+holocron#858, since it's the one `library()` option this check needs to
+match a package's local `eslint.config.ts` exactly) — the Bucket 2
+dispatch prototype, the auto-fix-commit
 capability (holocron#820, formatting only for now — opt in via the
 repo's merged config or fresh in a PR's own branch, either way), and the
 advisory PR Config Validation check (holocron#827 — posted as `Platform

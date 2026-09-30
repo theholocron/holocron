@@ -25,6 +25,16 @@
  * deliberately deferred follow-up once a non-`library`-profiled repo
  * actually needs this check (holocron#849's own scope).
  *
+ * `browserPackages` (optional, from `holocron.config.ts`'s own `eslint`
+ * field) is the one `library()` option this check does honor — the same
+ * option a package's own `eslint.config.ts` passes locally for a deliberate
+ * Web-globals outlier (e.g. `github-client`'s Web Crypto usage). This check
+ * never reads a PR's own committed files for config (Bucket 1's whole
+ * design boundary), so `holocron.config.ts`'s declared `eslint.browserPackages`
+ * is the source of truth it reads instead — without it, this check would
+ * flag a false-positive `eslint-plugin-n` node-builtins-compat warning on
+ * exactly the files the local config exists to exempt.
+ *
  * Security boundary (D6-amended, same as `lint-formatting.ts`/
  * `lint-markdown.ts`): reads each changed file's content on the PR's own
  * head ref via `GitHubClient.git.getContents(repo, path, ref)` — a
@@ -39,7 +49,7 @@ import { decodeContents } from "../../utils/decode-contents.js";
 
 const LINTABLE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
 
-const CONFIG = library();
+const DEFAULT_CONFIG = library();
 
 export interface LintStaticAnalysisInput {
 	client: Pick<GitHubClient, "pulls" | "git">;
@@ -48,6 +58,8 @@ export interface LintStaticAnalysisInput {
 	pullNumber: number;
 	/** The PR's own head ref (branch or SHA) — reads each changed file's content there, not the default branch. */
 	ref: string;
+	/** Repo-root-relative directories — `holocron.config.ts`'s `eslint.browserPackages`, passed through unchanged to `library()`. */
+	browserPackages?: string[];
 }
 
 export interface StaticAnalysisMessage {
@@ -70,7 +82,8 @@ export interface LintStaticAnalysisResult {
 const linter = new Linter();
 
 export async function lintStaticAnalysis(input: LintStaticAnalysisInput): Promise<LintStaticAnalysisResult> {
-	const { client, repo, pullNumber, ref } = input;
+	const { client, repo, pullNumber, ref, browserPackages } = input;
+	const config = browserPackages && browserPackages.length > 0 ? library({ browserPackages }) : DEFAULT_CONFIG;
 	const changedFiles = await client.pulls.listFiles(repo, pullNumber);
 
 	const targets = changedFiles.filter(
@@ -81,7 +94,7 @@ export async function lintStaticAnalysis(input: LintStaticAnalysisInput): Promis
 	for (const target of targets) {
 		const contents = await client.git.getContents(repo, target.filename, ref);
 		const text = decodeContents(contents.content);
-		const results = linter.verify(text, CONFIG, { filename: target.filename });
+		const results = linter.verify(text, config, { filename: target.filename });
 		for (const m of results) {
 			messages.push({
 				file: target.filename,

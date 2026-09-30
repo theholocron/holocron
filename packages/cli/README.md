@@ -21,7 +21,7 @@ Run `holocron` with no command, a parent command with no subcommand
 missing a required positional (`holocron deploy`, `holocron secret set`), and
 you get a prompt instead of a `--help` dead end:
 
-```
+```console
 $ holocron
 ? What would you like to do? › dep
 ────────────────────────────────────────────────
@@ -421,7 +421,7 @@ holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
 
 The resolution chain per capability is:
 
-```
+```text
 --token flag → HOLOCRON_<FEATURE>_TOKEN env var → keyring("github.<feature>")
 ```
 
@@ -492,6 +492,31 @@ Each SDK sits behind an interface from `@theholocron/observability` —
 holds the orchestration + the Holocron-specific credential resolution
 (`telemetry/resolve.ts`). See the
 [telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
+
+### ESLint bundle options
+
+Most repos need nothing here — `@theholocron/eslint-config`'s `library()`
+bundle resolves with zero committed file (Bucket A: `eslint --config
+<shared path>`, no per-repo `eslint.config.ts` needed). A package with a
+genuine, deliberate exception — e.g. Web Crypto globals a Node-targeted
+package still needs, exempted via `library()`'s own `browserPackages`
+option in that package's own `eslint.config.ts` — should also declare the
+same paths in `holocron.config`'s `eslint.browserPackages`:
+
+```ts
+export default defineConfig({
+  eslint: {
+    browserPackages: ["packages/github-client/src/app-auth"],
+  },
+});
+```
+
+This doesn't replace the package's own `eslint.config.ts` (local/CI linting
+still resolves that file directly) — it's the signal Sentinel's centralized
+static-analysis check (holocron#849/#858) reads instead, since that check
+never reads a PR's own committed config files. Without it, Sentinel flags a
+false-positive `eslint-plugin-n` node-builtins finding on exactly the files
+the local override exists to exempt.
 
 ## What's in here
 

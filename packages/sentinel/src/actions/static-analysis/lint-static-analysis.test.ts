@@ -83,6 +83,57 @@ describe("lintStaticAnalysis — a file with real findings", () => {
 	});
 });
 
+describe("lintStaticAnalysis — browserPackages (holocron#858)", () => {
+	const webCryptoSource =
+		'export async function sign() { return crypto.subtle.digest("SHA-256", new Uint8Array()); }\n';
+
+	it("flags Web Crypto global usage as a node-builtins finding when browserPackages is absent", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("src/app-auth/sign.ts")] },
+			{ status: 200, body: contentsBody(webCryptoSource) },
+		]);
+
+		const result = await lintStaticAnalysis({ client, repo: "acme/demo", pullNumber: 7, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.messages[0]?.ruleId).toBe("n/no-unsupported-features/node-builtins");
+	});
+
+	it("suppresses that same finding when the file's directory is listed in browserPackages", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("src/app-auth/sign.ts")] },
+			{ status: 200, body: contentsBody(webCryptoSource) },
+		]);
+
+		const result = await lintStaticAnalysis({
+			client,
+			repo: "acme/demo",
+			pullNumber: 7,
+			ref: "sha",
+			browserPackages: ["src/app-auth"],
+		});
+
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [] });
+	});
+
+	it("an empty browserPackages array behaves the same as omitting it", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("src/app-auth/sign.ts")] },
+			{ status: 200, body: contentsBody(webCryptoSource) },
+		]);
+
+		const result = await lintStaticAnalysis({
+			client,
+			repo: "acme/demo",
+			pullNumber: 7,
+			ref: "sha",
+			browserPackages: [],
+		});
+
+		expect(result.valid).toBe(false);
+	});
+});
+
 describe("lintStaticAnalysis — scoping", () => {
 	it("skips a non-lintable file entirely, without fetching its content", async () => {
 		const { client, calls } = makeClient([{ status: 200, body: [file("README.md")] }]);
