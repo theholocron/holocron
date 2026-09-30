@@ -573,6 +573,7 @@ describe("handler — markdown lint pipeline (holocron#769/#821)", () => {
 		expect(postMarkdownLintCheck).toHaveBeenCalledWith({
 			client: FAKE_CLIENT,
 			repo: "acme/demo",
+			pullNumber: 9,
 			headSha: "pr-head-sha",
 			result: { valid: true, fileCount: 2, messages: [] },
 			runId: "test-run-id",
@@ -649,6 +650,7 @@ describe("handler — static analysis pipeline (holocron#769/#849)", () => {
 		expect(postStaticAnalysisCheck).toHaveBeenCalledWith({
 			client: FAKE_CLIENT,
 			repo: "acme/demo",
+			pullNumber: 9,
 			headSha: "pr-head-sha",
 			result: { valid: true, fileCount: 2, messages: [] },
 			runId: "test-run-id",

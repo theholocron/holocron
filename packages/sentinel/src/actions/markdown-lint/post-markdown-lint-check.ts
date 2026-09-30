@@ -10,6 +10,7 @@
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
 import { SENTINEL_MARKDOWN_LINT_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import { postErrorReview } from "../../utils/post-error-review.js";
 import type { LintMarkdownResult, MarkdownLintMessage } from "./lint-markdown.js";
 
 /**
@@ -29,6 +30,16 @@ export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sour
 /** One message as one summary line: `README.md:12: reason [rule-name]`. */
 function formatMessage(m: MarkdownLintMessage): string {
 	return `${m.file}:${m.line}: ${m.reason} [${m.ruleNames.join("/")}]`;
+}
+
+/**
+ * One error-severity message as its own review-comment body — GitHub
+ * anchors a comment to a line, not a column, so `errorRange`'s
+ * `[startColumn, length]` (when present) lives in the text instead.
+ */
+function formatErrorComment(m: MarkdownLintMessage): string {
+	const column = m.errorRange ? `, col ${m.errorRange[0]}` : "";
+	return `\`${m.ruleNames.join("/")}\` (line ${m.line}${column}): ${m.reason}`;
 }
 
 /** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as `post-formatting-check.ts`'s own cap. */
@@ -64,9 +75,10 @@ function buildAnnotations(messages: MarkdownLintMessage[]): CheckRunAnnotation[]
 }
 
 export interface PostMarkdownLintCheckInput {
-	client: Pick<GitHubClient, "checks">;
+	client: Pick<GitHubClient, "checks" | "pulls">;
 	/** `"owner/repo"`. */
 	repo: string;
+	pullNumber: number;
 	/** The commit SHA to attach the check run to — a pull_request event's `pull_request.head.sha`. */
 	headSha: string;
 	result: LintMarkdownResult;
@@ -81,7 +93,7 @@ export interface PostMarkdownLintCheckResult {
 }
 
 export async function postMarkdownLintCheck(input: PostMarkdownLintCheckInput): Promise<PostMarkdownLintCheckResult> {
-	const { client, repo, headSha, result, runId } = input;
+	const { client, repo, pullNumber, headSha, result, runId } = input;
 	const conclusion: CheckRunConclusion = result.valid ? "success" : "neutral";
 
 	const title = result.valid ? "Markdown lint: OK" : `Markdown lint: ${result.messages.length} finding(s)`;
@@ -100,6 +112,20 @@ export async function postMarkdownLintCheck(input: PostMarkdownLintCheckInput): 
 		conclusion,
 		output: { title, summary, text, annotations: buildAnnotations(result.messages) },
 		details_url: sentinelAxiomLogUrl(runId, SENTINEL_MARKDOWN_LINT_LOG_MSG),
+	});
+
+	const errors = result.messages.filter((m) => m.severity === "error");
+	const warningCount = result.messages.length - errors.length;
+	await postErrorReview({
+		client,
+		repo,
+		pullNumber,
+		headSha,
+		checkKey: "markdown-lint",
+		checkLabel: "markdown lint",
+		checkRunName: SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME,
+		errors: errors.map((m) => ({ file: m.file, line: m.line, body: formatErrorComment(m) })),
+		warningCount,
 	});
 
 	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };

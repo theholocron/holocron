@@ -457,6 +457,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			markdownLintCheckRun = await postMarkdownLintCheck({
 				client,
 				repo,
+				pullNumber: context.pullNumber,
 				headSha: context.headSha,
 				result: lintResult,
 				runId,
@@ -599,6 +600,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			staticAnalysisCheckRun = await postStaticAnalysisCheck({
 				client,
 				repo,
+				pullNumber: context.pullNumber,
 				headSha: context.headSha,
 				result: lintResult,
 				runId,

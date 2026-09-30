@@ -9,6 +9,11 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
 
+/** postErrorReview()'s own listReviewThreads() lookup -- queued after every check-run response in these tests, an empty result unless a test says otherwise. */
+const EMPTY_THREADS = { body: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } } };
+/** postErrorReview()'s own createReview() call -- queued whenever a test's messages include at least one error-severity finding. */
+const REVIEW_POSTED = { body: { id: 999, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-999" } };
+
 describe("postMarkdownLintCheck — carries the intent vocabulary through (D5)", () => {
 	it("names the check run Source Quality / Documentation / Run markdownlint", () => {
 		expect(SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME).toBe("Source Quality / Documentation / Run markdownlint");
@@ -17,11 +22,12 @@ describe("postMarkdownLintCheck — carries the intent vocabulary through (D5)",
 
 describe("postMarkdownLintCheck — valid", () => {
 	it("posts a success check run naming how many files passed", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 1, conclusion: "success" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 1, conclusion: "success" } }, EMPTY_THREADS]);
 
 		const result = await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: { valid: true, fileCount: 3, messages: [] },
 			runId: "run-1",
@@ -51,11 +57,16 @@ describe("postMarkdownLintCheck — valid", () => {
 
 describe("postMarkdownLintCheck — findings", () => {
 	it("posts a neutral (not failure) check run listing each finding, actionable from the check run alone", async () => {
-		const { client } = makeClient([{ status: 201, body: { id: 2, conclusion: "neutral" } }]);
+		const { client } = makeClient([
+			{ status: 201, body: { id: 2, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
 
 		const result = await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -79,11 +90,16 @@ describe("postMarkdownLintCheck — findings", () => {
 	});
 
 	it("formats each message as one summary line: file:line: reason [rule-names]", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 3, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 3, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
 
 		await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -112,11 +128,12 @@ describe("postMarkdownLintCheck — findings", () => {
 
 describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 	it("builds one annotation per warning-severity message, at notice level, with start/end column when errorRange is present", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "neutral" } }, EMPTY_THREADS]);
 
 		await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -164,11 +181,12 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 	});
 
 	it("omits start/end column when errorRange is null", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }, EMPTY_THREADS]);
 
 		await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -193,7 +211,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 	});
 
 	it("caps annotations at 50, GitHub's own per-request limit -- the full list still reaches output.text uncapped", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 6, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 6, conclusion: "neutral" } }, EMPTY_THREADS]);
 		const messages = Array.from({ length: 55 }, (_, i) => ({
 			file: `docs/file-${i}.md`,
 			line: 1,
@@ -206,6 +224,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 		await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: { valid: false, fileCount: 55, messages },
 			runId: "run-6",
@@ -217,11 +236,12 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 	});
 
 	it("posts an empty annotations array for a valid (no findings) result", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 7, conclusion: "success" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 7, conclusion: "success" } }, EMPTY_THREADS]);
 
 		await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: { valid: true, fileCount: 2, messages: [] },
 			runId: "run-7",
@@ -232,11 +252,16 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 	});
 
 	it("excludes error-severity messages from annotations (holocron#860) -- they move to a PR review instead", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 8, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 8, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
 
 		await postMarkdownLintCheck({
 			client,
 			repo: "acme/demo",
+			pullNumber: 42,
 			headSha: "abc123",
 			result: {
 				valid: false,
@@ -267,5 +292,125 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 		expect(body.output.annotations).toHaveLength(1);
 		expect(body.output.annotations[0]?.title).toBe("MD013");
 		expect(body.output.text).toContain("no h1 [MD041]");
+	});
+});
+
+describe("postMarkdownLintCheck — PR review for error-severity findings (holocron#860)", () => {
+	it("posts a review with one marked comment per error, naming the warning count and check run", async () => {
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 9, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
+
+		await postMarkdownLintCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 1,
+						ruleNames: ["MD041"],
+						reason: "no h1",
+						errorRange: null,
+						severity: "error",
+					},
+					{
+						file: "README.md",
+						line: 2,
+						ruleNames: ["MD013"],
+						reason: "line too long",
+						errorRange: [5, 10],
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-9",
+		});
+
+		expect(calls).toHaveLength(3);
+		expect(calls[2]?.url).toContain("/repos/acme/demo/pulls/42/reviews");
+		expect(calls[2]?.body).toEqual({
+			commit_id: "abc123",
+			event: "COMMENT",
+			body:
+				"1 error(s) found by markdown lint — see inline comments below.\n" +
+				"1 warning(s) also found; see the Source Quality / Documentation / Run markdownlint check run for the full list.",
+			comments: [
+				{
+					path: "README.md",
+					line: 1,
+					side: "RIGHT",
+					body: "<!-- sentinel:markdown-lint -->\n`MD041` (line 1): no h1",
+				},
+			],
+		});
+	});
+
+	it("includes the column in the comment body when errorRange localizes the finding", async () => {
+		const { client, calls } = makeClient([
+			{ status: 201, body: { id: 10, conclusion: "neutral" } },
+			EMPTY_THREADS,
+			REVIEW_POSTED,
+		]);
+
+		await postMarkdownLintCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 42,
+						ruleNames: ["MD013"],
+						reason: "line too long",
+						errorRange: [5, 10],
+						severity: "error",
+					},
+				],
+			},
+			runId: "run-10",
+		});
+
+		const body = calls[2]?.body as { comments: Array<{ body: string }> };
+		expect(body.comments[0]?.body).toBe("<!-- sentinel:markdown-lint -->\n`MD013` (line 42, col 5): line too long");
+	});
+
+	it("posts no review at all when every message is warning-severity", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 11, conclusion: "neutral" } }, EMPTY_THREADS]);
+
+		await postMarkdownLintCheck({
+			client,
+			repo: "acme/demo",
+			pullNumber: 42,
+			headSha: "abc123",
+			result: {
+				valid: false,
+				fileCount: 1,
+				messages: [
+					{
+						file: "README.md",
+						line: 2,
+						ruleNames: ["MD013"],
+						reason: "line too long",
+						errorRange: null,
+						severity: "warning",
+					},
+				],
+			},
+			runId: "run-11",
+		});
+
+		// checkRun + listReviewThreads only -- no createReview POST.
+		expect(calls).toHaveLength(2);
 	});
 });
