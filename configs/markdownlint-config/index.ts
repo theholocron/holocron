@@ -25,12 +25,19 @@ import prettierStyle from "markdownlint/style/prettier" with { type: "json" };
  *   disable — still catches a genuine duplicate at the same nesting level,
  *   but allows the same heading text at different levels (a common
  *   TOC/section-per-subsystem pattern in this org's longer docs).
+ * - `fenced-code-language` (MD040): explicit `true` — already markdownlint's
+ *   own core default (not part of `prettierStyle`, which doesn't mention it
+ *   at all), but declared here so it's guaranteed enforced org-wide rather
+ *   than an implicit default that could silently disappear if the upstream
+ *   preset ever changes. An unlabeled fence loses syntax highlighting and
+ *   can't be told apart from a real code sample at a glance.
  */
 const config: Configuration = {
 	...prettierStyle,
 	"no-inline-html": false,
 	"first-line-heading": false,
 	"duplicate-heading": { siblings_only: true },
+	"fenced-code-language": true,
 };
 
 export default config;

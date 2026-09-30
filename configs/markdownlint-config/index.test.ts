@@ -1,3 +1,4 @@
+import { lint } from "markdownlint/promise";
 import { describe, expect, it } from "vitest";
 
 import config from "./index.js";
@@ -26,5 +27,19 @@ describe("markdownlint-config", () => {
 
 	it("only flags a duplicate heading at the same nesting level, not across levels", () => {
 		expect(config["duplicate-heading"]).toEqual({ siblings_only: true });
+	});
+
+	it("requires a language on every fenced code block", () => {
+		expect(config["fenced-code-language"]).toBe(true);
+	});
+
+	it("flags a real fenced code block with no language, in real lint output", async () => {
+		const results = await lint({ strings: { doc: "```\nconst x = 1;\n```\n" }, config });
+		expect(results.doc?.some((m) => m.ruleNames.includes("MD040"))).toBe(true);
+	});
+
+	it("doesn't flag a fenced code block that has a language", async () => {
+		const results = await lint({ strings: { doc: "```ts\nconst x = 1;\n```\n" }, config });
+		expect(results.doc?.some((m) => m.ruleNames.includes("MD040"))).toBe(false);
 	});
 });
