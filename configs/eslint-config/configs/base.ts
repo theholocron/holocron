@@ -50,7 +50,7 @@ function gitignoreConfig(): Linter.Config | undefined {
  * nothing in a repo without a docs/src — safe to always include rather
  * than opt into per repo.
  */
-const docsSrcConfig: Linter.Config = {
+export const docsSrcConfig: Linter.Config = {
 	name: "@theholocron/docs-src",
 	files: ["docs/src/**"],
 	rules: {

@@ -1,9 +1,10 @@
-import { base } from "../configs/base.js";
+import type { Linter } from "eslint";
+
+import { base, docsSrcConfig } from "../configs/base.js";
 import { node } from "../configs/node.js";
 import { packageJson } from "../configs/package-json.js";
 import { typescript } from "../configs/typescript.js";
 import { vitest } from "../configs/vitest.js";
-import type { Linter } from "eslint";
 
 export interface LibraryOptions {
 	/**
@@ -29,11 +30,20 @@ export interface LibraryOptions {
  * file — covers every repo but the `browserPackages` outlier, which keeps a
  * tiny `export default library({ browserPackages: [...] })` (config-resolution
  * workstream, #676 in theholocron/holocron).
+ *
+ * `docsSrcConfig` is re-asserted after `node()` below — `node()`'s own
+ * `recommended-module` preset sets `n/no-extraneous-import: "error"` with no
+ * `files` restriction, which otherwise clobbers `base()`'s earlier, more
+ * specific `docs/src/**` exemption (flat config merges in array order, later
+ * entries win per rule per matching file). Found live: `theholocron/clients`
+ * still needed its own local override for this despite `base()` already
+ * covering it in isolation.
  */
 export function library(options: LibraryOptions = {}): Linter.Config[] {
 	return [
 		...base(),
 		...node(),
+		docsSrcConfig,
 		...typescript(),
 		...packageJson(),
 		...vitest(),
