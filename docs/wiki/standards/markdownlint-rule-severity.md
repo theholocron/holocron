@@ -10,7 +10,7 @@ severities. Severity decides how Sentinel's markdownlint check
 | `warning` | Check-run annotation only                                     | No           |
 
 Every enabled rule defaults to `error` unless listed under **Warning**
-below. Rules disabled outright carry no severity at all — markdownlint
+below. Rules turned off outright carry no severity at all — markdownlint
 never evaluates them.
 
 ## Error
@@ -56,22 +56,22 @@ a human to even act on the finding.
 | `link-image-reference-definitions` (MD053) | An unused reference definition — dead-code clutter, doesn't break anything visible.                   |
 | `descriptive-link-text` (MD059)            | Flags generic link text like "click here" — good writing advice, but a subjective call, not a defect. |
 
-## Disabled
+## Turned off
 
 Not a severity question — each of these overlaps something this org
-already disables elsewhere, either in `markdownlint/style/prettier` (the
+already turns off elsewhere, either in `markdownlint/style/prettier` (the
 upstream Prettier-compatibility preset this config builds on) or in
 Sentinel itself.
 
-| Rule                              | Overlaps with                                                                                        |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `single-trailing-newline` (MD047) | Sentinel's own editorconfig check, which already enforces and auto-fixes `insert_final_newline`.     |
-| `link-image-style` (MD054)        | Same family as `emphasis-style`/`strong-style`, already disabled by the Prettier preset.             |
-| `table-pipe-style` (MD055)        | Prettier's own table formatting, which already normalizes pipe placement.                            |
-| `blanks-around-tables` (MD058)    | Same family as `blanks-around-fences`/`-headings`/`-lists`, already disabled by the Prettier preset. |
-| `table-column-style` (MD060)      | Same table-formatting territory as `table-pipe-style` — Prettier already owns it.                    |
+| Rule                              | Overlaps with                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `single-trailing-newline` (MD047) | Sentinel's own editorconfig check, which already enforces and auto-fixes `insert_final_newline`.       |
+| `link-image-style` (MD054)        | Same family as `emphasis-style`/`strong-style`, already turned off by the Prettier preset.             |
+| `table-pipe-style` (MD055)        | Prettier's own table formatting, which already normalizes pipe placement.                              |
+| `blanks-around-tables` (MD058)    | Same family as `blanks-around-fences`/`-headings`/`-lists`, already turned off by the Prettier preset. |
+| `table-column-style` (MD060)      | Same table-formatting territory as `table-pipe-style` — Prettier already owns it.                      |
 
-Also disabled, for org-specific reasons unrelated to severity:
+Also turned off, for org-specific reasons unrelated to severity:
 
 | Rule                                         | Why                                                                                                      |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
