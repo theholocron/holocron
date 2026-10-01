@@ -32,6 +32,15 @@
  *   inclusive language, but purely advisory unlike it — reads
  *   `@theholocron/prettier-config`'s canonical export directly, never a
  *   per-repo file.
+ * - **Editorconfig** (`lintEditorConfig → postEditorConfigCheck`):
+ *   `pull_request.*` only, reads the repo's own `.editorconfig` from the
+ *   PR's head ref (a real per-repo file — the only Bucket 1 check that
+ *   reads one — since `.editorconfig` conventionally lives per-repo, not
+ *   as a shared org config). Purely advisory, same as formatting and for
+ *   the same reason: no severity axis to split on, and 100% mechanically
+ *   fixable — see `lint-editorconfig.ts`'s own module docstring for why
+ *   the value-checking logic is a deliberate, narrow reimplementation
+ *   (no real importable library exists for it, unlike every other check).
  * - **Documentation** (`lintMarkdown → postMarkdownLintCheck`,
  *   holocron#769/#821): `pull_request.*` only, same reason and same
  *   config-free shape as the other three Bucket 1 checks — reads
@@ -146,6 +155,8 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
+import { lintEditorConfig } from "./actions/editorconfig/lint-editorconfig.js";
+import { postEditorConfigCheck } from "./actions/editorconfig/post-editorconfig-check.js";
 import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting, type LintFormattingResult } from "./actions/formatting/lint-formatting.js";
 import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.js";
@@ -162,6 +173,7 @@ import {
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
+	SENTINEL_EDITORCONFIG_LOG_MSG,
 	SENTINEL_FORMATTING_FIX_LOG_MSG,
 	SENTINEL_FORMATTING_LOG_MSG,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
@@ -453,6 +465,42 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Same PR-only scoping and soft-skip reasoning as commit standards/
+	// inclusive language/formatting above -- same advisory-only, no-severity-
+	// axis treatment as formatting too (see lint-editorconfig.ts's own
+	// module docstring).
+	let editorConfigCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const lintResult = await lintEditorConfig({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			editorConfigCheckRun = await postEditorConfigCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_EDITORCONFIG_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: lintResult.valid,
+					fileCount: lintResult.fileCount,
+					messageCount: lintResult.messages.length,
+				},
+				SENTINEL_EDITORCONFIG_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintEditorConfig: failed, continuing without it");
+		}
+	}
+
 	// Same PR-only scoping and soft-skip reasoning as every Bucket 1 check
 	// above -- the fourth (holocron#769/#821).
 	let markdownLintCheckRun;
@@ -527,6 +575,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			commitStandardsCheckRun,
 			inclusiveLanguageCheckRun,
 			formattingCheckRun,
+			editorConfigCheckRun,
 			markdownLintCheckRun,
 			prConfigValidationCheckRun,
 		});
@@ -720,6 +769,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		commitStandardsCheckRun,
 		inclusiveLanguageCheckRun,
 		formattingCheckRun,
+		editorConfigCheckRun,
 		markdownLintCheckRun,
 		prConfigValidationCheckRun,
 		formattingFixResult,
