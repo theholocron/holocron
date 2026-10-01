@@ -1,4 +1,4 @@
-line one   
+line one
 line two
-    line three with spaces
+	line three with spaces
 final line no newline
