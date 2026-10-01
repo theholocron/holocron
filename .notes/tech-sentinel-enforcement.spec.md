@@ -50,7 +50,7 @@ contradicting this spec's direction.
 
 ## Problem
 
-The platform epic's actual goal was never just "one shared config file
+The platform epic's actual goal was never only "one shared config file
 instead of twenty" — it was eliminating _duplicated enforcement_, full stop.
 Bucket A (#676, #680) centralized the config each repo's own CI still runs
 locally, but every repo still carries: its own `@theholocron/commitlint-config`
@@ -83,7 +83,7 @@ untouched here. Commit-message linting doesn't need it touched at all:
 - Linting a message string against a fixed rule set has zero execution
   surface — nothing from the PR is ever imported, required, or run.
 
-This is safe from a fork PR, not just a same-repo one — no security
+This is safe from a fork PR, not only a same-repo one — no security
 decision to make at all, unlike a hypothetical "read the PR's own
 `holocron.config.ts`" proposal (out of scope here; would need its own
 design and its own D4/D6 reconsideration if ever pursued).
@@ -97,12 +97,12 @@ are worth pursuing the same way.
 
 - `Sentinel / Platform / Commit Standards / Run commitlint` posts correctly
   on real PRs across multiple repos, catching a genuinely bad commit
-  message (not just always green).
+  message (not always green regardless).
 - Once required and swept: `platform.commitStandards.yml` removed from
   each repo that's adopted it — a real, measurable drop in per-PR CI
   wall-clock (one fewer checkout + `pnpm install` + runner per PR, org-wide,
   for a check that never depended on anything repo-specific). Worth
-  recording the before/after number on the sweep PR-stack item, not just
+  recording the before/after number on the sweep PR-stack item, not only
   asserting it's faster.
 
 ## Decisions
@@ -144,7 +144,7 @@ done as part of proving the mechanism.
 
 Ship the check posting but **not required** first. Verify against real PRs
 across a few repos — including a deliberately bad commit message, to
-confirm it actually _catches_ violations and isn't just always green (the
+confirm it actually _catches_ violations and isn't always green regardless (the
 mistake this epic already made once with Capability Compliance, caught only
 by pushing real traffic through it repeatedly). Only add it to a repo's
 required-checks ruleset once proven there, one repo at a time — `clients`
@@ -167,10 +167,10 @@ scoped.
 ### D5 — Check-run naming: carry the intent vocabulary through, not a new ad-hoc label
 
 GitHub check-run names are plain strings — no structural tiering in the
-API, just a convention this org already leans on both ways: GitHub
+API, only a convention this org already leans on both ways: GitHub
 Actions auto-generates `<Workflow name> / <Job name>` (e.g. `"Formatting /
 Run prettier, editorconfig-checker, markdownlint"`, `"Commit Standards /
-Run commitlint"` — namespace already dropped, just the humanized task name
+Run commitlint"` — namespace already dropped, only the humanized task name
 
 - what ran), and Sentinel's own config-compatibility check hand-authors
   `"Sentinel / Platform / Compliance / Run Holocron config compatibility"`
@@ -187,7 +187,7 @@ Sentinel / Platform / Commit Standards / Run commitlint
 
 Mechanical rule for any future check that follows this pattern: `Sentinel
 / <namespace, humanized> / <the existing CI check's own name, unchanged>`
-— makes it visually obvious in a PR's checks list which CI check a given
+— makes it immediately visible in a PR's checks list which CI check a given
 Sentinel check is the centralized replacement for, and generalizes
 directly to whatever comes after commitlint (`Sentinel / Source Quality /
 Static Analysis / Run eslint and actionlint`, when eslint's turn comes).
@@ -226,8 +226,8 @@ the shared `@theholocron/commitlint-config` package (every repo's commits
 carry a `Signed-off-by:` trailer via `-s`, a universal need, not a
 `holocron`-specific one). Checked while writing this spec: **already done**
 — `configs/packages/commitlint-config/index.ts` carries the rule directly,
-with a comment noting it was "previously only disabled in
-theholocron/holocron's own local override." The shared package is already
+with a comment noting the rule used to be turned off only in
+`theholocron/holocron`'s own local override. The shared package is already
 the single source of truth Sentinel needs.
 
 One small leftover: `holocron`'s own root `commitlint.config.ts` still
@@ -256,7 +256,7 @@ than filed as its own issue.
 ## Out of scope (for now)
 
 - eslint/prettier-as-Sentinel-enforcer — different risk profile (needs
-  real PR file content, not just commit metadata); worth its own future
+  real PR file content, not only commit metadata); worth its own future
   design once this proves the model, not assumed to follow automatically.
 - Reading a PR's own `holocron.config.ts` (vs. default branch) — a
   separate D4/D6 reconsideration, not needed for this slice.
