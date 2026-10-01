@@ -10,10 +10,24 @@ export interface GitHubPullRequest {
 	head: { ref: string };
 }
 
+/** A commit's name/email as git itself recorded it — `commit.author`/`commit.committer`, distinct from the GitHub-account `author` below (a commit can carry any email, linked to a GitHub account or not). */
+export interface GitHubCommitIdentity {
+	name: string;
+	email: string;
+}
+
 /** One commit as returned by `GET /pulls/{pull_number}/commits` — only the fields any known consumer needs. */
 export interface GitHubPullRequestCommit {
 	sha: string;
-	commit: { message: string };
+	commit: {
+		message: string;
+		author: GitHubCommitIdentity;
+		committer: GitHubCommitIdentity;
+	};
+	/** The commit's linked GitHub account, when GitHub can associate one — `null` for a commit email with no linked account. `type: "Bot"` identifies an app-authored commit (e.g. Dependabot, a prior Sentinel auto-fix-commit). */
+	author: { login: string; type: "User" | "Bot" } | null;
+	/** More than one entry marks a merge commit — it has no authorship of its own beyond its parents', the reason DCO enforcement (and this org's own CI) never requires a signoff on one. */
+	parents: Array<{ sha: string }>;
 }
 
 /** One file as returned by `GET /pulls/{pull_number}/files` — only the fields any known consumer needs. */

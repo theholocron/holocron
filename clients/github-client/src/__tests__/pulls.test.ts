@@ -43,6 +43,42 @@ describe("pulls.listCommits", () => {
 		expect(result[0]?.sha).toBe("abc1234");
 		expect(result[0]?.commit.message).toBe("feat: 💥 add thing");
 	});
+
+	it("passes through commit author/committer identity, the linked GitHub account, and parents", async () => {
+		const commits = [
+			{
+				sha: "abc1234",
+				commit: {
+					message: "feat: add thing\n\nSigned-off-by: Ada Lovelace <ada@example.com>",
+					author: { name: "Ada Lovelace", email: "ada@example.com" },
+					committer: { name: "Ada Lovelace", email: "ada@example.com" },
+				},
+				author: { login: "ada", type: "User" as const },
+				parents: [{ sha: "parent1" }],
+			},
+			{
+				sha: "merge123",
+				commit: {
+					message: "Merge pull request #1",
+					author: { name: "Ada Lovelace", email: "ada@example.com" },
+					committer: { name: "GitHub", email: "noreply@github.com" },
+				},
+				author: null,
+				parents: [{ sha: "parent1" }, { sha: "parent2" }],
+			},
+		];
+		const { fetch } = stubFetch([{ body: commits }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listCommits(REPO, 42);
+
+		expect(result[0]?.commit.author).toEqual({ name: "Ada Lovelace", email: "ada@example.com" });
+		expect(result[0]?.commit.committer).toEqual({ name: "Ada Lovelace", email: "ada@example.com" });
+		expect(result[0]?.author).toEqual({ login: "ada", type: "User" });
+		expect(result[0]?.parents).toEqual([{ sha: "parent1" }]);
+
+		expect(result[1]?.author).toBeNull();
+		expect(result[1]?.parents).toHaveLength(2);
+	});
 });
 
 describe("pulls.listFiles", () => {
