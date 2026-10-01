@@ -47,6 +47,13 @@
  * moment the conversion stops being an exact multiple of `indent_size` —
  * that line stays flagged, and the check keeps failing on it, rather than
  * risk corrupting a whitespace-sensitive file (YAML chief among them).
+ * `splitIndent()` carves the one universal exception out of both the
+ * check and the fix: a block-comment continuation line's conventional
+ * one-space alignment before its leading asterisk is constant regardless
+ * of `indent_style` (there's no "half a tab"), so it's never part of the
+ * real indentation depth being validated — without this, every
+ * multi-line block comment in a tab-indented file would be a permanent
+ * false positive.
  *
  * Explicitly NOT checked (or fixed) at all: `indent_size` itself
  * (verifying a specific indent *depth* from raw text alone is unreliable
@@ -133,10 +140,7 @@ function checkContent(text: string, props: Props): Array<{ line: number; reason:
 
 	if (props.indent_style === "tab" || props.indent_style === "space") {
 		const wrongChar = props.indent_style === "tab" ? " " : "\t";
-		const i = contentLines.findIndex((l) => {
-			const leading = /^[ \t]*/.exec(l)?.[0] ?? "";
-			return leading.includes(wrongChar);
-		});
+		const i = contentLines.findIndex((l) => splitIndent(l).indent.includes(wrongChar));
 		if (i !== -1) {
 			messages.push({ line: i + 1, reason: `Expected ${props.indent_style} indentation.` });
 		}
@@ -178,7 +182,11 @@ function fixContent(text: string, props: Props): string {
 
 	if ((props.indent_style === "tab" || props.indent_style === "space") && typeof props.indent_size === "number") {
 		const size = props.indent_size;
-		contentLines = contentLines.map((l) => fixIndent(l, props.indent_style as "tab" | "space", size));
+		const style: "tab" | "space" = props.indent_style === "tab" ? "tab" : "space";
+		contentLines = contentLines.map((l) => {
+			const { indent, suffix } = splitIndent(l);
+			return fixIndent(indent, style, size) + suffix;
+		});
 	}
 
 	let fixed = contentLines.join(eol);
@@ -192,38 +200,58 @@ function fixContent(text: string, props: Props): string {
 }
 
 /**
- * Converts one line's leading whitespace to `style`, `size` spaces per
- * tab stop — greedily, left to right, bailing out (returning `line`
- * untouched) the moment the remaining leading whitespace stops being an
- * exact multiple of `size`. That line stays flagged by `checkContent()`
+ * Splits a line into its real indentation prefix and everything after,
+ * special-casing block-comment continuation lines (an asterisk, with or
+ * without trailing content, including the comment's own closing line):
+ * the single space conventionally placed right before that asterisk
+ * exists purely to visually align under `/**`'s second asterisk,
+ * constant regardless of `indent_style` (tab-indented code still uses a
+ * plain space there — there's no such thing as "half a tab") — so it's
+ * not part of the line's actual indentation depth. That one space
+ * travels with `suffix` instead, untouched by either the check or the
+ * fixer below, so a correctly-aligned comment block is never flagged or
+ * rewritten.
+ */
+function splitIndent(line: string): { indent: string; suffix: string } {
+	const leading = /^[ \t]*/.exec(line)![0];
+	const rest = line.slice(leading.length);
+	if (rest.startsWith("*") && leading.endsWith(" ")) {
+		return { indent: leading.slice(0, -1), suffix: ` ${rest}` };
+	}
+	return { indent: leading, suffix: rest };
+}
+
+/**
+ * Converts a leading-whitespace run to `style`, `size` spaces per tab
+ * stop — greedily, left to right, bailing out (returning `indent`
+ * untouched) the moment the remaining whitespace stops being an exact
+ * multiple of `size`. A run that bails stays flagged by `checkContent()`
  * on the next pass rather than risk guessing wrong on a whitespace-
  * sensitive file.
  */
-function fixIndent(line: string, style: "tab" | "space", size: number): string {
-	const leading = /^[ \t]*/.exec(line)![0];
-	if (leading.length === 0) return line;
-	const rest = line.slice(leading.length);
+function fixIndent(indent: string, style: "tab" | "space", size: number): string {
+	if (indent.length === 0) return indent;
 
 	if (style === "space") {
-		if (!leading.includes("\t")) return line;
-		return leading.replace(/\t/g, " ".repeat(size)) + rest;
+		if (!indent.includes("\t")) return indent;
+		return indent.replace(/\t/g, " ".repeat(size));
 	}
 
-	if (!leading.includes(" ")) return line;
+	if (!indent.includes(" ")) return indent;
 	let tabs = "";
 	let i = 0;
-	while (i < leading.length) {
-		if (leading[i] === "\t") {
+	while (i < indent.length) {
+		if (indent[i] === "\t") {
 			tabs += "\t";
 			i += 1;
-		} else if (size > 0 && leading.slice(i, i + size) === " ".repeat(size)) {
+		} else if (size > 0 && indent.slice(i, i + size) === " ".repeat(size)) {
 			tabs += "\t";
 			i += size;
 		} else {
-			return line;
+			return indent;
 		}
 	}
-	return tabs + rest;
+	return tabs;
 }
 
 export async function lintEditorConfig(input: LintEditorConfigInput): Promise<LintEditorConfigResult> {

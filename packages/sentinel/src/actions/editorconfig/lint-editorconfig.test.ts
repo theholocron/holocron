@@ -292,6 +292,92 @@ describe("lintEditorConfig — real violations", () => {
 	});
 });
 
+describe("lintEditorConfig — block-comment alignment false positive", () => {
+	it("doesn't flag a correctly-aligned JSDoc block in tab-indented code", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{
+				status: 200,
+				body: contentsBody("function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n"),
+			},
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+	});
+
+	it("doesn't flag a correctly-aligned JSDoc block in space-indented code", async () => {
+		const spaceConfig = "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n";
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(spaceConfig) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{
+				status: 200,
+				body: contentsBody("function f() {\n  /**\n   * A comment.\n   */\n  return 1;\n}\n"),
+			},
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+	});
+
+	it("doesn't flag a comment continuation line with no alignment space at all", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{ status: 200, body: contentsBody("function f() {\n\t/**\n\t* A comment.\n\t*/\n\treturn 1;\n}\n") },
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+	});
+
+	it("still flags the comment block's own opening line when its real indentation is wrong", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{
+				status: 200,
+				body: contentsBody("function f() {\n    /**\n     * A comment.\n     */\n\treturn 1;\n}\n"),
+			},
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.messages).toEqual([{ file: "src/index.ts", line: 2, reason: "Expected tab indentation." }]);
+		// 4 spaces is a clean multiple of indent_size -- the opening line's
+		// real indentation converts; the continuation lines' own alignment
+		// space is preserved, not corrupted into an extra tab.
+		expect(result.fixes).toEqual([
+			{ file: "src/index.ts", fixed: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n" },
+		]);
+	});
+
+	it("still flags a continuation line whose own real indentation (before the alignment space) is wrong", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
+			{ status: 200, body: [file("src/index.ts")] },
+			{
+				status: 200,
+				body: contentsBody("function f() {\n\t/**\n     * A comment.\n\t */\n\treturn 1;\n}\n"),
+			},
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.messages).toEqual([{ file: "src/index.ts", line: 3, reason: "Expected tab indentation." }]);
+		expect(result.fixes).toEqual([
+			{ file: "src/index.ts", fixed: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n" },
+		]);
+	});
+});
+
 describe("lintEditorConfig — cascading overrides", () => {
 	it("applies the [*.md] override (trim_trailing_whitespace: false), not the base [*] section", async () => {
 		const { client } = makeClient([
