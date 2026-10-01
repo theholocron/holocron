@@ -181,7 +181,7 @@ Run commitlint"` — namespace already dropped, only the humanized task name
 Commit-message linting _does_ map onto a real vocabulary task
 (`platform.commitStandards`), so its check-run name should say so:
 
-```
+```text
 Sentinel / Platform / Commit Standards / Run commitlint
 ```
 
