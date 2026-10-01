@@ -62,7 +62,7 @@ catalogs:
     "@theholocron/eslint-config": ^8.6.0
     "@theholocron/holocron-config": ^8.4.8
     "@theholocron/lint-staged-config": ^8.4.5
-    "@theholocron/markdownlint-config": ^8.6.0
+    "@theholocron/markdownlint-config": ^8.7.0
     "@theholocron/prettier-config": ^8.4.5
     "@theholocron/semantic-release-config": ^8.4.5
     "@theholocron/tsconfig": ^8.4.5
