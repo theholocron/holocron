@@ -8,6 +8,18 @@
  * the exact same programmatic API a local `markdownlint-cli2` invocation
  * uses internally — never a reimplementation of its rules.
  *
+ * `fixes` (consumed by `commit-markdown-lint-fix.ts`): markdownlint's own
+ * `applyFixes(content, errors)` — the same deterministic-fix mechanism
+ * `markdownlint-cli2 --fix` runs internally — applied per file against the
+ * same `errors` array `lint()` already returned, since each error already
+ * carries its own rule's `fixInfo` (`null` when that rule has no
+ * deterministic fix, e.g. MD001 heading-increment: there's no single
+ * correct heading level to guess at). No separate pass, no reimplemented
+ * fix logic — `applyFixes()` already decides per-finding whether it's
+ * safe to apply, the same "never guess, only fix the unambiguous part"
+ * boundary `lint-editorconfig.ts`'s own `indent_style` handling draws by
+ * hand for a tool with no such built-in mechanism.
+ *
  * Config: this org's canonical `@theholocron/markdownlint-config` default
  * export — already one canonical, importable config (same "one config, not
  * N copies" reasoning `@theholocron/prettier-config`/`ALEX_CONFIG`/
@@ -35,6 +47,7 @@
 import { ALEX_IGNORE_PATTERNS } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";
 import MARKDOWNLINT_CONFIG from "@theholocron/markdownlint-config";
+import { applyFixes } from "markdownlint";
 import { lint } from "markdownlint/promise";
 
 import { decodeContents } from "../../utils/decode-contents.js";
@@ -64,10 +77,18 @@ export interface MarkdownLintMessage {
 	severity: "error" | "warning";
 }
 
+export interface MarkdownLintFix {
+	file: string;
+	/** `applyFixes()`'s own output — same shape as `EditorConfigFix.fixed`/`FormattingMessage.formatted`. */
+	fixed: string;
+}
+
 export interface LintMarkdownResult {
 	valid: boolean;
 	fileCount: number;
 	messages: MarkdownLintMessage[];
+	/** One entry per file `applyFixes()` actually changed — a strict subset of `messages`' files, since some rules (e.g. MD001) have no deterministic fix at all. Empty whenever nothing was auto-fixable. */
+	fixes: MarkdownLintFix[];
 }
 
 export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdownResult> {
@@ -90,7 +111,10 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 	const results = await lint({ config: MARKDOWNLINT_CONFIG, strings });
 
 	const messages: MarkdownLintMessage[] = [];
+	const fixes: MarkdownLintFix[] = [];
 	for (const [file, errors] of Object.entries(results)) {
+		if (errors.length === 0) continue;
+
 		for (const e of errors) {
 			messages.push({
 				file,
@@ -101,7 +125,10 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 				severity: e.severity,
 			});
 		}
+
+		const fixed = applyFixes(strings[file]!, errors);
+		if (fixed !== strings[file]) fixes.push({ file, fixed });
 	}
 
-	return { valid: messages.length === 0, fileCount: targets.length, messages };
+	return { valid: messages.length === 0, fileCount: targets.length, messages, fixes };
 }

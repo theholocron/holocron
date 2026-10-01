@@ -35,7 +35,7 @@ describe("lintMarkdown — a clean file", () => {
 		expect(calls[0]?.url).toContain("/repos/acme/demo/pulls/42/files");
 		expect(calls[1]?.url).toContain("/repos/acme/demo/contents/README.md");
 		expect(calls[1]?.url).toContain("ref=pr-head-sha");
-		expect(result).toEqual({ valid: true, fileCount: 1, messages: [] });
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
 	});
 });
 
@@ -55,6 +55,9 @@ describe("lintMarkdown — a file with real findings", () => {
 		// @theholocron/markdownlint-config doesn't configure a per-rule severity today (holocron#860) --
 		// markdownlint's own default of "error" applies to every rule until that's curated.
 		expect(result.messages[0]?.severity).toBe("error");
+		// MD001 (heading-increment) has no deterministic fix -- there's no
+		// single correct heading level to guess at.
+		expect(result.fixes).toEqual([]);
 	});
 
 	it("doesn't flag a long unwrapped prose line -- line-length (MD013) conflicts with Prettier's own proseWrap: preserve", async () => {
@@ -70,13 +73,64 @@ describe("lintMarkdown — a file with real findings", () => {
 	});
 });
 
+describe("lintMarkdown — auto-fix", () => {
+	it("computes a fix for a rule with a deterministic fixInfo (MD004 ul-style, not overlapping Prettier's territory)", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("README.md")] },
+			{ status: 200, body: contentsBody("# Title\n\n* item one\n+ item two\n") },
+		]);
+
+		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 7, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.messages.some((m) => m.ruleNames.includes("MD004"))).toBe(true);
+		expect(result.fixes).toEqual([{ file: "README.md", fixed: "# Title\n\n* item one\n* item two\n" }]);
+	});
+
+	it("doesn't produce a fix for a rule with no fixInfo at all, even though it's still flagged", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("README.md")] },
+			{ status: 200, body: contentsBody("# Title\n\n### Skipped a level\n") },
+		]);
+
+		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 7, ref: "sha" });
+
+		expect(result.valid).toBe(false);
+		expect(result.fixes).toEqual([]);
+	});
+
+	it("only includes files applyFixes() actually changed, across multiple files", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("fixable.md"), file("unfixable.md"), file("clean.md")] },
+			{ status: 200, body: contentsBody("# Title\n\n* item one\n+ item two\n") },
+			{ status: 200, body: contentsBody("# Title\n\n### Skipped a level\n") },
+			{ status: 200, body: contentsBody("# Title\n\nClean.\n") },
+		]);
+
+		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 7, ref: "sha" });
+
+		expect(result.fixes).toEqual([{ file: "fixable.md", fixed: "# Title\n\n* item one\n* item two\n" }]);
+	});
+
+	it("produces no fixes for a clean file", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("README.md")] },
+			{ status: 200, body: contentsBody("# Title\n\nSome text.\n") },
+		]);
+
+		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 7, ref: "sha" });
+
+		expect(result.fixes).toEqual([]);
+	});
+});
+
 describe("lintMarkdown — scoping", () => {
 	it("skips a non-markdown file entirely, without fetching its content", async () => {
 		const { client, calls } = makeClient([{ status: 200, body: [file("src/index.ts")] }]);
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
-		expect(result).toEqual({ valid: true, fileCount: 0, messages: [] });
+		expect(result).toEqual({ valid: true, fileCount: 0, messages: [], fixes: [] });
 		expect(calls).toHaveLength(1);
 	});
 
@@ -85,7 +139,7 @@ describe("lintMarkdown — scoping", () => {
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
-		expect(result).toEqual({ valid: true, fileCount: 0, messages: [] });
+		expect(result).toEqual({ valid: true, fileCount: 0, messages: [], fixes: [] });
 		expect(calls).toHaveLength(1);
 	});
 
@@ -94,7 +148,7 @@ describe("lintMarkdown — scoping", () => {
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
-		expect(result).toEqual({ valid: true, fileCount: 0, messages: [] });
+		expect(result).toEqual({ valid: true, fileCount: 0, messages: [], fixes: [] });
 		expect(calls).toHaveLength(1);
 	});
 
@@ -106,7 +160,7 @@ describe("lintMarkdown — scoping", () => {
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
-		expect(result).toEqual({ valid: true, fileCount: 1, messages: [] });
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
 	});
 });
 
