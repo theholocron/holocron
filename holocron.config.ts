@@ -66,6 +66,8 @@ export default defineConfig({
 		"Platform / Capability Compliance",
 		"Platform / Commit Standards / Run commitlint",
 		"Source Quality / Formatting / Run editorconfig",
+		"Source Quality / Static Analysis / Run eslint",
+		"Source Quality / Documentation / Run markdownlint",
 	],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `nodeDocs()`'s bundled `lint` (8 linters) is now 5 separately-gated
