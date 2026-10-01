@@ -59,7 +59,13 @@
  *   individual rules down to `"warning"`) posts as an inline PR review
  *   comment instead of a check-run annotation — see `postErrorReview()`.
  *   The check run's own `conclusion` is unaffected; only where the
- *   finding surfaces changes.
+ *   finding surfaces changes. Also backed by auto-fix-commit below
+ *   (`commitMarkdownLintFix`) via `markdownlint`'s own `applyFixes()` —
+ *   independent of severity, since a fix is either deterministically
+ *   possible or it isn't (see `lint-markdown.ts`'s own module docstring
+ *   for why most of the rules that would otherwise overlap with
+ *   Prettier are disabled in this org's config, narrowing what's left to
+ *   auto-fix).
  * - **Static analysis** (`lintStaticAnalysis → postStaticAnalysisCheck`,
  *   holocron#769/#849): `pull_request.*` only, same reason and same
  *   check-run shape as the other Bucket 1 checks — reads
@@ -92,14 +98,15 @@
  *   merge. `pull_request.*` only. Hoisted (not scoped to its own try) so
  *   the auto-fix-commit gate further down reuses this same PR-branch read
  *   instead of fetching it a second time.
- * - **Auto-fix-commit** (`commitFormattingFix` + `commitEditorConfigFix`,
- *   holocron#820): the one exception to every check above being
- *   config-free — writing to repo content is qualitatively different from
- *   reading and reporting. Both actions share one gate and one opt-out,
- *   since editorconfig is already bundled under the same
- *   `sourceQuality.formatting` task (astromech's registry `linterGroup`) —
- *   there's no separate `autoFix` flag to track per sub-check. Default-on
- *   (holocron#864 follow-up: both fixes are mechanical and deterministic,
+ * - **Auto-fix-commit** (`commitFormattingFix` + `commitEditorConfigFix` +
+ *   `commitMarkdownLintFix`, holocron#820): the one exception to every
+ *   check above being config-free — writing to repo content is
+ *   qualitatively different from reading and reporting. All three actions
+ *   share one gate and one opt-out, since all three checks are already
+ *   bundled under the same `sourceQuality.formatting` task (astromech's
+ *   registry `linterGroup`: prettier, editorconfig, markdownlint) — there's
+ *   no separate `autoFix` flag to track per sub-check. Default-on
+ *   (holocron#864 follow-up: every fix is mechanical and deterministic,
  *   so there's no human judgment call for a finding to surface in the
  *   first place); opt out via `{ name: "sourceQuality.formatting", with: {
  *   autoFix: false } }` in `holocron.config.ts`'s `tasks` array. Reuses PR
@@ -109,9 +116,10 @@
  *   the merged config's explicit value is the fallback. Each action fires
  *   independently when not opted out *and* its own lint step actually
  *   found something to fix — reusing `lintFormatting()`'s/
- *   `lintEditorConfig()`'s already-computed fixed output rather than
- *   re-running prettier/re-resolving `.editorconfig`. Two atomic commits
- *   (one per check, since they can disagree about whether a fix was even
+ *   `lintEditorConfig()`'s/`lintMarkdown()`'s already-computed fixed
+ *   output rather than re-running prettier/re-resolving `.editorconfig`/
+ *   re-linting markdown. Up to three atomic commits (one per check, since
+ *   each can independently disagree about whether a fix was even
  *   possible) via the Git Data API (blob → tree → commit → ref-update),
  *   each pushed directly onto the PR's own head branch. Requires
  *   `Contents: Write` — see the README's permissions table. **Trade-off,
@@ -176,7 +184,8 @@ import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.j
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
 import { lintInclusiveLanguage } from "./actions/inclusive-language/lint-inclusive-language.js";
 import { postInclusiveLanguageCheck } from "./actions/inclusive-language/post-inclusive-language-check.js";
-import { lintMarkdown } from "./actions/markdown-lint/lint-markdown.js";
+import { commitMarkdownLintFix } from "./actions/markdown-lint/commit-markdown-lint-fix.js";
+import { lintMarkdown, type LintMarkdownResult } from "./actions/markdown-lint/lint-markdown.js";
 import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
 import { lintStaticAnalysis } from "./actions/static-analysis/lint-static-analysis.js";
@@ -191,6 +200,7 @@ import {
 	SENTINEL_FORMATTING_FIX_LOG_MSG,
 	SENTINEL_FORMATTING_LOG_MSG,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
+	SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
@@ -519,8 +529,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	}
 
 	// Same PR-only scoping and soft-skip reasoning as every Bucket 1 check
-	// above -- the fourth (holocron#769/#821).
+	// above -- the fourth (holocron#769/#821). `markdownLintResult` is
+	// hoisted (not declared inside the try) so the auto-fix-commit gate
+	// further down can read it without re-running lintMarkdown a second
+	// time -- same reasoning as formattingLintResult/editorConfigLintResult
+	// above.
 	let markdownLintCheckRun;
+	let markdownLintResult: LintMarkdownResult | undefined;
 	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
 		try {
 			const lintResult = await lintMarkdown({
@@ -529,6 +544,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				pullNumber: context.pullNumber,
 				ref: context.headSha,
 			});
+			markdownLintResult = lintResult;
 			markdownLintCheckRun = await postMarkdownLintCheck({
 				client,
 				repo,
@@ -797,6 +813,36 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Markdownlint's own commit -- same gate, same reasoning as editorconfig's.
+	// No explanatory PR comment here either, same reasoning: the check's own
+	// annotations (and, for error-severity findings, the PR review comment
+	// postErrorReview() already posts) explain what's wrong without a second
+	// comment on top. Gates on overall `valid`, not specifically on
+	// error-severity, since auto-fix doesn't care about severity -- only
+	// whether `applyFixes()` found anything deterministic to apply (some
+	// rules, e.g. MD001 heading-increment, have no fixInfo at all regardless
+	// of severity, and this org's own config disables most of the rules
+	// that would otherwise overlap with what Prettier already fixes -- see
+	// lint-markdown.ts's own module docstring).
+	let markdownLintFixResult;
+	if (autoFixOptedIn && markdownLintResult && !markdownLintResult.valid && context.headRef) {
+		try {
+			markdownLintFixResult = await commitMarkdownLintFix({
+				client,
+				repo,
+				headSha: context.headSha,
+				headRef: context.headRef,
+				result: markdownLintResult,
+			});
+			logger.info(
+				{ repo, committed: markdownLintFixResult.committed, fileCount: markdownLintFixResult.fileCount },
+				SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "commitMarkdownLintFix: failed, continuing without it");
+		}
+	}
+
 	return json({
 		handled: true,
 		type: event.type,
@@ -810,6 +856,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		formattingFixResult,
 		autoFixCommentResult,
 		editorConfigFixResult,
+		markdownLintFixResult,
 		dispatchedCheckRun,
 		staticAnalysisCheckRun,
 	});

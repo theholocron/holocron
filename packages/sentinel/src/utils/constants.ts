@@ -58,6 +58,8 @@ export const SENTINEL_FORMATTING_FIX_LOG_MSG = "commitFormattingFix: committed";
 export const SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG = "postPrConfigValidationCheck: posted";
 /** Logged (and linked to) once `postMarkdownLintCheck()` actually posts (holocron#821) — never hand-copy this string elsewhere. */
 export const SENTINEL_MARKDOWN_LINT_LOG_MSG = "postMarkdownLintCheck: posted";
+/** Logged once `commitMarkdownLintFix()` actually commits a fix — never hand-copy this string elsewhere. */
+export const SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG = "commitMarkdownLintFix: committed";
 /** Logged (and linked to) once `postStaticAnalysisCheck()` actually posts (holocron#849) — never hand-copy this string elsewhere. */
 export const SENTINEL_STATIC_ANALYSIS_LOG_MSG = "postStaticAnalysisCheck: posted";
 /** Logged (and linked to) once `postEditorConfigCheck()` actually posts — never hand-copy this string elsewhere. */

@@ -162,22 +162,28 @@ Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
 six more independent Bucket 1 check pipelines — commit standards
 (commitlint), inclusive language (alex), formatting (prettier,
-holocron#819), editorconfig (the `editorconfig` package's own `matcher()`
-API resolving each changed file's properties purely in-memory, advisory
-only — same "no severity axis, 100% mechanical" reasoning as formatting;
-see `src/actions/editorconfig/lint-editorconfig.ts`'s own module
-docstring for why the value-checking layer on top is a deliberate,
-narrow exception to "never reimplement a tool's rules"), markdown lint
-(markdownlint, holocron#821), and static analysis (eslint, holocron#849
-— the one Bucket 1 check that isn't config-free: skipped entirely when a
-repo's `runtime_environment` property is explicitly `"none"`, since a
-docs-only repo has no JS/TS to lint; honors `holocron.config.ts`'s own
-`eslint.browserPackages`, holocron#858, since it's the one `library()`
-option this check needs to match a package's local `eslint.config.ts`
-exactly) — the Bucket 2
+holocron#819, purely advisory — no severity axis, 100% mechanical),
+editorconfig (the `editorconfig` package's own `matcher()` API resolving
+each changed file's properties purely in-memory; unlike formatting,
+`conclusion: "failure"` on any violation — but also 100% mechanical, so
+the failure is meant to be transient, auto-fix-commit (below) resolving
+it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig.ts`'s
+own module docstring for why the value-checking/fixing layer on top is a
+deliberate, narrow exception to "never reimplement a tool's rules"),
+markdown lint (markdownlint, holocron#821), and static analysis (eslint,
+holocron#849 — the one Bucket 1 check that isn't config-free: skipped
+entirely when a repo's `runtime_environment` property is explicitly
+`"none"`, since a docs-only repo has no JS/TS to lint; honors
+`holocron.config.ts`'s own `eslint.browserPackages`, holocron#858, since
+it's the one `library()` option this check needs to match a package's
+local `eslint.config.ts` exactly) — the Bucket 2
 dispatch prototype, the auto-fix-commit
-capability (holocron#820, formatting only for now — opt in via the
-repo's merged config or fresh in a PR's own branch, either way), and the
+capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
+the `sourceQuality.formatting` task backing three independent commit
+actions — `commitFormattingFix`, `commitEditorConfigFix`,
+`commitMarkdownLintFix` — since all three checks are bundled under that
+same task; default-on (holocron#864 follow-up), opt out via the repo's
+merged config or fresh in a PR's own branch, either way), and the
 advisory PR Config Validation check (holocron#827 — posted as `Platform
 / Capability Compliance (pull_request)`, a "(pull_request)" suffix on
 the same concept, not a distinct name; validates a PR's own branch

@@ -29,7 +29,7 @@ describe("postMarkdownLintCheck — valid", () => {
 			repo: "acme/demo",
 			pullNumber: 42,
 			headSha: "abc123",
-			result: { valid: true, fileCount: 3, messages: [] },
+			result: { valid: true, fileCount: 3, messages: [], fixes: [] },
 			runId: "run-1",
 		});
 
@@ -81,6 +81,7 @@ describe("postMarkdownLintCheck — findings", () => {
 						severity: "error",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-2",
 		});
@@ -109,6 +110,7 @@ describe("postMarkdownLintCheck — findings", () => {
 						severity: "warning",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-2b",
 		});
@@ -141,6 +143,7 @@ describe("postMarkdownLintCheck — findings", () => {
 						severity: "error",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-3",
 		});
@@ -177,6 +180,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 						severity: "warning",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-4",
 		});
@@ -230,6 +234,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 						severity: "warning",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-5",
 		});
@@ -255,7 +260,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 			repo: "acme/demo",
 			pullNumber: 42,
 			headSha: "abc123",
-			result: { valid: false, fileCount: 55, messages },
+			result: { valid: false, fileCount: 55, messages, fixes: [] },
 			runId: "run-6",
 		});
 
@@ -272,7 +277,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 			repo: "acme/demo",
 			pullNumber: 42,
 			headSha: "abc123",
-			result: { valid: true, fileCount: 2, messages: [] },
+			result: { valid: true, fileCount: 2, messages: [], fixes: [] },
 			runId: "run-7",
 		});
 
@@ -313,6 +318,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 						severity: "warning",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-8",
 		});
@@ -358,6 +364,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 						severity: "warning",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-9",
 		});
@@ -406,6 +413,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 						severity: "error",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-10",
 		});
@@ -435,6 +443,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 						severity: "warning",
 					},
 				],
+				fixes: [],
 			},
 			runId: "run-11",
 		});

@@ -21,6 +21,7 @@ vi.mock("./actions/formatting/commit-formatting-fix.js", () => ({ commitFormatti
 vi.mock("./actions/formatting/lint-formatting.js", () => ({ lintFormatting: vi.fn() }));
 vi.mock("./actions/formatting/post-auto-fix-comment.js", () => ({ postAutoFixComment: vi.fn() }));
 vi.mock("./actions/formatting/post-formatting-check.js", () => ({ postFormattingCheck: vi.fn() }));
+vi.mock("./actions/markdown-lint/commit-markdown-lint-fix.js", () => ({ commitMarkdownLintFix: vi.fn() }));
 vi.mock("./actions/markdown-lint/lint-markdown.js", () => ({ lintMarkdown: vi.fn() }));
 vi.mock("./actions/markdown-lint/post-markdown-lint-check.js", () => ({ postMarkdownLintCheck: vi.fn() }));
 vi.mock("./actions/pr-config-validation/post-pr-config-validation-check.js", () => ({
@@ -49,6 +50,7 @@ import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.
 import { lintFormatting } from "./actions/formatting/lint-formatting.js";
 import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.js";
 import { postFormattingCheck } from "./actions/formatting/post-formatting-check.js";
+import { commitMarkdownLintFix } from "./actions/markdown-lint/commit-markdown-lint-fix.js";
 import { lintMarkdown } from "./actions/markdown-lint/lint-markdown.js";
 import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
@@ -97,6 +99,7 @@ beforeEach(() => {
 	vi.mocked(lintEditorConfig).mockReset();
 	vi.mocked(postEditorConfigCheck).mockReset();
 	vi.mocked(commitEditorConfigFix).mockReset();
+	vi.mocked(commitMarkdownLintFix).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -564,7 +567,7 @@ describe("handler — markdown lint pipeline (holocron#769/#821)", () => {
 
 	it("runs lintMarkdown with the PR's ref, and posts the result", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 2, messages: [] });
+		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 2, messages: [], fixes: [] });
 		vi.mocked(postMarkdownLintCheck).mockResolvedValue({
 			checkRunId: 20,
 			conclusion: "success",
@@ -584,7 +587,7 @@ describe("handler — markdown lint pipeline (holocron#769/#821)", () => {
 			repo: "acme/demo",
 			pullNumber: 9,
 			headSha: "pr-head-sha",
-			result: { valid: true, fileCount: 2, messages: [] },
+			result: { valid: true, fileCount: 2, messages: [], fixes: [] },
 			runId: "test-run-id",
 		});
 		const body = (await res.json()) as { markdownLintCheckRun: unknown };
@@ -593,7 +596,7 @@ describe("handler — markdown lint pipeline (holocron#769/#821)", () => {
 
 	it("runs on pull_request.synchronize too, not just opened", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
-		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 1, messages: [] });
+		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 1, messages: [], fixes: [] });
 		vi.mocked(postMarkdownLintCheck).mockResolvedValue({ checkRunId: 21, conclusion: "success", htmlUrl: "" });
 
 		await handleWebhookRequest(req(), ENV);
@@ -1316,6 +1319,150 @@ describe("handler — editorconfig auto-fix-commit pipeline", () => {
 		const body = (await res.json()) as { formattingFixResult: unknown; editorConfigFixResult: unknown };
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
 		expect(body.editorConfigFixResult).toEqual({ committed: true, commitSha: "ec-commit", fileCount: 1 });
+	});
+});
+
+describe("handler — markdownlint auto-fix-commit pipeline", () => {
+	// autoFixOptedIn's own opt-in/opt-out resolution is one gate shared by
+	// formatting's, editorconfig's, and markdownlint's auto-fix-commit --
+	// every edge case of that resolution is already covered by the
+	// formatting pipeline suite above (same code path, same
+	// `sourceQuality.formatting` task name). These tests only cover
+	// markdownlint's own invocation once opted in, not the gate logic
+	// again.
+	function prEvent() {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha", ref: "feature-branch" } },
+			},
+		};
+	}
+
+	const invalidLintResult = {
+		valid: false,
+		fileCount: 1,
+		messages: [
+			{
+				file: "README.md",
+				line: 3,
+				ruleNames: ["MD004"],
+				reason: "Unordered list style",
+				errorRange: null,
+				severity: "error" as const,
+			},
+		],
+		fixes: [{ file: "README.md", fixed: "# Title\n\n* item one\n* item two\n" }],
+	};
+
+	function configWithAutoFix(autoFix: boolean) {
+		return {
+			status: "valid" as const,
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(postMarkdownLintCheck).mockResolvedValue({ checkRunId: 2, conclusion: "failure", htmlUrl: "" });
+	});
+
+	it("commits the fix when opted in and lintMarkdown reports violations", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintMarkdown).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitMarkdownLintFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitMarkdownLintFix).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			headRef: "feature-branch",
+			result: invalidLintResult,
+		});
+		const body = (await res.json()) as { markdownLintFixResult: unknown };
+		expect(body.markdownLintFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("does not commit when lintMarkdown reports the PR is already valid", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintMarkdown).mockResolvedValue({ valid: true, fileCount: 2, messages: [], fixes: [] });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitMarkdownLintFix).not.toHaveBeenCalled();
+	});
+
+	it("does not commit when neither the default-branch nor the PR's own branch opted in", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(false));
+		vi.mocked(lintMarkdown).mockResolvedValue(invalidLintResult);
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitMarkdownLintFix).not.toHaveBeenCalled();
+		const body = (await res.json()) as { markdownLintFixResult: unknown };
+		expect(body.markdownLintFixResult).toBeUndefined();
+	});
+
+	it("soft-skips a commitMarkdownLintFix failure -- capability compliance still posts, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintMarkdown).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitMarkdownLintFix).mockRejectedValue(new Error("git commit failed"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { markdownLintFixResult: unknown; checkRun: unknown };
+		expect(body.markdownLintFixResult).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("commits formatting's, editorconfig's, and markdownlint's fixes independently in the same request", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 3, conclusion: "neutral", htmlUrl: "" });
+		vi.mocked(lintFormatting).mockResolvedValue({
+			valid: false,
+			fileCount: 1,
+			messages: [{ file: "src/other.ts", line: 1, reason: "reformat me", formatted: "const y = 2;\n" }],
+		});
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
+		vi.mocked(postEditorConfigCheck).mockResolvedValue({ checkRunId: 4, conclusion: "failure", htmlUrl: "" });
+		vi.mocked(lintEditorConfig).mockResolvedValue({
+			valid: false,
+			fileCount: 1,
+			messages: [{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }],
+			fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+		});
+		vi.mocked(commitEditorConfigFix).mockResolvedValue({ committed: true, commitSha: "ec-commit", fileCount: 1 });
+		vi.mocked(lintMarkdown).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitMarkdownLintFix).mockResolvedValue({ committed: true, commitSha: "md-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalled();
+		expect(commitEditorConfigFix).toHaveBeenCalled();
+		expect(commitMarkdownLintFix).toHaveBeenCalled();
+		const body = (await res.json()) as {
+			formattingFixResult: unknown;
+			editorConfigFixResult: unknown;
+			markdownLintFixResult: unknown;
+		};
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
+		expect(body.editorConfigFixResult).toEqual({ committed: true, commitSha: "ec-commit", fileCount: 1 });
+		expect(body.markdownLintFixResult).toEqual({ committed: true, commitSha: "md-commit", fileCount: 1 });
 	});
 });
 
