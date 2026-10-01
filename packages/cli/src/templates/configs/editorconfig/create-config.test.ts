@@ -20,4 +20,10 @@ describe("editorconfig createConfig", () => {
 		expect(out).toContain("[*.{json,yml,yaml}]");
 		expect(out).toContain("indent_size = 2");
 	});
+
+	it("unsets indent_style for markdown files -- list continuation lines always align with spaces regardless of style, no matter the general default", () => {
+		const out = createConfig();
+		const section = out.slice(out.indexOf("[*.{md,mdx}]"));
+		expect(section).toContain("indent_style = unset");
+	});
 });
