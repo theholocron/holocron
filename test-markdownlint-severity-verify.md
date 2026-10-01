@@ -1,4 +1,5 @@
 # Test
 
-* item one
-- item two
+- item one
+
+* item two
