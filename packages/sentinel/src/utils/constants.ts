@@ -48,6 +48,8 @@ export function sentinelAxiomLogUrl(runId: string, msg: string): string {
 export const SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG = "postCheckRun: posted";
 /** Logged (and linked to) once `postCommitStandardsCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_COMMIT_STANDARDS_LOG_MSG = "postCommitStandardsCheck: posted";
+/** Logged (and linked to) once `postDcoCheck()` actually posts — never hand-copy this string elsewhere. */
+export const SENTINEL_DCO_LOG_MSG = "postDcoCheck: posted";
 /** Logged (and linked to) once `postInclusiveLanguageCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG = "postInclusiveLanguageCheck: posted";
 /** Logged (and linked to) once `postFormattingCheck()` actually posts — never hand-copy this string elsewhere. */

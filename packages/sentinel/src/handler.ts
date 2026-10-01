@@ -174,6 +174,8 @@ import { postCheckRun } from "./actions/capability-compliance/post-check-run.js"
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
+import { lintDco } from "./actions/dco/lint-dco.js";
+import { postDcoCheck } from "./actions/dco/post-dco-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { commitEditorConfigFix } from "./actions/editorconfig/commit-editorconfig-fix.js";
 import { lintEditorConfig, type LintEditorConfigResult } from "./actions/editorconfig/lint-editorconfig.js";
@@ -193,6 +195,7 @@ import { postStaticAnalysisCheck } from "./actions/static-analysis/post-static-a
 import {
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
+	SENTINEL_DCO_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
 	SENTINEL_EDITORCONFIG_FIX_LOG_MSG,
@@ -415,6 +418,33 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Same PR-only scoping and soft-skip reasoning as commit standards above.
+	// Runs alongside the existing probot/dcoapp installation, not instead of
+	// it yet (same "prove it out before replacing" posture Bucket 2 dispatch
+	// already established) -- see lint-dco.ts's own module docstring for why
+	// this exists at all.
+	let dcoCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const lintResult = await lintDco({ client, repo, pullNumber: context.pullNumber });
+			dcoCheckRun = await postDcoCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_DCO_LOG_MSG exactly -- the check's own details_url
+			// is a query filtered to find this precise line.
+			logger.info(
+				{ repo, valid: lintResult.valid, violationCount: lintResult.violations.length },
+				SENTINEL_DCO_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintDco: failed, continuing without it");
+		}
+	}
+
 	// Same PR-only scoping and soft-skip reasoning as commit standards above
 	// -- a push has no PR changed-files list to fetch, and a failure here
 	// must never take capability compliance down with it.
@@ -606,6 +636,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			type: event.type,
 			config: configResult.status,
 			commitStandardsCheckRun,
+			dcoCheckRun,
 			inclusiveLanguageCheckRun,
 			formattingCheckRun,
 			editorConfigCheckRun,
@@ -848,6 +879,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		type: event.type,
 		checkRun,
 		commitStandardsCheckRun,
+		dcoCheckRun,
 		inclusiveLanguageCheckRun,
 		formattingCheckRun,
 		editorConfigCheckRun,
