@@ -88,12 +88,13 @@
  *   GitHub Actions thin-caller for that same task, not instead of it, until
  *   this mechanism is trusted enough to replace it.
  * - **PR Config Validation** (`validateConfig` against the PR's own head
- *   ref, holocron#827): posted as `Platform / Capability Compliance
- *   (pull_request)` — a "(pull_request)" suffix, not a distinct name; the
- *   same Capability Compliance concept, just validated against the PR's
- *   own branch. Advisory, never required, deliberately separate from
- *   capability compliance below — a PR proposing a new task/provider gets
- *   real feedback on whether `holocron.config.ts` still parses and
+ *   ref, holocron#827): posted as `Platform / Compliance / Run Holocron
+ *   config compatibility (pull_request)` — a "(pull_request)" suffix, not
+ *   a distinct name; the same Run Holocron config compatibility concept,
+ *   just validated against the PR's own branch. Advisory, never required,
+ *   deliberately separate from the default-branch check below — a PR
+ *   proposing a new task/provider gets real feedback on whether
+ *   `holocron.config.ts` still parses and
  *   declares only known tasks *immediately*, rather than only after
  *   merge. `pull_request.*` only. Hoisted (not scoped to its own try) so
  *   the auto-fix-commit gate further down reuses this same PR-branch read

@@ -13,8 +13,10 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 }
 
 describe("postPrConfigValidationCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Platform / Capability Compliance (pull_request) -- the same concept, PR-branch variant", () => {
-		expect(SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME).toBe("Platform / Capability Compliance (pull_request)");
+	it("names the check run Platform / Compliance / Run Holocron config compatibility (pull_request) -- the same concept, PR-branch variant", () => {
+		expect(SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME).toBe(
+			"Platform / Compliance / Run Holocron config compatibility (pull_request)"
+		);
 	});
 });
 

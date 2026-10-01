@@ -20,6 +20,23 @@
  * is set here, so a hand-added prefix just duplicated it. Exported so a
  * caller checking for this check run by name (a future re-run guard, a
  * test, a dashboard) never hand-copies the string.
+ *
+ * Folds under the `Compliance` grouping alongside the DCO check
+ * (`post-dco-check.ts`) — no longer the deliberate 2-tier exception
+ * `tech-sentinel-enforcement.spec.md`'s D5 originally called out
+ * ("Platform / Capability Compliance", no label to carry through).
+ * DCO's arrival gave the grouping a second member, so "Compliance"
+ * now plays the label role every other check's existing-CI-job name
+ * plays, and "Run Holocron config compatibility" plays the command
+ * role — renamed from "Capability Compliance" since what this check
+ * actually verifies is a repo's declared capabilities against
+ * `REQUIRED_BASELINE`, i.e. the repo's `holocron.config` being
+ * baseline-compatible. **Renaming this string changes a live required
+ * status check** — `holocron.config.ts`'s own `extraRequiredChecks`
+ * entry must be updated in the same change, and `holocron setup` (or
+ * the ruleset-PATCH mechanism it wraps) re-run against this repo
+ * before merge, or the old name stays required forever with nothing
+ * left posting it.
  */
 
 import { missingCapabilities } from "@theholocron/cli";
@@ -31,7 +48,7 @@ import {
 	sentinelAxiomLogUrl,
 } from "../../utils/constants.js";
 
-export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Capability Compliance`;
+export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Holocron config compatibility`;
 
 export interface PostCheckRunInput {
 	client: Pick<GitHubClient, "checks">;

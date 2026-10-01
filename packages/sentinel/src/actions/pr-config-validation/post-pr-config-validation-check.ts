@@ -2,19 +2,20 @@
  * Posts one check run reflecting `validateConfig()`'s result against a
  * PR's *own* branch (holocron#827, a follow-up to the `ref`-aware
  * `validateConfig()` built for auto-fix-commit, holocron#820) — advisory,
- * never required, deliberately separate from the existing Capability
- * Compliance check.
+ * never required, deliberately separate from the existing "Run Holocron
+ * config compatibility" check (`post-check-run.ts`, née Capability
+ * Compliance).
  *
- * Why separate: Capability Compliance is already a required status check
- * in this org's repos. Changing its own validation source to the PR
- * branch means deciding what happens when that read fails (a WIP/broken
- * config mid-edit) for a check merging depends on — this check sidesteps
- * that by being advisory, same rollout shape Inclusive Language and
- * Formatting used before either was ever made required. Capability
- * Compliance itself, and the properties it derives, stay on the
- * default-branch call, unchanged — a capability a PR merely proposes
- * isn't operational yet (no secrets wired, no `holocron setup`/`sync` run
- * against it).
+ * Why separate: that check is already a required status check in this
+ * org's repos. Changing its own validation source to the PR branch
+ * means deciding what happens when that read fails (a WIP/broken config
+ * mid-edit) for a check merging depends on — this check sidesteps that
+ * by being advisory, same rollout shape Inclusive Language and
+ * Formatting used before either was ever made required. The
+ * default-branch check itself, and the properties it derives, stay on
+ * the default-branch call, unchanged — a capability a PR merely
+ * proposes isn't operational yet (no secrets wired, no `holocron
+ * setup`/`sync` run against it).
  */
 
 import type { CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
@@ -27,10 +28,12 @@ import {
 import type { ValidateConfigResult } from "../../utils/validate-config.js";
 
 // "(pull_request)" suffix, not a distinct name -- this is the same
-// Capability Compliance concept, just validated against the PR's own
-// branch instead of the default branch (see the module docstring for
-// why that's a separate check rather than a change to the existing one).
-export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Capability Compliance (pull_request)`;
+// Run Holocron config compatibility concept (post-check-run.ts, now
+// under the Compliance grouping alongside DCO), just validated against
+// the PR's own branch instead of the default branch (see the module
+// docstring for why that's a separate check rather than a change to
+// the existing one).
+export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Holocron config compatibility (pull_request)`;
 
 export interface PostPrConfigValidationCheckInput {
 	client: Pick<GitHubClient, "checks">;

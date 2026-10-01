@@ -192,10 +192,11 @@ actions — `commitFormattingFix`, `commitEditorConfigFix`,
 same task; default-on (holocron#864 follow-up), opt out via the repo's
 merged config or fresh in a PR's own branch, either way), and the
 advisory PR Config Validation check (holocron#827 — posted as `Platform
-/ Capability Compliance (pull_request)`, a "(pull_request)" suffix on
-the same concept, not a distinct name; validates a PR's own branch
-immediately, without waiting for merge, kept separate from the required
-`Platform / Capability Compliance` check above), and a PR comment
+/ Compliance / Run Holocron config compatibility (pull_request)`, a
+"(pull_request)" suffix on the same concept, not a distinct name;
+validates a PR's own branch immediately, without waiting for merge,
+kept separate from the required `Platform / Compliance / Run Holocron
+config compatibility` check above), and a PR comment
 explaining what auto-fix-commit changed (holocron#674/#834, executes
 only when a fix was actually committed), all through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s

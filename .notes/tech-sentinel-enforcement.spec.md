@@ -172,9 +172,11 @@ Actions auto-generates `<Workflow name> / <Job name>` (e.g. `"Formatting /
 Run prettier, editorconfig-checker, markdownlint"`, `"Commit Standards /
 Run commitlint"` — namespace already dropped, just the humanized task name
 
-- what ran), and Sentinel's own `Capability Compliance` check hand-authors
-  `"Sentinel / Capability Compliance"` (App / Report, no task to namespace
-  under — it isn't in the `astromech` TASKS registry at all).
+- what ran), and Sentinel's own config-compatibility check hand-authors
+  `"Sentinel / Platform / Compliance / Run Holocron config compatibility"`
+  (no task to namespace under — it isn't in the `astromech` TASKS registry
+  at all — so "Compliance" plays the label role instead, shared with the
+  DCO check once that shipped, holocron#900).
 
 Commit-message linting _does_ map onto a real vocabulary task
 (`platform.commitStandards`), so its check-run name should say so:
@@ -189,8 +191,15 @@ Mechanical rule for any future check that follows this pattern: `Sentinel
 Sentinel check is the centralized replacement for, and generalizes
 directly to whatever comes after commitlint (`Sentinel / Source Quality /
 Static Analysis / Run eslint and actionlint`, when eslint's turn comes).
-`Capability Compliance` stays the deliberate 2-tier exception — no
-namespace to carry through.
+
+Config-compatibility no longer stands as a 2-tier exception once DCO
+shipped (holocron#900) with the same shape — no astromech task behind
+either, both a provenance/baseline-type check rather than a CI-job
+mirror. `Compliance` now plays the label role those checks lack a real
+CI-job name for: `Platform / Compliance / Run Holocron config
+compatibility` and `Platform / Compliance / Run Developer Certificate of
+Origin`, hand-authored "commands" standing in for a CI job name neither
+check has.
 
 Title/summary still does the actionable work `"Commit standards: OK"`
 (all commits pass) or `"Commit standards: N commit(s) failed"` + a
