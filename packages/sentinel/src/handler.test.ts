@@ -13,6 +13,8 @@ vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.f
 vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
+vi.mock("./actions/dco/lint-dco.js", () => ({ lintDco: vi.fn() }));
+vi.mock("./actions/dco/post-dco-check.js", () => ({ postDcoCheck: vi.fn() }));
 vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
 vi.mock("./actions/editorconfig/commit-editorconfig-fix.js", () => ({ commitEditorConfigFix: vi.fn() }));
 vi.mock("./actions/editorconfig/lint-editorconfig.js", () => ({ lintEditorConfig: vi.fn() }));
@@ -42,6 +44,8 @@ import { postCheckRun } from "./actions/capability-compliance/post-check-run.js"
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
+import { lintDco } from "./actions/dco/lint-dco.js";
+import { postDcoCheck } from "./actions/dco/post-dco-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
 import { commitEditorConfigFix } from "./actions/editorconfig/commit-editorconfig-fix.js";
 import { lintEditorConfig } from "./actions/editorconfig/lint-editorconfig.js";
@@ -86,6 +90,8 @@ beforeEach(() => {
 	vi.mocked(postCheckRun).mockReset();
 	vi.mocked(lintCommits).mockReset();
 	vi.mocked(postCommitStandardsCheck).mockReset();
+	vi.mocked(lintDco).mockReset();
+	vi.mocked(postDcoCheck).mockReset();
 	vi.mocked(dispatchCheck).mockReset();
 	vi.mocked(lintFormatting).mockReset();
 	vi.mocked(postFormattingCheck).mockReset();
@@ -467,6 +473,61 @@ describe("handler — commit standards pipeline (holocron#769/#771)", () => {
 		expect(postCheckRun).toHaveBeenCalled();
 		const body = (await res.json()) as { commitStandardsCheckRun: unknown; checkRun: unknown };
 		expect(body.commitStandardsCheckRun).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+});
+
+describe("handler — DCO pipeline (holocron#900)", () => {
+	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
+		return {
+			type,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+			},
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("runs lintDco with the PR number, and posts the result", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintDco).mockResolvedValue({ valid: true, commitCount: 2, violations: [] });
+		vi.mocked(postDcoCheck).mockResolvedValue({ checkRunId: 8, conclusion: "success", htmlUrl: "https://x/8" });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(lintDco).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo", pullNumber: 9 });
+		expect(postDcoCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			result: { valid: true, commitCount: 2, violations: [] },
+			runId: "test-run-id",
+		});
+		const body = (await res.json()) as { dcoCheckRun: unknown };
+		expect(body.dcoCheckRun).toEqual({ checkRunId: 8, conclusion: "success", htmlUrl: "https://x/8" });
+	});
+
+	it("soft-skips a lintDco failure -- capability compliance still posts, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintDco).mockRejectedValue(new Error("Cannot find module (some unrelated failure)"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postDcoCheck).not.toHaveBeenCalled();
+		expect(syncPropertiesFromConfig).toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { dcoCheckRun: unknown; checkRun: unknown };
+		expect(body.dcoCheckRun).toBeUndefined();
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
 	});
 });
