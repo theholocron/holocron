@@ -14,6 +14,9 @@ vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckR
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
 vi.mock("./actions/dispatched-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
+vi.mock("./actions/editorconfig/commit-editorconfig-fix.js", () => ({ commitEditorConfigFix: vi.fn() }));
+vi.mock("./actions/editorconfig/lint-editorconfig.js", () => ({ lintEditorConfig: vi.fn() }));
+vi.mock("./actions/editorconfig/post-editorconfig-check.js", () => ({ postEditorConfigCheck: vi.fn() }));
 vi.mock("./actions/formatting/commit-formatting-fix.js", () => ({ commitFormattingFix: vi.fn() }));
 vi.mock("./actions/formatting/lint-formatting.js", () => ({ lintFormatting: vi.fn() }));
 vi.mock("./actions/formatting/post-auto-fix-comment.js", () => ({ postAutoFixComment: vi.fn() }));
@@ -39,6 +42,9 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
+import { commitEditorConfigFix } from "./actions/editorconfig/commit-editorconfig-fix.js";
+import { lintEditorConfig } from "./actions/editorconfig/lint-editorconfig.js";
+import { postEditorConfigCheck } from "./actions/editorconfig/post-editorconfig-check.js";
 import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting } from "./actions/formatting/lint-formatting.js";
 import { postAutoFixComment } from "./actions/formatting/post-auto-fix-comment.js";
@@ -88,6 +94,9 @@ beforeEach(() => {
 	vi.mocked(postAutoFixComment).mockReset();
 	vi.mocked(lintStaticAnalysis).mockReset();
 	vi.mocked(postStaticAnalysisCheck).mockReset();
+	vi.mocked(lintEditorConfig).mockReset();
+	vi.mocked(postEditorConfigCheck).mockReset();
+	vi.mocked(commitEditorConfigFix).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -1187,6 +1196,126 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		expect(res.status).toBe(200);
 		expect(commitFormattingFix).not.toHaveBeenCalled();
 		expect(postCheckRun).toHaveBeenCalled();
+	});
+});
+
+describe("handler — editorconfig auto-fix-commit pipeline", () => {
+	// autoFixOptedIn's own opt-in/opt-out resolution is one gate shared by
+	// both formatting's and editorconfig's auto-fix-commit -- every edge
+	// case of that resolution is already covered by the formatting pipeline
+	// suite above (same code path, same `sourceQuality.formatting` task
+	// name). These tests only cover editorconfig's own invocation once
+	// opted in, not the gate logic a second time.
+	function prEvent() {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha", ref: "feature-branch" } },
+			},
+		};
+	}
+
+	const invalidLintResult = {
+		valid: false,
+		fileCount: 1,
+		messages: [{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }],
+		fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+	};
+
+	function configWithAutoFix(autoFix: boolean) {
+		return {
+			status: "valid" as const,
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(postEditorConfigCheck).mockResolvedValue({ checkRunId: 2, conclusion: "failure", htmlUrl: "" });
+	});
+
+	it("commits the fix when opted in and lintEditorConfig reports violations", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintEditorConfig).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitEditorConfigFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitEditorConfigFix).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			headRef: "feature-branch",
+			result: invalidLintResult,
+		});
+		const body = (await res.json()) as { editorConfigFixResult: unknown };
+		expect(body.editorConfigFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("does not commit when lintEditorConfig reports the PR is already valid", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintEditorConfig).mockResolvedValue({ valid: true, fileCount: 2, messages: [], fixes: [] });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitEditorConfigFix).not.toHaveBeenCalled();
+	});
+
+	it("does not commit when neither the default-branch nor the PR's own branch opted in", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(false));
+		vi.mocked(lintEditorConfig).mockResolvedValue(invalidLintResult);
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitEditorConfigFix).not.toHaveBeenCalled();
+		const body = (await res.json()) as { editorConfigFixResult: unknown };
+		expect(body.editorConfigFixResult).toBeUndefined();
+	});
+
+	it("soft-skips a commitEditorConfigFix failure -- capability compliance still posts, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintEditorConfig).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitEditorConfigFix).mockRejectedValue(new Error("git commit failed"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { editorConfigFixResult: unknown; checkRun: unknown };
+		expect(body.editorConfigFixResult).toBeUndefined();
+		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("commits both formatting's and editorconfig's fixes independently in the same request", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(postFormattingCheck).mockResolvedValue({ checkRunId: 3, conclusion: "neutral", htmlUrl: "" });
+		vi.mocked(lintFormatting).mockResolvedValue({
+			valid: false,
+			fileCount: 1,
+			messages: [{ file: "src/other.ts", line: 1, reason: "reformat me", formatted: "const y = 2;\n" }],
+		});
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
+		vi.mocked(lintEditorConfig).mockResolvedValue(invalidLintResult);
+		vi.mocked(commitEditorConfigFix).mockResolvedValue({ committed: true, commitSha: "ec-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalled();
+		expect(commitEditorConfigFix).toHaveBeenCalled();
+		const body = (await res.json()) as { formattingFixResult: unknown; editorConfigFixResult: unknown };
+		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
+		expect(body.editorConfigFixResult).toEqual({ committed: true, commitSha: "ec-commit", fileCount: 1 });
 	});
 });
 

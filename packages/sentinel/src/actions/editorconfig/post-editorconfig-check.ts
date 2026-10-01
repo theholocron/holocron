@@ -1,13 +1,17 @@
 /**
- * Posts one check run reflecting `lintEditorConfig()`'s result — same shape
- * and same advisory-only conclusion as `post-formatting-check.ts` (prettier):
- * `.editorconfig` findings are 100% mechanical, with no severity axis to
- * split on, so `conclusion` never resolves to `"failure"` here regardless
- * of finding count — see `lint-editorconfig.ts`'s own module docstring for
- * why this deliberately doesn't follow eslint/markdownlint/alex's
- * merge-blocking treatment. Calls `@theholocron/github-client`'s
- * `checks.createCheckRun()` directly — Sentinel isn't a plugin, and this is
- * a single REST call with nothing else to wrap.
+ * Posts one check run reflecting `lintEditorConfig()`'s result. Unlike
+ * `post-formatting-check.ts` (prettier), `conclusion` DOES resolve to
+ * `"failure"` on any violation — but every property this check covers is
+ * also auto-fixable (`commit-editorconfig-fix.ts`, wired in `handler.ts`
+ * right after this posts), so a failure here is meant to be transient:
+ * the auto-fix commit supersedes it with a passing check on the new
+ * commit. A failure that survives means the fix couldn't be applied
+ * automatically (`indent_style`'s own best-effort limits — see
+ * `lint-editorconfig.ts`'s module docstring) and a human needs to act on
+ * the same annotations this check already posted. Calls
+ * `@theholocron/github-client`'s `checks.createCheckRun()` directly —
+ * Sentinel isn't a plugin, and this is a single REST call with nothing
+ * else to wrap.
  */
 
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
@@ -25,7 +29,7 @@ function formatMessage(m: EditorConfigMessage): string {
 /** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as every other Bucket 1 check's own cap. */
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
-/** One annotation per message, at the first offending line. `notice` — advisory, matches this check's own always-`"neutral"` (never `"failure"`) conclusion. */
+/** One annotation per message, at the first offending line. `notice` — same level eslint/markdownlint's own failure-capable checks already use for their annotations; `conclusion` (not `annotation_level`) is what actually drives merge-blocking. */
 function buildAnnotations(messages: EditorConfigMessage[]): CheckRunAnnotation[] {
 	return messages.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((m) => ({
 		path: m.file,
@@ -56,7 +60,7 @@ export interface PostEditorConfigCheckResult {
 
 export async function postEditorConfigCheck(input: PostEditorConfigCheckInput): Promise<PostEditorConfigCheckResult> {
 	const { client, repo, headSha, result, runId } = input;
-	const conclusion: CheckRunConclusion = result.valid ? "success" : "neutral";
+	const conclusion: CheckRunConclusion = result.valid ? "success" : "failure";
 
 	const title = result.valid ? "Editorconfig: OK" : `Editorconfig: ${result.messages.length} finding(s)`;
 	const summary = result.valid

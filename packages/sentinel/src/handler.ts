@@ -36,11 +36,17 @@
  *   `pull_request.*` only, reads the repo's own `.editorconfig` from the
  *   PR's head ref (a real per-repo file — the only Bucket 1 check that
  *   reads one — since `.editorconfig` conventionally lives per-repo, not
- *   as a shared org config). Purely advisory, same as formatting and for
- *   the same reason: no severity axis to split on, and 100% mechanically
- *   fixable — see `lint-editorconfig.ts`'s own module docstring for why
- *   the value-checking logic is a deliberate, narrow reimplementation
- *   (no real importable library exists for it, unlike every other check).
+ *   as a shared org config). Unlike formatting, `conclusion: "failure"`
+ *   on any violation — but every property it checks is also auto-fixed
+ *   (`commitEditorConfigFix`, part of the same auto-fix-commit gate below
+ *   formatting's own fix uses) in the same handler invocation, so a
+ *   failure here is meant to be transient: the fix commit's own push
+ *   fires a fresh webhook that supersedes it with a passing check. A
+ *   failure that survives means `indent_style`'s best-effort fix couldn't
+ *   safely resolve it — see `lint-editorconfig.ts`'s own module docstring
+ *   for why the value-checking/fixing logic is a deliberate, narrow
+ *   reimplementation (no real importable library exists for either, unlike
+ *   every other check).
  * - **Documentation** (`lintMarkdown → postMarkdownLintCheck`,
  *   holocron#769/#821): `pull_request.*` only, same reason and same
  *   config-free shape as the other three Bucket 1 checks — reads
@@ -86,26 +92,32 @@
  *   merge. `pull_request.*` only. Hoisted (not scoped to its own try) so
  *   the auto-fix-commit gate further down reuses this same PR-branch read
  *   instead of fetching it a second time.
- * - **Auto-fix-commit** (`commitFormattingFix`, holocron#820): the one
- *   exception to every check above being config-free — writing to repo
- *   content is qualitatively different from reading and reporting.
- *   Default-on (holocron#864 follow-up: prettier's fix is mechanical and
- *   deterministic, so there's no human judgment call for a finding to
- *   surface in the first place); opt out via `{ name:
- *   "sourceQuality.formatting", with: { autoFix: false } }` in
- *   `holocron.config.ts`'s `tasks` array. Reuses PR Config Validation's own
- *   PR-branch read above — the PR's own branch gets the final say when it
- *   declares an explicit value (letting a PR opt itself in or out before
- *   that same config change merges to main); the merged config's explicit
- *   value is the fallback. Fires only when not opted out *and* the
- *   Formatting check above actually found something to fix — reuses
- *   `lintFormatting()`'s already-computed `format()` output rather than
- *   re-running prettier. One atomic commit via the Git Data API (blob →
- *   tree → commit → ref-update), pushed directly onto the PR's own head
- *   branch. Requires `Contents: Write` — see the README's permissions
- *   table. **Trade-off, not a bug**: this is a new push, so it retriggers
- *   the full required-checks suite a second time — real CI cost and merge
- *   latency for any PR that needed reformatting.
+ * - **Auto-fix-commit** (`commitFormattingFix` + `commitEditorConfigFix`,
+ *   holocron#820): the one exception to every check above being
+ *   config-free — writing to repo content is qualitatively different from
+ *   reading and reporting. Both actions share one gate and one opt-out,
+ *   since editorconfig is already bundled under the same
+ *   `sourceQuality.formatting` task (astromech's registry `linterGroup`) —
+ *   there's no separate `autoFix` flag to track per sub-check. Default-on
+ *   (holocron#864 follow-up: both fixes are mechanical and deterministic,
+ *   so there's no human judgment call for a finding to surface in the
+ *   first place); opt out via `{ name: "sourceQuality.formatting", with: {
+ *   autoFix: false } }` in `holocron.config.ts`'s `tasks` array. Reuses PR
+ *   Config Validation's own PR-branch read above — the PR's own branch
+ *   gets the final say when it declares an explicit value (letting a PR
+ *   opt itself in or out before that same config change merges to main);
+ *   the merged config's explicit value is the fallback. Each action fires
+ *   independently when not opted out *and* its own lint step actually
+ *   found something to fix — reusing `lintFormatting()`'s/
+ *   `lintEditorConfig()`'s already-computed fixed output rather than
+ *   re-running prettier/re-resolving `.editorconfig`. Two atomic commits
+ *   (one per check, since they can disagree about whether a fix was even
+ *   possible) via the Git Data API (blob → tree → commit → ref-update),
+ *   each pushed directly onto the PR's own head branch. Requires
+ *   `Contents: Write` — see the README's permissions table. **Trade-off,
+ *   not a bug**: each commit is a new push, so it retriggers the full
+ *   required-checks suite again — real CI cost and merge latency for any
+ *   PR that needed fixing.
  * - **Auto-fix PR comment** (`postAutoFixComment`, holocron#674/#834):
  *   explains what the commit above just changed — which files, and the
  *   commit SHA. Fires only when `commitFormattingFix` actually committed
@@ -155,7 +167,8 @@ import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-p
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
 import { postCommitStandardsCheck } from "./actions/commit-standards/post-commit-standards-check.js";
 import { dispatchCheck } from "./actions/dispatched-check/dispatch-check.js";
-import { lintEditorConfig } from "./actions/editorconfig/lint-editorconfig.js";
+import { commitEditorConfigFix } from "./actions/editorconfig/commit-editorconfig-fix.js";
+import { lintEditorConfig, type LintEditorConfigResult } from "./actions/editorconfig/lint-editorconfig.js";
 import { postEditorConfigCheck } from "./actions/editorconfig/post-editorconfig-check.js";
 import { commitFormattingFix } from "./actions/formatting/commit-formatting-fix.js";
 import { lintFormatting, type LintFormattingResult } from "./actions/formatting/lint-formatting.js";
@@ -173,6 +186,7 @@ import {
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
+	SENTINEL_EDITORCONFIG_FIX_LOG_MSG,
 	SENTINEL_EDITORCONFIG_LOG_MSG,
 	SENTINEL_FORMATTING_FIX_LOG_MSG,
 	SENTINEL_FORMATTING_LOG_MSG,
@@ -466,10 +480,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	}
 
 	// Same PR-only scoping and soft-skip reasoning as commit standards/
-	// inclusive language/formatting above -- same advisory-only, no-severity-
-	// axis treatment as formatting too (see lint-editorconfig.ts's own
-	// module docstring).
+	// inclusive language/formatting above. `editorConfigLintResult` is
+	// hoisted (not declared inside the try) so the auto-fix-commit gate
+	// further down can read it without re-running lintEditorConfig a
+	// second time -- same reasoning as formattingLintResult above.
 	let editorConfigCheckRun;
+	let editorConfigLintResult: LintEditorConfigResult | undefined;
 	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
 		try {
 			const lintResult = await lintEditorConfig({
@@ -478,6 +494,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				pullNumber: context.pullNumber,
 				ref: context.headSha,
 			});
+			editorConfigLintResult = lintResult;
 			editorConfigCheckRun = await postEditorConfigCheck({
 				client,
 				repo,
@@ -688,77 +705,95 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// final say when it declares an explicit value (letting a PR opt itself
 	// in or out before that same config change merges to main); the merged
 	// config's explicit value is the fallback; absent either, on by default,
-	// since prettier's fix is mechanical and deterministic -- there's no
-	// human judgment call for a finding to surface in the first place. The
-	// PR-branch read only ever feeds this boolean decision, never anything
-	// persisted (see validate-config.ts's own module docstring for the
-	// boundary that keeps this safe) -- unlike every other check above,
-	// config-free by design, this is the one exception, since writing to
-	// repo content is qualitatively different from reading and reporting.
-	// Only fires when: not opted out, lintFormatting actually ran and found
-	// something to fix, and this is a PR event with a real head branch to
-	// push to (a push to the default branch has no PR branch to commit
-	// onto). Soft-skip over hard-fail, same reasoning as every check above:
-	// a commit failure must never take capability compliance down with it.
+	// since both fixes (prettier's and editorconfig's) are mechanical and
+	// deterministic -- there's no human judgment call for a finding to
+	// surface in the first place. The PR-branch read only ever feeds this
+	// boolean decision, never anything persisted (see validate-config.ts's
+	// own module docstring for the boundary that keeps this safe) -- unlike
+	// every other check above, config-free by design, this is the one
+	// exception, since writing to repo content is qualitatively different
+	// from reading and reporting. One flag gates both actions below --
+	// editorconfig is already bundled under this same task's `linterGroup`
+	// (astromech's registry), so there's no separate knob to track.
+	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
+	const mergedAutoFix = formattingTask?.with?.["autoFix"];
+	let prAutoFix: unknown;
+	if (prConfigResult?.status === "valid") {
+		const prFormattingTask = (prConfigResult.config.tasks ?? [])
+			.map(normalizeTaskEntry)
+			.find((t) => t.name === "sourceQuality.formatting");
+		prAutoFix = prFormattingTask?.with?.["autoFix"];
+	}
+	const autoFixOptedIn =
+		typeof prAutoFix === "boolean" ? prAutoFix : typeof mergedAutoFix === "boolean" ? mergedAutoFix : true;
+
+	// Formatting's own commit + explanatory PR comment. Only fires when: not
+	// opted out, lintFormatting actually ran and found something to fix, and
+	// this is a PR event with a real head branch to push to (a push to the
+	// default branch has no PR branch to commit onto). Soft-skip over
+	// hard-fail, same reasoning as every check above: a commit failure must
+	// never take capability compliance down with it.
 	let formattingFixResult;
 	let autoFixCommentResult;
-	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
-	if (formattingLintResult && !formattingLintResult.valid && context.headRef) {
-		// Default-on (holocron#864 follow-up): prettier's fix is mechanical and
-		// deterministic -- surfacing it as a finding for a human to act on is
-		// the wrong shape when the tool can just apply it. The PR's own branch
-		// gets the final say when it has an explicit opinion (matching the
-		// pre-default-on precedent: a PR could opt in for itself before that
-		// same config change merged to main); the merged config's explicit
-		// value is the fallback; absent either, default to on.
-		const mergedAutoFix = formattingTask?.with?.["autoFix"];
-		let prAutoFix: unknown;
-		if (prConfigResult?.status === "valid") {
-			const prFormattingTask = (prConfigResult.config.tasks ?? [])
-				.map(normalizeTaskEntry)
-				.find((t) => t.name === "sourceQuality.formatting");
-			prAutoFix = prFormattingTask?.with?.["autoFix"];
-		}
-		const autoFixOptedIn =
-			typeof prAutoFix === "boolean" ? prAutoFix : typeof mergedAutoFix === "boolean" ? mergedAutoFix : true;
+	if (autoFixOptedIn && formattingLintResult && !formattingLintResult.valid && context.headRef) {
+		try {
+			formattingFixResult = await commitFormattingFix({
+				client,
+				repo,
+				headSha: context.headSha,
+				headRef: context.headRef,
+				result: formattingLintResult,
+			});
+			logger.info(
+				{ repo, committed: formattingFixResult.committed, fileCount: formattingFixResult.fileCount },
+				SENTINEL_FORMATTING_FIX_LOG_MSG
+			);
 
-		if (autoFixOptedIn) {
-			try {
-				formattingFixResult = await commitFormattingFix({
-					client,
-					repo,
-					headSha: context.headSha,
-					headRef: context.headRef,
-					result: formattingLintResult,
-				});
-				logger.info(
-					{ repo, committed: formattingFixResult.committed, fileCount: formattingFixResult.fileCount },
-					SENTINEL_FORMATTING_FIX_LOG_MSG
-				);
-
-				// PR comment (holocron#674/#834) -- explains what the commit
-				// above just changed. Its own soft-skip, separate from the
-				// commit's: a comment failure must never make an otherwise-
-				// successful auto-fix commit look like it failed too.
-				if (formattingFixResult.committed && context.pullNumber !== undefined) {
-					try {
-						autoFixCommentResult = await postAutoFixComment({
-							client,
-							repo,
-							pullNumber: context.pullNumber,
-							fixResult: formattingFixResult,
-							lintResult: formattingLintResult,
-						});
-					} catch (err) {
-						logger.error(
-							{ repo, err: serializeError(err) },
-							"postAutoFixComment: failed, continuing without it"
-						);
-					}
+			// PR comment (holocron#674/#834) -- explains what the commit
+			// above just changed. Its own soft-skip, separate from the
+			// commit's: a comment failure must never make an otherwise-
+			// successful auto-fix commit look like it failed too.
+			if (formattingFixResult.committed && context.pullNumber !== undefined) {
+				try {
+					autoFixCommentResult = await postAutoFixComment({
+						client,
+						repo,
+						pullNumber: context.pullNumber,
+						fixResult: formattingFixResult,
+						lintResult: formattingLintResult,
+					});
+				} catch (err) {
+					logger.error(
+						{ repo, err: serializeError(err) },
+						"postAutoFixComment: failed, continuing without it"
+					);
 				}
-			} catch (err) {
-				logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
 			}
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
+		}
+	}
+
+	// Editorconfig's own commit -- same gate, same reasoning, no explanatory
+	// PR comment (unlike formatting): a failing check with its own
+	// annotations already explains what's wrong, and a second comment on
+	// top would be redundant noise for findings this narrow.
+	let editorConfigFixResult;
+	if (autoFixOptedIn && editorConfigLintResult && !editorConfigLintResult.valid && context.headRef) {
+		try {
+			editorConfigFixResult = await commitEditorConfigFix({
+				client,
+				repo,
+				headSha: context.headSha,
+				headRef: context.headRef,
+				result: editorConfigLintResult,
+			});
+			logger.info(
+				{ repo, committed: editorConfigFixResult.committed, fileCount: editorConfigFixResult.fileCount },
+				SENTINEL_EDITORCONFIG_FIX_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "commitEditorConfigFix: failed, continuing without it");
 		}
 	}
 
@@ -774,6 +809,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		prConfigValidationCheckRun,
 		formattingFixResult,
 		autoFixCommentResult,
+		editorConfigFixResult,
 		dispatchedCheckRun,
 		staticAnalysisCheckRun,
 	});

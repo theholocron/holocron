@@ -23,7 +23,7 @@ describe("postEditorConfigCheck — valid", () => {
 			client,
 			repo: "acme/demo",
 			headSha: "abc123",
-			result: { valid: true, fileCount: 3, messages: [] },
+			result: { valid: true, fileCount: 3, messages: [], fixes: [] },
 			runId: "run-1",
 		});
 
@@ -50,8 +50,8 @@ describe("postEditorConfigCheck — valid", () => {
 });
 
 describe("postEditorConfigCheck — findings", () => {
-	it("posts a neutral (not failure) check run -- editorconfig findings are always advisory, no severity axis to split on", async () => {
-		const { client } = makeClient([{ status: 201, body: { id: 2, conclusion: "neutral" } }]);
+	it("posts a failure check run -- transient, since every checked property is also auto-fixable (see lint-editorconfig.ts)", async () => {
+		const { client } = makeClient([{ status: 201, body: { id: 2, conclusion: "failure" } }]);
 
 		const result = await postEditorConfigCheck({
 			client,
@@ -61,15 +61,16 @@ describe("postEditorConfigCheck — findings", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }],
+				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
 			},
 			runId: "run-2",
 		});
 
-		expect(result.conclusion).toBe("neutral");
+		expect(result.conclusion).toBe("failure");
 	});
 
 	it("formats each message as one summary line: file:line: reason", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 3, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 3, conclusion: "failure" } }]);
 
 		await postEditorConfigCheck({
 			client,
@@ -79,6 +80,7 @@ describe("postEditorConfigCheck — findings", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [{ file: "src/index.ts", line: 12, reason: "Missing final newline." }],
+				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
 			},
 			runId: "run-3",
 		});
@@ -93,7 +95,7 @@ describe("postEditorConfigCheck — findings", () => {
 
 describe("postEditorConfigCheck — inline annotations (holocron#816)", () => {
 	it("builds one annotation per message, at notice level", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "failure" } }]);
 
 		await postEditorConfigCheck({
 			client,
@@ -103,6 +105,7 @@ describe("postEditorConfigCheck — inline annotations (holocron#816)", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [{ file: "src/index.ts", line: 42, reason: "Trailing whitespace." }],
+				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
 			},
 			runId: "run-4",
 		});
@@ -132,7 +135,7 @@ describe("postEditorConfigCheck — inline annotations (holocron#816)", () => {
 	});
 
 	it("caps annotations at 50, GitHub's own per-request limit -- the full list still reaches output.text uncapped", async () => {
-		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "neutral" } }]);
+		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "failure" } }]);
 		const messages = Array.from({ length: 55 }, (_, i) => ({
 			file: `src/file-${i}.ts`,
 			line: 1,
@@ -143,7 +146,7 @@ describe("postEditorConfigCheck — inline annotations (holocron#816)", () => {
 			client,
 			repo: "acme/demo",
 			headSha: "abc123",
-			result: { valid: false, fileCount: 55, messages },
+			result: { valid: false, fileCount: 55, messages, fixes: [] },
 			runId: "run-5",
 		});
 
@@ -159,7 +162,7 @@ describe("postEditorConfigCheck — inline annotations (holocron#816)", () => {
 			client,
 			repo: "acme/demo",
 			headSha: "abc123",
-			result: { valid: true, fileCount: 2, messages: [] },
+			result: { valid: true, fileCount: 2, messages: [], fixes: [] },
 			runId: "run-6",
 		});
 
