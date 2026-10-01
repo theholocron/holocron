@@ -1,3 +1,9 @@
+## [8.7.0](https://github.com/theholocron/configs/compare/v8.6.1...v8.7.0) (2026-10-01)
+
+### Features
+
+* **markdownlint-config:** ✨ curate per-rule severity ([#496](https://github.com/theholocron/configs/issues/496)) ([3f7a8fe](https://github.com/theholocron/configs/commit/3f7a8fed3ac0bd8fd424330a74216eb3e055b58b)), closes [holocron#860](https://github.com/theholocron/holocron/issues/860) [#495](https://github.com/theholocron/configs/issues/495)
+
 ## [8.6.1](https://github.com/theholocron/configs/compare/v8.6.0...v8.6.1) (2026-09-30)
 
 ### Bug Fixes
