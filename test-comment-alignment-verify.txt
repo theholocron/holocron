@@ -1,0 +1,6 @@
+function f() {
+	/**
+	 * A comment aligned under the asterisk.
+	 */
+	return 1;
+}
