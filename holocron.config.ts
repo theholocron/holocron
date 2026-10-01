@@ -63,7 +63,7 @@ export default defineConfig({
 		"codecov/patch/holocron-plugin-sentry",
 		"codecov/patch/holocron-plugin-slack",
 		"codecov/patch/holocron-plugin-vercel",
-		"Platform / Capability Compliance",
+		"Platform / Compliance / Run Holocron config compatibility",
 		"Platform / Commit Standards / Run commitlint",
 		"Source Quality / Formatting / Run editorconfig",
 		"Source Quality / Static Analysis / Run eslint",

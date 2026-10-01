@@ -160,8 +160,15 @@ instead of retyping.
 
 Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
-six more independent Bucket 1 check pipelines — commit standards
-(commitlint), inclusive language (alex), formatting (prettier,
+seven more independent Bucket 1 check pipelines — commit standards
+(commitlint), DCO (holocron#900 — the org-wide replacement for
+`probot/dcoapp`; no real tool to delegate to, so a deliberate, narrow
+reimplementation of the one stable rule — every commit needs a
+`Signed-off-by` trailer matching its own author or committer identity,
+case-insensitively; merge commits and bot-authored commits are exempt;
+runs alongside the existing probot/dcoapp install for now, not instead
+of it — see `src/actions/dco/lint-dco.ts`'s own module docstring),
+inclusive language (alex), formatting (prettier,
 holocron#819, purely advisory — no severity axis, 100% mechanical),
 editorconfig (the `editorconfig` package's own `matcher()` API resolving
 each changed file's properties purely in-memory; unlike formatting,
@@ -185,10 +192,11 @@ actions — `commitFormattingFix`, `commitEditorConfigFix`,
 same task; default-on (holocron#864 follow-up), opt out via the repo's
 merged config or fresh in a PR's own branch, either way), and the
 advisory PR Config Validation check (holocron#827 — posted as `Platform
-/ Capability Compliance (pull_request)`, a "(pull_request)" suffix on
-the same concept, not a distinct name; validates a PR's own branch
-immediately, without waiting for merge, kept separate from the required
-`Platform / Capability Compliance` check above), and a PR comment
+/ Compliance / Run Holocron config compatibility (pull_request)`, a
+"(pull_request)" suffix on the same concept, not a distinct name;
+validates a PR's own branch immediately, without waiting for merge,
+kept separate from the required `Platform / Compliance / Run Holocron
+config compatibility` check above), and a PR comment
 explaining what auto-fix-commit changed (holocron#674/#834, executes
 only when a fix was actually committed), all through an
 installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
