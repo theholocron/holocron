@@ -434,6 +434,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 				headSha: context.headSha,
 				result: lintResult,
 				runId,
+				headRef: context.headRef,
 			});
 			// Matches SENTINEL_DCO_LOG_MSG exactly -- the check's own details_url
 			// is a query filtered to find this precise line.

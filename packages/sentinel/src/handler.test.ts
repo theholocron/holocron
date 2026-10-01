@@ -485,7 +485,7 @@ describe("handler — DCO pipeline (holocron#900)", () => {
 			installationId: 42,
 			raw: {
 				repository: { default_branch: "main" },
-				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+				pull_request: { number: 9, head: { sha: "pr-head-sha", ref: "feature-branch" } },
 			},
 		};
 	}
@@ -511,6 +511,7 @@ describe("handler — DCO pipeline (holocron#900)", () => {
 			headSha: "pr-head-sha",
 			result: { valid: true, commitCount: 2, violations: [] },
 			runId: "test-run-id",
+			headRef: "feature-branch",
 		});
 		const body = (await res.json()) as { dcoCheckRun: unknown };
 		expect(body.dcoCheckRun).toEqual({ checkRunId: 8, conclusion: "success", htmlUrl: "https://x/8" });
