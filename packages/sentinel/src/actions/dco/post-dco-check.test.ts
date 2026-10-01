@@ -49,6 +49,52 @@ describe("postDcoCheck — valid", () => {
 	});
 });
 
+describe("postDcoCheck — remediation guidance", () => {
+	it("includes only the rebase path, never dcoapp's remediation-commit recipe (lint-dco.ts's own deliberately-NOT-ported call)", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 4, conclusion: "failure" } }]);
+
+		await postDcoCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				commitCount: 2,
+				violations: [{ sha: "bad0001deadbeef", author: "Ada Lovelace <ada@example.com>" }],
+			},
+			runId: "run-4",
+			headRef: "feature/my-branch",
+		});
+
+		const body = calls[0]?.body as { output: { text: string } };
+		expect(body.output.text).toContain("always include `Signed-off-by: Author Name <authoremail@example.com>`");
+		expect(body.output.text).toContain("git commit -s");
+		expect(body.output.text).toContain("## Rebase the branch");
+		expect(body.output.text).toContain("git rebase HEAD~2 --signoff");
+		expect(body.output.text).toContain("git push --force-with-lease origin feature/my-branch");
+		expect(body.output.text).not.toContain("Remediation Commit");
+	});
+
+	it("falls back to a placeholder branch name when headRef is unavailable", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: { id: 5, conclusion: "failure" } }]);
+
+		await postDcoCheck({
+			client,
+			repo: "acme/demo",
+			headSha: "abc123",
+			result: {
+				valid: false,
+				commitCount: 1,
+				violations: [{ sha: "bad0001", author: "Ada Lovelace <ada@example.com>" }],
+			},
+			runId: "run-5",
+		});
+
+		const body = calls[0]?.body as { output: { text: string } };
+		expect(body.output.text).toContain("git push --force-with-lease origin <branch>");
+	});
+});
+
 describe("postDcoCheck — findings", () => {
 	it("posts a failure check run -- DCO is a provenance requirement, always merge-blocking, not severity-based", async () => {
 		const { client } = makeClient([{ status: 201, body: { id: 2, conclusion: "failure" } }]);
@@ -87,8 +133,7 @@ describe("postDcoCheck — findings", () => {
 		expect(body.output.title).toBe("DCO: 1 commit(s) missing a sign-off");
 		expect(body.output.summary).toBe("1 of 2 commit(s) are missing a Signed-off-by trailer — see details below.");
 		expect(body.output.text).toContain("bad0001: Ada Lovelace <ada@example.com>");
-		expect(body.output.text).toContain("git commit --amend -s");
-		expect(body.output.text).toContain("git rebase --signoff");
+		expect(body.output.text).toContain("git rebase HEAD~2 --signoff");
 		expect(body.output.text).toContain("Run ID: `run-3`");
 	});
 });
