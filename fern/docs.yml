@@ -70,6 +70,10 @@ navigation:
             contents:
               - page: Stale
                 path: ../docs/wiki/standards/stale-workflow.md
+          - section: Source Quality
+            contents:
+              - page: Markdownlint rule severity
+                path: ../docs/wiki/standards/markdownlint-rule-severity.md
 
   - tab: specifications
     layout:
