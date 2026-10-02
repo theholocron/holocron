@@ -47,6 +47,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { vercelEngines } from "./vercel-engines.mjs";
+
 const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = join(packageDir, ".vercel-deploy");
 
@@ -85,7 +87,7 @@ function main() {
 		// Vercel picks the function's Node version from this field, falling
 		// back to the project's dashboard default without it (holocron#909: that
 		// default was too old for require(esm), and the WASM engines want >=22).
-		engines: pkg.engines,
+		engines: vercelEngines(pkg.engines),
 		dependencies,
 	};
 	writeFileSync(join(outDir, "package.json"), JSON.stringify(deployPkg, null, 2) + "\n");

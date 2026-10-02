@@ -264,7 +264,12 @@ environment for Sentinel (see "Why production only" below). Builds,
 assembles the deploy payload, then calls `holocron deploy --files
 --target production`, which calls `deployFunction()` — no linked Git
 repo required, since this ships as an npm package, not a
-deployed-from-source-control app.
+deployed-from-source-control app. `holocron deploy` then waits for Vercel to finish
+building the deployment and fails (non-zero exit, with Vercel's own
+error message) unless it ends `ready`. Vercel builds asynchronously,
+and before holocron#911 an `npm install` failure there was reported as
+a successful deploy while production quietly kept serving the previous
+one.
 
 ### Custom domain (one-time)
 
@@ -312,13 +317,17 @@ shape (`export default { fetch(request) {...} }`) is already
 preset's default) — so deploying `dist/` alone isn't enough; Vercel
 needs to `npm install` them. `scripts/stage-deploy.mjs` assembles
 `.vercel-deploy/` — `api/webhook.mjs` + `dist/index.mjs` + a **trimmed**
-`package.json` (name/version/type + `dependencies` only, no
+`package.json` (name/version/type + `engines` + `dependencies` only, no
 devDependencies/scripts, each dependency pinned to the exact version
 resolved in `node_modules` right now — not the `workspace:`/`catalog:`
 pnpm protocol specifiers Vercel's plain `npm install` can't resolve).
 Deploy from a synced `alpha` checkout (packages publish on every
 merge), not an unreleased local branch, or a pinned version can 404
-against the registry.
+against the registry. `engines.node` is rewritten from this package's own range
+to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
+`scripts/vercel-engines.mjs`): Vercel picks the function's Node version
+from it, and rejects an open range with `invalid_version_value`
+(holocron#911).
 
 ## GitHub App registration (manual, one-time)
 
