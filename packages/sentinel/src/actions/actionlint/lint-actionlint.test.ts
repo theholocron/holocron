@@ -1,8 +1,16 @@
+import { createRequire } from "node:module";
+
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { extractRunScripts, lintActionlint, sanitizeExpressions, shellcheckDialect } from "./lint-actionlint.js";
+import {
+	extractRunScripts,
+	lintActionlint,
+	RUN_LINT_PATH,
+	sanitizeExpressions,
+	shellcheckDialect,
+} from "./lint-actionlint.js";
 
 function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
@@ -83,6 +91,19 @@ describe("lintActionlint — which files it reads", () => {
 
 		expect(calls).toHaveLength(1);
 		expect(result).toEqual({ valid: true, fileCount: 0, messages: [] });
+	});
+});
+
+describe("lintActionlint — loading the actionlint engine (holocron#909)", () => {
+	it("loads only the fork's run-lint.js, never its CLI log helper or the ESM-only chalk it requires", async () => {
+		await lintOne(CLEAN);
+
+		// Node's own CommonJS module cache -- the same one lint-actionlint's createRequire() populates.
+		const loaded = Object.keys(createRequire(import.meta.url).cache);
+		expect(loaded).toContain(RUN_LINT_PATH);
+		expect(
+			loaded.filter((path) => /node-actionlint[\\/](build[\\/]get-lint-log|node_modules[\\/]chalk)/.test(path))
+		).toEqual([]);
 	});
 });
 
