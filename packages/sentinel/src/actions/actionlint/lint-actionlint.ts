@@ -41,6 +41,7 @@
 
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 
@@ -74,15 +75,28 @@ type RunLint = (source: string, path: string) => Promise<ActionlintResult[]>;
 /**
  * `createRequire`, not `import`: the fork's ESM build calls `require()`
  * internally and throws `ERR_AMBIGUOUS_MODULE_SYNTAX`; its CommonJS build
- * (the `require` export condition) works. Loaded lazily — instantiating the
- * 9 MB WASM module costs ~120 ms, which only a PR touching a workflow file
- * should pay.
+ * (the `require` export condition) works.
+ *
+ * `build/run-lint.js` directly, not the package's main entry: `build/index.js`
+ * also loads the CLI's `get-lint-log.js`, which `require()`s chalk v5 —
+ * ESM-only, so `ERR_REQUIRE_ESM` on any Node without `require(esm)`
+ * (< 20.19 / < 22.12). Found live on Vercel (holocron#909): every local
+ * Node here was new enough to hide it. `run-lint.js` needs only `fs`,
+ * `path` and the Go WASM runtime. Its subpath isn't in the package's
+ * `exports` map, so it's resolved as an absolute path next to the main
+ * entry, which `exports` doesn't police.
+ *
+ * Loaded lazily — instantiating the 9 MB WASM module costs ~120 ms, which
+ * only a PR touching a workflow file should pay.
  */
 const require = createRequire(import.meta.url);
 
+/** Absolute path to the fork's `build/run-lint.js` — exported for the regression test that keeps chalk unloaded. */
+export const RUN_LINT_PATH = join(dirname(require.resolve("@tktco/node-actionlint")), "run-lint.js");
+
 let runActionlint: RunLint | undefined;
 function actionlint(): RunLint {
-	runActionlint ??= (require("@tktco/node-actionlint") as { runLint: RunLint }).runLint;
+	runActionlint ??= (require(RUN_LINT_PATH) as { runLint: RunLint }).runLint;
 	return runActionlint;
 }
 

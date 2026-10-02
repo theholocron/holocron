@@ -24,7 +24,7 @@
  *                          this function's node_modules is already fully controlled
  *                          by the trimmed `package.json` below (nothing extra to
  *                          prune), there's no upside to nft's pruning here, only risk.
- *     package.json      — trimmed: name/version/type + dependencies only,
+ *     package.json      — trimmed: name/version/type/engines + dependencies only,
  *                          each pinned to the exact version actually
  *                          resolved in node_modules right now (not the
  *                          "workspace:" / "catalog:" pnpm protocol
@@ -82,6 +82,10 @@ function main() {
 		name: pkg.name,
 		version: pkg.version,
 		type: "module",
+		// Vercel picks the function's Node version from this field, falling
+		// back to the project's dashboard default without it (holocron#909: that
+		// default was too old for require(esm), and the WASM engines want >=22).
+		engines: pkg.engines,
 		dependencies,
 	};
 	writeFileSync(join(outDir, "package.json"), JSON.stringify(deployPkg, null, 2) + "\n");
