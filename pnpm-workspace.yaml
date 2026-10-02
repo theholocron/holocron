@@ -14,10 +14,12 @@ catalog:
   "@inquirer/search": ^4.3.3
   "@sentry/node": ^10.70.0
   "@theholocron/observability": ^0.4.0
+  "@tktco/node-actionlint": ^1.6.0
   "@types/node": ^26
   "@types/yargs": ^17.0.35
   "@vitest/coverage-v8": ^4.1.11
   "@vitest/eslint-plugin": ^1.6.27
+  "@vscode-shellcheck/shellcheck-wasm": ^0.2.0
   alex: ^11.0.1
   chalk: ^6.0.0
   editorconfig: ^3.0.2
@@ -36,6 +38,7 @@ catalog:
   turbo: ^2.10.12
   typescript: ^5.9.3
   vitest: ^4.1.11
+  yaml: ^2.9.0
   yargs: ^18.1.0
 
 catalogs:
@@ -44,8 +47,8 @@ catalogs:
     "@theholocron/clerk-client": ^1.31.0
     "@theholocron/cloudflare-client": ^1.31.0
     "@theholocron/doppler-client": ^1.31.0
-    "@theholocron/github-client": ^1.34.0
-    "@theholocron/http-client": ^1.34.0
+    "@theholocron/github-client": ^1.35.0
+    "@theholocron/http-client": ^1.35.0
     "@theholocron/infisical-client": ^1.31.0
     "@theholocron/neon-client": ^1.31.0
     "@theholocron/posthog-client": ^1.31.0
@@ -96,6 +99,6 @@ catalogs:
 # ProviderApiError again under a caret override that permitted both.
 overrides:
   "@sentry/node": 10.75.2
-  "@theholocron/http-client": 1.34.0
+  "@theholocron/http-client": 1.35.0
   posthog-node: 5.52.5
   tsx: 4.23.12

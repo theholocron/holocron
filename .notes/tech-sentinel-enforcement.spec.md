@@ -192,6 +192,18 @@ Sentinel check is the centralized replacement for, and generalizes
 directly to whatever comes after commitlint (`Sentinel / Source Quality /
 Static Analysis / Run eslint and actionlint`, when eslint's turn comes).
 
+In practice that one CI job became **two** Sentinel checks, one per tool:
+`Source Quality / Static Analysis / Run eslint` (holocron#849) and
+`Source Quality / Static Analysis / Run actionlint` (holocron#904). The
+two tools lint disjoint file sets, are gated differently (eslint skips
+`runtime_environment: "none"` repos, actionlint is config-free), and fail
+independently, so a combined check would only hide which half failed. The
+rule still holds: the job's name is split along its own "and", not
+renamed. The actionlint check also covers the ShellCheck pass over
+`run:` scripts that the binary gets from a `shellcheck` on PATH (both
+tools run as WASM in Sentinel, and WASM can't spawn processes, so that
+integration is ported by hand from actionlint's `rule_shellcheck.go`).
+
 Config-compatibility no longer stands as a 2-tier exception once DCO
 shipped (holocron#900) with the same shape — no astromech task behind
 either, both a provenance/baseline-type check rather than a CI-job

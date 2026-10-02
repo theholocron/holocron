@@ -1,7 +1,7 @@
 /**
  * Posts error-severity findings as a PR review instead of (only) a check-run
  * annotation (holocron#860, `.notes/tech-sentinel-review-comments.spec.md`)
- * — shared, identical mechanism for both eslint and markdownlint, the two
+ * — shared, identical mechanism for eslint, markdownlint and actionlint, the
  * Bucket 1 checks with a real per-finding severity axis to split on.
  *
  * `event: "COMMENT"` only, never `REQUEST_CHANGES`/`APPROVE` — advisory,
@@ -20,6 +20,16 @@
  * resolving it too would suppress a real, unaddressed finding at next
  * glance for no reason (the check run's own annotations already stopped
  * covering it).
+ *
+ * **Diff-scoped inline comments** (holocron#906): GitHub only accepts a
+ * review comment on a line that's part of the PR's own diff, and rejects
+ * the *whole* review (422) if any one comment isn't. A finding on an
+ * unchanged line of a changed file is routine (actionlint reports a
+ * `needs:` mistake at the job key; a rule can flag an untouched line next
+ * to the edit), so errors are split against each file's own `patch` hunks
+ * ({@link commentableLines}): in-diff errors stay inline, the rest are
+ * listed in the review body by `file:line` — still one review, never
+ * silently dropped.
  *
  * Distinguishing "this check's own thread" from a sibling check's (eslint's
  * calls must never touch a markdownlint thread, and vice versa) needs more
@@ -72,6 +82,33 @@ export interface PostErrorReviewInput {
 	warningCount: number;
 }
 
+/**
+ * RIGHT-side line numbers a review comment can anchor to in one file's
+ * unified-diff `patch` — every context (` `) and added (`+`) line inside a
+ * hunk, never a removed (`-`) one. Empty for a missing patch (GitHub omits
+ * it for binary files and very large diffs), which correctly routes every
+ * finding in that file to the review body instead.
+ */
+export function commentableLines(patch: string | undefined): Set<number> {
+	const lines = new Set<number>();
+	if (!patch) return lines;
+	let right: number | undefined;
+	for (const line of patch.split("\n")) {
+		const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+		if (hunk) {
+			right = Number(hunk[1]);
+			continue;
+		}
+		if (right === undefined) continue;
+		if (line.startsWith("+") || line.startsWith(" ")) {
+			lines.add(right);
+			right++;
+		}
+		// "-" lines exist only on the LEFT side; "\ No newline at end of file" is metadata.
+	}
+	return lines;
+}
+
 function marker(checkKey: string): string {
 	return `<!-- sentinel:${checkKey} -->`;
 }
@@ -97,8 +134,21 @@ export async function postErrorReview(input: PostErrorReviewInput): Promise<void
 
 	if (errors.length === 0) return;
 
+	const files = await client.pulls.listFiles(repo, pullNumber);
+	const commentable = new Map(files.map((f) => [f.filename, commentableLines(f.patch)]));
+	const inline = errors.filter((e) => commentable.get(e.file)?.has(e.line));
+	const outsideDiff = errors.filter((e) => !commentable.get(e.file)?.has(e.line));
+
 	const summary = [
-		`${errors.length} error(s) found by ${checkLabel} — see inline comments below.`,
+		inline.length > 0
+			? `${errors.length} error(s) found by ${checkLabel} — see inline comments below.`
+			: `${errors.length} error(s) found by ${checkLabel}.`,
+		outsideDiff.length > 0
+			? [
+					`${outsideDiff.length} of them on line(s) outside this PR's diff, so they can't be inline comments:`,
+					...outsideDiff.map((e) => `- \`${e.file}:${e.line}\` — ${e.body}`),
+				].join("\n")
+			: undefined,
 		warningCount > 0
 			? `${warningCount} warning(s) also found; see the ${checkRunName} check run for the full list.`
 			: undefined,
@@ -110,7 +160,7 @@ export async function postErrorReview(input: PostErrorReviewInput): Promise<void
 		commit_id: headSha,
 		event: "COMMENT",
 		body: summary,
-		comments: errors.map((e) => ({
+		comments: inline.map((e) => ({
 			path: e.file,
 			line: e.line,
 			side: "RIGHT" as const,

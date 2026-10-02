@@ -10,6 +10,8 @@ vi.mock("@theholocron/observability/logger", () => ({
 }));
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
 vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.fn() }));
+vi.mock("./actions/actionlint/lint-actionlint.js", () => ({ lintActionlint: vi.fn() }));
+vi.mock("./actions/actionlint/post-actionlint-check.js", () => ({ postActionlintCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("./actions/commit-standards/post-commit-standards-check.js", () => ({ postCommitStandardsCheck: vi.fn() }));
 vi.mock("./actions/capability-compliance/sync-properties.js", () => ({ syncPropertiesFromConfig: vi.fn() }));
@@ -40,6 +42,8 @@ vi.mock("./utils/webhook.js", async (importOriginal) => {
 import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
+import { lintActionlint } from "./actions/actionlint/lint-actionlint.js";
+import { postActionlintCheck } from "./actions/actionlint/post-actionlint-check.js";
 import { postCheckRun } from "./actions/capability-compliance/post-check-run.js";
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
@@ -102,6 +106,8 @@ beforeEach(() => {
 	vi.mocked(postAutoFixComment).mockReset();
 	vi.mocked(lintStaticAnalysis).mockReset();
 	vi.mocked(postStaticAnalysisCheck).mockReset();
+	vi.mocked(lintActionlint).mockReset();
+	vi.mocked(postActionlintCheck).mockReset();
 	vi.mocked(lintEditorConfig).mockReset();
 	vi.mocked(postEditorConfigCheck).mockReset();
 	vi.mocked(commitEditorConfigFix).mockReset();
@@ -885,6 +891,101 @@ describe("handler — static analysis pipeline (holocron#769/#849)", () => {
 				expect.objectContaining({ browserPackages: ["src/app-auth"] })
 			);
 		});
+	});
+});
+
+describe("handler — actionlint pipeline (holocron#904)", () => {
+	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
+		return {
+			type,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+			},
+		};
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
+			properties: { holocron_capabilities: [], runtime_environment: "node" },
+		});
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("runs lintActionlint with the PR's ref, and posts the result", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintActionlint).mockResolvedValue({ valid: true, fileCount: 1, messages: [] });
+		vi.mocked(postActionlintCheck).mockResolvedValue({
+			checkRunId: 40,
+			conclusion: "success",
+			htmlUrl: "https://x/40",
+		});
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(lintActionlint).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			pullNumber: 9,
+			ref: "pr-head-sha",
+		});
+		expect(postActionlintCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			pullNumber: 9,
+			headSha: "pr-head-sha",
+			result: { valid: true, fileCount: 1, messages: [] },
+			runId: "test-run-id",
+		});
+		const body = (await res.json()) as { actionlintCheckRun: unknown };
+		expect(body.actionlintCheckRun).toEqual({ checkRunId: 40, conclusion: "success", htmlUrl: "https://x/40" });
+	});
+
+	it('still runs when runtime_environment is "none" -- config-free, unlike the eslint half of the task', async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
+			properties: { holocron_capabilities: [], runtime_environment: "none" },
+		});
+		vi.mocked(lintActionlint).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
+		vi.mocked(postActionlintCheck).mockResolvedValue({ checkRunId: 41, conclusion: "success", htmlUrl: "" });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(lintStaticAnalysis).not.toHaveBeenCalled();
+		expect(lintActionlint).toHaveBeenCalled();
+	});
+
+	it("doesn't run on push.default-branch -- no PR files to lint", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				type: "push.default-branch",
+				repo: "acme/demo",
+				installationId: 42,
+				raw: { repository: { default_branch: "main" }, after: "push-sha" },
+			},
+		});
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(lintActionlint).not.toHaveBeenCalled();
+	});
+
+	it("soft-skips a lintActionlint failure -- other checks still post, request still succeeds", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
+		vi.mocked(lintActionlint).mockRejectedValue(new Error("shellcheck exited 3: bad args"));
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(postActionlintCheck).not.toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
+		const body = (await res.json()) as { actionlintCheckRun: unknown };
+		expect(body.actionlintCheckRun).toBeUndefined();
 	});
 });
 
