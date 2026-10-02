@@ -36,8 +36,8 @@ const CLEAN = `name: CI
 on: push
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - uses: actions/checkout@v4
       - run: echo "hello"
 `;
@@ -85,9 +85,9 @@ describe("lintActionlint — actionlint findings", () => {
 		const result = await lintOne(`on: push
 jobs:
   b:
-    needs: c
-    runs-on: ubuntu-latest
-    steps:
+	needs: c
+	runs-on: ubuntu-latest
+	steps:
       - run: echo hi
 `);
 
@@ -108,8 +108,8 @@ jobs:
 		const result = await lintOne(`on: pull_request
 jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - run: echo "\${{ github.event.pull_request.title }}"
 `);
 
@@ -122,11 +122,11 @@ jobs:
 		const result = await lintOne(`on: push
 jobs:
   call:
-    uses: acme/.github/.github/workflows/ci.yml@main
-    secrets: inherit
+	uses: acme/.github/.github/workflows/ci.yml@main
+	secrets: inherit
   arm:
-    runs-on: ubuntu-24.04-arm
-    steps:
+	runs-on: ubuntu-24.04-arm
+	steps:
       - run: echo hi
 `);
 
@@ -139,12 +139,12 @@ describe("lintActionlint — shellcheck over run: scripts", () => {
 		const result = await lintOne(`on: push
 jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - name: loop
-        run: |
+		run: |
           for f in $(ls *.txt); do
-            echo "$f"
+			echo "$f"
           done
 `);
 
@@ -172,8 +172,8 @@ jobs:
 		const result = await lintOne(`on: push
 jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - run: echo $HOME
 `);
 
@@ -193,13 +193,13 @@ jobs:
 		const result = await lintOne(`on: push
 jobs:
   a:
-    runs-on: ubuntu-latest
-    strategy:
+	runs-on: ubuntu-latest
+	strategy:
       matrix:
-        x: [a, b]
-    env:
+		x: [a, b]
+	env:
       FOO: bar
-    steps:
+	steps:
       - run: |
           if [ "\${{ matrix.x }}" = "a" ]; then echo "$FOO"; fi
           for v in \${{ matrix.x }}; do echo "$v"; done
@@ -212,8 +212,8 @@ jobs:
 		const result = await lintOne(`on: push
 jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - run: |
           cd dist
           ls
@@ -226,13 +226,13 @@ jobs:
 		const result = await lintOne(`on: push
 jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - shell: python
-        run: print($HOME)
+		run: print($HOME)
   w:
-    runs-on: windows-latest
-    steps:
+	runs-on: windows-latest
+	steps:
       - run: echo $HOME
 `);
 
@@ -250,24 +250,24 @@ describe("extractRunScripts — shell resolution (rule_shellcheck.go's own order
 	it("prefers step shell over job defaults over workflow defaults over the runner", () => {
 		const text = `defaults:
   run:
-    shell: sh
+	shell: sh
 jobs:
   a:
-    runs-on: windows-latest
-    defaults:
+	runs-on: windows-latest
+	defaults:
       run:
-        shell: bash -e {0}
-    steps:
+		shell: bash -e {0}
+	steps:
       - run: x
       - shell: pwsh
-        run: y
+		run: y
   b:
-    runs-on: windows-latest
-    steps:
+	runs-on: windows-latest
+	steps:
       - run: z
   c:
-    runs-on: [self-hosted, windows]
-    steps:
+	runs-on: [self-hosted, windows]
+	steps:
       - run: w
 `;
 		expect(shells(text)).toEqual(["bash -e {0}", "pwsh", "sh", "sh"]);
@@ -276,18 +276,18 @@ jobs:
 	it("uses pwsh on a Windows runner in any runs-on form when nothing else sets a shell", () => {
 		const text = `jobs:
   a:
-    runs-on: [self-hosted, windows]
-    steps:
+	runs-on: [self-hosted, windows]
+	steps:
       - run: x
   b:
-    runs-on:
+	runs-on:
       group: big
       labels: windows-2022
-    steps:
+	steps:
       - run: y
   c:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - run: z
 `;
 		expect(shells(text)).toEqual(["pwsh", "pwsh", "bash"]);
@@ -296,8 +296,8 @@ jobs:
 	it("records a | block scalar's content start and indentation, and nothing for other styles", () => {
 		const [block, folded, plain] = extractRunScripts(`jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - run: |
           echo one
       - run: >
@@ -317,8 +317,8 @@ jobs:
 	it("ignores uses: steps and non-string run: values", () => {
 		const text = `jobs:
   a:
-    runs-on: ubuntu-latest
-    steps:
+	runs-on: ubuntu-latest
+	steps:
       - uses: actions/checkout@v4
       - run: 42
 `;
