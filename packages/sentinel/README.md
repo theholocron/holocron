@@ -40,8 +40,13 @@ decide, actions to report, never the other way around.
 ## `validateConfig({ client, repo, ref? })`
 
 Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) via
-`@theholocron/github-client`'s `git.getContents()` and validates its
-`tasks` array against `@theholocron/astromech`'s canonical task registry.
+`@theholocron/github-client`'s `git.getContents()`, then an optional
+`astromech.config.*` at the same ref, merged on top with astromech's own
+`mergeTasksLayers()` — the same manifest `holocron run` / `ci` / `sync`
+act on (holocron#916; a task declared only in the dedicated file, like
+this repo's `platform.repoValidation`, gates Sentinel checks too) — and
+validates the merged `tasks` array against `@theholocron/astromech`'s
+canonical task registry.
 `ref` omitted (the common case, every check except auto-fix-commit) reads
 the repo's default branch. A caller passes `ref` explicitly to validate a
 specific commit/branch instead — used only by the auto-fix-commit

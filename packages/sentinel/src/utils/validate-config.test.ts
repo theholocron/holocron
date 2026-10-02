@@ -21,8 +21,15 @@ function b64(content: string): string {
 	return Buffer.from(content, "utf8").toString("base64");
 }
 
-function makeClient(responses: Parameters<typeof stubFetch>[0]) {
-	const { fetch, calls } = stubFetch(responses);
+/** Every astromech.config.* extension 404s: the repo has no dedicated tasks layer (holocron#916). */
+const NO_DEDICATED = Array.from({ length: 5 }, () => ({ status: 404 }));
+
+/** Appends {@link NO_DEDICATED} unless `dedicated` overrides it, since a found holocron.config also probes astromech.config.*. */
+function makeClient(
+	responses: Parameters<typeof stubFetch>[0],
+	dedicated: Parameters<typeof stubFetch>[0] = NO_DEDICATED
+) {
+	const { fetch, calls } = stubFetch([...responses, ...dedicated]);
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
 
@@ -66,6 +73,11 @@ describe("validateConfig", () => {
 			"holocron.config.mjs",
 			"holocron.config.cjs",
 			"holocron.config.json",
+			"astromech.config.ts",
+			"astromech.config.js",
+			"astromech.config.mjs",
+			"astromech.config.cjs",
+			"astromech.config.json",
 		]);
 	});
 
@@ -274,5 +286,87 @@ describe("validateConfig", () => {
 
 		expect(result.status).toBe("valid");
 		expect(calls[0]?.url).not.toContain("ref=");
+	});
+
+	describe("dedicated astromech.config.* layer (holocron#916)", () => {
+		const HOLOCRON_JSON = [
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 404 },
+			{
+				status: 200,
+				body: { content: b64(JSON.stringify({ name: "demo", tasks: ["verification.typeSafety"] })) },
+			},
+		];
+		const dedicatedJson = (body: unknown) => [
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 404 },
+			{ status: 200, body: { content: b64(JSON.stringify(body)) } },
+		];
+
+		it("merges its tasks on top of holocron.config's, the way loadTasksConfig does", async () => {
+			const { client, calls } = makeClient(
+				HOLOCRON_JSON,
+				dedicatedJson({ tasks: [{ name: "platform.repoValidation", required: true }], syncScripts: false })
+			);
+
+			const result = await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+
+			expect(result.status).toBe("valid");
+			expect((result as { config: unknown }).config).toEqual({
+				name: "demo",
+				tasks: ["verification.typeSafety", { name: "platform.repoValidation", required: true }],
+				syncScripts: false,
+			});
+			expect(calls.every((c) => c.url.includes("ref=pr-head-sha"))).toBe(true);
+		});
+
+		it("executes astromech.config.ts through defineConfig from @theholocron/astromech/config, this repo's real shape", async () => {
+			const source = [
+				'import { defineConfig } from "@theholocron/astromech/config";',
+				'export default defineConfig({ tasks: ["platform.repoValidation"] });',
+				"",
+			].join("\n");
+			const { client } = makeClient(HOLOCRON_JSON, [{ status: 200, body: { content: b64(source) } }]);
+
+			const result = await validateConfig({ client, repo: "acme/demo" });
+
+			expect(result.status).toBe("valid");
+			expect((result as { config: { tasks: unknown[] } }).config.tasks).toEqual([
+				"verification.typeSafety",
+				"platform.repoValidation",
+			]);
+		}, 15000);
+
+		it("validates the merged list, so an unknown task in the dedicated file is reported too", async () => {
+			const { client } = makeClient(HOLOCRON_JSON, dedicatedJson({ tasks: ["made-up"] }));
+
+			const result = await validateConfig({ client, repo: "acme/demo" });
+
+			expect(result.status).toBe("unknown-tasks");
+			expect((result as { unknownTasks: string[] }).unknownTasks).toEqual(["made-up"]);
+		});
+
+		it("returns load-error naming astromech.config.* when that file doesn't load", async () => {
+			const { client } = makeClient(HOLOCRON_JSON, [
+				{ status: 200, body: { content: b64("export default {{{ not valid") } },
+			]);
+
+			const result = await validateConfig({ client, repo: "acme/demo" });
+
+			expect(result.status).toBe("load-error");
+			expect((result as { filepath: string }).filepath).toBe("astromech.config.ts");
+		});
+
+		it("propagates a non-404 error reading astromech.config.* instead of treating it as absent", async () => {
+			const { client } = makeClient(HOLOCRON_JSON, [{ status: 500, body: { message: "boom" } }]);
+
+			const err = await validateConfig({ client, repo: "acme/demo" }).catch((e: unknown) => e);
+
+			expect((err as { status?: number }).status).toBe(500);
+		});
 	});
 });

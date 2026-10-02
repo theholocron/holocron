@@ -27,4 +27,27 @@ describe("validateConfig — non-Error throw from loadConfigFromContent", () => 
 		expect(result.status).toBe("load-error");
 		expect((result as { message: string }).message).toBe("a plain string, not an Error");
 	});
+
+	it("does the same for a non-Error throw loading astromech.config.* (holocron#916)", async () => {
+		const { loadConfigFromContent } = await import("@theholocron/datapad");
+		const { createGitHubClient } = await import("@theholocron/github-client");
+		const { stubFetch } = await import("@theholocron/http-client/testing");
+		const { validateConfig } = await import("./validate-config.js");
+		vi.mocked(loadConfigFromContent).mockResolvedValueOnce({ config: { tasks: [] } } as never);
+
+		const content = Buffer.from("{}", "utf8").toString("base64");
+		const { fetch } = stubFetch([
+			{ status: 200, body: { content } }, // holocron.config.ts
+			{ status: 200, body: { content } }, // astromech.config.ts
+		]);
+		const client = createGitHubClient({ token: "ghp_test", fetch });
+
+		const result = await validateConfig({ client, repo: "acme/demo" });
+
+		expect(result).toEqual({
+			status: "load-error",
+			filepath: "astromech.config.ts",
+			message: "a plain string, not an Error",
+		});
+	});
 });

@@ -1,5 +1,8 @@
 /**
- * Reads a repo's `holocron.config.*` and validates its `tasks` array
+ * Reads a repo's `holocron.config.*` (plus an optional dedicated
+ * `astromech.config.*`, merged on top via astromech's own
+ * `mergeTasksLayers()` — the same manifest `holocron run` / `ci` / `sync`
+ * act on, holocron#916) and validates the merged `tasks` array
  * against `@theholocron/astromech`'s canonical task registry (D11 — one
  * table, imported rather than duplicated). Defaults to the repo's default
  * branch (`ref` omitted — GitHub's Contents API resolves that on its own);
@@ -54,7 +57,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { KNOWN_TASKS, KNOWN_WORKFLOWS } from "@theholocron/astromech";
-import { normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
+import { mergeTasksLayers, normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
 import { DEFAULT_EXTENSIONS, loadConfigFromContent } from "@theholocron/datapad";
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
@@ -118,6 +121,18 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 					message: err instanceof Error ? err.message : String(err),
 				};
 			}
+			// The dedicated astromech.config.* layer (holocron#916): merged on
+			// top of holocron.config's own tasks exactly as astromech's
+			// loadTasksConfig() does for `holocron run` / `ci` / `sync`, so a
+			// task declared only there (this repo's platform.repoValidation)
+			// is visible to every Sentinel gate, not just the CLI.
+			const dedicated = await loadDedicatedTasks(client, repo, ref, tmpDir);
+			if (dedicated.status === "load-error") return dedicated;
+			const config: TasksConfig = {
+				...loaded.config,
+				...mergeTasksLayers(loaded.config.tasks, dedicated.config),
+			};
+
 			// A task-array entry is legitimate if it resolves to either a real
 			// runnable task (KNOWN_TASKS, e.g. "verification.unitTests") or a
 			// workflow-only community-health automation with no local runner at
@@ -126,7 +141,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 			// validation here needs to match. Checking KNOWN_TASKS alone flagged
 			// every repo using these bare workflow-only names as "unknown-tasks",
 			// discovered live against theholocron/clients's real config.
-			const unknownTasks = (loaded.config.tasks ?? [])
+			const unknownTasks = (config.tasks ?? [])
 				.map(normalizeTaskEntry)
 				.map((t) => t.name)
 				.filter((name) => !KNOWN_TASKS.has(name) && !KNOWN_WORKFLOWS.has(name));
@@ -134,11 +149,53 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 			if (unknownTasks.length > 0) {
 				return { status: "unknown-tasks", filepath: path, unknownTasks };
 			}
-			return { status: "valid", filepath: path, config: loaded.config };
+			return { status: "valid", filepath: path, config };
 		} finally {
 			await rm(tmpDir, { recursive: true, force: true });
 		}
 	}
 
 	return { status: "no-config" };
+}
+
+type DedicatedTasksResult =
+	{ status: "found" | "absent"; config?: TasksConfig } | { status: "load-error"; filepath: string; message: string };
+
+/**
+ * Reads and executes the repo's optional `astromech.config.*` at `ref`, in
+ * the same prepared `tmpDir` as `holocron.config.*` (its own
+ * `@theholocron/astromech/config` import resolves through the same
+ * `node_modules` symlink). Same TS-first extension probe; a 404 on every
+ * extension just means the repo has no dedicated layer.
+ */
+async function loadDedicatedTasks(
+	client: Pick<GitHubClient, "git">,
+	repo: string,
+	ref: string | undefined,
+	tmpDir: string
+): Promise<DedicatedTasksResult> {
+	for (const ext of DEFAULT_EXTENSIONS) {
+		const path = `astromech.config.${ext}`;
+		let raw: string;
+		try {
+			const contents = await client.git.getContents(repo, path, ref);
+			raw = decodeContents(contents.content);
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 404) continue;
+			throw err;
+		}
+
+		try {
+			const loaded = await loadConfigFromContent<TasksConfig>({
+				dir: tmpDir,
+				content: raw,
+				name: "astromech",
+				extension: ext,
+			});
+			return { status: "found", config: loaded.config };
+		} catch (err) {
+			return { status: "load-error", filepath: path, message: err instanceof Error ? err.message : String(err) };
+		}
+	}
+	return { status: "absent" };
 }

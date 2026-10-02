@@ -118,6 +118,9 @@ export default defineConfig({
 `loadTasksConfig(cwd)` resolves the manifest: the `tasks` key of
 `holocron.config.*` (a bare item array), then a dedicated
 `astromech.config.*` merged on top (dedicated wins; arrays concatenate).
+`mergeTasksLayers(parentTasks, dedicated)` is that merge step on its own,
+for callers that load the two sources some other way (Sentinel reads them
+through the GitHub API).
 
 | `TaskEntry` field        | Effect                                                      |
 | ------------------------ | ----------------------------------------------------------- |
