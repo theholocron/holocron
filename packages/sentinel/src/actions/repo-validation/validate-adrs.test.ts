@@ -49,6 +49,12 @@ describe("parseFrontmatter", () => {
 		expect(fm?.get("issue")).toEqual({ value: "x#1", line: 3 });
 	});
 
+	it("skips lines that aren't flat key: value fields, keeping later fields' line numbers", () => {
+		const fm = parseFrontmatter(md("---", "discussion:", "  github: x", "# comment", "status: draft", "---"));
+		expect([...fm!.keys()]).toEqual(["discussion", "status"]);
+		expect(fm?.get("status")).toEqual({ value: "draft", line: 5 });
+	});
+
 	it("returns null when the file doesn't open with a frontmatter block", () => {
 		expect(parseFrontmatter("# Just a heading\n")).toBeNull();
 	});
