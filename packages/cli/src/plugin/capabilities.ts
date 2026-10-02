@@ -466,6 +466,8 @@ export interface DeploymentRecord {
 	target?: DeploymentTrigger;
 	status: "queued" | "building" | "ready" | "error" | "cancelled";
 	createdAt?: string;
+	/** The provider's own reason when `status` is `"error"` (e.g. Vercel's `Command "npm install" exited with 1`). */
+	errorMessage?: string;
 }
 
 /** Config for `Deployment.deployFunction()` — source files, not a Git ref. */

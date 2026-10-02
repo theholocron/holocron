@@ -254,6 +254,31 @@ describe("VercelDeployment.triggerDeployment", () => {
 });
 
 describe("VercelDeployment.getDeployment", () => {
+	it("carries Vercel's errorMessage through on a failed build (holocron#911)", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					id: "dpl_C9DQ",
+					url: "sentinel-anqm7fpm8-iamnewton.vercel.app",
+					readyState: "ERROR",
+					target: "production",
+					errorCode: "invalid_version_value",
+					errorMessage: 'Command "npm install" exited with 1',
+				},
+			},
+		]);
+		const result = await deployment.getDeployment("dpl_C9DQ");
+		expect(result).toEqual({
+			id: "dpl_C9DQ",
+			url: "sentinel-anqm7fpm8-iamnewton.vercel.app",
+			branch: null,
+			status: "error",
+			target: "production",
+			errorMessage: 'Command "npm install" exited with 1',
+		});
+	});
+
 	it("GETs the deployment and extracts branch from meta.githubCommitRef", async () => {
 		const { deployment, calls } = makeDeployment([
 			{
