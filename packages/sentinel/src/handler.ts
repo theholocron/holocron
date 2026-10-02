@@ -90,6 +90,14 @@
  *   content, no checkout. Same error-review / warning-annotation split as
  *   static analysis, via the same shared `postErrorReview()` under its own
  *   `checkKey`.
+ * - **Repo validation** (`validateAdrs → postAdrsCheck`,
+ *   `validateDocsPresence → postDocsPresenceCheck`, holocron#913):
+ *   `pull_request.*` only, and only for a repo whose valid config declares
+ *   `platform.repoValidation` -- Sentinel's ports of that task's `Validate
+ *   ADRs and specs` and `Validate docs presence` CI jobs, kept as two
+ *   separate checks. ADR/spec frontmatter errors fail and post a PR review
+ *   (same `postErrorReview()` split as eslint/actionlint); docs presence is
+ *   advisory only (`neutral` at worst), like the script it ports.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -203,15 +211,21 @@ import { commitMarkdownLintFix } from "./actions/markdown-lint/commit-markdown-l
 import { lintMarkdown, type LintMarkdownResult } from "./actions/markdown-lint/lint-markdown.js";
 import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
+import { postAdrsCheck } from "./actions/repo-validation/post-adrs-check.js";
+import { postDocsPresenceCheck } from "./actions/repo-validation/post-docs-presence-check.js";
+import { validateAdrs } from "./actions/repo-validation/validate-adrs.js";
+import { validateDocsPresence } from "./actions/repo-validation/validate-docs-presence.js";
 import { lintStaticAnalysis } from "./actions/static-analysis/lint-static-analysis.js";
 import { postStaticAnalysisCheck } from "./actions/static-analysis/post-static-analysis-check.js";
 import {
 	SENTINEL_ACTIONLINT_LOG_MSG,
+	SENTINEL_ADRS_LOG_MSG,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DCO_LOG_MSG,
 	SENTINEL_DISPATCHABLE_TASK,
 	SENTINEL_DISPATCHED_CHECK_NAME,
+	SENTINEL_DOCS_PRESENCE_LOG_MSG,
 	SENTINEL_EDITORCONFIG_FIX_LOG_MSG,
 	SENTINEL_EDITORCONFIG_LOG_MSG,
 	SENTINEL_FORMATTING_FIX_LOG_MSG,
@@ -220,6 +234,7 @@ import {
 	SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
+	SENTINEL_REPO_VALIDATION_TASK,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 } from "./utils/constants.js";
 import { validateConfig, type ValidateConfigResult } from "./utils/validate-config.js";
@@ -796,6 +811,71 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// Repo validation (holocron#913): Sentinel's ports of two
+	// platform.repoValidation CI jobs, kept as two separate checks -- ADRs
+	// and specs can fail, docs presence is advisory only. Unlike the
+	// config-free Bucket 1 checks above, both only run for a repo whose
+	// valid config declares that task (the same gate the Bucket 2 dispatch
+	// uses): a repo that doesn't keep ADRs, specs or a packages/ monorepo has
+	// nothing for them to check. Same PR-only scoping and soft-skip reasoning
+	// as every Bucket 1 check above, each in its own try.
+	let adrsCheckRun;
+	let docsPresenceCheckRun;
+	if (
+		event.type !== "push.default-branch" &&
+		context.pullNumber !== undefined &&
+		taskNames.includes(SENTINEL_REPO_VALIDATION_TASK)
+	) {
+		try {
+			const result = await validateAdrs({ client, repo, pullNumber: context.pullNumber, ref: context.headSha });
+			adrsCheckRun = await postAdrsCheck({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				headSha: context.headSha,
+				result,
+				runId,
+			});
+			// Matches SENTINEL_ADRS_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{ repo, valid: result.valid, fileCount: result.fileCount, messageCount: result.messages.length },
+				SENTINEL_ADRS_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "validateAdrs: failed, continuing without it");
+		}
+
+		try {
+			const result = await validateDocsPresence({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			docsPresenceCheckRun = await postDocsPresenceCheck({
+				client,
+				repo,
+				headSha: context.headSha,
+				result,
+				runId,
+			});
+			// Matches SENTINEL_DOCS_PRESENCE_LOG_MSG exactly -- the check's
+			// own details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: result.valid,
+					newPackages: result.newPackages.map((p) => p.name),
+					hasDocsChange: result.hasDocsChange,
+				},
+				SENTINEL_DOCS_PRESENCE_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "validateDocsPresence: failed, continuing without it");
+		}
+	}
+
 	// Auto-fix-commit (holocron#820) -- default-on (holocron#864 follow-up),
 	// opt-out either via the repo's merged `with: { autoFix: false }` on the
 	// sourceQuality.formatting task, or via that same flag freshly added in
@@ -944,5 +1024,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		dispatchedCheckRun,
 		staticAnalysisCheckRun,
 		actionlintCheckRun,
+		adrsCheckRun,
+		docsPresenceCheckRun,
 	});
 }

@@ -66,6 +66,10 @@ export const SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG = "commitMarkdownLintFix: commit
 export const SENTINEL_STATIC_ANALYSIS_LOG_MSG = "postStaticAnalysisCheck: posted";
 /** Logged (and linked to) once `postActionlintCheck()` actually posts (holocron#904) — never hand-copy this string elsewhere. */
 export const SENTINEL_ACTIONLINT_LOG_MSG = "postActionlintCheck: posted";
+/** Logged (and linked to) once `postAdrsCheck()` actually posts (holocron#913) — never hand-copy this string elsewhere. */
+export const SENTINEL_ADRS_LOG_MSG = "postAdrsCheck: posted";
+/** Logged (and linked to) once `postDocsPresenceCheck()` actually posts (holocron#913) — never hand-copy this string elsewhere. */
+export const SENTINEL_DOCS_PRESENCE_LOG_MSG = "postDocsPresenceCheck: posted";
 /** Logged (and linked to) once `postEditorConfigCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_EDITORCONFIG_LOG_MSG = "postEditorConfigCheck: posted";
 /** Logged once `commitEditorConfigFix()` actually commits a fix — never hand-copy this string elsewhere. */
@@ -96,4 +100,11 @@ export const SENTINEL_DISPATCH_REF = "main";
  * --noEmit") for a task that only ever has one dispatchable command today.
  */
 export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
+/**
+ * The astromech task whose checks the repo-validation pipeline mirrors
+ * (holocron#913) — `Validate ADRs and specs` and `Validate docs presence`
+ * only run for a repo whose valid config declares it, the same gate the
+ * Bucket 2 dispatch uses for `SENTINEL_DISPATCHABLE_TASK`.
+ */
+export const SENTINEL_REPO_VALIDATION_TASK = "platform.repoValidation";
 export const SENTINEL_DISPATCHED_CHECK_NAME = `${SENTINEL_NAMESPACES.verification} / Type Safety / Run tsc --noEmit`;

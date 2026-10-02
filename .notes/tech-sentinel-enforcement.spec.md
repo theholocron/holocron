@@ -204,6 +204,13 @@ renamed. The actionlint check also covers the ShellCheck pass over
 tools run as WASM in Sentinel, and WASM can't spawn processes, so that
 integration is ported by hand from actionlint's `rule_shellcheck.go`).
 
+`platform.repoValidation`'s jobs follow the same one-check-per-job rule
+(holocron#913): `Platform / Repo Validation / Validate ADRs and specs`
+and `Platform / Repo Validation / Validate docs presence` stay separate
+checks, since the first can fail and the second is advisory by design
+(its script always exits 0), so only the first could ever be a required
+check. `Validate registry consistency` follows in its own PR.
+
 Config-compatibility no longer stands as a 2-tier exception once DCO
 shipped (holocron#900) with the same shape — no astromech task behind
 either, both a provenance/baseline-type check rather than a CI-job

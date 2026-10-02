@@ -160,7 +160,7 @@ instead of retyping.
 
 Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
-eight more independent Bucket 1 check pipelines — commit standards
+ten more independent Bucket 1 check pipelines — commit standards
 (commitlint), DCO (holocron#900 — the org-wide replacement for
 `probot/dcoapp`; no real tool to delegate to, so a deliberate, narrow
 reimplementation of the one stable rule — every commit needs a
@@ -193,7 +193,16 @@ v1.7.7 (`@tktco/node-actionlint`) and real ShellCheck 0.11
 the actionlint binary gets from a `shellcheck` on PATH is ported by hand
 from actionlint's own `rule_shellcheck.go`, since WASM can't spawn
 processes — see `src/actions/actionlint/lint-actionlint.ts`'s own module
-docstring) — the Bucket 2
+docstring), and repo validation (holocron#913 — two checks, gated on the
+repo's `holocron.config` declaring `platform.repoValidation`:
+`Platform / Repo Validation / Validate ADRs and specs` ports
+`scripts/validate-adrs.mjs`'s frontmatter rules to the PR's own changed
+`docs/wiki/decisions/*.md` and `*.spec.md` files — errors fail the check
+and post a review, warnings are annotations on a `neutral` check — and
+`Platform / Repo Validation / Validate docs presence` flags an added
+`packages/<name>/src/index.ts` for a non-private package shipped without
+any docs change; advisory like its script, `neutral` at worst, never
+`failure`; see `src/actions/repo-validation/`) — the Bucket 2
 dispatch prototype, the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
 the `sourceQuality.formatting` task backing three independent commit
