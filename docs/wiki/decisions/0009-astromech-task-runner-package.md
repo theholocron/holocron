@@ -1,3 +1,18 @@
+---
+id: ADR-0009
+title: "Astromech: the task-runner + CI-parity package"
+status: accepted
+date: 2026-09-07
+owners: []
+specs:
+  - docs/wiki/specifications/tech-astromech-task-runner.spec.md
+discussion:
+  github: https://github.com/theholocron/holocron/pull/580
+supersedes: []
+superseded-by: []
+tags: [astromech, tasks, ci]
+---
+
 # ADR-0009 — Astromech: the task-runner + CI-parity package
 
 ## Status

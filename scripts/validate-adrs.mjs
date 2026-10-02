@@ -2,7 +2,7 @@
 /**
  * Validates frontmatter in ADR and spec files.
  *
- * ADRs: docs/architecture/adr/*.md (excluding template.md)
+ * ADRs: docs/wiki/decisions/*.md (excluding template.md and README.md)
  * Specs: .notes/*.spec.md (in-progress) + docs/wiki/specifications/*.spec.md (settled: accepted / archived / superseded)
  *
  * Usage:
@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
-const ADR_DIR = resolve(root, "docs/decisions");
+const ADR_DIR = resolve(root, "docs/wiki/decisions");
 const NOTES_DIR = resolve(root, ".notes");
 const SPEC_ARCHIVE_DIR = resolve(root, "docs/wiki/specifications");
 
@@ -137,7 +137,7 @@ const args = process.argv
 
 const adrFiles =
 	args.length > 0
-		? args.filter((f) => f.includes("/adr/"))
+		? args.filter((f) => f.startsWith(`${ADR_DIR}/`))
 		: existsSync(ADR_DIR)
 			? readdirSync(ADR_DIR).map((f) => resolve(ADR_DIR, f))
 			: [];

@@ -1,3 +1,18 @@
+---
+id: ADR-0011
+title: "Sentinel's deploy target: Vercel Functions over Cloudflare Workers"
+status: accepted
+date: 2026-09-16
+owners: []
+specs:
+  - .notes/tech-sentinel-v1.spec.md
+discussion:
+  github: https://github.com/theholocron/holocron/pull/730
+supersedes: []
+superseded-by: []
+tags: [sentinel, deploy, vercel]
+---
+
 # ADR-0011 — Sentinel's deploy target: Vercel Functions over Cloudflare Workers
 
 ## Status
