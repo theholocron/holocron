@@ -109,13 +109,6 @@ export function commentableLines(patch: string | undefined): Set<number> {
 	return lines;
 }
 
-/**
- * `GET /pulls/{n}/files` returns each file's `patch` at runtime, but
- * `@theholocron/github-client`'s `GitHubPullRequestFile` doesn't declare it
- * yet — widened locally until it does (holocron#906).
- */
-type FileWithPatch = { filename: string; patch?: string };
-
 function marker(checkKey: string): string {
 	return `<!-- sentinel:${checkKey} -->`;
 }
@@ -141,7 +134,7 @@ export async function postErrorReview(input: PostErrorReviewInput): Promise<void
 
 	if (errors.length === 0) return;
 
-	const files = (await client.pulls.listFiles(repo, pullNumber)) as FileWithPatch[];
+	const files = await client.pulls.listFiles(repo, pullNumber);
 	const commentable = new Map(files.map((f) => [f.filename, commentableLines(f.patch)]));
 	const inline = errors.filter((e) => commentable.get(e.file)?.has(e.line));
 	const outsideDiff = errors.filter((e) => !commentable.get(e.file)?.has(e.line));

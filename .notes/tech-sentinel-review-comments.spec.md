@@ -192,8 +192,8 @@ RIGHT-side context or added line):
   and a still-current finding's old thread stays open even after its
   line drops out of the diff.
 
-`@theholocron/github-client`'s `GitHubPullRequestFile` doesn't declare
-`patch` yet, so Sentinel widens the type locally until it does.
+`@theholocron/github-client` declares `GitHubPullRequestFile.patch` as of
+1.35.0 (theholocron/clients#384).
 
 ## Re-push behavior: this org requires thread resolution — native "outdated" marking is not sufficient
 
