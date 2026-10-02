@@ -35,19 +35,24 @@
  *
  * Caveat: the pinned `@theholocron/*` versions are whatever's in
  * node_modules right now — deploy from a synced `alpha` checkout
- * (they publish on every merge), not an unreleased local branch, or
- * Vercel's install can 404 on a version that was never published.
+ * (they publish on every merge), not an unreleased local branch.
+ * Enforced, not just documented (holocron#919): staging refuses when a
+ * workspace dependency's source differs from its `v<version>` release
+ * tag, since Vercel would install a published version that lacks it —
+ * found live as an import crash on every webhook.
  *
  * Not its own package.json script — an internal step of
  * `delivery.deploy` (build → this → `holocron deploy`). Run that
  * instead of invoking this file directly.
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { vercelEngines } from "./vercel-engines.mjs";
+import { staleWorkspaceDeps } from "./workspace-freshness.mjs";
 
 const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = join(packageDir, ".vercel-deploy");
@@ -62,11 +67,45 @@ function resolvedVersion(depName) {
 	return JSON.parse(readFileSync(pkgPath, "utf8")).version;
 }
 
+/**
+ * Refuses to stage when a `workspace:` dependency's local source has moved
+ * past its published release (holocron#919) — see `workspace-freshness.mjs`.
+ */
+function assertWorkspaceDepsPublished(pkg) {
+	const git = (args) => {
+		const result = spawnSync("git", args, { cwd: packageDir, encoding: "utf8" });
+		return { status: result.status, stdout: result.stdout ?? "" };
+	};
+	const repoRoot = git(["rev-parse", "--show-toplevel"]).stdout.trim();
+	const deps = Object.entries(pkg.dependencies ?? {})
+		.filter(([, spec]) => String(spec).startsWith("workspace:"))
+		.map(([name]) => ({
+			name,
+			version: resolvedVersion(name),
+			dir: relative(repoRoot, realpathSync(join(packageDir, "node_modules", name))),
+		}));
+	const problems = staleWorkspaceDeps({ deps, git: (args) => git(["-C", repoRoot, ...args]) });
+	if (problems.length > 0) {
+		throw new Error(
+			[
+				"refusing to stage: Vercel would install published versions that lack this checkout's source —",
+				...problems.map((p) => `  - ${p}`),
+				"Deploy from a synced `alpha` checkout whose HEAD includes the latest `chore(release)` commit.",
+			].join("\n")
+		);
+	}
+}
+
 function main() {
 	const distIndex = join(packageDir, "dist", "index.mjs");
 	if (!existsSync(distIndex)) {
 		throw new Error(`${distIndex} not found — run \`pnpm run delivery.build\` first`);
 	}
+
+	const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
+	// Before any output is written: a stale workspace dependency means this
+	// payload would crash on import once deployed.
+	assertWorkspaceDepsPublished(pkg);
 
 	rmSync(outDir, { recursive: true, force: true });
 	mkdirSync(join(outDir, "api"), { recursive: true });
@@ -76,7 +115,6 @@ function main() {
 	copyFileSync(distIndex, join(outDir, "dist", "index.mjs"));
 	copyFileSync(join(packageDir, "vercel.json"), join(outDir, "vercel.json"));
 
-	const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
 	const dependencies = Object.fromEntries(
 		Object.keys(pkg.dependencies ?? {}).map((name) => [name, resolvedVersion(name)])
 	);

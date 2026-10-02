@@ -1,3 +1,18 @@
+---
+id: ADR-0010
+title: "Datapad: the shared config loader"
+status: accepted
+date: 2026-09-07
+owners: []
+specs:
+  - docs/wiki/specifications/tech-datapad-config-loader.spec.md
+discussion:
+  github: https://github.com/theholocron/holocron/pull/580
+supersedes: []
+superseded-by: []
+tags: [datapad, config]
+---
+
 # ADR-0010 — Datapad: the shared config loader
 
 ## Status

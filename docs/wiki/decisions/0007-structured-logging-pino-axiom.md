@@ -1,3 +1,17 @@
+---
+id: ADR-0007
+title: "Structured logging: Pino + Axiom"
+status: accepted
+date: 2026-09-06
+owners: []
+specs: []
+discussion:
+  github: https://github.com/theholocron/holocron/pull/523
+supersedes: []
+superseded-by: []
+tags: [logging, observability, pino, axiom]
+---
+
 # ADR-0007 — Structured logging: Pino + Axiom
 
 ## Status

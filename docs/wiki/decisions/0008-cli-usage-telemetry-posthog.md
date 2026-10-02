@@ -1,3 +1,18 @@
+---
+id: ADR-0008
+title: "CLI usage telemetry: PostHog"
+status: accepted
+date: 2026-09-06
+owners: []
+specs:
+  - docs/wiki/specifications/tech-cli-usage-telemetry.spec.md
+discussion:
+  github: https://github.com/theholocron/holocron/pull/560
+supersedes: []
+superseded-by: []
+tags: [telemetry, analytics, posthog, cli]
+---
+
 # ADR-0008 — CLI usage telemetry: PostHog
 
 ## Status
