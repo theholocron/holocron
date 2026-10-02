@@ -80,6 +80,16 @@
  *   error-severity eslint finding posts as a PR review comment via the
  *   same shared `postErrorReview()`, scoped separately so a re-push never
  *   resolves the sibling check's own threads.
+ * - **actionlint** (`lintActionlint → postActionlintCheck`, holocron#904):
+ *   `pull_request.*` only, the actionlint half of the same
+ *   `sourceQuality.staticAnalysis` task as static analysis above, but
+ *   config-free unlike it — any repo can carry workflow files, so no
+ *   `runtime_environment` gate. Real actionlint and real ShellCheck (over
+ *   every step's `run:` script, the integration the actionlint binary gets
+ *   from a `shellcheck` on PATH), both as WASM against fetched workflow
+ *   content, no checkout. Same error-review / warning-annotation split as
+ *   static analysis, via the same shared `postErrorReview()` under its own
+ *   `checkKey`.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -171,6 +181,8 @@ import { createInstallationClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
+import { lintActionlint } from "./actions/actionlint/lint-actionlint.js";
+import { postActionlintCheck } from "./actions/actionlint/post-actionlint-check.js";
 import { postCheckRun } from "./actions/capability-compliance/post-check-run.js";
 import { syncPropertiesFromConfig } from "./actions/capability-compliance/sync-properties.js";
 import { lintCommits } from "./actions/commit-standards/lint-commits.js";
@@ -194,6 +206,7 @@ import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post
 import { lintStaticAnalysis } from "./actions/static-analysis/lint-static-analysis.js";
 import { postStaticAnalysisCheck } from "./actions/static-analysis/post-static-analysis-check.js";
 import {
+	SENTINEL_ACTIONLINT_LOG_MSG,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DCO_LOG_MSG,
@@ -746,6 +759,43 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// The actionlint half of sourceQuality.staticAnalysis (holocron#904) --
+	// config-free, unlike eslint above: workflow files exist regardless of
+	// `runtime_environment`. Same PR-only scoping and soft-skip reasoning as
+	// every Bucket 1 check above.
+	let actionlintCheckRun;
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
+		try {
+			const lintResult = await lintActionlint({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				ref: context.headSha,
+			});
+			actionlintCheckRun = await postActionlintCheck({
+				client,
+				repo,
+				pullNumber: context.pullNumber,
+				headSha: context.headSha,
+				result: lintResult,
+				runId,
+			});
+			// Matches SENTINEL_ACTIONLINT_LOG_MSG exactly -- the check's own
+			// details_url is a query filtered to find this precise line.
+			logger.info(
+				{
+					repo,
+					valid: lintResult.valid,
+					fileCount: lintResult.fileCount,
+					messageCount: lintResult.messages.length,
+				},
+				SENTINEL_ACTIONLINT_LOG_MSG
+			);
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "lintActionlint: failed, continuing without it");
+		}
+	}
+
 	// Auto-fix-commit (holocron#820) -- default-on (holocron#864 follow-up),
 	// opt-out either via the repo's merged `with: { autoFix: false }` on the
 	// sourceQuality.formatting task, or via that same flag freshly added in
@@ -893,5 +943,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		markdownLintFixResult,
 		dispatchedCheckRun,
 		staticAnalysisCheckRun,
+		actionlintCheckRun,
 	});
 }
