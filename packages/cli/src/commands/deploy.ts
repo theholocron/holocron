@@ -21,6 +21,17 @@
  * deployment capability (and, for `--files`, `deployFunction`) is
  * present, so operators can sanity-check the wiring without spinning
  * up a build.
+ *
+ * **Both modes wait for the deployment to finish** (holocron#911): a
+ * provider accepting the upload/trigger is not the deployment succeeding.
+ * Vercel builds asynchronously — an `npm install` failure there leaves
+ * the deployment in `ERROR` while production keeps serving the previous
+ * one, and this command used to report `ok` regardless (found live:
+ * Sentinel's holocron#910 deploy "succeeded" in CI, never went live). So
+ * after triggering, {@link waitForDeployment} polls
+ * `Deployment.getDeployment()` until a terminal state; only `ready` is
+ * `ok`, while `error` / `cancelled` / a timeout are `fail` (non-zero exit
+ * via `cli.ts`).
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -37,6 +48,54 @@ import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";
 
 export type DeployPrintLine = (line: string) => void;
+
+/** How long {@link waitForDeployment} polls, and the clock it polls with — injectable so tests never sleep. */
+export interface DeployWaitOptions {
+	/** Give up (and report `fail`) after this long. Default 10 minutes. */
+	timeoutMs?: number;
+	/** Delay between `getDeployment()` polls. Default 5 s. */
+	intervalMs?: number;
+	sleep?: (ms: number) => Promise<void>;
+	now?: () => number;
+}
+
+const DEFAULT_WAIT_TIMEOUT_MS = 10 * 60_000;
+const DEFAULT_WAIT_INTERVAL_MS = 5_000;
+
+const TERMINAL_STATUSES: ReadonlySet<DeploymentRecord["status"]> = new Set(["ready", "error", "cancelled"]);
+
+/**
+ * Polls `getDeployment(id)` until the deployment reaches a terminal status
+ * (`ready` / `error` / `cancelled`). Throws on timeout — the caller turns
+ * that into a `fail` report, same as a provider throwing mid-trigger.
+ */
+export async function waitForDeployment(
+	deploy: Deployment,
+	deploymentId: string,
+	options: DeployWaitOptions = {}
+): Promise<DeploymentRecord> {
+	const timeoutMs = options.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+	const intervalMs = options.intervalMs ?? DEFAULT_WAIT_INTERVAL_MS;
+	const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+	const now = options.now ?? Date.now;
+
+	const deadline = now() + timeoutMs;
+	for (;;) {
+		const record = await deploy.getDeployment(deploymentId);
+		if (TERMINAL_STATUSES.has(record.status)) return record;
+		if (now() >= deadline) {
+			throw new Error(
+				`deployment ${deploymentId} still ${record.status} after ${Math.round(timeoutMs / 1000)}s — check the provider's dashboard`
+			);
+		}
+		await sleep(intervalMs);
+	}
+}
+
+/** One terminal, non-ready record as a single human-readable failure line. */
+function terminalFailure(record: DeploymentRecord): string {
+	return `deployment ${record.id} ended ${record.status}${record.errorMessage ? `: ${record.errorMessage}` : ""}`;
+}
 
 /**
  * Provider `url` fields (Vercel's REST API, at least) come back as bare
@@ -62,6 +121,7 @@ export interface RunDeployInput {
 	print?: DeployPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
 	logger?: Logger;
+	wait?: DeployWaitOptions;
 }
 
 export interface DeployReport {
@@ -113,15 +173,29 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 	}
 
 	try {
-		const record = await withSpinner(`Deploying ${input.branch}${input.target ? ` → ${input.target}` : ""}…`, () =>
-			deploy.triggerDeployment({
-				projectId: input.projectId,
-				branch: input.branch,
-				...(input.target ? { target: input.target } : {}),
-			})
+		const triggered = await withSpinner(
+			`Deploying ${input.branch}${input.target ? ` → ${input.target}` : ""}…`,
+			() =>
+				deploy.triggerDeployment({
+					projectId: input.projectId,
+					branch: input.branch,
+					...(input.target ? { target: input.target } : {}),
+				})
 		);
-		print(`  ${style.success(`${record.status} — ${withScheme(record.url)}`)}`);
-		logger.info({ status: record.status, url: record.url, id: record.id }, "deploy: triggered");
+		logger.info({ status: triggered.status, url: triggered.url, id: triggered.id }, "deploy: triggered");
+		const record = TERMINAL_STATUSES.has(triggered.status)
+			? triggered
+			: await withSpinner(`Waiting for ${withScheme(triggered.url)} to finish…`, () =>
+					waitForDeployment(deploy, triggered.id, input.wait)
+				);
+		if (record.status !== "ready") {
+			const message = terminalFailure(record);
+			print(`  ${style.fail(`${message} — ${withScheme(triggered.url)}`)}`);
+			logger.warn({ id: record.id, status: record.status, reason: record.errorMessage }, "deploy: failed");
+			return { deployment: record, status: "fail", message };
+		}
+		print(`  ${style.success(`${record.status} — ${withScheme(triggered.url)}`)}`);
+		logger.info({ status: record.status, url: triggered.url, id: record.id }, "deploy: ready");
 		return { deployment: record, status: "ok" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -150,6 +224,7 @@ export interface RunDeployFromFilesInput {
 	/** Injectable for testing. */
 	walkFiles?: (dir: string) => string[];
 	readFile?: (path: string) => string;
+	wait?: DeployWaitOptions;
 }
 
 export interface DeployFilesReport {
@@ -241,8 +316,21 @@ export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promis
 			`Deploying ${fileCount} file${fileCount === 1 ? "" : "s"} from ${input.dir}…`,
 			() => deploy.deployFunction!(input.projectId, { files, ...(input.target ? { target: input.target } : {}) })
 		);
-		print(`  ${style.success(withScheme(result.url))}`);
 		logger.info({ url: result.url, id: result.deploymentId }, "deploy: triggered (files)");
+		const record = await withSpinner(`Waiting for ${withScheme(result.url)} to finish…`, () =>
+			waitForDeployment(deploy, result.deploymentId, input.wait)
+		);
+		if (record.status !== "ready") {
+			const message = terminalFailure(record);
+			print(`  ${style.fail(`${message} — ${withScheme(result.url)}`)}`);
+			logger.warn(
+				{ id: record.id, status: record.status, reason: record.errorMessage },
+				"deploy: failed (files)"
+			);
+			return { deployment: result, status: "fail", message };
+		}
+		print(`  ${style.success(withScheme(result.url))}`);
+		logger.info({ url: result.url, id: result.deploymentId }, "deploy: ready (files)");
 		return { deployment: result, status: "ok" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);

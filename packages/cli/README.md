@@ -313,6 +313,23 @@ Order comes from the `CI_ORDER` constant in `@theholocron/astromech`
 expands into its sub-jobs (each under its own `audit / …` check context)
 unless the repo ships its own `"audit"` script.
 
+### `holocron deploy`
+
+`holocron deploy <branch>` (a Git-linked deployment) and `holocron deploy
+--files <dir>` (a directory of build output, no linked repo) both trigger a
+deployment through the configured `deployment` capability, then **wait for
+it to finish**. The command reports success, exit code 0, only when the
+deployment reaches `ready`. A deployment that ends `error` or `cancelled`,
+or is still building after 10 minutes, is a failure: the exit code is
+non-zero and the output includes the provider's own reason
+(`DeploymentRecord.errorMessage`, e.g. Vercel's `Command "npm install"
+exited with 1`). Providers build asynchronously, so accepting a deployment
+isn't the same as it going live (holocron#911).
+
+Provider plugins support this through the `Deployment` capability's
+existing `getDeployment(id)`. They should set `errorMessage` on the
+returned `DeploymentRecord` whenever the provider exposes one.
+
 ### Lint parity
 
 The `lint` task takes an optional `linters` array — one list that drives

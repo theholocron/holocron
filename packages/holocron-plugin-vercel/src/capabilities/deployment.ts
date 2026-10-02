@@ -216,7 +216,13 @@ function mapProject(raw: VercelProject): DeploymentProject {
 	return project;
 }
 
-type RawDeployment = Awaited<ReturnType<VercelClient["deployments"]["get"]>>;
+/**
+ * Vercel's deployment object also carries `errorMessage` (e.g. `Command "npm
+ * install" exited with 1`) once `readyState` is `ERROR` —
+ * `@theholocron/vercel-client`'s `VercelDeployment` doesn't declare it yet,
+ * so it's widened here until it does (holocron#911).
+ */
+type RawDeployment = Awaited<ReturnType<VercelClient["deployments"]["get"]>> & { errorMessage?: string | null };
 
 function mapDeployment(raw: RawDeployment, branch: string | null): DeploymentRecord {
 	const record: DeploymentRecord = {
@@ -226,6 +232,7 @@ function mapDeployment(raw: RawDeployment, branch: string | null): DeploymentRec
 		status: normalizeState(raw.readyState),
 	};
 	if (raw.target) record.target = raw.target as DeploymentTrigger;
+	if (raw.errorMessage) record.errorMessage = raw.errorMessage;
 	return record;
 }
 
