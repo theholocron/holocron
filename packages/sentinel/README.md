@@ -337,7 +337,11 @@ resolved in `node_modules` right now — not the `workspace:`/`catalog:`
 pnpm protocol specifiers Vercel's plain `npm install` can't resolve).
 Deploy from a synced `alpha` checkout (packages publish on every
 merge), not an unreleased local branch, or a pinned version can 404
-against the registry. `engines.node` is rewritten from this package's own range
+against the registry — or, worse, resolve to the _previous_ release and
+crash every webhook on import. Staging enforces this (holocron#919,
+`scripts/workspace-freshness.mjs`): it refuses when a `workspace:`
+dependency's `src/` or `package.json` differs from its `v<version>`
+release tag, naming the changed files. `engines.node` is rewritten from this package's own range
 to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
 `scripts/vercel-engines.mjs`): Vercel picks the function's Node version
 from it, and rejects an open range with `invalid_version_value`
