@@ -31,6 +31,10 @@ vi.mock("./actions/markdown-lint/post-markdown-lint-check.js", () => ({ postMark
 vi.mock("./actions/pr-config-validation/post-pr-config-validation-check.js", () => ({
 	postPrConfigValidationCheck: vi.fn(),
 }));
+vi.mock("./actions/repo-validation/post-adrs-check.js", () => ({ postAdrsCheck: vi.fn() }));
+vi.mock("./actions/repo-validation/post-docs-presence-check.js", () => ({ postDocsPresenceCheck: vi.fn() }));
+vi.mock("./actions/repo-validation/validate-adrs.js", () => ({ validateAdrs: vi.fn() }));
+vi.mock("./actions/repo-validation/validate-docs-presence.js", () => ({ validateDocsPresence: vi.fn() }));
 vi.mock("./actions/static-analysis/lint-static-analysis.js", () => ({ lintStaticAnalysis: vi.fn() }));
 vi.mock("./actions/static-analysis/post-static-analysis-check.js", () => ({ postStaticAnalysisCheck: vi.fn() }));
 vi.mock("./utils/validate-config.js", () => ({ validateConfig: vi.fn() }));
@@ -62,6 +66,10 @@ import { commitMarkdownLintFix } from "./actions/markdown-lint/commit-markdown-l
 import { lintMarkdown } from "./actions/markdown-lint/lint-markdown.js";
 import { postMarkdownLintCheck } from "./actions/markdown-lint/post-markdown-lint-check.js";
 import { postPrConfigValidationCheck } from "./actions/pr-config-validation/post-pr-config-validation-check.js";
+import { postAdrsCheck } from "./actions/repo-validation/post-adrs-check.js";
+import { postDocsPresenceCheck } from "./actions/repo-validation/post-docs-presence-check.js";
+import { validateAdrs } from "./actions/repo-validation/validate-adrs.js";
+import { validateDocsPresence } from "./actions/repo-validation/validate-docs-presence.js";
 import { lintStaticAnalysis } from "./actions/static-analysis/lint-static-analysis.js";
 import { postStaticAnalysisCheck } from "./actions/static-analysis/post-static-analysis-check.js";
 import { type Env, handleWebhookRequest } from "./handler.js";
@@ -107,6 +115,10 @@ beforeEach(() => {
 	vi.mocked(lintStaticAnalysis).mockReset();
 	vi.mocked(postStaticAnalysisCheck).mockReset();
 	vi.mocked(lintActionlint).mockReset();
+	vi.mocked(validateAdrs).mockReset();
+	vi.mocked(postAdrsCheck).mockReset();
+	vi.mocked(validateDocsPresence).mockReset();
+	vi.mocked(postDocsPresenceCheck).mockReset();
 	vi.mocked(postActionlintCheck).mockReset();
 	vi.mocked(lintEditorConfig).mockReset();
 	vi.mocked(postEditorConfigCheck).mockReset();
@@ -986,6 +998,123 @@ describe("handler — actionlint pipeline (holocron#904)", () => {
 		expect(postCheckRun).toHaveBeenCalled();
 		const body = (await res.json()) as { actionlintCheckRun: unknown };
 		expect(body.actionlintCheckRun).toBeUndefined();
+	});
+});
+
+describe("handler — repo validation pipeline (holocron#913)", () => {
+	function prEvent() {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: { repository: { default_branch: "main" }, pull_request: { number: 9, head: { sha: "pr-head-sha" } } },
+		};
+	}
+
+	function withTasks(tasks: Array<string | { name: string }>) {
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks } as never });
+	}
+
+	const ADRS_RESULT = { valid: true, fileCount: 1, messages: [] };
+	const DOCS_RESULT = {
+		newPackages: [{ name: "widget", entry: "packages/widget/src/index.ts" }],
+		hasDocsChange: true,
+		valid: true,
+	};
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
+			properties: { holocron_capabilities: [], runtime_environment: "node" },
+		});
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(validateAdrs).mockResolvedValue(ADRS_RESULT);
+		vi.mocked(postAdrsCheck).mockResolvedValue({ checkRunId: 50, conclusion: "success", htmlUrl: "https://x/50" });
+		vi.mocked(validateDocsPresence).mockResolvedValue(DOCS_RESULT);
+		vi.mocked(postDocsPresenceCheck).mockResolvedValue({
+			checkRunId: 51,
+			conclusion: "success",
+			htmlUrl: "https://x/51",
+		});
+	});
+
+	it("runs both checks against the PR's ref when the config declares platform.repoValidation", async () => {
+		withTasks(["lint", { name: "platform.repoValidation" }]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		const lintInput = { client: FAKE_CLIENT, repo: "acme/demo", pullNumber: 9, ref: "pr-head-sha" };
+		expect(validateAdrs).toHaveBeenCalledWith(lintInput);
+		expect(validateDocsPresence).toHaveBeenCalledWith(lintInput);
+		expect(postAdrsCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			pullNumber: 9,
+			headSha: "pr-head-sha",
+			result: ADRS_RESULT,
+			runId: "test-run-id",
+		});
+		expect(postDocsPresenceCheck).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			headSha: "pr-head-sha",
+			result: DOCS_RESULT,
+			runId: "test-run-id",
+		});
+		const body = (await res.json()) as { adrsCheckRun: unknown; docsPresenceCheckRun: unknown };
+		expect(body.adrsCheckRun).toEqual({ checkRunId: 50, conclusion: "success", htmlUrl: "https://x/50" });
+		expect(body.docsPresenceCheckRun).toEqual({ checkRunId: 51, conclusion: "success", htmlUrl: "https://x/51" });
+	});
+
+	it("skips both when the config doesn't declare platform.repoValidation", async () => {
+		withTasks(["lint"]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(validateAdrs).not.toHaveBeenCalled();
+		expect(validateDocsPresence).not.toHaveBeenCalled();
+		expect(postCheckRun).toHaveBeenCalled();
+		expect(res.status).toBe(200);
+	});
+
+	it("skips both on push.default-branch -- no PR files to validate", async () => {
+		withTasks(["platform.repoValidation"]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				type: "push.default-branch",
+				repo: "acme/demo",
+				installationId: 42,
+				raw: { repository: { default_branch: "main" }, after: "push-sha" },
+			},
+		});
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(validateAdrs).not.toHaveBeenCalled();
+		expect(validateDocsPresence).not.toHaveBeenCalled();
+	});
+
+	it("soft-skips each check independently -- an ADR failure doesn't stop docs presence, and vice versa", async () => {
+		withTasks(["platform.repoValidation"]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateAdrs).mockRejectedValue(new Error("contents API down"));
+
+		let res = await handleWebhookRequest(req(), ENV);
+		let body = (await res.json()) as { adrsCheckRun: unknown; docsPresenceCheckRun: unknown };
+		expect(res.status).toBe(200);
+		expect(body.adrsCheckRun).toBeUndefined();
+		expect(body.docsPresenceCheckRun).toEqual({ checkRunId: 51, conclusion: "success", htmlUrl: "https://x/51" });
+
+		vi.mocked(validateAdrs).mockResolvedValue(ADRS_RESULT);
+		vi.mocked(validateDocsPresence).mockRejectedValue(new Error("rate limited"));
+
+		res = await handleWebhookRequest(req(), ENV);
+		body = (await res.json()) as { adrsCheckRun: unknown; docsPresenceCheckRun: unknown };
+		expect(body.adrsCheckRun).toEqual({ checkRunId: 50, conclusion: "success", htmlUrl: "https://x/50" });
+		expect(body.docsPresenceCheckRun).toBeUndefined();
 	});
 });
 
