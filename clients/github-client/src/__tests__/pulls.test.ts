@@ -84,7 +84,7 @@ describe("pulls.listCommits", () => {
 describe("pulls.listFiles", () => {
 	it("GETs /repos/{owner}/{name}/pulls/{number}/files with per_page=100", async () => {
 		const files = [
-			{ filename: "README.md", status: "modified" as const },
+			{ filename: "README.md", status: "modified" as const, patch: "@@ -1,2 +1,2 @@\n # Title\n-old\n+new" },
 			{ filename: "old-name.ts", status: "renamed" as const, previous_filename: "name.ts" },
 		];
 		const { fetch, calls } = stubFetch([{ body: files }]);
@@ -96,7 +96,10 @@ describe("pulls.listFiles", () => {
 		expect(result).toHaveLength(2);
 		expect(result[0]?.filename).toBe("README.md");
 		expect(result[0]?.status).toBe("modified");
+		expect(result[0]?.patch).toBe("@@ -1,2 +1,2 @@\n # Title\n-old\n+new");
 		expect(result[1]?.previous_filename).toBe("name.ts");
+		// Binary files and very large diffs come back with no patch at all.
+		expect(result[1]?.patch).toBeUndefined();
 	});
 });
 

@@ -36,6 +36,13 @@ export interface GitHubPullRequestFile {
 	status: "added" | "removed" | "modified" | "renamed" | "copied" | "changed" | "unchanged";
 	/** Set only when `status === "renamed"`. */
 	previous_filename?: string;
+	/**
+	 * This file's unified-diff hunks (`@@ -a,b +c,d @@` headers plus
+	 * context/added/removed lines) — what a consumer needs to know which
+	 * RIGHT-side lines a PR review comment can anchor to. Absent for binary
+	 * files and for diffs too large for GitHub to include.
+	 */
+	patch?: string;
 }
 
 /** One inline comment in a `POST /pulls/{pull_number}/reviews` request body. */
