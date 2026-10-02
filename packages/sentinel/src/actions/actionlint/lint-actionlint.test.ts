@@ -242,6 +242,23 @@ describe("lintActionlint — shellcheck over run: scripts", () => {
 		expect(result.messages).toEqual([]);
 	});
 
+	it("lints shell: sh scripts as POSIX sh, under GitHub's own set -e", async () => {
+		const result = await lintOne(
+			workflow(
+				"on: push",
+				"jobs:",
+				"  a:",
+				"    runs-on: ubuntu-latest",
+				"    steps:",
+				"      - shell: sh",
+				"        run: |",
+				'          if [[ -n "$HOME" ]]; then echo hi; fi'
+			)
+		);
+
+		expect(result.messages.map((m) => [m.line, m.ruleId, m.severity])).toEqual([[8, "SC3010", "error"]]);
+	});
+
 	it("skips scripts for shells ShellCheck can't lint (python, Windows' default pwsh)", async () => {
 		const result = await lintOne(
 			workflow(
@@ -352,6 +369,43 @@ describe("extractRunScripts — shell resolution (rule_shellcheck.go's own order
 			"      - run: 42"
 		);
 		expect(extractRunScripts(text)).toEqual([]);
+	});
+
+	it("skips malformed shapes actionlint itself reports -- jobs not a map, a job or step that isn't a map", () => {
+		expect(extractRunScripts(workflow("jobs: []"))).toEqual([]);
+		expect(extractRunScripts(workflow("on: push"))).toEqual([]);
+		const text = workflow(
+			"jobs:",
+			"  scalar-job: 1",
+			"  a:",
+			"    runs-on: ubuntu-latest",
+			"    steps:",
+			"      - just a string",
+			"      - run: echo ok"
+		);
+		expect(extractRunScripts(text).map((s) => s.script)).toEqual(["echo ok"]);
+	});
+
+	it("ignores non-string and nested runs-on labels when looking for a Windows runner", () => {
+		const text = workflow(
+			"jobs:",
+			"  a:",
+			"    runs-on: [self-hosted, { weird: 1 }, 42]",
+			"    steps:",
+			"      - run: x",
+			"  b:",
+			"    runs-on: 42",
+			"    steps:",
+			"      - run: y"
+		);
+		expect(extractRunScripts(text).map((s) => s.shell)).toEqual(["bash", "bash"]);
+	});
+
+	it("records indent 0 for an empty | block scalar with no content line to measure", () => {
+		const [run] = extractRunScripts(
+			workflow("jobs:", "  a:", "    runs-on: ubuntu-latest", "    steps:", "      - run: |")
+		);
+		expect(run).toMatchObject({ script: "", blockStart: { line: 5, indent: 0 } });
 	});
 });
 

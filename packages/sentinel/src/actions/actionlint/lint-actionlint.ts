@@ -185,8 +185,7 @@ export interface RunScript {
 	blockStart?: { line: number; indent: number };
 }
 
-function stringAt(map: unknown, path: string[]): string | undefined {
-	if (!isMap(map)) return undefined;
+function stringAt(map: YAMLMap, path: string[]): string | undefined {
 	const value = map.getIn(path);
 	return typeof value === "string" ? value : undefined;
 }
@@ -272,10 +271,12 @@ export function shellcheckDialect(shell: string): "bash" | "sh" | undefined {
 	return undefined;
 }
 
-async function lintRunScript(shellcheck: ShellCheck, file: string, run: RunScript): Promise<ActionlintMessage[]> {
-	const dialect = shellcheckDialect(run.shell);
-	if (!dialect) return [];
-
+async function lintRunScript(
+	shellcheck: ShellCheck,
+	file: string,
+	run: RunScript,
+	dialect: "bash" | "sh"
+): Promise<ActionlintMessage[]> {
 	// GitHub runs `bash --noprofile --norc -eo pipefail {0}` / `sh -e {0}` —
 	// prepend the equivalent so ShellCheck reasons about the same script;
 	// every reported line is then one past the script's own.
@@ -346,9 +347,8 @@ export async function lintActionlint(input: LintActionlintInput): Promise<LintAc
 			const contents = await client.git.getContents(repo, target.filename, ref);
 			const text = decodeContents(contents.content);
 
-			for (const r of await actionlint()(text, target.filename)) {
-				// The fork's own `runLintForFiles` drops message-less entries the same way.
-				if (!r.message) continue;
+			// The fork's own `runLintForFiles` drops message-less entries the same way.
+			for (const r of (await actionlint()(text, target.filename)).filter((result) => result.message)) {
 				messages.push({
 					file: target.filename,
 					line: r.line,
@@ -360,9 +360,10 @@ export async function lintActionlint(input: LintActionlintInput): Promise<LintAc
 			}
 
 			for (const run of extractRunScripts(text)) {
-				if (!shellcheckDialect(run.shell)) continue;
+				const dialect = shellcheckDialect(run.shell);
+				if (!dialect) continue;
 				shellcheck ??= startShellcheck();
-				messages.push(...(await lintRunScript(shellcheck, target.filename, run)));
+				messages.push(...(await lintRunScript(shellcheck, target.filename, run, dialect)));
 			}
 		}
 	} finally {

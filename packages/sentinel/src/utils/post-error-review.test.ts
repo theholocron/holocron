@@ -289,6 +289,10 @@ describe("commentableLines", () => {
 		expect([...commentableLines(patch)]).toEqual([1, 2, 3, 4, 5, 21, 22]);
 	});
 
+	it("ignores anything before the first hunk header", () => {
+		expect([...commentableLines("diff --git a/x b/x\n+not a hunk yet\n@@ -1 +1 @@\n+real")]).toEqual([1]);
+	});
+
 	it("handles a single-line hunk header without counts", () => {
 		expect([...commentableLines("@@ -0,0 +1 @@\n+only")]).toEqual([1]);
 	});
