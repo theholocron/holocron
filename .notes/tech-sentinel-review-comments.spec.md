@@ -169,6 +169,32 @@ the same line) — GitHub natively supports multiple threads stacking on one
 line, and merging them loses the direct rule → line mapping a reviewer
 would want to act on individually.
 
+## Findings outside the PR's diff (holocron#906)
+
+GitHub only accepts a review comment on a line that is part of the PR's
+diff, and a single out-of-diff comment makes it reject the **whole**
+review with a 422. Errors on unchanged lines of a changed file are
+common. actionlint (#904, which joined eslint and markdownlint on this
+mechanism) reports a `needs:` mistake at the job key, and any rule can
+flag a line next to the edit. When the review was rejected, the check
+run still failed, but the inline signal was lost entirely.
+
+`postErrorReview()` now fetches the PR's files and splits errors against
+each file's unified-diff `patch` hunks (`commentableLines()`: every
+RIGHT-side context or added line):
+
+- In-diff errors stay inline comments, unchanged.
+- Out-of-diff errors are listed in the review body as
+  `` `file:line` — <comment body> ``. A review is still posted when every
+  error is out of the diff, or when a file has no `patch` (GitHub omits
+  it for binary files and very large diffs).
+- Thread resolution is unchanged. Body-listed findings have no thread,
+  and a still-current finding's old thread stays open even after its
+  line drops out of the diff.
+
+`@theholocron/github-client`'s `GitHubPullRequestFile` doesn't declare
+`patch` yet, so Sentinel widens the type locally until it does.
+
 ## Re-push behavior: this org requires thread resolution — native "outdated" marking is not sufficient
 
 **This reverses an earlier draft of this decision.** The first pass of this

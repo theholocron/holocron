@@ -11,6 +11,14 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 
 /** postErrorReview()'s own listReviewThreads() lookup -- queued after every check-run response in these tests, an empty result unless a test says otherwise. */
 const EMPTY_THREADS = { body: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } } };
+/** postErrorReview()'s own listFiles() call (holocron#906) -- queued right before REVIEW_POSTED; every line of each fixture file is in the diff, so every error stays an inline comment. */
+const FILES_IN_DIFF = {
+	body: ["README.md"].map((filename) => ({
+		filename,
+		status: "modified",
+		patch: `@@ -0,0 +1,100 @@\n${"+line\n".repeat(100)}`,
+	})),
+};
 /** postErrorReview()'s own createReview() call -- queued whenever a test's messages include at least one error-severity finding. */
 const REVIEW_POSTED = { body: { id: 999, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-999" } };
 
@@ -60,6 +68,7 @@ describe("postMarkdownLintCheck — findings", () => {
 		const { client } = makeClient([
 			{ status: 201, body: { id: 2, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -122,6 +131,7 @@ describe("postMarkdownLintCheck — findings", () => {
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 3, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -289,6 +299,7 @@ describe("postMarkdownLintCheck — inline annotations (holocron#816)", () => {
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 8, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -335,6 +346,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 9, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -369,9 +381,9 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 			runId: "run-9",
 		});
 
-		expect(calls).toHaveLength(3);
-		expect(calls[2]?.url).toContain("/repos/acme/demo/pulls/42/reviews");
-		expect(calls[2]?.body).toEqual({
+		expect(calls).toHaveLength(4);
+		expect(calls[3]?.url).toContain("/repos/acme/demo/pulls/42/reviews");
+		expect(calls[3]?.body).toEqual({
 			commit_id: "abc123",
 			event: "COMMENT",
 			body:
@@ -392,6 +404,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 10, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -418,7 +431,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 			runId: "run-10",
 		});
 
-		const body = calls[2]?.body as { comments: Array<{ body: string }> };
+		const body = calls[3]?.body as { comments: Array<{ body: string }> };
 		expect(body.comments[0]?.body).toBe("<!-- sentinel:markdown-lint -->\n`MD013` (line 42, col 5): line too long");
 	});
 

@@ -12,6 +12,14 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 
 /** postErrorReview()'s own listReviewThreads() lookup -- queued after every check-run response in these tests. */
 const EMPTY_THREADS = { body: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } } };
+/** postErrorReview()'s own listFiles() call (holocron#906) -- queued right before REVIEW_POSTED; every line of each fixture file is in the diff, so every error stays an inline comment. */
+const FILES_IN_DIFF = {
+	body: [".github/workflows/ci.yml"].map((filename) => ({
+		filename,
+		status: "modified",
+		patch: `@@ -0,0 +1,100 @@\n${"+line\n".repeat(100)}`,
+	})),
+};
 /** postErrorReview()'s own createReview() call -- queued whenever a test's messages include an error-severity finding. */
 const REVIEW_POSTED = { body: { id: 999, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-999" } };
 
@@ -80,6 +88,7 @@ describe("postActionlintCheck — findings", () => {
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 2, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -133,6 +142,7 @@ describe("postActionlintCheck — findings", () => {
 		const { client, calls } = makeClient([
 			{ status: 201, body: { id: 5, conclusion: "failure" } },
 			EMPTY_THREADS,
+			FILES_IN_DIFF,
 			REVIEW_POSTED,
 		]);
 
@@ -140,8 +150,8 @@ describe("postActionlintCheck — findings", () => {
 
 		const checkBody = calls[0]?.body as { output: { annotations: Array<{ title: string }> } };
 		expect(checkBody.output.annotations.map((a) => a.title)).toEqual(["SC2086"]);
-		expect(calls[2]?.url).toContain("/repos/acme/demo/pulls/42/reviews");
-		expect(calls[2]?.body).toEqual({
+		expect(calls[3]?.url).toContain("/repos/acme/demo/pulls/42/reviews");
+		expect(calls[3]?.body).toEqual({
 			commit_id: "abc123",
 			event: "COMMENT",
 			body:
