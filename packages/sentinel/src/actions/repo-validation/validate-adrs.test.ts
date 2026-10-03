@@ -49,10 +49,15 @@ describe("parseFrontmatter", () => {
 		expect(fm?.get("issue")).toEqual({ value: "x#1", line: 3 });
 	});
 
-	it("skips lines that aren't flat key: value fields, keeping later fields' line numbers", () => {
+	it("reads one level of nesting as parent.child and skips anything else, keeping line numbers", () => {
 		const fm = parseFrontmatter(md("---", "discussion:", "  github: x", "# comment", "status: draft", "---"));
-		expect([...fm!.keys()]).toEqual(["discussion", "status"]);
+		expect([...fm!.keys()]).toEqual(["discussion", "discussion.github", "status"]);
+		expect(fm?.get("discussion.github")).toEqual({ value: "x", line: 3 });
 		expect(fm?.get("status")).toEqual({ value: "draft", line: 5 });
+	});
+
+	it("ignores an indented line with no parent key before it", () => {
+		expect([...parseFrontmatter(md("---", "  orphan: x", "status: draft", "---"))!.keys()]).toEqual(["status"]);
 	});
 
 	it("returns null when the file doesn't open with a frontmatter block", () => {
@@ -126,6 +131,16 @@ describe("validateAdr — the script's rules", () => {
 				severity: "warning",
 			},
 		]);
+	});
+
+	it("accepts the template's nested discussion.github link (the bug: it used to warn regardless)", () => {
+		const nested = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  github: https://github.com/o/r/pull/1");
+		expect(validateAdr(file0009, nested)).toEqual([]);
+	});
+
+	it("still warns when the nested discussion.github is empty", () => {
+		const empty = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  github:");
+		expect(validateAdr(file0009, empty).map((m) => [m.rule, m.severity])).toEqual([["discussion", "warning"]]);
 	});
 
 	it("skips the sequence rule for a file without a numeric prefix", () => {

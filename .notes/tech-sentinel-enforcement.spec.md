@@ -209,7 +209,11 @@ integration is ported by hand from actionlint's `rule_shellcheck.go`).
 and `Platform / Repo Validation / Validate docs presence` stay separate
 checks, since the first can fail and the second is advisory by design
 (its script always exits 0), so only the first could ever be a required
-check. `Validate registry consistency` follows in its own PR.
+check. `Validate registry consistency` follows in its own PR. Both the
+script and Sentinel's port read one level of nested frontmatter as
+`parent.child` (holocron#923), so the template's `discussion:` /
+`  github: <url>` satisfies the accepted-ADR discussion rule; it used to
+warn on every accepted ADR, filled in or not.
 
 Config-compatibility no longer stands as a 2-tier exception once DCO
 shipped (holocron#900) with the same shape — no astromech task behind
