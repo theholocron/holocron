@@ -8,6 +8,14 @@ export type CheckRunConclusion =
 
 export type CheckRunAnnotationLevel = "notice" | "warning" | "failure";
 
+/**
+ * GitHub's cap on `output.annotations` per `createCheckRun()` /
+ * `updateCheckRun()` request. More than this needs a follow-up
+ * `updateCheckRun()` PATCH per GitHub's own docs, which this client doesn't
+ * do for you; slice with it rather than hardcoding the number.
+ */
+export const MAX_CHECK_RUN_ANNOTATIONS = 50;
+
 export interface CheckRunAnnotation {
 	/** File path relative to the repo root. */
 	path: string;
@@ -31,9 +39,9 @@ export interface CheckRunOutput {
 	summary: string;
 	text?: string;
 	/**
-	 * Inline PR annotations — up to 50 per request. Sending more requires a
-	 * follow-up `updateCheckRun()` PATCH per GitHub's own docs; this client
-	 * doesn't paginate them for you.
+	 * Inline PR annotations — up to {@link MAX_CHECK_RUN_ANNOTATIONS} per
+	 * request. Sending more requires a follow-up `updateCheckRun()` PATCH per
+	 * GitHub's own docs; this client doesn't paginate them for you.
 	 */
 	annotations?: CheckRunAnnotation[];
 }

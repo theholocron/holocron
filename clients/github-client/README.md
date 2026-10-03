@@ -53,6 +53,15 @@ const blob = await client.git.createBlob("owner/name", "file contents");
 | `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                                     |
 | `checks`       | `createCheckRun`                                                                                                                                                                                        |
 
+GitHub accepts at most 50 annotations per check-run request. Slice with the
+exported `MAX_CHECK_RUN_ANNOTATIONS` constant rather than hardcoding it:
+
+```ts
+import { MAX_CHECK_RUN_ANNOTATIONS } from "@theholocron/github-client";
+
+output.annotations = findings.slice(0, MAX_CHECK_RUN_ANNOTATIONS);
+```
+
 ## Webhooks
 
 GitHub's own inbound-webhook mechanics — signature verification and

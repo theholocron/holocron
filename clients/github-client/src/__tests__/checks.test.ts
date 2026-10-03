@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createGitHubClient } from "../index.js";
+import { createGitHubClient, MAX_CHECK_RUN_ANNOTATIONS } from "../index.js";
 import { REPO, stubFetch, TOKEN } from "./helpers.js";
 
 const RAW_CHECK_RUN = {
@@ -156,5 +156,11 @@ describe("checks.updateCheckRun", () => {
 			details_url: "https://github.com/theholocron/.github/actions/runs/9999",
 		});
 		expect(result.status).toBe("completed");
+	});
+});
+
+describe("MAX_CHECK_RUN_ANNOTATIONS", () => {
+	it("is GitHub's 50-annotations-per-request cap, exported from the package entry", () => {
+		expect(MAX_CHECK_RUN_ANNOTATIONS).toBe(50);
 	});
 });
