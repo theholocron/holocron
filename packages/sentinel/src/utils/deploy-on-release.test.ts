@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createPlugin, type ReleaseContext, shouldDeploy } from "../../scripts/deploy-on-release.mjs";
+import { createPlugin, defaultPaths, type ReleaseContext, shouldDeploy } from "../../scripts/deploy-on-release.mjs";
 
 const CONFIG = { channel: "alpha", paths: ["packages/sentinel/", "packages/cli/"] };
 
@@ -164,5 +164,92 @@ describe("deploy-on-release verifyConditions hook", () => {
 		createPlugin().verifyConditions(CONFIG, otherChannel);
 		expect(withToken.logger.warn).not.toHaveBeenCalled();
 		expect(otherChannel.logger.warn).not.toHaveBeenCalled();
+	});
+});
+
+/** A fake repo: package.json bodies by path, and the packages/ folder listing. */
+function fakeTree(files: Record<string, unknown>, dirs: string[]) {
+	return {
+		readJson: (path: string) => {
+			if (!(path in files)) throw new Error(`ENOENT: ${path}`);
+			return files[path];
+		},
+		listDirs: () => dirs,
+	};
+}
+
+const TREE = fakeTree(
+	{
+		"/repo/packages/sentinel/package.json": {
+			name: "@theholocron/sentinel",
+			dependencies: { "@theholocron/cli": "workspace:*", "@theholocron/datapad": "workspace:^", yaml: "2.9.0" },
+		},
+		"/repo/packages/cli/package.json": { name: "@theholocron/cli" },
+		"/repo/packages/datapad/package.json": { name: "@theholocron/datapad" },
+		"/repo/packages/astromech/package.json": { name: "@theholocron/astromech" },
+	},
+	["sentinel", "cli", "datapad", "astromech", "no-manifest"]
+);
+
+describe("defaultPaths (holocron#928)", () => {
+	it("is Sentinel plus the folder of each workspace:* dependency, matched by package name", () => {
+		expect(defaultPaths({ repoRoot: "/repo", sentinelDir: "/repo/packages/sentinel", ...TREE })).toEqual([
+			"packages/sentinel/",
+			"packages/cli/",
+			"packages/datapad/",
+		]);
+	});
+
+	it("is just Sentinel when it has no workspace dependencies", () => {
+		const tree = fakeTree({ "/repo/packages/sentinel/package.json": { name: "s" } }, ["sentinel"]);
+		expect(defaultPaths({ repoRoot: "/repo", sentinelDir: "/repo/packages/sentinel", ...tree })).toEqual([
+			"packages/sentinel/",
+		]);
+	});
+});
+
+describe("deploy-on-release defaults", () => {
+	it("deploys an alpha release touching a derived path when the plugin is configured with no options", () => {
+		const run = fakeRun({ changed: ["packages/datapad/src/load.ts"] });
+		const ctx = context();
+
+		createPlugin({ run, sentinelDir: "/repo/packages/sentinel", ...TREE }).success({}, ctx);
+
+		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+		expect(ctx.logger.log).toHaveBeenCalledWith(expect.stringContaining("packages/datapad/src/load.ts"));
+	});
+
+	it("skips a release touching only a workspace package Sentinel doesn't depend on", () => {
+		const run = fakeRun({ changed: ["packages/astromech/src/x.ts"] });
+		createPlugin({ run, sentinelDir: "/repo/packages/sentinel", ...TREE }).success({}, context());
+		expect(run).not.toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+	});
+
+	it("lets explicit options override both defaults", () => {
+		const run = fakeRun({ changed: ["docs/x.md"] });
+		const ctx = context({ branch: { channel: "beta" }, nextRelease: { gitHead: "new", channel: "beta" } });
+
+		createPlugin({ run, sentinelDir: "/repo/packages/sentinel", ...TREE }).success(
+			{ channel: "beta", paths: ["docs/"] },
+			ctx
+		);
+
+		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+	});
+
+	it("skips, logging why, when Sentinel's package.json can't be read to derive the paths", () => {
+		const run = fakeRun();
+		const ctx = context();
+
+		createPlugin({ run, sentinelDir: "/elsewhere", ...TREE }).success({}, ctx);
+
+		expect(run).not.toHaveBeenCalled();
+		expect(ctx.logger.error).toHaveBeenCalledWith(expect.stringContaining("couldn't decide whether to deploy"));
+	});
+
+	it("warns on the default alpha channel when VERCEL_TOKEN is missing", () => {
+		const ctx = context({ env: {} });
+		createPlugin().verifyConditions({}, ctx);
+		expect(ctx.logger.warn).toHaveBeenCalledWith(expect.stringContaining('a release on "alpha"'));
 	});
 });

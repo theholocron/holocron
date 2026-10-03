@@ -10,9 +10,12 @@
  * Node-side release config rather than a GitHub Actions trigger, it moves
  * with the release when releases run through Sentinel's dispatch.
  *
- * It deploys only when the release is on the configured channel and touches
- * one of the configured paths (Sentinel itself, plus the workspace packages
- * inlined into its `dist/`), so most releases skip it. A deploy failure is
+ * It deploys only when the release is on the configured channel (default
+ * `alpha`) and touches one of the configured paths (default: Sentinel itself
+ * plus the workspace packages inlined into its `dist/`, derived from its
+ * `package.json` by {@link defaultPaths}), so most releases skip it. Both are
+ * plugin options in `release.config.ts`; moving them into the task manifest
+ * is holocron#930. A deploy failure is
  * logged, never thrown: by `success`, the release is already published, and
  * failing the job would make a good release look broken. Redeploy by hand
  * with the Sentinel Deploy workflow.
@@ -25,8 +28,42 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DEPLOY_COMMAND = ["pnpm", ["--filter", "@theholocron/sentinel", "delivery.deploy"]];
+const DEFAULT_CHANNEL = "alpha";
+/** `packages/sentinel`, wherever this script is checked out. */
+const SENTINEL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
+
+/**
+ * The paths a release must touch to redeploy Sentinel, when the config
+ * doesn't list them: Sentinel's own folder plus the folder of every
+ * `workspace:*` dependency in its `package.json` — the packages
+ * `tsdown.config.ts` inlines into `dist/` (holocron#922). Derived rather than
+ * listed so a new or dropped workspace dependency needs no second edit.
+ *
+ * @param {{ repoRoot: string; sentinelDir: string; readJson: (path: string) => any; listDirs: (path: string) => string[] }} input
+ * @returns {string[]} Repo-relative prefixes, each ending in `/`.
+ */
+export function defaultPaths({ repoRoot, sentinelDir, readJson, listDirs }) {
+	const pkg = readJson(join(sentinelDir, "package.json"));
+	const workspaceDeps = new Set(
+		Object.entries(pkg.dependencies ?? {})
+			.filter(([, spec]) => String(spec).startsWith("workspace:"))
+			.map(([name]) => name)
+	);
+	const packagesDir = join(repoRoot, "packages");
+	const depDirs = listDirs(packagesDir).filter((dir) => {
+		try {
+			return workspaceDeps.has(readJson(join(packagesDir, dir, "package.json")).name);
+		} catch {
+			return false;
+		}
+	});
+	return [sentinelDir, ...depDirs.map((dir) => join(packagesDir, dir))].map((dir) => `${relative(repoRoot, dir)}/`);
+}
 
 /**
  * @param {{ channel: string | undefined; configuredChannel: string; changedFiles: string[] | undefined; paths: string[] }} input
@@ -53,11 +90,35 @@ function defaultRun(command, args, options) {
 	return spawnSync(command, args, { encoding: "utf8", ...options });
 }
 
+function defaultReadJson(path) {
+	return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function defaultListDirs(path) {
+	return readdirSync(path, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => entry.name);
+}
+
 /**
- * Builds the plugin's hooks. `run` is injectable so tests never spawn git or
- * pnpm; semantic-release itself uses the default export's real runner.
+ * Builds the plugin's hooks. `run`, `readJson` and `listDirs` are injectable
+ * so tests never spawn git or pnpm or read the real tree; semantic-release
+ * itself uses the default export's real implementations.
  */
-export function createPlugin({ run = defaultRun } = {}) {
+export function createPlugin({
+	run = defaultRun,
+	readJson = defaultReadJson,
+	listDirs = defaultListDirs,
+	sentinelDir = SENTINEL_DIR,
+} = {}) {
+	/** Both options are optional: `channel` defaults to alpha, `paths` to {@link defaultPaths}. */
+	function resolveConfig(pluginConfig, context) {
+		return {
+			channel: pluginConfig.channel ?? DEFAULT_CHANNEL,
+			paths: pluginConfig.paths ?? defaultPaths({ repoRoot: context.cwd, sentinelDir, readJson, listDirs }),
+		};
+	}
+
 	function changedFilesSince(context) {
 		const from = context.lastRelease?.gitHead;
 		if (!from) return undefined;
@@ -69,9 +130,10 @@ export function createPlugin({ run = defaultRun } = {}) {
 	return {
 		/** Warns early, before anything publishes, when a deploying release has no Vercel token. */
 		verifyConditions(pluginConfig, context) {
-			if (releaseChannel(context) === pluginConfig.channel && !context.env.VERCEL_TOKEN) {
+			const channel = pluginConfig.channel ?? DEFAULT_CHANNEL;
+			if (releaseChannel(context) === channel && !context.env.VERCEL_TOKEN) {
 				context.logger.warn(
-					`deploy-on-release: VERCEL_TOKEN isn't set; a release on "${pluginConfig.channel}" will skip the Sentinel deploy.`
+					`deploy-on-release: VERCEL_TOKEN isn't set; a release on "${channel}" will skip the Sentinel deploy.`
 				);
 			}
 		},
@@ -81,12 +143,13 @@ export function createPlugin({ run = defaultRun } = {}) {
 			const channel = releaseChannel(context);
 			let decision;
 			try {
+				const config = resolveConfig(pluginConfig, context);
 				decision = shouldDeploy({
 					channel,
-					configuredChannel: pluginConfig.channel,
+					configuredChannel: config.channel,
 					// Only diff a release on the deploying channel; any other skips anyway.
-					changedFiles: channel === pluginConfig.channel ? changedFilesSince(context) : [],
-					paths: pluginConfig.paths,
+					changedFiles: channel === config.channel ? changedFilesSince(context) : [],
+					paths: config.paths,
 				});
 			} catch (err) {
 				logger.error(`deploy-on-release: couldn't decide whether to deploy (${err.message}); skipping.`);

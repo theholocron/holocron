@@ -1,9 +1,9 @@
 /** See `deploy-on-release.mjs`. */
 export interface DeployOnReleaseConfig {
-	/** The release channel that deploys, e.g. `"alpha"`. */
-	channel: string;
-	/** Repo-relative path prefixes; the release must change a file under one of them. */
-	paths: string[];
+	/** The release channel that deploys. Defaults to `"alpha"`. */
+	channel?: string;
+	/** Repo-relative path prefixes; the release must change a file under one of them. Defaults to {@link defaultPaths}. */
+	paths?: string[];
 }
 
 interface SpawnResult {
@@ -38,7 +38,19 @@ export function shouldDeploy(input: {
 	paths: string[];
 }): { deploy: boolean; reason: string };
 
-export function createPlugin(options?: { run?: Run }): {
+export function defaultPaths(input: {
+	repoRoot: string;
+	sentinelDir: string;
+	readJson: (path: string) => unknown;
+	listDirs: (path: string) => string[];
+}): string[];
+
+export function createPlugin(options?: {
+	run?: Run;
+	readJson?: (path: string) => unknown;
+	listDirs?: (path: string) => string[];
+	sentinelDir?: string;
+}): {
 	verifyConditions(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): void;
 	success(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): void;
 };
