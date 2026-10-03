@@ -1417,9 +1417,15 @@ importers:
       '@commitlint/config-conventional':
         specifier: 'catalog:'
         version: 21.2.3
+      '@commitlint/lint':
+        specifier: 'catalog:'
+        version: 21.2.3
       '@commitlint/load':
         specifier: 'catalog:'
         version: 21.2.3(@types/node@26.4.1)(typescript@5.9.3)
+      '@napi-rs/keyring':
+        specifier: ^1.3.0
+        version: 1.3.0
       '@theholocron/astromech':
         specifier: workspace:*
         version: link:../astromech

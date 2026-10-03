@@ -41,7 +41,9 @@
   },
   "dependencies": {
     "@commitlint/config-conventional": "catalog:",
+    "@commitlint/lint": "catalog:",
     "@commitlint/load": "catalog:",
+    "@napi-rs/keyring": "^1.3.0",
     "@theholocron/astromech": "workspace:*",
     "@theholocron/cli": "workspace:*",
     "@theholocron/commitlint-config": "catalog:configs",
