@@ -5,14 +5,14 @@
  * `package.json`'s `"name"` line, the same shape as the ADRs/specs check.
  */
 
-import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
-
 import {
-	MAX_ANNOTATIONS_PER_REQUEST,
-	SENTINEL_NAMESPACES,
-	SENTINEL_REGISTRY_LOG_MSG,
-	sentinelAxiomLogUrl,
-} from "../../utils/constants.js";
+	type CheckRunAnnotation,
+	type CheckRunConclusion,
+	type GitHubClient,
+	MAX_CHECK_RUN_ANNOTATIONS,
+} from "@theholocron/github-client";
+
+import { SENTINEL_NAMESPACES, SENTINEL_REGISTRY_LOG_MSG, sentinelAxiomLogUrl } from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
 import type { CheckedPackage, ValidateRegistryResult } from "./validate-registry.js";
 
@@ -25,7 +25,7 @@ function reason(p: CheckedPackage): string {
 }
 
 function buildAnnotations(result: ValidateRegistryResult): CheckRunAnnotation[] {
-	return result.missing.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((p) => ({
+	return result.missing.slice(0, MAX_CHECK_RUN_ANNOTATIONS).map((p) => ({
 		path: p.file,
 		start_line: p.line,
 		end_line: p.line,

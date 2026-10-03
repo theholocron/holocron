@@ -7,10 +7,14 @@
  * to wrap.
  */
 
-import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
+import {
+	type CheckRunAnnotation,
+	type CheckRunConclusion,
+	type GitHubClient,
+	MAX_CHECK_RUN_ANNOTATIONS,
+} from "@theholocron/github-client";
 
 import {
-	MAX_ANNOTATIONS_PER_REQUEST,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
 	SENTINEL_NAMESPACES,
 	sentinelAxiomLogUrl,
@@ -97,7 +101,7 @@ function annotationLevel(m: InclusiveLanguageMessage): CheckRunAnnotation["annot
 function buildAnnotations(messages: InclusiveLanguageMessage[]): CheckRunAnnotation[] {
 	return messages
 		.filter((m) => m.line > 0)
-		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.slice(0, MAX_CHECK_RUN_ANNOTATIONS)
 		.map((m) => ({
 			path: m.file,
 			start_line: m.line,

@@ -27,15 +27,6 @@ export const SENTINEL_AXIOM_ORG = "the-holocron-7bbe";
 export const SENTINEL_AXIOM_DATASET = "holocron-sentinel";
 
 /**
- * GitHub's own cap on annotations per `createCheckRun()` call (holocron#816).
- * More findings than this would need a follow-up `updateCheckRun()` PATCH to
- * attach the rest, which no check does yet; each check's `output.text` keeps
- * the full, untruncated list, so nothing is lost — just less visible inline.
- * One shared value, not a copy per check.
- */
-export const MAX_ANNOTATIONS_PER_REQUEST = 50;
-
-/**
  * `details_url` target for a check run Sentinel posts directly (no workflow
  * run behind it, unlike the dispatched check) — a permalink filtered to the
  * exact structured log line this check's own post logged, not a bare

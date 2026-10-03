@@ -7,14 +7,14 @@
  * to wrap.
  */
 
-import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
-
 import {
-	MAX_ANNOTATIONS_PER_REQUEST,
-	SENTINEL_FORMATTING_LOG_MSG,
-	SENTINEL_NAMESPACES,
-	sentinelAxiomLogUrl,
-} from "../../utils/constants.js";
+	type CheckRunAnnotation,
+	type CheckRunConclusion,
+	type GitHubClient,
+	MAX_CHECK_RUN_ANNOTATIONS,
+} from "@theholocron/github-client";
+
+import { SENTINEL_FORMATTING_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
 import type { FormattingMessage, LintFormattingResult } from "./lint-formatting.js";
 
 /**
@@ -62,7 +62,7 @@ function formatMessage(m: FormattingMessage): string {
  * before either was made required.
  */
 function buildAnnotations(messages: FormattingMessage[]): CheckRunAnnotation[] {
-	return messages.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((m) => ({
+	return messages.slice(0, MAX_CHECK_RUN_ANNOTATIONS).map((m) => ({
 		path: m.file,
 		start_line: m.line,
 		end_line: m.line,

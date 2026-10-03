@@ -7,14 +7,14 @@
  * to wrap.
  */
 
-import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
-
 import {
-	MAX_ANNOTATIONS_PER_REQUEST,
-	SENTINEL_NAMESPACES,
-	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
-	sentinelAxiomLogUrl,
-} from "../../utils/constants.js";
+	type CheckRunAnnotation,
+	type CheckRunConclusion,
+	type GitHubClient,
+	MAX_CHECK_RUN_ANNOTATIONS,
+} from "@theholocron/github-client";
+
+import { SENTINEL_NAMESPACES, SENTINEL_STATIC_ANALYSIS_LOG_MSG, sentinelAxiomLogUrl } from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
 import type { LintStaticAnalysisResult, StaticAnalysisMessage } from "./lint-static-analysis.js";
 
@@ -61,7 +61,7 @@ function formatErrorComment(m: StaticAnalysisMessage): string {
 function buildAnnotations(messages: StaticAnalysisMessage[]): CheckRunAnnotation[] {
 	return messages
 		.filter((m) => m.severity === "warning")
-		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.slice(0, MAX_CHECK_RUN_ANNOTATIONS)
 		.map((m) => ({
 			path: m.file,
 			start_line: m.line,
