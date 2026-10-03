@@ -14,7 +14,12 @@
  * else to wrap.
  */
 
-import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
+import {
+	type CheckRunAnnotation,
+	type CheckRunConclusion,
+	type GitHubClient,
+	MAX_CHECK_RUN_ANNOTATIONS,
+} from "@theholocron/github-client";
 
 import { SENTINEL_EDITORCONFIG_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
 import type { EditorConfigMessage, LintEditorConfigResult } from "./lint-editorconfig.js";
@@ -26,12 +31,9 @@ function formatMessage(m: EditorConfigMessage): string {
 	return `${m.file}:${m.line}: ${m.reason}`;
 }
 
-/** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as every other Bucket 1 check's own cap. */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
-
 /** One annotation per message, at the first offending line. `notice` — same level eslint/markdownlint's own failure-capable checks already use for their annotations; `conclusion` (not `annotation_level`) is what actually drives merge-blocking. */
 function buildAnnotations(messages: EditorConfigMessage[]): CheckRunAnnotation[] {
-	return messages.slice(0, MAX_ANNOTATIONS_PER_REQUEST).map((m) => ({
+	return messages.slice(0, MAX_CHECK_RUN_ANNOTATIONS).map((m) => ({
 		path: m.file,
 		start_line: m.line,
 		end_line: m.line,

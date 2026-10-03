@@ -209,7 +209,11 @@ integration is ported by hand from actionlint's `rule_shellcheck.go`).
 and `Platform / Repo Validation / Validate docs presence` stay separate
 checks, since the first can fail and the second is advisory by design
 (its script always exits 0), so only the first could ever be a required
-check. `Validate registry consistency` follows in its own PR. Both the
+check. `Validate registry consistency` followed as its own check
+(holocron#925), scoped to the public packages a PR touches and checked
+against the latest published `@theholocron/registry-doc` rather than the
+repo's pinned version: the registry is compiled code, so the newest
+release is the only copy Sentinel can load without a redeploy. Both the
 script and Sentinel's port read one level of nested frontmatter as
 `parent.child` (holocron#923), so the template's `discussion:` /
 `github: <url>` satisfies the accepted-ADR discussion rule; it used to

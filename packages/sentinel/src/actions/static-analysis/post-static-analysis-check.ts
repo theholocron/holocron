@@ -7,7 +7,12 @@
  * to wrap.
  */
 
-import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
+import {
+	type CheckRunAnnotation,
+	type CheckRunConclusion,
+	type GitHubClient,
+	MAX_CHECK_RUN_ANNOTATIONS,
+} from "@theholocron/github-client";
 
 import { SENTINEL_NAMESPACES, SENTINEL_STATIC_ANALYSIS_LOG_MSG, sentinelAxiomLogUrl } from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
@@ -42,9 +47,6 @@ function formatErrorComment(m: StaticAnalysisMessage): string {
 	return `\`${m.ruleId ?? "parse error"}\` (line ${m.line}, col ${m.column}): ${m.reason}`;
 }
 
-/** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as `post-formatting-check.ts`'s own cap. */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
-
 /**
  * One annotation per warning-severity message, at the line/column eslint
  * reported. Error-severity messages are excluded here (holocron#860) — they
@@ -59,7 +61,7 @@ const MAX_ANNOTATIONS_PER_REQUEST = 50;
 function buildAnnotations(messages: StaticAnalysisMessage[]): CheckRunAnnotation[] {
 	return messages
 		.filter((m) => m.severity === "warning")
-		.slice(0, MAX_ANNOTATIONS_PER_REQUEST)
+		.slice(0, MAX_CHECK_RUN_ANNOTATIONS)
 		.map((m) => ({
 			path: m.file,
 			start_line: m.line,

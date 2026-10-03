@@ -66,6 +66,31 @@ describe("lintEditorConfig — a clean file", () => {
 	});
 });
 
+describe("lintEditorConfig — editorconfig-checker's own exclusions (holocron#927)", () => {
+	it("never reads, flags or fixes markdown, LICENSE or public/ files, like CI's editorconfig-checker", async () => {
+		const { client, calls } = makeClient([
+			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
+			{
+				status: 200,
+				body: [
+					file("packages/github-client/README.md"),
+					file("docs/page.mdx"),
+					file("LICENSE"),
+					file("public/logo.svg"),
+					file("src/index.ts"),
+				],
+			},
+			{ status: 200, body: contentsBody("export const x = 1;\n") },
+		]);
+
+		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 42, ref: "sha" });
+
+		expect(calls).toHaveLength(3);
+		expect(calls[2]?.url).toContain("/contents/src/index.ts");
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+	});
+});
+
 describe("lintEditorConfig — real violations", () => {
 	it("catches trailing whitespace", async () => {
 		const { client } = makeClient([
@@ -379,11 +404,12 @@ describe("lintEditorConfig — block-comment alignment false positive", () => {
 });
 
 describe("lintEditorConfig — cascading overrides", () => {
-	it("applies the [*.md] override (trim_trailing_whitespace: false), not the base [*] section", async () => {
+	// A .txt section rather than [*.md]: markdown is excluded outright (holocron#927).
+	it("applies a [*.txt] override (trim_trailing_whitespace: false), not the base [*] section", async () => {
 		const { client } = makeClient([
-			{ status: 200, body: contentsBody(BASE_EDITORCONFIG) },
-			{ status: 200, body: [file("README.md")] },
-			{ status: 200, body: contentsBody("# Title   \n") },
+			{ status: 200, body: contentsBody(`${BASE_EDITORCONFIG}\n[*.txt]\ntrim_trailing_whitespace = false\n`) },
+			{ status: 200, body: [file("notes.txt")] },
+			{ status: 200, body: contentsBody("Title   \n") },
 		]);
 
 		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
