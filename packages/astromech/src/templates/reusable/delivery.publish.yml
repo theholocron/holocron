@@ -33,6 +33,16 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: true
+      deploy-on-release:
+        description: >
+          When true, passes VERCEL_TOKEN into the semantic-release step so the
+          repo's own deploy-on-release plugin (holocron#928) can deploy once
+          the release has published. Off by default, so a repo that doesn't
+          deploy from its release never exposes the token to its release
+          plugins.
+        type: boolean
+        required: false
+        default: false
       sentry-project:
         description: >
           Sentry project slug for sourcemap upload and release creation after
@@ -69,6 +79,11 @@ on: # yamllint disable-line rule:truthy
           Required when sentry-project is set. Use the org-level secret.
         required: false
       TURBO_TOKEN:
+        required: false
+      VERCEL_TOKEN:
+        description: >
+          Vercel token for the repo's deploy-on-release plugin. Only passed to
+          the release step when deploy-on-release is true.
         required: false
 
 jobs:
@@ -145,6 +160,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
           HUSKY: "0"
           NPM_CONFIG_PROVENANCE: true
+          # Read by a repo's own deploy-on-release semantic-release plugin
+          # (holocron#928) to deploy once the release has published. Empty
+          # unless the caller opts in with deploy-on-release, so other repos'
+          # release plugins never see the token.
+          VERCEL_TOKEN: ${{ inputs.deploy-on-release && secrets.VERCEL_TOKEN || '' }}
 
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Coverage for the release commit

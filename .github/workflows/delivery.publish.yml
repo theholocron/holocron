@@ -37,4 +37,5 @@ jobs:
     with:
       dry-run: ${{ inputs.dry_run == true }}
       sentry-project: holocron-cli
+      deploy-on-release: true
     secrets: inherit
