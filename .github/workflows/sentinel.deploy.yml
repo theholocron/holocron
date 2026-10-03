@@ -17,6 +17,12 @@
 # `pnpm run delivery.deploy` (build → stage → `holocron deploy`) stays the
 # actual mechanism this invokes — the same command a human runs locally,
 # per D8's "one engine" convention.
+#
+# Alpha releases deploy themselves (holocron#928): the repo root's
+# `release.config.ts` runs `packages/sentinel/scripts/deploy-on-release.mjs`
+# from semantic-release's `success` step, once every package has published.
+# This workflow stays for manual redeploys (e.g. after a deploy failure that
+# plugin logged) and stable `main` merges.
 name: Sentinel Deploy
 
 on: # yamllint disable-line rule:truthy

@@ -282,6 +282,19 @@ repo, not astromech-templated — Sentinel is owned here, not synced to
 `theholocron/.github` for other repos to use. See `docs/tokens.md` (repo
 root) for the `VERCEL_TOKEN` repo secret it needs.
 
+**After every alpha release that touches it** (holocron#928) — the
+`scripts/deploy-on-release.mjs` semantic-release plugin, appended to the
+repo root's `release.config.ts`, runs this same command from the release's
+`success` step. semantic-release only reaches `success` once every package
+has published, so the `@theholocron/*` versions `stage-deploy.mjs` pins are
+always on npm (a hand-dispatched deploy once raced the release and lost by
+five seconds). It deploys only on the `alpha` channel and only when the
+release changes `packages/sentinel/` or a workspace package inlined into
+`dist/` (`cli`, `astromech`, `datapad`), and a deploy failure is logged,
+never fails the already-published release — redeploy with the workflow
+above. `VERCEL_TOKEN` reaches the release step through astromech's shared
+`delivery.publish.yml`.
+
 A real, production deploy — there's no separate staging/dev
 environment for Sentinel (see "Why production only" below). Builds,
 assembles the deploy payload, then calls `holocron deploy --files
