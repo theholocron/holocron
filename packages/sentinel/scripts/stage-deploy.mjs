@@ -33,26 +33,26 @@
  *                          No devDependencies, no scripts — nothing
  *                          Vercel's install step would waste time on.
  *
- * Caveat: the pinned `@theholocron/*` versions are whatever's in
- * node_modules right now — deploy from a synced `alpha` checkout
- * (they publish on every merge), not an unreleased local branch.
- * Enforced, not just documented (holocron#919): staging refuses when a
- * workspace dependency's source differs from its `v<version>` release
- * tag, since Vercel would install a published version that lacks it —
- * found live as an import crash on every webhook.
+ * The `@theholocron/*` workspace packages (astromech, datapad, cli) are
+ * inlined into `dist/` by `tsdown.config.ts` (holocron#922), so the code
+ * Sentinel runs is the code it was built from, whatever version gets
+ * pinned here. They stay in `dependencies` because a repo's own
+ * `holocron.config.ts` imports `@theholocron/cli` / `astromech/config` at
+ * runtime (only `defineConfig`, an identity function, so a version skew
+ * there is harmless). Pinned versions still have to exist on npm: deploy
+ * from a synced `alpha` checkout, not an unreleased local branch.
  *
  * Not its own package.json script — an internal step of
  * `delivery.deploy` (build → this → `holocron deploy`). Run that
  * instead of invoking this file directly.
  */
 
-import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { undeclaredExternals } from "./bundle-externals.mjs";
 import { vercelEngines } from "./vercel-engines.mjs";
-import { staleWorkspaceDeps } from "./workspace-freshness.mjs";
 
 const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = join(packageDir, ".vercel-deploy");
@@ -68,29 +68,18 @@ function resolvedVersion(depName) {
 }
 
 /**
- * Refuses to stage when a `workspace:` dependency's local source has moved
- * past its published release (holocron#919) — see `workspace-freshness.mjs`.
+ * Refuses to stage a bundle that imports a package the trimmed deploy
+ * `package.json` won't install (holocron#922) — see `bundle-externals.mjs`.
  */
-function assertWorkspaceDepsPublished(pkg) {
-	const git = (args) => {
-		const result = spawnSync("git", args, { cwd: packageDir, encoding: "utf8" });
-		return { status: result.status, stdout: result.stdout ?? "" };
-	};
-	const repoRoot = git(["rev-parse", "--show-toplevel"]).stdout.trim();
-	const deps = Object.entries(pkg.dependencies ?? {})
-		.filter(([, spec]) => String(spec).startsWith("workspace:"))
-		.map(([name]) => ({
-			name,
-			version: resolvedVersion(name),
-			dir: relative(repoRoot, realpathSync(join(packageDir, "node_modules", name))),
-		}));
-	const problems = staleWorkspaceDeps({ deps, git: (args) => git(["-C", repoRoot, ...args]) });
-	if (problems.length > 0) {
+function assertExternalsDeclared(distIndex, pkg) {
+	const missing = undeclaredExternals(readFileSync(distIndex, "utf8"), pkg.dependencies ?? {});
+	if (missing.length > 0) {
 		throw new Error(
 			[
-				"refusing to stage: Vercel would install published versions that lack this checkout's source —",
-				...problems.map((p) => `  - ${p}`),
-				"Deploy from a synced `alpha` checkout whose HEAD includes the latest `chore(release)` commit.",
+				"refusing to stage: dist/index.mjs imports packages that aren't in this package's `dependencies`,",
+				"so Vercel wouldn't install them —",
+				...missing.map((name) => `  - ${name}`),
+				"Add each to packages/sentinel/package.json (usually a new dependency of an inlined workspace package).",
 			].join("\n")
 		);
 	}
@@ -103,9 +92,9 @@ function main() {
 	}
 
 	const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
-	// Before any output is written: a stale workspace dependency means this
-	// payload would crash on import once deployed.
-	assertWorkspaceDepsPublished(pkg);
+	// Before any output is written: an undeclared external means this payload
+	// would crash on import once deployed.
+	assertExternalsDeclared(distIndex, pkg);
 
 	rmSync(outDir, { recursive: true, force: true });
 	mkdirSync(join(outDir, "api"), { recursive: true });

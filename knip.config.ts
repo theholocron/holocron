@@ -43,6 +43,10 @@ const config: KnipConfig = {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
+			// Imported only by the inlined @theholocron/cli code in dist/, never
+			// by sentinel's src/ (holocron#922); declared so the trimmed deploy
+			// package.json installs them on Vercel.
+			ignoreDependencies: ["@commitlint/lint", "@napi-rs/keyring"],
 		},
 	},
 	ignoreDependencies: [

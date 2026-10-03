@@ -326,10 +326,10 @@ file under `/api` as a Function, and its "fetch Web Standard" handler
 shape (`export default { fetch(request) {...} }`) is already
 `handleWebhookRequest`'s own signature — nothing to translate.
 
-`dist/index.mjs` (this package's built library) keeps
-`@theholocron/*` imports external, not bundled (the `library` tsdown
-preset's default) — so deploying `dist/` alone isn't enough; Vercel
-needs to `npm install` them. `scripts/stage-deploy.mjs` assembles
+`dist/index.mjs` (this package's built library) keeps its npm
+dependencies external, not bundled — everything except the three
+inlined workspace packages below — so deploying `dist/` alone isn't
+enough; Vercel needs to `npm install` them. `scripts/stage-deploy.mjs` assembles
 `.vercel-deploy/` — `api/webhook.mjs` + `dist/index.mjs` + a **trimmed**
 `package.json` (name/version/type + `engines` + `dependencies` only, no
 devDependencies/scripts, each dependency pinned to the exact version
@@ -337,11 +337,16 @@ resolved in `node_modules` right now — not the `workspace:`/`catalog:`
 pnpm protocol specifiers Vercel's plain `npm install` can't resolve).
 Deploy from a synced `alpha` checkout (packages publish on every
 merge), not an unreleased local branch, or a pinned version can 404
-against the registry — or, worse, resolve to the _previous_ release and
-crash every webhook on import. Staging enforces this (holocron#919,
-`scripts/workspace-freshness.mjs`): it refuses when a `workspace:`
-dependency's `src/` or `package.json` differs from its `v<version>`
-release tag, naming the changed files. `engines.node` is rewritten from this package's own range
+against the registry. The workspace packages Sentinel imports
+(`@theholocron/astromech`, `datapad`, `cli`) are inlined into `dist/`
+rather than installed (holocron#922, `tsdown.config.ts`): Vercel installs a
+published version, and a deploy made between a merge and its release once
+pinned the previous release, which lacked an export Sentinel's code needed —
+every webhook crashed on import. Their own npm dependencies stay external
+(`@theholocron/cli` reaches a native binary that must be installed for
+Vercel's platform), so staging refuses when `dist/` imports a package that
+isn't in this package's `dependencies` (`scripts/bundle-externals.mjs`).
+`engines.node` is rewritten from this package's own range
 to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
 `scripts/vercel-engines.mjs`): Vercel picks the function's Node version
 from it, and rejects an open range with `invalid_version_value`
