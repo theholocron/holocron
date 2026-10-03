@@ -295,7 +295,9 @@ from Sentinel's own `package.json` so there's no second list to keep in
 sync, and both overridable with the plugin's `channel` / `paths` options.
 A deploy failure is logged, never fails the already-published release —
 redeploy with the workflow above. `VERCEL_TOKEN` reaches the release step
-through astromech's shared `delivery.publish.yml`.
+only because this repo opts in: `astromech.config.ts` sets
+`deploy-on-release: true` on its `delivery.publish` task, and astromech's
+shared `delivery.publish.yml` passes the token only to callers that do.
 
 A real, production deploy — there's no separate staging/dev
 environment for Sentinel (see "Why production only" below). Builds,
