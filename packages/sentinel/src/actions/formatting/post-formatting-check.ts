@@ -9,7 +9,12 @@
 
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_FORMATTING_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import {
+	MAX_ANNOTATIONS_PER_REQUEST,
+	SENTINEL_FORMATTING_LOG_MSG,
+	SENTINEL_NAMESPACES,
+	sentinelAxiomLogUrl,
+} from "../../utils/constants.js";
 import type { FormattingMessage, LintFormattingResult } from "./lint-formatting.js";
 
 /**
@@ -48,9 +53,6 @@ export interface PostFormattingCheckResult {
 function formatMessage(m: FormattingMessage): string {
 	return `${m.file}:${m.line}: ${m.reason}`;
 }
-
-/** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as `post-inclusive-language-check.ts`'s own cap. */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
  * One annotation per message, at the first line prettier's own reformatted

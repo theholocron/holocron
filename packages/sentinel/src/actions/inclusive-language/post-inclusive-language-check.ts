@@ -10,6 +10,7 @@
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
 import {
+	MAX_ANNOTATIONS_PER_REQUEST,
 	SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG,
 	SENTINEL_NAMESPACES,
 	sentinelAxiomLogUrl,
@@ -53,15 +54,6 @@ export interface PostInclusiveLanguageCheckResult {
 function formatMessage(m: InclusiveLanguageMessage): string {
 	return `${m.file}:${m.line}:${m.column}: ${m.reason} [${m.ruleId}]`;
 }
-
-/**
- * GitHub's own cap per `createCheckRun()` call (holocron#816) — a PR with
- * more findings than this would need a follow-up `updateCheckRun()` PATCH
- * to attach the rest, which this doesn't do yet. `text`'s full breakdown
- * (`formatMessage()`, above) never truncates, so nothing is silently lost
- * even when annotations are capped — just less visible inline.
- */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
  * Two tiers only — no `notice` (holocron#865 follow-up: too easy to miss,

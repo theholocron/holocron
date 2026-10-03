@@ -8,15 +8,17 @@
 
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_ADRS_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import {
+	MAX_ANNOTATIONS_PER_REQUEST,
+	SENTINEL_ADRS_LOG_MSG,
+	SENTINEL_NAMESPACES,
+	sentinelAxiomLogUrl,
+} from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
 import type { AdrMessage, ValidateAdrsResult } from "./validate-adrs.js";
 
 /** Mirrors the CI job's own name (`Repo Validation / Validate ADRs and specs`) under the `platform` namespace its task lives in. */
 export const SENTINEL_ADRS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Repo Validation / Validate ADRs and specs`;
-
-/** GitHub's own cap per `createCheckRun()` call (holocron#816). */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 function formatMessage(m: AdrMessage): string {
 	return `${m.file}:${m.line}: ${m.reason} [${m.rule}]`;

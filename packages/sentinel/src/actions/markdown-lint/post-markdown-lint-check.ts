@@ -9,7 +9,12 @@
 
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_MARKDOWN_LINT_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import {
+	MAX_ANNOTATIONS_PER_REQUEST,
+	SENTINEL_MARKDOWN_LINT_LOG_MSG,
+	SENTINEL_NAMESPACES,
+	sentinelAxiomLogUrl,
+} from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
 import type { LintMarkdownResult, MarkdownLintMessage } from "./lint-markdown.js";
 
@@ -49,9 +54,6 @@ function formatErrorComment(m: MarkdownLintMessage): string {
 	const column = m.errorRange ? `, col ${m.errorRange[0]}` : "";
 	return `\`${m.ruleNames.join("/")}\` (line ${m.line}${column}): ${m.reason}`;
 }
-
-/** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as `post-formatting-check.ts`'s own cap. */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
  * One annotation per warning-severity message, at the line markdownlint

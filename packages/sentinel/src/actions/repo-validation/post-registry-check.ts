@@ -7,15 +7,17 @@
 
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_NAMESPACES, SENTINEL_REGISTRY_LOG_MSG, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import {
+	MAX_ANNOTATIONS_PER_REQUEST,
+	SENTINEL_NAMESPACES,
+	SENTINEL_REGISTRY_LOG_MSG,
+	sentinelAxiomLogUrl,
+} from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
 import type { CheckedPackage, ValidateRegistryResult } from "./validate-registry.js";
 
 /** Mirrors the CI job's own name (`Repo Validation / Validate registry consistency`) under the `platform` namespace its task lives in. */
 export const SENTINEL_REGISTRY_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Repo Validation / Validate registry consistency`;
-
-/** GitHub's own cap per `createCheckRun()` call (holocron#816). */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /** The version compared against is in the check's summary, so each finding just names the package. */
 function reason(p: CheckedPackage): string {

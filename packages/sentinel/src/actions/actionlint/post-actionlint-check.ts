@@ -9,7 +9,12 @@
 
 import type { CheckRunAnnotation, CheckRunConclusion, GitHubClient } from "@theholocron/github-client";
 
-import { SENTINEL_ACTIONLINT_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../utils/constants.js";
+import {
+	MAX_ANNOTATIONS_PER_REQUEST,
+	SENTINEL_ACTIONLINT_LOG_MSG,
+	SENTINEL_NAMESPACES,
+	sentinelAxiomLogUrl,
+} from "../../utils/constants.js";
 import { postErrorReview } from "../../utils/post-error-review.js";
 import type { ActionlintMessage, LintActionlintResult } from "./lint-actionlint.js";
 
@@ -34,9 +39,6 @@ function formatMessage(m: ActionlintMessage): string {
 function formatErrorComment(m: ActionlintMessage): string {
 	return `\`${m.ruleId}\` (line ${m.line}, col ${m.column}): ${m.reason}`;
 }
-
-/** GitHub's own cap per `createCheckRun()` call (holocron#816) — same reasoning as `post-formatting-check.ts`'s own cap. */
-const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
 /**
  * One `notice` annotation per warning-severity message. Error-severity
