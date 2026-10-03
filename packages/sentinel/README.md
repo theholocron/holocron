@@ -165,7 +165,7 @@ instead of retyping.
 
 Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
-ten more independent Bucket 1 check pipelines — commit standards
+eleven more independent Bucket 1 check pipelines — commit standards
 (commitlint), DCO (holocron#900 — the org-wide replacement for
 `probot/dcoapp`; no real tool to delegate to, so a deliberate, narrow
 reimplementation of the one stable rule — every commit needs a
@@ -207,7 +207,14 @@ and post a review, warnings are annotations on a `neutral` check — and
 `Platform / Repo Validation / Validate docs presence` flags an added
 `packages/<name>/src/index.ts` for a non-private package shipped without
 any docs change; advisory like its script, `neutral` at worst, never
-`failure`; see `src/actions/repo-validation/`) — the Bucket 2
+`failure`; and, holocron#925, `Platform / Repo Validation / Validate
+registry consistency`, which fails when a public package whose
+`package.json` the PR adds or changes isn't in the **latest published**
+`@theholocron/registry-doc` — fetched from npm at check time, sha512-verified
+against the packument's `dist.integrity`, its self-contained
+`dist/index.mjs` imported from a temp file and cached ten minutes per warm
+instance, since the registry is compiled code a repo's pinned version
+can't be read from; see `src/actions/repo-validation/`) — the Bucket 2
 dispatch prototype, the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
 the `sourceQuality.formatting` task backing three independent commit
