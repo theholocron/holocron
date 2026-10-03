@@ -212,7 +212,7 @@ checks, since the first can fail and the second is advisory by design
 check. `Validate registry consistency` follows in its own PR. Both the
 script and Sentinel's port read one level of nested frontmatter as
 `parent.child` (holocron#923), so the template's `discussion:` /
-`  github: <url>` satisfies the accepted-ADR discussion rule; it used to
+`github: <url>` satisfies the accepted-ADR discussion rule; it used to
 warn on every accepted ADR, filled in or not.
 
 Config-compatibility no longer stands as a 2-tier exception once DCO
