@@ -28,9 +28,18 @@ function parseFrontmatter(content) {
 	const match = content.match(/^---\n([\s\S]*?)\n---/);
 	if (!match) return null;
 	const fm = {};
+	let parent;
 	for (const line of match[1].split("\n")) {
 		const kv = line.match(/^(\w[\w-]*):\s*(.*)/);
-		if (kv) fm[kv[1]] = kv[2].trim();
+		if (kv) {
+			fm[kv[1]] = kv[2].trim();
+			parent = kv[1];
+			continue;
+		}
+		// One level of nesting (`discussion:` / `  github: <url>`), stored
+		// as `parent.child` so the template's nested keys are visible.
+		const nested = line.match(/^\s+(\w[\w-]*):\s*(.*)/);
+		if (nested && parent) fm[`${parent}.${nested[1]}`] = nested[2].trim();
 	}
 	return fm;
 }
@@ -96,7 +105,7 @@ function validateAdr(filepath) {
 	}
 
 	// accepted ADRs should have a discussion link
-	if (fm.status === "accepted" && (!fm.discussion || fm.discussion === "")) {
+	if (fm.status === "accepted" && !fm["discussion.github"] && !fm.discussion) {
 		warn(name, "status is accepted but `discussion.github` is not set");
 	}
 }

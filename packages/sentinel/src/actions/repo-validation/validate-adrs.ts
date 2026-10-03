@@ -69,16 +69,28 @@ interface Field {
 
 /**
  * The script's own frontmatter parser, line-numbered: a leading `---` block
- * of flat `key: value` lines. Returns `null` when the file has none.
+ * of `key: value` lines, plus one level of nesting keyed `parent.child`
+ * (the template's `discussion:` / `  github:`). Returns `null` when the
+ * file has none.
  */
 export function parseFrontmatter(content: string): Map<string, Field> | null {
 	const match = /^---\n([\s\S]*?)\n---/.exec(content);
 	if (!match) return null;
 	const fields = new Map<string, Field>();
+	let parent: string | undefined;
 	match[1]!.split("\n").forEach((text, i) => {
-		const kv = /^(\w[\w-]*):\s*(.*)/.exec(text);
 		// +2: line 1 is the opening `---`.
-		if (kv) fields.set(kv[1]!, { value: kv[2]!.trim(), line: i + 2 });
+		const line = i + 2;
+		const kv = /^(\w[\w-]*):\s*(.*)/.exec(text);
+		if (kv) {
+			fields.set(kv[1]!, { value: kv[2]!.trim(), line });
+			parent = kv[1];
+			return;
+		}
+		// One level of nesting (`discussion:` / `  github: <url>`), keyed
+		// `parent.child` so the template's nested fields are visible.
+		const nested = /^\s+(\w[\w-]*):\s*(.*)/.exec(text);
+		if (nested && parent) fields.set(`${parent}.${nested[1]!}`, { value: nested[2]!.trim(), line });
 	});
 	return fields;
 }
@@ -126,7 +138,7 @@ export function validateAdr(file: string, content: string): AdrMessage[] {
 		issue("date", `invalid date "${date.value}" — must be YYYY-MM-DD`, date.line);
 	}
 
-	if (status?.value === "accepted" && !fm.get("discussion")?.value) {
+	if (status?.value === "accepted" && !fm.get("discussion.github")?.value && !fm.get("discussion")?.value) {
 		issue("discussion", "status is accepted but `discussion.github` is not set", status.line, "warning");
 	}
 
