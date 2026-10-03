@@ -17,8 +17,9 @@ export const SENTINEL_REGISTRY_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform}
 /** GitHub's own cap per `createCheckRun()` call (holocron#816). */
 const MAX_ANNOTATIONS_PER_REQUEST = 50;
 
-function reason(p: CheckedPackage, version: string | undefined): string {
-	return `\`${p.name}\` isn't in @theholocron/registry-doc${version ? `@${version}` : ""} — add its entry in theholocron/docs and publish it.`;
+/** The version compared against is in the check's summary, so each finding just names the package. */
+function reason(p: CheckedPackage): string {
+	return `\`${p.name}\` isn't in @theholocron/registry-doc — add its entry in theholocron/docs and publish it.`;
 }
 
 function buildAnnotations(result: ValidateRegistryResult): CheckRunAnnotation[] {
@@ -27,7 +28,7 @@ function buildAnnotations(result: ValidateRegistryResult): CheckRunAnnotation[] 
 		start_line: p.line,
 		end_line: p.line,
 		annotation_level: "failure" as const,
-		message: reason(p, result.registryVersion),
+		message: reason(p),
 		title: "Not in the package registry",
 	}));
 }
@@ -86,7 +87,7 @@ export async function postRegistryCheck(input: PostRegistryCheckInput): Promise<
 		checkKey: "registry",
 		checkLabel: "Registry consistency",
 		checkRunName: SENTINEL_REGISTRY_CHECK_RUN_NAME,
-		errors: result.missing.map((p) => ({ file: p.file, line: p.line, body: reason(p, result.registryVersion) })),
+		errors: result.missing.map((p) => ({ file: p.file, line: p.line, body: reason(p) })),
 		warningCount: 0,
 	});
 

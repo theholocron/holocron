@@ -68,6 +68,13 @@ describe("extractTarEntry", () => {
 		expect(extractTarEntry(tar, "package/dist/index.mjs")?.toString()).toBe("prefixed");
 	});
 
+	it("treats an empty size field as a zero-length entry", () => {
+		const empty = tarEntry("package/empty", "");
+		empty.fill(0, 124, 136);
+		const tar = Buffer.concat([empty, tarEntry("package/dist/index.mjs", "after"), END]);
+		expect(extractTarEntry(tar, "package/dist/index.mjs")?.toString()).toBe("after");
+	});
+
 	it("returns undefined at the end-of-archive block, or when the archive simply runs out", () => {
 		expect(extractTarEntry(Buffer.concat([tarEntry("a", "1"), END]), "b")).toBeUndefined();
 		expect(extractTarEntry(tarEntry("a", "1"), "b")).toBeUndefined();
@@ -107,6 +114,27 @@ describe("loadLatestRegistry (holocron#925)", () => {
 
 		const registry = await loadLatestRegistry({ fetch: npm(gz) });
 		expect(registry.packages.size).toBe(2);
+	});
+
+	it("leaves a newer cached load alone when an older, expired load fails late", async () => {
+		vi.useFakeTimers();
+		try {
+			let failOld: (err: Error) => void = () => {};
+			const slow = vi.fn(() => new Promise<Response>((_, reject) => (failOld = reject)));
+			const old = loadLatestRegistry({ fetch: slow as unknown as typeof fetch });
+
+			vi.advanceTimersByTime(11 * 60 * 1000); // past the 10-minute TTL
+			const fresh = npm(tarball([tarEntry("package/dist/index.mjs", MODULE)]));
+			await loadLatestRegistry({ fetch: fresh });
+
+			failOld(new Error("late failure"));
+			await expect(old).rejects.toThrow("late failure");
+
+			await loadLatestRegistry({ fetch: fresh });
+			expect(fresh).toHaveBeenCalledTimes(2); // the newer load is still cached
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("reports a failed tarball download and a tarball without dist/index.mjs", async () => {

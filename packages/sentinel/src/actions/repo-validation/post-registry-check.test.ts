@@ -76,7 +76,7 @@ describe("postRegistryCheck (holocron#925)", () => {
 
 		expect(result.conclusion).toBe("failure");
 		const reason =
-			"`@theholocron/widget` isn't in @theholocron/registry-doc@1.14.0 — add its entry in theholocron/docs and publish it.";
+			"`@theholocron/widget` isn't in @theholocron/registry-doc — add its entry in theholocron/docs and publish it.";
 		const check = calls[0]?.body as { output: Record<string, unknown> };
 		expect(check.output).toMatchObject({
 			title: "Registry: 1 package(s) not registered",
