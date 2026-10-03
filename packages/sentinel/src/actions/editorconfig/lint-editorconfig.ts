@@ -71,6 +71,7 @@
  * ref)` — a same-repo PR branch, not a fork's.
  */
 
+import { isEditorConfigExcluded } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";
 import { matcher, type Props } from "editorconfig";
 
@@ -267,7 +268,11 @@ export async function lintEditorConfig(input: LintEditorConfigInput): Promise<Li
 
 	const resolve = matcher({}, editorConfigBuffer);
 	const changedFiles = await client.pulls.listFiles(repo, pullNumber);
-	const candidates = changedFiles.filter((f) => f.status !== "removed" && f.filename !== ".editorconfig");
+	// Same exclusions as CI's editorconfig-checker (holocron#927): markdown is
+	// prettier's (spaces) and markdownlint's, never editorconfig's tabs.
+	const candidates = changedFiles.filter(
+		(f) => f.status !== "removed" && f.filename !== ".editorconfig" && !isEditorConfigExcluded(f.filename)
+	);
 
 	const messages: EditorConfigMessage[] = [];
 	const fixes: EditorConfigFix[] = [];

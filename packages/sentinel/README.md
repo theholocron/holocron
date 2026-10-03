@@ -176,7 +176,9 @@ of it — see `src/actions/dco/lint-dco.ts`'s own module docstring),
 inclusive language (alex), formatting (prettier,
 holocron#819, purely advisory — no severity axis, 100% mechanical),
 editorconfig (the `editorconfig` package's own `matcher()` API resolving
-each changed file's properties purely in-memory; unlike formatting,
+each changed file's properties purely in-memory, skipping the same paths as
+the generated `.editorconfig-checker.json` — markdown, `LICENSE`, `public/` —
+via `@theholocron/cli`'s `isEditorConfigExcluded()`, holocron#927; unlike formatting,
 `conclusion: "failure"` on any violation — but also 100% mechanical, so
 the failure is meant to be transient, auto-fix-commit (below) resolving
 it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig.ts`'s
