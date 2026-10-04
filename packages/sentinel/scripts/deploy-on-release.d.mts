@@ -38,6 +38,30 @@ export function shouldDeploy(input: {
 	paths: string[];
 }): { deploy: boolean; reason: string };
 
+export interface WorkspaceDependency {
+	name: string;
+	/** Absolute folder under `packages/`. */
+	dir: string;
+	version: string | undefined;
+}
+
+export function workspaceDependencies(input: {
+	repoRoot: string;
+	sentinelDir: string;
+	readJson: (path: string) => unknown;
+	listDirs: (path: string) => string[];
+}): WorkspaceDependency[];
+
+export function waitForPublished(input: {
+	packages: { name: string; version: string }[];
+	run: Run;
+	sleep: (ms: number) => Promise<void>;
+	now: () => number;
+	cwd?: string;
+	timeoutMs?: number;
+	intervalMs?: number;
+}): Promise<string[]>;
+
 export function defaultPaths(input: {
 	repoRoot: string;
 	sentinelDir: string;
@@ -49,11 +73,13 @@ export function createPlugin(options?: {
 	run?: Run;
 	readJson?: (path: string) => unknown;
 	listDirs?: (path: string) => string[];
+	sleep?: (ms: number) => Promise<void>;
+	now?: () => number;
 	sentinelDir?: string;
 }): {
 	verifyConditions(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): void;
-	success(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): void;
+	success(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): Promise<void>;
 };
 
 export function verifyConditions(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): void;
-export function success(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): void;
+export function success(pluginConfig: DeployOnReleaseConfig, context: ReleaseContext): Promise<void>;
