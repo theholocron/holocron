@@ -105,6 +105,18 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
+	it("verification.unitTests.yml installs the Codecov CLI from PyPI on every upload step (holocron#934)", () => {
+		const uploads = REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@").slice(1);
+
+		// coverage + test results, in both the unit and Storybook jobs
+		expect(uploads).toHaveLength(4);
+		for (const step of uploads) {
+			const block = step.split("\n\n")[0]!;
+			expect(block).toContain("use_oidc: true");
+			expect(block).toContain("use_pypi: true");
+		}
+	});
+
 	it("delivery.publish.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
 		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
 		// detect the release commit semantic-release just pushed
