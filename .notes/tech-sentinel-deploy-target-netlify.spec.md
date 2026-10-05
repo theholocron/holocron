@@ -118,14 +118,61 @@ surface nothing else in the org carries; still true here.
 
 ## Implementation order
 
-### 0. Spike: verify the runtime assumption first
+### 0. Spike: verify the runtime assumption first — done, passed
 
-Before any plugin work: deploy a minimal Netlify Function that does
-exactly what `validateConfig()` does — fetch arbitrary text content, write
-it to a temp path, dynamically `import()` that path, return the result.
-If this doesn't work on Netlify's standard Functions runtime, stop here —
-this spec's only non-replaceable assumption just failed, and the fallback
-is AWS Lambda (or staying on Vercel and accepting Pro's base cost).
+Deployed a minimal Netlify Function (throwaway, not in this repo) that
+runs the exact sequence `validateConfig()` depends on: find this
+function's own `node_modules` by walking up from its deployed location,
+`mkdtemp()` under `os.tmpdir()`, symlink `<tmpDir>/node_modules` to the
+real one, write a `{"type":"module"}` marker, write a fresh `.ts` file,
+register `tsx`'s ESM loader, dynamically `import()` that file. Confirmed
+`ok: true` on three separate invocations (cold and warm) against a real
+deployed function — runtime reported as `nodejs24.x`. **The assumption
+holds**: Netlify's standard Functions satisfy ADR-0011's constraint.
+
+Three real gotchas surfaced, none obvious from Netlify's docs, all fixed
+in the spike and worth carrying into the actual plugin/stage-deploy work:
+
+1. **`node_bundler = "none"` does not ship `node_modules`.** It only
+   disables esbuild tracing/bundling of whatever `included_files` already
+   names. Without `included_files = ["node_modules/**"]` too, the deployed
+   function has zero `node_modules` — `findPackageRoot()` throws
+   immediately (`no node_modules found above "/var/task"`). Both settings
+   are required together; `included_files` paths are relative to the
+   project root (or `base`), not the function file's own directory.
+2. **Function size limit is 250MB, and it's easy to blow past it by
+   accident.** Shipping a real `@theholocron/cli` install's full
+   dependency tree was 451MB — way over, and also unnecessary: the spike
+   doesn't need to import that specific package, only _some_ real
+   dependency resolved through the symlink, to prove the resolution path
+   works. (A `tsx`-only install is ~11MB.) When the real migration stages
+   Sentinel's actual trimmed/pinned `package.json` — already a small,
+   deliberately-minimal dependency list, same discipline Vercel's
+   `stage-deploy.mjs` already applies — this should be a non-issue, but
+   it's worth a sanity check against the 250MB ceiling as part of that
+   work, not assumed away.
+3. **Cross-platform native binaries: install for the deploy target, not
+   your laptop.** A `node_modules` installed on macOS ARM64 and shipped
+   as-is crashed with esbuild's own platform-mismatch error (`tsx` depends
+   on esbuild, which ships per-platform native binaries as
+   `optionalDependencies`). Netlify's Lambda runtime is linux-x64; fixed
+   locally with `npm install --os=linux --cpu=x64 --libc=glibc`. The real
+   stage-deploy script needs the equivalent of this — either run the
+   install step on a linux-x64 CI runner (likely already true, since
+   GitHub Actions' `ubuntu-latest` runners are linux-x64) or explicitly
+   force the platform flags the way the spike did, the same way Vercel's
+   own build step always installs on Vercel's own Linux build machines
+   rather than shipping a locally-installed tree.
+
+Also confirmed, incidentally: this Netlify team ("Holocron", slug
+`iamnewton`) defaults new projects to **private** (Netlify's July 2026
+policy change for newly-created teams) — a real production Sentinel site
+needs **Project visibility → Public** set explicitly
+(`/configuration/general/#project-visibility` in the site's dashboard,
+dashboard-only, no CLI/API path found), or GitHub's webhook deliveries
+would 401 against the same login-redirect wall the spike hit before that
+was flipped. Worth doing as the very first step of the real site's setup,
+before anything else, so it isn't a last-minute surprise during cutover.
 
 ### 1. `@theholocron/holocron-plugin-netlify`
 
