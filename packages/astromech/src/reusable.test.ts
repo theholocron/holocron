@@ -140,6 +140,28 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).toContain("codecov/codecov-action@");
 	});
 
+	it("delivery.publish.yml deploys from its own job, so VERCEL_TOKEN never reaches the release job (holocron#930)", () => {
+		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+		const [releaseJob, rest] = wf.split("\n  deploy:\n") as [string, string];
+		const deployJob = rest.split("\n  sync-readme:")[0]!;
+
+		// A separate job after the release, only when opted in and something published.
+		expect(deployJob).toContain("needs: release");
+		expect(deployJob).toContain("inputs.deploy-on-release == true");
+		expect(deployJob).toContain("needs.release.outputs.commit != ''");
+		expect(deployJob).toContain("inputs.dry-run != true");
+		// It deploys the release commit, from the release job's outputs.
+		expect(deployJob).toContain("ref: ${{ needs.release.outputs.commit }}");
+		expect(deployJob).toContain("command: deploy-on-release");
+		for (const output of ["channel", "previous", "commit"]) {
+			expect(deployJob).toContain(`needs.release.outputs.${output}`);
+			expect(releaseJob).toContain(`${output}: \${{ steps.release.outputs.${output} }}`);
+		}
+		// Only the deploy job gets the token.
+		expect(deployJob).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
+		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("secrets.VERCEL_TOKEN");
+	});
+
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
 		expect(build).toMatch(/task: delivery\.build/);

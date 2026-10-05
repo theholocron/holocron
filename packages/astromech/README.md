@@ -192,29 +192,26 @@ template. `holocron setup` writes the result via the `source` capability;
 this method never touches the filesystem beyond reading `packages/*` and
 `apps/*` under `cwd`.
 
-## Release-time deploys — `@theholocron/astromech/release`
+## Release-time deploys — `deployOnRelease`
 
-A semantic-release plugin (`success` + `verifyConditions`) that deploys any
-workspace package whose manifest declares it (holocron#930):
+Deploys the workspace packages whose manifest declares it (holocron#930):
 
 ```ts
 // packages/<app>/holocron.config.ts
-tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha", requires: ["VERCEL_TOKEN"] } }];
+tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
 ```
 
-```ts
-// release.config.ts
-config.plugins.push("@theholocron/astromech/release");
-```
-
-After a release publishes, for each such package the plugin deploys when the
-release is on `channel` (default `alpha`) and changes the package or one of its
-`workspace:*` dependencies (`with.paths` overrides that), once npm serves the
-release's new dependency versions, by running `pnpm --filter <package>
-delivery.deploy`. `with.requires` lists env vars that must be set; a deploying
-release missing one is skipped and warned about up front. Failures are logged,
-never thrown: the release is already published. A `delivery.deploy` task with
-`on: "release"` generates no workflow.
+`holocron deploy-on-release --channel=<alpha|""> --from=<previous release commit> --to=<release commit>`
+(or `deployOnRelease()` from `@theholocron/astromech`) deploys each such package
+when the release is on its `channel` (default `alpha`, `""` is a stable
+release) and changes the package or one of its `workspace:*` dependencies
+(`with.paths` overrides that), once npm serves the release's new dependency
+versions, by running `pnpm --filter <package> delivery.deploy`. A package
+that doesn't apply to the release is skipped; a deploy that fails exits
+non-zero. The shared `delivery.publish` workflow runs it as a separate `deploy`
+job after the release job (opt in with `deploy-on-release: true`), so a deploy
+is its own re-runnable check. A `delivery.deploy` task with `on: "release"`
+generates no workflow.
 
 ## Development
 

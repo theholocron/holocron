@@ -2,31 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TasksConfig } from "./config/schema.js";
 import {
-	createPlugin,
 	defaultPaths,
+	deployOnRelease,
+	type DeployOnReleaseOptions,
 	deployTargets,
-	type ReleaseContext,
 	type Run,
 	shouldDeploy,
 	waitForPublished,
 	workspaceDependencies,
 	workspacePackages,
-} from "./release.js";
+} from "./deploy-on-release.js";
 
 const VERSION = "5.0.0-alpha.105";
 const PATHS = ["packages/app/", "packages/cli/"];
-
-function context(overrides: Partial<ReleaseContext> = {}): ReleaseContext {
-	return {
-		cwd: "/repo",
-		env: { VERCEL_TOKEN: "vt" },
-		logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() },
-		branch: { channel: "alpha" },
-		lastRelease: { gitHead: "old" },
-		nextRelease: { gitHead: "new", channel: "alpha" },
-		...overrides,
-	};
-}
 
 /**
  * A fake runner: `git diff` returns `changed`, `npm view name@version` returns
@@ -73,7 +61,7 @@ const TREE = {
 };
 
 const APP_DEPLOY: TasksConfig = {
-	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha", requires: ["VERCEL_TOKEN"] } }],
+	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
 };
 
 /** A clock the test drives: `sleep` advances `now` instead of waiting. */
@@ -88,18 +76,21 @@ function fakeClock() {
 	};
 }
 
-/** The plugin over the fake tree and clock, so nothing touches git, npm, pnpm, disk or time. */
-function plugin(
+const OPTIONS = { cwd: "/repo", channel: "alpha", from: "old", to: "new" };
+
+/** `deployOnRelease` over the fake tree and clock, so nothing touches git, npm, pnpm, disk or time. */
+function deploy(
 	run: ReturnType<typeof fakeRun>,
+	options: Partial<DeployOnReleaseOptions> = {},
 	manifests: Record<string, TasksConfig> = { "/repo/packages/app": APP_DEPLOY },
 	clock = fakeClock()
 ) {
-	return createPlugin({
-		run,
-		...TREE,
-		...clock,
-		loadTasks: (dir) => Promise.resolve(manifests[dir] ?? {}),
-	});
+	const lines: string[] = [];
+	const report = deployOnRelease(
+		{ ...OPTIONS, print: (line) => lines.push(line), ...options },
+		{ run, ...TREE, ...clock, loadTasks: (dir) => Promise.resolve(manifests[dir] ?? {}) }
+	);
+	return report.then((r) => ({ report: r, lines }));
 }
 
 describe("shouldDeploy", () => {
@@ -115,7 +106,7 @@ describe("shouldDeploy", () => {
 	});
 
 	it("skips another channel, including the default (stable) one", () => {
-		expect(shouldDeploy({ channel: undefined, configuredChannel: "alpha", changedFiles: [], paths: [] })).toEqual({
+		expect(shouldDeploy({ channel: "", configuredChannel: "alpha", changedFiles: [], paths: [] })).toEqual({
 			deploy: false,
 			reason: 'channel "default" isn\'t "alpha"',
 		});
@@ -185,7 +176,7 @@ describe("deployTargets", () => {
 				{ name: "delivery.deploy", with: { on: "push" } },
 				{
 					name: "delivery.deploy",
-					with: { on: "release", channel: "beta", paths: ["docs/"], requires: ["TOKEN"] },
+					with: { on: "release", channel: "beta", paths: ["docs/"] },
 				},
 			])
 		);
@@ -194,14 +185,13 @@ describe("deployTargets", () => {
 				pkg: expect.objectContaining({ name: "@theholocron/app" }),
 				channel: "beta",
 				paths: ["docs/"],
-				requires: ["TOKEN"],
 			},
 		]);
 	});
 
 	it("defaults the channel to alpha, with no explicit paths or requirements", () => {
 		const [target] = deployTargets(all, manifest([{ name: "delivery.deploy", with: { on: "release" } }]));
-		expect(target).toMatchObject({ channel: "alpha", paths: undefined, requires: [] });
+		expect(target).toMatchObject({ channel: "alpha", paths: undefined });
 	});
 
 	it("ignores a bare delivery.deploy and packages with no manifest", () => {
@@ -210,151 +200,142 @@ describe("deployTargets", () => {
 	});
 });
 
-describe("success hook", () => {
-	it("diffs the release's commits, waits for npm, then runs the package's own deploy with the release's env", async () => {
+describe("deployOnRelease", () => {
+	it("diffs the release, waits for npm, then runs the package's own deploy", async () => {
 		const run = fakeRun();
-		const ctx = context();
 
-		await plugin(run).success(undefined, ctx);
+		const { report } = await deploy(run);
 
+		expect(report).toEqual({
+			status: "ok",
+			results: [{ pkg: "@theholocron/app", status: "ok", message: "deployed." }],
+		});
 		expect(run.mock.calls.map(([command]) => command)).toEqual(["git", "npm", "npm", "pnpm"]);
 		expect(run).toHaveBeenNthCalledWith(1, "git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
 		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "delivery.deploy"], {
 			cwd: "/repo",
-			env: ctx.env,
+			env: process.env,
 			stdio: "inherit",
 		});
-		expect(ctx.logger.success).toHaveBeenCalledWith("deploy-on-release (@theholocron/app): deployed.");
 	});
 
-	it("does nothing when no package declares a release-time deploy", async () => {
+	it("skips, without failing, when no package declares a release-time deploy", async () => {
 		const run = fakeRun();
-		await plugin(run, {}).success(undefined, context());
+
+		const { report, lines } = await deploy(run, {}, {});
+
+		expect(report).toEqual({ status: "skip", results: [] });
 		expect(run).not.toHaveBeenCalled();
+		expect(lines).toEqual(["No package declares a release-time delivery.deploy (with.on: release)."]);
 	});
 
 	it("waits for npm to serve the workspace dependencies' versions before deploying", async () => {
 		const run = fakeRun();
-		const ctx = context();
 
-		await plugin(run).success(undefined, ctx);
+		const { lines } = await deploy(run);
 
 		expect(run).toHaveBeenCalledWith("npm", ["view", `@theholocron/cli@${VERSION}`, "version", "--prefer-online"], {
 			cwd: "/repo",
 		});
-		expect(ctx.logger.log).toHaveBeenCalledWith(
-			`deploy-on-release (@theholocron/app): waiting for npm to serve @theholocron/cli@${VERSION}, @theholocron/datapad@${VERSION}.`
+		expect(lines).toContain(
+			`@theholocron/app: waiting for npm to serve @theholocron/cli@${VERSION}, @theholocron/datapad@${VERSION}.`
 		);
 	});
 
-	it("skips, saying so, and never deploys when npm still doesn't serve the versions after the timeout", async () => {
+	it("fails, never deploying, when npm still doesn't serve the versions after the timeout", async () => {
 		const run = fakeRun({ served: false });
 		const clock = fakeClock();
-		const ctx = context();
 
-		await plugin(run, undefined, clock).success(undefined, ctx);
+		const { report } = await deploy(run, {}, undefined, clock);
 
+		expect(report.status).toBe("fail");
+		expect(report.results[0]?.message).toContain(
+			`npm still doesn't serve @theholocron/cli@${VERSION}, @theholocron/datapad@${VERSION}`
+		);
 		expect(run).not.toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
 		expect(clock.sleep).toHaveBeenCalled();
-		expect(ctx.logger.error).toHaveBeenCalledWith(
-			expect.stringContaining(
-				`npm still doesn't serve @theholocron/cli@${VERSION}, @theholocron/datapad@${VERSION}`
-			)
-		);
 	});
 
-	it("skips, logging why, when it can't check npm", async () => {
-		const run = fakeRun();
-		run.mockImplementation((command) => {
-			if (command === "npm") throw new Error("spawn npm ENOENT");
-			return { status: 0, stdout: "packages/app/x.ts\n", stderr: "" };
-		});
-		const ctx = context();
+	it("fails when the deploy fails -- the release already published, so this job is the signal", async () => {
+		const { report, lines } = await deploy(fakeRun({ deployStatus: 1 }));
 
-		await plugin(run).success(undefined, ctx);
-
-		expect(ctx.logger.error).toHaveBeenCalledWith(expect.stringContaining("couldn't check npm"));
-		expect(run).not.toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+		expect(report.status).toBe("fail");
+		expect(report.results).toEqual([
+			{ pkg: "@theholocron/app", status: "fail", message: "the deploy failed (exit 1)." },
+		]);
+		expect(lines).toContain("✗ @theholocron/app: the deploy failed (exit 1).");
 	});
 
-	it("never throws when the deploy fails -- the release already published", async () => {
-		const ctx = context();
-
-		await expect(plugin(fakeRun({ deployStatus: 1 })).success(undefined, ctx)).resolves.toBeUndefined();
-		expect(ctx.logger.error).toHaveBeenCalledWith(expect.stringContaining("the deploy failed (exit 1)"));
-	});
-
-	it("skips, logging why, when the release doesn't touch the package or its workspace dependencies", async () => {
+	it("skips, saying why, when the release doesn't touch the package or its workspace dependencies", async () => {
 		const run = fakeRun({ changed: ["packages/astromech/src/x.ts"] });
-		const ctx = context();
 
-		await plugin(run).success(undefined, ctx);
+		const { report } = await deploy(run);
 
+		expect(report.status).toBe("skip");
+		expect(report.results[0]?.message).toContain("not deploying: the release changes nothing under");
 		expect(run).toHaveBeenCalledOnce(); // the diff only: no npm wait, no deploy
-		expect(ctx.logger.log).toHaveBeenCalledWith(expect.stringContaining("skipping"));
 	});
 
 	it("deploys when only a workspace dependency changed", async () => {
 		const run = fakeRun({ changed: ["packages/datapad/src/load.ts"] });
-		await plugin(run).success(undefined, context());
-		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+		const { report } = await deploy(run);
+		expect(report.status).toBe("ok");
 	});
 
 	it("lets explicit paths and channel override the derived ones", async () => {
 		const run = fakeRun({ changed: ["docs/x.md"] });
-		const ctx = context({ branch: { channel: "beta" }, nextRelease: { gitHead: "new", channel: "beta" } });
 		const manifests = {
 			"/repo/packages/app": {
 				tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "beta", paths: ["docs/"] } }],
 			},
 		};
 
-		await plugin(run, manifests).success(undefined, ctx);
+		const { report } = await deploy(run, { channel: "beta" }, manifests);
 
-		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+		expect(report.status).toBe("ok");
 	});
 
-	it("skips a stable (default-channel) release without running git, npm or pnpm", async () => {
+	it("skips a stable release (empty channel) without running git, npm or pnpm", async () => {
 		const run = fakeRun();
-		const ctx = context({ branch: { channel: null }, nextRelease: { gitHead: "new", channel: null } });
 
-		await plugin(run).success(undefined, ctx);
+		const { report, lines } = await deploy(run, { channel: "" });
 
+		expect(report.status).toBe("skip");
 		expect(run).not.toHaveBeenCalled();
-		expect(ctx.logger.log).toHaveBeenCalledWith(expect.stringContaining('channel "default"'));
+		expect(lines.join("\n")).toContain('channel "default"');
 	});
 
-	it("falls back to the branch's channel when the release doesn't name one", async () => {
+	it("deploys when there's no previous release to diff against, without running git", async () => {
 		const run = fakeRun();
-		await plugin(run).success(undefined, context({ nextRelease: { gitHead: "new" } }));
-		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
-	});
-
-	it("deploys a first release with nothing to diff against, without running git", async () => {
-		const run = fakeRun();
-		await plugin(run).success(undefined, context({ lastRelease: {} }));
+		const { report } = await deploy(run, { from: undefined });
+		expect(report.status).toBe("ok");
 		expect(run).not.toHaveBeenCalledWith("git", expect.anything(), expect.anything());
-		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
 	});
 
-	it("skips, without deploying, when the diff itself fails", async () => {
-		const run = fakeRun({ diffStatus: 128 });
-		const ctx = context();
-
-		await plugin(run).success(undefined, ctx);
-
-		expect(run).toHaveBeenCalledOnce();
-		expect(ctx.logger.error).toHaveBeenCalledWith(expect.stringContaining("git diff failed: bad revision"));
-	});
-
-	it("skips, saying so, when a required env var is missing", async () => {
+	it("diffs to HEAD when no release commit is named", async () => {
 		const run = fakeRun();
-		const ctx = context({ env: {} });
+		await deploy(run, { to: undefined });
+		expect(run).toHaveBeenNthCalledWith(1, "git", ["diff", "--name-only", "old", "HEAD"], { cwd: "/repo" });
+	});
 
-		await plugin(run).success(undefined, ctx);
+	it("fails, without deploying, when the diff itself fails", async () => {
+		const run = fakeRun({ diffStatus: 128 });
 
-		expect(run).not.toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
-		expect(ctx.logger.error).toHaveBeenCalledWith(expect.stringContaining("VERCEL_TOKEN isn't set"));
+		const { report } = await deploy(run);
+
+		expect(report.status).toBe("fail");
+		expect(report.results[0]?.message).toContain("git diff old new failed: bad revision");
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it("reports what it would deploy, and deploys nothing, on a dry run", async () => {
+		const run = fakeRun();
+
+		const { report } = await deploy(run, { dryRun: true });
+
+		expect(report.status).toBe("ok");
+		expect(report.results[0]).toMatchObject({ status: "dry-run" });
+		expect(run).toHaveBeenCalledOnce(); // the diff only
 	});
 
 	it("diffs once for several deploying packages, and runs each one's deploy", async () => {
@@ -363,53 +344,76 @@ describe("success hook", () => {
 			...FILES,
 			"/repo/packages/site/package.json": { name: "@theholocron/site", version: "1.0.0" },
 		};
-		const deploy = (): TasksConfig => ({ tasks: [{ name: "delivery.deploy", with: { on: "release" } }] });
+		const manifest: TasksConfig = { tasks: [{ name: "delivery.deploy", with: { on: "release" } }] };
+		const lines: string[] = [];
 
-		await createPlugin({
-			run,
-			readJson: (path) => files[path],
-			listDirs: () => ["app", "cli", "datapad", "site"],
-			...fakeClock(),
-			loadTasks: (dir) => Promise.resolve(dir.endsWith("app") || dir.endsWith("site") ? deploy() : {}),
-		}).success(undefined, context());
+		const report = await deployOnRelease(
+			{ ...OPTIONS, print: (line) => lines.push(line) },
+			{
+				run,
+				readJson: (path) => files[path],
+				listDirs: () => ["app", "cli", "datapad", "site"],
+				...fakeClock(),
+				loadTasks: (dir) => Promise.resolve(dir.endsWith("app") || dir.endsWith("site") ? manifest : {}),
+			}
+		);
 
+		expect(report.status).toBe("ok");
 		expect(run.mock.calls.filter(([command]) => command === "git")).toHaveLength(1);
-		const pnpmCalls = run.mock.calls.filter(([command]) => command === "pnpm").map(([, args]) => args[1]);
-		expect(pnpmCalls).toEqual(["@theholocron/app", "@theholocron/site"]);
+		const deployed = run.mock.calls.filter(([command]) => command === "pnpm").map(([, args]) => args[1]);
+		expect(deployed).toEqual(["@theholocron/app", "@theholocron/site"]);
 	});
 
-	it("keeps deploying the others when one package's manifest won't load", async () => {
-		const run = fakeRun();
-		const ctx = context();
-
-		await createPlugin({
-			run,
-			...TREE,
-			...fakeClock(),
-			loadTasks: (dir) =>
-				dir.endsWith("cli")
-					? Promise.reject(new Error("bad config"))
-					: Promise.resolve(dir.endsWith("app") ? APP_DEPLOY : {}),
-		}).success(undefined, ctx);
-
-		expect(run).toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
-	});
-
-	it("logs and skips when the workspace can't be read", async () => {
-		const run = fakeRun();
-		const ctx = context();
-		const broken = createPlugin({
-			run,
-			readJson: TREE.readJson,
-			listDirs: () => {
-				throw new Error("ENOENT packages");
-			},
+	it("fails the run, but still deploys the others, when one package's deploy fails", async () => {
+		const run = fakeRun({ changed: ["packages/app/x.ts", "packages/site/y.ts"] });
+		run.mockImplementation((command, args) => {
+			if (command === "git") return { status: 0, stdout: "packages/app/x.ts\npackages/site/y.ts\n", stderr: "" };
+			if (command === "npm") return { status: 0, stdout: `${(args[1] ?? "").split("@").pop()}\n`, stderr: "" };
+			return { status: args[1] === "@theholocron/app" ? 1 : 0, stdout: "", stderr: "" };
 		});
+		const files: Record<string, unknown> = {
+			...FILES,
+			"/repo/packages/site/package.json": { name: "@theholocron/site", version: "1.0.0" },
+		};
+		const manifest: TasksConfig = { tasks: [{ name: "delivery.deploy", with: { on: "release" } }] };
 
-		await broken.success(undefined, ctx);
+		const report = await deployOnRelease(
+			{ ...OPTIONS, print: () => undefined },
+			{
+				run,
+				readJson: (path) => files[path],
+				listDirs: () => ["app", "cli", "datapad", "site"],
+				...fakeClock(),
+				loadTasks: (dir) => Promise.resolve(dir.endsWith("app") || dir.endsWith("site") ? manifest : {}),
+			}
+		);
 
-		expect(run).not.toHaveBeenCalled();
-		expect(ctx.logger.error).toHaveBeenCalledWith(expect.stringContaining("couldn't read the task manifests"));
+		expect(report.status).toBe("fail");
+		expect(report.results.map((r) => [r.pkg, r.status])).toEqual([
+			["@theholocron/app", "fail"],
+			["@theholocron/site", "ok"],
+		]);
+	});
+
+	it("keeps going, saying so, when one package's manifest won't load", async () => {
+		const run = fakeRun();
+		const lines: string[] = [];
+
+		const report = await deployOnRelease(
+			{ ...OPTIONS, print: (line) => lines.push(line) },
+			{
+				run,
+				...TREE,
+				...fakeClock(),
+				loadTasks: (dir) =>
+					dir.endsWith("cli")
+						? Promise.reject(new Error("bad config"))
+						: Promise.resolve(dir.endsWith("app") ? APP_DEPLOY : {}),
+			}
+		);
+
+		expect(report.status).toBe("ok");
+		expect(lines).toContain("@theholocron/cli: couldn't read its task manifest (bad config); not deploying it.");
 	});
 });
 
@@ -474,28 +478,5 @@ describe("waitForPublished", () => {
 
 		expect(pending).toEqual([`@theholocron/cli@${VERSION}`, `@theholocron/datapad@${VERSION}`]);
 		expect(clock.sleep).toHaveBeenCalledTimes(3);
-	});
-});
-
-describe("verifyConditions hook", () => {
-	it("warns before publishing when a deploying channel lacks a required env var", async () => {
-		const ctx = context({ env: {} });
-		await plugin(fakeRun()).verifyConditions(undefined, ctx);
-		expect(ctx.logger.warn).toHaveBeenCalledWith(
-			expect.stringContaining('(@theholocron/app): VERCEL_TOKEN isn\'t set; a release on "alpha"')
-		);
-	});
-
-	it("stays quiet with the vars set, or on a channel that doesn't deploy", async () => {
-		const withToken = context();
-		const otherChannel = context({
-			env: {},
-			branch: { channel: "beta" },
-			nextRelease: { gitHead: "new", channel: "beta" },
-		});
-		await plugin(fakeRun()).verifyConditions(undefined, withToken);
-		await plugin(fakeRun()).verifyConditions(undefined, otherChannel);
-		expect(withToken.logger.warn).not.toHaveBeenCalled();
-		expect(otherChannel.logger.warn).not.toHaveBeenCalled();
 	});
 });

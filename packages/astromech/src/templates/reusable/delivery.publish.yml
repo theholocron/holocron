@@ -35,11 +35,13 @@ on: # yamllint disable-line rule:truthy
         default: true
       deploy-on-release:
         description: >
-          When true, passes VERCEL_TOKEN into the semantic-release step so the
-          repo's own deploy-on-release plugin (holocron#928) can deploy once
-          the release has published. Off by default, so a repo that doesn't
-          deploy from its release never exposes the token to its release
-          plugins.
+          When true, runs a separate `deploy` job after a successful release
+          (holocron#930): `holocron deploy-on-release` deploys every workspace
+          package whose `delivery.deploy` task is `with: { on: release }`, when
+          the release is on its channel and changes its paths. The job is its
+          own check, re-runnable on its own, and gets VERCEL_TOKEN; the release
+          job never sees it. Off by default, so a repo that doesn't deploy from
+          its release never exposes the token.
         type: boolean
         required: false
         default: false
@@ -82,8 +84,8 @@ on: # yamllint disable-line rule:truthy
         required: false
       VERCEL_TOKEN:
         description: >
-          Vercel token for the repo's deploy-on-release plugin. Only passed to
-          the release step when deploy-on-release is true.
+          Vercel token for the deploy job. Only used when deploy-on-release is
+          true, and only by that job.
         required: false
 
 jobs:
@@ -96,6 +98,14 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      # Read by the deploy job (holocron#930). Empty unless semantic-release
+      # published: `commit` is the release commit, `previous` the commit of
+      # the release before it (to diff against), `channel` the new version's
+      # prerelease identifier (`alpha`), empty for a stable release.
+      commit: ${{ steps.release.outputs.commit }}
+      previous: ${{ steps.release.outputs.previous }}
+      channel: ${{ steps.release.outputs.channel }}
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -139,6 +149,9 @@ jobs:
         id: release
         run: |
           BEFORE=$(git rev-parse HEAD)
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          PREVIOUS=""
+          if [ -n "$PREVIOUS_TAG" ]; then PREVIOUS=$(git rev-list -n 1 "$PREVIOUS_TAG"); fi
           if [ "$DRY_RUN" = "true" ]; then
             npx semantic-release --dry-run
           else
@@ -150,7 +163,17 @@ jobs:
           # upload), which makes the next PR's `codecov/project` compare a full
           # report against a stale ancestor — a phantom drop (holocron#644).
           # Emit the new SHA so the steps below upload coverage for it.
-          if [ "$BEFORE" != "$AFTER" ]; then echo "commit=$AFTER" >> "$GITHUB_OUTPUT"; fi
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "commit=$AFTER" >> "$GITHUB_OUTPUT"
+            echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+            # The new version's channel: the prerelease identifier of its tag
+            # (v5.0.0-alpha.108 -> alpha), empty for a stable release.
+            VERSION=$(git describe --tags --abbrev=0)
+            VERSION=${VERSION#v}
+            CHANNEL=""
+            case "$VERSION" in *-*) PRE=${VERSION#*-}; CHANNEL=${PRE%%.*} ;; esac
+            echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          fi
         env:
           DRY_RUN: ${{ inputs.dry-run }}
           # Prefer HOLOCRON_RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
@@ -160,11 +183,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
           HUSKY: "0"
           NPM_CONFIG_PROVENANCE: true
-          # Read by a repo's own deploy-on-release semantic-release plugin
-          # (holocron#928) to deploy once the release has published. Empty
-          # unless the caller opts in with deploy-on-release, so other repos'
-          # release plugins never see the token.
-          VERCEL_TOKEN: ${{ inputs.deploy-on-release && secrets.VERCEL_TOKEN || '' }}
 
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Coverage for the release commit
@@ -207,6 +225,42 @@ jobs:
           environment: production
           version: ${{ steps.release_version.outputs.release }}
           sourcemaps: "**/dist"
+
+  deploy:
+    name: Deploy
+    needs: release
+    # Only after a release that actually published (`commit` is empty on a dry
+    # run or when nothing was released). A failed deploy fails only this job:
+    # the release is already on npm, and this job re-runs on its own.
+    if: ${{ inputs.deploy-on-release == true && inputs.dry-run != true && needs.release.outputs.commit != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout the release commit
+        with:
+          ref: ${{ needs.release.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Deploy packages that deploy on release
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        with:
+          command: deploy-on-release
+          args: >-
+            --channel=${{ needs.release.outputs.channel }}
+            --from=${{ needs.release.outputs.previous }}
+            --to=${{ needs.release.outputs.commit }}
 
   sync-readme:
     name: Post-release readme sync

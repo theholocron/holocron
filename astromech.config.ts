@@ -32,8 +32,9 @@ export default defineConfig({
 		// used to ride inside the old `lint` job with no linter connection at
 		// all; now its own task (#675).
 		{ name: "platform.repoValidation", required: true },
-		// Publish: tag Sentry releases for the CLI package, and pass VERCEL_TOKEN
-		// to the release step for the release-time deploy plugin (#928, #930).
+		// Publish: tag Sentry releases for the CLI package, and run the
+		// post-release `deploy` job for packages whose `delivery.deploy` task is
+		// `on: release` (Sentinel, #928, #930).
 		{ name: "delivery.publish", with: { "sentry-project": "holocron-cli", "deploy-on-release": true } },
 		// Sync: keep generated files (workflows, labels, …) current on push to main.
 		"platform.repoSync",

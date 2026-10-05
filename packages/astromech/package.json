@@ -27,11 +27,6 @@
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
-    "./release": {
-      "types": "./dist/release.d.mts",
-      "import": "./dist/release.mjs",
-      "default": "./dist/release.mjs"
-    },
     "./config": {
       "types": "./dist/config/index.d.mts",
       "import": "./dist/config/index.mjs",

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { input, select } from "@inquirer/prompts";
-import { createAstromech } from "@theholocron/astromech";
+import { createAstromech, deployOnRelease } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import type { LogLevel } from "@theholocron/observability/core";
 import yargs from "yargs";
@@ -791,6 +791,38 @@ try {
 					dryRun: argv.dryRun,
 					scope: argv.all ? "all" : "required",
 					...(argv.filter ? { filter: argv.filter as string } : {}),
+				});
+				if (report.status === "fail") process.exitCode = 1;
+			}
+		)
+		.command(
+			"deploy-on-release",
+			"Deploy every workspace package whose delivery.deploy task is `on: release` — run by the delivery.publish workflow's deploy job",
+			(y) =>
+				y
+					.option("channel", {
+						type: "string",
+						default: "",
+						describe:
+							"The release's channel: its prerelease identifier (`alpha`), empty for a stable release.",
+					})
+					.option("from", {
+						type: "string",
+						describe: "The previous release's commit, to diff against. Omit when there is none.",
+					})
+					.option("to", {
+						type: "string",
+						describe: "The release commit. Default HEAD.",
+					}),
+			async (argv) => {
+				const report = await deployOnRelease({
+					cwd: argv.cwd as string,
+					channel: argv.channel as string,
+					// An empty value (an unset workflow output) means "not given".
+					...(argv.from ? { from: argv.from as string } : {}),
+					...(argv.to ? { to: argv.to as string } : {}),
+					dryRun: argv.dryRun,
+					print: (line) => console.log(line),
 				});
 				if (report.status === "fail") process.exitCode = 1;
 			}
