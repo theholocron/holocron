@@ -43,6 +43,11 @@
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
+	// Redeploy after a release publishes (holocron#928, #930): the release
+	// plugin in `@theholocron/astromech/release` reads this task from every
+	// workspace package. `paths` default to this package plus its
+	// `workspace:*` dependencies; `requires` names the env the deploy needs.
+	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha", requires: ["VERCEL_TOKEN"] } }],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",

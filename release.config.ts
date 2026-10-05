@@ -9,13 +9,12 @@ const config = defineConfig({
 	},
 });
 
-// Deploy Sentinel once an alpha release has published (holocron#928) --
-// semantic-release's `success` step only runs after every package is on npm.
-// Appended here because defineConfig() has no plugin option; generalizing it
-// into @theholocron/semantic-release-config is holocron#930.
-// Defaults: the alpha channel, and paths derived from Sentinel's own
-// package.json (itself plus its workspace:* dependencies, the packages
-// inlined into its dist/). Override with { channel, paths } if needed.
-(config as { plugins: unknown[] }).plugins.push("./packages/sentinel/scripts/deploy-on-release.mjs");
+// Deploy every workspace package whose task manifest asks for it once a
+// release has published (holocron#928, #930): the plugin scans packages/* for
+// a `delivery.deploy` task with `with: { on: "release" }` (Sentinel's
+// holocron.config.ts), so nothing here names an app. Appended because
+// defineConfig() has no plugin option; moving it into
+// @theholocron/semantic-release-config would need that repo.
+(config as { plugins: unknown[] }).plugins.push("./packages/astromech/dist/release.mjs");
 
 export default config;

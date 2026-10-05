@@ -39,6 +39,10 @@ Three repos, one rule per concern:
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
   contributor runs locally.
+  A `delivery.deploy` task with `with: { on: "release" }` in a workspace
+  package's `holocron.config` is a release-time deploy (#930): the
+  `@theholocron/astromech/release` semantic-release plugin (wired in the root
+  `release.config.ts`) runs it from `success`, and it generates no workflow.
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
   are generated from `packages/astromech/src/templates/` and pushed by

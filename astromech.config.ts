@@ -33,7 +33,7 @@ export default defineConfig({
 		// all; now its own task (#675).
 		{ name: "platform.repoValidation", required: true },
 		// Publish: tag Sentry releases for the CLI package, and pass VERCEL_TOKEN
-		// to the release step for Sentinel's deploy-on-release plugin (#928).
+		// to the release step for the release-time deploy plugin (#928, #930).
 		{ name: "delivery.publish", with: { "sentry-project": "holocron-cli", "deploy-on-release": true } },
 		// Sync: keep generated files (workflows, labels, …) current on push to main.
 		"platform.repoSync",

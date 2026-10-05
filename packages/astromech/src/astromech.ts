@@ -230,6 +230,9 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				const isDocsSite = entry.name === "knowledge.docs";
 				const isComponents = entry.name === "knowledge.components";
 				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(entry.name) && !isDocsSite && !isComponents)) continue;
+				// A release-time deploy (`with.on: "release"`) runs from the release
+				// plugin (`@theholocron/astromech/release`), not a push/PR workflow.
+				if (entry.name === "delivery.deploy" && entry.with?.["on"] === "release") continue;
 				const rawWith: Record<string, unknown> | undefined = isDocsSite
 					? { preview: true, ...entry.with, docs: entry.with?.["docs"] ?? true }
 					: isComponents

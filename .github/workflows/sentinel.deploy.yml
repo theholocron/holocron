@@ -18,8 +18,9 @@
 # actual mechanism this invokes — the same command a human runs locally,
 # per D8's "one engine" convention.
 #
-# Alpha releases deploy themselves (holocron#928): the repo root's
-# `release.config.ts` runs `packages/sentinel/scripts/deploy-on-release.mjs`
+# Alpha releases deploy themselves (holocron#928, #930): the repo root's
+# `release.config.ts` runs `@theholocron/astromech/release`, which deploys
+# Sentinel's `delivery.deploy` task (`on: "release"` in its holocron.config.ts)
 # from semantic-release's `success` step, once every package has published.
 # This workflow stays for manual redeploys (e.g. after a deploy failure that
 # plugin logged) and stable `main` merges.
