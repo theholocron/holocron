@@ -299,13 +299,13 @@ turbo's `--`).
 ### `holocron deploy-on-release`
 
 ```bash
-holocron deploy-on-release [--channel <alpha|"">] [--from <commit>] [--to <commit>] [--dry-run]
+holocron deploy-on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--dry-run]
 ```
 
 Deploys every workspace package whose own `holocron.config` declares
 `{ name: "delivery.deploy", with: { on: "release" } }` (holocron#930), when the
-release (`--channel`: its prerelease identifier, empty for stable) is on the
-task's `channel` (default `alpha`) and changes the package or one of its
+release (`--channel`: its prerelease identifier, or `main`/empty for a stable
+release) is on the task's `channel` (default `main`, the stable release) and changes the package or one of its
 `workspace:*` dependencies between `--from` (the previous release's commit,
 omitted when there is none) and `--to` (default `HEAD`). It waits for npm to
 serve the release's new dependency versions, then runs `pnpm --filter <pkg>

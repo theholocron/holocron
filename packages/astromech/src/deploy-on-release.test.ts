@@ -105,10 +105,10 @@ describe("shouldDeploy", () => {
 		).toEqual({ deploy: true, reason: "the release changes packages/cli/src/x.ts" });
 	});
 
-	it("skips another channel, including the default (stable) one", () => {
-		expect(shouldDeploy({ channel: "", configuredChannel: "alpha", changedFiles: [], paths: [] })).toEqual({
+	it("skips another channel, including the stable one (`main`)", () => {
+		expect(shouldDeploy({ channel: "main", configuredChannel: "alpha", changedFiles: [], paths: [] })).toEqual({
 			deploy: false,
-			reason: 'channel "default" isn\'t "alpha"',
+			reason: 'channel "main" isn\'t "alpha"',
 		});
 		expect(shouldDeploy({ channel: "beta", configuredChannel: "alpha", changedFiles: [], paths: [] }).deploy).toBe(
 			false
@@ -189,9 +189,9 @@ describe("deployTargets", () => {
 		]);
 	});
 
-	it("defaults the channel to alpha, with no explicit paths or requirements", () => {
+	it("defaults the channel to main (stable), with no explicit paths or requirements", () => {
 		const [target] = deployTargets(all, manifest([{ name: "delivery.deploy", with: { on: "release" } }]));
-		expect(target).toMatchObject({ channel: "alpha", paths: undefined });
+		expect(target).toMatchObject({ channel: "main", paths: undefined });
 	});
 
 	it("ignores a bare delivery.deploy and packages with no manifest", () => {
@@ -295,14 +295,28 @@ describe("deployOnRelease", () => {
 		expect(report.status).toBe("ok");
 	});
 
-	it("skips a stable release (empty channel) without running git, npm or pnpm", async () => {
+	it("skips a stable release (empty channel is `main`) without running git, npm or pnpm", async () => {
 		const run = fakeRun();
 
 		const { report, lines } = await deploy(run, { channel: "" });
 
 		expect(report.status).toBe("skip");
 		expect(run).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toContain('channel "default"');
+		expect(lines.join("\n")).toContain('channel "main"');
+	});
+
+	it("deploys a stable release (empty channel) for a task that sets no channel, since main is the default", async () => {
+		const run = fakeRun();
+		const manifests = { "/repo/packages/app": { tasks: [{ name: "delivery.deploy", with: { on: "release" } }] } };
+
+		const { report } = await deploy(run, { channel: "" }, manifests);
+
+		expect(report.status).toBe("ok");
+		expect(run).toHaveBeenCalledWith(
+			"pnpm",
+			["--filter", "@theholocron/app", "delivery.deploy"],
+			expect.anything()
+		);
 	});
 
 	it("deploys when there's no previous release to diff against, without running git", async () => {
@@ -344,7 +358,9 @@ describe("deployOnRelease", () => {
 			...FILES,
 			"/repo/packages/site/package.json": { name: "@theholocron/site", version: "1.0.0" },
 		};
-		const manifest: TasksConfig = { tasks: [{ name: "delivery.deploy", with: { on: "release" } }] };
+		const manifest: TasksConfig = {
+			tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
+		};
 		const lines: string[] = [];
 
 		const report = await deployOnRelease(
@@ -375,7 +391,9 @@ describe("deployOnRelease", () => {
 			...FILES,
 			"/repo/packages/site/package.json": { name: "@theholocron/site", version: "1.0.0" },
 		};
-		const manifest: TasksConfig = { tasks: [{ name: "delivery.deploy", with: { on: "release" } }] };
+		const manifest: TasksConfig = {
+			tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
+		};
 
 		const report = await deployOnRelease(
 			{ ...OPTIONS, print: () => undefined },

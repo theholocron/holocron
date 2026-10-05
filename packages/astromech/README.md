@@ -201,10 +201,10 @@ Deploys the workspace packages whose manifest declares it (holocron#930):
 tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
 ```
 
-`holocron deploy-on-release --channel=<alpha|""> --from=<previous release commit> --to=<release commit>`
+`holocron deploy-on-release --channel=<alpha|main> --from=<previous release commit> --to=<release commit>`
 (or `deployOnRelease()` from `@theholocron/astromech`) deploys each such package
-when the release is on its `channel` (default `alpha`, `""` is a stable
-release) and changes the package or one of its `workspace:*` dependencies
+when the release is on its `channel` (default `main`, the stable release;
+set `alpha` for prereleases) and changes the package or one of its `workspace:*` dependencies
 (`with.paths` overrides that), once npm serves the release's new dependency
 versions, by running `pnpm --filter <package> delivery.deploy`. A package
 that doesn't apply to the release is skipped; a deploy that fails exits

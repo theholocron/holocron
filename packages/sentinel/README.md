@@ -292,8 +292,8 @@ tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
 The shared `delivery.publish` workflow then runs a separate **Deploy** job
 after the release job, which calls `holocron deploy-on-release`: it scans every
 workspace package for such a task and, for each, runs the package's
-`delivery.deploy` script when the release is on its `channel` (default
-`alpha`) and changes the package or one of its `workspace:*` dependencies (the
+`delivery.deploy` script when the release is on its `channel` (default `main`,
+the stable release; Sentinel sets `alpha`) and changes the package or one of its `workspace:*` dependencies (the
 packages inlined into `dist/`) — derived from `package.json` so there's no
 second list to keep in sync; an explicit `with.paths` overrides it. Before
 deploying it waits (up to five minutes) for npm to serve the release's new

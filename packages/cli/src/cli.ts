@@ -804,7 +804,7 @@ try {
 						type: "string",
 						default: "",
 						describe:
-							"The release's channel: its prerelease identifier (`alpha`), empty for a stable release.",
+							"The release's channel: its prerelease identifier (`alpha`); empty or `main` for a stable release.",
 					})
 					.option("from", {
 						type: "string",

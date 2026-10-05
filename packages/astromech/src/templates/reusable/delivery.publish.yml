@@ -102,7 +102,7 @@ jobs:
       # Read by the deploy job (holocron#930). Empty unless semantic-release
       # published: `commit` is the release commit, `previous` the commit of
       # the release before it (to diff against), `channel` the new version's
-      # prerelease identifier (`alpha`), empty for a stable release.
+      # prerelease identifier (`alpha`), empty for a stable release (`main`).
       commit: ${{ steps.release.outputs.commit }}
       previous: ${{ steps.release.outputs.previous }}
       channel: ${{ steps.release.outputs.channel }}

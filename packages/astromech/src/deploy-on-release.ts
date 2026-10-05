@@ -9,11 +9,13 @@
  * tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
  * ```
  *
+ * `channel` defaults to `main` (a stable release); set a prerelease identifier
+ * such as `alpha` to deploy those releases instead.
+ *
  * The shared `delivery.publish` workflow runs this (`holocron deploy-on-release`)
  * as its own `deploy` job after the release job, so a deploy is a separate,
  * re-runnable check rather than a step buried in the release log. Each package
- * with such a task deploys when the release is on its `channel` (default
- * `alpha`) and changes a file under its paths: the package itself plus its
+ * with such a task deploys when the release is on its `channel` and changes a file under its paths: the package itself plus its
  * `workspace:*` dependencies ({@link defaultPaths}), or an explicit
  * `with.paths`. It first waits for npm to serve the release's new versions of
  * those dependencies ({@link waitForPublished}) — the registry can lag a version
@@ -34,7 +36,8 @@ import { join, relative } from "node:path";
 import { loadTasksConfig } from "./config/load.js";
 import { normalizeTaskEntry, type TasksConfig } from "./config/schema.js";
 
-const DEFAULT_CHANNEL = "alpha";
+/** A stable release (no prerelease identifier) is on `main`, the default channel for a task. */
+const MAIN_CHANNEL = "main";
 const DEPLOY_TASK = "delivery.deploy";
 /** How long to wait for npm to serve the release's versions, and how often to ask. */
 const WAIT_TIMEOUT_MS = 5 * 60 * 1000;
@@ -129,7 +132,7 @@ export function deployTargets(packages: WorkspacePackage[], manifests: Map<strin
 			return [
 				{
 					pkg,
-					channel: typeof channel === "string" ? channel : DEFAULT_CHANNEL,
+					channel: typeof channel === "string" ? channel : MAIN_CHANNEL,
 					paths: Array.isArray(paths) ? paths.map(String) : undefined,
 				},
 			];
@@ -175,7 +178,7 @@ export async function waitForPublished({
 }
 
 /**
- * @param channel The release's channel — the prerelease identifier (`alpha`), or `""` for stable.
+ * @param channel The release's channel: its prerelease identifier (`alpha`), or `main` for a stable release.
  * @param changedFiles `undefined` when there's no previous release to diff against.
  */
 export function shouldDeploy({
@@ -190,7 +193,7 @@ export function shouldDeploy({
 	paths: string[];
 }): { deploy: boolean; reason: string } {
 	if (channel !== configuredChannel) {
-		return { deploy: false, reason: `channel "${channel || "default"}" isn't "${configuredChannel}"` };
+		return { deploy: false, reason: `channel "${channel}" isn't "${configuredChannel}"` };
 	}
 	if (changedFiles === undefined) return { deploy: true, reason: "no previous release to diff against" };
 	const touched = changedFiles.find((file) => paths.some((path) => file.startsWith(path)));
@@ -201,7 +204,7 @@ export function shouldDeploy({
 
 export interface DeployOnReleaseOptions {
 	cwd: string;
-	/** The release's channel: the prerelease identifier (`alpha`), `""` for a stable release. */
+	/** The release's channel: its prerelease identifier (`alpha`); empty or `main` for a stable release. */
 	channel: string;
 	/** The previous release's commit; omitted when there is none, so every deploying channel match deploys. */
 	from?: string;
@@ -251,7 +254,8 @@ export async function deployOnRelease(
 		loadTasks = loadTasksConfig,
 	}: DeployOnReleaseDeps = {}
 ): Promise<DeployOnReleaseReport> {
-	const { cwd, channel, from, print } = options;
+	const { cwd, from, print } = options;
+	const channel = options.channel || MAIN_CHANNEL;
 	const to = options.to ?? "HEAD";
 
 	const packages = workspacePackages(cwd, { readJson, listDirs });
