@@ -175,8 +175,11 @@ jobs:
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload release-commit coverage to Codecov
         if: ${{ steps.release.outputs.commit != '' }}
+        # Visible if it fails, but never fails an already-published release (holocron#934).
+        continue-on-error: true
         with:
           use_oidc: true
+          fail_ci_if_error: true
           override_commit: ${{ steps.release.outputs.commit }}
           override_branch: ${{ github.ref_name }}
 

@@ -105,6 +105,24 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
+	it("every Codecov upload fails visibly but never blocks the job (holocron#934)", () => {
+		for (const name of ["verification.unitTests", "delivery.publish"] as const) {
+			const uploads = REUSABLE_WORKFLOWS[name]!.split("- uses: codecov/codecov-action@").slice(1);
+			expect(uploads.length).toBeGreaterThan(0);
+
+			for (const step of uploads) {
+				const block = step.split("\n\n")[0]!;
+				// a failed upload fails the step instead of passing silently...
+				expect(block).toContain("fail_ci_if_error: true");
+				// ...and that failed step doesn't fail the job
+				expect(block).toContain("continue-on-error: true");
+			}
+		}
+		// coverage + test results in the unit and Storybook jobs, plus the release-commit upload
+		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@")).toHaveLength(5);
+		expect(REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")).toHaveLength(2);
+	});
+
 	it("delivery.publish.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
 		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
 		// detect the release commit semantic-release just pushed
