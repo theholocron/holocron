@@ -170,7 +170,7 @@ wrapper already exported from this file.
 ### `holocron auth` commands
 
 No changes. `commands/auth.ts` already builds keyring keys as
-`input.org ? `${provider}.${input.org}` : provider` (#369) — `provider` here
+`input.org ?`${provider}.${input.org}`: provider` (#369) — `provider` here
 is already whatever string the operator passes to `holocron auth set`, so
 `holocron auth set github.read --org new-app <token>` already produces the
 right keyring key (`github.read.new-app`) once the resolver on the read side
