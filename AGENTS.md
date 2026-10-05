@@ -259,7 +259,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 ## Repo layout
 
 <!-- prettier-ignore -->
-```
+```text
 packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
