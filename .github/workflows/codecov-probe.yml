@@ -1,0 +1,70 @@
+# TEMPORARY — delete once holocron#934 is resolved. Not generated or synced.
+#
+# Runs the same Codecov steps as the shared unit-test workflow
+# (packages/astromech/src/templates/reusable/verification.unitTests.yml), but
+# with fail_ci_if_error and verbose on, so a failed upload is a red check with
+# the CLI's full output instead of a green step that silently did nothing.
+# That workflow runs from theholocron/.github@main, so a change to its
+# template can't be exercised by a PR until it has merged and synced; this
+# copy runs from the PR's own commit.
+#
+# Also prints the certificate and TLS handshake each Codecov host presents
+# from the runner, to tell an expired or changed certificate apart from a
+# runner-side problem.
+name: Codecov probe (temporary)
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    paths:
+      - ".github/workflows/codecov-probe.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  probe:
+    name: Probe Codecov upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - name: Show the certificates and handshake Codecov presents from this runner
+        run: |
+          for host in cli.codecov.io api.codecov.io; do
+            echo "=== $host"
+            echo | openssl s_client -connect "$host:443" -servername "$host" 2>&1 \
+              | openssl x509 -noout -subject -issuer -dates || echo "(no certificate printed)"
+          done
+          echo "=== curl -v https://cli.codecov.io/latest/linux/codecov.SHA256SUM"
+          curl -sSv -o /dev/null https://cli.codecov.io/latest/linux/codecov.SHA256SUM 2>&1 \
+            | grep -Ei "TLS|SSL|certificate|subject|issuer|expire|alert|HTTP/" || true
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run tests with coverage
+        with:
+          task: verification.unitTests
+
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        name: Upload coverage to Codecov
+        with:
+          use_oidc: true
+          use_pypi: true
+          verbose: true
+          fail_ci_if_error: true
+
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        with:
+          use_oidc: true
+          use_pypi: true
+          verbose: true
+          fail_ci_if_error: true
+          report_type: test_results
+          files: "**/test-report.junit.xml"
