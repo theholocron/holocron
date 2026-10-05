@@ -39,6 +39,11 @@ Three repos, one rule per concern:
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
   contributor runs locally.
+  A `delivery.deploy` task with `with: { on: "release" }` in a workspace
+  package's `holocron.config` is a release-time deploy (#930): the shared
+  `delivery.publish` workflow's separate `deploy` job runs `holocron
+deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
+  and it generates no workflow of its own.
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
   are generated from `packages/astromech/src/templates/` and pushed by
@@ -255,7 +260,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 ## Repo layout
 
 <!-- prettier-ignore -->
-```
+```text
 packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)

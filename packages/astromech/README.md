@@ -192,6 +192,27 @@ template. `holocron setup` writes the result via the `source` capability;
 this method never touches the filesystem beyond reading `packages/*` and
 `apps/*` under `cwd`.
 
+## Release-time deploys — `deployOnRelease`
+
+Deploys the workspace packages whose manifest declares it (holocron#930):
+
+```ts
+// packages/<app>/holocron.config.ts
+tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
+```
+
+`holocron deploy-on-release --channel=<alpha|main> --from=<previous release commit> --to=<release commit>`
+(or `deployOnRelease()` from `@theholocron/astromech`) deploys each such package
+when the release is on its `channel` (default `main`, the stable release;
+set `alpha` for prereleases) and changes the package or one of its `workspace:*` dependencies
+(`with.paths` overrides that), once npm serves the release's new dependency
+versions, by running `pnpm --filter <package> delivery.deploy`. A package
+that doesn't apply to the release is skipped; a deploy that fails exits
+non-zero. The shared `delivery.publish` workflow runs it as a separate `deploy`
+job after the release job (opt in with `deploy-on-release: true`), so a deploy
+is its own re-runnable check. A `delivery.deploy` task with `on: "release"`
+generates no workflow.
+
 ## Development
 
 | Script                                  | Description                                 |

@@ -296,6 +296,23 @@ job execute the same thing — at a turbo root both are
 `turbo run test -- --coverage` (the registry's org-default flags flow through
 turbo's `--`).
 
+### `holocron deploy-on-release`
+
+```bash
+holocron deploy-on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--dry-run]
+```
+
+Deploys every workspace package whose own `holocron.config` declares
+`{ name: "delivery.deploy", with: { on: "release" } }` (holocron#930), when the
+release (`--channel`: its prerelease identifier, or `main`/empty for a stable
+release) is on the task's `channel` (default `main`, the stable release) and changes the package or one of its
+`workspace:*` dependencies between `--from` (the previous release's commit,
+omitted when there is none) and `--to` (default `HEAD`). It waits for npm to
+serve the release's new dependency versions, then runs `pnpm --filter <pkg>
+delivery.deploy`. A package that doesn't apply is skipped; a failed deploy
+exits non-zero. The shared `delivery.publish` workflow runs it as its own
+`deploy` job after the release job (opt in with `deploy-on-release: true`).
+
 ### `holocron ci`
 
 ```bash

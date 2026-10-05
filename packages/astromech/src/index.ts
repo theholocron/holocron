@@ -32,6 +32,12 @@ export {
 	readWorkspacePackages,
 	type WorkspacePackage,
 } from "./codecov.js";
+export {
+	deployOnRelease,
+	type DeployOnReleaseOptions,
+	type DeployOnReleaseReport,
+	type DeployOnReleaseResult,
+} from "./deploy-on-release.js";
 export { LINTER_NAMES, type LinterDef, LINTERS, resolveLinters } from "./linters.js";
 export { CI_ORDER, type JobDef, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
 export { requiredChecks } from "./required-checks.js";

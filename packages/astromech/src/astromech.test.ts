@@ -183,6 +183,14 @@ describe("createAstromech().thinCallers", () => {
 		expect(deploy).toContain("- docs/**");
 	});
 
+	it("emits no caller for a release-time deploy (with.on: release) — the release plugin runs it, not a workflow", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }] },
+		});
+		expect(astromech.thinCallers().has("delivery.deploy.yml")).toBe(false);
+	});
+
 	it("emits a plain deploy caller when preview is absent", () => {
 		const astromech = createAstromech({
 			cwd: "/repo",
