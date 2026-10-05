@@ -15,7 +15,18 @@
  * plus the workspace packages inlined into its `dist/`, derived from its
  * `package.json` by {@link defaultPaths}), so most releases skip it. Both are
  * plugin options in `release.config.ts`; moving them into the task manifest
- * is holocron#930. A deploy failure is
+ * is holocron#930.
+ *
+ * Before deploying, it also waits for npm to serve the release's new
+ * versions of those workspace packages ({@link waitForPublished}). `success`
+ * runs once `npm publish` has returned, but the registry can take a moment
+ * to serve a version it has just accepted: the first release through this
+ * plugin started its deploy 0.3s after `astromech@5.0.0-alpha.105` published,
+ * and Vercel's `npm install` failed. Nothing later in semantic-release's
+ * lifecycle would help (`success` is the last step; only `fail` follows), so
+ * the wait lives here.
+ *
+ * A deploy failure is
  * logged, never thrown: by `success`, the release is already published, and
  * failing the job would make a good release look broken. Redeploy by hand
  * with the Sentinel Deploy workflow.
@@ -34,35 +45,86 @@ import { fileURLToPath } from "node:url";
 
 const DEPLOY_COMMAND = ["pnpm", ["--filter", "@theholocron/sentinel", "delivery.deploy"]];
 const DEFAULT_CHANNEL = "alpha";
+/** How long to wait for npm to serve the release's versions, and how often to ask. */
+const WAIT_TIMEOUT_MS = 5 * 60 * 1000;
+const WAIT_INTERVAL_MS = 10 * 1000;
 /** `packages/sentinel`, wherever this script is checked out. */
 const SENTINEL_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /**
- * The paths a release must touch to redeploy Sentinel, when the config
- * doesn't list them: Sentinel's own folder plus the folder of every
- * `workspace:*` dependency in its `package.json` — the packages
- * `tsdown.config.ts` inlines into `dist/` (holocron#922). Derived rather than
- * listed so a new or dropped workspace dependency needs no second edit.
+ * Sentinel's `workspace:*` dependencies — the packages `tsdown.config.ts`
+ * inlines into `dist/` (holocron#922) — found by package name under
+ * `packages/*`, each with its folder and current `version` (by `success`,
+ * the release's prepare step has already bumped it).
  *
  * @param {{ repoRoot: string; sentinelDir: string; readJson: (path: string) => any; listDirs: (path: string) => string[] }} input
- * @returns {string[]} Repo-relative prefixes, each ending in `/`.
+ * @returns {{ name: string; dir: string; version: string | undefined }[]}
  */
-export function defaultPaths({ repoRoot, sentinelDir, readJson, listDirs }) {
+export function workspaceDependencies({ repoRoot, sentinelDir, readJson, listDirs }) {
 	const pkg = readJson(join(sentinelDir, "package.json"));
-	const workspaceDeps = new Set(
+	const names = new Set(
 		Object.entries(pkg.dependencies ?? {})
 			.filter(([, spec]) => String(spec).startsWith("workspace:"))
 			.map(([name]) => name)
 	);
 	const packagesDir = join(repoRoot, "packages");
-	const depDirs = listDirs(packagesDir).filter((dir) => {
+	return listDirs(packagesDir).flatMap((dir) => {
+		let manifest;
 		try {
-			return workspaceDeps.has(readJson(join(packagesDir, dir, "package.json")).name);
+			manifest = readJson(join(packagesDir, dir, "package.json"));
 		} catch {
-			return false;
+			return [];
 		}
+		return names.has(manifest.name)
+			? [{ name: manifest.name, dir: join(packagesDir, dir), version: manifest.version }]
+			: [];
 	});
-	return [sentinelDir, ...depDirs.map((dir) => join(packagesDir, dir))].map((dir) => `${relative(repoRoot, dir)}/`);
+}
+
+/**
+ * The paths a release must touch to redeploy Sentinel, when the config
+ * doesn't list them: Sentinel's own folder plus the folder of every
+ * {@link workspaceDependencies} entry. Derived rather than listed so a new or
+ * dropped workspace dependency needs no second edit.
+ *
+ * @param {{ repoRoot: string; sentinelDir: string; readJson: (path: string) => any; listDirs: (path: string) => string[] }} input
+ * @returns {string[]} Repo-relative prefixes, each ending in `/`.
+ */
+export function defaultPaths(input) {
+	const { repoRoot, sentinelDir } = input;
+	return [sentinelDir, ...workspaceDependencies(input).map((dep) => dep.dir)].map(
+		(dir) => `${relative(repoRoot, dir)}/`
+	);
+}
+
+/**
+ * Waits until npm serves every `name@version` in `packages`, asking with
+ * `npm view --prefer-online` (so npm's local cache can't answer for the
+ * registry) every `intervalMs`, for up to `timeoutMs`.
+ *
+ * @param {{ packages: { name: string; version: string }[]; run: Function; sleep: (ms: number) => Promise<void>; now: () => number; cwd?: string; timeoutMs?: number; intervalMs?: number }} input
+ * @returns {Promise<string[]>} The specs npm still doesn't serve; empty once all are available.
+ */
+export async function waitForPublished({
+	packages,
+	run,
+	sleep,
+	now,
+	cwd,
+	timeoutMs = WAIT_TIMEOUT_MS,
+	intervalMs = WAIT_INTERVAL_MS,
+}) {
+	const deadline = now() + timeoutMs;
+	let pending = packages.map(({ name, version }) => `${name}@${version}`);
+	for (;;) {
+		pending = pending.filter((spec) => {
+			const version = spec.slice(spec.lastIndexOf("@") + 1);
+			const result = run("npm", ["view", spec, "version", "--prefer-online"], { cwd });
+			return !(result.status === 0 && result.stdout.trim() === version);
+		});
+		if (pending.length === 0 || now() + intervalMs > deadline) return pending;
+		await sleep(intervalMs);
+	}
 }
 
 /**
@@ -94,6 +156,10 @@ function defaultReadJson(path) {
 	return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function defaultSleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function defaultListDirs(path) {
 	return readdirSync(path, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
@@ -101,14 +167,17 @@ function defaultListDirs(path) {
 }
 
 /**
- * Builds the plugin's hooks. `run`, `readJson` and `listDirs` are injectable
- * so tests never spawn git or pnpm or read the real tree; semantic-release
- * itself uses the default export's real implementations.
+ * Builds the plugin's hooks. `run`, `readJson`, `listDirs`, `sleep` and
+ * `now` are injectable so tests never spawn git, npm or pnpm, read the real
+ * tree or wait; semantic-release itself uses the default export's real
+ * implementations.
  */
 export function createPlugin({
 	run = defaultRun,
 	readJson = defaultReadJson,
 	listDirs = defaultListDirs,
+	sleep = defaultSleep,
+	now = Date.now,
 	sentinelDir = SENTINEL_DIR,
 } = {}) {
 	/** Both options are optional: `channel` defaults to alpha, `paths` to {@link defaultPaths}. */
@@ -138,7 +207,7 @@ export function createPlugin({
 			}
 		},
 
-		success(pluginConfig, context) {
+		async success(pluginConfig, context) {
 			const { logger } = context;
 			const channel = releaseChannel(context);
 			let decision;
@@ -163,6 +232,31 @@ export function createPlugin({
 			if (!context.env.VERCEL_TOKEN) {
 				logger.error(
 					"deploy-on-release: VERCEL_TOKEN isn't set; skipping the Sentinel deploy. Redeploy by hand."
+				);
+				return;
+			}
+
+			let unpublished;
+			try {
+				const packages = workspaceDependencies({
+					repoRoot: context.cwd,
+					sentinelDir,
+					readJson,
+					listDirs,
+				}).filter((dep) => dep.version);
+				logger.log(
+					`deploy-on-release: waiting for npm to serve ${packages.map((p) => `${p.name}@${p.version}`).join(", ")}.`
+				);
+				unpublished = await waitForPublished({ packages, run, sleep, now, cwd: context.cwd });
+			} catch (err) {
+				logger.error(
+					`deploy-on-release: couldn't check npm for the release's versions (${err.message}); skipping.`
+				);
+				return;
+			}
+			if (unpublished.length > 0) {
+				logger.error(
+					`deploy-on-release: npm still doesn't serve ${unpublished.join(", ")} after ${WAIT_TIMEOUT_MS / 60000} minutes; skipping the Sentinel deploy. The release itself succeeded; redeploy with the Sentinel Deploy workflow.`
 				);
 				return;
 			}

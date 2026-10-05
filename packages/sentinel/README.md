@@ -293,8 +293,12 @@ release changes `packages/sentinel/` or one of its `workspace:*`
 dependencies (the packages inlined into `dist/`) — both defaults, derived
 from Sentinel's own `package.json` so there's no second list to keep in
 sync, and both overridable with the plugin's `channel` / `paths` options.
-A deploy failure is logged, never fails the already-published release —
-redeploy with the workflow above. `VERCEL_TOKEN` reaches the release step
+Before deploying it waits (up to five minutes) for npm to serve the
+release's new versions of those packages: `success` runs once `npm publish`
+has returned, but the registry can take a moment to serve a version it
+accepted seconds ago, and Vercel's `npm install` runs the instant the deploy starts.
+A deploy failure, or npm not serving the versions in time, is logged and
+never fails the already-published release — redeploy with the workflow above. `VERCEL_TOKEN` reaches the release step
 only because this repo opts in: `astromech.config.ts` sets
 `deploy-on-release: true` on its `delivery.publish` task, and astromech's
 shared `delivery.publish.yml` passes the token only to callers that do.
