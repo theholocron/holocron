@@ -351,6 +351,38 @@ describe("deployOnRelease", () => {
 		expect(run).toHaveBeenCalledOnce();
 	});
 
+	it("falls back to the exit status when a failed diff printed nothing", async () => {
+		const run = fakeRun();
+		run.mockImplementation(() => ({ status: 129, stdout: "", stderr: "" }));
+
+		const { report } = await deploy(run);
+
+		expect(report.results[0]?.message).toBe("git diff old new failed: 129");
+	});
+
+	it("doesn't wait on a workspace dependency that has no version, deploying once the rest is served", async () => {
+		const run = fakeRun();
+		const files: Record<string, unknown> = {
+			...FILES,
+			"/repo/packages/cli/package.json": { name: "@theholocron/cli" },
+		};
+		const lines: string[] = [];
+
+		const report = await deployOnRelease(
+			{ ...OPTIONS, print: (line) => lines.push(line) },
+			{
+				run,
+				readJson: (path) => files[path],
+				listDirs: TREE.listDirs,
+				...fakeClock(),
+				loadTasks: (dir) => Promise.resolve(dir.endsWith("app") ? APP_DEPLOY : {}),
+			}
+		);
+
+		expect(report.status).toBe("ok");
+		expect(lines).toContain(`@theholocron/app: waiting for npm to serve @theholocron/datapad@${VERSION}.`);
+	});
+
 	it("reports what it would deploy, and deploys nothing, on a dry run", async () => {
 		const run = fakeRun();
 
