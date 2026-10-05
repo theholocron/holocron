@@ -1,12 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { fakeFlush } = vi.hoisted(() => ({ fakeFlush: vi.fn().mockResolvedValue(undefined) }));
+const { fakeFlush, createLoggerCalls, resolveAxiomConfigCalls, FAKE_AXIOM_CONFIG } = vi.hoisted(() => ({
+	fakeFlush: vi.fn().mockResolvedValue(undefined),
+	// Recorded once, at the single static import of ./handler.js below. Plain
+	// arrays (not vi.fn()s) so the per-test mockReset()s can't clear them.
+	createLoggerCalls: [] as unknown[][],
+	resolveAxiomConfigCalls: [] as unknown[][],
+	FAKE_AXIOM_CONFIG: { axiom: { token: "tok_test", dataset: "ds_test" } },
+}));
 
 vi.mock("@theholocron/observability/logger", () => ({
-	createLogger: () => ({
-		logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), flush: fakeFlush },
-		runId: "test-run-id",
-	}),
+	createLogger: (...args: unknown[]) => {
+		createLoggerCalls.push(args);
+		return {
+			logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), flush: fakeFlush },
+			runId: "test-run-id",
+		};
+	},
+}));
+vi.mock("./utils/axiom-config.js", () => ({
+	resolveAxiomConfig: (...args: unknown[]) => {
+		resolveAxiomConfigCalls.push(args);
+		return FAKE_AXIOM_CONFIG;
+	},
 }));
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
 vi.mock("./actions/commit-standards/lint-commits.js", () => ({ lintCommits: vi.fn() }));
@@ -134,6 +150,18 @@ beforeEach(() => {
 	vi.mocked(commitEditorConfigFix).mockReset();
 	vi.mocked(commitMarkdownLintFix).mockReset();
 	fakeFlush.mockClear();
+});
+
+describe("handler — module-level logger (holocron#780/#781)", () => {
+	// What resolveAxiomConfig() returns for each env-var combination is tested
+	// directly in utils/axiom-config.test.ts; this is only the wiring.
+	it("builds its logger from resolveAxiomConfig(env), passing the result through unchanged", () => {
+		expect(resolveAxiomConfigCalls).toHaveLength(1);
+		expect(typeof (resolveAxiomConfigCalls[0]![0] as { get: unknown }).get).toBe("function");
+
+		expect(createLoggerCalls).toHaveLength(1);
+		expect(createLoggerCalls[0]![0]).toBe(FAKE_AXIOM_CONFIG);
+	});
 });
 
 describe("handler — method + verification", () => {

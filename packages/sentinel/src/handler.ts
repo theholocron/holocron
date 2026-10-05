@@ -221,6 +221,7 @@ import { validateDocsPresence } from "./actions/repo-validation/validate-docs-pr
 import { validateRegistry } from "./actions/repo-validation/validate-registry.js";
 import { lintStaticAnalysis } from "./actions/static-analysis/lint-static-analysis.js";
 import { postStaticAnalysisCheck } from "./actions/static-analysis/post-static-analysis-check.js";
+import { resolveAxiomConfig } from "./utils/axiom-config.js";
 import {
 	SENTINEL_ACTIONLINT_LOG_MSG,
 	SENTINEL_ADRS_LOG_MSG,
@@ -245,24 +246,12 @@ import {
 import { validateConfig, type ValidateConfigResult } from "./utils/validate-config.js";
 import { parseWebhookEvent, type SentinelEvent, WebhookVerificationError } from "./utils/webhook.js";
 
-// Explicit token, not createLogger()'s own AXIOM_TOKEN auto-detection
-// (holocron#780/#781): SENTINEL_AXIOM_INGEST_TOKEN is a separate,
-// narrower-scoped (ingest-only) token, deliberately distinct from
-// whatever a broader AXIOM_TOKEN might mean elsewhere in this org — using
-// the generic auto-detected name here would silently widen the
-// credential this deployment actually needs. Falls back to no Axiom
-// transport (not a throw) when either var is unset, matching
-// createLogger()'s own "absent → no transport" contract — true in every
-// test run, and in any environment before the two Doppler-sourced values
-// have been synced to Vercel. `runId` is threaded into every check run's
-// own output.text so a viewer can find the exact invocation's structured
+// Axiom transport config comes from the environment (utils/axiom-config.ts);
+// absent → no transport, not a throw. `runId` is threaded into every check
+// run's own output.text so a viewer can find the exact invocation's structured
 // log line in Axiom without leaving GitHub.
 const env = createEnvLookup();
-const axiomToken = env.get("SENTINEL_AXIOM_INGEST_TOKEN");
-const axiomDataset = env.get("AXIOM_DATASET");
-const { logger, runId } = createLogger(
-	axiomToken && axiomDataset ? { axiom: { token: axiomToken, dataset: axiomDataset } } : {}
-);
+const { logger, runId } = createLogger(resolveAxiomConfig(env));
 
 export interface Env {
 	GITHUB_APP_ID: string;
