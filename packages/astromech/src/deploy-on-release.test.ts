@@ -1,8 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TasksConfig } from "./config/schema.js";
 import {
+	defaultListDirs,
 	defaultPaths,
+	defaultReadJson,
+	defaultRun,
+	defaultSleep,
 	deployOnRelease,
 	type DeployOnReleaseOptions,
 	deployTargets,
@@ -496,5 +505,84 @@ describe("waitForPublished", () => {
 
 		expect(pending).toEqual([`@theholocron/cli@${VERSION}`, `@theholocron/datapad@${VERSION}`]);
 		expect(clock.sleep).toHaveBeenCalledTimes(3);
+	});
+});
+
+describe("the real defaults", () => {
+	const dirs: string[] = [];
+	const tmp = () => {
+		const dir = mkdtempSync(join(tmpdir(), "deploy-on-release-"));
+		dirs.push(dir);
+		return dir;
+	};
+	afterEach(() => {
+		vi.useRealTimers();
+		for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("defaultRun runs a command and captures its output and status", () => {
+		const ok = defaultRun("node", ["-e", "process.stdout.write('hi')"], {});
+		expect(ok).toMatchObject({ status: 0, stdout: "hi" });
+		expect(defaultRun("node", ["-e", "process.exit(3)"], {}).status).toBe(3);
+	});
+
+	it("defaultReadJson parses a file, and throws for a missing one", () => {
+		const dir = tmp();
+		writeFileSync(join(dir, "a.json"), '{"name":"x"}');
+		expect(defaultReadJson(join(dir, "a.json"))).toEqual({ name: "x" });
+		expect(() => defaultReadJson(join(dir, "missing.json"))).toThrow();
+	});
+
+	it("defaultListDirs lists only the folders", () => {
+		const dir = tmp();
+		mkdirSync(join(dir, "a"));
+		mkdirSync(join(dir, "b"));
+		writeFileSync(join(dir, "file.txt"), "");
+		expect(defaultListDirs(dir).sort()).toEqual(["a", "b"]);
+	});
+
+	it("defaultSleep resolves after the delay", async () => {
+		vi.useFakeTimers();
+		let done = false;
+		const sleeping = defaultSleep(1000).then(() => (done = true));
+		await vi.advanceTimersByTimeAsync(999);
+		expect(done).toBe(false);
+		await vi.advanceTimersByTimeAsync(1);
+		await sleeping;
+		expect(done).toBe(true);
+	});
+
+	it("runs end to end on a real repo and manifest: diffs with git and reads the package's holocron.config", async () => {
+		const repo = tmp();
+		const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, stdio: "pipe" }).toString().trim();
+		mkdirSync(join(repo, "packages", "app", "src"), { recursive: true });
+		writeFileSync(join(repo, "packages", "app", "package.json"), '{"name":"@x/app","version":"1.0.0"}');
+		writeFileSync(
+			join(repo, "packages", "app", "holocron.config.json"),
+			JSON.stringify({ tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }] })
+		);
+		git("init", "-q");
+		git("config", "user.email", "t@example.com");
+		git("config", "user.name", "t");
+		git("config", "commit.gpgsign", "false");
+		git("add", "-A");
+		git("commit", "-q", "-m", "first");
+		const first = git("rev-parse", "HEAD");
+		writeFileSync(join(repo, "packages", "app", "src", "x.ts"), "export {};");
+		git("add", "-A");
+		git("commit", "-q", "-m", "second");
+
+		const lines: string[] = [];
+		const report = await deployOnRelease({
+			cwd: repo,
+			channel: "alpha",
+			from: first,
+			dryRun: true,
+			print: (line) => lines.push(line),
+		});
+
+		expect(report.status).toBe("ok");
+		expect(report.results[0]).toMatchObject({ pkg: "@x/app", status: "dry-run" });
+		expect(report.results[0]?.message).toContain("packages/app/src/x.ts");
 	});
 });

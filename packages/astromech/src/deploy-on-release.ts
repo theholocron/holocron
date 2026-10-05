@@ -235,6 +235,18 @@ export interface DeployOnReleaseReport {
 	results: DeployOnReleaseResult[];
 }
 
+export const defaultRun: Run = (command, args, opts) =>
+	spawnSync(command, args, { encoding: "utf8", ...opts }) as SpawnResult;
+
+export const defaultReadJson = (path: string): unknown => JSON.parse(readFileSync(path, "utf8")) as unknown;
+
+export const defaultListDirs = (path: string): string[] =>
+	readdirSync(path, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => entry.name);
+
+export const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Deploys every package whose manifest declares a release-time deploy that
  * applies to this release. Never throws for a deploy problem: each package's
@@ -243,13 +255,10 @@ export interface DeployOnReleaseReport {
 export async function deployOnRelease(
 	options: DeployOnReleaseOptions,
 	{
-		run = (command, args, opts) => spawnSync(command, args, { encoding: "utf8", ...opts }) as SpawnResult,
-		readJson = (path) => JSON.parse(readFileSync(path, "utf8")) as unknown,
-		listDirs = (path) =>
-			readdirSync(path, { withFileTypes: true })
-				.filter((entry) => entry.isDirectory())
-				.map((entry) => entry.name),
-		sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+		run = defaultRun,
+		readJson = defaultReadJson,
+		listDirs = defaultListDirs,
+		sleep = defaultSleep,
 		now = Date.now,
 		loadTasks = loadTasksConfig,
 	}: DeployOnReleaseDeps = {}
