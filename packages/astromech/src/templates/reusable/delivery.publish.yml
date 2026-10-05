@@ -175,8 +175,13 @@ jobs:
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload release-commit coverage to Codecov
         if: ${{ steps.release.outputs.commit != '' }}
+        # fail_ci_if_error makes a failed upload fail this step, so it is visible, but
+        # continue-on-error keeps it from failing the job: the release has already
+        # published, and the Sentry release steps below must still run (holocron#934).
+        continue-on-error: true
         with:
           use_oidc: true
+          fail_ci_if_error: true
           override_commit: ${{ steps.release.outputs.commit }}
           override_branch: ${{ github.ref_name }}
 

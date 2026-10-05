@@ -77,16 +77,23 @@ jobs:
         with:
           task: verification.unitTests
 
+      # A Codecov upload must not fail silently. fail_ci_if_error makes a failed
+      # upload fail this step (the action's default is to log the error and pass),
+      # which fails the job and so the `Test / Conclusion` check. Whether that
+      # blocks a merge is up to whether the check is required, not this workflow
+      # (holocron#934).
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload coverage to Codecov
         with:
           use_oidc: true
+          fail_ci_if_error: true
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         with:
           use_oidc: true
+          fail_ci_if_error: true
           report_type: test_results
           files: "**/test-report.junit.xml"
 
@@ -114,16 +121,23 @@ jobs:
       - run: pnpm test:storybook
         name: Run Storybook tests
 
+      # A Codecov upload must not fail silently. fail_ci_if_error makes a failed
+      # upload fail this step (the action's default is to log the error and pass),
+      # which fails the job and so the `Test / Conclusion` check. Whether that
+      # blocks a merge is up to whether the check is required, not this workflow
+      # (holocron#934).
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload coverage to Codecov
         with:
           use_oidc: true
+          fail_ci_if_error: true
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         with:
           use_oidc: true
+          fail_ci_if_error: true
           report_type: test_results
           files: "**/test-report.junit.xml"
 
