@@ -319,7 +319,7 @@ release that touches `packages/sentinel/**` or any of its three
 `@theholocron/datapad`. Those three are among the most frequently-changed
 packages in this repo. A check of the 15 most recent alpha releases
 (2026-10-02 through 2026-10-06, 4 days): **14 of 15 touched one of those
-paths** — meaning the real deploy-on-release pipeline would fire on
+paths** — meaning the real deploy-on-release pipeline would run on
 essentially every alpha release, not occasionally. At 15 credits each,
 that's ~14 production deploys / 4 days ≈ **210 credits/4 days**, enough to
 exhaust the entire 300-credit monthly allowance in under a week from

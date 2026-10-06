@@ -43,7 +43,7 @@ Sentinel's current shape, independent of which vendor it runs on:
   frequent redeploys (one per relevant release). An always-on process
   bills neither of those things; it bills wall-clock uptime, which
   doesn't care how often the underlying code changes or how much CPU a
-  given request burns within a flat capacity.
+  given request consumes within a flat capacity.
 
 ## Open question
 
@@ -114,5 +114,5 @@ outcome.
 
 Decide between A/B/C (not mutually exclusive) once there's appetite to
 revisit this — no urgency, since Sentinel hasn't actually left Vercel yet
-and nothing is on fire. Record the decision as a new ADR once made,
+and there is no immediate concern. Record the decision as a new ADR once made,
 superseding or extending ADR-0011 as appropriate.
