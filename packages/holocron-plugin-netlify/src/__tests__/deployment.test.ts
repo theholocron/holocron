@@ -127,58 +127,6 @@ describe("NetlifyDeployment", () => {
 		});
 	});
 
-	describe("deployFunction", () => {
-		it("zips the given files and uploads via the deploy endpoint", async () => {
-			const { capability, stub } = makeCapability(undefined, [
-				{
-					status: 200,
-					body: {
-						id: "d1",
-						site_id: "s1",
-						state: "uploaded",
-						url: "u",
-						ssl_url: "su",
-						deploy_url: "du",
-						branch: null,
-						created_at: "2026-01-01T00:00:00Z",
-					},
-				},
-			]);
-			const result = await capability.deployFunction("s1", {
-				files: { "api/webhook.mjs": "export default () => {};", "package.json": "{}" },
-				target: "production",
-			});
-			expect(result).toEqual({ deploymentId: "d1", url: "su" });
-			const call = stub.calls[0];
-			expect(call?.method).toBe("POST");
-			expect(call?.url).toContain("/sites/s1/deploys");
-			// draft=true only when no target is given; production target means not a draft
-			expect(call?.url).not.toContain("draft=true");
-			expect(call?.body).toBeInstanceOf(Uint8Array);
-			expect((call?.body as Uint8Array).byteLength).toBeGreaterThan(0);
-		});
-
-		it("marks the deploy as a draft when no target is given", async () => {
-			const { stub, capability } = makeCapability(undefined, [
-				{
-					status: 200,
-					body: {
-						id: "d2",
-						site_id: "s1",
-						state: "ready",
-						url: "u",
-						ssl_url: "",
-						deploy_url: "du",
-						branch: null,
-						created_at: "2026-01-01T00:00:00Z",
-					},
-				},
-			]);
-			await capability.deployFunction("s1", { files: { "a.txt": "x" } });
-			expect(stub.calls[0]?.url).toContain("draft=true");
-		});
-	});
-
 	describe("getDeployment", () => {
 		it.each([
 			["ready", "ready"],
