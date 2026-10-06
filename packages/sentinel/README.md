@@ -95,10 +95,10 @@ lands on. Throws `WebhookVerificationError` for a missing/wrong secret, a
 missing/malformed signature, a missing `X-GitHub-Event` header, or a body
 that isn't valid JSON. Returns one of:
 
-| Result               | Meaning                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                       |
-| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, `pull_request.closed`, an unrelated `X-GitHub-Event`) — not an error, just not actionable yet. |
+| Result               | Meaning                                                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                  |
+| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, `pull_request.closed`, an unrelated `X-GitHub-Event`) — not an error, not actionable yet. |
 
 `SentinelEventType` is one of `"installation.created"`,
 `"installation.deleted"`, `"push.default-branch"`,
@@ -429,7 +429,7 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 | Field                                                  | Value                                                                                                                                                                                              |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not just this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
+| GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not only this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
 | Description                                            | `Holocron's minimal GitHub App — validates holocron.config.ts, syncs capability status to repo properties, and posts a compliance check run on every push to the default branch and pull request.` |
 | Homepage URL                                           | `https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme` (this package's own `package.json` `homepage`)                                                                        |
 | Callback URL                                           | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |

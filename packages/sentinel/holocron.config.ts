@@ -15,7 +15,7 @@
  *   - `holocron setup --cwd packages/sentinel` (one-time, manual):
  *     attaches the custom domain to the Netlify site and hands any
  *     verification CNAME to the `dns` provider — `source` being
- *     unconfigured just means every repo-settings step is skipped
+ *     unconfigured means every repo-settings step is skipped
  *     (each gated on `loader.has("source")`), not that setup fails.
  *
  * `deployment`: Netlify (holocron#940/#945 — migrated off Vercel for
@@ -33,7 +33,7 @@
  * `secrets`: GitHub — only ONE of the 5 Doppler keys has a GH Actions
  * consumer at all (`SENTINEL_AXIOM_INGEST_TOKEN`, read by
  * `theholocron/.github`'s `platform.dispatchedCheck.yml`, org-wide since
- * any repo with Bucket 2 dispatch enabled needs it there, not just this
+ * any repo with Bucket 2 dispatch enabled needs it there, not only this
  * one) — every sync invocation must pass `--github-secret
  * SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron` to
  * scope it down to that one key; the other 4 are Netlify-only and would
