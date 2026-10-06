@@ -263,6 +263,20 @@ V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
 
 ## Deploying
 
+> **Everything below describes the Vercel path, which is still what's
+> actually live.** This branch also carries a parked Netlify cutover
+> (`holocron.config.ts`'s `deployment` provider, `scripts/stage-deploy-netlify.mjs`,
+> `netlify/functions/webhook.mjs`) — code-complete and verified
+> (typecheck/lint/test/build all pass), but not switched over: the DNS
+> repoint and GitHub App webhook flip haven't happened, and
+> `holocron#945` is still an open question about whether a
+> redeploy-on-every-release serverless Function is even the right
+> architecture for Sentinel going forward (see
+> `.notes/tech-sentinel-deploy-architecture-reconsideration.spec.md`).
+> This section's docs will get a real rewrite once that's decided —
+> rewriting it now to describe a path that isn't live yet would be its
+> own kind of misleading.
+
 `holocron.config.ts` in this directory — separate from the monorepo
 root's own config, since Sentinel is deployed as its own product, not
 built/released the way the CLI or the plugins are — wires the

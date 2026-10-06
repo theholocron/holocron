@@ -6,7 +6,7 @@
 # Two triggers, not a replacement of the local `pnpm run delivery.deploy`
 # path (packages/sentinel/README.md's own "Deploying" section still applies
 # for a from-source-checkout deploy):
-#   - `workflow_dispatch` — manual, on demand, no local Vercel credentials
+#   - `workflow_dispatch` — manual, on demand, no local Netlify credentials
 #     or local build needed.
 #   - `push` to `main` (not `alpha`) touching `packages/sentinel/**` — this
 #     repo's stable/prerelease split (CLAUDE.md's Releases section) means
@@ -14,9 +14,10 @@
 #     not on every alpha merge. `main`'s branch protection only allows
 #     squash-merges, so this `push` trigger only ever fires on a real merge.
 #
-# `pnpm run delivery.deploy` (build → stage → `holocron deploy`) stays the
-# actual mechanism this invokes — the same command a human runs locally,
-# per D8's "one engine" convention.
+# `pnpm run delivery.deploy` (build → `scripts/stage-deploy-netlify.mjs`,
+# which calls `@theholocron/netlify-client` directly — NOT `holocron
+# deploy`, holocron#945) stays the actual mechanism this invokes — the
+# same command a human runs locally, per D8's "one engine" convention.
 #
 # Alpha releases deploy themselves (holocron#928, #930): the Delivery
 # workflow's Deploy job runs `holocron deploy-on-release` after the release
@@ -46,7 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.SENTINEL_NETLIFY_SITE_ID }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
