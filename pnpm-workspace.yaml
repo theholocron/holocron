@@ -48,10 +48,10 @@ catalogs:
     "@theholocron/cloudflare-client": ^1.31.0
     "@theholocron/doppler-client": ^1.31.0
     "@theholocron/github-client": ^1.36.0
-    "@theholocron/http-client": ^1.36.0
+    "@theholocron/http-client": ^1.37.1
     "@theholocron/infisical-client": ^1.31.0
     "@theholocron/neon-client": ^1.31.0
-    "@theholocron/netlify-client": ^1.36.0
+    "@theholocron/netlify-client": ^1.37.1
     "@theholocron/posthog-client": ^1.31.0
     "@theholocron/postman-client": ^1.31.0
     "@theholocron/sentry-client": ^1.30.0
@@ -100,6 +100,6 @@ catalogs:
 # ProviderApiError again under a caret override that permitted both.
 overrides:
   "@sentry/node": 10.75.2
-  "@theholocron/http-client": 1.36.0
+  "@theholocron/http-client": 1.37.1
   posthog-node: 5.52.5
   tsx: 4.23.12
