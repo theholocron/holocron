@@ -80,7 +80,7 @@ as trusted. D6's blanket ban is more conservative than this org's actual
 threat model calls for.
 
 **What doesn't change**: a GitHub App installation token is a real
-credential. "No forks" removes the _malicious external actor_ case, not the
+credential. "No forks" removes the _malicious external party_ case, not the
 _general caution around running arbitrary code with elevated credentials_
 case — a typo'd PR or a compromised dependency pulled in by a trusted PR
 could still misuse the token if Sentinel's own process executes untrusted
@@ -241,6 +241,58 @@ own still-open question ("the caller file itself still physically exists in
 every repo... whether it needs to"). Doesn't change: execution cost, billing,
 or where the actual work happens — still real Actions runner time, same
 checkout+install+run shape as today.
+
+## Update: a cost tension surfaced (2026-10-06)
+
+Discussing Sentinel's hosting-cost problem (`.notes/tech-sentinel-deploy-architecture-reconsideration.spec.md`,
+issue #945) surfaced a direct conflict with this spec's own design that
+wasn't visible when it was written: Vercel's Active-CPU billing is driven
+by exactly the work Bucket 1 keeps centralized in Sentinel (real
+`ESLint.Linter.verify()`, markdownlint, actionlint's WASM run, on every PR
+org-wide). Finishing this spec as scoped — more tasks moving _into_
+Sentinel's own execution over time — makes that cost driver bigger, not
+smaller. "Sentinel as centralized CI runner" and "Sentinel's hosting cost
+needs to come down" pull in opposite directions as currently designed.
+
+**Open question this raises, not yet decided**: should Bucket 1 _also_
+dispatch to `.github` instead of running centrally in Sentinel —
+collapsing the bucket split into "everything dispatches, nothing runs
+in-process" — making Sentinel a near-zero-compute relay (verify webhook,
+dispatch, post check) regardless of which checks exist? That would make
+the host-selection question in #945 largely moot, since there'd be
+almost nothing to meter on any platform.
+
+Checked the real cost of that before assuming it's free: this org is on
+the GitHub Free plan with 19 public repos and exactly one private repo
+(`.github-private`). **Public repos get unconditionally free, unlimited
+Actions minutes on any plan** — confirmed against the org's own
+billing-usage API, `.github-private`'s actual usage (862/428/1478/447/
+592/823 minutes across six recent months, `netAmount: 0.0` every month,
+nowhere near the Free plan's 2,000-minute private allowance). Since
+`.github`'s dispatched workflows run against public repos, moving Bucket
+1 to dispatch costs **$0 in Actions minutes**, not "probably fine." The
+real cost is latency (runner provisioning + checkout + install — ~20–45s
+per dispatched check instead of near-instant) and, under heavy
+simultaneous load, the Free plan's 20-concurrent-job ceiling (jobs queue
+past that, they don't fail or cost extra).
+
+**A batching idea was considered and rejected**: combine several
+dispatched tasks into one workflow run (one checkout, one install, tasks
+run sequentially) to avoid paying setup overhead once per task. Rejected
+because the premise overstated the actual cost — `setup-node.yml`
+already sets `cache: pnpm` (cached install, not cold) and `setup.yml`
+already caches `.turbo` via `actions/cache` with an OS-scoped fallback
+key, both live today for every existing job. The real saving batching
+would offer is mostly already captured by that caching; what batching
+actually costs is maintainability (push the logic far enough and every
+task collapses into one monolithic workflow file — noisy combined logs,
+unclear which part broke). **Conclusion: if/when more tasks move to
+Bucket 2-style dispatch, keep each as its own separate workflow/job,
+leaning on the caching that already exists — don't merge them.**
+
+Not decided: whether Bucket 1 actually moves. Tracked as part of #945's
+pause (board status: Someday), since it may end up being the same
+decision as the hosting-provider question, not a separate one.
 
 ## New capabilities needed (not yet built)
 
