@@ -69,7 +69,7 @@ Plugin options, via the tuple form:
 
 Thin wrapper over `@theholocron/netlify-client`'s `sites` / `deploys` /
 `env` / `user` resources — see that package for the actual REST calls.
-Verified against Netlify's real API, not just mocks: a live smoke test
+Verified against Netlify's real API, not only mocks: a live smoke test
 (create a site, deploy real content via the client's in-memory zip
 builder, poll to `ready`, fetch the live URL) using this plugin's own
 built `createPlugin()` output.
