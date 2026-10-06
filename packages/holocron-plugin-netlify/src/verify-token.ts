@@ -10,7 +10,7 @@
  * what we don't have yet at bootstrap time.
  */
 
-import { createNetlifyRestClient } from "./rest.js";
+import { createNetlifyClient } from "@theholocron/netlify-client";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -24,24 +24,15 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
-interface NetlifyUserResponse {
-	full_name?: string;
-	email?: string;
-	id?: string;
-}
-
 export interface VerifyTokenOptions {
 	baseUrl?: string;
 	fetch?: typeof fetch;
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: { token: string; baseUrl?: string; fetch?: typeof fetch } = { token };
-	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
-	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = createNetlifyRestClient(restOpts);
+	const client = createNetlifyClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const user = await rest.request<NetlifyUserResponse>("/user");
+		const user = await client.user.get();
 		const subject = user?.email ?? user?.full_name ?? user?.id ?? "unknown";
 		return { ok: true, subject: `user @ ${subject}` };
 	} catch (err) {

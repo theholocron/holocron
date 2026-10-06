@@ -3,7 +3,7 @@
 # `@theholocron/holocron-plugin-netlify`
 
 Netlify plugin for [Holocron](../cli). Implements the
-`deployment` capability against [Netlify's REST API](https://api.netlify.com/api/v1),
+`deployment` capability against [`@theholocron/netlify-client`](https://github.com/theholocron/clients/tree/main/packages/netlify-client),
 plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
 
 ## Install
@@ -67,19 +67,23 @@ Plugin options, via the tuple form:
 
 ## What's implemented
 
-Fully implemented against Netlify's real REST API, with tests:
+Thin wrapper over `@theholocron/netlify-client`'s `sites` / `deploys` /
+`env` / `user` resources — see that package for the actual REST calls.
+Verified against Netlify's real API, not just mocks: a live smoke test
+(create a site, deploy real content via the client's in-memory zip
+builder, poll to `ready`, fetch the live URL) using this plugin's own
+built `createPlugin()` output.
 
-- `listProjects` / `ensureProject` — `GET /sites`, `POST /{account_slug}/sites`
-- `deployFunction` — zips `files` in-memory (`src/zip.ts`, no dependency)
-  and uploads via `POST /sites/{id}/deploys` with `Content-Type:
-application/zip`. Netlify runs no build step for a raw zip upload —
-  the caller is responsible for already having resolved dependencies
-  into the file set (same discipline Vercel's `deployFunction` path
-  requires via its own trimmed/pinned `package.json`).
-- `getDeployment` — `GET /deploys/{id}`
-- `listEnvVars` / `setEnvVar` — `GET/POST/PUT /accounts/{account_id}/env`
-- `ensureCustomDomain` — `PATCH /sites/{id}` with `custom_domain`; returns
-  a CNAME record unconditionally (Netlify has no DNS-misconfiguration
+- `listProjects` / `ensureProject` → `sites.list` / `sites.create`
+- `deployFunction` → `deploys.createFromZip` — Netlify runs no build
+  step for a raw zip upload, so the caller (Sentinel's own stage-deploy
+  script) is responsible for already having resolved dependencies into
+  the file set, the same discipline Vercel's `deployFunction` path
+  requires via its own trimmed/pinned `package.json`.
+- `getDeployment` → `deploys.get`
+- `listEnvVars` / `setEnvVar` → `env.list` / `env.set`
+- `ensureCustomDomain` → `sites.update({ custom_domain })`; returns a
+  CNAME record unconditionally (Netlify has no DNS-misconfiguration
   check to consult the way Vercel does, so idempotency relies on
   `Dns.upsertRecord()` being a safe no-op on an already-correct record)
 
@@ -88,9 +92,9 @@ current consumer** (best-effort, see inline comments in
 `src/capabilities/deployment.ts`):
 
 - `updateProjectSettings` — Netlify has no direct equivalent of Vercel's
-  git-linked-project settings; no-ops to a `GET /sites/{id}`.
-- `triggerDeployment` — maps to `POST /sites/{id}/builds`, untested
-  against a real git-linked Netlify site.
+  git-linked-project settings; no-ops to `sites.get`.
+- `triggerDeployment` → `sites.triggerBuild`, untested against a real
+  git-linked Netlify site.
 
 Not implemented: `listPreviewDeployments` / `deletePreviewDeployments`
 (both optional on the interface) — no current consumer needs

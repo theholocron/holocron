@@ -1,7 +1,7 @@
+import { createNetlifyClient } from "@theholocron/netlify-client";
 import { describe, expect, it } from "vitest";
 
 import { NetlifyDeployment } from "../capabilities/deployment.js";
-import { createNetlifyRestClient } from "../rest.js";
 import { stubFetch } from "./helpers.js";
 
 function makeCapability(
@@ -9,8 +9,8 @@ function makeCapability(
 	responses: Array<{ status?: number; body?: unknown }> = []
 ) {
 	const stub = stubFetch(responses);
-	const rest = createNetlifyRestClient({ token: "t", fetch: stub.fetch });
-	return { capability: new NetlifyDeployment(() => rest, opts), stub };
+	const client = createNetlifyClient({ token: "t", fetch: stub.fetch });
+	return { capability: new NetlifyDeployment(() => client, opts), stub };
 }
 
 describe("NetlifyDeployment", () => {

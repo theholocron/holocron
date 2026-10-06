@@ -1,16 +1,16 @@
 /**
  * `@theholocron/holocron-plugin-netlify` — entrypoint.
  *
- * Implements the `deployment` capability against Netlify's REST API.
- * Also exports `verifyToken` + `AUTH_HINT` for `holocron auth`. See
- * README for auth + config docs.
+ * Implements the `deployment` capability against Netlify's REST API via
+ * `@theholocron/netlify-client`. Also exports `verifyToken` + `AUTH_HINT`
+ * for `holocron auth`. See README for auth + config docs.
  */
 
 import type { Deployment } from "@theholocron/cli";
+import { createNetlifyClient, type NetlifyClient } from "@theholocron/netlify-client";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { NetlifyDeployment, type NetlifyDeploymentOptions } from "./capabilities/deployment.js";
-import { createNetlifyRestClient, type NetlifyRestClient } from "./rest.js";
 
 export interface NetlifyPluginOptions extends ResolveTokenInput, NetlifyDeploymentOptions {
 	/** Override base URL for tests. */
@@ -22,22 +22,19 @@ export interface NetlifyPluginOptions extends ResolveTokenInput, NetlifyDeployme
 export interface PluginContext {
 	options: NetlifyPluginOptions;
 	/** Memoized client — the token is resolved on first use, not at plugin load. */
-	rest: () => NetlifyRestClient;
+	client: () => NetlifyClient;
 }
 
 export function createContext(options: NetlifyPluginOptions): PluginContext {
-	let rest: NetlifyRestClient | undefined;
+	let client: NetlifyClient | undefined;
 	return {
 		options,
-		rest: () => {
-			if (rest) return rest;
-			const restOpts: { token: string; baseUrl?: string; fetch?: typeof fetch } = {
+		client: () =>
+			(client ??= createNetlifyClient({
 				token: resolveToken(options),
-			};
-			if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-			if (options.fetch !== undefined) restOpts.fetch = options.fetch;
-			return (rest = createNetlifyRestClient(restOpts));
-		},
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 
@@ -46,7 +43,7 @@ export function deployment(ctx: PluginContext): Deployment {
 	if (ctx.options.accountSlug !== undefined) opts.accountSlug = ctx.options.accountSlug;
 	if (ctx.options.accountId !== undefined) opts.accountId = ctx.options.accountId;
 	if (ctx.options.domain !== undefined) opts.domain = ctx.options.domain;
-	return new NetlifyDeployment(ctx.rest, opts);
+	return new NetlifyDeployment(ctx.client, opts);
 }
 
 export function createPlugin(options: NetlifyPluginOptions) {
@@ -71,6 +68,5 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { NetlifyDeployment, type NetlifyDeploymentOptions } from "./capabilities/deployment.js";
-export { createNetlifyRestClient, type NetlifyRestClient } from "./rest.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
