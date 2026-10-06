@@ -209,7 +209,7 @@ rename rather than carry a shim indefinitely.
    GitHub capability (`github.org`) and already shares its name with the
    `org`-scoping concept itself — `HOLOCRON_ORG_TOKEN` vs. the unrelated
    `HOLOCRON_ORG` env var (the active-org selector from #369) read
-   differently in context but are easy to transpose when typing quickly.
+   differently in context but can be transposed when typing quickly.
    Leaning: rename to `HOLOCRON_GITHUB_ORG_TOKEN` along with the other six,
    for consistency — the collision risk with `HOLOCRON_ORG` is exactly the
    kind of thing the prefix fixes.
