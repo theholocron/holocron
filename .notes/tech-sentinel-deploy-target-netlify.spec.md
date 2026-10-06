@@ -140,7 +140,7 @@ in the spike and worth carrying into the actual plugin/stage-deploy work:
    immediately (`no node_modules found above "/var/task"`). Both settings
    are required together; `included_files` paths are relative to the
    project root (or `base`), not the function file's own directory.
-2. **Function size limit is 250MB, and it's possible to blow past it quickly by
+2. **Function size limit is 250MB, and it's possible to exceed it quickly by
    accident.** Shipping a real `@theholocron/cli` install's full
    dependency tree was 451MB — way over, and also unnecessary: the spike
    doesn't need to import that specific package, only _some_ real
@@ -331,9 +331,9 @@ yet — but they demonstrate the same per-deploy cost rate.)
 
 This isn't a Netlify-specific problem — it's the same root cause that
 drove Sentinel off Vercel in the first place (frequent redeploys +
-CPU-bound linting), just metered on a different axis (deploy count
-instead of CPU-active-time). Swapping providers without addressing the
-redeploy cadence just trades one metering cliff for a faster one. The
+CPU-bound linting), metered on a different axis (deploy count instead
+of CPU-active-time). Swapping providers without addressing the
+redeploy cadence trades one metering cliff for a faster one. The
 plugin (`@theholocron/holocron-plugin-netlify`) and client
 (`@theholocron/netlify-client`) built under this spec are still correct,
 general-purpose infrastructure — nothing above is wrong about _how_ to

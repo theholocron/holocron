@@ -27,7 +27,7 @@ Two independent findings, same root cause:
    `tech-sentinel-deploy-target-netlify.spec.md` for the full numbers.
 
 Both findings trace back to the same two structural facts about
-Sentinel's current shape, independent of which vendor hosts it:
+Sentinel's current shape, independent of which vendor it runs on:
 
 - **It redeploys far more often than its own code actually changes.**
   `deploy-on-release.ts`'s path-based heuristic (redeploy if the release
@@ -69,7 +69,7 @@ actual built output changed" — e.g. diff `dist/index.mjs`'s content hash
 across releases rather than source paths, or move Sentinel off
 `channel: "alpha"` onto a scheduled/batched cadence (redeploy at most
 once/day, picking up whatever's latest). Fixes the deploy-count meter on
-any FaaS host; doesn't address Vercel's CPU-active-time meter if the
+any FaaS platform; doesn't address Vercel's CPU-active-time meter if the
 "stay on Vercel" branch of this decision is revisited too, since that one
 scales with request volume/linting work, not deploy frequency.
 
@@ -93,7 +93,7 @@ vs. literal self-hosted VPS are not the same operational burden).
 Not mutually exclusive with A or B — the path-based over-triggering in
 `deploy-on-release.ts` is arguably a bug regardless of where Sentinel
 ends up hosted (other current/future packages using `on: "release"`
-have the same false-positive exposure, just without a billing cliff to
+have the same false-positive exposure, without a billing cliff to
 surface it). Worth fixing on its own merits even if the hosting
 question is settled separately.
 
