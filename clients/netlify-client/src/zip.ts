@@ -53,11 +53,16 @@ function crc32(data: Uint8Array): number {
 	return (crc ^ 0xffffffff) >>> 0;
 }
 
-/** Builds a STORED-method ZIP archive from `{ path: utf8-content }` entries. */
-export function buildZip(files: Record<string, string>): Uint8Array {
+/**
+ * Builds a STORED-method ZIP archive from `{ path: content }` entries.
+ * `content` may be a utf8 string (text files) or raw bytes (binary —
+ * native addons, wasm, anything under a real `node_modules` tree a
+ * function's own dependencies need).
+ */
+export function buildZip(files: Record<string, string | Uint8Array>): Uint8Array {
 	const entries: Entry[] = Object.entries(files).map(([path, content]) => ({
 		path: path.startsWith("/") ? path.slice(1) : path,
-		content: new TextEncoder().encode(content),
+		content: typeof content === "string" ? new TextEncoder().encode(content) : content,
 	}));
 
 	const localParts: Uint8Array[] = [];

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { ProviderApiError } from "@theholocron/http-client";
 import { describe, expect, it } from "vitest";
 
@@ -65,6 +67,13 @@ const DEPLOY = {
 	created_at: "2026-01-01T00:00:00Z",
 };
 
+function sha1(content: string): string {
+	return createHash("sha1").update(new TextEncoder().encode(content)).digest("hex");
+}
+function sha256(bytes: Uint8Array): string {
+	return createHash("sha256").update(bytes).digest("hex");
+}
+
 describe("deploys", () => {
 	it("gets a deploy", async () => {
 		const { fetch } = stubFetch([{ body: DEPLOY }]);
@@ -72,74 +81,110 @@ describe("deploys", () => {
 		expect(await client.deploys.get("d1")).toEqual(DEPLOY);
 	});
 
-	describe("createFromZip", () => {
-		it("posts the zipped files with content-type application/zip", async () => {
-			const { fetch, calls } = stubFetch([{ body: DEPLOY }]);
+	describe("create", () => {
+		it("sends a files manifest and uploads required file content", async () => {
+			const content = "export default () => {};";
+			const { fetch, calls } = stubFetch([{ body: { ...DEPLOY, required: [sha1(content)] } }, { body: {} }]);
 			const client = createNetlifyClient({ token: TOKEN, fetch });
-			const deploy = await client.deploys.createFromZip("s1", { "api/webhook.mjs": "export default () => {};" });
+			const deploy = await client.deploys.create("s1", { files: { "api/webhook.mjs": content } });
+
 			expect(deploy.id).toBe("d1");
 			expect(calls[0]?.method).toBe("POST");
 			expect(calls[0]?.url).toBe("https://api.netlify.com/api/v1/sites/s1/deploys");
-			expect(calls[0]?.headers["content-type"]).toBe("application/zip");
-			expect(calls[0]?.body).toBeInstanceOf(Uint8Array);
+			expect(calls[0]?.body).toEqual({ files: { "api/webhook.mjs": sha1(content) } });
+
+			expect(calls[1]?.method).toBe("PUT");
+			expect(calls[1]?.url).toBe("https://api.netlify.com/api/v1/deploys/d1/files/api/webhook.mjs");
+			expect(calls[1]?.headers["content-type"]).toBe("application/octet-stream");
 		});
 
-		it("appends ?draft=true when requested", async () => {
-			const { fetch, calls } = stubFetch([{ body: DEPLOY }]);
+		it("skips uploading a file Netlify already has", async () => {
+			const { fetch, calls } = stubFetch([{ body: { ...DEPLOY, required: [] } }]);
 			const client = createNetlifyClient({ token: TOKEN, fetch });
-			await client.deploys.createFromZip("s1", { "a.txt": "x" }, { draft: true });
-			expect(calls[0]?.url).toContain("draft=true");
+			await client.deploys.create("s1", { files: { "cached.txt": "same as last time" } });
+			expect(calls).toHaveLength(1); // only the manifest POST, no upload
 		});
 
-		it("strips a leading slash from file paths before zipping", async () => {
-			const { fetch, calls } = stubFetch([{ body: DEPLOY }]);
+		it("sends a functions manifest and uploads required function zips", async () => {
+			const zip = new Uint8Array([1, 2, 3]);
+			const { fetch, calls } = stubFetch([
+				{ body: { ...DEPLOY, required_functions: [sha256(zip)] } },
+				{ body: {} },
+			]);
 			const client = createNetlifyClient({ token: TOKEN, fetch });
-			await client.deploys.createFromZip("s1", { "/api/webhook.mjs": "x" });
-			// The zip itself isn't inspected here (covered by a real unzip in
-			// the plugin's own packaging step) — this just exercises the
-			// leading-slash branch so it isn't silently untested.
-			expect(calls[0]?.body).toBeInstanceOf(Uint8Array);
+			await client.deploys.create("s1", { functions: [{ name: "webhook", zip }] });
+
+			expect(calls[0]?.body).toEqual({ files: {}, functions: { webhook: sha256(zip) } });
+			expect(calls[1]?.method).toBe("PUT");
+			expect(calls[1]?.url).toBe("https://api.netlify.com/api/v1/deploys/d1/functions/webhook?runtime=js");
+			expect(calls[1]?.headers["content-type"]).toBe("application/octet-stream");
 		});
 
-		it("falls back to globalThis.fetch when no override is given", async () => {
+		it("defaults runtime to js but honors an explicit override", async () => {
+			const zip = new Uint8Array([9]);
+			const { fetch, calls } = stubFetch([
+				{ body: { ...DEPLOY, required_functions: [sha256(zip)] } },
+				{ body: {} },
+			]);
+			const client = createNetlifyClient({ token: TOKEN, fetch });
+			await client.deploys.create("s1", { functions: [{ name: "fn", zip, runtime: "go" }] });
+			expect(calls[1]?.url).toContain("runtime=go");
+		});
+
+		it("omits the functions field entirely when none are given", async () => {
+			const { fetch, calls } = stubFetch([{ body: { ...DEPLOY, required: [] } }]);
+			const client = createNetlifyClient({ token: TOKEN, fetch });
+			await client.deploys.create("s1");
+			expect(calls[0]?.body).toEqual({ files: {} });
+		});
+
+		it("sends draft:true when requested", async () => {
+			const { fetch, calls } = stubFetch([{ body: { ...DEPLOY, required: [] } }]);
+			const client = createNetlifyClient({ token: TOKEN, fetch });
+			await client.deploys.create("s1", { draft: true });
+			expect(calls[0]?.body).toMatchObject({ draft: true });
+		});
+
+		it("falls back to globalThis.fetch for uploads when no override is given", async () => {
 			const original = globalThis.fetch;
-			const stub = stubFetch([{ body: DEPLOY }]);
+			const content = "x";
+			const stub = stubFetch([{ body: { ...DEPLOY, required: [sha1(content)] } }, { body: {} }]);
 			globalThis.fetch = stub.fetch;
 			try {
 				const client = createNetlifyClient({ token: TOKEN });
-				const deploy = await client.deploys.createFromZip("s1", { "a.txt": "x" });
+				const deploy = await client.deploys.create("s1", { files: { "a.txt": content } });
 				expect(deploy.id).toBe("d1");
 			} finally {
 				globalThis.fetch = original;
 			}
 		});
 
-		it("throws ProviderApiError on non-2xx", async () => {
-			const { fetch } = stubFetch([{ status: 403, body: { message: "forbidden" } }]);
+		it("throws ProviderApiError when an upload returns non-2xx", async () => {
+			const content = "x";
+			const { fetch } = stubFetch([
+				{ body: { ...DEPLOY, required: [sha1(content)] } },
+				{ status: 403, body: { message: "forbidden" } },
+			]);
 			const client = createNetlifyClient({ token: TOKEN, fetch });
-			const err = await client.deploys.createFromZip("s1", { "a.txt": "x" }).catch((e: unknown) => e);
+			const err = await client.deploys.create("s1", { files: { "a.txt": content } }).catch((e: unknown) => e);
 			expect(err).toBeInstanceOf(ProviderApiError);
 			expect((err as ProviderApiError).status).toBe(403);
 		});
 
-		it("wraps transport-level failures with status 0", async () => {
-			const throwing: typeof fetch = async () => {
+		it("wraps a transport-level upload failure with status 0", async () => {
+			const content = "x";
+			let callCount = 0;
+			const throwing: typeof fetch = async (_input, _init) => {
+				callCount++;
+				if (callCount === 1) {
+					return new Response(JSON.stringify({ ...DEPLOY, required: [sha1(content)] }), { status: 200 });
+				}
 				throw new TypeError("network down");
 			};
 			const client = createNetlifyClient({ token: TOKEN, fetch: throwing });
-			const err = await client.deploys.createFromZip("s1", { "a.txt": "x" }).catch((e: unknown) => e);
+			const err = await client.deploys.create("s1", { files: { "a.txt": content } }).catch((e: unknown) => e);
 			expect(err).toBeInstanceOf(ProviderApiError);
 			expect((err as ProviderApiError).status).toBe(0);
-		});
-
-		it("stringifies a non-Error transport failure", async () => {
-			const throwing: typeof fetch = async () => {
-				throw "connection reset";
-			};
-			const client = createNetlifyClient({ token: TOKEN, fetch: throwing });
-			const err = await client.deploys.createFromZip("s1", { "a.txt": "x" }).catch((e: unknown) => e);
-			expect(err).toBeInstanceOf(ProviderApiError);
-			expect((err as ProviderApiError).message).toContain("connection reset");
 		});
 	});
 });
