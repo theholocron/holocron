@@ -7,10 +7,18 @@
  * Probe order is **TS-first**: `.ts` → `.js` → `.mjs` → `.cjs` → `.json`.
  * TS is loaded through `tsx`'s `tsImport` (a runtime dependency) so a
  * typed `defineConfig` file works with no build step.
+ *
+ * `walkUp` (off by default) adds the "nearest config" search
+ * cosmiconfig/postcss/stylelint/ESLint's flat config all do: when `cwd`
+ * itself has no match, check its parent, then its parent's parent, and so
+ * on — stopping at the first directory containing a `.git` entry (checked
+ * after that directory's own config probe, so the project root itself is
+ * still searched) or the filesystem root. Never wanders past a repo
+ * boundary into an unrelated enclosing directory.
  */
 
 import { readFile, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { ConfigFileError } from "./errors.js";
@@ -20,12 +28,20 @@ import { mergeConfig } from "./merge.js";
 export const DEFAULT_EXTENSIONS = ["ts", "js", "mjs", "cjs", "json"] as const;
 
 export interface LoadConfigFileOptions {
-	/** Directory to look in. */
+	/** Directory to start looking in. */
 	cwd: string;
 	/** Base name — `"holocron"` resolves `holocron.config.{ts,js,mjs,cjs,json}`. */
 	name: string;
 	/** Override the extension probe order. */
 	extensions?: readonly string[];
+	/**
+	 * Walk upward through ancestor directories when `cwd` itself has no
+	 * match, stopping at the first directory containing a `.git` entry (that
+	 * directory is still searched before stopping) or the filesystem root.
+	 * Off by default — exact-`cwd`-only, unchanged behavior for any existing
+	 * caller that doesn't pass this.
+	 */
+	walkUp?: boolean;
 }
 
 export interface Loaded<T> {
@@ -35,18 +51,27 @@ export interface Loaded<T> {
 }
 
 /**
- * Load the first `<name>.config.<ext>` that exists in `cwd`. Returns
- * `null` when none is present; throws {@link ConfigFileError} when a file
- * exists but cannot be loaded.
+ * Load the first `<name>.config.<ext>` found starting at `cwd` — just
+ * `cwd` itself by default, or walking up through ancestor directories when
+ * `walkUp` is set (see the module doc comment for the stop conditions).
+ * Returns `null` when none is present anywhere searched; throws
+ * {@link ConfigFileError} when a file exists but cannot be loaded.
  */
 export async function loadConfigFile<T>(opts: LoadConfigFileOptions): Promise<Loaded<T> | null> {
 	const extensions = opts.extensions ?? DEFAULT_EXTENSIONS;
-	for (const ext of extensions) {
-		const filepath = join(opts.cwd, `${opts.name}.config.${ext}`);
-		if (!(await isFile(filepath))) continue;
-		return { config: await loadFile<T>(filepath, ext), filepath };
+	let dir = opts.cwd;
+	for (;;) {
+		for (const ext of extensions) {
+			const filepath = join(dir, `${opts.name}.config.${ext}`);
+			if (!(await isFile(filepath))) continue;
+			return { config: await loadFile<T>(filepath, ext), filepath };
+		}
+		if (!opts.walkUp) return null;
+		if (await hasGitEntry(dir)) return null; // searched the project root; don't go further
+		const parent = dirname(dir);
+		if (parent === dir) return null; // filesystem root
+		dir = parent;
 	}
-	return null;
 }
 
 export interface LoadLayeredOptions extends LoadConfigFileOptions {
@@ -82,6 +107,7 @@ export async function loadLayered<T>(opts: LoadLayeredOptions): Promise<LayeredR
 			cwd: opts.cwd,
 			name: opts.fallback.file,
 			extensions: opts.extensions,
+			walkUp: opts.walkUp,
 		});
 		if (parent && parent.config[opts.fallback.key] !== undefined) {
 			base = parent.config[opts.fallback.key];
@@ -205,6 +231,16 @@ function extractDefault<T>(filepath: string, mod: unknown): T {
 async function isFile(path: string): Promise<boolean> {
 	try {
 		return (await stat(path)).isFile();
+	} catch {
+		return false;
+	}
+}
+
+/** `.git` is a directory in a normal checkout, a file in a worktree/submodule — existence is all that matters. */
+async function hasGitEntry(dir: string): Promise<boolean> {
+	try {
+		await stat(join(dir, ".git"));
+		return true;
 	} catch {
 		return false;
 	}

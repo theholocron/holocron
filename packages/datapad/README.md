@@ -43,13 +43,22 @@ export const defineConfig = createDefineConfig<TasksConfig>();
 
 ## API
 
-### `loadConfigFile<T>({ cwd, name, extensions? })`
+### `loadConfigFile<T>({ cwd, name, extensions?, walkUp? })`
 
-Loads the first `<name>.config.<ext>` found in `cwd`. Probe order is
-**TS-first** — `.ts` → `.js` → `.mjs` → `.cjs` → `.json` — overridable via
-`extensions`. Returns `{ config, filepath } | null`. `null` means "no such
-file"; a file that exists but cannot be parsed / loaded / has no default
-export throws `ConfigFileError`.
+Loads the first `<name>.config.<ext>` found starting at `cwd`. Probe order
+is **TS-first** — `.ts` → `.js` → `.mjs` → `.cjs` → `.json` — overridable
+via `extensions`. Returns `{ config, filepath } | null`. `null` means "no
+such file anywhere searched"; a file that exists but cannot be parsed /
+loaded / has no default export throws `ConfigFileError`.
+
+`walkUp: true` (off by default) adds the "nearest config" search
+`cosmiconfig`/`postcss`/`stylelint`/ESLint's flat config all do: when `cwd`
+has no match, check its parent, then its parent's parent, and so on —
+stopping at the first directory containing a `.git` entry (that directory
+is still searched before stopping) or the filesystem root. Never wanders
+past a repo boundary into an unrelated enclosing directory. `loadLayered`
+passes its own `walkUp` through to both the dedicated-file and
+fallback-file lookups.
 
 ### `loadConfigFromContent<T>({ dir, content, name, extension })`
 
@@ -67,7 +76,7 @@ Built for `@theholocron/sentinel`'s `validateConfig()` — it fetches a
 repo's `holocron.config.*` from GitHub's API, not a local checkout, but
 still needs the fetched content to execute as a real module.
 
-### `loadLayered<T>({ cwd, name, fallback?, extensions? })`
+### `loadLayered<T>({ cwd, name, fallback?, extensions?, walkUp? })`
 
 `<name>.config.*` layered over the `[fallback.key]` of
 `<fallback.file>.config.*`. Either, both, or neither may be present; the

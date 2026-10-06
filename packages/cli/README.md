@@ -41,8 +41,8 @@ Every command is tagged with how much of a repo it needs:
 
 | Context      | Needs                                                    | Examples                                                                                     |
 | ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `global`     | just the CLI binary                                      | `version`, `clone`, `new`, `upgrade node`, `auth set` / `check`, `plugin create`, `skills …` |
-| `repo-aware` | `./holocron.config` in cwd, no plugins                   | `run`, `ci`, `config show`, `sync-readme`                                                    |
+| `global`     | the CLI binary alone                                     | `version`, `clone`, `new`, `upgrade node`, `auth set` / `check`, `plugin create`, `skills …` |
+| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `ci`, `config show`, `sync-readme`                                                    |
 | `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `secrets sync`, `deploy`                                          |
 
 A `workspace` command run from a bare global install (no plugins next to the

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,6 +110,51 @@ describe("loadConfigFile", () => {
 		const err = await loadConfigFile({ cwd, name: "app" }).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigFileError);
 		expect((err as ConfigFileError).message).toMatch(/plain string boom/);
+	});
+});
+
+describe("loadConfigFile — walkUp", () => {
+	let root: string;
+	let nested: string;
+
+	beforeEach(async () => {
+		root = await mkdtemp(join(tmpdir(), "datapad-walkup-"));
+		nested = join(root, "a", "b");
+		await mkdir(nested, { recursive: true });
+	});
+	afterEach(async () => {
+		await rm(root, { recursive: true, force: true });
+	});
+
+	it("does not search ancestor directories by default", async () => {
+		await writeFile(join(root, "app.config.json"), JSON.stringify({ name: "root" }));
+		expect(await loadConfigFile({ cwd: nested, name: "app" })).toBeNull();
+	});
+
+	it("walks up to find a config in an ancestor directory when walkUp is set", async () => {
+		await writeFile(join(root, "app.config.json"), JSON.stringify({ name: "root" }));
+		const found = await loadConfigFile<{ name: string }>({ cwd: nested, name: "app", walkUp: true });
+		expect(found?.config).toEqual({ name: "root" });
+		expect(found?.filepath).toBe(join(root, "app.config.json"));
+	});
+
+	it("stops at the first ancestor containing a .git entry, without searching further", async () => {
+		await mkdir(join(root, "a", ".git"));
+		await writeFile(join(root, "app.config.json"), JSON.stringify({ name: "root" }));
+		expect(await loadConfigFile({ cwd: nested, name: "app", walkUp: true })).toBeNull();
+	});
+
+	it("still searches the directory containing .git before stopping there", async () => {
+		await mkdir(join(root, "a", ".git"));
+		await writeFile(join(root, "a", "app.config.json"), JSON.stringify({ name: "a" }));
+		const found = await loadConfigFile<{ name: string }>({ cwd: nested, name: "app", walkUp: true });
+		expect(found?.config).toEqual({ name: "a" });
+	});
+
+	it("treats a .git file (worktree/submodule pointer) the same as a .git directory", async () => {
+		await writeFile(join(root, "a", ".git"), "gitdir: /elsewhere\n");
+		await writeFile(join(root, "app.config.json"), JSON.stringify({ name: "root" }));
+		expect(await loadConfigFile({ cwd: nested, name: "app", walkUp: true })).toBeNull();
 	});
 });
 
@@ -228,5 +273,19 @@ describe("loadLayered", () => {
 		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ tasks: ["build"] }));
 		const result = await loadLayered<{ tasks: string[] }>({ cwd, name: "astromech" });
 		expect(result?.config).toEqual({ tasks: ["build"] });
+	});
+
+	it("passes walkUp through to the fallback lookup", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: { list: ["test"] } }));
+		const nested = join(cwd, "nested");
+		await mkdir(nested, { recursive: true });
+		const result = await loadLayered<{ list: string[] }>({
+			cwd: nested,
+			name: "astromech",
+			fallback: { file: "holocron", key: "tasks" },
+			walkUp: true,
+		});
+		expect(result?.config).toEqual({ list: ["test"] });
+		expect(result?.filepath).toBe(join(cwd, "holocron.config.json"));
 	});
 });
