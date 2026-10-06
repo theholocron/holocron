@@ -95,10 +95,10 @@ lands on. Throws `WebhookVerificationError` for a missing/wrong secret, a
 missing/malformed signature, a missing `X-GitHub-Event` header, or a body
 that isn't valid JSON. Returns one of:
 
-| Result               | Meaning                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                       |
-| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, `pull_request.closed`, an unrelated `X-GitHub-Event`) — not an error, just not actionable yet. |
+| Result               | Meaning                                                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                  |
+| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, `pull_request.closed`, an unrelated `X-GitHub-Event`) — not an error, not actionable yet. |
 
 `SentinelEventType` is one of `"installation.created"`,
 `"installation.deleted"`, `"push.default-branch"`,
@@ -263,6 +263,20 @@ V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
 
 ## Deploying
 
+> **Everything below describes the Vercel path, which is still what's
+> actually live.** This branch also carries a parked Netlify cutover
+> (`holocron.config.ts`'s `deployment` provider, `scripts/stage-deploy-netlify.mjs`,
+> `netlify/functions/webhook.mjs`) — code-complete and verified
+> (typecheck/lint/test/build all pass), but not switched over: the DNS
+> repoint and GitHub App webhook flip haven't happened, and
+> `holocron#945` is still an open question about whether a
+> redeploy-on-every-release serverless Function is even the right
+> architecture for Sentinel going forward (see
+> `.notes/tech-sentinel-deploy-architecture-reconsideration.spec.md`).
+> This section's docs will get a real rewrite once that's decided —
+> rewriting it now to describe a path that isn't live yet would be its
+> own kind of misleading.
+
 `holocron.config.ts` in this directory — separate from the monorepo
 root's own config, since Sentinel is deployed as its own product, not
 built/released the way the CLI or the plugins are — wires the
@@ -415,7 +429,7 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 | Field                                                  | Value                                                                                                                                                                                              |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not just this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
+| GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not only this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
 | Description                                            | `Holocron's minimal GitHub App — validates holocron.config.ts, syncs capability status to repo properties, and posts a compliance check run on every push to the default branch and pull request.` |
 | Homepage URL                                           | `https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme` (this package's own `package.json` `homepage`)                                                                        |
 | Callback URL                                           | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |
