@@ -1,0 +1,31 @@
+---
+title: FS Utils
+description: Walk a directory tree upward to find the nearest match or project root.
+---
+
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getUtils } from "@theholocron/registry-doc";
+
+<PackageHeader entry={getUtils()["fs-utils"]} />
+
+<Installation package={getUtils()["fs-utils"].package} />
+
+## API
+
+### `findUpward(startDir, check, stop?)`
+
+Walks upward from `startDir` — itself first, then its parent, and so on — calling `check(dir)` at each directory and returning the first result that isn't `undefined`. When given, `stop(dir)` is checked only after `check` has already come back empty for that directory — returning `true` ends the walk there with no result. Without `stop`, walks all the way to the filesystem root.
+
+```ts
+import { findUpward, hasGitEntry } from "@theholocron/fs-utils";
+
+const configDir = await findUpward(
+  process.cwd(),
+  async (dir) => ((await fileExists(join(dir, "app.config.json"))) ? dir : undefined),
+  hasGitEntry
+);
+```
+
+### `hasGitEntry(dir)`
+
+Returns `true` when `dir` has a `.git` entry — a directory in a normal checkout, a file in a worktree/submodule. A common `stop` boundary for `findUpward`.

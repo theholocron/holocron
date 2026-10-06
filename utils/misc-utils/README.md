@@ -1,6 +1,6 @@
 # `@theholocron/misc-utils`
 
-Miscellaneous browser utilities.
+Miscellaneous utilities.
 
 ## Installation
 
@@ -9,6 +9,23 @@ pnpm add @theholocron/misc-utils
 ```
 
 ## Usage
+
+### `errorMessage(err)`
+
+Stringifies a caught value for display — `err.message` for a real
+`Error`, `String(err)` for anything else. `catch` blocks only ever get
+`unknown` in TypeScript; this is the one line nearly every one of them
+needs.
+
+```typescript
+import { errorMessage } from "@theholocron/misc-utils";
+
+try {
+  doSomething();
+} catch (err) {
+  console.error(errorMessage(err));
+}
+```
 
 ### Konami code detector
 

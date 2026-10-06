@@ -1,6 +1,6 @@
 ---
 title: Misc Utils
-description: Miscellaneous browser utilities.
+description: Miscellaneous utilities.
 ---
 
 import { PackageHeader, Installation } from "@theholocron/components-doc";
@@ -11,6 +11,20 @@ import { getUtils } from "@theholocron/registry-doc";
 <Installation package={getUtils()["misc-utils"].package} />
 
 ## API
+
+### `errorMessage(err)`
+
+Stringifies a caught value for display — `err.message` for a real `Error`, `String(err)` for anything else. `catch` blocks only ever get `unknown` in TypeScript; this is the one line nearly every one of them needs.
+
+```ts
+import { errorMessage } from "@theholocron/misc-utils";
+
+try {
+  doSomething();
+} catch (err) {
+  console.error(errorMessage(err));
+}
+```
 
 ### `konami.CODE`
 
