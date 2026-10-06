@@ -1,12 +1,27 @@
 /**
  * `deployment` capability for Netlify, against `@theholocron/netlify-client`.
  *
- * Sentinel (the actual driver for this plugin, holocron#940) only
- * exercises `ensureProject`, `deployFunction`, `getDeployment`,
- * `listEnvVars`/`setEnvVar`, and `ensureCustomDomain` — no Git
- * integration, no branch-triggered deploys. Those five are fully
- * implemented and tested against Netlify's real API shapes (verified
- * both via stubFetch and a live smoke test, see the client package).
+ * Sentinel (the actual driver for this plugin, holocron#940) exercises
+ * `ensureProject`, `getDeployment`, `listEnvVars`/`setEnvVar`, and
+ * `ensureCustomDomain` — no Git integration, no branch-triggered deploys.
+ * Those four are fully implemented and tested against Netlify's real API
+ * shapes (verified both via stubFetch and a live smoke test, see the
+ * client package).
+ *
+ * `deployFunction` is NOT implemented — deliberately, not an oversight.
+ * The capability interface's `DeployFunctionConfig.files` is
+ * `Record<string, string>` (text only, matching Vercel's model: upload
+ * source, let the platform's own build step install dependencies
+ * server-side). Netlify's real function-deploy API runs no install step
+ * at all for a raw upload — a function needs its real `node_modules`
+ * (binary native addons, wasm) zipped in alongside it, which a text-only
+ * files map structurally cannot carry. Sentinel's own stage-deploy script
+ * calls `@theholocron/netlify-client`'s `deploys.create()` directly
+ * instead of going through `holocron deploy` / this capability for that
+ * reason. Same precedent as Cloudflare Pages omitting this method
+ * (interface's own doc comment: "providers without a files-based deploy
+ * API" — the real gap here is "without a *text-only* files-based deploy
+ * API that's actually usable", but the omission is the same).
  *
  * `triggerDeployment` and `updateProjectSettings` are REQUIRED by the
  * `Deployment` interface (not marked `?`) but aren't exercised by any
@@ -17,8 +32,6 @@
  */
 
 import type {
-	DeployFunctionConfig,
-	DeployFunctionResult,
 	Deployment,
 	DeploymentProject,
 	DeploymentProjectSettings,
@@ -165,21 +178,6 @@ export class NetlifyDeployment implements Deployment {
 	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
 		const deploy = await this.client().deploys.get(deploymentId);
 		return toDeploymentRecord(deploy);
-	}
-
-	/**
-	 * Zips `config.files` (plain text, per the interface contract) and
-	 * uploads it as a one-shot deploy. Netlify runs no build step for a
-	 * raw zip upload — the caller (Sentinel's own stage-deploy script) is
-	 * responsible for having already resolved dependencies into the file
-	 * set, the same discipline Vercel's `deployFunction` path already
-	 * requires via its own trimmed/pinned package.json.
-	 */
-	async deployFunction(projectId: string, config: DeployFunctionConfig): Promise<DeployFunctionResult> {
-		const deploy = await this.client().deploys.createFromZip(projectId, config.files, {
-			draft: config.target === undefined,
-		});
-		return { deploymentId: deploy.id, url: deploy.ssl_url || deploy.url };
 	}
 
 	/**

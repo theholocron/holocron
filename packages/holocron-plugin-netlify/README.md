@@ -75,11 +75,6 @@ builder, poll to `ready`, fetch the live URL) using this plugin's own
 built `createPlugin()` output.
 
 - `listProjects` / `ensureProject` → `sites.list` / `sites.create`
-- `deployFunction` → `deploys.createFromZip` — Netlify runs no build
-  step for a raw zip upload, so the caller (Sentinel's own stage-deploy
-  script) is responsible for already having resolved dependencies into
-  the file set, the same discipline Vercel's `deployFunction` path
-  requires via its own trimmed/pinned `package.json`.
 - `getDeployment` → `deploys.get`
 - `listEnvVars` / `setEnvVar` → `env.list` / `env.set`
 - `ensureCustomDomain` → `sites.update({ custom_domain })`; returns a
@@ -96,7 +91,18 @@ current consumer** (best-effort, see inline comments in
 - `triggerDeployment` → `sites.triggerBuild`, untested against a real
   git-linked Netlify site.
 
-Not implemented: `listPreviewDeployments` / `deletePreviewDeployments`
+Not implemented: `deployFunction` — the capability interface's
+`DeployFunctionConfig.files` is `Record<string, string>` (text only,
+matching Vercel's model: upload source, let the platform's own build
+step install dependencies server-side). Netlify's real function-deploy
+API runs no install step at all for a raw upload — a function needs
+its real `node_modules` (binary native addons, wasm) zipped in
+alongside it, which a text-only files map structurally cannot carry.
+Sentinel's own stage-deploy script calls
+`@theholocron/netlify-client`'s `deploys.create()` directly instead of
+going through `holocron deploy` / this capability for that reason.
+Same precedent as Cloudflare Pages omitting this method. Also not
+implemented: `listPreviewDeployments` / `deletePreviewDeployments`
 (both optional on the interface) — no current consumer needs
 branch-preview listing/cleanup.
 
