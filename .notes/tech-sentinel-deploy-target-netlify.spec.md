@@ -295,3 +295,51 @@ Vercel-over-Workers decision) — mirroring how ADR-0011 itself followed
 `.notes/tech-sentinel-v1.spec.md`. If the spike fails, this spec moves to
 `superseded` with the failure reason recorded, and the fallback (AWS
 Lambda, or staying on Vercel Pro) gets its own follow-up issue.
+
+## Correction — the billing comparison above was wrong (2026-10-06)
+
+The "Free tier: 125,000 invocations/month, 100 hours of function
+runtime/month" line under "Netlify Functions (recommended, pending the
+spike)" above described an invocation/runtime-metered model. **That is
+not how Netlify actually bills in 2026.** The real model, confirmed live
+against this org's own Netlify account: a monthly **credit** allowance
+(300 on the free plan), where a **production deploy costs 15 credits**
+flat, regardless of function invocation count or runtime — and unlike
+Vercel's Hobby tier, there is **no overage and no graceful degradation**:
+hitting 0 credits pauses every site on the account until the next billing
+month. Branch/preview deploys aren't metered; only a deploy that becomes
+the live production deploy is.
+
+That line item is the one that matters for Sentinel, because of
+`@theholocron/astromech`'s `deploy-on-release.ts`: Sentinel's
+`holocron.config.ts` declares `{ name: "delivery.deploy", with: { on:
+"release", channel: "alpha" } }`, which redeploys on every `alpha`-channel
+release that touches `packages/sentinel/**` or any of its three
+`workspace:*` dependencies — `@theholocron/cli`, `@theholocron/astromech`,
+`@theholocron/datapad`. Those three are among the most frequently-changed
+packages in this repo. A check of the 15 most recent alpha releases
+(2026-10-02 through 2026-10-06, 4 days): **14 of 15 touched one of those
+paths** — meaning the real deploy-on-release pipeline would fire on
+essentially every alpha release, not occasionally. At 15 credits each,
+that's ~14 production deploys / 4 days ≈ **210 credits/4 days**, enough to
+exhaust the entire 300-credit monthly allowance in under a week from
+normal release cadence alone, before counting a single real webhook
+invocation. (The 150/300 credits already spent on this org's Netlify
+account as of this writing came from this spec's own spike/testing
+deploys, not from Sentinel's real pipeline — Sentinel hasn't cut over
+yet — but they demonstrate the same per-deploy cost rate.)
+
+This isn't a Netlify-specific problem — it's the same root cause that
+drove Sentinel off Vercel in the first place (frequent redeploys +
+CPU-bound linting), just metered on a different axis (deploy count
+instead of CPU-active-time). Swapping providers without addressing the
+redeploy cadence just trades one metering cliff for a faster one. The
+plugin (`@theholocron/holocron-plugin-netlify`) and client
+(`@theholocron/netlify-client`) built under this spec are still correct,
+general-purpose infrastructure — nothing above is wrong about _how_ to
+deploy to Netlify, only about whether Netlify's free tier tolerates
+Sentinel's _current_ deploy frequency. The actual cutover (this spec's
+"Implementation order" steps 2–5) is parked, finished only as far as a
+non-merged branch/PR, pending the broader question opened in
+`tech-sentinel-deploy-architecture-reconsideration.spec.md` and tracked in
+issue #945.
