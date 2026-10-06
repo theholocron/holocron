@@ -32,12 +32,16 @@ export interface LoadedConfig {
 }
 
 /**
- * Read + parse + resolve `holocron.config.*` from the given directory.
+ * Read + parse + resolve `holocron.config.*` starting from the given
+ * directory, walking up through ancestors to the nearest `.git` boundary
+ * when `cwd` itself has no match — every command is usable from any
+ * subdirectory of a repo, not only its exact root (see
+ * `@theholocron/datapad`'s own doc comment for the stop conditions).
  * Throws {@link ConfigFileError} when nothing is found or a file cannot
- * be loaded, or `ConfigError` when the config is invalid.
+ * be loaded, or `ConfigError` when the config fails schema checks.
  */
 export async function loadConfig(cwd: string): Promise<LoadedConfig> {
-	const found = await loadConfigFile<HolocronConfig>({ cwd, name: "holocron" });
+	const found = await loadConfigFile<HolocronConfig>({ cwd, name: "holocron", walkUp: true });
 	if (!found) {
 		throw new ConfigFileError(
 			`no holocron.config.{ts,js,mjs,cjs,json} found in ${cwd}. Create one — see the README for the schema.`
