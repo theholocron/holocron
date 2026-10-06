@@ -36,7 +36,7 @@ of usage — it doesn't get us back to free, which is the actual goal here.
 
 ## Goal
 
-Move Sentinel's deploy target to a host with a free allotment large enough
+Move Sentinel's deploy target to a service with a free allotment large enough
 that an org-wide webhook receiver doesn't realistically approach it, while
 preserving every constraint ADR-0011 already established — most load-bearing: a real
 Node.js runtime, not a V8 isolate.
@@ -59,7 +59,7 @@ developer or CI job uses, never a bespoke server-side parser). That
 requires a writable filesystem and real dynamic `import()` of
 freshly-written content. Any V8-isolate runtime fails this the same way
 Workers did — which rules out **Netlify Edge Functions** and Deno Deploy
-for the same reason, not just Cloudflare Workers.
+for the same reason, not only Cloudflare Workers.
 
 **Netlify's standard Functions** (as opposed to Edge Functions) run on a
 real Node.js/Lambda runtime, the same category Vercel Functions is in.
@@ -130,7 +130,7 @@ register `tsx`'s ESM loader, dynamically `import()` that file. Confirmed
 deployed function — runtime reported as `nodejs24.x`. **The assumption
 holds**: Netlify's standard Functions satisfy ADR-0011's constraint.
 
-Three real gotchas surfaced, none obvious from Netlify's docs, all fixed
+Three real gotchas surfaced, none apparent from Netlify's docs, all fixed
 in the spike and worth carrying into the actual plugin/stage-deploy work:
 
 1. **`node_bundler = "none"` does not ship `node_modules`.** It only
@@ -140,7 +140,7 @@ in the spike and worth carrying into the actual plugin/stage-deploy work:
    immediately (`no node_modules found above "/var/task"`). Both settings
    are required together; `included_files` paths are relative to the
    project root (or `base`), not the function file's own directory.
-2. **Function size limit is 250MB, and it's easy to blow past it by
+2. **Function size limit is 250MB, and it's possible to blow past it quickly by
    accident.** Shipping a real `@theholocron/cli` install's full
    dependency tree was 451MB — way over, and also unnecessary: the spike
    doesn't need to import that specific package, only _some_ real
@@ -149,7 +149,7 @@ in the spike and worth carrying into the actual plugin/stage-deploy work:
    Sentinel's actual trimmed/pinned `package.json` — already a small,
    deliberately-minimal dependency list, same discipline Vercel's
    `stage-deploy.mjs` already applies — this should be a non-issue, but
-   it's worth a sanity check against the 250MB ceiling as part of that
+   it's worth a check against the 250MB ceiling as part of that
    work, not assumed away.
 3. **Cross-platform native binaries: install for the deploy target, not
    your laptop.** A `node_modules` installed on macOS ARM64 and shipped
@@ -242,7 +242,7 @@ CI per the comments in each file):
   nothing provider-specific to change there.
 
 **No change** to `@theholocron/astromech`'s `deploy-on-release.ts` —
-confirmed zero Vercel-specific references; it already just runs each
+confirmed zero Vercel-specific references; it already runs each
 package's own `delivery.deploy` script, regardless of what that script
 deploys to.
 
@@ -251,11 +251,11 @@ deploys to.
 1. Create the Netlify site, attach `sentinel.theholocron.dev` as a custom
    domain, get back whatever verification record Netlify requires.
 2. `Dns.upsertRecord()` (Cloudflare) adds that record — same flow
-   `ensureCustomDomain()` already drives for Vercel today, just a
+   `ensureCustomDomain()` already drives for Vercel today, only it's a
    different target.
 3. Deploy to Netlify, verify with a synthetic webhook event (not a real
    GitHub App event yet) — confirm `validateConfig()`'s full path works
-   end-to-end on real traffic shape, not just the spike's minimal repro.
+   end-to-end on real traffic shape, not only the spike's minimal repro.
 4. Flip the GitHub App's webhook URL (external to this repo, a dashboard
    action) to the Netlify endpoint.
 5. Leave the Vercel project live but idle for a rollback window; flipping
