@@ -1,13 +1,10 @@
 import type { TemplateInputs } from "../template-inputs.js";
 
 export function render(_inputs: TemplateInputs): string {
-	return `import root from "../../eslint.config.js";
+	return `import type { Linter } from "eslint";
 
-export default [
-	...root,
-	{
-		ignores: ["dist/**", "coverage/**"],
-	},
-];
+import root from "../../eslint.config.js";
+
+export default [...root, { ignores: ["dist/**", "coverage/**"] }] satisfies Linter.Config[];
 `;
 }

@@ -5,7 +5,7 @@ export function render(inputs: TemplateInputs): string {
 		JSON.stringify(
 			{
 				display: `Holocron Plugin: ${inputs.vendorName}`,
-				extends: "@tsconfig/node-lts/tsconfig.json",
+				extends: "@theholocron/tsconfig/node-lts",
 				compilerOptions: {
 					baseUrl: "./",
 					outDir: "./dist",
@@ -15,7 +15,7 @@ export function render(inputs: TemplateInputs): string {
 				exclude: ["node_modules", "dist"],
 			},
 			null,
-			"\t"
+			2
 		) + "\n"
 	);
 }

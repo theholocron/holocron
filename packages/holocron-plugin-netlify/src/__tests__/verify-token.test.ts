@@ -1,13 +1,10 @@
-import type { TemplateInputs } from "../template-inputs.js";
-
-export function render(_inputs: TemplateInputs): string {
-	return `import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { verifyToken } from "../verify-token.js";
 import { stubFetch } from "./helpers.js";
 
 describe("verifyToken", () => {
-	it("returns ok with a subject when /me returns 200", async () => {
+	it("returns ok with a subject when /user returns 200", async () => {
 		const stub = stubFetch([{ status: 200, body: { email: "user@example.com" } }]);
 		const result = await verifyToken("token", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
@@ -30,5 +27,3 @@ describe("verifyToken", () => {
 		expect((result as { ok: boolean; message?: string }).message).toMatch(/network down/);
 	});
 });
-`;
-}

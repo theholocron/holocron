@@ -1,7 +1,7 @@
 import type { TemplateInputs } from "../template-inputs.js";
 
 export function render(inputs: TemplateInputs): string {
-	const clientClass = `${inputs.vendorName}RestClient`;
+	const factoryName = `create${inputs.vendorName}RestClient`;
 	return `/**
  * \`verifyToken\` — plugin-level export used by \`holocron auth set\` +
  * \`holocron auth check\`. Hits a lightweight whoami-style endpoint
@@ -18,7 +18,7 @@ export function render(inputs: TemplateInputs): string {
  * \`/me\`, \`/account\`.
  */
 
-import { ${clientClass} } from "./rest.js";
+import { ${factoryName} } from "./rest.js";
 
 export interface VerifyTokenSuccess {
 	ok: true;
@@ -45,10 +45,10 @@ export interface VerifyTokenOptions {
 }
 
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
-	const restOpts: ConstructorParameters<typeof ${clientClass}>[0] = { token };
+	const restOpts: { token: string; baseUrl?: string; fetch?: typeof fetch } = { token };
 	if (opts.baseUrl !== undefined) restOpts.baseUrl = opts.baseUrl;
 	if (opts.fetch !== undefined) restOpts.fetch = opts.fetch;
-	const rest = new ${clientClass}(restOpts);
+	const rest = ${factoryName}(restOpts);
 	try {
 		const me = await rest.request<MeResponse>("/me");
 		// Optional chaining because \`me\` is \`undefined\` on 204 / empty body.

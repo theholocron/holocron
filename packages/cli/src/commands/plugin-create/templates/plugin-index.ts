@@ -2,6 +2,7 @@ import type { TemplateInputs } from "../template-inputs.js";
 
 export function render(inputs: TemplateInputs): string {
 	const clientClass = `${inputs.vendorName}RestClient`;
+	const factoryName = `create${inputs.vendorName}RestClient`;
 	// Camel-case capability name is used as the factory function name.
 	const capabilityInterface = inputs.capability.charAt(0).toUpperCase() + inputs.capability.slice(1);
 	return `/**
@@ -19,7 +20,7 @@ export function render(inputs: TemplateInputs): string {
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
-import { ${clientClass} } from "./rest.js";
+import { ${factoryName}, type ${clientClass} } from "./rest.js";
 
 export interface ${inputs.vendorName}PluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
@@ -40,10 +41,12 @@ export function createContext(options: ${inputs.vendorName}PluginOptions): Plugi
 		options,
 		rest: () => {
 			if (rest) return rest;
-			const restOpts: ConstructorParameters<typeof ${clientClass}>[0] = { token: resolveToken(options) };
+			const restOpts: { token: string; baseUrl?: string; fetch?: typeof fetch } = {
+				token: resolveToken(options),
+			};
 			if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
 			if (options.fetch !== undefined) restOpts.fetch = options.fetch;
-			return (rest = new ${clientClass}(restOpts));
+			return (rest = ${factoryName}(restOpts));
 		},
 	};
 }
@@ -77,7 +80,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { ${clientClass} } from "./rest.js";
+export { type ${clientClass}, ${factoryName} } from "./rest.js";
 export { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";

@@ -132,7 +132,7 @@ const TEMPLATES: TemplateEntry[] = [
 	{ path: "package.json", render: renderPackageJson },
 	{ path: "tsconfig.json", render: renderTsconfigJson },
 	{ path: "vitest.config.ts", render: renderVitestConfig },
-	{ path: "eslint.config.js", render: renderEslintConfig },
+	{ path: "eslint.config.ts", render: renderEslintConfig },
 	{ path: "tsdown.config.ts", render: renderTsdownConfig },
 	// Docs (1)
 	{ path: "README.md", render: renderReadme },

@@ -51,6 +51,7 @@ catalogs:
     "@theholocron/http-client": ^1.36.0
     "@theholocron/infisical-client": ^1.31.0
     "@theholocron/neon-client": ^1.31.0
+    "@theholocron/netlify-client": ^1.36.0
     "@theholocron/posthog-client": ^1.31.0
     "@theholocron/postman-client": ^1.31.0
     "@theholocron/sentry-client": ^1.30.0
