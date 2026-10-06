@@ -98,6 +98,7 @@ console.log("Done. Fill in capability method calls above before shipping.");
 // ── helpers ────────────────────────────────────────────────────────
 
 /** Wrap a capability call, print ERROR + hint on failure. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- called once a real capability check replaces the TODO example above
 async function runStep(body) {
 	try {
 		await body();

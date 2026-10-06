@@ -11,18 +11,14 @@ describe("verifyToken", () => {
 		const stub = stubFetch([{ status: 200, body: { email: "user@example.com" } }]);
 		const result = await verifyToken("token", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.subject).toMatch(/user@example.com/);
-		}
+		expect((result as { ok: boolean; subject?: string }).subject).toMatch(/user@example.com/);
 	});
 
 	it("returns ok:false with the error message on 401", async () => {
 		const stub = stubFetch([{ status: 401, body: { messages: ["Invalid token"] } }]);
 		const result = await verifyToken("bad", { fetch: stub.fetch });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/→ 401/);
-		}
+		expect((result as { ok: boolean; message?: string }).message).toMatch(/→ 401/);
 	});
 
 	it("returns ok:false when the network layer throws", async () => {
@@ -31,9 +27,7 @@ describe("verifyToken", () => {
 		};
 		const result = await verifyToken("t", { fetch: throwing });
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.message).toMatch(/network down/);
-		}
+		expect((result as { ok: boolean; message?: string }).message).toMatch(/network down/);
 	});
 });
 `;
