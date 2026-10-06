@@ -3,9 +3,9 @@ import type { TemplateInputs } from "../template-inputs.js";
 export function render(inputs: TemplateInputs): string {
 	const factoryName = `create${inputs.vendorName}RestClient`;
 	const clientType = `${inputs.vendorName}RestClient`;
-	return `import { createRestClient, type RequestOptions, type RestClient } from "@theholocron/cli";
+	return `import { createRestClient, type RestClient } from "@theholocron/cli";
 
-export type { RequestOptions, RestClient };
+export type { RestClient };
 
 /**
  * TODO: narrow this to the specific ${inputs.vendorName} endpoints this

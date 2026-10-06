@@ -10,9 +10,9 @@
  * and account-scoped environment variables (list/upsert).
  */
 
-import { createRestClient, ProviderApiError, type RequestOptions, type RestClient } from "@theholocron/cli";
+import { createRestClient, ProviderApiError, type RestClient } from "@theholocron/cli";
 
-export type { RequestOptions, RestClient };
+export type { RestClient };
 
 export const DEFAULT_BASE_URL = "https://api.netlify.com/api/v1";
 

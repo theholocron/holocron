@@ -60,7 +60,7 @@ export function render(inputs: TemplateInputs): string {
 				files: ["dist"],
 			},
 			null,
-			"\t"
+			2
 		) + "\n"
 	);
 }

@@ -15,7 +15,7 @@ export function render(inputs: TemplateInputs): string {
 				exclude: ["node_modules", "dist"],
 			},
 			null,
-			"\t"
+			2
 		) + "\n"
 	);
 }

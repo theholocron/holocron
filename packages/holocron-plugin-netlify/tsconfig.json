@@ -1,20 +1,20 @@
 {
-	"display": "Holocron Plugin: Netlify",
-	"extends": "@theholocron/tsconfig/node-lts",
-	"compilerOptions": {
-		"baseUrl": "./",
-		"outDir": "./dist",
-		"paths": {
-			"@/*": [
-				"./src/*"
-			]
-		}
-	},
-	"include": [
-		"src/**/*.ts"
-	],
-	"exclude": [
-		"node_modules",
-		"dist"
-	]
+  "display": "Holocron Plugin: Netlify",
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
