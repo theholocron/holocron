@@ -20,7 +20,7 @@ export interface VerifyTokenOptions {
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createAxiomClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const me = await client.getCurrentUser();
+		const me = await client.user.me();
 		const subject = me.email ?? me.emails?.[0] ?? me.name ?? me.id ?? "unknown";
 		return { ok: true, subject: `user @ ${subject}` };
 	} catch (err) {

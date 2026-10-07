@@ -15,7 +15,7 @@
 import type { Logs } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
-import type { AxiomRestClient } from "../rest.js";
+import type { AxiomClient } from "../rest.js";
 
 export interface AxiomLogsOptions {
 	/**
@@ -35,7 +35,7 @@ export class AxiomLogs implements Logs {
 	 * `describe()` (which needs no auth) works without one.
 	 */
 	constructor(
-		private readonly client: () => AxiomRestClient,
+		private readonly client: () => AxiomClient,
 		private readonly opts: AxiomLogsOptions
 	) {}
 
@@ -54,20 +54,20 @@ export class AxiomLogs implements Logs {
 			);
 		}
 		// Fetching the dataset verifies both the token and the dataset's reachability.
-		await this.client().getDataset(dataset);
+		await this.client().datasets.get(dataset);
 		return { ok: true, dataset };
 	}
 
 	async ensureDataset(name: string): Promise<{ alreadyExists: boolean }> {
 		try {
-			await this.client().getDataset(name);
+			await this.client().datasets.get(name);
 			return { alreadyExists: true };
 		} catch (err) {
 			// 404 means the dataset doesn't exist yet — proceed to create.
 			if (!(err instanceof ProviderApiError) || err.status !== 404) throw err;
 		}
 
-		await this.client().createDataset({ name, description: "Managed by holocron" });
+		await this.client().datasets.create({ name, description: "Managed by holocron" });
 		return { alreadyExists: false };
 	}
 }

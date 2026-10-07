@@ -10,7 +10,7 @@ import type { Logs } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
-import { type AxiomRestClient, createAxiomClient } from "./rest.js";
+import { type AxiomClient, createAxiomClient } from "./rest.js";
 
 export interface AxiomPluginOptions extends ResolveTokenInput, AxiomLogsOptions {
 	/** Override base URL for tests. */
@@ -27,7 +27,7 @@ export interface PluginContext {
 	 * no auth (`describe`) works without a token, and the loader never
 	 * aborts on a plugin whose token happens to be absent.
 	 */
-	client: () => AxiomRestClient;
+	client: () => AxiomClient;
 }
 
 export function createContext(options: AxiomPluginOptions): PluginContext {
@@ -35,7 +35,7 @@ export function createContext(options: AxiomPluginOptions): PluginContext {
 	// `HOLOCRON_AXIOM_DATASET` is not a secret — resolve it like the token's
 	// fallback chain but independently. Config (`dataset`) wins when set.
 	const dataset = options.dataset ?? env.HOLOCRON_AXIOM_DATASET ?? env.AXIOM_DATASET;
-	let client: AxiomRestClient | undefined;
+	let client: AxiomClient | undefined;
 	return {
 		options: { ...options, dataset },
 		client: () =>
@@ -74,11 +74,12 @@ export const AUTH_HINT =
 export * from "./auth.js";
 export { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
 export {
+	type AxiomClient,
 	type AxiomClientOptions,
 	type AxiomDataset,
-	type AxiomRestClient,
 	type AxiomUser,
 	createAxiomClient,
+	type CreateAxiomDatasetInput,
 } from "./rest.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
