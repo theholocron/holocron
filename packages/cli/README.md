@@ -35,6 +35,21 @@ The picked command spawns as a normal `holocron <command> …` invocation —
 through. A non-interactive shell (CI, a script, a pipe) gets the old
 hard-failure message instead of hanging on a prompt.
 
+For a command whose handler honours `--dry-run` (most of them — everything
+except `auth *` and `config show`), the menu also offers a preview before
+committing:
+
+```console
+? Run a dry run first? › yes
+...dry-run output...
+? Dry run complete — proceed with the real run? › yes
+```
+
+Already passing `--dry-run` to the top-level invocation (`holocron --dry-run`)
+skips straight to the dry run without asking — it carries through to
+whatever gets picked either way — but still asks "proceed with the real
+run?" once it comes back clean.
+
 ## Execution contexts
 
 Every command is tagged with how much of a repo it needs:
