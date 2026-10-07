@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/theholocron/observability/compare/v0.4.0...v0.5.0) (2026-10-07)
+
+### Features
+
+* add consoleOutput override to suppress console transports independent of level ([#22](https://github.com/theholocron/observability/issues/22)) ([3bca32a](https://github.com/theholocron/observability/commit/3bca32aa3415ef3c80655a7fd849b02e1b7870a1)), closes [#21](https://github.com/theholocron/observability/issues/21)
+
 ## [0.4.0](https://github.com/theholocron/observability/compare/v0.3.2...v0.4.0) (2026-09-23)
 
 ### Features
