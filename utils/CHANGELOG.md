@@ -2,7 +2,7 @@
 
 ### Bug Fixes
 
-* use holocron publish --skip-already-published, sync npm Trusted Publisher trust ([#294](https://github.com/theholocron/utils/issues/294)) ([276f678](https://github.com/theholocron/utils/commit/276f678fcf07f106405731bfbd7a4c919eb6eb68)), closes [pre-#284](https://github.com/theholocron/pre-/issues/284)
+- use holocron publish --skip-already-published, sync npm Trusted Publisher trust ([#294](https://github.com/theholocron/utils/issues/294)) ([276f678](https://github.com/theholocron/utils/commit/276f678fcf07f106405731bfbd7a4c919eb6eb68)), closes [pre-#284](https://github.com/theholocron/pre-/issues/284)
 
 ## [1.9.0](https://github.com/theholocron/utils/compare/v1.8.3...v1.9.0) (2026-10-06)
 
