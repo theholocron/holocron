@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/discord-client": "catalog:clients",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/misc-utils": "catalog:utils",
@@ -59,6 +60,7 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/discord-client": "catalog:clients",
     "@theholocron/misc-utils": "catalog:utils"
   },
   "engines": {

@@ -42,6 +42,7 @@
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/misc-utils": "catalog:utils",
+    "@theholocron/slack-client": "catalog:clients",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
@@ -59,7 +60,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/misc-utils": "catalog:utils"
+    "@theholocron/misc-utils": "catalog:utils",
+    "@theholocron/slack-client": "catalog:clients"
   },
   "engines": {
     "node": ">=22"

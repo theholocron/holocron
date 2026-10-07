@@ -38,6 +38,7 @@
     "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
+    "@theholocron/axiom-client": "catalog:clients",
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
@@ -57,6 +58,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@theholocron/axiom-client": "catalog:clients",
     "@theholocron/cli": "workspace:*",
     "@theholocron/misc-utils": "catalog:utils"
   },
