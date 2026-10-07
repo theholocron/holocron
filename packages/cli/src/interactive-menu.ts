@@ -85,7 +85,14 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
 		name: "clone",
 		description: "Clone all repos in a GitHub org as siblings under a single directory",
-		positionals: [],
+		positionals: [
+			{
+				key: "org",
+				message: "GitHub org to clone (owner/repo also works — only the owner is used):",
+				type: "input",
+				validate: (v) => v.trim().length > 0 || "org is required",
+			},
+		],
 	},
 	{ name: "doctor", description: "Load the config and run a smoke check against every provider", positionals: [] },
 	{ name: "setup", description: "Apply infra setup actions across every configured capability", positionals: [] },

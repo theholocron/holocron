@@ -7,7 +7,21 @@ import { join } from "node:path";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runClone } from "./clone.js";
+import { orgFromInput, runClone } from "./clone.js";
+
+describe("orgFromInput", () => {
+	it("returns a bare org as-is", () => {
+		expect(orgFromInput("theholocron")).toBe("theholocron");
+	});
+
+	it("extracts the owner from an owner/repo shorthand", () => {
+		expect(orgFromInput("theholocron/new-repo")).toBe("theholocron");
+	});
+
+	it("trims surrounding whitespace", () => {
+		expect(orgFromInput("  theholocron  ")).toBe("theholocron");
+	});
+});
 
 function makeRepo(name: string, org = "test-org") {
 	return {

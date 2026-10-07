@@ -9,6 +9,18 @@ import type { Logger } from "@theholocron/observability/core";
 import { getLogger } from "../logger.js";
 import { style } from "../ui/style.js";
 
+/**
+ * Accepts a bare org (`"theholocron"`) or an `owner/repo`-shaped shorthand
+ * (`"theholocron/new-repo"`) — only the owner/org part is ever used, since
+ * `runClone` clones every repo in the org regardless. Lets a user paste the
+ * org/repo coordinate they have in mind without needing the bare org alone
+ * or a full GitHub URL.
+ */
+export function orgFromInput(raw: string): string {
+	const trimmed = raw.trim();
+	return trimmed.includes("/") ? trimmed.split("/")[0]! : trimmed;
+}
+
 function encodeTokenForGitHttpAuth(token: string): string {
 	const trimmed = token.trim();
 	if (!trimmed) throw new Error("empty token");
