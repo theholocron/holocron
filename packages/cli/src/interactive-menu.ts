@@ -88,7 +88,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		positionals: [
 			{
 				key: "org",
-				message: "GitHub org to clone (owner/repo also works — only the owner is used):",
+				message: "GitHub org to clone, or owner/repo to clone just that one repo:",
 				type: "input",
 				validate: (v) => v.trim().length > 0 || "org is required",
 			},

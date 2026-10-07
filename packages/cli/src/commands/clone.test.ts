@@ -7,19 +7,23 @@ import { join } from "node:path";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { orgFromInput, runClone } from "./clone.js";
+import { parseCloneTarget, runClone } from "./clone.js";
 
-describe("orgFromInput", () => {
-	it("returns a bare org as-is", () => {
-		expect(orgFromInput("theholocron")).toBe("theholocron");
+describe("parseCloneTarget", () => {
+	it("returns just the org for a bare org", () => {
+		expect(parseCloneTarget("theholocron")).toEqual({ org: "theholocron" });
 	});
 
-	it("extracts the owner from an owner/repo shorthand", () => {
-		expect(orgFromInput("theholocron/new-repo")).toBe("theholocron");
+	it("splits an owner/repo coordinate into org and repo — the repo is kept, not discarded", () => {
+		expect(parseCloneTarget("theholocron/new-repo")).toEqual({ org: "theholocron", repo: "new-repo" });
+	});
+
+	it("treats a trailing slash with nothing after it as a bare org", () => {
+		expect(parseCloneTarget("theholocron/")).toEqual({ org: "theholocron" });
 	});
 
 	it("trims surrounding whitespace", () => {
-		expect(orgFromInput("  theholocron  ")).toBe("theholocron");
+		expect(parseCloneTarget("  theholocron  ")).toEqual({ org: "theholocron" });
 	});
 });
 
@@ -40,6 +44,26 @@ function makeFetch(repos: ReturnType<typeof makeRepo>[]): typeof globalThis.fetc
 	return vi.fn().mockResolvedValue({
 		ok: true,
 		json: async () => repos,
+		headers: { get: () => null },
+	}) as unknown as typeof globalThis.fetch;
+}
+
+/** Unlike `makeFetch`, resolves to a single repo object — the single-repo GitHub API shape, not a list. */
+function makeSingleRepoFetch(repo: ReturnType<typeof makeRepo>): typeof globalThis.fetch {
+	return vi.fn().mockResolvedValue({
+		ok: true,
+		status: 200,
+		json: async () => repo,
+		headers: { get: () => null },
+	}) as unknown as typeof globalThis.fetch;
+}
+
+function makeNotFoundFetch(): typeof globalThis.fetch {
+	return vi.fn().mockResolvedValue({
+		ok: false,
+		status: 404,
+		statusText: "Not Found",
+		json: async () => ({}),
 		headers: { get: () => null },
 	}) as unknown as typeof globalThis.fetch;
 }
@@ -87,6 +111,73 @@ describe("runClone", () => {
 		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repos[1]), join(tmpDir, "beta")], {
 			cwd: tmpDir,
 		});
+	});
+
+	it("clones just one repo when `repo` is given, instead of listing the whole org", async () => {
+		const repo = makeRepo("new-repo", "test-org");
+		const fetch = makeSingleRepoFetch(repo);
+		const log = fakeLogger();
+		const report = await runClone({
+			org: "test-org",
+			repo: "new-repo",
+			dir: tmpDir,
+			token: "tok",
+			fetch,
+			exec,
+			print,
+			logger: log,
+		});
+
+		expect(report.status).toBe("ok");
+		expect(report.cloned).toBe(1);
+		expect(fetch).toHaveBeenCalledWith(
+			"https://api.github.com/repos/test-org/new-repo",
+			expect.objectContaining({ headers: expect.anything() })
+		);
+		expect(exec).toHaveBeenCalledTimes(1);
+		expect(exec).toHaveBeenCalledWith("git", ["clone", "--", authed(repo), join(tmpDir, "new-repo")], {
+			cwd: tmpDir,
+		});
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ repo: "new-repo" }), "clone: start");
+	});
+
+	it("fails cleanly when the single repo isn't found", async () => {
+		const report = await runClone({
+			org: "test-org",
+			repo: "does-not-exist",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeNotFoundFetch(),
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/test-org\/does-not-exist not found/);
+		expect(exec).not.toHaveBeenCalled();
+	});
+
+	it("fails cleanly on a non-404 error fetching the single repo", async () => {
+		const fetch = vi.fn().mockResolvedValue({
+			ok: false,
+			status: 403,
+			statusText: "Forbidden",
+			json: async () => ({}),
+			headers: { get: () => null },
+		}) as unknown as typeof globalThis.fetch;
+
+		const report = await runClone({
+			org: "test-org",
+			repo: "private-repo",
+			dir: tmpDir,
+			token: "tok",
+			fetch,
+			exec,
+			print,
+		});
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/GitHub API 403/);
 	});
 
 	it("skips repos whose directory already exists", async () => {
@@ -197,7 +288,7 @@ describe("runClone", () => {
 		expect(report.message).toBe("network exploded");
 		expect(log.warn).toHaveBeenCalledWith(
 			expect.objectContaining({ org: "test-org", reason: "network exploded" }),
-			"clone: failed to list org repos"
+			"clone: failed to list repos"
 		);
 	});
 

@@ -12,7 +12,7 @@ import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
 import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
-import { orgFromInput, runClone } from "./commands/clone.js";
+import { parseCloneTarget, runClone } from "./commands/clone.js";
 import { commandsInContext } from "./commands/contexts.js";
 import { runDeploy, runDeployFromFiles } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
@@ -191,13 +191,12 @@ try {
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
 			"clone [org]",
-			"Clone all repos in a GitHub org as siblings under a single directory",
+			"Clone all repos in a GitHub org (or one repo via owner/repo) as siblings under a single directory",
 			(y) =>
 				y
 					.positional("org", {
 						type: "string",
-						describe:
-							"GitHub org to clone (e.g., theholocron). owner/repo also works — only the owner is used.",
+						describe: "GitHub org to clone (e.g., theholocron), or owner/repo to clone just that one repo.",
 					})
 					.option("dir", {
 						type: "string",
@@ -214,9 +213,11 @@ try {
 					process.exitCode = 1;
 					return;
 				}
-				const [orgInput] = await promptForPositionals(getEntry("clone"), argv as Record<string, unknown>);
+				const [targetInput] = await promptForPositionals(getEntry("clone"), argv as Record<string, unknown>);
+				const { org, repo } = parseCloneTarget(targetInput);
 				const report = await runClone({
-					org: orgFromInput(orgInput),
+					org,
+					...(repo ? { repo } : {}),
 					token,
 					dryRun: argv.dryRun,
 					...(argv.dir ? { dir: argv.dir } : {}),
