@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/fs-utils",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Walk a directory tree upward to find the nearest match or project root.",
   "keywords": [
     "filesystem",
