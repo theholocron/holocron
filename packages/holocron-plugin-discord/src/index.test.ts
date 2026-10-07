@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlugin } from "../index.js";
+import { createPlugin } from "./index.js";
 
 const WEBHOOK = "https://discord.com/api/webhooks/111/abc123";
 
