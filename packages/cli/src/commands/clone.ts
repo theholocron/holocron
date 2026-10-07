@@ -9,6 +9,28 @@ import type { Logger } from "@theholocron/observability/core";
 import { getLogger } from "../logger.js";
 import { style } from "../ui/style.js";
 
+export interface CloneTarget {
+	org: string;
+	/** Set only when the input was `org/repo` — clone just this one repo instead of the whole org. */
+	repo?: string;
+}
+
+/**
+ * Accepts a bare org (`"theholocron"`) — clones every repo in it — or an
+ * `org/repo` coordinate (`"theholocron/new-repo"`) — clones just that one
+ * repo. The repo half is never silently discarded: if it's there, it's used.
+ * A trailing slash with nothing after it (`"theholocron/"`) is treated the
+ * same as a bare org.
+ */
+export function parseCloneTarget(raw: string): CloneTarget {
+	const trimmed = raw.trim();
+	const slash = trimmed.indexOf("/");
+	if (slash === -1) return { org: trimmed };
+	const org = trimmed.slice(0, slash);
+	const repo = trimmed.slice(slash + 1);
+	return repo ? { org, repo } : { org };
+}
+
 function encodeTokenForGitHttpAuth(token: string): string {
 	const trimmed = token.trim();
 	if (!trimmed) throw new Error("empty token");
@@ -26,10 +48,24 @@ interface GitHubRepo {
 	archived: boolean;
 }
 
+/** Strip a leading dot so a hidden repo (e.g. `.github`) is still visible in Finder once cloned. */
+function repoDirName(repo: GitHubRepo): string {
+	return repo.name.startsWith(".") ? repo.name.slice(1) : repo.name;
+}
+
 type ExecFn = (cmd: string, args: string[], opts: { cwd: string }) => { status: number | null };
+
+/** How many of an org's repos are already cloned locally vs. would actually be new. */
+export interface WholeOrgScope {
+	total: number;
+	alreadyCloned: number;
+	toClone: number;
+}
 
 export interface RunCloneInput {
 	org: string;
+	/** Clone just this one repo instead of every repo in `org`. */
+	repo?: string;
 	/** Parent directory to clone into. Defaults to ~/Code/<org>. */
 	dir?: string;
 	token: string;
@@ -39,10 +75,18 @@ export interface RunCloneInput {
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
 	logger?: Logger;
+	/**
+	 * Called once, before cloning, only in whole-org mode (never for a
+	 * single `repo` clone, never when `dryRun` is set — nothing destructive
+	 * happens either way). Return `false` to abort without cloning
+	 * anything. Omit entirely to skip confirmation (e.g. a non-interactive
+	 * caller that already passed `--all` deliberately).
+	 */
+	confirmWholeOrg?: (scope: WholeOrgScope) => Promise<boolean>;
 }
 
 export interface CloneReport {
-	status: "ok" | "fail" | "dry-run";
+	status: "ok" | "fail" | "dry-run" | "aborted";
 	cloned: number;
 	skipped: number;
 	failed: number;
@@ -76,13 +120,38 @@ async function listOrgRepos(org: string, token: string, fetchFn: typeof globalTh
 	return repos;
 }
 
+async function getRepo(
+	org: string,
+	repo: string,
+	token: string,
+	fetchFn: typeof globalThis.fetch
+): Promise<GitHubRepo> {
+	const res = await fetchFn(`https://api.github.com/repos/${org}/${repo}`, {
+		headers: {
+			Authorization: `Bearer ${token}`,
+			Accept: "application/vnd.github+json",
+			"X-GitHub-Api-Version": "2022-11-28",
+		},
+	});
+
+	if (res.status === 404) {
+		throw new Error(`${org}/${repo} not found — check the repo name and that the token can see it`);
+	}
+	if (!res.ok) {
+		throw new Error(`GitHub API ${res.status}: ${res.statusText} — check that the token has repo:read scope`);
+	}
+
+	return (await res.json()) as GitHubRepo;
+}
+
 export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const fetchFn = input.fetch ?? globalThis.fetch;
 	const dryRun = input.dryRun ?? false;
 	const targetDir = resolve(input.dir ?? join(homedir(), "Code", input.org));
-	logger.info({ org: input.org, targetDir, dryRun: dryRun || undefined }, "clone: start");
+	const label = input.repo ? `${input.org}/${input.repo}` : `org=${input.org}`;
+	logger.info({ org: input.org, repo: input.repo, targetDir, dryRun: dryRun || undefined }, "clone: start");
 	const exec: ExecFn =
 		input.exec ??
 		((cmd, args, opts) => {
@@ -90,7 +159,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			return { status: r.status };
 		});
 
-	print(style.header(`Holocron clone — org=${input.org} → ${targetDir}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron clone — ${label} → ${targetDir}${dryRun ? " (dry-run)" : ""}`));
 
 	if (!existsSync(targetDir)) {
 		if (dryRun) {
@@ -102,11 +171,24 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 
 	let repos: GitHubRepo[];
 	try {
-		repos = await listOrgRepos(input.org, input.token, fetchFn);
+		repos = input.repo
+			? [await getRepo(input.org, input.repo, input.token, fetchFn)]
+			: await listOrgRepos(input.org, input.token, fetchFn);
 	} catch (err) {
 		const message = errorMessage(err);
-		logger.warn({ org: input.org, reason: message }, "clone: failed to list org repos");
+		logger.warn({ org: input.org, repo: input.repo, reason: message }, "clone: failed to list repos");
 		return { status: "fail", cloned: 0, skipped: 0, failed: 0, message };
+	}
+
+	if (!input.repo && !dryRun && input.confirmWholeOrg) {
+		const alreadyCloned = repos.filter((r) => existsSync(join(targetDir, repoDirName(r)))).length;
+		const scope: WholeOrgScope = { total: repos.length, alreadyCloned, toClone: repos.length - alreadyCloned };
+		const proceed = await input.confirmWholeOrg(scope);
+		if (!proceed) {
+			print(style.dim("  aborted — nothing cloned"));
+			logger.info({ org: input.org, ...scope }, "clone: aborted by user");
+			return { status: "aborted", cloned: 0, skipped: 0, failed: 0, message: "aborted by user" };
+		}
 	}
 
 	let cloned = 0;
@@ -114,9 +196,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	let failed = 0;
 
 	for (const repo of repos) {
-		// Strip leading dot so hidden repos (e.g. .github) are visible in Finder.
-		const dirName = repo.name.startsWith(".") ? repo.name.slice(1) : repo.name;
-		const dest = join(targetDir, dirName);
+		const dest = join(targetDir, repoDirName(repo));
 
 		if (existsSync(dest)) {
 			print(style.dim(`  skip   ${repo.full_name}`));
@@ -167,6 +247,9 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	);
 
 	const status = dryRun ? "dry-run" : failed > 0 ? "fail" : "ok";
-	logger[failed > 0 ? "warn" : "info"]({ org: input.org, status, cloned, skipped, failed }, "clone: done");
+	logger[failed > 0 ? "warn" : "info"](
+		{ org: input.org, repo: input.repo, status, cloned, skipped, failed },
+		"clone: done"
+	);
 	return { status, cloned, skipped, failed };
 }

@@ -84,8 +84,15 @@ const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
 		name: "clone",
-		description: "Clone all repos in a GitHub org as siblings under a single directory",
-		positionals: [],
+		description: "Clone a single repo (org/repo) or every repo in an org (org)",
+		positionals: [
+			{
+				key: "target",
+				message: "org/repo to clone (or a bare org to clone every repo in it):",
+				type: "input",
+				validate: (v) => v.trim().length > 0 || "org/repo or org is required",
+			},
+		],
 	},
 	{ name: "doctor", description: "Load the config and run a smoke check against every provider", positionals: [] },
 	{ name: "setup", description: "Apply infra setup actions across every configured capability", positionals: [] },
