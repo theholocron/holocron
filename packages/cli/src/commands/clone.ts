@@ -150,7 +150,6 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	const fetchFn = input.fetch ?? globalThis.fetch;
 	const dryRun = input.dryRun ?? false;
 	const targetDir = resolve(input.dir ?? join(homedir(), "Code", input.org));
-	const label = input.repo ? `${input.org}/${input.repo}` : `org=${input.org}`;
 	logger.info({ org: input.org, repo: input.repo, targetDir, dryRun: dryRun || undefined }, "clone: start");
 	const exec: ExecFn =
 		input.exec ??
@@ -158,8 +157,6 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			const r = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
 			return { status: r.status };
 		});
-
-	print(style.header(`Holocron clone — ${label}${dryRun ? " (dry-run)" : ""}`));
 
 	if (!existsSync(targetDir)) {
 		if (dryRun) {
