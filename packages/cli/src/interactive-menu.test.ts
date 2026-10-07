@@ -70,9 +70,9 @@ describe("pickCommand", () => {
 	beforeEach(() => searchMock.mockReset());
 
 	it("resolves the selected value back to its CommandEntry", async () => {
-		searchMock.mockResolvedValue("version");
+		searchMock.mockResolvedValue("doctor");
 		const picked = await pickCommand(COMMAND_REGISTRY);
-		expect(picked).toBe(getEntry("version"));
+		expect(picked).toBe(getEntry("doctor"));
 	});
 
 	it("passes the message through to search()", async () => {
@@ -85,7 +85,7 @@ describe("pickCommand", () => {
 	});
 
 	it("wires its `source` callback straight to searchChoices", async () => {
-		searchMock.mockResolvedValue("version");
+		searchMock.mockResolvedValue("doctor");
 		await pickCommand(COMMAND_REGISTRY);
 		const { source } = searchMock.mock.calls[0]![0] as {
 			source: (term: string | undefined) => ReturnType<typeof searchChoices>;
@@ -117,8 +117,8 @@ describe("searchChoices — the `source` callback pickCommand hands to search()"
 	});
 
 	it("each choice carries name, value, and description", () => {
-		const [choice] = searchChoices(COMMAND_REGISTRY, "version");
-		expect(choice).toEqual({ name: "version", value: "version", description: getEntry("version").description });
+		const [choice] = searchChoices(COMMAND_REGISTRY, "doctor");
+		expect(choice).toEqual({ name: "doctor", value: "doctor", description: getEntry("doctor").description });
 	});
 });
 
@@ -298,7 +298,7 @@ describe("launchMenu", () => {
 
 	it("suppresses the child's own update check — the parent's tail notifier already covers it", async () => {
 		setTTY(true);
-		searchMock.mockResolvedValue("version");
+		searchMock.mockResolvedValue("doctor");
 		const child = new EventEmitter();
 		spawnMock.mockReturnValue(child);
 
@@ -313,7 +313,7 @@ describe("launchMenu", () => {
 
 	it("treats a null child exit code as 0", async () => {
 		setTTY(true);
-		searchMock.mockResolvedValue("version");
+		searchMock.mockResolvedValue("doctor");
 		const child = new EventEmitter();
 		spawnMock.mockReturnValue(child);
 
@@ -329,7 +329,7 @@ describe("launchMenu", () => {
 
 	it("resolves 1 when spawn itself errors", async () => {
 		setTTY(true);
-		searchMock.mockResolvedValue("version");
+		searchMock.mockResolvedValue("doctor");
 		const child = new EventEmitter();
 		spawnMock.mockReturnValue(child);
 

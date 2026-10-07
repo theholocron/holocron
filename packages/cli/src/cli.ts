@@ -37,6 +37,7 @@ import { COMMAND_REGISTRY, getEntry, launchMenu, promptForPositionals } from "./
 import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
+import { style } from "./ui/style.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
@@ -126,6 +127,8 @@ try {
 	await yargs(hideBin(process.argv))
 		.scriptName("")
 		.usage("holocron <command> [options]")
+		.version(CLI_VERSION)
+		.alias("version", "v")
 		// Keep everything after `--` in `argv['--']` instead of folding it into
 		// `argv._`. `holocron run <task> [job] -- <args>` forwards `<args>` to the
 		// underlying tool (`lhci autorun --config=…`, `turbo run build -- …`); the
@@ -186,14 +189,6 @@ try {
 			finishCommand = startCommand(name);
 		})
 		// ── commands ────────────────────────────────────────────────────────
-		.command(
-			"version",
-			"Print the CLI version",
-			() => {},
-			() => {
-				console.log(`holocron ${CLI_VERSION}`);
-			}
-		)
 		.command(
 			"clone",
 			"Clone all repos in a GitHub org as siblings under a single directory",
@@ -1461,6 +1456,7 @@ try {
 			false,
 			() => {},
 			async (argv) => {
+				console.log(style.dim(`holocron v${CLI_VERSION}`));
 				await launchMenu(
 					COMMAND_REGISTRY.filter((e) => !e.group),
 					argv

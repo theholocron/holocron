@@ -32,7 +32,6 @@ export type ExecutionContext = "global" | "repo-aware" | "workspace";
  *   resolve (devDeps in a repo, or `pnpm exec`).
  */
 export const COMMAND_CONTEXTS = {
-	version: "global",
 	clone: "global",
 	new: "global",
 	"upgrade node": "global",
