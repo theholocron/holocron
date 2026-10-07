@@ -3,8 +3,8 @@ import type { DopplerClient } from "@theholocron/doppler-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { DopplerVault } from "../capabilities/vault.js";
 import { createDopplerClient } from "../rest.js";
+import { DopplerVault } from "./vault.js";
 
 function makeClient(responses: Array<{ status?: number; body?: unknown }>) {
 	const stub = stubFetch(responses);
