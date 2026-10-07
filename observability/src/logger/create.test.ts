@@ -57,4 +57,9 @@ describe("createLogger", () => {
 		process.env.HOLOCRON_LOG_LEVEL = "debug";
 		expect(() => createLogger()).not.toThrow();
 	});
+
+	it("accepts an explicit consoleOutput override without throwing", () => {
+		expect(() => createLogger({ consoleOutput: false })).not.toThrow();
+		expect(() => createLogger({ consoleOutput: true })).not.toThrow();
+	});
 });

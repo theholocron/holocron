@@ -19,6 +19,15 @@ export interface LoggerConfig {
 	 * `HOLOCRON_TELEMETRY=false`.
 	 */
 	axiom?: AxiomTransportConfig;
+	/**
+	 * Explicit override for whether human-visible console output (pretty or
+	 * NDJSON) runs at all, independent of `level`. `undefined` (default)
+	 * preserves the existing `ci`/`tty` auto-detection — every consumer that
+	 * doesn't pass this is unaffected. Pass `false` to suppress console
+	 * output entirely (e.g. a CLI's quiet-by-default interactive mode);
+	 * Axiom (if configured) still receives everything.
+	 */
+	consoleOutput?: boolean;
 }
 
 export interface CreateLoggerResult {
@@ -59,6 +68,7 @@ export function createLogger(config: LoggerConfig = {}): CreateLoggerResult {
 		tty: Boolean(process.stdout.isTTY),
 		telemetryDisabled: isTelemetryDisabled(),
 		base: { runId, env },
+		...(config.consoleOutput !== undefined ? { consoleOutput: config.consoleOutput } : {}),
 	});
 
 	return { logger: new PinoLogger(instance), runId };

@@ -60,4 +60,25 @@ describe("buildTransport", () => {
 			expect(target.level).toBe("debug");
 		}
 	});
+
+	it("consoleOutput: false + no Axiom → undefined, even on a local TTY", () => {
+		const result = buildTransport({ ...base, consoleOutput: false });
+		expect(result).toBeUndefined();
+	});
+
+	it("consoleOutput: false + Axiom → Axiom only, no pretty and no stdout JSON", () => {
+		const result = buildTransport({ ...base, axiom, consoleOutput: false });
+		expect(targetsOf(result).map((t) => t.target)).toEqual(["@axiomhq/pino"]);
+	});
+
+	it("consoleOutput: false suppresses the CI stdout-JSON-alongside-Axiom fallback too", () => {
+		const result = buildTransport({ ...base, ci: true, tty: false, axiom, consoleOutput: false });
+		expect(targetsOf(result).map((t) => t.target)).toEqual(["@axiomhq/pino"]);
+	});
+
+	it("consoleOutput: true is a no-op — identical to the default auto-detected behavior", () => {
+		const withOverride = buildTransport({ ...base, consoleOutput: true });
+		const withoutOverride = buildTransport({ ...base });
+		expect(targetsOf(withOverride)).toEqual(targetsOf(withoutOverride));
+	});
 });
