@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlugin } from "../index.js";
+import { createPlugin } from "./index.js";
 
 describe("createPlugin", () => {
 	it("constructs without an org (the errors capability activates from env vars)", () => {
