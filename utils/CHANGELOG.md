@@ -1,3 +1,9 @@
+## [1.9.2](https://github.com/theholocron/utils/compare/v1.9.1...v1.9.2) (2026-10-07)
+
+### Bug Fixes
+
+* 🐛 bump holocron lockstep catalog to alpha.114 for --skip-already-published ([#296](https://github.com/theholocron/utils/issues/296)) ([a472018](https://github.com/theholocron/utils/commit/a4720185952eb1b030f4c26bce44f99a6825afae)), closes [#294](https://github.com/theholocron/utils/issues/294)
+
 ## [1.9.1](https://github.com/theholocron/utils/compare/v1.9.0...v1.9.1) (2026-10-07)
 
 ### Bug Fixes
