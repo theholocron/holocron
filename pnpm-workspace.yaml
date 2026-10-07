@@ -44,34 +44,34 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/clerk-client": ^1.31.0
-    "@theholocron/cloudflare-client": ^1.31.0
-    "@theholocron/doppler-client": ^1.31.0
-    "@theholocron/github-client": ^1.36.0
-    "@theholocron/http-client": ^1.36.0
-    "@theholocron/infisical-client": ^1.31.0
-    "@theholocron/neon-client": ^1.31.0
-    "@theholocron/netlify-client": ^1.36.0
-    "@theholocron/posthog-client": ^1.31.0
-    "@theholocron/postman-client": ^1.31.0
-    "@theholocron/sentry-client": ^1.30.0
-    "@theholocron/vercel-client": ^1.31.0
+    "@theholocron/clerk-client": ^1.37.1
+    "@theholocron/cloudflare-client": ^1.37.1
+    "@theholocron/doppler-client": ^1.37.1
+    "@theholocron/github-client": ^1.37.1
+    "@theholocron/http-client": ^1.37.1
+    "@theholocron/infisical-client": ^1.37.1
+    "@theholocron/neon-client": ^1.37.1
+    "@theholocron/netlify-client": ^1.37.1
+    "@theholocron/posthog-client": ^1.37.1
+    "@theholocron/postman-client": ^1.37.1
+    "@theholocron/sentry-client": ^1.37.1
+    "@theholocron/vercel-client": ^1.37.1
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
-    "@theholocron/astro-config": ^8.4.5
-    "@theholocron/commitlint-config": ^8.4.5
-    "@theholocron/devmoji-config": ^8.4.5
+    "@theholocron/astro-config": ^8.7.0
+    "@theholocron/commitlint-config": ^8.7.0
+    "@theholocron/devmoji-config": ^8.7.0
     "@theholocron/docs-theme": ^1.10.3
-    "@theholocron/eslint-config": ^8.6.0
-    "@theholocron/holocron-config": ^8.4.8
-    "@theholocron/lint-staged-config": ^8.4.5
+    "@theholocron/eslint-config": ^8.7.0
+    "@theholocron/holocron-config": ^8.7.0
+    "@theholocron/lint-staged-config": ^8.7.0
     "@theholocron/markdownlint-config": ^8.7.0
-    "@theholocron/prettier-config": ^8.4.5
-    "@theholocron/semantic-release-config": ^8.4.5
-    "@theholocron/tsconfig": ^8.4.5
-    "@theholocron/tsdown-config": ^8.4.5
-    "@theholocron/vitest-config": ^8.4.5
+    "@theholocron/prettier-config": ^8.7.0
+    "@theholocron/semantic-release-config": ^8.7.0
+    "@theholocron/tsconfig": ^8.7.0
+    "@theholocron/tsdown-config": ^8.7.0
+    "@theholocron/vitest-config": ^8.7.0
 
   # Shared utils — release in lockstep; bump all entries together.
   utils:
@@ -103,6 +103,6 @@ catalogs:
 # ProviderApiError again under a caret override that permitted both.
 overrides:
   "@sentry/node": 10.75.2
-  "@theholocron/http-client": 1.36.0
+  "@theholocron/http-client": 1.37.1
   posthog-node: 5.52.5
   tsx: 4.23.12
