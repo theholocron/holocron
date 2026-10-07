@@ -58,8 +58,8 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { PostHogAnalytics, type PostHogAnalyticsOptions } from "./capabilities/analytics.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
 export {
 	createPostHogClient,
 	type PostHogClient,

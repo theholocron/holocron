@@ -66,5 +66,5 @@ export * from "./auth.js";
 export { ClerkAuth } from "./capabilities/auth.js";
 export { parseWebhook } from "./parse-webhook.js";
 export { type ClerkClientOptions, createClerkClient } from "./rest.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

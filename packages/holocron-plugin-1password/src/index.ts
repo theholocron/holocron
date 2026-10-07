@@ -73,5 +73,5 @@ export const AUTH_HINT =
 export * from "./auth.js";
 export { OpVault } from "./capabilities/vault.js";
 export { OpShell } from "./shell.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

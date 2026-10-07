@@ -138,5 +138,5 @@ export type { NormalizedTeamEntry, TeamEntry, TeamPermission } from "./capabilit
 export { normalizeTeamEntry, syncTeams } from "./capabilities/teams.js";
 export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
