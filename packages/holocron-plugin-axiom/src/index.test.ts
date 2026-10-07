@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlugin } from "../index.js";
+import { createPlugin } from "./index.js";
 
 describe("createPlugin", () => {
 	it("returns a plugin with a logs capability factory", () => {
