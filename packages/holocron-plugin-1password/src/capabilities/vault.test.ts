@@ -1,9 +1,9 @@
 import { ProviderApiError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
-import { OpVault } from "../capabilities/vault.js";
+import { stubSpawn } from "../helpers.js";
 import { OpShell } from "../shell.js";
-import { stubSpawn } from "./helpers.js";
+import { OpVault } from "./vault.js";
 
 function makeVault(responses: Parameters<typeof stubSpawn>[0], opts: { account?: string } = {}) {
 	const { spawn, calls } = stubSpawn(responses);

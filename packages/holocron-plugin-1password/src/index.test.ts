@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, createPlugin, OpVault } from "../index.js";
 import { stubSpawn } from "./helpers.js";
+import { AuthError, createPlugin, OpVault } from "./index.js";
 
 describe("createPlugin", () => {
 	it("throws when `vault` option is missing", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { verifyToken } from "../verify-token.js";
+import { verifyToken } from "./verify-token.js";
 
 function makeSpawn(result: {
 	status?: number | null;
