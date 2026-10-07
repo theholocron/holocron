@@ -1,8 +1,8 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { createContext, createPlugin, dns } from "../index.js";
 import { cfOk } from "./helpers.js";
+import { createContext, createPlugin, dns } from "./index.js";
 
 describe("createPlugin", () => {
 	it("does not resolve the token at load — defers the error to the first authenticated call", async () => {

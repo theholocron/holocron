@@ -3,9 +3,9 @@ import type { CfPagesDeploymentStage } from "@theholocron/cloudflare-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { CloudflareDeployment } from "../capabilities/deployment.js";
+import { cfOk } from "../helpers.js";
 import { createCloudflareClient } from "../rest.js";
-import { cfOk } from "./helpers.js";
+import { CloudflareDeployment } from "./deployment.js";
 
 const BASE = "https://cf.test/client/v4";
 const ACCOUNT = "acc-123";

@@ -2,9 +2,9 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { CloudflareWorkers } from "../capabilities/workers.js";
+import { cfOk } from "../helpers.js";
 import { createCloudflareClient } from "../rest.js";
-import { cfOk } from "./helpers.js";
+import { CloudflareWorkers } from "./workers.js";
 
 const BASE = "https://cf.test/client/v4";
 const ACCOUNT = "acct-123";
