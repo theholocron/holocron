@@ -82,7 +82,6 @@ const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true
  * exclusively from `.husky/commit-msg "$1"`, never typed by a human.
  */
 export const COMMAND_REGISTRY: CommandEntry[] = [
-	{ name: "version", description: "Print the CLI version", positionals: [] },
 	{
 		name: "clone",
 		description: "Clone all repos in a GitHub org as siblings under a single directory",

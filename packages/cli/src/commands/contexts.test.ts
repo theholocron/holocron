@@ -8,7 +8,6 @@ import { COMMAND_CONTEXTS, commandsInContext, contextForCommand } from "./contex
  * `COMMAND_CONTEXTS` in the same change — this test is the reminder.
  */
 const EVERY_COMMAND = [
-	"version",
 	"clone",
 	"new",
 	"upgrade node",
@@ -67,17 +66,7 @@ describe("COMMAND_CONTEXTS", () => {
 	});
 
 	it("keeps the plugin-free commands out of `workspace`", () => {
-		for (const cmd of [
-			"version",
-			"clone",
-			"new",
-			"run",
-			"ci",
-			"deploy-on-release",
-			"config show",
-			"auth set",
-			"auth check",
-		]) {
+		for (const cmd of ["clone", "new", "run", "ci", "deploy-on-release", "config show", "auth set", "auth check"]) {
 			expect(contextForCommand(cmd)).not.toBe("workspace");
 		}
 	});
