@@ -2,7 +2,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { createPostHogClient } from "@theholocron/posthog-client";
 import { describe, expect, it } from "vitest";
 
-import { PostHogAnalytics } from "../capabilities/analytics.js";
+import { PostHogAnalytics } from "./analytics.js";
 
 const BASE = "https://posthog.test";
 const TOKEN = "phx_test";
