@@ -75,7 +75,10 @@ catalogs:
 
   # Shared utils — release in lockstep; bump all entries together.
   utils:
-    "@theholocron/env-utils": ^1.6.0
+    "@theholocron/env-utils": ^1.9.2
+    "@theholocron/fs-utils": ^1.9.2
+    "@theholocron/misc-utils": ^1.9.2
+    "@theholocron/object-utils": ^1.9.2
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError

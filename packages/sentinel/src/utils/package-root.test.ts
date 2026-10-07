@@ -18,14 +18,14 @@ describe("findPackageRoot", () => {
 
 	it("returns the starting dir itself when it directly holds node_modules", async () => {
 		await mkdir(join(root, "node_modules"));
-		expect(findPackageRoot(root)).toBe(root);
+		expect(await findPackageRoot(root)).toBe(root);
 	});
 
 	it("walks upward through nested source dirs to find node_modules", async () => {
 		await mkdir(join(root, "node_modules"));
 		const nested = join(root, "src", "utils");
 		await mkdir(nested, { recursive: true });
-		expect(findPackageRoot(nested)).toBe(root);
+		expect(await findPackageRoot(nested)).toBe(root);
 	});
 
 	it("ignores a package.json with no node_modules alongside it", async () => {
@@ -33,6 +33,6 @@ describe("findPackageRoot", () => {
 		await mkdir(decoy, { recursive: true });
 		await writeFile(join(decoy, "package.json"), "{}");
 		await mkdir(join(root, "node_modules"));
-		expect(findPackageRoot(decoy)).toBe(root);
+		expect(await findPackageRoot(decoy)).toBe(root);
 	});
 });

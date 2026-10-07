@@ -50,6 +50,7 @@
     "@theholocron/datapad": "workspace:*",
     "@theholocron/env-utils": "catalog:utils",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/fs-utils": "catalog:utils",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",

@@ -2,6 +2,8 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { findUpward } from "@theholocron/fs-utils";
+
 /**
  * Walks upward from `startDir` to the nearest ancestor holding a
  * `node_modules` directory — this package's own root, regardless of how
@@ -23,17 +25,16 @@ import { fileURLToPath } from "node:url";
  * package into one flat `dist/index.mjs` (one level under root), while
  * vitest runs directly against nested source files (`src/utils/…`, two
  * levels under root) — a walk-up resolves both without hardcoding either
- * depth.
+ * depth. Built on `@theholocron/fs-utils`'s `findUpward` — the same
+ * upward-walk shape `@theholocron/datapad`'s own config search needs,
+ * only with a different predicate (and no `.git`-boundary stop here:
+ * `node_modules` is expected to exist well before the filesystem root).
  */
-export function findPackageRoot(startDir: string): string {
-	let dir = startDir;
-	while (!existsSync(join(dir, "node_modules"))) {
-		const parent = dirname(dir);
-		/* istanbul ignore next -- every real caller here sits under packages/sentinel, which always has node_modules before hitting the filesystem root */
-		if (parent === dir) throw new Error(`findPackageRoot: no node_modules found above "${startDir}"`);
-		dir = parent;
-	}
-	return dir;
+export async function findPackageRoot(startDir: string): Promise<string> {
+	const found = await findUpward(startDir, (dir) => (existsSync(join(dir, "node_modules")) ? dir : undefined));
+	/* istanbul ignore next -- every real caller here sits under packages/sentinel, which always has node_modules before hitting the filesystem root */
+	if (found === undefined) throw new Error(`findPackageRoot: no node_modules found above "${startDir}"`);
+	return found;
 }
 
 // Lazy + memoized, not computed at import time: `findPackageRoot` does real
@@ -46,16 +47,16 @@ export function findPackageRoot(startDir: string): string {
 // means a failure here only affects the path that actually needed it.
 // Shared across every caller (`validate-config.ts`, `lint-commits.ts`, …) so
 // the memoization -- and this same lesson -- isn't duplicated per file.
-let packageRootCache: string | undefined;
-export function getPackageRoot(): string {
-	if (packageRootCache === undefined) {
-		// tsdown bundles the whole package into one flat `dist/index.mjs`, so
-		// "this module's own location" sits one level under package root when
-		// built, but deeper under it here in source (`src/utils/`,
-		// `src/actions/`) -- walking up to the nearest `node_modules` resolves
-		// every caller without hardcoding a depth only one of them would get
-		// right.
-		packageRootCache = findPackageRoot(dirname(fileURLToPath(import.meta.url)));
-	}
+// Memoizes the in-flight promise, not only its resolved value, so
+// concurrent first calls share one filesystem walk instead of racing.
+let packageRootCache: Promise<string> | undefined;
+export function getPackageRoot(): Promise<string> {
+	// tsdown bundles the whole package into one flat `dist/index.mjs`, so
+	// "this module's own location" sits one level under package root when
+	// built, but deeper under it here in source (`src/utils/`,
+	// `src/actions/`) -- walking up to the nearest `node_modules` resolves
+	// every caller without hardcoding a depth only one of them would get
+	// right.
+	packageRootCache ??= findPackageRoot(dirname(fileURLToPath(import.meta.url)));
 	return packageRootCache;
 }

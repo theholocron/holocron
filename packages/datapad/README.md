@@ -58,7 +58,8 @@ stopping at the first directory containing a `.git` entry (that directory
 is still searched before stopping) or the filesystem root. Never wanders
 past a repo boundary into an unrelated enclosing directory. `loadLayered`
 passes its own `walkUp` through to both the dedicated-file and
-fallback-file lookups.
+fallback-file lookups. Built on `@theholocron/fs-utils`'s generic
+`findUpward`/`hasGitEntry` — not reimplemented here.
 
 ### `loadConfigFromContent<T>({ dir, content, name, extension })`
 
@@ -88,7 +89,10 @@ paths actually merged, lowest priority first.
 
 Deep-merge, `vite`-style: plain objects merge recursively, arrays
 concatenate (`base` first), `undefined` in `override` is skipped, every
-other `override` value replaces `base`. Neither input is mutated.
+other `override` value replaces `base`. Neither input is mutated. A
+re-export of `@theholocron/object-utils`'s `deepMerge` under this
+package's established name — the merge logic itself has no awareness of
+configs at all, so it lives there instead of being duplicated here.
 
 ### `createDefineConfig<T>()`
 

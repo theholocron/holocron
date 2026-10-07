@@ -39,6 +39,9 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
+    "@theholocron/fs-utils": "catalog:utils",
+    "@theholocron/misc-utils": "catalog:utils",
+    "@theholocron/object-utils": "catalog:utils",
     "tsx": "catalog:"
   },
   "devDependencies": {

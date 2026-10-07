@@ -39,7 +39,7 @@
  * Security boundary (D4/D6): each commit's *message string* comes from
  * `GitHubClient.pulls.listCommits()` — plain API metadata, no file content
  * and no code from the PR branch or fork ever read, imported, or run. Safe
- * from a fork PR, not just a same-repo one; this action needs no `ref`
+ * from a fork PR, not only a same-repo one; this action needs no `ref`
  * parameter anywhere, unlike `validateConfig()`'s default-branch-only reads.
  *
  * `@theholocron/commitlint-config` resolves `extends: [...]` chains by
@@ -102,7 +102,7 @@ async function loadIsolatedConfig() {
 	const tmpRoot = tmpdir();
 	await mkdir(tmpRoot, { recursive: true });
 	const tmpDir = await mkdtemp(join(tmpRoot, "sentinel-commitlint-"));
-	await symlink(join(getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
+	await symlink(join(await getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
 	const seedFile = join(tmpDir, "seed.json");
 	await writeFile(seedFile, "{}", "utf8");
 	try {

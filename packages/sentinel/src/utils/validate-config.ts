@@ -8,7 +8,7 @@
  * branch (`ref` omitted — GitHub's Contents API resolves that on its own);
  * a caller passes `ref` explicitly to validate a specific commit/branch
  * instead (holocron#820 — the auto-fix-commit opt-in flag needs to see
- * what a PR's *own* branch currently declares, not just what's merged).
+ * what a PR's *own* branch currently declares, not only what's merged).
  *
  * Security boundary (D4/D6, amended for #820): a `ref`-based read is safe
  * for *validation only* — this function never persists or writes
@@ -100,7 +100,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 		// is readable (just not writable, per the module docstring); a symlink
 		// makes Node's upward module-resolution walk find it at <tmpDir>/node_modules
 		// without duplicating anything.
-		await symlink(join(getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
+		await symlink(join(await getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
 		// See the module docstring: without this, Node defaults tmpDir's
 		// .ts/.js files to CommonJS, and tsx's loader correctly honors that --
 		// require()-ing @theholocron/cli's pure-ESM dist/index.mjs fails outright.
@@ -166,7 +166,7 @@ type DedicatedTasksResult =
  * the same prepared `tmpDir` as `holocron.config.*` (its own
  * `@theholocron/astromech/config` import resolves through the same
  * `node_modules` symlink). Same TS-first extension probe; a 404 on every
- * extension just means the repo has no dedicated layer.
+ * extension means the repo has no dedicated layer.
  */
 async function loadDedicatedTasks(
 	client: Pick<GitHubClient, "git">,
