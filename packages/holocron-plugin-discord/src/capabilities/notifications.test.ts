@@ -64,4 +64,25 @@ describe("DiscordNotifications.send — defaultChannel", () => {
 		await notifs.send("", "hello");
 		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
 	});
+
+	// The two tests below pass a non-empty, unmapped `channel` to `send()` —
+	// that's required to reach resolve()'s own inner `defaultChannel`
+	// re-check at all: send()'s own `channel || this.opts.defaultChannel || ""`
+	// already substitutes defaultChannel at the call site whenever `channel`
+	// itself is falsy, which would make resolve() short-circuit via the
+	// alias/raw-URL checks above and never exercise this inner fallback.
+	it("resolves resolve()'s inner defaultChannel fallback through the webhooks alias map", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }], {
+			webhooks: { ops: WEBHOOK },
+			defaultChannel: "ops",
+		});
+		await notifs.send("totally-unmapped-channel", "hello");
+		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
+	});
+
+	it("falls through resolve()'s inner defaultChannel fallback to the raw value when it is not itself an alias", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }], { defaultChannel: WEBHOOK });
+		await notifs.send("totally-unmapped-channel", "hello");
+		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
+	});
 });
