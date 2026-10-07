@@ -199,7 +199,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		const dest = join(targetDir, repoDirName(repo));
 
 		if (existsSync(dest)) {
-			print(style.dim(`  skip   ${repo.full_name}`));
+			print(style.dim(`  skip   ${repo.full_name} → ${dest} (already exists)`));
 			skipped++;
 			continue;
 		}
@@ -210,10 +210,10 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			continue;
 		}
 
-		print(style.step(`  clone  ${repo.full_name}`));
+		print(style.step(`  clone  ${repo.full_name} → ${dest}`));
 		const { clone_url } = repo;
 		if (!clone_url.startsWith("https://github.com/")) {
-			print(style.fail(`  failed ${repo.full_name} — unexpected clone URL: ${clone_url}`));
+			print(style.fail(`  failed ${repo.full_name} → unexpected clone URL: ${clone_url}`));
 			failed++;
 			continue;
 		}
@@ -221,7 +221,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		try {
 			encodedToken = encodeTokenForGitHttpAuth(input.token);
 		} catch (err) {
-			print(style.fail(`  failed ${repo.full_name} — invalid token format: ${errorMessage(err)}`));
+			print(style.fail(`  failed ${repo.full_name} → invalid token format: ${errorMessage(err)}`));
 			failed++;
 			continue;
 		}
@@ -232,18 +232,19 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			print(style.fail(`  failed ${repo.full_name}`));
 			failed++;
 		} else {
-			print(style.success(`  cloned ${repo.name}`));
+			print(style.success(`  cloned ${repo.name} → ${dest}`));
 			cloned++;
 		}
 	}
 
 	const summary = `${cloned} cloned, ${skipped} skipped, ${failed} failed`;
+	print("");
 	print(
 		dryRun
-			? style.dim(`\n  dry-run: ${summary}`)
+			? style.dim(`  dry-run: ${summary}`)
 			: failed > 0
-				? style.fail(`\n  ${summary}`)
-				: style.success(`\n  ${summary}`)
+				? style.fail(`  ${summary}`)
+				: style.success(`  ${summary}`)
 	);
 
 	const status = dryRun ? "dry-run" : failed > 0 ? "fail" : "ok";
