@@ -472,16 +472,21 @@ holocron auth list                # show all stored providers
 ## Logging
 
 Operational output goes through `@theholocron/observability/logger` — separate
-from the user-facing `print` surface. Global flags:
+from the user-facing `print` surface. Local/interactive runs are quiet by
+default: no colorized or raw structured console output, regardless of the
+resolved level (Axiom shipping, when configured, is unaffected). CI is
+untouched — its existing stdout output still appears. Global flags:
 
 ```sh
-holocron doctor --verbose   # log level → debug (full structured output)
-holocron doctor --quiet     # log level → error (suppress info + warn)
+holocron doctor --log debug # show console output at this level (opt back in)
+holocron doctor --verbose   # log level → debug, and shows console output
+holocron doctor --quiet     # log level → error, and shows console output
 holocron doctor --debug     # print "Run ID: <uuid>" at command end for Axiom lookup
 ```
 
-Level resolution (highest priority first): `--verbose` / `--quiet` →
-`HOLOCRON_LOG_LEVEL` → `log.level` in `holocron.config` → `"info"`.
+Level resolution (highest priority first): `--log <level>` → `--verbose` /
+`--quiet` → `HOLOCRON_LOG_LEVEL` → `log.level` in `holocron.config` →
+`"info"`.
 
 ```ts
 export default defineConfig({

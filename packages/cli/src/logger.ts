@@ -8,7 +8,7 @@
 
 import type { Logger, LogLevel } from "@theholocron/observability/core";
 import type { AxiomTransportConfig } from "@theholocron/observability/logger";
-import { createLogger, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
+import { createLogger, isCI, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
 import { getToken } from "./auth/keyring.js";
 import { env } from "./env.js";
@@ -16,21 +16,44 @@ import { env } from "./env.js";
 /**
  * Resolve the explicit level to hand to `createLogger`, in priority order:
  *
- * 1. `--verbose` → `"debug"`   2. `--quiet` → `"error"`
- * 3. `HOLOCRON_LOG_LEVEL` env var
- * 4. `holocron.config` `log.level` (`configLevel`)
+ * 1. `--log <level>`           2. `--verbose` → `"debug"`   3. `--quiet` → `"error"`
+ * 4. `HOLOCRON_LOG_LEVEL` env var
+ * 5. `holocron.config` `log.level` (`configLevel`)
  *
  * Returns `undefined` when nothing applies — `createLogger` then defaults
  * to `"info"`. Resolving the full chain here (rather than passing
  * `configLevel` straight through) keeps config below the env var.
  */
 export function resolveLogLevel(
-	argv: { verbose?: boolean; quiet?: boolean },
+	argv: { verbose?: boolean; quiet?: boolean; log?: LogLevel },
 	configLevel?: LogLevel
 ): LogLevel | undefined {
+	if (argv.log) return argv.log;
 	if (argv.verbose) return "debug";
 	if (argv.quiet) return "error";
 	return parseLogLevel(env.get("HOLOCRON_LOG_LEVEL")) ?? configLevel;
+}
+
+/**
+ * Resolve whether human-visible console output (pretty or NDJSON) should run
+ * at all, independent of level — the `@theholocron/observability`
+ * `consoleOutput` override.
+ *
+ * Local/interactive runs are quiet by default: any raw structured logger
+ * output (colorized or not) stays off regardless of the resolved level,
+ * unless the user explicitly asked to see it via `--log <level>`,
+ * `--verbose`, or `--quiet`. CI is untouched either way — returning
+ * `undefined` there preserves `createLogger`'s own `ci`/`tty`
+ * auto-detection exactly, so CI's existing NDJSON-to-stdout behavior is
+ * unaffected by this flag.
+ */
+export function resolveConsoleOutput(argv: {
+	verbose?: boolean;
+	quiet?: boolean;
+	log?: LogLevel;
+}): boolean | undefined {
+	if (argv.log || argv.verbose || argv.quiet) return true;
+	return isCI() ? undefined : false;
 }
 
 let root: { logger: Logger; runId: string } | undefined;
@@ -86,18 +109,24 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts): AxiomTransportConfig | undef
  * handler.
  */
 export function buildCliLogger(
-	argv: { verbose?: boolean; quiet?: boolean },
+	argv: { verbose?: boolean; quiet?: boolean; log?: LogLevel },
 	opts: BuildCliLoggerOpts = {}
 ): { logger: Logger; runId: string } {
 	const { command, configLevel } = opts;
 	if (command) rootCommand = command;
 	const level = resolveLogLevel(argv, configLevel);
+	const consoleOutput = resolveConsoleOutput(argv);
 	const axiom = resolveCliAxiom(opts);
 	const axiomKey = axiom?.dataset;
-	const rebuildForConfig = configLevel !== undefined && level !== rootLevel && !argv.verbose && !argv.quiet;
+	const rebuildForConfig =
+		configLevel !== undefined && level !== rootLevel && !argv.verbose && !argv.quiet && !argv.log;
 	const rebuildForAxiom = axiomKey !== undefined && axiomKey !== rootAxiomKey;
 	if (!root || rebuildForConfig || rebuildForAxiom) {
-		const built = createLogger({ ...(level ? { level } : {}), ...(axiom ? { axiom } : {}) });
+		const built = createLogger({
+			...(level ? { level } : {}),
+			...(axiom ? { axiom } : {}),
+			...(consoleOutput !== undefined ? { consoleOutput } : {}),
+		});
 		root = {
 			logger: rootCommand ? built.logger.child({ command: rootCommand }) : built.logger,
 			runId: built.runId,

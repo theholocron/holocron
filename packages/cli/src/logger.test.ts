@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildCliLogger, getLogger, getRunId, resetCliLogger, resolveLogLevel } from "./logger.js";
+import {
+	buildCliLogger,
+	getLogger,
+	getRunId,
+	resetCliLogger,
+	resolveConsoleOutput,
+	resolveLogLevel,
+} from "./logger.js";
 
 const ENV_KEYS = [
 	"HOLOCRON_LOG_LEVEL",
@@ -9,6 +16,7 @@ const ENV_KEYS = [
 	"HOLOCRON_AXIOM_DATASET",
 	"AXIOM_DATASET",
 	"HOLOCRON_ORG",
+	"CI",
 ] as const;
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 
@@ -38,6 +46,12 @@ beforeEach(() => {
 	getTokenMock.mockReset();
 	getTokenMock.mockReturnValue(null);
 	for (const key of ENV_KEYS) delete process.env[key];
+	// Pin isCI() to true by default so every existing assertion below (which
+	// predates consoleOutput and asserts an exact createLogger call shape)
+	// stays deterministic — resolveConsoleOutput returns undefined in CI,
+	// so it's omitted from the call just like before this field existed.
+	// The dedicated "consoleOutput" describe block below overrides this.
+	process.env.CI = "true";
 });
 
 afterEach(() => {
@@ -77,6 +91,35 @@ describe("resolveLogLevel", () => {
 		process.env.HOLOCRON_LOG_LEVEL = "loud";
 		expect(resolveLogLevel({}, "info")).toBe("info");
 	});
+
+	it("--log outranks --verbose, --quiet, the env var, and the config level", () => {
+		process.env.HOLOCRON_LOG_LEVEL = "warn";
+		expect(resolveLogLevel({ log: "error", verbose: true, quiet: true }, "debug")).toBe("error");
+	});
+});
+
+describe("resolveConsoleOutput", () => {
+	it("returns undefined in CI — preserves createLogger's own ci/tty auto-detection", () => {
+		process.env.CI = "true";
+		expect(resolveConsoleOutput({})).toBeUndefined();
+	});
+
+	it("defaults to false outside CI — local/interactive runs are quiet by default", () => {
+		delete process.env.CI;
+		expect(resolveConsoleOutput({})).toBe(false);
+	});
+
+	it("returns true when --log, --verbose, or --quiet was passed, even outside CI", () => {
+		delete process.env.CI;
+		expect(resolveConsoleOutput({ log: "debug" })).toBe(true);
+		expect(resolveConsoleOutput({ verbose: true })).toBe(true);
+		expect(resolveConsoleOutput({ quiet: true })).toBe(true);
+	});
+
+	it("an explicit opt-in flag wins even in CI", () => {
+		process.env.CI = "true";
+		expect(resolveConsoleOutput({ log: "warn" })).toBe(true);
+	});
 });
 
 describe("buildCliLogger", () => {
@@ -89,7 +132,7 @@ describe("buildCliLogger", () => {
 
 	it("passes the resolved flag level through to createLogger", () => {
 		buildCliLogger({ verbose: true });
-		expect(createLoggerMock).toHaveBeenCalledWith({ level: "debug" });
+		expect(createLoggerMock).toHaveBeenCalledWith({ level: "debug", consoleOutput: true });
 	});
 
 	it("rebuilds once with the config level when the flag/env pass had none", () => {
@@ -103,7 +146,37 @@ describe("buildCliLogger", () => {
 		buildCliLogger({ quiet: true });
 		buildCliLogger({ quiet: true }, { configLevel: "debug" });
 		expect(createLoggerMock).toHaveBeenCalledTimes(1);
-		expect(createLoggerMock).toHaveBeenCalledWith({ level: "error" });
+		expect(createLoggerMock).toHaveBeenCalledWith({ level: "error", consoleOutput: true });
+	});
+
+	it("does not let a config level override an active --log flag", () => {
+		buildCliLogger({ log: "warn" });
+		buildCliLogger({ log: "warn" }, { configLevel: "debug" });
+		expect(createLoggerMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("passes consoleOutput: false by default outside CI", () => {
+		delete process.env.CI;
+		buildCliLogger({});
+		expect(createLoggerMock).toHaveBeenCalledWith({ consoleOutput: false });
+	});
+
+	it("maps --log to both the level and consoleOutput: true", () => {
+		delete process.env.CI;
+		buildCliLogger({ log: "warn" });
+		expect(createLoggerMock).toHaveBeenCalledWith({ level: "warn", consoleOutput: true });
+	});
+
+	it("--log outranks --verbose and --quiet for the resolved level", () => {
+		delete process.env.CI;
+		buildCliLogger({ log: "error", verbose: true });
+		expect(createLoggerMock).toHaveBeenCalledWith({ level: "error", consoleOutput: true });
+	});
+
+	it("omits consoleOutput entirely in CI, regardless of flags", () => {
+		process.env.CI = "true";
+		buildCliLogger({});
+		expect(createLoggerMock).toHaveBeenCalledWith({});
 	});
 
 	it("binds the command name on the root logger", () => {

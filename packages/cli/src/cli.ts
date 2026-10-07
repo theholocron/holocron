@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { confirm, input, select } from "@inquirer/prompts";
 import { createAstromech, deployOnRelease } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
-import type { LogLevel } from "@theholocron/observability/core";
+import { LOG_LEVELS, type LogLevel } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -78,7 +78,7 @@ function resolveOrg(argv: { org?: string }, config: { org?: string }): string | 
  * Axiom token. Used by every handler that has already called `loadConfig`.
  */
 function cliLoggerOpts(
-	argv: { org?: string; verbose?: boolean; quiet?: boolean },
+	argv: { org?: string; verbose?: boolean; quiet?: boolean; log?: LogLevel },
 	resolved: { org?: string; log?: { level?: LogLevel; axiom?: { dataset?: string } } }
 ): BuildCliLoggerOpts {
 	return {
@@ -96,7 +96,7 @@ function cliLoggerOpts(
  * `applyConfig` only narrows what `init` already turned on.
  */
 function applyResolvedConfig(
-	argv: { org?: string; verbose?: boolean; quiet?: boolean },
+	argv: { org?: string; verbose?: boolean; quiet?: boolean; log?: LogLevel },
 	resolved: {
 		org?: string;
 		log?: { level?: LogLevel; axiom?: { dataset?: string } };
@@ -183,6 +183,13 @@ try {
 			type: "boolean",
 			default: false,
 			describe: "Set the log level to error — suppress info and warn.",
+		})
+		.option("log", {
+			type: "string",
+			choices: LOG_LEVELS,
+			describe:
+				"Show structured logger output at this level. Local/interactive runs are " +
+				"quiet by default (no console output regardless of level) — this opts back in.",
 		})
 		.middleware((argv) => {
 			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
