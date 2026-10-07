@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { input, select } from "@inquirer/prompts";
+import { confirm, input, select } from "@inquirer/prompts";
 import { createAstromech, deployOnRelease } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import type { LogLevel } from "@theholocron/observability/core";
@@ -12,7 +12,7 @@ import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
 import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
 import { runCleanupPreview } from "./commands/cleanup-preview.js";
-import { parseCloneTarget, runClone } from "./commands/clone.js";
+import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone.js";
 import { commandsInContext } from "./commands/contexts.js";
 import { runDeploy, runDeployFromFiles } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
@@ -33,7 +33,13 @@ import { lintCommitMsgFile } from "./commit-lint/lint-commit-msg-file.js";
 import type { TelemetryConfig } from "./config/config.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
-import { COMMAND_REGISTRY, getEntry, launchMenu, promptForPositionals } from "./interactive-menu.js";
+import {
+	COMMAND_REGISTRY,
+	getEntry,
+	launchMenu,
+	NonInteractiveError,
+	promptForPositionals,
+} from "./interactive-menu.js";
 import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
@@ -191,18 +197,12 @@ try {
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
 			"clone [target]",
-			"Clone a single repo (owner/repo); pass --all to clone every repo in an org instead",
+			"Clone a single repo (owner/repo), or every repo in an org — confirms first for a whole org",
 			(y) =>
 				y
 					.positional("target", {
 						type: "string",
-						describe: "owner/repo to clone (e.g., theholocron/holocron).",
-					})
-					.option("all", {
-						type: "boolean",
-						default: false,
-						describe:
-							"Clone every repo in the org instead of a single owner/repo. Pass a bare org as the target.",
+						describe: "owner/repo to clone, or a bare org to clone every repo in it (confirms first).",
 					})
 					.option("dir", {
 						type: "string",
@@ -221,26 +221,29 @@ try {
 				}
 				const [targetInput] = await promptForPositionals(getEntry("clone"), argv as Record<string, unknown>);
 				const { org, repo } = parseCloneTarget(targetInput);
-				if (repo && argv.all) {
-					getLogger().error(
-						`clone: --all clones every repo in an org — give a bare org, not "${targetInput}"`
-					);
-					process.exitCode = 1;
-					return;
-				}
-				if (!repo && !argv.all) {
-					getLogger().error(
-						`clone: give "owner/repo" to clone a single repo, or pass --all to clone every repo in "${org}"`
-					);
-					process.exitCode = 1;
-					return;
-				}
 				const report = await runClone({
 					org,
 					...(repo ? { repo } : {}),
 					token,
 					dryRun: argv.dryRun,
 					...(argv.dir ? { dir: argv.dir } : {}),
+					...(!repo
+						? {
+								confirmWholeOrg: async ({ total, alreadyCloned, toClone }: WholeOrgScope) => {
+									if (!process.stdin.isTTY) {
+										throw new NonInteractiveError(
+											`clone: cloning every repo in "${org}" needs interactive confirmation — ` +
+												`run this from a terminal, or pass a specific owner/repo instead`
+										);
+									}
+									if (toClone === 0) return true;
+									return confirm({
+										message: `${org} has ${total} repos — ${alreadyCloned} already cloned locally, ${toClone} new. Clone them all?`,
+										default: false,
+									});
+								},
+							}
+						: {}),
 				});
 				if (report.status === "fail") process.exitCode = 1;
 			}

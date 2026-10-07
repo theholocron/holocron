@@ -48,7 +48,19 @@ interface GitHubRepo {
 	archived: boolean;
 }
 
+/** Strip a leading dot so a hidden repo (e.g. `.github`) is still visible in Finder once cloned. */
+function repoDirName(repo: GitHubRepo): string {
+	return repo.name.startsWith(".") ? repo.name.slice(1) : repo.name;
+}
+
 type ExecFn = (cmd: string, args: string[], opts: { cwd: string }) => { status: number | null };
+
+/** How many of an org's repos are already cloned locally vs. would actually be new. */
+export interface WholeOrgScope {
+	total: number;
+	alreadyCloned: number;
+	toClone: number;
+}
 
 export interface RunCloneInput {
 	org: string;
@@ -63,10 +75,18 @@ export interface RunCloneInput {
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
 	logger?: Logger;
+	/**
+	 * Called once, before cloning, only in whole-org mode (never for a
+	 * single `repo` clone, never when `dryRun` is set — nothing destructive
+	 * happens either way). Return `false` to abort without cloning
+	 * anything. Omit entirely to skip confirmation (e.g. a non-interactive
+	 * caller that already passed `--all` deliberately).
+	 */
+	confirmWholeOrg?: (scope: WholeOrgScope) => Promise<boolean>;
 }
 
 export interface CloneReport {
-	status: "ok" | "fail" | "dry-run";
+	status: "ok" | "fail" | "dry-run" | "aborted";
 	cloned: number;
 	skipped: number;
 	failed: number;
@@ -160,14 +180,23 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		return { status: "fail", cloned: 0, skipped: 0, failed: 0, message };
 	}
 
+	if (!input.repo && !dryRun && input.confirmWholeOrg) {
+		const alreadyCloned = repos.filter((r) => existsSync(join(targetDir, repoDirName(r)))).length;
+		const scope: WholeOrgScope = { total: repos.length, alreadyCloned, toClone: repos.length - alreadyCloned };
+		const proceed = await input.confirmWholeOrg(scope);
+		if (!proceed) {
+			print(style.dim("  aborted — nothing cloned"));
+			logger.info({ org: input.org, ...scope }, "clone: aborted by user");
+			return { status: "aborted", cloned: 0, skipped: 0, failed: 0, message: "aborted by user" };
+		}
+	}
+
 	let cloned = 0;
 	let skipped = 0;
 	let failed = 0;
 
 	for (const repo of repos) {
-		// Strip leading dot so hidden repos (e.g. .github) are visible in Finder.
-		const dirName = repo.name.startsWith(".") ? repo.name.slice(1) : repo.name;
-		const dest = join(targetDir, dirName);
+		const dest = join(targetDir, repoDirName(repo));
 
 		if (existsSync(dest)) {
 			print(style.dim(`  skip   ${repo.full_name}`));

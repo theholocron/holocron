@@ -113,6 +113,80 @@ describe("runClone", () => {
 		});
 	});
 
+	it("asks confirmWholeOrg before cloning, with accurate already-cloned vs. new counts", async () => {
+		await mkdir(join(tmpDir, "alpha"));
+		const repos = [makeRepo("alpha"), makeRepo("beta"), makeRepo("gamma")];
+		const confirmWholeOrg = vi.fn().mockResolvedValue(true);
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+			confirmWholeOrg,
+		});
+
+		expect(confirmWholeOrg).toHaveBeenCalledWith({ total: 3, alreadyCloned: 1, toClone: 2 });
+		expect(report.status).toBe("ok");
+		expect(report.cloned).toBe(2);
+		expect(report.skipped).toBe(1);
+	});
+
+	it("aborts without cloning anything when confirmWholeOrg declines", async () => {
+		const repos = [makeRepo("alpha"), makeRepo("beta")];
+		const confirmWholeOrg = vi.fn().mockResolvedValue(false);
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeFetch(repos),
+			exec,
+			print,
+			confirmWholeOrg,
+		});
+
+		expect(report.status).toBe("aborted");
+		expect(report.cloned).toBe(0);
+		expect(exec).not.toHaveBeenCalled();
+	});
+
+	it("never calls confirmWholeOrg for a single-repo clone", async () => {
+		const repo = makeRepo("new-repo", "test-org");
+		const confirmWholeOrg = vi.fn().mockResolvedValue(false);
+		const report = await runClone({
+			org: "test-org",
+			repo: "new-repo",
+			dir: tmpDir,
+			token: "tok",
+			fetch: makeSingleRepoFetch(repo),
+			exec,
+			print,
+			confirmWholeOrg,
+		});
+
+		expect(confirmWholeOrg).not.toHaveBeenCalled();
+		expect(report.status).toBe("ok");
+	});
+
+	it("never calls confirmWholeOrg in dry-run mode — nothing destructive happens either way", async () => {
+		const repos = [makeRepo("alpha"), makeRepo("beta")];
+		const confirmWholeOrg = vi.fn().mockResolvedValue(false);
+		const report = await runClone({
+			org: "test-org",
+			dir: tmpDir,
+			token: "tok",
+			dryRun: true,
+			fetch: makeFetch(repos),
+			exec,
+			print,
+			confirmWholeOrg,
+		});
+
+		expect(confirmWholeOrg).not.toHaveBeenCalled();
+		expect(report.status).toBe("dry-run");
+	});
+
 	it("clones just one repo when `repo` is given, instead of listing the whole org", async () => {
 		const repo = makeRepo("new-repo", "test-org");
 		const fetch = makeSingleRepoFetch(repo);
