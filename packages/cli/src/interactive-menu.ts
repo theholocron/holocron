@@ -84,7 +84,7 @@ const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
 		name: "clone",
-		description: "Clone a single repo (owner/repo), or every repo in an org — confirms first for a whole org",
+		description: "Clone a single repo (owner/repo) or every repo in an org (owner)",
 		positionals: [
 			{
 				key: "target",

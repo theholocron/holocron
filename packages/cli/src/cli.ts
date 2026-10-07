@@ -197,7 +197,7 @@ try {
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
 			"clone [target]",
-			"Clone a single repo (owner/repo), or every repo in an org — confirms first for a whole org",
+			"Clone a single repo (owner/repo) or every repo in an org (owner)",
 			(y) =>
 				y
 					.positional("target", {
