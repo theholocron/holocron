@@ -41,6 +41,7 @@
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vercel-client": "catalog:clients",
@@ -58,6 +59,7 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/vercel-client": "catalog:clients"
   },
   "peerDependenciesMeta": {

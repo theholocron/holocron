@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { reusableTemplates } from "@theholocron/astromech";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
@@ -204,7 +205,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			const blob = await client.git.createBlob(repo, file.content);
 			treeEntries.push({ path: file.path, mode: "100644", type: "blob", sha: blob.sha });
 		} catch (err) {
-			const msg = `failed to create blob for ${file.path}: ${err instanceof Error ? err.message : String(err)}`;
+			const msg = `failed to create blob for ${file.path}: ${errorMessage(err)}`;
 			print(`  ✗ ${msg}`);
 			return done({ status: "fail", created, updated, unchanged, message: msg });
 		}
@@ -216,7 +217,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		const newTree = await client.git.createTree(repo, treeEntries, baseTreeSha);
 		newTreeSha = newTree.sha;
 	} catch (err) {
-		const msg = `failed to create tree: ${err instanceof Error ? err.message : String(err)}`;
+		const msg = `failed to create tree: ${errorMessage(err)}`;
 		print(`  ✗ ${msg}`);
 		return done({ status: "fail", created, updated, unchanged, message: msg });
 	}
@@ -227,7 +228,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 		const newCommit = await client.git.createCommit(repo, message, newTreeSha, [headSha]);
 		newCommitSha = newCommit.sha;
 	} catch (err) {
-		const msg = `failed to create commit: ${err instanceof Error ? err.message : String(err)}`;
+		const msg = `failed to create commit: ${errorMessage(err)}`;
 		print(`  ✗ ${msg}`);
 		return done({ status: "fail", created, updated, unchanged, message: msg });
 	}
@@ -246,7 +247,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			await client.git.updateRef(repo, `heads/${targetBranch!}`, newCommitSha);
 		}
 	} catch (err) {
-		const msg = `failed to update ref: ${err instanceof Error ? err.message : String(err)}`;
+		const msg = `failed to update ref: ${errorMessage(err)}`;
 		print(`  ✗ ${msg}`);
 		return done({ status: "fail", created, updated, unchanged, message: msg });
 	}
@@ -269,7 +270,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 			if (alreadyExists) {
 				print(`  → PR already open for ${branch} — branch updated, ready to merge`);
 			} else {
-				print(`  ⚠ PR creation failed: ${err instanceof Error ? err.message : String(err)}`);
+				print(`  ⚠ PR creation failed: ${errorMessage(err)}`);
 			}
 		}
 	}

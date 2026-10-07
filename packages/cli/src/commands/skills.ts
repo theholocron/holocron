@@ -12,6 +12,7 @@
 
 import { spawnSync } from "node:child_process";
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -69,7 +70,7 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 		print(`  → ${result}`);
 		logger.info({ agent: config.agent, skills: config.skills, status: "ok" }, "skills install: done");
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		print(`  ✗ ${message}`);
 		logger.warn({ agent: config.agent, reason: message, status: "fail" }, "skills install: done");
 	}

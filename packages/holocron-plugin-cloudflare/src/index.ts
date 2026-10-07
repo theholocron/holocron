@@ -94,5 +94,5 @@ export { CloudflareDeployment } from "./capabilities/deployment.js";
 export { CloudflareDns } from "./capabilities/dns.js";
 export { CloudflareWorkers } from "./capabilities/workers.js";
 export { type CloudflareClient, type CloudflareClientOptions, createCloudflareClient } from "./rest.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

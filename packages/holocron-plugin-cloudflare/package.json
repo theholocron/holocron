@@ -42,6 +42,7 @@
     "@theholocron/cloudflare-client": "catalog:clients",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
@@ -59,7 +60,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/cloudflare-client": "catalog:clients"
+    "@theholocron/cloudflare-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils"
   },
   "peerDependenciesMeta": {
     "@theholocron/cloudflare-client": {}

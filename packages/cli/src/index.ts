@@ -1,5 +1,6 @@
 export * from "./auth/auth-resolver.js";
 export * from "./auth/keyring.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth.js";
 export * from "./commands/setup/derived-properties.js";
 export * from "./commit-lint/lint-commit-msg-file.js";
 export * from "./commit-lint/lint-message.js";

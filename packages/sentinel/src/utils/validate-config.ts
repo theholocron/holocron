@@ -61,6 +61,7 @@ import { mergeTasksLayers, normalizeTaskEntry, type TasksConfig } from "@theholo
 import { DEFAULT_EXTENSIONS, loadConfigFromContent } from "@theholocron/datapad";
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
+import { errorMessage } from "@theholocron/misc-utils";
 
 import { decodeContents } from "./decode-contents.js";
 import { getPackageRoot } from "./package-root.js";
@@ -118,7 +119,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 				return {
 					status: "load-error",
 					filepath: path,
-					message: err instanceof Error ? err.message : String(err),
+					message: errorMessage(err),
 				};
 			}
 			// The dedicated astromech.config.* layer (holocron#916): merged on
@@ -194,7 +195,7 @@ async function loadDedicatedTasks(
 			});
 			return { status: "found", config: loaded.config };
 		} catch (err) {
-			return { status: "load-error", filepath: path, message: err instanceof Error ? err.message : String(err) };
+			return { status: "load-error", filepath: path, message: errorMessage(err) };
 		}
 	}
 	return { status: "absent" };

@@ -14,17 +14,7 @@
 
 import { spawnSync } from "node:child_process";
 
-export interface VerifyTokenSuccess {
-	ok: true;
-	subject: string;
-}
-
-export interface VerifyTokenFailure {
-	ok: false;
-	message: string;
-}
-
-export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
+import type { VerifyTokenResult } from "@theholocron/cli";
 
 export interface VerifyTokenOptions {
 	spawn?: typeof spawnSync;

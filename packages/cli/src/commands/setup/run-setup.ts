@@ -23,6 +23,7 @@ import { basename, join } from "node:path";
 
 import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
 import { getLogger } from "../../logger.js";
@@ -833,7 +834,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				capability: "vault",
 				step: "list",
 				status: "fail",
-				message: err instanceof Error ? err.message : String(err),
+				message: errorMessage(err),
 			});
 		}
 		print(formatStep(steps[steps.length - 1]!));

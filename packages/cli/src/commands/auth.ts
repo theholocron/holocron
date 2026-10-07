@@ -20,6 +20,7 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/keyring.js";
@@ -156,7 +157,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 				print(style.warn(`${provider} plugin has no verifyToken; storing without verification`));
 			}
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : String(err);
+			const msg = errorMessage(err);
 			print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
 			print(
 				style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`)
@@ -258,7 +259,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 		);
 		return { status: "fail", message: verified.message };
 	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
+		const msg = errorMessage(err);
 		// Global install: the plugin package isn't resolvable here. `auth set` /
 		// `auth list` already work plugin-free — `auth check` degrades to the
 		// same "we have a token, we just can't confirm it" report rather than

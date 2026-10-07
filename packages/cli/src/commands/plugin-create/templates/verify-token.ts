@@ -18,19 +18,10 @@ export function render(inputs: TemplateInputs): string {
  * \`/me\`, \`/account\`.
  */
 
+import type { VerifyTokenResult } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
+
 import { ${factoryName} } from "./rest.js";
-
-export interface VerifyTokenSuccess {
-	ok: true;
-	subject: string;
-}
-
-export interface VerifyTokenFailure {
-	ok: false;
-	message: string;
-}
-
-export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 interface MeResponse {
 	/** Adjust to whatever ${inputs.vendorName}'s whoami endpoint returns. */
@@ -55,8 +46,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		const subject = me?.email ?? me?.name ?? me?.id ?? "unknown";
 		return { ok: true, subject: \`user @ \${subject}\` };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		return { ok: false, message };
+		return { ok: false, message: errorMessage(err) };
 	}
 }
 `;

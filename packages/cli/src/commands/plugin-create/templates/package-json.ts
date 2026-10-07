@@ -42,9 +42,10 @@ export function render(inputs: TemplateInputs): string {
 					"test:watch": "vitest",
 					validate: "tsx scripts/validate.mjs",
 				},
-				peerDependencies: { "@theholocron/cli": "workspace:*" },
+				peerDependencies: { "@theholocron/cli": "workspace:*", "@theholocron/misc-utils": "catalog:utils" },
 				devDependencies: {
 					"@theholocron/cli": "workspace:*",
+					"@theholocron/misc-utils": "catalog:utils",
 					"@theholocron/tsconfig": "catalog:configs",
 					"@types/node": "catalog:",
 					"@vitest/coverage-v8": "catalog:",

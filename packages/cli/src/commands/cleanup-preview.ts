@@ -1,4 +1,5 @@
 import { checkbox } from "@inquirer/prompts";
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -64,7 +65,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	try {
 		pr = await source.getPullRequest(input.prNumber, input.repo);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		throw new Error(`Failed to fetch PR #${input.prNumber}: ${message}`, { cause: err });
 	}
 
@@ -94,7 +95,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	try {
 		deployments = await deploy.listPreviewDeployments(input.project, branch);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		throw new Error(`Failed to list deployments: ${message}`, { cause: err });
 	}
 
@@ -156,7 +157,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 		);
 		return { pr, branch, found: deployments.length, deleted: count, status: "ok" };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		print(style.fail(message));
 		logger.warn(
 			{ pr: pr.number, branch, found: deployments.length, reason: message, status: "fail" },

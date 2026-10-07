@@ -1,16 +1,7 @@
+import type { VerifyTokenResult } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
+
 import { createSlackClient } from "./rest.js";
-
-export interface VerifyTokenSuccess {
-	ok: true;
-	subject: string;
-}
-
-export interface VerifyTokenFailure {
-	ok: false;
-	message: string;
-}
-
-export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 export interface VerifyTokenOptions {
 	baseUrl?: string;
@@ -24,7 +15,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		return { ok: true, subject: `${res.user} @ ${res.team}` };
 	} catch (err) {
 		/* c8 ignore next */
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		return { ok: false, message };
 	}
 }

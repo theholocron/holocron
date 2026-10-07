@@ -35,6 +35,7 @@ import {
 	parseGitHubWebhookHeaders,
 	verifyGitHubWebhookSignature,
 } from "@theholocron/github-client";
+import { errorMessage } from "@theholocron/misc-utils";
 
 export type SentinelEventType =
 	| "installation.created"
@@ -85,12 +86,10 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 	try {
 		payload = JSON.parse(bodyStr) as Record<string, unknown>;
 	} catch (err) {
-		// JSON.parse always throws a real SyntaxError (an Error instance); the
-		// String(err) fallback exists for type-safety, not a reachable path.
+		// JSON.parse always throws a real SyntaxError (an Error instance); errorMessage's
+		// non-Error fallback exists for type-safety, not a reachable path.
 		/* istanbul ignore next -- JSON.parse never throws a non-Error */
-		throw new WebhookVerificationError(
-			`Webhook body is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
-		);
+		throw new WebhookVerificationError(`Webhook body is not valid JSON: ${errorMessage(err)}`);
 	}
 
 	switch (githubEvent) {

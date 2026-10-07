@@ -55,6 +55,7 @@
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/markdownlint-config": "catalog:configs",
+    "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/observability": "catalog:",
     "@theholocron/prettier-config": "catalog:configs",
     "@tktco/node-actionlint": "catalog:",

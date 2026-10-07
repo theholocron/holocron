@@ -26,6 +26,7 @@ import { basename, resolve } from "node:path";
 
 import type { Tooling, ToolingDoctorReport } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
 import type {
 	PostmanClient,
 	PostmanCollection,
@@ -148,7 +149,7 @@ export class PostmanTooling implements Tooling {
 		} catch (err) {
 			return {
 				ok: false,
-				message: err instanceof Error ? err.message : String(err),
+				message: errorMessage(err),
 			};
 		}
 	}

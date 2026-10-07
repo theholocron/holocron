@@ -17,6 +17,7 @@
  * Errors clearly when no value can be sourced.
  */
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -97,7 +98,7 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 		);
 		return { status: "ok", name: input.name, scope };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		print(`  ✗ ${message}`);
 		logger.warn({ key: input.name, scope: describeScope(scope), reason: message }, `secret set: ${input.name}`);
 		return { status: "fail", name: input.name, scope, message };

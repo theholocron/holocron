@@ -22,6 +22,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { env } from "../env.js";
@@ -418,7 +419,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 			stdio: "inherit",
 		});
 	} catch (err) {
-		throw new NewError(`gh repo create failed: ${err instanceof Error ? err.message : String(err)}`);
+		throw new NewError(`gh repo create failed: ${errorMessage(err)}`);
 	}
 
 	if (input.isTemplate) {
@@ -543,7 +544,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		try {
 			execFn("pnpm", ["install"], { cwd: repoDir, stdio: "inherit" });
 		} catch (err) {
-			print(`  ✗ pnpm install failed — ${err instanceof Error ? err.message : String(err)}`);
+			print(`  ✗ pnpm install failed — ${errorMessage(err)}`);
 			return {
 				status: "fail",
 				repoDir,

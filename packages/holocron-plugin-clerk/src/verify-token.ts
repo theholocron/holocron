@@ -9,19 +9,10 @@
  * canonical "is this secret key valid?" endpoint.
  */
 
+import type { VerifyTokenResult } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
+
 import { createClerkClient } from "./rest.js";
-
-export interface VerifyTokenSuccess {
-	ok: true;
-	subject: string;
-}
-
-export interface VerifyTokenFailure {
-	ok: false;
-	message: string;
-}
-
-export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 export interface VerifyTokenOptions {
 	baseUrl?: string;
@@ -36,7 +27,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		const id = inst?.id ?? "unknown";
 		return { ok: true, subject: `${env} instance ${id}` };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		return { ok: false, message };
 	}
 }

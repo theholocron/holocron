@@ -3,6 +3,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
@@ -103,7 +104,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	try {
 		repos = await listOrgRepos(input.org, input.token, fetchFn);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		logger.warn({ org: input.org, reason: message }, "clone: failed to list org repos");
 		return { status: "fail", cloned: 0, skipped: 0, failed: 0, message };
 	}
@@ -140,11 +141,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		try {
 			encodedToken = encodeTokenForGitHttpAuth(input.token);
 		} catch (err) {
-			print(
-				style.fail(
-					`  failed ${repo.full_name} — invalid token format: ${err instanceof Error ? err.message : String(err)}`
-				)
-			);
+			print(style.fail(`  failed ${repo.full_name} — invalid token format: ${errorMessage(err)}`));
 			failed++;
 			continue;
 		}

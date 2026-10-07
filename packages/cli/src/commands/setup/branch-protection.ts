@@ -1,3 +1,5 @@
+import { errorMessage } from "@theholocron/misc-utils";
+
 import type { Source } from "../../plugin/capabilities.js";
 import { ProviderApiError } from "../../plugin/capabilities.js";
 import type { SetupStepResult } from "./run-step.js";
@@ -88,7 +90,7 @@ export async function upsertBranchProtection(
 				capability: "source",
 				step,
 				status: "fail",
-				message: err instanceof Error ? err.message : String(err),
+				message: errorMessage(err),
 			};
 		}
 	}
@@ -111,7 +113,7 @@ export async function upsertBranchProtection(
 			capability: "source",
 			step,
 			status: "fail",
-			message: err instanceof Error ? err.message : String(err),
+			message: errorMessage(err),
 		};
 	}
 }

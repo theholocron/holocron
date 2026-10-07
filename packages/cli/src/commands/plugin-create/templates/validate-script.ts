@@ -43,6 +43,7 @@ export function render(inputs: TemplateInputs): string {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- filled in by operator
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
+import { errorMessage } from "@theholocron/misc-utils";
 
 const args = process.argv.slice(2);
 
@@ -103,7 +104,7 @@ async function runStep(body) {
 	try {
 		await body();
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		console.log(\`      ✗ ERROR: \${message}\`);
 		const hint = hintFor(message);
 		if (hint) console.log(\`         hint: \${hint}\`);

@@ -53,5 +53,5 @@ export const AUTH_HINT =
 export * from "./auth.js";
 export { SlackNotifications, type SlackNotificationsOptions } from "./capabilities/notifications.js";
 export { createSlackClient, type SlackClient, type SlackClientOptions } from "./rest.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./verify-token.js";
 export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

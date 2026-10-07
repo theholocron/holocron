@@ -1,3 +1,5 @@
+import { errorMessage } from "@theholocron/misc-utils";
+
 import type { LoadedConfig } from "../../config/load-config.js";
 import { getLogger } from "../../logger.js";
 import { ProviderApiError } from "../../plugin/capabilities.js";
@@ -87,7 +89,7 @@ async function execStep(
 			capability,
 			step,
 			status: "fail",
-			message: err instanceof Error ? err.message : String(err),
+			message: errorMessage(err),
 		};
 	}
 }
