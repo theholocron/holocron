@@ -16,6 +16,13 @@
  * {@link promptForPositionals} for just that one command — no spawn needed,
  * the handler already has everything else it needs.
  *
+ * For a command whose handler honours `--dry-run` ({@link
+ * CommandEntry.supportsDryRun}), `launchMenu` also offers a preview before
+ * committing: "run a dry run first?", then — once that dry run comes back
+ * clean — "proceed with the real run?". Passing `--dry-run` to the
+ * top-level invocation itself skips straight to the dry run without asking;
+ * it already forwards through to whatever gets picked either way.
+ *
  * Every prompt is preceded by a `process.stdin.isTTY` check. A non-TTY run
  * (CI, a script, a pipe) throws {@link NonInteractiveError} instead of
  * hanging on `@inquirer/prompts` (which otherwise throws its own
@@ -26,7 +33,7 @@
 
 import { spawn } from "node:child_process";
 
-import { input, select } from "@inquirer/prompts";
+import { confirm, input, select } from "@inquirer/prompts";
 import search from "@inquirer/search";
 
 import { listStoredProviders } from "./auth/keyring.js";
@@ -69,6 +76,15 @@ export interface CommandEntry {
 	positionals: PositionalPrompt[];
 	/** Parent command, for Layer 2 grouping: `"auth" | "skills" | "upgrade"`. */
 	group?: string;
+	/**
+	 * Whether this command's handler honours the global `--dry-run` flag.
+	 * Drives `launchMenu`'s dry-run offer: a menu-launched command with this
+	 * set gets asked "run a dry run first?" (skipped if `--dry-run` was
+	 * already passed at the top level) and, after a successful dry run,
+	 * "proceed with the real run?". Hand-maintained in parallel with each
+	 * handler's own `dryRun: argv.dryRun` usage in `cli.ts`.
+	 */
+	supportsDryRun?: boolean;
 }
 
 const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true : "enter a number");
@@ -93,61 +109,87 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 				validate: (v) => v.trim().length > 0 || "org/repo or org is required",
 			},
 		],
+		supportsDryRun: true,
 	},
-	{ name: "doctor", description: "Load the config and run a smoke check against every provider", positionals: [] },
-	{ name: "setup", description: "Apply infra setup actions across every configured capability", positionals: [] },
+	{
+		name: "doctor",
+		description: "Load the config and run a smoke check against every provider",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
+		name: "setup",
+		description: "Apply infra setup actions across every configured capability",
+		positionals: [],
+		supportsDryRun: true,
+	},
 	{
 		name: "secret set",
 		description: "Set a single secret via the configured `secrets` capability",
 		positionals: [{ key: "name", message: "Secret name:", type: "input" }],
+		supportsDryRun: true,
 	},
 	{
 		name: "secrets sync",
 		description: "Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
 		positionals: [{ key: "environmentId", message: "Vault environment id:", type: "input" }],
+		supportsDryRun: true,
 	},
 	{
 		name: "deploy",
 		description: "Trigger a deployment via the configured `deployment` capability",
 		positionals: [{ key: "branch", message: "Branch to deploy:", type: "input" }],
+		supportsDryRun: true,
 	},
 	{
 		name: "cleanup-preview",
 		description: "List and delete Cloudflare Pages preview deployments for a GitHub PR",
 		positionals: [{ key: "pr", message: "PR number:", type: "input", validate: numeric }],
+		supportsDryRun: true,
 	},
 	{
 		name: "bump-versions",
 		description: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
 		positionals: [{ key: "newVersion", cliArg: "new-version", message: "New version:", type: "input" }],
+		supportsDryRun: true,
 	},
 	{
 		name: "publish",
 		description: "Publish @theholocron/* packages to npm",
 		positionals: [],
+		supportsDryRun: true,
 	},
 	{
 		name: "sync",
 		description:
 			"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
 		positionals: [],
+		supportsDryRun: true,
 	},
-	{ name: "ci", description: "Run the merge-gating checks locally, in CI order — 'will CI pass?'", positionals: [] },
+	{
+		name: "ci",
+		description: "Run the merge-gating checks locally, in CI order — 'will CI pass?'",
+		positionals: [],
+		supportsDryRun: true,
+	},
 	{
 		name: "sync-github",
 		description: "Sync workflow templates and composite actions to theholocron/.github",
 		positionals: [],
+		supportsDryRun: true,
 	},
 	{
 		name: "sync-readme",
 		description: "Sync the Installation + Usage block in README.md from package.json",
 		positionals: [],
+		supportsDryRun: true,
 	},
 	{ name: "config show", description: "Print the resolved holocron config", positionals: [] },
 	{
 		name: "new",
 		description: "Scaffold a new repo from a GitHub template (e.g. cli, react, nextjs, node, monorepo, base)",
 		positionals: [],
+		supportsDryRun: true,
 	},
 	{
 		name: "plugin create",
@@ -156,36 +198,42 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 			{ key: "slug", message: "Package slug (kebab-case):", type: "input" },
 			{ key: "vendor", message: "Vendor display name (PascalCase):", type: "input" },
 		],
+		supportsDryRun: true,
 	},
 	{
 		name: "skills install",
 		description: "Copy skills from @theholocron/skills into .agents/ with agent symlinks",
 		positionals: [],
 		group: "skills",
+		supportsDryRun: true,
 	},
 	{
 		name: "skills remove",
 		description: "Remove installed skills via npx skills remove",
 		positionals: [],
 		group: "skills",
+		supportsDryRun: true,
 	},
 	{
 		name: "skills update",
 		description: "Update installed skills to their latest upstream versions via npx skills update",
 		positionals: [],
 		group: "skills",
+		supportsDryRun: true,
 	},
 	{
 		name: "upgrade node",
 		description: "Scan the repo and update every Node.js version pin to a new major",
 		positionals: [{ key: "to", message: "Target Node.js major version:", type: "input", validate: numeric }],
 		group: "upgrade",
+		supportsDryRun: true,
 	},
 	{
 		name: "upgrade deps",
 		description: "Bump every @theholocron/* pin to latest and migrate holocron.config.ts to the current preset API",
 		positionals: [],
 		group: "upgrade",
+		supportsDryRun: true,
 	},
 	{
 		name: "auth set",
@@ -306,14 +354,19 @@ export async function promptForPositionals(entry: CommandEntry, argv: Record<str
  * menu-launched child should inherit from the parent invocation. Everything
  * else (command-specific options) was never captured by the top-level `$0`
  * handler in the first place, so there's nothing else to forward.
+ *
+ * `dryRunOverride`, when passed, wins over `argv.dryRun` — `launchMenu`'s
+ * dry-run offer needs to force `--dry-run` on for the preview spawn and
+ * force it back off for the real-run spawn that follows, regardless of
+ * what was on the original invocation.
  */
-export function forwardedFlags(argv: Record<string, unknown>): string[] {
+export function forwardedFlags(argv: Record<string, unknown>, dryRunOverride?: boolean): string[] {
 	const out: string[] = [];
 	const tokens = argv.token as string[] | undefined;
 	for (const t of tokens ?? []) out.push("--token", t);
 	if (typeof argv.org === "string") out.push("--org", argv.org);
 	if (typeof argv.cwd === "string") out.push("--cwd", argv.cwd);
-	if (argv.dryRun === true) out.push("--dry-run");
+	if (dryRunOverride ?? argv.dryRun === true) out.push("--dry-run");
 	return out;
 }
 
@@ -321,9 +374,10 @@ export function forwardedFlags(argv: Record<string, unknown>): string[] {
 export function buildChildArgv(
 	entry: CommandEntry,
 	positionals: string[],
-	parentArgv: Record<string, unknown>
+	parentArgv: Record<string, unknown>,
+	dryRunOverride?: boolean
 ): string[] {
-	return [...entry.name.split(" "), ...positionals, ...forwardedFlags(parentArgv)];
+	return [...entry.name.split(" "), ...positionals, ...forwardedFlags(parentArgv, dryRunOverride)];
 }
 
 /**
@@ -348,6 +402,18 @@ function spawnChild(args: string[]): Promise<number> {
 }
 
 /**
+ * Whether `launchMenu` should ask "run a dry run first?" for a picked
+ * command. Only when the command's handler actually honours `--dry-run`
+ * ({@link CommandEntry.supportsDryRun}) and the top-level invocation hadn't
+ * already answered that question by passing `--dry-run` itself — in that
+ * case `launchMenu` goes straight to the dry run without asking, since the
+ * user already said what they wanted.
+ */
+export function shouldOfferDryRun(entry: CommandEntry, parentArgv: Record<string, unknown>): boolean {
+	return Boolean(entry.supportsDryRun) && parentArgv.dryRun !== true;
+}
+
+/**
  * Layers 1 and 2: pick a command from `entries`, prompt for its required
  * positionals, spawn it as a fresh `holocron` invocation, and set
  * `process.exitCode` from the child — the caller (a `$0` handler in
@@ -356,6 +422,13 @@ function spawnChild(args: string[]): Promise<number> {
  * `command_completed` event fires with command name "unknown" (the
  * middleware ran before any command was picked) — left as-is rather than
  * suppressed; it's a real, useful signal ("the menu got used").
+ *
+ * For a command that honours `--dry-run` ({@link CommandEntry.supportsDryRun}),
+ * this also offers a preview: "run a dry run first?" (skipped — and the
+ * dry run just runs — when `--dry-run` was already passed at the top
+ * level, since that already answered the question). A dry run that exits
+ * non-zero stops here; a clean one gets one more question, "proceed with
+ * the real run?", before the real spawn.
  */
 export async function launchMenu(
 	entries: CommandEntry[],
@@ -368,6 +441,25 @@ export async function launchMenu(
 	}
 	const picked = await pickCommand(entries, pickMessage);
 	const positionals = await promptForPositionals(picked, {});
-	const childArgv = buildChildArgv(picked, positionals, parentArgv);
-	process.exitCode = await spawnChild(childArgv);
+
+	const runDryRunFirst = shouldOfferDryRun(picked, parentArgv)
+		? await confirm({ message: "Run a dry run first?", default: true })
+		: parentArgv.dryRun === true;
+
+	if (runDryRunFirst) {
+		const dryExit = await spawnChild(buildChildArgv(picked, positionals, parentArgv, true));
+		if (dryExit !== 0) {
+			process.exitCode = dryExit;
+			return;
+		}
+		const proceed = await confirm({ message: "Dry run complete — proceed with the real run?", default: false });
+		if (!proceed) {
+			process.exitCode = 0;
+			return;
+		}
+		process.exitCode = await spawnChild(buildChildArgv(picked, positionals, parentArgv, false));
+		return;
+	}
+
+	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, parentArgv));
 }

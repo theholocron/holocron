@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const inputMock = vi.fn();
 const selectMock = vi.fn();
+const confirmMock = vi.fn();
 vi.mock("@inquirer/prompts", () => ({
 	input: (...args: unknown[]) => inputMock(...args),
 	select: (...args: unknown[]) => selectMock(...args),
+	confirm: (...args: unknown[]) => confirmMock(...args),
 }));
 
 const searchMock = vi.fn();
@@ -28,6 +30,7 @@ const {
 	pickCommand,
 	promptForPositionals,
 	searchChoices,
+	shouldOfferDryRun,
 } = await import("./interactive-menu.js");
 
 function setTTY(value: boolean): void {
@@ -248,6 +251,15 @@ describe("forwardedFlags", () => {
 		expect(forwardedFlags({ dryRun: false })).toEqual([]);
 		expect(forwardedFlags({})).toEqual([]);
 	});
+
+	it("dryRunOverride wins over argv.dryRun in both directions", () => {
+		expect(forwardedFlags({ dryRun: false }, true)).toEqual(["--dry-run"]);
+		expect(forwardedFlags({ dryRun: true }, false)).toEqual([]);
+	});
+
+	it("falls back to argv.dryRun when no override is passed", () => {
+		expect(forwardedFlags({ dryRun: true })).toEqual(["--dry-run"]);
+	});
 });
 
 describe("buildChildArgv", () => {
@@ -268,12 +280,33 @@ describe("buildChildArgv", () => {
 	it("handles a command with no positionals", () => {
 		expect(buildChildArgv(getEntry("doctor"), [], {})).toEqual(["doctor"]);
 	});
+
+	it("passes a dryRunOverride through to forwardedFlags", () => {
+		expect(buildChildArgv(getEntry("doctor"), [], {}, true)).toEqual(["doctor", "--dry-run"]);
+		expect(buildChildArgv(getEntry("doctor"), [], { dryRun: true }, false)).toEqual(["doctor"]);
+	});
+});
+
+describe("shouldOfferDryRun", () => {
+	it("true for a dry-run-capable command when --dry-run wasn't already passed", () => {
+		expect(shouldOfferDryRun(getEntry("doctor"), {})).toBe(true);
+		expect(shouldOfferDryRun(getEntry("doctor"), { dryRun: false })).toBe(true);
+	});
+
+	it("false when --dry-run was already passed — no need to ask again", () => {
+		expect(shouldOfferDryRun(getEntry("doctor"), { dryRun: true })).toBe(false);
+	});
+
+	it("false for a command whose handler doesn't honour --dry-run", () => {
+		expect(shouldOfferDryRun(getEntry("auth set"), {})).toBe(false);
+	});
 });
 
 describe("launchMenu", () => {
 	beforeEach(() => {
 		searchMock.mockReset();
 		spawnMock.mockReset();
+		confirmMock.mockReset();
 	});
 	afterEach(() => setTTY(false));
 
@@ -356,6 +389,7 @@ describe("launchMenu", () => {
 		setTTY(true);
 		searchMock.mockResolvedValue("deploy");
 		inputMock.mockResolvedValue("main");
+		confirmMock.mockResolvedValue(false); // deploy supports dry-run — decline the offer
 		const child = new EventEmitter();
 		spawnMock.mockReturnValue(child);
 
@@ -368,5 +402,126 @@ describe("launchMenu", () => {
 			stdio: "inherit",
 			env: { ...process.env, NO_UPDATE_NOTIFIER: "1" },
 		});
+	});
+
+	const spawnArgs = (cmd: string[]) => [
+		process.execPath,
+		[process.argv[1], ...cmd],
+		{ stdio: "inherit", env: { ...process.env, NO_UPDATE_NOTIFIER: "1" } },
+	];
+
+	it("offers a dry run first for a dry-run-capable command, then runs for real on yes", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("doctor");
+		confirmMock.mockResolvedValueOnce(true); // run a dry run first?
+		confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
+		const dryChild = new EventEmitter();
+		const realChild = new EventEmitter();
+		spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+		const original = process.exitCode;
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		expect(spawnMock).toHaveBeenNthCalledWith(1, ...spawnArgs(["doctor", "--dry-run"]));
+		dryChild.emit("exit", 0);
+
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+		expect(spawnMock).toHaveBeenNthCalledWith(2, ...spawnArgs(["doctor"]));
+		realChild.emit("exit", 0);
+		await done;
+
+		expect(process.exitCode).toBe(0);
+		process.exitCode = original;
+	});
+
+	it("stops after a clean dry run when the user declines the real run", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("doctor");
+		confirmMock.mockResolvedValueOnce(true); // run a dry run first?
+		confirmMock.mockResolvedValueOnce(false); // proceed with the real run?
+		const dryChild = new EventEmitter();
+		spawnMock.mockReturnValueOnce(dryChild);
+
+		const original = process.exitCode;
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		dryChild.emit("exit", 0);
+		await done;
+
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(process.exitCode).toBe(0);
+		process.exitCode = original;
+	});
+
+	it("stops and surfaces the exit code when the dry run itself fails — never asks to proceed", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("doctor");
+		confirmMock.mockResolvedValueOnce(true); // run a dry run first?
+		const dryChild = new EventEmitter();
+		spawnMock.mockReturnValueOnce(dryChild);
+
+		const original = process.exitCode;
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		dryChild.emit("exit", 2);
+		await done;
+
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(process.exitCode).toBe(2);
+		expect(confirmMock).toHaveBeenCalledTimes(1);
+		process.exitCode = original;
+	});
+
+	it("declining the initial dry-run offer runs for real immediately, same as before", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("doctor");
+		confirmMock.mockResolvedValueOnce(false); // run a dry run first?
+		const child = new EventEmitter();
+		spawnMock.mockReturnValueOnce(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		expect(spawnMock).toHaveBeenNthCalledWith(1, ...spawnArgs(["doctor"]));
+		child.emit("exit", 0);
+		await done;
+
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(confirmMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("--dry-run already passed skips the first question but still asks to proceed afterward", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("doctor");
+		confirmMock.mockResolvedValueOnce(true); // proceed with the real run? (the only question asked)
+		const dryChild = new EventEmitter();
+		const realChild = new EventEmitter();
+		spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+		const done = launchMenu(COMMAND_REGISTRY, { dryRun: true });
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		expect(spawnMock).toHaveBeenNthCalledWith(1, ...spawnArgs(["doctor", "--dry-run"]));
+		dryChild.emit("exit", 0);
+
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+		expect(spawnMock).toHaveBeenNthCalledWith(2, ...spawnArgs(["doctor"]));
+		realChild.emit("exit", 0);
+		await done;
+
+		expect(confirmMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("a command that doesn't support --dry-run never offers the dry-run flow", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("auth set");
+		inputMock.mockResolvedValue("github");
+		const child = new EventEmitter();
+		spawnMock.mockReturnValueOnce(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		child.emit("exit", 0);
+		await done;
+
+		expect(confirmMock).not.toHaveBeenCalled();
 	});
 });
