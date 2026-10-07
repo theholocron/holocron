@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import { createNeonClient } from "../rest.js";
+import { createNeonClient } from "./rest.js";
 
 const TOKEN = "neon-test-pat";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, createPlugin, NeonStorage } from "../index.js";
+import { AuthError, createPlugin, NeonStorage } from "./index.js";
 
 describe("createPlugin", () => {
 	it("defers the missing-token AuthError to the first authenticated call", async () => {
