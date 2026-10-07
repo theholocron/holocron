@@ -2,7 +2,7 @@
 
 ### Features
 
-* add object-utils and fs-utils, errorMessage to misc-utils ([#292](https://github.com/theholocron/utils/issues/292)) ([2af94da](https://github.com/theholocron/utils/commit/2af94da1dc790f4d15f19d9e5132a4b561fd6dd8)), closes [#291](https://github.com/theholocron/utils/issues/291) [theholocron/docs#57](https://github.com/theholocron/docs/issues/57)
+- add object-utils and fs-utils, errorMessage to misc-utils ([#292](https://github.com/theholocron/utils/issues/292)) ([2af94da](https://github.com/theholocron/utils/commit/2af94da1dc790f4d15f19d9e5132a4b561fd6dd8)), closes [#291](https://github.com/theholocron/utils/issues/291) [theholocron/docs#57](https://github.com/theholocron/docs/issues/57)
 
 ## [1.8.3](https://github.com/theholocron/utils/compare/v1.8.2...v1.8.3) (2026-09-15)
 
