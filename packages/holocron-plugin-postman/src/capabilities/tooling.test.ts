@@ -7,8 +7,8 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { PostmanPlanLimitError } from "@theholocron/postman-client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { PostmanTooling } from "../capabilities/tooling.js";
 import { createPostmanClient } from "../rest.js";
+import { PostmanTooling } from "./tooling.js";
 
 function makeTooling(
 	responses: Parameters<typeof stubFetch>[0],

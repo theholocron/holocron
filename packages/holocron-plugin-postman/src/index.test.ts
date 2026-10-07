@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlugin, PostmanTooling } from "../index.js";
+import { createPlugin, PostmanTooling } from "./index.js";
 
 describe("createPlugin", () => {
 	it("defers the missing-token failure to the first authenticated call", async () => {
