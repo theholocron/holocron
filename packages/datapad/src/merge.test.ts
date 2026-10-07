@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeConfig } from "./merge.js";
+import { mergeConfig } from "./index.js";
 
 describe("mergeConfig", () => {
 	it("recursively merges plain objects", () => {

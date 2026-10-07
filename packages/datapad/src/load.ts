@@ -24,8 +24,8 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { findUpward, hasGitEntry } from "@theholocron/fs-utils";
+import { deepMerge as mergeConfig } from "@theholocron/object-utils";
 
-import { mergeConfig } from "./merge.js";
 import { isFile, loadFile } from "./utils.js";
 
 /** Default extension probe order, highest priority first. */
