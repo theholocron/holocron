@@ -6,7 +6,7 @@ Holocron uses one Personal Access Token per capability group. Each token carries
 
 For every feature, the token is resolved in this order:
 
-```
+```text
 --token flag
   → HOLOCRON_<FEATURE>_TOKEN   (feature-specific env var)
   → keyring("github.<feature>") (stored via `holocron auth set`)
@@ -120,15 +120,15 @@ for the exact one-time setup steps.
 
 ---
 
-# Third-party provider tokens
+## Third-party provider tokens
 
-## Fern (`wiki.yml`)
+### Fern (`wiki.yml`)
 
 Generate a token at `dashboard.buildwithfern.com` → **Settings → API tokens**.
 
 **Resolution order:**
 
-```
+```text
 --token flag
   → HOLOCRON_FERN_TOKEN   (env var)
   → FERN_TOKEN            (Fern's native env var — vendor fallback)
@@ -157,7 +157,7 @@ and maps it to `FERN_TOKEN` for the Fern CLI.
 Password protection is configured in the Fern Dashboard only — no token is
 needed for `holocron setup`.
 
-## Vercel + Doppler (Sentinel's CI, `.github/workflows/sentinel.*.yml`)
+### Vercel + Doppler (Sentinel's CI, `.github/workflows/sentinel.*.yml`)
 
 Sentinel's two hand-maintained workflows (holocron#800) — `sentinel.deploy.yml`
 and `sentinel.secretsSync.yml` — read these as plain repo secrets on `holocron`
@@ -170,7 +170,7 @@ directly):
 | `VERCEL_TOKEN`           | `VERCEL_TOKEN`  | both workflows — `holocron deploy`/`secrets sync`'s `deployment` destination | A Vercel personal access token (Vercel has no separate "service token" concept) — same one `holocron auth set vercel <token>` stores locally                                                                                               |
 | `SENTINEL_DOPPLER_TOKEN` | `DOPPLER_TOKEN` | `sentinel.secretsSync.yml` only — reads the vault                            | A Doppler **Service Token** scoped to the `sentinel` project's `prd` config, **read-only** — CI only ever reads, never writes, so a scoped-down service token (not the personal CLI login token used locally) is the right credential here |
 
-### Provisioning `VERCEL_TOKEN`
+#### Provisioning `VERCEL_TOKEN`
 
 Reuse the token `holocron auth` already has stored locally (`holocron auth
 list` shows `vercel — user @ <you>`) — pipe it straight from the keychain
@@ -186,7 +186,7 @@ as well if you'd rather keep local and CI usage separated; there's no
 scoped-down "service token" alternative either way, since Vercel doesn't
 have one.
 
-### Provisioning `SENTINEL_DOPPLER_TOKEN`
+#### Provisioning `SENTINEL_DOPPLER_TOKEN`
 
 A **Service Token**, not your personal Doppler login — Doppler's own
 mechanism for exactly this case (CI credential, independent of any human
@@ -202,7 +202,7 @@ account, scoped to one project + config):
 gh secret set SENTINEL_DOPPLER_TOKEN --repo theholocron/holocron
 ```
 
-### Provisioning `HOLOCRON_SECRETS_TOKEN`
+#### Provisioning `HOLOCRON_SECRETS_TOKEN`
 
 A brand-new fine-grained PAT — nothing like it exists yet, and it's
 deliberately **not** part of the `HOLOCRON_<FEATURE>_TOKEN` resolution
@@ -222,7 +222,7 @@ never by env-var auto-detection:
 gh secret set HOLOCRON_SECRETS_TOKEN --repo theholocron/holocron
 ```
 
-### None of these three belong in the local keyring
+#### None of these three belong in the local keyring
 
 All three are CI-only by design — deliberately kept out of
 `holocron auth set`'s local resolution chain:
