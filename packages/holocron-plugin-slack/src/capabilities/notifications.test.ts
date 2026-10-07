@@ -2,8 +2,8 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { SlackNotifications } from "../capabilities/notifications.js";
 import { createSlackClient } from "../rest.js";
+import { SlackNotifications } from "./notifications.js";
 
 const BASE = "https://slack.test/api";
 const TOKEN = "xoxb-test";
