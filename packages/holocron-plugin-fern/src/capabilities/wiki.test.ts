@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { FERN_VERSION, FernWiki } from "../capabilities/wiki.js";
+import { FERN_VERSION, FernWiki } from "./wiki.js";
 
 let repoRoot: string;
 
