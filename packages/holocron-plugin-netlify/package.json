@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-netlify",
-  "version": "5.0.0-alpha.116",
+  "version": "5.0.0-alpha.117",
   "description": "Holocron plugin for Netlify. Implements the deployment capability against Netlify's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
   "keywords": [
     "deployment",

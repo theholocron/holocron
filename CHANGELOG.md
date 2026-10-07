@@ -1,3 +1,5 @@
+## [5.0.0-alpha.117](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.116...v5.0.0-alpha.117) (2026-10-07)
+
 ## [5.0.0-alpha.116](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.115...v5.0.0-alpha.116) (2026-10-07)
 
 ## [5.0.0-alpha.115](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.114...v5.0.0-alpha.115) (2026-10-07)
