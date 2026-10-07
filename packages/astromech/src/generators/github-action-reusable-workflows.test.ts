@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS, reusableTemplates, WORKFLOW_TEMPLATE_PROPERTIES } from "./reusable.js";
-import { WORKFLOW_TEMPLATES } from "./thin-callers.js";
+import {
+	REUSABLE_ACTIONS,
+	REUSABLE_WORKFLOWS,
+	reusableTemplates,
+	WORKFLOW_TEMPLATE_PROPERTIES,
+} from "./github-action-reusable-workflows.js";
+import { WORKFLOW_TEMPLATES } from "./github-action-thin-callers.js";
 
 describe("reusableTemplates()", () => {
 	const batch = reusableTemplates();
@@ -69,7 +74,9 @@ describe("reusableTemplates()", () => {
 	it("applies the do-not-edit header to YAML — no timestamp", () => {
 		const typecheck = batch.get(".github/workflows/verification.typeSafety.yml")!;
 		expect(typecheck.startsWith("# AUTO-GENERATED — do not edit in theholocron/.github directly.\n")).toBe(true);
-		expect(typecheck).toContain("# Source:  theholocron/holocron · packages/astromech/src/reusable.ts");
+		expect(typecheck).toContain(
+			"# Source:  theholocron/holocron · packages/astromech/src/generators/github-action-reusable-workflows.ts"
+		);
 		expect(typecheck).toContain("# Tool:    holocron sync-github");
 		// A live `Synced:` timestamp would defeat sync-github's unchanged-file skip.
 		expect(typecheck).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);

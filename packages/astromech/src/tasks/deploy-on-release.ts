@@ -33,8 +33,8 @@ import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { loadTasksConfig } from "./config/load.js";
-import { normalizeTaskEntry, type TasksConfig } from "./config/schema.js";
+import { loadTasksConfig } from "../config/load.js";
+import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
 
 /** A stable release (no prerelease identifier) is on `main`, the default channel for a task. */
 const MAIN_CHANNEL = "main";

@@ -6,29 +6,29 @@
  * into the thin caller `holocron setup` / `holocron sync` write locally.
  */
 
-import bookkeepingYml from "./templates/workflows/bookkeeping.yml";
-import buildYml from "./templates/workflows/delivery.build.yml";
-import bundleSizeYml from "./templates/workflows/delivery.bundleSize.yml";
-import deployYml from "./templates/workflows/delivery.deploy.yml";
-import publishYml from "./templates/workflows/delivery.publish.yml";
-import dependenciesYml from "./templates/workflows/dependencies.yml";
-import greetingsYml from "./templates/workflows/greetings.yml";
-import wikiYml from "./templates/workflows/knowledge.wiki.yml";
-import commitStandardsYml from "./templates/workflows/platform.commitStandards.yml";
-import repoSyncYml from "./templates/workflows/platform.repoSync.yml";
-import repoValidationYml from "./templates/workflows/platform.repoValidation.yml";
-import previewYml from "./templates/workflows/preview.yml";
-import reviewYml from "./templates/workflows/review.yml";
-import codeScanningYml from "./templates/workflows/security.codeScanning.yml";
-import secretDetectionYml from "./templates/workflows/security.secretDetection.yml";
-import deadCodeAnalysisYml from "./templates/workflows/sourceQuality.deadCodeAnalysis.yml";
-import formattingYml from "./templates/workflows/sourceQuality.formatting.yml";
-import staticAnalysisYml from "./templates/workflows/sourceQuality.staticAnalysis.yml";
-import structuredDataValidationYml from "./templates/workflows/sourceQuality.structuredDataValidation.yml";
-import staleYml from "./templates/workflows/stale.yml";
-import performanceYml from "./templates/workflows/verification.performance.yml";
-import typeSafetyYml from "./templates/workflows/verification.typeSafety.yml";
-import unitTestsYml from "./templates/workflows/verification.unitTests.yml";
+import bookkeepingYml from "../templates/workflows/bookkeeping.yml";
+import buildYml from "../templates/workflows/delivery.build.yml";
+import bundleSizeYml from "../templates/workflows/delivery.bundleSize.yml";
+import deployYml from "../templates/workflows/delivery.deploy.yml";
+import publishYml from "../templates/workflows/delivery.publish.yml";
+import dependenciesYml from "../templates/workflows/dependencies.yml";
+import greetingsYml from "../templates/workflows/greetings.yml";
+import wikiYml from "../templates/workflows/knowledge.wiki.yml";
+import commitStandardsYml from "../templates/workflows/platform.commitStandards.yml";
+import repoSyncYml from "../templates/workflows/platform.repoSync.yml";
+import repoValidationYml from "../templates/workflows/platform.repoValidation.yml";
+import previewYml from "../templates/workflows/preview.yml";
+import reviewYml from "../templates/workflows/review.yml";
+import codeScanningYml from "../templates/workflows/security.codeScanning.yml";
+import secretDetectionYml from "../templates/workflows/security.secretDetection.yml";
+import deadCodeAnalysisYml from "../templates/workflows/sourceQuality.deadCodeAnalysis.yml";
+import formattingYml from "../templates/workflows/sourceQuality.formatting.yml";
+import staticAnalysisYml from "../templates/workflows/sourceQuality.staticAnalysis.yml";
+import structuredDataValidationYml from "../templates/workflows/sourceQuality.structuredDataValidation.yml";
+import staleYml from "../templates/workflows/stale.yml";
+import performanceYml from "../templates/workflows/verification.performance.yml";
+import typeSafetyYml from "../templates/workflows/verification.typeSafety.yml";
+import unitTestsYml from "../templates/workflows/verification.unitTests.yml";
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"verification.unitTests": unitTestsYml,

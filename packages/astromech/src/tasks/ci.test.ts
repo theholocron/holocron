@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { type CiInput, runCi } from "./ci.js";
-import type { RunLogger } from "./run.js";
+import type { RunLogger } from "./run/index.js";
 
 const CWD = "/repo";
 const noopLogger: RunLogger = { debug() {}, warn() {} };

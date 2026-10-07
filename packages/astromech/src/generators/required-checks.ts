@@ -9,9 +9,9 @@
  * manifest.
  */
 
-import { normalizeTaskEntry, type TasksConfig } from "./config/schema.js";
-import { CI_ORDER } from "./registry.js";
-import { WORKFLOW_CHECK_CONTEXTS } from "./thin-callers.js";
+import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
+import { CI_ORDER } from "../registry.js";
+import { WORKFLOW_CHECK_CONTEXTS } from "./github-action-thin-callers.js";
 
 /** Ordered (task contexts in {@link CI_ORDER}, then extras), de-duplicated. */
 export function requiredChecks(config: TasksConfig): string[] {

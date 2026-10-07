@@ -11,10 +11,10 @@
  * `required` (it's a CI-only check, not a local one).
  */
 
-import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
-import { CI_ORDER } from "./registry.js";
-import { type RunDeps, runTask } from "./run.js";
-import { WORKFLOW_CHECK_CONTEXTS } from "./thin-callers.js";
+import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "../config/schema.js";
+import { WORKFLOW_CHECK_CONTEXTS } from "../generators/github-action-thin-callers.js";
+import { CI_ORDER } from "../registry.js";
+import { type RunDeps, runTask } from "./run/index.js";
 
 export interface CiOptions {
 	/** Print the plan without running anything. */

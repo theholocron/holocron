@@ -22,7 +22,6 @@
  */
 
 export { type Astromech, type AstromechOptions, createAstromech, type RunOptions } from "./astromech.js";
-export { type CiJobReport, type CiOptions, type CiReport, runCi } from "./ci.js";
 export {
 	codecovComponentBlock,
 	codecovConfig,
@@ -31,19 +30,13 @@ export {
 	mergeCodecovComponents,
 	readWorkspacePackages,
 	type WorkspacePackage,
-} from "./codecov.js";
+} from "./generators/codecov.js";
 export {
-	deployOnRelease,
-	type DeployOnReleaseOptions,
-	type DeployOnReleaseReport,
-	type DeployOnReleaseResult,
-} from "./deploy-on-release.js";
-export { LINTER_NAMES, type LinterDef, LINTERS, resolveLinters } from "./linters.js";
-export { CI_ORDER, type JobDef, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
-export { requiredChecks } from "./required-checks.js";
-export { RESOLVABLE_TOOLS, type ResolverDeps, resolveToolConfig } from "./resolver.js";
-export { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS, reusableTemplates, WORKFLOW_TEMPLATE_PROPERTIES } from "./reusable.js";
-export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
+	REUSABLE_ACTIONS,
+	REUSABLE_WORKFLOWS,
+	reusableTemplates,
+	WORKFLOW_TEMPLATE_PROPERTIES,
+} from "./generators/github-action-reusable-workflows.js";
 export {
 	deriveDeployPaths,
 	extractPreviewConfig,
@@ -55,5 +48,15 @@ export {
 	type PreviewConfig,
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
-} from "./thin-callers.js";
-export { createTsconfig, type TsconfigOptions } from "./tsconfig.js";
+} from "./generators/github-action-thin-callers.js";
+export { requiredChecks } from "./generators/required-checks.js";
+export { createTsconfig, type TsconfigOptions } from "./generators/tsconfig.js";
+export { CI_ORDER, type JobDef, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
+export { type CiJobReport, type CiOptions, type CiReport, runCi } from "./tasks/ci.js";
+export {
+	deployOnRelease,
+	type DeployOnReleaseOptions,
+	type DeployOnReleaseReport,
+	type DeployOnReleaseResult,
+} from "./tasks/deploy-on-release.js";
+export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";

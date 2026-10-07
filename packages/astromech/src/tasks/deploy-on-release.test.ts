@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { TasksConfig } from "./config/schema.js";
+import type { TasksConfig } from "../config/schema.js";
 import {
 	defaultListDirs,
 	defaultPaths,
