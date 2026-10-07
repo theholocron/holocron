@@ -7,7 +7,7 @@ import {
 	resolveReadToken,
 	resolveReleaseToken,
 	resolveSyncToken,
-} from "../auth.js";
+} from "./auth.js";
 
 const noKeyring = () => null;
 

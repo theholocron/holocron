@@ -13,7 +13,7 @@ import {
 	GitHubIssues,
 	GitHubSecrets,
 	GitHubSource,
-} from "../index.js";
+} from "./index.js";
 
 const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" };
 

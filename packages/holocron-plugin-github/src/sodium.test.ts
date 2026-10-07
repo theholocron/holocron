@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { encryptSecret, sodium } from "../sodium.js";
+import { encryptSecret, sodium } from "./sodium.js";
 
 describe("encryptSecret", () => {
 	it("produces ciphertext decryptable by the matching secret key", async () => {

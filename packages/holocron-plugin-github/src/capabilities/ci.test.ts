@@ -1,8 +1,8 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { GitHubCi } from "../capabilities/ci.js";
 import { createGitHubClient } from "../rest.js";
+import { GitHubCi } from "./ci.js";
 
 const REPO = "theholocron/holocron";
 
