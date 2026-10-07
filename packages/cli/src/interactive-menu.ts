@@ -320,10 +320,22 @@ export function buildChildArgv(
 	return [...entry.name.split(" "), ...positionals, ...forwardedFlags(parentArgv)];
 }
 
-/** Spawn `holocron <...args>` inheriting stdio; resolve with its exit code. */
+/**
+ * Spawn `holocron <...args>` inheriting stdio; resolve with its exit code.
+ *
+ * `NO_UPDATE_NOTIFIER` is forced on in the child's env — the parent's own
+ * update-notifier tail still runs after this resolves (see `launchMenu`'s
+ * docstring), so without this the freshly-spawned child independently runs
+ * its own `checkForUpdates()` too and the notice prints twice: once from
+ * the child right after its command output, once more from the parent
+ * once the child exits.
+ */
 function spawnChild(args: string[]): Promise<number> {
 	return new Promise((resolve) => {
-		const child = spawn(process.execPath, [process.argv[1]!, ...args], { stdio: "inherit" });
+		const child = spawn(process.execPath, [process.argv[1]!, ...args], {
+			stdio: "inherit",
+			env: { ...process.env, NO_UPDATE_NOTIFIER: "1" },
+		});
 		child.on("exit", (code) => resolve(code ?? 0));
 		child.on("error", () => resolve(1));
 	});
