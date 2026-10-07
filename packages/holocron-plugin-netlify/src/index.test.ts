@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { AUTH_HINT, createPlugin } from "../index.js";
 import { stubFetch } from "./helpers.js";
+import { AUTH_HINT, createPlugin } from "./index.js";
 
 describe("createPlugin", () => {
 	it("wires the deployment capability against the given fetch + token", () => {

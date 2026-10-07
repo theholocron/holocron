@@ -1,8 +1,8 @@
 import { createNetlifyClient } from "@theholocron/netlify-client";
 import { describe, expect, it } from "vitest";
 
-import { NetlifyDeployment } from "../capabilities/deployment.js";
-import { stubFetch } from "./helpers.js";
+import { stubFetch } from "../helpers.js";
+import { NetlifyDeployment } from "./deployment.js";
 
 function makeCapability(
 	opts?: { accountSlug?: string; accountId?: string; domain?: string },
