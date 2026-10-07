@@ -55,6 +55,26 @@ export interface Loaded<T> {
 }
 
 /**
+ * Probe `dir` for `<name>.config.<ext>` in extension-priority order,
+ * loading and returning the first match. The one piece of per-directory
+ * orchestration `loadConfigFile` needs on both its non-walking and
+ * walking paths — pulled out so it can be unit-tested directly instead of
+ * only through `loadConfigFile`'s full probe/walk behavior.
+ */
+export async function probeExtensions<T>(
+	dir: string,
+	name: string,
+	extensions: readonly string[]
+): Promise<Loaded<T> | undefined> {
+	for (const ext of extensions) {
+		const filepath = join(dir, `${name}.config.${ext}`);
+		if (!(await isFile(filepath))) continue;
+		return { config: await loadFile<T>(filepath, ext), filepath };
+	}
+	return undefined;
+}
+
+/**
  * Load the first `<name>.config.<ext>` found starting at `cwd` — just
  * `cwd` itself by default, or walking up through ancestor directories when
  * `walkUp` is set (see the module doc comment for the stop conditions).
@@ -63,15 +83,7 @@ export interface Loaded<T> {
  */
 export async function loadConfigFile<T>(opts: LoadConfigFileOptions): Promise<Loaded<T> | null> {
 	const extensions = opts.extensions ?? DEFAULT_EXTENSIONS;
-
-	const checkDir = async (dir: string): Promise<Loaded<T> | undefined> => {
-		for (const ext of extensions) {
-			const filepath = join(dir, `${opts.name}.config.${ext}`);
-			if (!(await isFile(filepath))) continue;
-			return { config: await loadFile<T>(filepath, ext), filepath };
-		}
-		return undefined;
-	};
+	const checkDir = (dir: string) => probeExtensions<T>(dir, opts.name, extensions);
 
 	if (!opts.walkUp) return (await checkDir(opts.cwd)) ?? null;
 	return (await findUpward(opts.cwd, checkDir, hasGitEntry)) ?? null;
