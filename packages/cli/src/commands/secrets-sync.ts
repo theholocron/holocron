@@ -31,6 +31,7 @@
  * individually via `holocron secret set` (also planned for v5.1).
  */
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -224,7 +225,7 @@ async function runRow(
 			scope,
 			key,
 			status: "fail",
-			message: err instanceof Error ? err.message : String(err),
+			message: errorMessage(err),
 		};
 	}
 }

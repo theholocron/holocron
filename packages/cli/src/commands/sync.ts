@@ -3,6 +3,7 @@ import { basename, join } from "node:path";
 
 import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -606,7 +607,7 @@ async function runSyncStep(
 			capability,
 			step,
 			status: "fail",
-			message: err instanceof Error ? err.message : String(err),
+			message: errorMessage(err),
 		};
 	}
 }

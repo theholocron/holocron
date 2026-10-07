@@ -30,6 +30,8 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
+import { errorMessage } from "@theholocron/misc-utils";
+
 import type { CapabilityConfigPackage, ResolvedHolocronConfig, ResolvedTuple } from "../config/config.js";
 import { resolvePluginPackage } from "../config/config.js";
 import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "./capabilities.js";
@@ -197,9 +199,7 @@ export class PluginLoader {
 	private async loadOne(key: CapabilityKey, tuple: ResolvedTuple): Promise<unknown> {
 		const mod = await this.importer(tuple.packageName).catch((err: unknown) => {
 			throw new LoaderError(
-				`failed to import \`${tuple.packageName}\` for capability \`${key}\`: ${
-					err instanceof Error ? err.message : String(err)
-				}`
+				`failed to import \`${tuple.packageName}\` for capability \`${key}\`: ${errorMessage(err)}`
 			);
 		});
 

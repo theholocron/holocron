@@ -42,6 +42,7 @@
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
@@ -58,7 +59,8 @@
   },
   "peerDependencies": {
     "@theholocron/clerk-client": "catalog:clients",
-    "@theholocron/cli": "workspace:*"
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/misc-utils": "catalog:utils"
   },
   "engines": {
     "node": ">=22"

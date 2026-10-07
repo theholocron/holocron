@@ -15,6 +15,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { type AuthEvent, type AuthEventType, type ParseWebhookInput, WebhookVerificationError } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
 
 interface ClerkWebhookPayload {
 	type: string;
@@ -46,9 +47,7 @@ export async function parseWebhook(input: ParseWebhookInput): Promise<AuthEvent>
 	try {
 		payload = JSON.parse(bodyStr) as ClerkWebhookPayload;
 	} catch (err) {
-		throw new WebhookVerificationError(
-			`Clerk webhook body is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
-		);
+		throw new WebhookVerificationError(`Clerk webhook body is not valid JSON: ${errorMessage(err)}`);
 	}
 
 	const normalizedType = CLERK_TO_NORMALIZED[payload.type];

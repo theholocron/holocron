@@ -15,6 +15,8 @@
  * capture lines without ANSI / spinner noise.
  */
 
+import { errorMessage } from "@theholocron/misc-utils";
+
 import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
 import type { Auth, Ci, Errors, Issues, Logs, Secrets, Source, Vault } from "../plugin/capabilities.js";
@@ -185,7 +187,7 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}
 	} catch (err) {
-		return mk(key, provider, "fail", err instanceof Error ? err.message : String(err));
+		return mk(key, provider, "fail", errorMessage(err));
 	}
 }
 

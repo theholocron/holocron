@@ -37,6 +37,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
@@ -198,7 +199,7 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 		logger.info({ status: record.status, url: triggered.url, id: record.id }, "deploy: ready");
 		return { deployment: record, status: "ok" };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		print(`  ${style.fail(message)}`);
 		logger.warn({ branch: input.branch, reason: message }, "deploy: failed");
 		return { deployment: null, status: "fail", message };
@@ -333,7 +334,7 @@ export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promis
 		logger.info({ url: result.url, id: result.deploymentId }, "deploy: ready (files)");
 		return { deployment: result, status: "ok" };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		print(`  ${style.fail(message)}`);
 		logger.warn({ dir: input.dir, reason: message }, "deploy: failed (files)");
 		return { deployment: null, status: "fail", message };

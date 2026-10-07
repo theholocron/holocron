@@ -21,6 +21,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../../logger.js";
@@ -228,7 +229,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 			execFn("pnpm", ["--filter", pkg, "verification.unitTests"], { cwd, stdio: "inherit" });
 			print("  ✓ scaffold verified");
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const message = errorMessage(err);
 			print(`  ✗ verify failed — ${message}`);
 			logger.warn(
 				{ slug: inputs.slug, files: filesWritten.length, reason: message, status: "fail" },

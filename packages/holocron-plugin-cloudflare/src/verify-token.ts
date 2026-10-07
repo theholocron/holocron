@@ -1,16 +1,7 @@
+import type { VerifyTokenResult } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
+
 import { createCloudflareClient } from "./rest.js";
-
-export interface VerifyTokenSuccess {
-	ok: true;
-	subject: string;
-}
-
-export interface VerifyTokenFailure {
-	ok: false;
-	message: string;
-}
-
-export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 export interface VerifyTokenOptions {
 	baseUrl?: string;
@@ -37,7 +28,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		const label = zoneList[0]?.name ?? "unknown";
 		return { ok: true, subject: `zone: ${label}` };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		return { ok: false, message };
 	}
 }

@@ -10,19 +10,9 @@
  * what we don't have yet at bootstrap time.
  */
 
+import type { VerifyTokenResult } from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
 import { createNetlifyClient } from "@theholocron/netlify-client";
-
-export interface VerifyTokenSuccess {
-	ok: true;
-	subject: string;
-}
-
-export interface VerifyTokenFailure {
-	ok: false;
-	message: string;
-}
-
-export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 export interface VerifyTokenOptions {
 	baseUrl?: string;
@@ -36,7 +26,7 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 		const subject = user?.email ?? user?.full_name ?? user?.id ?? "unknown";
 		return { ok: true, subject: `user @ ${subject}` };
 	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
+		const message = errorMessage(err);
 		return { ok: false, message };
 	}
 }

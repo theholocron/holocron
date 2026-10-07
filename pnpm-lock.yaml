@@ -468,6 +468,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/observability':
         specifier: 'catalog:'
         version: 0.4.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -659,6 +662,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -713,6 +719,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -767,6 +776,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -821,6 +833,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -878,6 +893,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -984,6 +1002,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -1038,6 +1059,9 @@ importers:
       '@theholocron/infisical-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -1089,6 +1113,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/neon-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1140,6 +1167,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/netlify-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1186,6 +1216,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -1240,6 +1273,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/postman-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1294,6 +1330,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/sentry-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1351,6 +1390,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -1405,6 +1447,9 @@ importers:
       '@theholocron/http-client':
         specifier: catalog:clients
         version: 1.37.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.0(typescript@5.9.3)
@@ -1519,6 +1564,9 @@ importers:
       '@theholocron/markdownlint-config':
         specifier: catalog:configs
         version: 8.7.0(markdownlint@0.41.1)
+      '@theholocron/misc-utils':
+        specifier: catalog:utils
+        version: 1.9.2
       '@theholocron/observability':
         specifier: 'catalog:'
         version: 0.4.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
