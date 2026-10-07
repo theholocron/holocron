@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { createInfisicalClient } from "../rest.js";
+import { createInfisicalClient } from "./rest.js";
 
 describe("createInfisicalClient", () => {
 	it("sends bearer + accept headers", async () => {

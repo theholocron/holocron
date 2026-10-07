@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, resolveToken } from "../auth.js";
+import { AuthError, resolveToken } from "./auth.js";
 
 const noKeyring = () => null;
 
