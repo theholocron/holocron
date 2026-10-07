@@ -1,0 +1,67 @@
+import { AuthError, ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
+
+import { createDiscordClient } from "../rest.js";
+import { DiscordNotifications } from "./notifications.js";
+
+const BASE = "https://discord.test/api/v10";
+const WEBHOOK = "https://discord.com/api/webhooks/111/abc123";
+const ID = "111";
+const TOKEN = "abc123";
+
+function makeNotifs(
+	responses: Parameters<typeof stubFetch>[0],
+	opts: ConstructorParameters<typeof DiscordNotifications>[1] = {},
+	defaultWebhookUrl: () => string = () => {
+		throw new AuthError("no Discord webhook URL found");
+	}
+) {
+	const { fetch, calls } = stubFetch(responses);
+	const client = createDiscordClient({ baseUrl: BASE, fetch });
+	return { notifs: new DiscordNotifications(client, opts, defaultWebhookUrl), calls };
+}
+
+describe("DiscordNotifications.send — raw webhook URL", () => {
+	it("executes the webhook with the message", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }]);
+		await notifs.send(WEBHOOK, "hello");
+		expect(calls[0]?.url).toBe(`${BASE}/webhooks/${ID}/${TOKEN}`);
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toMatchObject({ content: "hello" });
+	});
+
+	it("throws ProviderApiError on non-2xx", async () => {
+		const { notifs } = makeNotifs([{ status: 400, body: { message: "bad request" } }]);
+		await expect(notifs.send(WEBHOOK, "msg")).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});
+
+describe("DiscordNotifications.send — alias", () => {
+	it("resolves a named alias to its webhook URL", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }], {
+			webhooks: { deploys: WEBHOOK },
+		});
+		await notifs.send("deploys", "deployed");
+		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
+	});
+});
+
+describe("DiscordNotifications.send — defaultChannel", () => {
+	it("falls back to defaultChannel when channel is empty", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }], { defaultChannel: WEBHOOK });
+		await notifs.send("", "hello");
+		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
+	});
+
+	it("defers the missing-webhook AuthError to send() when nothing resolves the channel", async () => {
+		const { notifs } = makeNotifs([]);
+		await expect(notifs.send("unknown-alias", "msg")).rejects.toBeInstanceOf(AuthError);
+	});
+
+	it("falls back to the resolved webhook URL when no channel and no defaultChannel", async () => {
+		const { notifs, calls } = makeNotifs([{ status: 204 }], {}, () => WEBHOOK);
+		await notifs.send("", "hello");
+		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
+	});
+});
