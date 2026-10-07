@@ -320,7 +320,7 @@ describe("runClone", () => {
 		});
 
 		expect(report.status).toBe("dry-run");
-		expect(lines[0]).toContain(join(homedir(), "Code", "my-org"));
+		expect(lines.some((l) => l.includes(join(homedir(), "Code", "my-org")))).toBe(true);
 	});
 
 	it("returns fail when the GitHub API call errors", async () => {

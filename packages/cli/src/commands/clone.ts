@@ -159,7 +159,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			return { status: r.status };
 		});
 
-	print(style.header(`Holocron clone — ${label} → ${targetDir}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron clone — ${label}${dryRun ? " (dry-run)" : ""}`));
 
 	if (!existsSync(targetDir)) {
 		if (dryRun) {
