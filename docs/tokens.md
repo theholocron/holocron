@@ -89,7 +89,8 @@ env:
 Pass a token directly for a single invocation without touching env vars or the keyring:
 
 ```sh
-holocron clone --token github=ghp_xxx theholocron
+holocron clone --token github=ghp_xxx theholocron/holocron
+holocron clone --token github=ghp_xxx theholocron --all
 holocron sync-github --token github=ghp_zzz
 ```
 

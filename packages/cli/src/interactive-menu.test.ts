@@ -152,12 +152,13 @@ describe("promptForPositionals", () => {
 		expect(call.validate("nope")).toMatch(/number/);
 	});
 
-	it("rejects empty input for clone's org positional", async () => {
-		inputMock.mockResolvedValue("theholocron");
+	it("validates clone's target positional — owner/repo passes, empty or bare org don't", async () => {
+		inputMock.mockResolvedValue("theholocron/holocron");
 		await promptForPositionals(getEntry("clone"), {});
 		const call = inputMock.mock.calls[0]![0] as { validate: (v: string) => boolean | string };
-		expect(call.validate("theholocron")).toBe(true);
+		expect(call.validate("theholocron/holocron")).toBe(true);
 		expect(call.validate("   ")).toMatch(/required/);
+		expect(call.validate("theholocron")).toMatch(/--all/);
 	});
 
 	it("prompts via select() for a static-choices select-type positional", async () => {

@@ -84,13 +84,20 @@ const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
 		name: "clone",
-		description: "Clone all repos in a GitHub org as siblings under a single directory",
+		description: "Clone a single repo (owner/repo); pass --all to clone every repo in an org instead",
 		positionals: [
 			{
-				key: "org",
-				message: "GitHub org to clone, or owner/repo to clone just that one repo:",
+				key: "target",
+				message: "owner/repo to clone:",
 				type: "input",
-				validate: (v) => v.trim().length > 0 || "org is required",
+				validate: (v) => {
+					const trimmed = v.trim();
+					if (!trimmed) return "owner/repo is required";
+					if (!trimmed.includes("/")) {
+						return `enter "owner/repo" — or Ctrl+C and run \`holocron clone ${trimmed} --all\` to clone every repo in that org`;
+					}
+					return true;
+				},
 			},
 		],
 	},

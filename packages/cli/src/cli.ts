@@ -190,13 +190,19 @@ try {
 		})
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
-			"clone [org]",
-			"Clone all repos in a GitHub org (or one repo via owner/repo) as siblings under a single directory",
+			"clone [target]",
+			"Clone a single repo (owner/repo); pass --all to clone every repo in an org instead",
 			(y) =>
 				y
-					.positional("org", {
+					.positional("target", {
 						type: "string",
-						describe: "GitHub org to clone (e.g., theholocron), or owner/repo to clone just that one repo.",
+						describe: "owner/repo to clone (e.g., theholocron/holocron).",
+					})
+					.option("all", {
+						type: "boolean",
+						default: false,
+						describe:
+							"Clone every repo in the org instead of a single owner/repo. Pass a bare org as the target.",
 					})
 					.option("dir", {
 						type: "string",
@@ -215,6 +221,20 @@ try {
 				}
 				const [targetInput] = await promptForPositionals(getEntry("clone"), argv as Record<string, unknown>);
 				const { org, repo } = parseCloneTarget(targetInput);
+				if (repo && argv.all) {
+					getLogger().error(
+						`clone: --all clones every repo in an org — give a bare org, not "${targetInput}"`
+					);
+					process.exitCode = 1;
+					return;
+				}
+				if (!repo && !argv.all) {
+					getLogger().error(
+						`clone: give "owner/repo" to clone a single repo, or pass --all to clone every repo in "${org}"`
+					);
+					process.exitCode = 1;
+					return;
+				}
 				const report = await runClone({
 					org,
 					...(repo ? { repo } : {}),
