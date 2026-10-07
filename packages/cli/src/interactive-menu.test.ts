@@ -290,9 +290,25 @@ describe("launchMenu", () => {
 
 		expect(spawnMock).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "--org", "theholocron"], {
 			stdio: "inherit",
+			env: { ...process.env, NO_UPDATE_NOTIFIER: "1" },
 		});
 		expect(process.exitCode).toBe(3);
 		process.exitCode = original;
+	});
+
+	it("suppresses the child's own update check — the parent's tail notifier already covers it", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("version");
+		const child = new EventEmitter();
+		spawnMock.mockReturnValue(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled());
+		child.emit("exit", 0);
+		await done;
+
+		const [, , options] = spawnMock.mock.calls[0] as [unknown, unknown, { env: Record<string, string> }];
+		expect(options.env["NO_UPDATE_NOTIFIER"]).toBe("1");
 	});
 
 	it("treats a null child exit code as 0", async () => {
@@ -341,6 +357,7 @@ describe("launchMenu", () => {
 
 		expect(spawnMock).toHaveBeenCalledWith(process.execPath, [process.argv[1], "deploy", "main"], {
 			stdio: "inherit",
+			env: { ...process.env, NO_UPDATE_NOTIFIER: "1" },
 		});
 	});
 });
