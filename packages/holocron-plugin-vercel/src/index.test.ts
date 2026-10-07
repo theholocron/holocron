@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, createPlugin, VercelDeployment } from "../index.js";
+import { AuthError, createPlugin, VercelDeployment } from "./index.js";
 
 describe("createPlugin", () => {
 	it("defers the missing-token AuthError to the first authenticated call", async () => {
