@@ -8,43 +8,43 @@
  * `.yml` files in `src/templates/reusable/` and pushed verbatim (with a
  * "do not edit" header). Never hand-edit them in `.github`.
  *
- * Not to be confused with `WORKFLOW_TEMPLATES` in `thin-callers.ts` — those are
+ * Not to be confused with `WORKFLOW_TEMPLATES` in `github-action-thin-callers.ts` — those are
  * the *thin-caller bases* written into each consumer repo's `.github/workflows/`.
  */
 
-import autoCommitAction from "./templates/reusable/actions/auto-commit.yml";
-import holocronAction from "./templates/reusable/actions/holocron.yml";
-import installAction from "./templates/reusable/actions/install.yml";
-import setupAction from "./templates/reusable/actions/setup.yml";
-import setupNodeAction from "./templates/reusable/actions/setup-node.yml";
-import bookkeepingWorkflow from "./templates/reusable/bookkeeping.yml";
-import buildWorkflow from "./templates/reusable/delivery.build.yml";
-import bundleSizeWorkflow from "./templates/reusable/delivery.bundleSize.yml";
-import deployWorkflow from "./templates/reusable/delivery.deploy.yml";
-import publishWorkflow from "./templates/reusable/delivery.publish.yml";
-import dependenciesWorkflow from "./templates/reusable/dependencies.yml";
-import greetingsWorkflow from "./templates/reusable/greetings.yml";
-import wikiWorkflow from "./templates/reusable/knowledge.wiki.yml";
-import commitStandardsWorkflow from "./templates/reusable/platform.commitStandards.yml";
-import dispatchedCheckWorkflow from "./templates/reusable/platform.dispatchedCheck.yml";
-import repoSyncWorkflow from "./templates/reusable/platform.repoSync.yml";
-import repoValidationWorkflow from "./templates/reusable/platform.repoValidation.yml";
-import previewWorkflow from "./templates/reusable/preview.yml";
-import reviewWorkflow from "./templates/reusable/review.yml";
-import codeScanningWorkflow from "./templates/reusable/security.codeScanning.yml";
-import secretDetectionWorkflow from "./templates/reusable/security.secretDetection.yml";
-import deadCodeAnalysisWorkflow from "./templates/reusable/sourceQuality.deadCodeAnalysis.yml";
-import formattingWorkflow from "./templates/reusable/sourceQuality.formatting.yml";
-import staticAnalysisWorkflow from "./templates/reusable/sourceQuality.staticAnalysis.yml";
-import structuredDataValidationWorkflow from "./templates/reusable/sourceQuality.structuredDataValidation.yml";
-import staleWorkflow from "./templates/reusable/stale.yml";
-import syncDispatchWorkflow from "./templates/reusable/sync-dispatch.yml";
-import syncGithubWorkflow from "./templates/reusable/sync-github.yml";
-import tagWorkflow from "./templates/reusable/tag.yml";
-import performanceWorkflow from "./templates/reusable/verification.performance.yml";
-import typeSafetyWorkflow from "./templates/reusable/verification.typeSafety.yml";
-import unitTestsWorkflow from "./templates/reusable/verification.unitTests.yml";
-import { WORKFLOW_TEMPLATES } from "./thin-callers.js";
+import autoCommitAction from "../templates/reusable/actions/auto-commit.yml";
+import holocronAction from "../templates/reusable/actions/holocron.yml";
+import installAction from "../templates/reusable/actions/install.yml";
+import setupAction from "../templates/reusable/actions/setup.yml";
+import setupNodeAction from "../templates/reusable/actions/setup-node.yml";
+import bookkeepingWorkflow from "../templates/reusable/bookkeeping.yml";
+import buildWorkflow from "../templates/reusable/delivery.build.yml";
+import bundleSizeWorkflow from "../templates/reusable/delivery.bundleSize.yml";
+import deployWorkflow from "../templates/reusable/delivery.deploy.yml";
+import publishWorkflow from "../templates/reusable/delivery.publish.yml";
+import dependenciesWorkflow from "../templates/reusable/dependencies.yml";
+import greetingsWorkflow from "../templates/reusable/greetings.yml";
+import wikiWorkflow from "../templates/reusable/knowledge.wiki.yml";
+import commitStandardsWorkflow from "../templates/reusable/platform.commitStandards.yml";
+import dispatchedCheckWorkflow from "../templates/reusable/platform.dispatchedCheck.yml";
+import repoSyncWorkflow from "../templates/reusable/platform.repoSync.yml";
+import repoValidationWorkflow from "../templates/reusable/platform.repoValidation.yml";
+import previewWorkflow from "../templates/reusable/preview.yml";
+import reviewWorkflow from "../templates/reusable/review.yml";
+import codeScanningWorkflow from "../templates/reusable/security.codeScanning.yml";
+import secretDetectionWorkflow from "../templates/reusable/security.secretDetection.yml";
+import deadCodeAnalysisWorkflow from "../templates/reusable/sourceQuality.deadCodeAnalysis.yml";
+import formattingWorkflow from "../templates/reusable/sourceQuality.formatting.yml";
+import staticAnalysisWorkflow from "../templates/reusable/sourceQuality.staticAnalysis.yml";
+import structuredDataValidationWorkflow from "../templates/reusable/sourceQuality.structuredDataValidation.yml";
+import staleWorkflow from "../templates/reusable/stale.yml";
+import syncDispatchWorkflow from "../templates/reusable/sync-dispatch.yml";
+import syncGithubWorkflow from "../templates/reusable/sync-github.yml";
+import tagWorkflow from "../templates/reusable/tag.yml";
+import performanceWorkflow from "../templates/reusable/verification.performance.yml";
+import typeSafetyWorkflow from "../templates/reusable/verification.typeSafety.yml";
+import unitTestsWorkflow from "../templates/reusable/verification.unitTests.yml";
+import { WORKFLOW_TEMPLATES } from "./github-action-thin-callers.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
 export const REUSABLE_WORKFLOWS: Record<string, string> = {
@@ -103,7 +103,7 @@ export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
 	),
 };
 
-const SOURCE = "packages/astromech/src/reusable.ts";
+const SOURCE = "packages/astromech/src/generators/github-action-reusable-workflows.ts";
 
 /**
  * "AUTO-GENERATED — do not edit" header for the YAML pushed to

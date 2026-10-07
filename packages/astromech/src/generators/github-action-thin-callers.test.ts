@@ -9,7 +9,7 @@ import {
 	normalizeWorkflowWith,
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
-} from "./thin-callers.js";
+} from "./github-action-thin-callers.js";
 
 describe("WORKFLOW_TEMPLATES", () => {
 	it("KNOWN_WORKFLOWS mirrors the template keys", () => {

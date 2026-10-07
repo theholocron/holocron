@@ -351,7 +351,7 @@ describe("createAstromech().packageScripts", () => {
 
 describe("createAstromech().reusableTemplates", () => {
 	it("delegates to the bare reusableTemplates() — config-independent", async () => {
-		const { reusableTemplates } = await import("./reusable.js");
+		const { reusableTemplates } = await import("./generators/github-action-reusable-workflows.js");
 		const viaFactory = createAstromech({ cwd: "/repo" }).reusableTemplates();
 		expect([...viaFactory.entries()]).toEqual([...reusableTemplates().entries()]);
 		expect(viaFactory.has(".github/workflows/verification.typeSafety.yml")).toBe(true);
@@ -381,7 +381,7 @@ describe("createAstromech().requiredChecks", () => {
 
 describe("createAstromech().codecovConfig", () => {
 	it("delegates to the bare codecovConfig(cwd, existing) — cwd bound from the factory", async () => {
-		const { codecovConfig } = await import("./codecov.js");
+		const { codecovConfig } = await import("./generators/codecov.js");
 		const viaFactory = createAstromech({ cwd: "/repo" }).codecovConfig(null);
 		expect(viaFactory).toEqual(codecovConfig("/repo", null));
 		expect(viaFactory).toContain("Scaffolded by holocron setup");
@@ -400,7 +400,7 @@ describe("createAstromech().turboConfig", () => {
 	});
 
 	it("returns the generated turbo.json for a manifest with fan-out-eligible tasks", async () => {
-		const { turboConfig } = await import("./turbo.js");
+		const { turboConfig } = await import("./generators/turbo.js");
 		const config = { tasks: ["verification.typeSafety", "verification.unitTests"] };
 		const viaFactory = createAstromech({ cwd: "/repo", config }).turboConfig();
 		expect(viaFactory).toEqual(turboConfig(config));
@@ -410,7 +410,7 @@ describe("createAstromech().turboConfig", () => {
 
 describe("createAstromech().ensureRootWorkspaceMember", () => {
 	it("delegates to the bare ensureRootWorkspaceMember(), deriving taskNames from config.tasks (#692)", async () => {
-		const { ensureRootWorkspaceMember } = await import("./turbo.js");
+		const { ensureRootWorkspaceMember } = await import("./generators/turbo.js");
 		const config = { tasks: ["delivery.build"] };
 		const yaml = 'packages:\n  - "docs"\n';
 		const viaFactory = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
@@ -448,7 +448,7 @@ describe("createAstromech().ensureRootWorkspaceMember", () => {
 
 describe("createAstromech().ensureTurboDependency", () => {
 	it("delegates to the bare ensureTurboDependency()", async () => {
-		const { ensureTurboDependency } = await import("./turbo.js");
+		const { ensureTurboDependency } = await import("./generators/turbo.js");
 		const pkg = JSON.stringify({ name: "demo" });
 		const yaml = "packages:\n  - docs\n";
 		const viaFactory = createAstromech({ cwd: "/repo" }).ensureTurboDependency(pkg, yaml);

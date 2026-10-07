@@ -8,13 +8,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { type CiOptions, type CiReport, runCi } from "./ci.js";
-import { codecovConfig as resolveCodecovConfig } from "./codecov.js";
 import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema.js";
-import { KNOWN_TASKS, TASKS } from "./registry.js";
-import { requiredChecks as resolveRequiredChecks } from "./required-checks.js";
-import { reusableTemplates as resolveReusableTemplates } from "./reusable.js";
-import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./run.js";
+import { codecovConfig as resolveCodecovConfig } from "./generators/codecov.js";
+import { reusableTemplates as resolveReusableTemplates } from "./generators/github-action-reusable-workflows.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,
@@ -23,14 +19,18 @@ import {
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
 	type OrgContext,
-} from "./thin-callers.js";
+} from "./generators/github-action-thin-callers.js";
+import { requiredChecks as resolveRequiredChecks } from "./generators/required-checks.js";
 import {
 	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
 	type EnsureRootWorkspaceMemberResult,
 	ensureTurboDependency as resolveEnsureTurboDependency,
 	type EnsureTurboDependencyResult,
 	turboConfig as resolveTurboConfig,
-} from "./turbo.js";
+} from "./generators/turbo.js";
+import { KNOWN_TASKS, TASKS } from "./registry.js";
+import { type CiOptions, type CiReport, runCi } from "./tasks/ci.js";
+import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./tasks/run/index.js";
 
 export interface AstromechOptions {
 	/** Repo root. */

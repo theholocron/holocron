@@ -30,8 +30,8 @@
 
 import { join } from "node:path";
 
+import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "../../registry.js";
 import { resolveLinters } from "./linters.js";
-import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "./registry.js";
 import { resolveToolConfig } from "./resolver.js";
 
 /** Minimal structural logger — `@theholocron/observability`'s `Logger` satisfies it. */

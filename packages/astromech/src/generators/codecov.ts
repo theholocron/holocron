@@ -10,7 +10,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import codecovTemplate from "./templates/codecov/codecov.yml";
+import codecovTemplate from "../templates/codecov/codecov.yml";
 
 export interface WorkspacePackage {
 	slug: string;
@@ -24,7 +24,7 @@ export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
 function scaffoldHeader(): string {
 	return [
 		`# Scaffolded by holocron setup — edit this file freely.`,
-		`# Source:  theholocron/holocron · packages/astromech/src/codecov.ts`,
+		`# Source:  theholocron/holocron · packages/astromech/src/generators/codecov.ts`,
 		``,
 	].join("\n");
 }

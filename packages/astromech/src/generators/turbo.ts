@@ -16,8 +16,8 @@
  * build needs `SENTRY_AUTH_TOKEN` in its cache key; most repos don't).
  */
 
-import { normalizeTaskEntry, type TasksConfig } from "./config/schema.js";
-import { TASKS } from "./registry.js";
+import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
+import { TASKS } from "../registry.js";
 
 /** Filed once per repo, unconditionally — every generated turbo.json's root. */
 const GLOBAL_DEPENDENCIES = ["pnpm-workspace.yaml", "tsconfig.json"];
