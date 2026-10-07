@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import { createClerkClient } from "../rest.js";
+import { createClerkClient } from "./rest.js";
 
 const TOKEN = "sk_test_pat";
 

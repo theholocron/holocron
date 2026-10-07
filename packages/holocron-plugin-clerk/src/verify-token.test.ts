@@ -1,7 +1,7 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { verifyToken } from "../verify-token.js";
+import { verifyToken } from "./verify-token.js";
 
 describe("verifyToken", () => {
 	it("returns ok with env + id when /instance returns 200", async () => {
@@ -51,7 +51,7 @@ describe("verifyToken", () => {
 		// so the `String(err)` branch in the catch is unreachable via the network layer.
 		// Inject a mock client that throws a plain string to cover it directly.
 		const { vi } = await import("vitest");
-		const restModule = await import("../rest.js");
+		const restModule = await import("./rest.js");
 		const mockFactory = vi.spyOn(restModule, "createClerkClient").mockReturnValue({
 			instance: {
 				get: async () => {

@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { type ParseWebhookInput, WebhookVerificationError } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
-import { parseWebhook } from "../parse-webhook.js";
+import { parseWebhook } from "./parse-webhook.js";
 
 // ── test fixture helpers ──────────────────────────────────────────────────────
 

@@ -2,8 +2,8 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { ClerkAuth } from "../../capabilities/auth.js";
-import { createClerkClient } from "../../rest.js";
+import { createClerkClient } from "../rest.js";
+import { ClerkAuth } from "./auth.js";
 
 function makeAuth(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
@@ -152,7 +152,7 @@ describe("ClerkAuth.ensureWebhookApp — non-string details", () => {
 				},
 			},
 		};
-		const auth = new ClerkAuth(() => mockClient as unknown as import("../../rest.js").ClerkClient);
+		const auth = new ClerkAuth(() => mockClient as unknown as import("../rest.js").ClerkClient);
 		await expect(auth.ensureWebhookApp!()).rejects.toBeInstanceOf(ProviderApiError);
 	});
 });
