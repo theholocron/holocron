@@ -12,6 +12,7 @@ import { createLogger, isCI, parseLogLevel, resolveAxiomFromEnv } from "@theholo
 
 import { getToken } from "./auth/keyring.js";
 import { env } from "./env.js";
+import { style } from "./ui/style.js";
 
 /**
  * Resolve the explicit level to hand to `createLogger`, in priority order:
@@ -137,9 +138,36 @@ export function buildCliLogger(
 	return root;
 }
 
-/** Lazily-memoized `Logger` for module-level call sites with no `argv` in scope. */
+/**
+ * Lazily-memoized `Logger` for module-level call sites with no `argv` in
+ * scope — notably yargs' own `.fail()` handler, which fires on a
+ * pre-middleware validation failure (a missing required argument, an
+ * unknown command) and therefore runs before `buildCliLogger` has ever
+ * built the real root. Without an explicit `consoleOutput` here, that
+ * fallback would use `createLogger`'s bare auto-detection (pretty on any
+ * local TTY) and leak a structured block even though no flag asked for one
+ * — so it resolves the same "quiet unless CI" default `buildCliLogger`
+ * would, as if no flags were passed.
+ */
 export function getLogger(): Logger {
-	return (root ??= createLogger()).logger;
+	return (root ??= createLogger({ consoleOutput: resolveConsoleOutput({}) })).logger;
+}
+
+/**
+ * Report a fatal, command-ending CLI error: always printed to the console
+ * (regardless of `consoleOutput` suppression) via `style.fail`, and also
+ * sent through the structured logger for Axiom/telemetry visibility.
+ *
+ * Use this when a handler is returning or exiting right here with nothing
+ * else for the user to see — a resolved `--token` failure, a yargs
+ * validation failure, a thrown domain error. Don't use it for a per-step
+ * warning inside a multi-step orchestrator that already prints its own
+ * `ok / fail / skip` summary — that summary is the user-facing signal;
+ * the per-step reason belongs in the structured log alone.
+ */
+export function reportError(message: string, log: Logger = getLogger()): void {
+	console.error(style.fail(message));
+	log.error(message);
 }
 
 /** The current root logger's correlation id, if a root has been built. */

@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { confirm, input, select } from "@inquirer/prompts";
@@ -40,7 +41,7 @@ import {
 	NonInteractiveError,
 	promptForPositionals,
 } from "./interactive-menu.js";
-import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
+import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 import { style } from "./ui/style.js";
@@ -70,6 +71,20 @@ let printRunId = false;
  */
 function resolveOrg(argv: { org?: string }, config: { org?: string }): string | undefined {
 	return argv.org ?? env.get("HOLOCRON_ORG") ?? config.org;
+}
+
+/**
+ * Print the dim version line once per terminal session — keyed by the
+ * parent shell's PID, since that's stable across repeated bare `holocron`
+ * invocations in the same shell but changes in a new tab/window. A marker
+ * file in the OS tmpdir tracks whether this shell has already seen it, so
+ * re-running `holocron` doesn't repeat the line every time.
+ */
+function printVersionHeaderOnce(): void {
+	const marker = join(tmpdir(), `.holocron-version-shown-${process.ppid}`);
+	if (existsSync(marker)) return;
+	console.log(style.dim(`v${CLI_VERSION}`));
+	writeFileSync(marker, "");
 }
 
 /**
@@ -114,7 +129,7 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 		return parseTokenArgs(rawTokens);
 	} catch (err) {
 		if (err instanceof TokenParseError) {
-			getLogger().error(`--token: ${err.message}`);
+			reportError(`--token: ${err.message}`);
 			process.exitCode = 1;
 			return null;
 		}
@@ -222,7 +237,7 @@ try {
 				try {
 					token = resolveCloneToken({ cliToken: tokens.cliTokens?.["github"] ?? tokens.cliToken });
 				} catch (err) {
-					getLogger().error(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
+					reportError(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
 					process.exitCode = 1;
 					return;
 				}
@@ -252,7 +267,10 @@ try {
 							}
 						: {}),
 				});
-				if (report.status === "fail") process.exitCode = 1;
+				if (report.status === "fail") {
+					if (report.message) reportError(`clone: ${report.message}`);
+					process.exitCode = 1;
+				}
 			}
 		)
 		.command(
@@ -671,7 +689,7 @@ try {
 				if (argv.syncTrust) {
 					const [oldFile, newFile] = argv.syncTrust as [string?, string?];
 					if (!oldFile || !newFile) {
-						getLogger().error("publish --sync-trust requires exactly two values: <old-file> <new-file>");
+						reportError("publish --sync-trust requires exactly two values: <old-file> <new-file>");
 						process.exitCode = 1;
 						return;
 					}
@@ -918,7 +936,7 @@ try {
 					try {
 						token = resolveSyncToken({ cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken });
 					} catch (err) {
-						getLogger().error(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
+						reportError(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -953,7 +971,10 @@ try {
 					loaded,
 					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
 				});
-				if (report.status === "fail") process.exitCode = 1;
+				if (report.status === "fail") {
+					if (report.message) reportError(`sync-readme: ${report.message}`);
+					process.exitCode = 1;
+				}
 			}
 		)
 		.command(
@@ -1192,12 +1213,12 @@ try {
 					}
 
 					if (!type) {
-						getLogger().error("new: template type is required");
+						reportError("new: template type is required");
 						process.exitCode = 1;
 						return;
 					}
 					if (!name) {
-						getLogger().error("new: repo name is required");
+						reportError("new: repo name is required");
 						process.exitCode = 1;
 						return;
 					}
@@ -1228,7 +1249,7 @@ try {
 					if (report.status === "fail") process.exitCode = 1;
 				} catch (err) {
 					if (err instanceof NewError) {
-						getLogger().error(`new: ${err.message}`);
+						reportError(`new: ${err.message}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -1314,7 +1335,7 @@ try {
 					if (report.status === "fail") process.exitCode = 1;
 				} catch (err) {
 					if (err instanceof PluginCreateError) {
-						getLogger().error(`plugin create: ${err.message}`);
+						reportError(`plugin create: ${err.message}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -1369,7 +1390,7 @@ try {
 								extra,
 							});
 							if (report.status === "fail") {
-								if (report.message) getLogger().error(`upgrade node: ${report.message}`);
+								if (report.message) reportError(`upgrade node: ${report.message}`);
 								process.exitCode = 1;
 							}
 						}
@@ -1390,7 +1411,7 @@ try {
 								pinsOnly: argv.pinsOnly as boolean,
 							});
 							if (report.status === "fail") {
-								if (report.message) getLogger().error(`upgrade deps: ${report.message}`);
+								if (report.message) reportError(`upgrade deps: ${report.message}`);
 								process.exitCode = 1;
 							}
 						}
@@ -1488,7 +1509,7 @@ try {
 			false,
 			() => {},
 			async (argv) => {
-				console.log(style.dim(`holocron v${CLI_VERSION}`));
+				printVersionHeaderOnce();
 				await launchMenu(
 					COMMAND_REGISTRY.filter((e) => !e.group),
 					argv
@@ -1510,7 +1531,7 @@ try {
 			// story. Print that: no usage dump, no stack trace.
 			if (err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
 				captureException(err);
-				getLogger().error(err.message);
+				reportError(err.message);
 				errorReported = true;
 				process.exitCode = 1;
 				return;
@@ -1520,7 +1541,7 @@ try {
 			if (err) throw err;
 			// A yargs validation failure (unknown command, missing positional):
 			// keep yargs' own message.
-			getLogger().error(msg);
+			reportError(msg);
 			errorReported = true;
 			process.exitCode = 1;
 		})
@@ -1530,7 +1551,7 @@ try {
 	// User-facing errors carry a self-contained message — print it instead of
 	// letting a raw stack trace escape (unless `.fail()` already did).
 	if (!errorReported && err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
-		getLogger().error(err.message);
+		reportError(err.message);
 	}
 	if (!process.exitCode) process.exitCode = 1;
 }

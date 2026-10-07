@@ -4,6 +4,7 @@ import {
 	buildCliLogger,
 	getLogger,
 	getRunId,
+	reportError,
 	resetCliLogger,
 	resolveConsoleOutput,
 	resolveLogLevel,
@@ -35,7 +36,7 @@ vi.mock("./auth/keyring.js", () => ({ getToken: getTokenMock }));
 
 let seq = 0;
 function fakeResult(level?: string) {
-	return { logger: { level, __fake: true }, runId: `run-${++seq}` };
+	return { logger: { level, __fake: true, error: vi.fn() }, runId: `run-${++seq}` };
 }
 
 beforeEach(() => {
@@ -251,9 +252,40 @@ describe("getLogger / getRunId", () => {
 		expect(createLoggerMock).toHaveBeenCalledTimes(1);
 	});
 
+	it("getLogger's bare fallback is quiet by default outside CI — not createLogger's own auto-detection", () => {
+		delete process.env.CI;
+		getLogger();
+		expect(createLoggerMock).toHaveBeenCalledWith({ consoleOutput: false });
+	});
+
+	it("getLogger's bare fallback omits consoleOutput in CI, preserving auto-detection", () => {
+		process.env.CI = "true";
+		getLogger();
+		expect(createLoggerMock).toHaveBeenCalledWith({});
+	});
+
 	it("getRunId is undefined until a root is built", () => {
 		expect(getRunId()).toBeUndefined();
 		buildCliLogger({});
 		expect(getRunId()).toBe("run-1");
+	});
+});
+
+describe("reportError", () => {
+	it("prints via console.error and also logs at error level — always visible regardless of consoleOutput", () => {
+		const errorSpy = vi.fn();
+		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		reportError("boom", { error: errorSpy } as never);
+		expect(errorSpy).toHaveBeenCalledWith("boom");
+		expect(consoleSpy).toHaveBeenCalledTimes(1);
+		expect(String(consoleSpy.mock.calls[0]?.[0])).toContain("boom");
+		consoleSpy.mockRestore();
+	});
+
+	it("defaults to getLogger() when no logger is passed", () => {
+		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => reportError("fallback message")).not.toThrow();
+		expect(consoleSpy).toHaveBeenCalledTimes(1);
+		consoleSpy.mockRestore();
 	});
 });
