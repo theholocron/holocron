@@ -1,1 +1,1 @@
-export { isPlainObject, deepMerge as mergeConfig } from "@theholocron/object-utils";
+export { deepMerge as mergeConfig } from "@theholocron/object-utils";
