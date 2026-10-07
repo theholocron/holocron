@@ -34,4 +34,4 @@ export {
 	loadLayered,
 	type LoadLayeredOptions,
 } from "./load.js";
-export { mergeConfig } from "./merge.js";
+export { deepMerge as mergeConfig } from "@theholocron/object-utils";

@@ -14,15 +14,19 @@
  * on — stopping at the first directory containing a `.git` entry (checked
  * after that directory's own config probe, so the project root itself is
  * still searched) or the filesystem root. Never wanders past a repo
- * boundary into an unrelated enclosing directory.
+ * boundary into an unrelated enclosing directory. Built on
+ * `@theholocron/fs-utils`'s `findUpward`/`hasGitEntry` — the same
+ * upward-walk shape `@theholocron/sentinel`'s own `findPackageRoot` needs,
+ * only with a different predicate.
  */
 
-import { readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
-import { ConfigFileError } from "./errors.js";
-import { mergeConfig } from "./merge.js";
+import { findUpward, hasGitEntry } from "@theholocron/fs-utils";
+import { deepMerge as mergeConfig } from "@theholocron/object-utils";
+
+import { isFile, loadFile } from "./utils.js";
 
 /** Default extension probe order, highest priority first. */
 export const DEFAULT_EXTENSIONS = ["ts", "js", "mjs", "cjs", "json"] as const;
@@ -51,6 +55,26 @@ export interface Loaded<T> {
 }
 
 /**
+ * Probe `dir` for `<name>.config.<ext>` in extension-priority order,
+ * loading and returning the first match. The one piece of per-directory
+ * orchestration `loadConfigFile` needs on both its non-walking and
+ * walking paths — pulled out so it can be unit-tested directly instead of
+ * only through `loadConfigFile`'s full probe/walk behavior.
+ */
+export async function probeExtensions<T>(
+	dir: string,
+	name: string,
+	extensions: readonly string[]
+): Promise<Loaded<T> | undefined> {
+	for (const ext of extensions) {
+		const filepath = join(dir, `${name}.config.${ext}`);
+		if (!(await isFile(filepath))) continue;
+		return { config: await loadFile<T>(filepath, ext), filepath };
+	}
+	return undefined;
+}
+
+/**
  * Load the first `<name>.config.<ext>` found starting at `cwd` — just
  * `cwd` itself by default, or walking up through ancestor directories when
  * `walkUp` is set (see the module doc comment for the stop conditions).
@@ -59,19 +83,10 @@ export interface Loaded<T> {
  */
 export async function loadConfigFile<T>(opts: LoadConfigFileOptions): Promise<Loaded<T> | null> {
 	const extensions = opts.extensions ?? DEFAULT_EXTENSIONS;
-	let dir = opts.cwd;
-	for (;;) {
-		for (const ext of extensions) {
-			const filepath = join(dir, `${opts.name}.config.${ext}`);
-			if (!(await isFile(filepath))) continue;
-			return { config: await loadFile<T>(filepath, ext), filepath };
-		}
-		if (!opts.walkUp) return null;
-		if (await hasGitEntry(dir)) return null; // searched the project root; don't go further
-		const parent = dirname(dir);
-		if (parent === dir) return null; // filesystem root
-		dir = parent;
-	}
+	const checkDir = (dir: string) => probeExtensions<T>(dir, opts.name, extensions);
+
+	if (!opts.walkUp) return (await checkDir(opts.cwd)) ?? null;
+	return (await findUpward(opts.cwd, checkDir, hasGitEntry)) ?? null;
 }
 
 export interface LoadLayeredOptions extends LoadConfigFileOptions {
@@ -155,95 +170,3 @@ export async function loadConfigFromContent<T>(opts: LoadConfigFromContentOption
 	await writeFile(filepath, opts.content, "utf8");
 	return { config: await loadFile<T>(filepath, opts.extension), filepath };
 }
-
-// ── loading ──────────────────────────────────────────────────────────────────
-
-async function loadFile<T>(filepath: string, ext: string): Promise<T> {
-	if (ext === "json") return loadJson<T>(filepath);
-	const mod = ext === "ts" ? await importTs(filepath) : await importModule(filepath);
-	return extractDefault<T>(filepath, mod);
-}
-
-async function loadJson<T>(filepath: string): Promise<T> {
-	// `loadConfigFile` has already confirmed the file exists; a read failure
-	// here is a genuine race — let it surface as-is.
-	const text = await readFile(filepath, "utf8");
-	try {
-		return JSON.parse(text) as T;
-	} catch (err) {
-		throw new ConfigFileError(`${filepath} is not valid JSON: ${message(err)}`, filepath);
-	}
-}
-
-async function importModule(filepath: string): Promise<unknown> {
-	try {
-		return (await import(pathToFileURL(filepath).href)) as unknown;
-	} catch (err) {
-		throw new ConfigFileError(`could not load ${filepath}: ${message(err)}`, filepath);
-	}
-}
-
-let tsRegistered: Promise<void> | undefined;
-
-async function registerTsx(): Promise<void> {
-	const { register } = await import("tsx/esm/api");
-	register();
-}
-
-/**
- * Load a `.ts` config. `tsx`'s ESM loader is registered once per process
- * (lazily — only when a `.ts` config is actually loaded). `register()` is
- * used over `tsImport()` because a single run may load several TS configs
- * (`loadLayered` reads a dedicated file *and* a parent file) and
- * `tsImport`'s one-off register/unregister cycle is not reentrant.
- */
-async function importTs(filepath: string): Promise<unknown> {
-	tsRegistered ??= registerTsx();
-	await tsRegistered;
-	try {
-		return (await import(pathToFileURL(filepath).href)) as unknown;
-	} catch (err) {
-		throw new ConfigFileError(`could not load ${filepath}: ${message(err)}`, filepath);
-	}
-}
-
-/**
- * Unwrap `export default`. `tsx` CJS-transforms `export default x` into
- * `exports.default = x`, which dynamic import wraps as
- * `{ default: { __esModule: true, default: x } }` — strip the extra layer
- * when present so ESM and CJS outputs both resolve.
- */
-function extractDefault<T>(filepath: string, mod: unknown): T {
-	const outer = (mod as { default?: unknown }).default;
-	const raw =
-		(outer as { __esModule?: boolean } | undefined)?.__esModule === true
-			? (outer as { default?: unknown }).default
-			: outer;
-	if (raw === undefined || raw === null) {
-		throw new ConfigFileError(
-			`${filepath} must have a default export (use \`export default defineConfig({…})\`)`,
-			filepath
-		);
-	}
-	return raw as T;
-}
-
-async function isFile(path: string): Promise<boolean> {
-	try {
-		return (await stat(path)).isFile();
-	} catch {
-		return false;
-	}
-}
-
-/** `.git` is a directory in a normal checkout, a file in a worktree/submodule — existence is all that matters. */
-async function hasGitEntry(dir: string): Promise<boolean> {
-	try {
-		await stat(join(dir, ".git"));
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-const message = (err: unknown): string => (err instanceof Error ? err.message : String(err));
