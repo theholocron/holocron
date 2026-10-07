@@ -5,7 +5,6 @@ import { input, select } from "@inquirer/prompts";
 import { createAstromech, deployOnRelease } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import type { LogLevel } from "@theholocron/observability/core";
-import chalk from "chalk";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -38,6 +37,7 @@ import { COMMAND_REGISTRY, getEntry, launchMenu, promptForPositionals } from "./
 import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
+import { style } from "./ui/style.js";
 import { checkForUpdates } from "./update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
@@ -1456,7 +1456,7 @@ try {
 			false,
 			() => {},
 			async (argv) => {
-				console.log(chalk.dim(`holocron v${CLI_VERSION}`));
+				console.log(style.dim(`holocron v${CLI_VERSION}`));
 				await launchMenu(
 					COMMAND_REGISTRY.filter((e) => !e.group),
 					argv
