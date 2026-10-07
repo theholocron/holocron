@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/slack-client",
-  "version": "1.37.1",
+  "version": "1.38.0",
   "description": "A TypeScript client for the Slack Web API",
   "keywords": [
     "slack",
