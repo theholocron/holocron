@@ -14,7 +14,7 @@ describe("parseCloneTarget", () => {
 		expect(parseCloneTarget("theholocron")).toEqual({ org: "theholocron" });
 	});
 
-	it("splits an owner/repo coordinate into org and repo — the repo is kept, not discarded", () => {
+	it("splits an org/repo coordinate into org and repo — the repo is kept, not discarded", () => {
 		expect(parseCloneTarget("theholocron/new-repo")).toEqual({ org: "theholocron", repo: "new-repo" });
 	});
 

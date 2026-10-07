@@ -197,12 +197,12 @@ try {
 		// ── commands ────────────────────────────────────────────────────────
 		.command(
 			"clone [target]",
-			"Clone a single repo (owner/repo) or every repo in an org (owner)",
+			"Clone a single repo (org/repo) or every repo in an org (org)",
 			(y) =>
 				y
 					.positional("target", {
 						type: "string",
-						describe: "owner/repo to clone, or a bare org to clone every repo in it (confirms first).",
+						describe: "org/repo to clone, or a bare org to clone every repo in it (confirms first).",
 					})
 					.option("dir", {
 						type: "string",
@@ -233,7 +233,7 @@ try {
 									if (!process.stdin.isTTY) {
 										throw new NonInteractiveError(
 											`clone: cloning every repo in "${org}" needs interactive confirmation — ` +
-												`run this from a terminal, or pass a specific owner/repo instead`
+												`run this from a terminal, or pass a specific org/repo instead`
 										);
 									}
 									if (toClone === 0) return true;

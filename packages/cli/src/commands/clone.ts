@@ -11,13 +11,13 @@ import { style } from "../ui/style.js";
 
 export interface CloneTarget {
 	org: string;
-	/** Set only when the input was `owner/repo` — clone just this one repo instead of the whole org. */
+	/** Set only when the input was `org/repo` — clone just this one repo instead of the whole org. */
 	repo?: string;
 }
 
 /**
  * Accepts a bare org (`"theholocron"`) — clones every repo in it — or an
- * `owner/repo` coordinate (`"theholocron/new-repo"`) — clones just that one
+ * `org/repo` coordinate (`"theholocron/new-repo"`) — clones just that one
  * repo. The repo half is never silently discarded: if it's there, it's used.
  * A trailing slash with nothing after it (`"theholocron/"`) is treated the
  * same as a bare org.

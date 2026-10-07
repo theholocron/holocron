@@ -84,13 +84,13 @@ const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
 		name: "clone",
-		description: "Clone a single repo (owner/repo) or every repo in an org (owner)",
+		description: "Clone a single repo (org/repo) or every repo in an org (org)",
 		positionals: [
 			{
 				key: "target",
-				message: "owner/repo to clone (or a bare org to clone every repo in it):",
+				message: "org/repo to clone (or a bare org to clone every repo in it):",
 				type: "input",
-				validate: (v) => v.trim().length > 0 || "owner/repo or org is required",
+				validate: (v) => v.trim().length > 0 || "org/repo or org is required",
 			},
 		],
 	},
