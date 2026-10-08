@@ -80,7 +80,6 @@ describe("markdownlint-config", () => {
 			const untouchedErrorRules = [
 				"heading-increment",
 				"no-reversed-links",
-				"single-title",
 				"no-space-in-emphasis",
 				"no-empty-links",
 				"no-alt-text",
@@ -106,6 +105,22 @@ describe("markdownlint-config", () => {
 		it("no longer flags single-trailing-newline at all now that it's disabled", async () => {
 			const results = await lint({ strings: { doc: "# Title\n\nNo trailing newline." }, config });
 			expect(results.doc?.some((m) => m.ruleNames.includes("MD047"))).toBe(false);
+		});
+
+		it("disables the front-matter-title heuristic for single-title/MD025, without disabling the rule itself", () => {
+			expect(config["single-title"]).toEqual({ front_matter_title: "" });
+		});
+
+		it("doesn't flag a frontmatter title + a real H1 as two top-level headings — this org's ADR/spec shape", async () => {
+			const doc = '---\ntitle: "Example decision"\n---\n\n# ADR-0099 — Example decision\n\nBody text.\n';
+			const results = await lint({ strings: { doc }, config });
+			expect(results.doc?.some((m) => m.ruleNames.includes("MD025"))).toBe(false);
+		});
+
+		it("still flags a genuine duplicate H1 with no frontmatter involved", async () => {
+			const doc = "# First heading\n\nBody.\n\n# Second heading\n";
+			const results = await lint({ strings: { doc }, config });
+			expect(results.doc?.some((m) => m.ruleNames.includes("MD025"))).toBe(true);
 		});
 	});
 });

@@ -41,6 +41,20 @@ const config: Configuration = {
 	"no-inline-html": false,
 	"first-line-heading": false,
 	"duplicate-heading": { siblings_only: true },
+	// `single-title`/`single-h1` (MD025): still error-severity (a genuine
+	// duplicate top-level heading is real breakage), but
+	// `front_matter_title: ""` disables markdownlint's own default heuristic
+	// that counts a frontmatter `title:` field as an implicit top-level
+	// heading. This org's ADR/spec template (docs/wiki/decisions/,
+	// docs/wiki/specifications/, .notes/*.spec.md) always pairs a
+	// frontmatter `title:` with a real `# H1` by design — without this
+	// override every one of those files' own H1 reads as a *second*
+	// top-level heading and fails MD025. Found live: theholocron/holocron#967
+	// touched two long-merged ADRs and was the first PR to re-lint either
+	// since Sentinel's markdownlint check went live (it only lints changed
+	// files) — surfacing a false positive that's been latent in every ADR
+	// since the template's inception.
+	"single-title": { front_matter_title: "" },
 	// `fenced-code-language` (MD040): already markdownlint's own core
 	// default (not part of `prettierStyle`, which doesn't mention it at
 	// all), but declared here so it's guaranteed enforced org-wide rather
