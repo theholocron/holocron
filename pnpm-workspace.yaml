@@ -62,18 +62,18 @@ catalogs:
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
-    "@theholocron/astro-config": ^8.7.0
-    "@theholocron/commitlint-config": ^8.7.0
-    "@theholocron/devmoji-config": ^8.7.0
+    "@theholocron/astro-config": ^8.7.1
+    "@theholocron/commitlint-config": ^8.7.1
+    "@theholocron/devmoji-config": ^8.7.1
     "@theholocron/docs-theme": ^1.10.3
-    "@theholocron/eslint-config": ^8.7.0
-    "@theholocron/holocron-config": ^8.7.0
-    "@theholocron/lint-staged-config": ^8.7.0
-    "@theholocron/markdownlint-config": ^8.7.0
-    "@theholocron/prettier-config": ^8.7.0
-    "@theholocron/semantic-release-config": ^8.7.0
-    "@theholocron/tsconfig": ^8.7.0
-    "@theholocron/tsdown-config": ^8.7.0
+    "@theholocron/eslint-config": ^8.7.1
+    "@theholocron/holocron-config": ^8.7.1
+    "@theholocron/lint-staged-config": ^8.7.1
+    "@theholocron/markdownlint-config": ^8.7.1
+    "@theholocron/prettier-config": ^8.7.1
+    "@theholocron/semantic-release-config": ^8.7.1
+    "@theholocron/tsconfig": ^8.7.1
+    "@theholocron/tsdown-config": ^8.7.1
     "@theholocron/vitest-config": ^8.7.0
 
   # Shared utils — release in lockstep; bump all entries together.
