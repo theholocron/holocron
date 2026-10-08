@@ -45,8 +45,8 @@ plugin create` are tagged `global` in `COMMAND_CONTEXTS`
    sight. A bug in `holocron clone` itself is a holocron-CLI bug; it has
    nothing to do with whatever repo happens to be in `$PWD` (if any) when the
    command was run, and nothing to do with whichever repo's `.envrc` happens
-   to be active. Shipping that log line to a per-directory dataset is not just
-   unhelpful, it can be actively wrong — a `global` command run from inside
+   to be active. Shipping that log line to a per-directory dataset is not
+   merely unhelpful, it can be actively wrong — a `global` command run from inside
    `rando` would file a holocron-CLI-internal bug under `rando`'s logs.
 
 3. **The `deploy` boundary case.** `holocron deploy` (tagged `workspace`) is
@@ -77,7 +77,7 @@ plugin create` are tagged `global` in `COMMAND_CONTEXTS`
 ## Decision Drivers
 
 - A `global`-context command's logs must never depend on `$PWD` or which
-  repo's `.envrc` happens to be active — correctness, not just convenience.
+  repo's `.envrc` happens to be active — correctness, not only convenience.
 - Per-repo log separation (`rando` vs. `holocron`) must not require a
   machine-wide env var that silently stops being correct the moment a second
   repo is checked out.
@@ -91,7 +91,7 @@ plugin create` are tagged `global` in `COMMAND_CONTEXTS`
 
 - **A. Keep one blanket env var, document the CI/local split as "good
   enough."** Status quo. Rejected — this is the thing #2 and #3 above show is
-  actively wrong, not just imprecise, once `rando` exists as a second
+  actively wrong, not only imprecise, once `rando` exists as a second
   consumer.
 - **B. Set `HOLOCRON_AXIOM_DATASET` in each repo's shell profile /
   `.bashrc`.** Rejected — not per-directory; the moment two repos are
@@ -164,8 +164,8 @@ for an unrelated reason (#576) — no new taxonomy to invent or keep in sync.
   `global`/`repo-aware`/`workspace` split answers "which commands are never
   about a repo," not "which specific failure inside a repo-scoped command was
   actually the CLI's fault." That would need per-call-site tagging inside
-  each capability implementation, not a per-command default — a materially
-  bigger change, deferred until (if ever) it's shown to matter in practice.
+  each capability implementation, not a per-command default — a substantially
+  larger change, deferred until (if ever) it's shown to matter in practice.
 - **`.envrc` setup for `holocron` itself** is implementation, tracked in the
   issue this ADR links to, not a design decision.
 
