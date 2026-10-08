@@ -212,7 +212,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		const dest = join(targetDir, repoDirName(repo));
 
 		if (existsSync(dest)) {
-			print(style.dim(`  skip   ${repo.full_name} → ${dest} (already exists)`));
+			print(style.skip(`  ${repo.full_name} → ${dest} (already exists)`));
 			skipped++;
 			continue;
 		}

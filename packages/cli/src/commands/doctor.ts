@@ -61,7 +61,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 	const rows: DoctorRow[] = [];
 	const config = input.loaded.resolved;
 
-	print(style.header(`Holocron doctor — ${config.name}`));
+	print("");
 	print(style.dim(`  config: ${input.loaded.filepath}`));
 	print("");
 
@@ -113,7 +113,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 		const label = `${pad(row.capability, 14)} via ${pad(row.provider, 14)}  ${row.message}`;
 		if (row.status === "ok") print(`  ${style.success(label)}`);
 		else if (row.status === "fail") print(`  ${style.fail(label)}`);
-		else print(`  ${style.dim(`· ${label}`)}`);
+		else print(`  ${style.skip(label)}`);
 	}
 
 	const summary = rows.reduce(

@@ -67,7 +67,7 @@ describe("runDoctor", () => {
 		expect(vaultRow?.message).toContain("2 keys");
 
 		expect(report.summary).toEqual({ ok: 2, fail: 0, skip: 0 });
-		expect(lines.join("\n")).toContain("Holocron doctor — demo");
+		expect(lines.join("\n")).toContain("config: /tmp/test/holocron.config.json");
 	});
 
 	it("reports a fail row for a provider that failed to load", async () => {
