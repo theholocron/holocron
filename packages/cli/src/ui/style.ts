@@ -10,4 +10,7 @@ export const style = {
 	hint: (msg: string) => chalk.dim(msg),
 	dim: (msg: string) => chalk.dim(msg),
 	header: (msg: string) => chalk.bold(msg),
+	/** Colored like `success`/`fail` but without the icon — a summary line that already states its own verdict in words. */
+	successText: (msg: string) => chalk.green(msg),
+	failText: (msg: string) => chalk.red(msg),
 };

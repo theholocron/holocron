@@ -24,6 +24,7 @@ import { CARDINALITY } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { assertPluginsResolvable } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
+import { pad, statusRow } from "../ui/status-row.js";
 import { style } from "../ui/style.js";
 
 export type DoctorPrintLine = (line: string) => void;
@@ -110,10 +111,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 			{ capability: row.capability, provider: row.provider, status: row.status, detail: row.message },
 			`doctor: ${row.capability}`
 		);
-		const label = `${pad(row.capability, 14)} via ${pad(row.provider, 14)}  ${row.message}`;
-		if (row.status === "ok") print(`  ${style.success(label)}`);
-		else if (row.status === "fail") print(`  ${style.fail(label)}`);
-		else print(`  ${style.skip(label)}`);
+		print(statusRow(row.status, [`${pad(row.capability, 14)} via ${pad(row.provider, 14)}`, row.message]));
 	}
 
 	const summary = rows.reduce(
@@ -126,7 +124,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 
 	const summaryLine = `${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped`;
 	print("");
-	print(summary.fail > 0 ? style.fail(summaryLine) : style.success(summaryLine));
+	print(summary.fail > 0 ? style.failText(summaryLine) : style.successText(summaryLine));
 
 	return { rows, summary };
 }
@@ -198,8 +196,4 @@ function countResolvedLifecycle(report: Awaited<ReturnType<Issues["doctor"]>>): 
 
 function mk(capability: string, provider: string, status: DoctorStatus, message: string): DoctorRow {
 	return { capability, provider, status, message };
-}
-
-function pad(s: string, width: number): string {
-	return s.length >= width ? s : s + " ".repeat(width - s.length);
 }
