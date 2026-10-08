@@ -320,7 +320,7 @@ describe("runClone", () => {
 		});
 
 		expect(report.status).toBe("dry-run");
-		expect(lines[0]).toContain(join(homedir(), "Code", "my-org"));
+		expect(lines.some((l) => l.includes(join(homedir(), "Code", "my-org")))).toBe(true);
 	});
 
 	it("returns fail when the GitHub API call errors", async () => {
@@ -481,5 +481,111 @@ describe("runClone", () => {
 		});
 
 		expect(existsSync(newDir)).toBe(true);
+	});
+
+	describe("confirmOpen", () => {
+		it("single-repo clone: calls back with that repo's own directory, not the parent", async () => {
+			// exec is mocked, so a fresh clone never actually creates the directory
+			// on disk — pre-create it to simulate an already-cloned repo instead,
+			// which is the case the callback must fire for either way.
+			await mkdir(join(tmpDir, "alpha"));
+			const confirmOpen = vi.fn().mockResolvedValue(undefined);
+			const repo = makeRepo("alpha");
+			await runClone({
+				org: "test-org",
+				repo: "alpha",
+				dir: tmpDir,
+				token: "tok",
+				fetch: makeSingleRepoFetch(repo),
+				exec,
+				print,
+				confirmOpen,
+			});
+
+			expect(confirmOpen).toHaveBeenCalledWith(join(tmpDir, "alpha"), false);
+		});
+
+		it("whole-org clone: calls back with the surrounding target directory", async () => {
+			const confirmOpen = vi.fn().mockResolvedValue(undefined);
+			const repos = [makeRepo("alpha"), makeRepo("beta")];
+			await runClone({
+				org: "test-org",
+				dir: tmpDir,
+				token: "tok",
+				fetch: makeFetch(repos),
+				exec,
+				print,
+				confirmOpen,
+			});
+
+			expect(confirmOpen).toHaveBeenCalledWith(tmpDir, false);
+		});
+
+		it("never calls back when the open target doesn't exist — a fresh dry run with nothing pre-existing", async () => {
+			const confirmOpen = vi.fn().mockResolvedValue(undefined);
+			const newDir = join(tmpDir, "new-org");
+			const repos = [makeRepo("alpha")];
+			await runClone({
+				org: "test-org",
+				dir: newDir,
+				dryRun: true,
+				token: "tok",
+				fetch: makeFetch(repos),
+				exec,
+				print,
+				confirmOpen,
+			});
+
+			expect(confirmOpen).not.toHaveBeenCalled();
+		});
+
+		it("dry run with nothing to clone (everything already exists): calls back with moreToCome false", async () => {
+			await mkdir(join(tmpDir, "alpha"));
+			const confirmOpen = vi.fn().mockResolvedValue(undefined);
+			const repos = [makeRepo("alpha")];
+			await runClone({
+				org: "test-org",
+				dir: tmpDir,
+				dryRun: true,
+				token: "tok",
+				fetch: makeFetch(repos),
+				exec,
+				print,
+				confirmOpen,
+			});
+
+			expect(confirmOpen).toHaveBeenCalledWith(tmpDir, false);
+		});
+
+		it("dry run that would actually clone something: calls back with moreToCome true", async () => {
+			const confirmOpen = vi.fn().mockResolvedValue(undefined);
+			const repos = [makeRepo("alpha")];
+			await runClone({
+				org: "test-org",
+				dir: tmpDir, // tmpDir already exists (created in beforeEach), so the callback still fires
+				dryRun: true,
+				token: "tok",
+				fetch: makeFetch(repos),
+				exec,
+				print,
+				confirmOpen,
+			});
+
+			expect(confirmOpen).toHaveBeenCalledWith(tmpDir, true);
+		});
+
+		it("is never called when confirmOpen is omitted", async () => {
+			const repos = [makeRepo("alpha")];
+			await expect(
+				runClone({
+					org: "test-org",
+					dir: tmpDir,
+					token: "tok",
+					fetch: makeFetch(repos),
+					exec,
+					print,
+				})
+			).resolves.toMatchObject({ status: "ok" });
+		});
 	});
 });

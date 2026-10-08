@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { confirm, input, select } from "@inquirer/prompts";
 import { createAstromech, deployOnRelease } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
-import type { LogLevel } from "@theholocron/observability/core";
+import { LOG_LEVELS, type LogLevel } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -35,14 +36,17 @@ import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
 import {
 	COMMAND_REGISTRY,
+	DRY_RUN_NOOP_EXIT_CODE,
+	DRY_RUN_PREVIEW_ENV_VAR,
 	getEntry,
 	launchMenu,
 	NonInteractiveError,
 	promptForPositionals,
 } from "./interactive-menu.js";
-import { buildCliLogger, type BuildCliLoggerOpts, getLogger, getRunId } from "./logger.js";
+import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
+import { openPath } from "./ui/open-path.js";
 import { style } from "./ui/style.js";
 import { checkForUpdates } from "./update-notifier.js";
 
@@ -73,12 +77,26 @@ function resolveOrg(argv: { org?: string }, config: { org?: string }): string | 
 }
 
 /**
+ * Print the dim version line once per terminal session — keyed by the
+ * parent shell's PID, since that's stable across repeated bare `holocron`
+ * invocations in the same shell but changes in a new tab/window. A marker
+ * file in the OS tmpdir tracks whether this shell has already seen it, so
+ * re-running `holocron` doesn't repeat the line every time.
+ */
+function printVersionHeaderOnce(): void {
+	const marker = join(tmpdir(), `.holocron-version-shown-${process.ppid}`);
+	if (existsSync(marker)) return;
+	console.log(style.dim(`v${CLI_VERSION}`));
+	writeFileSync(marker, "");
+}
+
+/**
  * `buildCliLogger` options derived from a loaded `holocron.config` — the
  * level, the Axiom dataset, and the resolved org for a keyring-backed
  * Axiom token. Used by every handler that has already called `loadConfig`.
  */
 function cliLoggerOpts(
-	argv: { org?: string; verbose?: boolean; quiet?: boolean },
+	argv: { org?: string; verbose?: boolean; quiet?: boolean; log?: LogLevel },
 	resolved: { org?: string; log?: { level?: LogLevel; axiom?: { dataset?: string } } }
 ): BuildCliLoggerOpts {
 	return {
@@ -96,7 +114,7 @@ function cliLoggerOpts(
  * `applyConfig` only narrows what `init` already turned on.
  */
 function applyResolvedConfig(
-	argv: { org?: string; verbose?: boolean; quiet?: boolean },
+	argv: { org?: string; verbose?: boolean; quiet?: boolean; log?: LogLevel },
 	resolved: {
 		org?: string;
 		log?: { level?: LogLevel; axiom?: { dataset?: string } };
@@ -114,7 +132,7 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 		return parseTokenArgs(rawTokens);
 	} catch (err) {
 		if (err instanceof TokenParseError) {
-			getLogger().error(`--token: ${err.message}`);
+			reportError(`--token: ${err.message}`);
 			process.exitCode = 1;
 			return null;
 		}
@@ -147,6 +165,13 @@ try {
 			describe:
 				"Print what would be mutated without calling capability mutators. " +
 				"Commands branch on this; read-only commands ignore it.",
+		})
+		.option("skip-dry-run", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Interactive mode only: skip the automatic dry-run preview for a " +
+				"dry-run-capable command and run for real immediately.",
 		})
 		.option("token", {
 			type: "string",
@@ -184,6 +209,13 @@ try {
 			default: false,
 			describe: "Set the log level to error — suppress info and warn.",
 		})
+		.option("log", {
+			type: "string",
+			choices: LOG_LEVELS,
+			describe:
+				"Show structured logger output at this level. Local/interactive runs are " +
+				"quiet by default (no console output regardless of level) — this opts back in.",
+		})
 		.middleware((argv) => {
 			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
 			printRunId = Boolean(argv.debug || argv.verbose);
@@ -215,7 +247,7 @@ try {
 				try {
 					token = resolveCloneToken({ cliToken: tokens.cliTokens?.["github"] ?? tokens.cliToken });
 				} catch (err) {
-					getLogger().error(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
+					reportError(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
 					process.exitCode = 1;
 					return;
 				}
@@ -244,8 +276,27 @@ try {
 								},
 							}
 						: {}),
+					confirmOpen: async (openTarget: string, moreToCome: boolean) => {
+						if (!process.stdin.isTTY) return;
+						// A menu-launched preview with something it would actually clone
+						// is about to ask "proceed with the real run?" — defer to there
+						// instead of asking twice for the same directory. A direct
+						// --dry-run invocation (no menu involved) has no such follow-up,
+						// so it still asks now.
+						if (moreToCome && env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1") return;
+						if (await confirm({ message: `Open ${openTarget}?`, default: false })) openPath(openTarget);
+					},
 				});
-				if (report.status === "fail") process.exitCode = 1;
+				if (report.status === "fail") {
+					if (report.message) reportError(`clone: ${report.message}`);
+					process.exitCode = 1;
+				} else if (
+					report.status === "dry-run" &&
+					report.cloned === 0 &&
+					env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1"
+				) {
+					process.exitCode = DRY_RUN_NOOP_EXIT_CODE;
+				}
 			}
 		)
 		.command(
@@ -664,7 +715,7 @@ try {
 				if (argv.syncTrust) {
 					const [oldFile, newFile] = argv.syncTrust as [string?, string?];
 					if (!oldFile || !newFile) {
-						getLogger().error("publish --sync-trust requires exactly two values: <old-file> <new-file>");
+						reportError("publish --sync-trust requires exactly two values: <old-file> <new-file>");
 						process.exitCode = 1;
 						return;
 					}
@@ -911,7 +962,7 @@ try {
 					try {
 						token = resolveSyncToken({ cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken });
 					} catch (err) {
-						getLogger().error(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
+						reportError(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -946,7 +997,10 @@ try {
 					loaded,
 					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
 				});
-				if (report.status === "fail") process.exitCode = 1;
+				if (report.status === "fail") {
+					if (report.message) reportError(`sync-readme: ${report.message}`);
+					process.exitCode = 1;
+				}
 			}
 		)
 		.command(
@@ -1185,12 +1239,12 @@ try {
 					}
 
 					if (!type) {
-						getLogger().error("new: template type is required");
+						reportError("new: template type is required");
 						process.exitCode = 1;
 						return;
 					}
 					if (!name) {
-						getLogger().error("new: repo name is required");
+						reportError("new: repo name is required");
 						process.exitCode = 1;
 						return;
 					}
@@ -1221,7 +1275,7 @@ try {
 					if (report.status === "fail") process.exitCode = 1;
 				} catch (err) {
 					if (err instanceof NewError) {
-						getLogger().error(`new: ${err.message}`);
+						reportError(`new: ${err.message}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -1307,7 +1361,7 @@ try {
 					if (report.status === "fail") process.exitCode = 1;
 				} catch (err) {
 					if (err instanceof PluginCreateError) {
-						getLogger().error(`plugin create: ${err.message}`);
+						reportError(`plugin create: ${err.message}`);
 						process.exitCode = 1;
 						return;
 					}
@@ -1362,7 +1416,7 @@ try {
 								extra,
 							});
 							if (report.status === "fail") {
-								if (report.message) getLogger().error(`upgrade node: ${report.message}`);
+								if (report.message) reportError(`upgrade node: ${report.message}`);
 								process.exitCode = 1;
 							}
 						}
@@ -1383,7 +1437,7 @@ try {
 								pinsOnly: argv.pinsOnly as boolean,
 							});
 							if (report.status === "fail") {
-								if (report.message) getLogger().error(`upgrade deps: ${report.message}`);
+								if (report.message) reportError(`upgrade deps: ${report.message}`);
 								process.exitCode = 1;
 							}
 						}
@@ -1481,7 +1535,7 @@ try {
 			false,
 			() => {},
 			async (argv) => {
-				console.log(style.dim(`holocron v${CLI_VERSION}`));
+				printVersionHeaderOnce();
 				await launchMenu(
 					COMMAND_REGISTRY.filter((e) => !e.group),
 					argv
@@ -1503,7 +1557,7 @@ try {
 			// story. Print that: no usage dump, no stack trace.
 			if (err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
 				captureException(err);
-				getLogger().error(err.message);
+				reportError(err.message);
 				errorReported = true;
 				process.exitCode = 1;
 				return;
@@ -1513,7 +1567,7 @@ try {
 			if (err) throw err;
 			// A yargs validation failure (unknown command, missing positional):
 			// keep yargs' own message.
-			getLogger().error(msg);
+			reportError(msg);
 			errorReported = true;
 			process.exitCode = 1;
 		})
@@ -1523,7 +1577,7 @@ try {
 	// User-facing errors carry a self-contained message — print it instead of
 	// letting a raw stack trace escape (unless `.fail()` already did).
 	if (!errorReported && err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
-		getLogger().error(err.message);
+		reportError(err.message);
 	}
 	if (!process.exitCode) process.exitCode = 1;
 }

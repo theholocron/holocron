@@ -83,6 +83,22 @@ export interface RunCloneInput {
 	 * caller that already passed `--all` deliberately).
 	 */
 	confirmWholeOrg?: (scope: WholeOrgScope) => Promise<boolean>;
+	/**
+	 * Called once at the end — for a single `repo` clone, with that repo's
+	 * own directory; for a whole-org clone, with the surrounding `targetDir`
+	 * that holds every repo. Only called when that path actually exists on
+	 * disk: always true after a real run (cloned or skipped-because-already-
+	 * there), but a dry run's "would clone" path for anything brand new
+	 * never exists yet, so this naturally stays silent there.
+	 *
+	 * The second argument is true for a dry run that found something it
+	 * would actually clone — a real run (or a menu-launched "proceed with
+	 * the real run?" decision) may still follow, so a caller that only wants
+	 * to ask once, at the true end of the road, can defer in that case.
+	 * Omit `confirmOpen` entirely to skip — e.g. a non-interactive caller
+	 * with nothing to open to.
+	 */
+	confirmOpen?: (path: string, moreToCome: boolean) => Promise<void>;
 }
 
 export interface CloneReport {
@@ -150,7 +166,6 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	const fetchFn = input.fetch ?? globalThis.fetch;
 	const dryRun = input.dryRun ?? false;
 	const targetDir = resolve(input.dir ?? join(homedir(), "Code", input.org));
-	const label = input.repo ? `${input.org}/${input.repo}` : `org=${input.org}`;
 	logger.info({ org: input.org, repo: input.repo, targetDir, dryRun: dryRun || undefined }, "clone: start");
 	const exec: ExecFn =
 		input.exec ??
@@ -158,8 +173,6 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			const r = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
 			return { status: r.status };
 		});
-
-	print(style.header(`Holocron clone — ${label} → ${targetDir}${dryRun ? " (dry-run)" : ""}`));
 
 	if (!existsSync(targetDir)) {
 		if (dryRun) {
@@ -199,7 +212,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		const dest = join(targetDir, repoDirName(repo));
 
 		if (existsSync(dest)) {
-			print(style.dim(`  skip   ${repo.full_name}`));
+			print(style.dim(`  skip   ${repo.full_name} → ${dest} (already exists)`));
 			skipped++;
 			continue;
 		}
@@ -210,10 +223,10 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			continue;
 		}
 
-		print(style.step(`  clone  ${repo.full_name}`));
+		print(style.step(`  clone  ${repo.full_name} → ${dest}`));
 		const { clone_url } = repo;
 		if (!clone_url.startsWith("https://github.com/")) {
-			print(style.fail(`  failed ${repo.full_name} — unexpected clone URL: ${clone_url}`));
+			print(style.fail(`  failed ${repo.full_name} → unexpected clone URL: ${clone_url}`));
 			failed++;
 			continue;
 		}
@@ -221,7 +234,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		try {
 			encodedToken = encodeTokenForGitHttpAuth(input.token);
 		} catch (err) {
-			print(style.fail(`  failed ${repo.full_name} — invalid token format: ${errorMessage(err)}`));
+			print(style.fail(`  failed ${repo.full_name} → invalid token format: ${errorMessage(err)}`));
 			failed++;
 			continue;
 		}
@@ -232,18 +245,19 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			print(style.fail(`  failed ${repo.full_name}`));
 			failed++;
 		} else {
-			print(style.success(`  cloned ${repo.name}`));
+			print(style.success(`  cloned ${repo.name} → ${dest}`));
 			cloned++;
 		}
 	}
 
 	const summary = `${cloned} cloned, ${skipped} skipped, ${failed} failed`;
+	print("");
 	print(
 		dryRun
-			? style.dim(`\n  dry-run: ${summary}`)
+			? style.dim(`  dry-run: ${summary}`)
 			: failed > 0
-				? style.fail(`\n  ${summary}`)
-				: style.success(`\n  ${summary}`)
+				? style.fail(`  ${summary}`)
+				: style.success(`  ${summary}`)
 	);
 
 	const status = dryRun ? "dry-run" : failed > 0 ? "fail" : "ok";
@@ -251,5 +265,11 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		{ org: input.org, repo: input.repo, status, cloned, skipped, failed },
 		"clone: done"
 	);
+
+	if (input.confirmOpen) {
+		const openTarget = input.repo ? join(targetDir, repoDirName(repos[0]!)) : targetDir;
+		if (existsSync(openTarget)) await input.confirmOpen(openTarget, dryRun && cloned > 0);
+	}
+
 	return { status, cloned, skipped, failed };
 }
