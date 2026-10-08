@@ -124,7 +124,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 
 	const summaryLine = `${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped`;
 	print("");
-	print(summary.fail > 0 ? style.failText(summaryLine) : style.successText(summaryLine));
+	print(style.header(summaryLine));
 
 	return { rows, summary };
 }
