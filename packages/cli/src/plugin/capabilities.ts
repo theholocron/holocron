@@ -812,6 +812,12 @@ export interface Dns extends ProviderIdentity {
 	listRecords(domain: string): Promise<DnsRecord[]>;
 	upsertRecord(domain: string, record: DnsRecord): Promise<DnsRecord>;
 	deleteRecord(domain: string, id: string): Promise<void>;
+	/**
+	 * A `holocron doctor` smoke check with no specific domain to ask about —
+	 * `listRecords` needs one, but doctor doesn't have one on hand. Verifies
+	 * the token and reports how many zones it can see.
+	 */
+	whoami?(): Promise<{ ok: boolean; zones: number }>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
