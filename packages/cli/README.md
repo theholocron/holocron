@@ -513,7 +513,16 @@ Axiom shipping activates when a token (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`
 → OS keyring `axiom.<org>` → `axiom`) **and** a dataset
 (`HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET` → `log.axiom.dataset` in
 `holocron.config`) both resolve; env vars win. The token is never read from a
-config file. See the [logging guide](https://docs.theholocron.dev/holocron/logging/).
+config file.
+
+The dataset side of that resolution is **execution-context-aware** (ADR-0012):
+a `global`-context command (`clone`, `new`, `auth set`, `upgrade node`, `plugin
+create`, …) always ships to holocron's own dataset regardless of `$PWD` — it
+isn't "about" any repo, so routing it through whichever repo's `.envrc`
+happens to be active would be wrong. `repo-aware` / `workspace` commands
+(`doctor`, `deploy`, `sync`, …) keep the env-var/config chain above, so a
+per-repo `HOLOCRON_AXIOM_DATASET` — e.g. via a `.envrc` + `direnv` — separates
+each consuming repo's logs. See the [logging guide](https://docs.theholocron.dev/holocron/logging/).
 
 ### Telemetry
 

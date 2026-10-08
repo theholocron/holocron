@@ -4,6 +4,7 @@ import {
 	buildCliLogger,
 	getLogger,
 	getRunId,
+	GLOBAL_AXIOM_DATASET,
 	reportError,
 	resetCliLogger,
 	resolveConsoleOutput,
@@ -36,7 +37,9 @@ vi.mock("./auth/keyring.js", () => ({ getToken: getTokenMock }));
 
 let seq = 0;
 function fakeResult(level?: string) {
-	return { logger: { level, __fake: true, error: vi.fn() }, runId: `run-${++seq}` };
+	const logger = { level, __fake: true, error: vi.fn(), child: vi.fn() };
+	logger.child.mockReturnValue(logger);
+	return { logger, runId: `run-${++seq}` };
 }
 
 beforeEach(() => {
@@ -241,6 +244,45 @@ describe("buildCliLogger — Axiom credentials", () => {
 		getTokenMock.mockReturnValue(null);
 		buildCliLogger({});
 		expect(createLoggerMock).toHaveBeenCalledWith({});
+	});
+});
+
+describe("buildCliLogger — Axiom dataset scoping by execution context (ADR-0012)", () => {
+	it("a global-context command always uses GLOBAL_AXIOM_DATASET, ignoring the env dataset", () => {
+		process.env.HOLOCRON_AXIOM_DATASET = "rando-local";
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({}, { command: "clone" });
+		expect(createLoggerMock).toHaveBeenCalledWith({
+			axiom: { dataset: GLOBAL_AXIOM_DATASET, token: "keyring-token" },
+		});
+	});
+
+	it("a global-context command still honors an env-var token — only the dataset is forced", () => {
+		process.env.HOLOCRON_AXIOM_TOKEN = "env-token";
+		process.env.HOLOCRON_AXIOM_DATASET = "rando-local";
+		buildCliLogger({}, { command: "auth set" });
+		expect(getTokenMock).not.toHaveBeenCalled();
+		expect(createLoggerMock).toHaveBeenCalledWith({
+			axiom: { dataset: GLOBAL_AXIOM_DATASET, token: "env-token" },
+		});
+	});
+
+	it("a repo-aware/workspace command is unaffected — still uses the env/config dataset", () => {
+		process.env.HOLOCRON_AXIOM_DATASET = "rando-local";
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({}, { command: "doctor" });
+		expect(createLoggerMock).toHaveBeenCalledWith({
+			axiom: { dataset: "rando-local", token: "keyring-token" },
+		});
+	});
+
+	it("an unrecognised command name is treated as not-global (unchanged chain)", () => {
+		process.env.HOLOCRON_AXIOM_DATASET = "rando-local";
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({}, { command: "some-future-command" });
+		expect(createLoggerMock).toHaveBeenCalledWith({
+			axiom: { dataset: "rando-local", token: "keyring-token" },
+		});
 	});
 });
 
