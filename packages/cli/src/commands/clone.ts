@@ -7,6 +7,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
+import { statusRow } from "../ui/status-row.js";
 import { style } from "../ui/style.js";
 
 export interface CloneTarget {
@@ -174,6 +175,8 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 			return { status: r.status };
 		});
 
+	print("");
+
 	if (!existsSync(targetDir)) {
 		if (dryRun) {
 			print(style.dim(`  would create ${targetDir}`));
@@ -212,7 +215,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		const dest = join(targetDir, repoDirName(repo));
 
 		if (existsSync(dest)) {
-			print(style.dim(`  skip   ${repo.full_name} → ${dest} (already exists)`));
+			print(statusRow("skip", [repo.full_name, dest, "already exists"]));
 			skipped++;
 			continue;
 		}
@@ -226,7 +229,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		print(style.step(`  clone  ${repo.full_name} → ${dest}`));
 		const { clone_url } = repo;
 		if (!clone_url.startsWith("https://github.com/")) {
-			print(style.fail(`  failed ${repo.full_name} → unexpected clone URL: ${clone_url}`));
+			print(statusRow("fail", [repo.full_name, dest, `unexpected clone URL: ${clone_url}`]));
 			failed++;
 			continue;
 		}
@@ -234,7 +237,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		try {
 			encodedToken = encodeTokenForGitHttpAuth(input.token);
 		} catch (err) {
-			print(style.fail(`  failed ${repo.full_name} → invalid token format: ${errorMessage(err)}`));
+			print(statusRow("fail", [repo.full_name, dest, `invalid token format: ${errorMessage(err)}`]));
 			failed++;
 			continue;
 		}
@@ -242,15 +245,15 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		const result = exec("git", ["clone", "--", authedUrl, dest], { cwd: targetDir });
 
 		if (result.status !== 0) {
-			print(style.fail(`  failed ${repo.full_name}`));
+			print(statusRow("fail", [repo.full_name, dest]));
 			failed++;
 		} else {
-			print(style.success(`  cloned ${repo.name} → ${dest}`));
+			print(statusRow("ok", [repo.full_name, dest]));
 			cloned++;
 		}
 	}
 
-	const summary = `${cloned} cloned, ${skipped} skipped, ${failed} failed`;
+	const summary = `${cloned} cloned, ${failed} failed, ${skipped} skipped`;
 	print("");
 	print(
 		dryRun
