@@ -61,6 +61,17 @@ describe("workers.putScript", () => {
 	});
 });
 
+describe("workers.listScripts", () => {
+	it("GETs /accounts/{accountId}/workers/scripts", async () => {
+		const script = { id: "wiki-proxy", created_on: "2026-01-01T00:00:00Z" };
+		const { workers, calls } = client([cfOk([script])]);
+		const result = await workers.listScripts(ACCOUNT);
+		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts`);
+		expect(calls[0]?.method).toBe("GET");
+		expect(result).toEqual([script]);
+	});
+});
+
 describe("workers.listRoutes", () => {
 	it("GETs /zones/{zoneId}/workers/routes", async () => {
 		const { workers, calls } = client([cfOk([route])]);

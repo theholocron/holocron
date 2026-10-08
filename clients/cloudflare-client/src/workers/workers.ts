@@ -14,12 +14,22 @@ export interface CfWorkerSecret {
 	type: "secret_text";
 }
 
+/** https://developers.cloudflare.com/api/operations/worker-script-list-workers */
+export interface CfWorkerScript {
+	id: string;
+	created_on?: string;
+	modified_on?: string;
+}
+
 export function workers(rest: RestClient, opts: CloudflareClientOptions) {
 	const baseUrl = opts.baseUrl ?? "https://api.cloudflare.com/client/v4";
 	const fetchImpl = opts.fetch ?? globalThis.fetch;
 
 	return {
 		// Script management — account-scoped, requires multipart/form-data.
+		listScripts: (accountId: string): Promise<CfWorkerScript[]> =>
+			cfRequest<CfWorkerScript[]>(rest, "GET", `/accounts/${accountId}/workers/scripts`),
+
 		putScript: async (accountId: string, scriptName: string, script: string): Promise<void> => {
 			const form = new FormData();
 			form.append(
