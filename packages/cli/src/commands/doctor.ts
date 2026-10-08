@@ -19,7 +19,20 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
-import type { Auth, Ci, Errors, Issues, Logs, Secrets, Source, Vault } from "../plugin/capabilities.js";
+import type {
+	Auth,
+	Ci,
+	Deployment,
+	Dns,
+	Environments,
+	Errors,
+	Issues,
+	Logs,
+	Secrets,
+	Source,
+	Vault,
+	Workers,
+} from "../plugin/capabilities.js";
 import { CARDINALITY } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { assertPluginsResolvable } from "../plugin/workspace.js";
@@ -163,6 +176,30 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 			case "vault": {
 				const keys = await (impl as Vault).list();
 				return mk(key, provider, "ok", `${keys.length} keys available`);
+			}
+			case "deployment": {
+				const projects = await (impl as Deployment).listProjects();
+				return mk(key, provider, "ok", `${projects.length} project(s) visible`);
+			}
+			case "environments": {
+				const envs = await (impl as Environments).listEnvironments();
+				return mk(key, provider, "ok", `${envs.length} environment(s) configured`);
+			}
+			case "dns": {
+				const dns = impl as Dns;
+				if (dns.whoami) {
+					const who = await dns.whoami();
+					return mk(key, provider, who.ok ? "ok" : "fail", `${who.zones} zone(s) visible`);
+				}
+				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+			}
+			case "workers": {
+				const workers = impl as Workers;
+				if (workers.whoami) {
+					const who = await workers.whoami();
+					return mk(key, provider, who.ok ? "ok" : "fail", `${who.scripts} script(s) visible`);
+				}
+				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 			}
 			case "auth": {
 				const desc = await (impl as Auth).describe();

@@ -20,6 +20,12 @@ export class CloudflareWorkers implements Workers {
 		await this.upsertRoute(`${hostname}/*`, scriptName);
 	}
 
+	/** `holocron doctor` has no specific script to check — lists every script the token can see instead. */
+	async whoami(): Promise<{ ok: boolean; scripts: number }> {
+		const scripts = await this.client().workers.listScripts(this.accountId);
+		return { ok: true, scripts: scripts.length };
+	}
+
 	async deployScript(name: string, config: DeployScriptConfig): Promise<DeployScriptResult> {
 		await this.client().workers.putScript(this.accountId, name, config.code);
 

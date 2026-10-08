@@ -99,6 +99,20 @@ describe("CloudflareDns.upsertRecord — update path", () => {
 	});
 });
 
+describe("CloudflareDns.whoami", () => {
+	it("reports ok and the zone count — no specific domain needed", async () => {
+		const { dns, calls } = makeDns([cfOk([zone, { ...zone, id: "zone-def", name: "other.com" }])]);
+		const result = await dns.whoami();
+		expect(result).toEqual({ ok: true, zones: 2 });
+		expect(calls[0]?.url).toContain("/zones");
+	});
+
+	it("propagates a token/API error instead of swallowing it", async () => {
+		const { dns } = makeDns([{ status: 403, body: { success: false, errors: [], result: null } }]);
+		await expect(dns.whoami()).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});
+
 describe("CloudflareDns.deleteRecord", () => {
 	it("resolves zone then DELETEs the record", async () => {
 		const { dns, calls } = makeDns([cfOk([zone]), cfOk({ id: "rec-1" })]);

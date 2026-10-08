@@ -53,6 +53,12 @@ export class CloudflareDns implements Dns {
 		await this.client().dns.delete(zoneId, id);
 	}
 
+	/** `holocron doctor` has no specific domain to check — lists every zone the token can see instead. */
+	async whoami(): Promise<{ ok: boolean; zones: number }> {
+		const zones = await this.client().zones.list();
+		return { ok: true, zones: zones.length };
+	}
+
 	/**
 	 * Walk from full domain up to apex to find the Cloudflare zone.
 	 * E.g. "api.staging.example.com" tries:

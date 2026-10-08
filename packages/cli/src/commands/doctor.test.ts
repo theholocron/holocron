@@ -70,6 +70,99 @@ describe("runDoctor", () => {
 		expect(lines.join("\n")).toContain("config: /tmp/test/holocron.config.json");
 	});
 
+	it("reports ok for deployment, environments, dns, and workers smoke checks", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare", environments: "github", dns: "cloudflare", workers: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => [
+						{ id: "1", name: "a" },
+						{ id: "2", name: "b" },
+					],
+				},
+				dns: { whoami: async () => ({ ok: true, zones: 3 }) },
+				workers: { whoami: async () => ({ ok: true, scripts: 4 }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				environments: { listEnvironments: async () => [{ name: "prod" }] },
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.rows.find((r) => r.capability === "deployment")).toMatchObject({
+			status: "ok",
+			message: "2 project(s) visible",
+		});
+		expect(report.rows.find((r) => r.capability === "environments")).toMatchObject({
+			status: "ok",
+			message: "1 environment(s) configured",
+		});
+		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({
+			status: "ok",
+			message: "3 zone(s) visible",
+		});
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
+			status: "ok",
+			message: "4 script(s) visible",
+		});
+	});
+
+	it("skips dns and workers when the provider has no whoami implemented", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { dns: "cloudflare", workers: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				dns: { listRecords: async () => [] },
+				workers: { upsertProxy: async () => {} },
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({ status: "skip" });
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({ status: "skip" });
+	});
+
+	it("reports fail for dns when whoami resolves with ok: false", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { dns: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				dns: { whoami: async () => ({ ok: false, zones: 0 }) },
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({
+			status: "fail",
+			message: "0 zone(s) visible",
+		});
+	});
+
+	it("reports fail for workers when whoami resolves with ok: false", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { workers: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				workers: { whoami: async () => ({ ok: false, scripts: 0 }) },
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
+			status: "fail",
+			message: "0 script(s) visible",
+		});
+	});
+
 	it("reports a fail row for a provider that failed to load", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
@@ -389,11 +482,11 @@ describe("runDoctor", () => {
 	it("single-cardinality capability without a smoke check falls through to skip", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			providers: { deployment: "vercel" },
+			providers: { storage: "neon" },
 		});
 		const loader = makeLoaderWith(loaded, {
-			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
-				deployment: {},
+			"@theholocron/holocron-plugin-neon": makePlugin("neon", {
+				storage: {},
 			}),
 		});
 
@@ -404,7 +497,7 @@ describe("runDoctor", () => {
 			print: () => {},
 		});
 
-		const row = report.rows.find((r) => r.capability === "deployment");
+		const row = report.rows.find((r) => r.capability === "storage");
 		expect(row?.status).toBe("skip");
 		expect(row?.message).toContain("no smoke check");
 	});
