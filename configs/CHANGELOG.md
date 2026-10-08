@@ -1,3 +1,9 @@
+## [8.7.1](https://github.com/theholocron/configs/compare/v8.7.0...v8.7.1) (2026-10-08)
+
+### Bug Fixes
+
+* **markdownlint-config:** 🐛 disable front-matter-title heuristic for MD025 ([#499](https://github.com/theholocron/configs/issues/499)) ([d77974f](https://github.com/theholocron/configs/commit/d77974f9d40ecff5d4571883b1f228f4930e3fc8)), closes [#498](https://github.com/theholocron/configs/issues/498)
+
 ## [8.7.0](https://github.com/theholocron/configs/compare/v8.6.1...v8.7.0) (2026-10-01)
 
 ### Features
