@@ -23,6 +23,8 @@ vi.mock("./auth/keyring.js", () => ({ listStoredProviders: () => listStoredProvi
 const {
 	buildChildArgv,
 	COMMAND_REGISTRY,
+	DRY_RUN_NOOP_EXIT_CODE,
+	DRY_RUN_PREVIEW_ENV_VAR,
 	forwardedFlags,
 	getEntry,
 	launchMenu,
@@ -404,11 +406,12 @@ describe("launchMenu", () => {
 		});
 	});
 
-	const spawnArgs = (cmd: string[]) => [
+	const spawnArgs = (cmd: string[], extraEnv: Record<string, string> = {}) => [
 		process.execPath,
 		[process.argv[1], ...cmd],
-		{ stdio: "inherit", env: { ...process.env, NO_UPDATE_NOTIFIER: "1" } },
+		{ stdio: "inherit", env: { ...process.env, NO_UPDATE_NOTIFIER: "1", ...extraEnv } },
 	];
+	const dryRunPreviewArgs = (cmd: string[]) => spawnArgs([...cmd, "--dry-run"], { [DRY_RUN_PREVIEW_ENV_VAR]: "1" });
 
 	it("offers a dry run first for a dry-run-capable command, then runs for real on yes", async () => {
 		setTTY(true);
@@ -422,7 +425,7 @@ describe("launchMenu", () => {
 		const original = process.exitCode;
 		const done = launchMenu(COMMAND_REGISTRY, {});
 		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-		expect(spawnMock).toHaveBeenNthCalledWith(1, ...spawnArgs(["doctor", "--dry-run"]));
+		expect(spawnMock).toHaveBeenNthCalledWith(1, ...dryRunPreviewArgs(["doctor"]));
 		dryChild.emit("exit", 0);
 
 		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
@@ -463,11 +466,31 @@ describe("launchMenu", () => {
 		const original = process.exitCode;
 		const done = launchMenu(COMMAND_REGISTRY, {});
 		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-		dryChild.emit("exit", 2);
+		dryChild.emit("exit", 1);
 		await done;
 
 		expect(spawnMock).toHaveBeenCalledTimes(1);
-		expect(process.exitCode).toBe(2);
+		expect(process.exitCode).toBe(1);
+		expect(confirmMock).toHaveBeenCalledTimes(1);
+		process.exitCode = original;
+	});
+
+	it("stops cleanly without asking to proceed when the dry run reports nothing would change", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValue("doctor");
+		confirmMock.mockResolvedValueOnce(true); // run a dry run first?
+		const dryChild = new EventEmitter();
+		spawnMock.mockReturnValueOnce(dryChild);
+
+		const original = process.exitCode;
+		const done = launchMenu(COMMAND_REGISTRY, {});
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+		expect(spawnMock).toHaveBeenNthCalledWith(1, ...dryRunPreviewArgs(["doctor"]));
+		dryChild.emit("exit", DRY_RUN_NOOP_EXIT_CODE);
+		await done;
+
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(process.exitCode).toBe(0);
 		expect(confirmMock).toHaveBeenCalledTimes(1);
 		process.exitCode = original;
 	});
@@ -499,7 +522,7 @@ describe("launchMenu", () => {
 
 		const done = launchMenu(COMMAND_REGISTRY, { dryRun: true });
 		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-		expect(spawnMock).toHaveBeenNthCalledWith(1, ...spawnArgs(["doctor", "--dry-run"]));
+		expect(spawnMock).toHaveBeenNthCalledWith(1, ...dryRunPreviewArgs(["doctor"]));
 		dryChild.emit("exit", 0);
 
 		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));

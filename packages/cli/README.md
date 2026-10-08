@@ -48,7 +48,9 @@ committing:
 Already passing `--dry-run` to the top-level invocation (`holocron --dry-run`)
 skips straight to the dry run without asking — it carries through to
 whatever gets picked either way — but still asks "proceed with the real
-run?" once it comes back clean.
+run?" once it comes back clean. A dry run that reports nothing would
+actually change (e.g. `clone` finding every repo already cloned) skips
+that question too — there'd be nothing for the real run to do either.
 
 ## Execution contexts
 

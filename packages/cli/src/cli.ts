@@ -36,6 +36,8 @@ import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
 import {
 	COMMAND_REGISTRY,
+	DRY_RUN_NOOP_EXIT_CODE,
+	DRY_RUN_PREVIEW_ENV_VAR,
 	getEntry,
 	launchMenu,
 	NonInteractiveError,
@@ -270,6 +272,12 @@ try {
 				if (report.status === "fail") {
 					if (report.message) reportError(`clone: ${report.message}`);
 					process.exitCode = 1;
+				} else if (
+					report.status === "dry-run" &&
+					report.cloned === 0 &&
+					env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1"
+				) {
+					process.exitCode = DRY_RUN_NOOP_EXIT_CODE;
 				}
 			}
 		)
