@@ -147,6 +147,22 @@ describe("runDoctor", () => {
 		});
 	});
 
+	it("reports fail for workers when whoami resolves with ok: false", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { workers: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				workers: { whoami: async () => ({ ok: false, scripts: 0 }) },
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
+			status: "fail",
+			message: "0 script(s) visible",
+		});
+	});
+
 	it("reports a fail row for a provider that failed to load", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
