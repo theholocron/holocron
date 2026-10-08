@@ -253,7 +253,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		}
 	}
 
-	const summary = `${cloned} cloned, ${skipped} skipped, ${failed} failed`;
+	const summary = `${cloned} cloned, ${failed} failed, ${skipped} skipped`;
 	print("");
 	print(
 		dryRun

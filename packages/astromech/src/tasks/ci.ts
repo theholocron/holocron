@@ -107,7 +107,7 @@ export function runCi(input: CiInput): CiReport {
 	if (ordered.length === 0) {
 		print("holocron ci — nothing to run");
 	} else if (failed > 0) {
-		print(`✗ ${failed} failed, ${passed} passed${skipped ? `, ${skipped} skipped` : ""}`);
+		print(`✗ ${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ""}`);
 	} else {
 		print(`✓ ${passed} passed${skipped ? `, ${skipped} skipped` : ""}${input.dryRun ? " (plan only)" : ""}`);
 	}

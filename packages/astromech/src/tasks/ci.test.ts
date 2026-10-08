@@ -274,6 +274,6 @@ describe("runCi", () => {
 			],
 		});
 		expect(report.status).toBe("fail");
-		expect(lines.join("\n")).toMatch(/✗ 1 failed, 0 passed, 1 skipped/);
+		expect(lines.join("\n")).toMatch(/✗ 0 passed, 1 failed, 1 skipped/);
 	});
 });
