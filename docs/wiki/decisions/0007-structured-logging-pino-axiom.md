@@ -184,6 +184,11 @@ dedicated single-cardinality capabilities:
 `HOLOCRON_AXIOM_DATASET` is set to `holocron-ci` in CI (org secret) or
 `holocron-local` locally — one env var, different values per environment.
 
+> **Refined by ADR-0012** (2026-10): "one value locally" doesn't survive
+> Holocron being installed into more than one repo (`rando` and beyond) — see
+> ADR-0012 for per-repo (`direnv`) and per-command-context (`global` vs.
+> `repo-aware`/`workspace`) dataset resolution.
+
 Both are **env-var-activated** — the runtime does not require a provider entry
 in `holocron.config` to function. They activate wherever their env vars are
 present, including before config is fully resolved. The config entry

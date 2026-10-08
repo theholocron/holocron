@@ -40,3 +40,4 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 | [ADR-0009](0009-astromech-task-runner-package.md)                         | Astromech — the task-runner + CI-parity package (`@theholocron/astromech`) | proposed |
 | [ADR-0010](0010-datapad-config-loader.md)                                 | Datapad — the shared config loader (`@theholocron/datapad`)                | proposed |
 | [ADR-0011](0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md) | Sentinel's deploy target — Vercel Functions over Cloudflare Workers        | accepted |
+| [ADR-0012](0012-axiom-dataset-scoping-execution-context.md)               | Axiom dataset scoping — execution context over blanket local/CI            | proposed |
