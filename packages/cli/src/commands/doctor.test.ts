@@ -124,6 +124,22 @@ describe("runDoctor", () => {
 		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({ status: "skip" });
 	});
 
+	it("reports fail for dns when whoami resolves with ok: false", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { dns: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				dns: { whoami: async () => ({ ok: false, zones: 0 }) },
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({
+			status: "fail",
+			message: "0 zone(s) visible",
+		});
+	});
+
 	it("reports a fail row for a provider that failed to load", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
