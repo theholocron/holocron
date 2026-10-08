@@ -237,5 +237,5 @@ interface and `createLogger` factory — never Pino directly.
 ## References
 
 - Issues: #522 (logger package), #454 (migration), #452 (PostHog telemetry), #521 (Discord)
-- `@axiomhq/pino`: https://github.com/axiomhq/axiom-node
-- Pino docs: https://getpino.io
+- `@axiomhq/pino`: <https://github.com/axiomhq/axiom-node>
+- Pino docs: <https://getpino.io>

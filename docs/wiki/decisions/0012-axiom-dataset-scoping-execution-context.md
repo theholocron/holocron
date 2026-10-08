@@ -178,4 +178,4 @@ for an unrelated reason (#576) — no new taxonomy to invent or keep in sync.
 - Supersedes the local/CI-only framing in ADR-0007's "Capability model —
   `errors` and `logs`" section (dataset resolution, not the rest of that
   ADR)
-- `direnv`: https://direnv.net
+- `direnv`: <https://direnv.net>
