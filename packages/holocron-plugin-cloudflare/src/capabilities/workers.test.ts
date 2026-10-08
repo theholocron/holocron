@@ -128,6 +128,22 @@ describe("CloudflareWorkers — error handling", () => {
 	});
 });
 
+describe("CloudflareWorkers.whoami", () => {
+	it("reports ok and the script count — no specific script needed", async () => {
+		const script = { id: "wiki-proxy" };
+		const { workers, calls } = makeWorkers([cfOk([script, { id: "sentinel" }])]);
+		const result = await workers.whoami();
+		expect(result).toEqual({ ok: true, scripts: 2 });
+		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts`);
+		expect(calls[0]?.method).toBe("GET");
+	});
+
+	it("propagates a token/API error instead of swallowing it", async () => {
+		const { workers } = makeWorkers([{ status: 403, body: { success: false, errors: [], result: null } }]);
+		await expect(workers.whoami()).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});
+
 describe("CloudflareWorkers.deployScript", () => {
 	it("deploys the given code and returns the script name", async () => {
 		const { workers, calls } = makeWorkers([{ status: 200 }]);
