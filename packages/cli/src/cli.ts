@@ -46,6 +46,7 @@ import {
 import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
+import { openPath } from "./ui/open-path.js";
 import { style } from "./ui/style.js";
 import { checkForUpdates } from "./update-notifier.js";
 
@@ -275,6 +276,16 @@ try {
 								},
 							}
 						: {}),
+					confirmOpen: async (openTarget: string, moreToCome: boolean) => {
+						if (!process.stdin.isTTY) return;
+						// A menu-launched preview with something it would actually clone
+						// is about to ask "proceed with the real run?" — defer to there
+						// instead of asking twice for the same directory. A direct
+						// --dry-run invocation (no menu involved) has no such follow-up,
+						// so it still asks now.
+						if (moreToCome && env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1") return;
+						if (await confirm({ message: `Open ${openTarget}?`, default: false })) openPath(openTarget);
+					},
 				});
 				if (report.status === "fail") {
 					if (report.message) reportError(`clone: ${report.message}`);

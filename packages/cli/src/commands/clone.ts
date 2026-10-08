@@ -83,6 +83,22 @@ export interface RunCloneInput {
 	 * caller that already passed `--all` deliberately).
 	 */
 	confirmWholeOrg?: (scope: WholeOrgScope) => Promise<boolean>;
+	/**
+	 * Called once at the end — for a single `repo` clone, with that repo's
+	 * own directory; for a whole-org clone, with the surrounding `targetDir`
+	 * that holds every repo. Only called when that path actually exists on
+	 * disk: always true after a real run (cloned or skipped-because-already-
+	 * there), but a dry run's "would clone" path for anything brand new
+	 * never exists yet, so this naturally stays silent there.
+	 *
+	 * The second argument is true for a dry run that found something it
+	 * would actually clone — a real run (or a menu-launched "proceed with
+	 * the real run?" decision) may still follow, so a caller that only wants
+	 * to ask once, at the true end of the road, can defer in that case.
+	 * Omit `confirmOpen` entirely to skip — e.g. a non-interactive caller
+	 * with nothing to open to.
+	 */
+	confirmOpen?: (path: string, moreToCome: boolean) => Promise<void>;
 }
 
 export interface CloneReport {
@@ -249,5 +265,11 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 		{ org: input.org, repo: input.repo, status, cloned, skipped, failed },
 		"clone: done"
 	);
+
+	if (input.confirmOpen) {
+		const openTarget = input.repo ? join(targetDir, repoDirName(repos[0]!)) : targetDir;
+		if (existsSync(openTarget)) await input.confirmOpen(openTarget, dryRun && cloned > 0);
+	}
+
 	return { status, cloned, skipped, failed };
 }
