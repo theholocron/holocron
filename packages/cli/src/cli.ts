@@ -165,6 +165,13 @@ try {
 				"Print what would be mutated without calling capability mutators. " +
 				"Commands branch on this; read-only commands ignore it.",
 		})
+		.option("skip-dry-run", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Interactive mode only: skip the automatic dry-run preview for a " +
+				"dry-run-capable command and run for real immediately.",
+		})
 		.option("token", {
 			type: "string",
 			array: true,

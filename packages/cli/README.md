@@ -36,21 +36,19 @@ through. A non-interactive shell (CI, a script, a pipe) gets the old
 hard-failure message instead of hanging on a prompt.
 
 For a command whose handler honours `--dry-run` (most of them — everything
-except `auth *` and `config show`), the menu also offers a preview before
-committing:
+except `auth *` and `config show`), the menu always previews it first — a
+dry run doesn't mutate anything, so there's nothing to ask permission for —
+then asks the one real decision:
 
 ```console
-? Run a dry run first? › yes
 ...dry-run output...
 ? Dry run complete — proceed with the real run? › yes
 ```
 
-Already passing `--dry-run` to the top-level invocation (`holocron --dry-run`)
-skips straight to the dry run without asking — it carries through to
-whatever gets picked either way — but still asks "proceed with the real
-run?" once it comes back clean. A dry run that reports nothing would
-actually change (e.g. `clone` finding every repo already cloned) skips
-that question too — there'd be nothing for the real run to do either.
+A preview that reports nothing would actually change (e.g. `clone` finding
+every repo already cloned) skips that question too — there'd be nothing for
+the real run to do either. `--skip-dry-run` opts out of the preview
+entirely, straight to the real run, for when you already know what you want.
 
 ## Execution contexts
 

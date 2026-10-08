@@ -17,11 +17,13 @@
  * the handler already has everything else it needs.
  *
  * For a command whose handler honours `--dry-run` ({@link
- * CommandEntry.supportsDryRun}), `launchMenu` also offers a preview before
- * committing: "run a dry run first?", then — once that dry run comes back
- * clean — "proceed with the real run?". Passing `--dry-run` to the
- * top-level invocation itself skips straight to the dry run without asking;
- * it already forwards through to whatever gets picked either way.
+ * CommandEntry.supportsDryRun}), `launchMenu` always previews it first — a
+ * dry run doesn't mutate anything, so there's nothing to ask permission
+ * for — then, once that preview comes back clean and found something to
+ * do, asks the one real decision: "proceed with the real run?". A preview
+ * that finds nothing to do skips that question too. `--skip-dry-run` opts
+ * a top-level invocation out of the preview entirely, straight to the
+ * real run, for when you already know what you want.
  *
  * Every prompt is preceded by a `process.stdin.isTTY` check. A non-TTY run
  * (CI, a script, a pipe) throws {@link NonInteractiveError} instead of
@@ -424,15 +426,15 @@ function spawnChild(args: string[], extraEnv?: Record<string, string>): Promise<
 }
 
 /**
- * Whether `launchMenu` should ask "run a dry run first?" for a picked
- * command. Only when the command's handler actually honours `--dry-run`
- * ({@link CommandEntry.supportsDryRun}) and the top-level invocation hadn't
- * already answered that question by passing `--dry-run` itself — in that
- * case `launchMenu` goes straight to the dry run without asking, since the
- * user already said what they wanted.
+ * Whether `launchMenu` should auto-preview a picked command before running
+ * it for real — only when the command's handler actually honours
+ * `--dry-run` ({@link CommandEntry.supportsDryRun}) and the top-level
+ * invocation didn't pass `--skip-dry-run` to opt out of the preview
+ * entirely (an escape hatch for "I already know what I want, skip
+ * straight to the real run").
  */
-export function shouldOfferDryRun(entry: CommandEntry, parentArgv: Record<string, unknown>): boolean {
-	return Boolean(entry.supportsDryRun) && parentArgv.dryRun !== true;
+export function shouldPreviewDryRun(entry: CommandEntry, parentArgv: Record<string, unknown>): boolean {
+	return Boolean(entry.supportsDryRun) && parentArgv.skipDryRun !== true;
 }
 
 /**
@@ -445,14 +447,15 @@ export function shouldOfferDryRun(entry: CommandEntry, parentArgv: Record<string
  * middleware ran before any command was picked) — left as-is rather than
  * suppressed; it's a real, useful signal ("the menu got used").
  *
- * For a command that honours `--dry-run` ({@link CommandEntry.supportsDryRun}),
- * this also offers a preview: "run a dry run first?" (skipped — and the
- * dry run just runs — when `--dry-run` was already passed at the top
- * level, since that already answered the question). A dry run that exits
- * non-zero stops here; one that reports {@link DRY_RUN_NOOP_EXIT_CODE}
- * (nothing would change) stops here too, skipping the follow-up question
- * since the real run would have nothing to do either. Otherwise it gets
- * one more question, "proceed with the real run?", before the real spawn.
+ * For a command that honours `--dry-run` ({@link CommandEntry.supportsDryRun})
+ * and wasn't opted out via `--skip-dry-run` ({@link shouldPreviewDryRun}),
+ * this always previews first — a dry run doesn't mutate anything, so
+ * there's nothing to ask permission for. A preview that exits non-zero
+ * stops here; one that reports {@link DRY_RUN_NOOP_EXIT_CODE} (nothing
+ * would change) stops here too, skipping the follow-up question since the
+ * real run would have nothing to do either. Otherwise it asks "proceed
+ * with the real run?" before the real spawn — the one actual decision
+ * left to make, since this one does mutate something.
  */
 export async function launchMenu(
 	entries: CommandEntry[],
@@ -466,11 +469,7 @@ export async function launchMenu(
 	const picked = await pickCommand(entries, pickMessage);
 	const positionals = await promptForPositionals(picked, {});
 
-	const runDryRunFirst = shouldOfferDryRun(picked, parentArgv)
-		? await confirm({ message: "Run a dry run first?", default: true })
-		: parentArgv.dryRun === true;
-
-	if (runDryRunFirst) {
+	if (shouldPreviewDryRun(picked, parentArgv)) {
 		const dryExit = await spawnChild(buildChildArgv(picked, positionals, parentArgv, true), {
 			[DRY_RUN_PREVIEW_ENV_VAR]: "1",
 		});
