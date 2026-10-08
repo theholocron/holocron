@@ -972,6 +972,12 @@ export interface Workers extends ProviderIdentity {
 	upsertProxy(hostname: string, config: WikiProxyConfig): Promise<void>;
 	/** Deploy (or update) an arbitrary Worker script, optionally with secrets and routes. */
 	deployScript(name: string, config: DeployScriptConfig): Promise<DeployScriptResult>;
+	/**
+	 * A `holocron doctor` smoke check — every other method either mutates or
+	 * needs a specific script/zone doctor has no way to supply up front.
+	 * Reports how many Worker scripts the token can see.
+	 */
+	whoami?(): Promise<{ ok: boolean; scripts: number }>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

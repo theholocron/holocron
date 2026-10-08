@@ -70,10 +70,10 @@ describe("runDoctor", () => {
 		expect(lines.join("\n")).toContain("config: /tmp/test/holocron.config.json");
 	});
 
-	it("reports ok for deployment, environments, and dns smoke checks", async () => {
+	it("reports ok for deployment, environments, dns, and workers smoke checks", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
-			providers: { deployment: "cloudflare", environments: "github", dns: "cloudflare" },
+			providers: { deployment: "cloudflare", environments: "github", dns: "cloudflare", workers: "cloudflare" },
 		});
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
@@ -84,6 +84,7 @@ describe("runDoctor", () => {
 					],
 				},
 				dns: { whoami: async () => ({ ok: true, zones: 3 }) },
+				workers: { whoami: async () => ({ ok: true, scripts: 4 }) },
 			}),
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				environments: { listEnvironments: async () => [{ name: "prod" }] },
@@ -109,19 +110,25 @@ describe("runDoctor", () => {
 			status: "ok",
 			message: "3 zone(s) visible",
 		});
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
+			status: "ok",
+			message: "4 script(s) visible",
+		});
 	});
 
-	it("skips dns when the provider has no whoami implemented", async () => {
-		const loaded = loadedFrom({ name: "demo", providers: { dns: "cloudflare" } });
+	it("skips dns and workers when the provider has no whoami implemented", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { dns: "cloudflare", workers: "cloudflare" } });
 		const loader = makeLoaderWith(loaded, {
 			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
 				dns: { listRecords: async () => [] },
+				workers: { upsertProxy: async () => {} },
 			}),
 		});
 
 		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({ status: "skip" });
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({ status: "skip" });
 	});
 
 	it("reports fail for dns when whoami resolves with ok: false", async () => {
@@ -137,6 +144,22 @@ describe("runDoctor", () => {
 		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({
 			status: "fail",
 			message: "0 zone(s) visible",
+		});
+	});
+
+	it("reports fail for workers when whoami resolves with ok: false", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { workers: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				workers: { whoami: async () => ({ ok: false, scripts: 0 }) },
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
+			status: "fail",
+			message: "0 script(s) visible",
 		});
 	});
 

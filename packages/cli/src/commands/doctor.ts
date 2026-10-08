@@ -31,6 +31,7 @@ import type {
 	Secrets,
 	Source,
 	Vault,
+	Workers,
 } from "../plugin/capabilities.js";
 import { CARDINALITY } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
@@ -189,6 +190,14 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 				if (dns.whoami) {
 					const who = await dns.whoami();
 					return mk(key, provider, who.ok ? "ok" : "fail", `${who.zones} zone(s) visible`);
+				}
+				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+			}
+			case "workers": {
+				const workers = impl as Workers;
+				if (workers.whoami) {
+					const who = await workers.whoami();
+					return mk(key, provider, who.ok ? "ok" : "fail", `${who.scripts} script(s) visible`);
 				}
 				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 			}
