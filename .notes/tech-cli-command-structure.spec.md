@@ -85,8 +85,9 @@ the rename.
 
 ### Interactive menu
 
-Every command except the CI/hook-only ones (`run …`) gets a `COMMAND_REGISTRY`
-entry; commands with a required positional prompt for it as today. New
+Every command except the CI/hook-only ones (`run <task>`, `run lint commit-msg`)
+gets a `COMMAND_REGISTRY` entry; `run ci` is kept as a concrete, prompt-free
+entry. Commands with a required positional prompt for it as today. New
 `group` values (`repo`, `package`, `deploy`, `new`, `sync`, `secrets`) feed the
 Layer-2 grouping. A test asserts the registry is complete against the
 registered yargs commands (minus the explicit exclusions) so it can't drift
@@ -111,15 +112,16 @@ again.
 
 ## Release
 
-semantic-release derives the version from Conventional Commits. A
-`BREAKING CHANGE:` footer or `!` would bump the major (`5.x` → `6.0.0-alpha.1`).
-Whether this ships as a major is a maintainer decision; the PRs should not add
-the footer until that is settled.
+No `!` and no `BREAKING CHANGE:` footer on any of these commits: the project is
+on the `alpha` channel, so the rename stays within v5 (maintainer's call).
+Downstream repos on older synced templates keep calling the old names until
+they re-sync; the release notes should say so.
 
 ## Rollout
 
 1. Spec (this PR).
-2. `run` absorbs `ci` / `lint commit-msg`; husky hooks updated in the same PR.
+2. `run` absorbs `ci` / `lint commit-msg`; husky hooks, templates and every
+   reference to the old names updated in the same PR (theholocron/holocron#977).
 3. Regroup the rest + `COMMAND_CONTEXTS` + menu completeness test.
 4. Templates/docs sweep and `sync-github` regeneration.
 
@@ -130,6 +132,5 @@ the footer until that is settled.
 
 ## Open questions
 
-- Ship as a major version, or keep within the current prerelease line?
 - Should `package` also grow `package version`/`package pack` later, or stay
   `bump-versions` and `publish`?
