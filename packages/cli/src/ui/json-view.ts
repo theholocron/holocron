@@ -99,6 +99,11 @@ export function renderTree(value: unknown, { expanded }: RenderOptions): Line[] 
 export interface ViewJsonOptions {
 	/** Collapse containers deeper than this many levels (static mode and the interactive start state). */
 	depth?: number;
+	/**
+	 * `true` forces the folding viewer (throws without a TTY), `false` forces
+	 * static output. Left unset it auto-enables when stdin and stdout are both
+	 * TTYs and no `depth` was asked for (an explicit depth means static output).
+	 */
 	interactive?: boolean;
 }
 
@@ -220,11 +225,13 @@ async function runInteractive(value: unknown, depth: number): Promise<void> {
 /**
  * Print `value` as JSON. Non-TTY stdout always gets plain, valid
  * `JSON.stringify` output (so `| jq` and redirects keep working); a TTY gets a
- * coloured tree, collapsed past `depth`. `interactive` opens a folding viewer.
+ * coloured tree, collapsed past `depth`. `interactive` opens a folding viewer (the default on a TTY).
  */
 export async function viewJson(value: unknown, options: ViewJsonOptions = {}): Promise<void> {
 	const depth = options.depth ?? Infinity;
-	if (options.interactive) return runInteractive(value, options.depth ?? 1);
+	const interactive =
+		options.interactive ?? (options.depth === undefined && Boolean(process.stdin.isTTY && process.stdout.isTTY));
+	if (interactive) return runInteractive(value, options.depth ?? 1);
 	if (!process.stdout.isTTY) {
 		console.log(JSON.stringify(value, null, 2));
 		return;

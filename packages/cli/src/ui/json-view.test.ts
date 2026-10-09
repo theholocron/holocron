@@ -144,4 +144,35 @@ describe("viewJson", () => {
 			stdin.setRawMode = origSet;
 		}
 	});
+
+	it("defaults to the interactive viewer on a full TTY, but not when --depth or --no-interactive is given", async () => {
+		setTty(true);
+		const stdin = process.stdin as unknown as { isTTY?: boolean; setRawMode: (v: boolean) => void };
+		const origTty = stdin.isTTY;
+		const origSet = stdin.setRawMode;
+		const raw = vi.fn();
+		stdin.isTTY = true;
+		stdin.setRawMode = raw;
+		const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+		vi.spyOn(process.stdin, "resume").mockImplementation(() => process.stdin);
+		vi.spyOn(process.stdin, "pause").mockImplementation(() => process.stdin);
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const done = viewJson(sample);
+			process.stdin.emit("data", Buffer.from("q"));
+			await done;
+			expect(raw).toHaveBeenCalledWith(true);
+			expect(log).not.toHaveBeenCalled();
+
+			raw.mockClear();
+			await viewJson(sample, { depth: 1 });
+			await viewJson(sample, { interactive: false });
+			expect(raw).not.toHaveBeenCalled();
+			expect(log).toHaveBeenCalledTimes(2);
+			expect(write.mock.calls.length).toBeGreaterThan(0);
+		} finally {
+			stdin.isTTY = origTty;
+			stdin.setRawMode = origSet;
+		}
+	});
 });

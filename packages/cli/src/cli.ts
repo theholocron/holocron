@@ -1015,8 +1015,8 @@ try {
 					})
 					.option("interactive", {
 						type: "boolean",
-						default: false,
-						describe: "Browse the config in a foldable tree (TTY only)",
+						describe:
+							"Browse the config in a foldable tree (default on a TTY; --no-interactive for static output)",
 					}),
 			async (argv) => {
 				const loaded = await loadConfig(argv.cwd);

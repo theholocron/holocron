@@ -68,17 +68,18 @@ verification skipped" instead. `holocron --help` prints the grouping; see
 
 ### Viewing the resolved config
 
-`holocron config show` prints the resolved config. On a TTY it renders a
-coloured tree; piped or redirected, it always emits plain, valid JSON
+`holocron config show` prints the resolved config. On a TTY it opens a foldable
+tree by default; piped or redirected, it always emits plain, valid JSON
 (`holocron config show | jq`).
 
 ```console
-holocron config show --depth 2       # collapse anything nested deeper than 2 levels (TTY only)
-holocron config show --interactive   # foldable tree: ↑↓ move, →/⏎ expand, ← collapse, E/C all, q quit
+holocron config show                  # TTY: foldable tree (↑↓ move, →/⏎ expand, ← collapse, E/C all, q quit)
+holocron config show --depth 2        # static coloured tree, anything nested deeper than 2 levels collapsed
+holocron config show --no-interactive # static coloured tree, fully expanded
 ```
 
-`--interactive` needs a TTY on stdin and stdout and fails with a one-line
-message otherwise. It has no extra dependencies — nothing to install.
+Passing `--interactive` explicitly needs a TTY on stdin and stdout and fails
+with a one-line message otherwise; the default just falls back to static output. It has no extra dependencies — nothing to install.
 
 ## Config file
 
