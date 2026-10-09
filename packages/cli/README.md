@@ -66,6 +66,20 @@ use `pnpm exec holocron <cmd>`. `auth check` degrades to "token present,
 verification skipped" instead. `holocron --help` prints the grouping; see
 [Execution Contexts](https://theholocron.github.io/holocron/execution-contexts).
 
+### Viewing the resolved config
+
+`holocron config show` prints the resolved config. On a TTY it renders a
+coloured tree; piped or redirected, it always emits plain, valid JSON
+(`holocron config show | jq`).
+
+```console
+holocron config show --depth 2       # collapse anything nested deeper than 2 levels (TTY only)
+holocron config show --interactive   # foldable tree: ↑↓ move, →/⏎ expand, ← collapse, E/C all, q quit
+```
+
+`--interactive` needs a TTY on stdin and stdout and fails with a one-line
+message otherwise. It has no extra dependencies — nothing to install.
+
 ## Config file
 
 Holocron reads `holocron.config.{json,js,ts}` from the project root
