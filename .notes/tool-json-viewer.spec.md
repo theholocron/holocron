@@ -16,15 +16,15 @@ command.
 
 ## Options considered
 
-| Option | Verdict |
-| --- | --- |
-| `fx` (npm 40.x) | CLI only: the package has a `bin` and no `main` / `exports` / `types`, so it can't be imported. Requires a separate install. |
-| `bat` | Rust binary, no Node package, highlights but doesn't fold. |
-| `json-tree-view`, `react-json-view` | Browser DOM / React DOM components; don't render in a terminal. |
-| `ink-json-viewer` | Terminal, collapsible, but peers on `ink` ≥ 6 and `react` ≥ 19 — a React renderer in a CLI that has none. |
-| `json-colorizer`, `cli-highlight`, `prettyjson`, `treeify` | Colour or static tree only; no folding. |
-| `blessed-contrib`, `terminal-kit` | Full TUI frameworks; far too heavy. |
-| **In-repo viewer** | **Chosen.** `chalk` (already a CLI dep) + `node:readline`. No new dependency, no user install. |
+| Option                                                     | Verdict                                                                                                                      |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `fx` (npm 40.x)                                            | CLI only: the package has a `bin` and no `main` / `exports` / `types`, so it can't be imported. Requires a separate install. |
+| `bat`                                                      | Rust binary, no Node package, highlights but doesn't fold.                                                                   |
+| `json-tree-view`, `react-json-view`                        | Browser DOM / React DOM components; don't render in a terminal.                                                              |
+| `ink-json-viewer`                                          | Terminal, collapsible, but peers on `ink` ≥ 6 and `react` ≥ 19 — a React renderer in a CLI that has none.                    |
+| `json-colorizer`, `cli-highlight`, `prettyjson`, `treeify` | Colour or static tree only; no folding.                                                                                      |
+| `blessed-contrib`, `terminal-kit`                          | Full TUI frameworks; far too heavy.                                                                                          |
+| **In-repo viewer**                                         | **Chosen.** `chalk` (already a CLI dep) + `node:readline`. No new dependency, no user install.                               |
 
 ## Design
 
