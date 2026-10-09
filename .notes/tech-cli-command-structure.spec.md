@@ -132,4 +132,4 @@ the footer until that is settled.
 
 - Ship as a major version, or keep within the current prerelease line?
 - Should `package` also grow `package version`/`package pack` later, or stay
-  just `bump-versions` and `publish`?
+  `bump-versions` and `publish`?
