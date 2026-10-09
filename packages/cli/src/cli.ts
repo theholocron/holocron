@@ -46,6 +46,7 @@ import {
 import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./logger.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
+import { viewJson } from "./ui/json-view.js";
 import { openPath } from "./ui/open-path.js";
 import { style } from "./ui/style.js";
 import { checkForUpdates } from "./update-notifier.js";
@@ -1006,10 +1007,20 @@ try {
 		.command(
 			"config show",
 			"Print the resolved holocron config",
-			() => {},
+			(y) =>
+				y
+					.option("depth", {
+						type: "number",
+						describe: "Collapse objects/arrays nested deeper than N levels (TTY output only)",
+					})
+					.option("interactive", {
+						type: "boolean",
+						describe:
+							"Browse the config in a foldable tree (default on a TTY; --no-interactive for static output)",
+					}),
 			async (argv) => {
 				const loaded = await loadConfig(argv.cwd);
-				console.log(JSON.stringify(loaded.resolved, null, 2));
+				await viewJson(loaded.resolved, { depth: argv.depth, interactive: argv.interactive });
 			}
 		)
 		.command(
