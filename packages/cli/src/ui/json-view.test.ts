@@ -176,3 +176,59 @@ describe("viewJson", () => {
 		}
 	});
 });
+
+describe("edge cases", () => {
+	it("uses singular wording for one-key objects and one-item arrays", () => {
+		const out = texts(renderTree({ o: { x: 1 }, a: [1] }, { expanded: new Set([""]) }));
+		expect(out).toContain('  "o": {… 1 key},');
+		expect(out).toContain('  "a": [… 1 item]');
+	});
+
+	it("renders an undefined value as null", () => {
+		const out = texts(renderTree({ a: undefined }, { expanded: new Set([""]) }));
+		expect(out).toContain('  "a": null');
+	});
+
+	it("treats quit as a no-op in the reducer (the live loop handles exit)", () => {
+		const s: ViewState = { cursor: 1, top: 0, expanded: new Set([""]) };
+		expect(reduceKey(s, "quit", sample, 10)).toEqual(s);
+	});
+
+	it("left is a no-op with nothing to collapse: a scalar root, or a cursor past the end", () => {
+		const root: ViewState = { cursor: 0, top: 0, expanded: new Set() };
+		expect(reduceKey(root, "left", 5, 10).cursor).toBe(0);
+		const past: ViewState = { cursor: 99, top: 0, expanded: new Set([""]) };
+		expect(reduceKey(past, "left", sample, 10).expanded.has("")).toBe(true);
+	});
+
+	it("scrolls the viewport back up when the cursor moves above it", () => {
+		const s: ViewState = { cursor: 3, top: 3, expanded: expandToDepth(sample, Infinity) };
+		const next = reduceKey(s, "up", sample, 3);
+		expect(next.cursor).toBe(2);
+		expect(next.top).toBe(2);
+	});
+
+	it("ignores unmapped keys in the interactive loop", async () => {
+		Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
+		const stdin = process.stdin as unknown as { isTTY?: boolean; setRawMode: (v: boolean) => void };
+		const origTty = stdin.isTTY;
+		const origSet = stdin.setRawMode;
+		stdin.isTTY = true;
+		stdin.setRawMode = vi.fn();
+		const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+		vi.spyOn(process.stdin, "resume").mockImplementation(() => process.stdin);
+		vi.spyOn(process.stdin, "pause").mockImplementation(() => process.stdin);
+		try {
+			const done = viewJson(sample, { interactive: true });
+			const before = write.mock.calls.length;
+			process.stdin.emit("data", Buffer.from("x"));
+			expect(write.mock.calls.length).toBe(before);
+			process.stdin.emit("data", Buffer.from("q"));
+			await done;
+		} finally {
+			stdin.isTTY = origTty;
+			stdin.setRawMode = origSet;
+			vi.restoreAllMocks();
+		}
+	});
+});
