@@ -79,7 +79,7 @@ holocron config show --no-interactive # static coloured tree, fully expanded
 ```
 
 Passing `--interactive` explicitly needs a TTY on stdin and stdout and fails
-with a one-line message otherwise; the default just falls back to static output. It has no extra dependencies — nothing to install.
+with a one-line message otherwise; the default falls back to static output. It has no extra dependencies — nothing to install.
 
 ## Config file
 
