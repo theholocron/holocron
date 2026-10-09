@@ -54,3 +54,36 @@ describe("run passthrough parsing", () => {
 		expect(passthrough).toEqual(["--watch"]);
 	});
 });
+
+/**
+ * `ci` and `lint commit-msg <file>` are no longer top-level commands: they ride
+ * `run`'s positionals. The handler dispatches on `task` / `job`, and the commit
+ * message file arrives as the first passthrough arg.
+ */
+describe("run ci / run lint commit-msg parsing", () => {
+	const parse = (args: string[]) =>
+		yargs(args)
+			.parserConfiguration({ "populate--": true })
+			.command("run <task> [job] [passthrough..]", "", (y) =>
+				y
+					.positional("task", { type: "string" })
+					.positional("job", { type: "string" })
+					.positional("passthrough", { type: "string", array: true })
+					.option("all", { type: "boolean", default: false })
+			)
+			.parseSync();
+
+	it("parses `run ci --all` as task=ci with the --all flag", () => {
+		const argv = parse(["run", "ci", "--all"]);
+		expect(argv.task).toBe("ci");
+		expect(argv.job).toBeUndefined();
+		expect(argv.all).toBe(true);
+	});
+
+	it("parses the husky hook form: task=lint, job=commit-msg, file as first passthrough", () => {
+		const argv = parse(["run", "lint", "commit-msg", ".git/COMMIT_EDITMSG"]);
+		expect(argv.task).toBe("lint");
+		expect(argv.job).toBe("commit-msg");
+		expect(argv.passthrough).toEqual([".git/COMMIT_EDITMSG"]);
+	});
+});

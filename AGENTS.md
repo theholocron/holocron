@@ -29,7 +29,7 @@ Three repos, one rule per concern:
   `createPlugin()`.
 - **Task manifest → `@theholocron/astromech`** (ADR-0009, epic #581). One
   `tasks` array in `holocron.config` drives every workflow surface:
-  `holocron run` / `holocron ci`, each repo's `.github/workflows/*.yml`
+  `holocron run` / `holocron run ci`, each repo's `.github/workflows/*.yml`
   thin callers (`astromech.thinCallers()`, consumed by `holocron sync` /
   `holocron setup`), `package.json` scripts, the linter set, the
   branch-protection required checks, and the reusable `workflow_call`
@@ -166,7 +166,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 
 - **Definition of done: code + tests + docs + green checks.** A change
   is not done until all four are true:
-  1. `holocron ci` passes — it runs exactly the merge-gating checks, in
+  1. `holocron run ci` passes — it runs exactly the merge-gating checks, in
      CI order, one non-zero exit on the first failure. (Equivalent:
      `pnpm typecheck && pnpm lint && pnpm test && pnpm build` — the same
      set CI runs. Finding failures after pushing wastes a round trip.)
@@ -228,7 +228,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   file types); it is not a substitute for adding a new pattern.
 - **PR checks must be green before merge.** `pnpm typecheck`,
   `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. Run
-  `holocron ci` as the local pre-flight (a `pre-push` hook runs it
+  `holocron run ci` as the local pre-flight (a `pre-push` hook runs it
   automatically in `protection: "strict"` repos; `git push --no-verify`
   bypasses one push). CodeQL runs separately. DCO checks the Signed-off-by
   trailer per commit (use `-s`). Don't merge through red checks.

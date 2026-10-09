@@ -54,11 +54,11 @@ entirely, straight to the real run, for when you already know what you want.
 
 Every command is tagged with how much of a repo it needs:
 
-| Context      | Needs                                                    | Examples                                                                                     |
-| ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `global`     | the CLI binary alone                                     | `version`, `clone`, `new`, `upgrade node`, `auth set` / `check`, `plugin create`, `skills …` |
-| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `ci`, `config show`, `sync-readme`                                                    |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `secrets sync`, `deploy`                                          |
+| Context      | Needs                                                    | Examples                                                                                                            |
+| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `global`     | the CLI binary alone                                     | `version`, `clone`, `new`, `upgrade node`, `auth set` / `check`, `plugin create`, `run lint commit-msg`, `skills …` |
+| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `config show`, `sync-readme`                                                                       |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `secrets sync`, `deploy`                                                                 |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -252,7 +252,7 @@ export default defineConfig({
 });
 ```
 
-`holocron setup` writes `.husky/pre-push` (runs `holocron ci` before every
+`holocron setup` writes `.husky/pre-push` (runs `holocron run ci` before every
 push) and `.husky/pre-commit` (runs `gitleaks protect --staged` + `lint-staged`
 before every commit — scoped to staged changes, not the whole history, so a
 past false positive can't permanently block future commits) and sets
@@ -298,7 +298,7 @@ export default defineConfig({
 `@theholocron/astromech`'s `loadTasksConfig` merges it over
 `holocron.config`'s `tasks` — **task arrays concatenate**
 (`holocron.config` first), the dedicated file **wins on scalars**,
-`extraRequiredChecks` concatenate. `holocron run` / `holocron ci` /
+`extraRequiredChecks` concatenate. `holocron run` / `holocron run ci` /
 `holocron setup` / `holocron sync` all read the merged result, so the
 split is transparent. Useful for keeping the capability/provider config
 and the "what this repo runs" manifest in separate files (this repo does).
@@ -343,10 +343,10 @@ delivery.deploy`. A package that doesn't apply is skipped; a failed deploy
 exits non-zero. The shared `delivery.publish` workflow runs it as its own
 `deploy` job after the release job (opt in with `deploy-on-release: true`).
 
-### `holocron ci`
+### `holocron run ci`
 
 ```bash
-holocron ci [--all] [--filter <pkg>] [--dry-run]
+holocron run ci [--all] [--filter <pkg>] [--dry-run]
 ```
 
 Runs the merge-gating checks locally, in CI order, exiting non-zero on the
@@ -466,7 +466,7 @@ export default acmeConfig;
   shape (`const { repo, workflows } = node()` + `repo.requiredChecks` +
   `workflows:`) to the current composed-preset API (`const preset = node()` +
   `...preset` + `tasks:` + `extraRequiredChecks:`). Mechanical transforms only —
-  review the result, then `pnpm install && holocron ci`. `--pins-only` skips
+  review the result, then `pnpm install && holocron run ci`. `--pins-only` skips
   the config migration; `--dry-run` prints without writing.
 
 ## Auth — fine-grained tokens

@@ -4,10 +4,10 @@ description: Run the merge-gating checks locally, in CI order — "will CI pass?
 ---
 
 ```bash
-holocron ci [--all] [--filter <pkg>] [--dry-run]
+holocron run ci [--all] [--filter <pkg>] [--dry-run]
 ```
 
-`holocron ci` runs the checks that gate a merge — locally, in the same order CI
+`holocron run ci` runs the checks that gate a merge — locally, in the same order CI
 runs them, stopping with a non-zero exit on the first failure. It's the
 "will my PR be green?" pre-flight, and what the `pre-push` hook runs.
 
@@ -17,8 +17,8 @@ By default: every task marked `required: true` in `holocron.config`. If nothing
 is marked required, it falls back to every `ci: true` task (with a note).
 
 ```
-$ holocron ci
-holocron ci — required checks (3)
+$ holocron run ci
+holocron run ci — required checks (3)
 
 ▶ Typecheck / Run tsc --noEmit
   → tsc --noEmit
@@ -61,7 +61,7 @@ Exit code is `1` if any check fails, `0` otherwise.
 
 ## Pre-push hook
 
-`holocron setup` installs `.husky/pre-push` running `holocron ci` for
+`holocron setup` installs `.husky/pre-push` running `holocron run ci` for
 `protection: "strict"` repos (opt out with `hooks: false` in `holocron.config`,
 or `holocron setup --no-hooks`). It also sets `package.json#scripts.prepare` to
 `husky` — run `pnpm install` once to activate the hook. Skip a single push with:

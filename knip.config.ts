@@ -86,7 +86,7 @@ const config: KnipConfig = {
 		// satisfies @theholocron/commitlint-config's peerDependencies; nothing
 		// in this repo extends it directly (only via "@theholocron" above)
 		"@commitlint/config-conventional",
-		// never invoked directly (.husky/commit-msg calls `holocron lint
+		// never invoked directly (.husky/commit-msg calls `holocron run lint
 		// commit-msg` instead) -- kept as a devDependency purely because its
 		// presence is what activates Knip's own commitlint plugin, which is
 		// what makes commitlint.config.ts count as a real entry point at all.

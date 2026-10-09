@@ -99,9 +99,18 @@ to run the full CI set locally.
 | `--dry-run`      | Print the resolved command without running it                   |
 | `--required`     | Exit 1 (instead of 0) if this repo has no such task             |
 | `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                   |
+| `--all`          | With `run ci`: run every `ci: true` task, not just required     |
 | `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
 
-See also [`holocron ci`](/holocron/commands/ci/) — run every required check at once.
+## Special tasks
+
+Two names don't resolve through the task registry — `run` handles them itself:
+
+- **`holocron run ci`** — run every merge-gating check, in CI order
+  (`--all` for every `ci: true` task). See [`holocron run ci`](/holocron/commands/ci/).
+- **`holocron run lint commit-msg <file>`** — lint a commit message file
+  (the `.husky/commit-msg` hook passes git's `$1`). Exits 1 on a violation.
+  Works from a bare install: it needs no `holocron.config`.
 
 ## Examples
 

@@ -1274,7 +1274,7 @@ describe("runSetup", () => {
 		});
 		const [, body] = repoFiles.find(([p]) => p === ".husky/pre-push") ?? [];
 		expect(body).toBeDefined();
-		expect(body).toContain("node packages/cli/dist/cli.mjs ci");
+		expect(body).toContain("node packages/cli/dist/cli.mjs run ci");
 		expect(body).toContain("git push --no-verify");
 	});
 

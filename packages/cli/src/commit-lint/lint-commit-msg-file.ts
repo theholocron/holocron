@@ -1,5 +1,5 @@
 /**
- * `holocron lint commit-msg <file>` — a real programmatic replacement for
+ * `holocron run lint commit-msg <file>` — a real programmatic replacement for
  * shelling out to `commitlint --edit "$1"` from `.husky/commit-msg`
  * (holocron#789). Matches that CLI's own contract exactly: `file` is a
  * path to the commit message being written (the arg git's `commit-msg`

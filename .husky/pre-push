@@ -11,4 +11,4 @@
 # built dev environment — the hook has nothing to add there.
 [ -n "$CI" ] && exit 0
 
-pnpm exec holocron ci
+pnpm exec holocron run ci

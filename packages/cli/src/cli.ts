@@ -340,7 +340,7 @@ try {
 					.option("hooks", {
 						type: "boolean",
 						describe:
-							"Install git hooks (.husky/pre-push → holocron ci). Default: on for protection:'strict'. --no-hooks to skip.",
+							"Install git hooks (.husky/pre-push → holocron run ci). Default: on for protection:'strict'. --no-hooks to skip.",
 					}),
 			async (argv) => {
 				const tokens = tokenContext(argv.token);
@@ -795,18 +795,19 @@ try {
 		)
 		.command(
 			"run <task> [job] [passthrough..]",
-			"Run a task locally (test, typecheck, lint, build, audit) — figures out turbo / the tool / the package manager",
+			"Run a task locally (test, typecheck, lint, build, audit) — figures out turbo / the tool / the package manager. `run ci` runs every merge-gating check; `run lint commit-msg <file>` lints a commit message.",
 			(y) =>
 				y
 					.positional("task", {
 						type: "string",
 						demandOption: true,
-						describe: "Task name (test, typecheck, lint, build, audit). See `holocron run --help`.",
+						describe:
+							"Task name (test, typecheck, lint, build, audit, or `ci` for the merge-gating suite). See `holocron run --help`.",
 					})
 					.positional("job", {
 						type: "string",
 						describe:
-							"Sub-job within the task (e.g. `holocron run audit performance`). Omit to run every job. Only `audit` has jobs today.",
+							"Sub-job within the task (e.g. `holocron run audit performance`, `holocron run lint commit-msg <file>`). Omit to run every job.",
 					})
 					.positional("passthrough", {
 						type: "string",
@@ -818,53 +819,70 @@ try {
 						default: false,
 						describe: "Fail (exit 1) if this repo has no such task, instead of skipping.",
 					})
-					.option("filter", {
-						type: "string",
-						describe: "turbo --filter=<pkg> passthrough (monorepo).",
-					}),
-			async (argv) => {
-				const { logger } = buildCliLogger(argv, { command: "run" });
-				// The task manifest drives `lint`'s linter set; other tasks are
-				// filesystem-driven and ignore it. Missing / unparseable config → undefined.
-				const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
-				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
-				const report = astromech.run(argv.task as string, {
-					...(argv.job !== undefined ? { job: argv.job as string } : {}),
-					passthrough: [
-						...((argv.passthrough as string[] | undefined) ?? []),
-						...((argv["--"] as string[] | undefined) ?? []),
-					],
-					dryRun: argv.dryRun,
-					required: argv.required,
-					...(argv.filter ? { filter: argv.filter as string } : {}),
-				});
-				if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
-			}
-		)
-		.command(
-			"ci",
-			"Run the merge-gating checks locally, in CI order — 'will CI pass?'",
-			(y) =>
-				y
 					.option("all", {
 						type: "boolean",
 						default: false,
-						describe: "Run every `ci: true` task, not just the required ones.",
+						describe: "With `run ci`: run every `ci: true` task, not just the required ones.",
 					})
 					.option("filter", {
 						type: "string",
 						describe: "turbo --filter=<pkg> passthrough (monorepo).",
 					}),
 			async (argv) => {
-				const { logger } = buildCliLogger(argv, { command: "ci" });
+				// The specific command key (not just `run`) so `contexts.ts` can scope the
+				// commit-msg hook to the global dataset and `run ci` to the repo's (ADR-0012).
+				const commandKey =
+					argv.task === "ci"
+						? "run ci"
+						: argv.task === "lint" && argv.job === "commit-msg"
+							? "run lint commit-msg"
+							: "run";
+				const { logger } = buildCliLogger(argv, { command: commandKey });
+				const passthrough = [
+					...((argv.passthrough as string[] | undefined) ?? []),
+					...((argv["--"] as string[] | undefined) ?? []),
+				];
+				// `run lint commit-msg <file>` is the `.husky/commit-msg` hook: a real
+				// commit-message linter, not astromech's filesystem-driven `lint` task.
+				if (argv.task === "lint" && argv.job === "commit-msg") {
+					const file = passthrough[0];
+					if (!file) {
+						reportError("run lint commit-msg: missing <file> (the commit message file git passes as $1).");
+						process.exitCode = 1;
+						return;
+					}
+					const result = await lintCommitMsgFile(file, argv.cwd as string);
+					if (!result.valid) {
+						for (const violation of result.violations) {
+							console.error(`✖ ${violation.rule}: ${violation.message}`);
+						}
+						process.exitCode = 1;
+					}
+					return;
+				}
+				// `ci` isn't a manifest task: it's the merge-gating suite, in CI order.
+				if (argv.task === "ci") {
+					const ciConfig = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
+					const report = createAstromech({ cwd: argv.cwd, logger, config: ciConfig }).ci({
+						dryRun: argv.dryRun,
+						scope: argv.all ? "all" : "required",
+						...(argv.filter ? { filter: argv.filter as string } : {}),
+					});
+					if (report.status === "fail") process.exitCode = 1;
+					return;
+				}
+				// The task manifest drives `lint`'s linter set; other tasks are
+				// filesystem-driven and ignore it. Missing / unparseable config → undefined.
 				const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
 				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
-				const report = astromech.ci({
+				const report = astromech.run(argv.task as string, {
+					...(argv.job !== undefined ? { job: argv.job as string } : {}),
+					passthrough,
 					dryRun: argv.dryRun,
-					scope: argv.all ? "all" : "required",
+					required: argv.required,
 					...(argv.filter ? { filter: argv.filter as string } : {}),
 				});
-				if (report.status === "fail") process.exitCode = 1;
+				if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
 			}
 		)
 		.command(
@@ -898,31 +916,6 @@ try {
 				});
 				if (report.status === "fail") process.exitCode = 1;
 			}
-		)
-		.command(
-			"lint",
-			"Lint content locally against the org's shared rules",
-			(y) =>
-				y.command(
-					"commit-msg <file>",
-					"Lint a commit message file — matches `commitlint --edit`'s own contract, for use from .husky/commit-msg",
-					(yy) =>
-						yy.positional("file", {
-							type: "string",
-							demandOption: true,
-							describe: "Path to the commit message file (git's commit-msg hook passes this as $1).",
-						}),
-					async (argv) => {
-						const result = await lintCommitMsgFile(argv.file as string, argv.cwd as string);
-						if (!result.valid) {
-							for (const violation of result.violations) {
-								console.error(`✖ ${violation.rule}: ${violation.message}`);
-							}
-							process.exitCode = 1;
-						}
-					}
-				),
-			() => {}
 		)
 		.command(
 			"sync-github",

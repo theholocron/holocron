@@ -12,7 +12,7 @@ export interface TaskEntry {
 	name: string;
 	/**
 	 * Emit a `.github/workflows/<name>.yml` thin caller and include the task
-	 * in `holocron ci`. Default `true`.
+	 * in `holocron run ci`. Default `true`.
 	 */
 	ci?: boolean;
 	/**
@@ -24,7 +24,7 @@ export interface TaskEntry {
 	/**
 	 * The task's CI check context (from `WORKFLOW_CHECK_CONTEXTS`) is a
 	 * required status check in branch protection (`astromech.requiredChecks()`)
-	 * and part of `holocron ci`'s default run.
+	 * and part of `holocron run ci`'s default run.
 	 */
 	required?: boolean;
 	/** Per-repo overrides on the same channel the reusable workflow reads. */
@@ -65,7 +65,7 @@ export interface TasksConfig {
 	extraRequiredChecks?: string[];
 	/**
 	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
-	 * `.husky/pre-push` (runs `holocron ci`); `false` / `{ prePush: false }`
+	 * `.husky/pre-push` (runs `holocron run ci`); `false` / `{ prePush: false }`
 	 * opts out. Omitted → on for `protection: "strict"` repos, off otherwise.
 	 * When enabled, `packageScripts()` also emits `prepare: "husky"`.
 	 */

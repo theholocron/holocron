@@ -6,7 +6,7 @@ const { workflowHeader } = createHeader({
 });
 
 /**
- * `.husky/pre-push` — runs `holocron ci` (the merge-gating checks, in CI order)
+ * `.husky/pre-push` — runs `holocron run ci` (the merge-gating checks, in CI order)
  * before every push. Installed by `holocron setup` when hooks are enabled
  * (default for `protection: "strict"`). `git push --no-verify` bypasses it.
  *

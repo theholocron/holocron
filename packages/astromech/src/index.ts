@@ -3,7 +3,7 @@
  *
  * An astromech droid runs a starfighter's maintenance, diagnostics and
  * system wiring while the pilot flies. This does that for a repo: one
- * task manifest drives `holocron run` (local), `holocron ci` (the CI
+ * task manifest drives `holocron run` (local), `holocron run ci` (the CI
  * suite locally), the generated GitHub Actions workflows, the
  * `package.json` scripts, the linter set, and the required-checks list.
  *

@@ -22,9 +22,9 @@ const EVERY_COMMAND = [
 	"skills install",
 	"skills remove",
 	"skills update",
-	"lint commit-msg",
+	"run lint commit-msg",
 	"run",
-	"ci",
+	"run ci",
 	"deploy-on-release",
 	"config show",
 	"sync-readme",
@@ -66,7 +66,16 @@ describe("COMMAND_CONTEXTS", () => {
 	});
 
 	it("keeps the plugin-free commands out of `workspace`", () => {
-		for (const cmd of ["clone", "new", "run", "ci", "deploy-on-release", "config show", "auth set", "auth check"]) {
+		for (const cmd of [
+			"clone",
+			"new",
+			"run",
+			"run ci",
+			"deploy-on-release",
+			"config show",
+			"auth set",
+			"auth check",
+		]) {
 			expect(contextForCommand(cmd)).not.toBe("workspace");
 		}
 	});

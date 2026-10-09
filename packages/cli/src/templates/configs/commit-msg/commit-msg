@@ -1,1 +1,1 @@
-__HOLOCRON_SCRIPT__ lint commit-msg "$1"
+__HOLOCRON_SCRIPT__ run lint commit-msg "$1"

@@ -14,7 +14,7 @@
  *    This applies the mechanical transforms and flags anything that needs a
  *    human eye.
  *
- * After running, `pnpm install && holocron ci`.
+ * After running, `pnpm install && holocron run ci`.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -130,7 +130,7 @@ export function isLegacyConfig(content: string): boolean {
 
 /**
  * Apply the mechanical 7.x → 8.x transforms to a `holocron.config.ts`. Best
- * effort — the result should always be reviewed and run through `holocron ci`.
+ * effort — the result should always be reviewed and run through `holocron run ci`.
  */
 export function migrateConfig(content: string): ConfigMigration {
 	const transforms: string[] = [];
@@ -314,7 +314,7 @@ export async function runUpgradeDeps(input: RunUpgradeDepsInput = {}): Promise<U
 	if (bumps.length === 0 && !configMigrated) {
 		print("Nothing to do — already up to date.");
 	} else {
-		print(`Next: ${dryRun ? "run without --dry-run, then " : ""}\`pnpm install && holocron ci\``);
+		print(`Next: ${dryRun ? "run without --dry-run, then " : ""}\`pnpm install && holocron run ci\``);
 		if (configMigrated) print("      review holocron.config.ts before committing.");
 	}
 

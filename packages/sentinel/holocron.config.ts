@@ -2,7 +2,7 @@
  * Sentinel's own deploy config — separate from this monorepo's root
  * `holocron.config.ts` (which governs `holocron`'s own CI/build), since
  * Sentinel is deployed as its own product, not built/released the way
- * the CLI or the plugins are. Not part of the recurring `holocron ci`
+ * the CLI or the plugins are. Not part of the recurring `holocron run ci`
  * gate (no `source` provider — Sentinel has no repo-settings surface
  * of its own to check).
  *

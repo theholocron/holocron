@@ -8,7 +8,7 @@
  * D1: real `@commitlint/lint` + `@commitlint/load` — the exact
  * programmatic API `@commitlint/cli`'s own CLI wires together internally.
  * The actual "lint one message against a loaded config" step is shared with
- * `@theholocron/cli`'s `holocron lint commit-msg` (`lintCommitMessage()`,
+ * `@theholocron/cli`'s `holocron run lint commit-msg` (`lintCommitMessage()`,
  * holocron#789) — genuinely identical logic either way. What stays
  * Sentinel-specific is *how the config gets loaded*: Sentinel runs
  * standalone, away from any real repo checkout, so it can't rely on
