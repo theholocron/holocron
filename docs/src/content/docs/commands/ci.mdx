@@ -20,16 +20,17 @@ $ holocron run ci
 holocron run ci — required checks (3)
 
 ▶ Typecheck / Run tsc --noEmit
-  → tsc --noEmit
+→ tsc --noEmit
 ▶ Static Analysis / Run eslint and actionlint
-  → turbo run sourceQuality.staticAnalysis
-  → prettier --check .
-  ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
+→ turbo run sourceQuality.staticAnalysis
+→ prettier --check .
+! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 ▶ Test / Conclusion
-  → vitest run --coverage
+→ vitest run --coverage
 
 ✓ 3 passed
-```
+
+````
 
 - Each task runs through the same resolution as `holocron run <task>` (turbo →
   a `package.json` script → the registry tool; a `linterGroup` task like
@@ -67,4 +68,4 @@ or `holocron setup --no-hooks`). It also sets `package.json#scripts.prepare` to
 
 ```bash
 git push --no-verify
-```
+````

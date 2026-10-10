@@ -86,7 +86,8 @@ $ holocron run sourceQuality.staticAnalysis
 → eslint .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 · git-merge-conflict-markers (CI only)
-```
+
+````
 
 Install the missing binaries (`brew install actionlint gitleaks yamllint …`)
 to run the full CI set locally.
@@ -121,7 +122,7 @@ holocron run e2e --required                    # fail if the repo has no e2e tas
 holocron run verification.unitTests -- --filter web  # passthrough turbo's --filter at a monorepo root
 holocron run platform.repoValidation           # every validation sub-job in order
 holocron run verification.performance          # just Lighthouse CI
-```
+````
 
 ## Monorepos
 
