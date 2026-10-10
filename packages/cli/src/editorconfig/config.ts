@@ -1,6 +1,6 @@
 /**
  * The paths editorconfig-checker skips, read from the same
- * `editorconfig-checker.json` template `holocron setup` writes as a repo's
+ * `editorconfig-checker.json` template `holocron repo setup` writes as a repo's
  * `.editorconfig-checker.json` — so Sentinel's central editorconfig check
  * (holocron#927) excludes exactly what CI's editorconfig-checker does, from
  * one source.

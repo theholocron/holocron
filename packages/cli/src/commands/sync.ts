@@ -27,7 +27,7 @@ import {
 // actual template/generation logic a contributor would edit lives there.
 const { workflowHeader } = createHeader({
 	source: "packages/astromech/src/thin-callers.ts",
-	tool: "holocron sync",
+	tool: "holocron repo sync",
 });
 import { runSyncReadme } from "./sync-readme.js";
 import { runSyncWiki } from "./sync-wiki.js";

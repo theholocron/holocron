@@ -65,7 +65,7 @@ describe("runSetup", () => {
 		}).catch((e: unknown) => e);
 
 		expect(err).toBeInstanceOf(WorkspaceContextError);
-		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron setup/);
+		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron repo setup/);
 	});
 
 	it("runs all six source security steps + reports ok for each", async () => {
@@ -3754,7 +3754,7 @@ describe("setup: write codecov.yml", () => {
 		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
 		expect(written["codecov.yml"]).toBeDefined();
-		expect(written["codecov.yml"]).toContain("Scaffolded by holocron setup");
+		expect(written["codecov.yml"]).toContain("Scaffolded by holocron repo setup");
 		expect(written["codecov.yml"]).not.toContain("AUTO-GENERATED");
 		const step = report.steps.find((s) => s.step === "write codecov.yml");
 		expect(step?.status).toBe("ok");

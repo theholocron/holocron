@@ -1,10 +1,10 @@
 ---
-title: "new"
+title: "new repo"
 description: Scaffold a new repository from a GitHub template.
 ---
 
 ```bash
-holocron new [type] [name] [--description <text>] [--org <org>] [--no-verify]
+holocron new repo [type] [name] [--description <text>] [--org <org>] [--no-verify]
 ```
 
 Creates a new GitHub repository from a `theholocron/<type>-template` template and runs `pnpm install` in the cloned result. If `type` or `name` are omitted, the CLI prompts interactively.
@@ -34,13 +34,13 @@ Creates a new GitHub repository from a `theholocron/<type>-template` template an
 
 ```bash
 # Interactive — prompts for type, name, description
-holocron new
+holocron new repo
 
 # Non-interactive
-holocron new cli my-new-tool --description "A CLI tool that does things"
+holocron new repo cli my-new-tool --description "A CLI tool that does things"
 
 # Skip pnpm install (useful in CI or when you'll install manually)
-holocron new node my-lib --no-verify
+holocron new repo node my-lib --no-verify
 ```
 
 ## Authentication

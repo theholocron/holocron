@@ -9,7 +9,7 @@
  * Two separate invocations, different frequency:
  *   - `pnpm run delivery.deploy` (recurring, every real deploy):
  *     build → stage → `holocron deploy --target production`.
- *   - `holocron setup --cwd packages/sentinel` (one-time, manual):
+ *   - `holocron repo setup --cwd packages/sentinel` (one-time, manual):
  *     attaches the custom domain to the Vercel project and hands any
  *     verification CNAME to the `dns` provider — `source` being
  *     unconfigured just means every repo-settings step is skipped
@@ -34,7 +34,7 @@
  * otherwise get pushed as pointless repo secrets on `holocron` (nothing
  * in this repo's own CI reads them).
  *
- * `dns`: Cloudflare — receives the CNAME challenge `holocron setup`
+ * `dns`: Cloudflare — receives the CNAME challenge `holocron repo setup`
  * gets back from `Deployment.ensureCustomDomain()` when it adds
  * `sentinel.theholocron.dev` to the Vercel project, via
  * `Dns.upsertRecord()`.
@@ -44,7 +44,7 @@ import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
 	// Redeploy after a release publishes (holocron#928, #930): the `deploy` job
-	// in the shared delivery.publish workflow runs `holocron deploy-on-release`,
+	// in the shared delivery.publish workflow runs `holocron deploy on-release`,
 	// which reads this task from every workspace package. `paths` default to this
 	// package plus its `workspace:*` dependencies (the packages inlined into
 	// `dist/`).

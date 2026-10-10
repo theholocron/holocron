@@ -1,7 +1,7 @@
 name: Holocron
 description: >
   Run the Holocron CLI — `holocron run <task> [job]` by default, or any other
-  subcommand via `command:` (`sync`, `sync-github`, …). Resolves
+  subcommand via `command:` (`repo sync`, `sync github`, …). Resolves
   `@theholocron/cli` from `node_modules` (published tarball) or builds it from
   source when it resolves to an unbuilt workspace checkout (the holocron repo
   itself). Requires dependencies to be installed already (run the setup action
@@ -11,7 +11,7 @@ inputs:
   command:
     description: >
       Holocron subcommand. Default `run` — then `task` (and optional `job`)
-      name the manifest task. Set to `sync` / `sync-github` / … to run that
+      name the manifest task. Set to `repo sync` / `sync github` / … to run that
       subcommand directly; `args` becomes everything after it.
     required: false
     default: run
@@ -83,8 +83,10 @@ runs:
           # shellcheck disable=SC2086
           [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
         else
+          # `command` may be a multi-word path (`repo sync`, `deploy on-release`):
+          # word-split it so each token is its own argument.
           # shellcheck disable=SC2086
-          set -- "$HOLOCRON_COMMAND" $HOLOCRON_ARGS
+          set -- $HOLOCRON_COMMAND $HOLOCRON_ARGS
         fi
         # Invoke the built entry directly. `pnpm exec holocron` relies on a
         # node_modules/.bin/holocron shim that pnpm does not create for a

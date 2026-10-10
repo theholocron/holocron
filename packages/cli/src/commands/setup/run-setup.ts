@@ -1,5 +1,5 @@
 /**
- * `holocron setup` — orchestrates per-capability setup actions across
+ * `holocron repo setup` — orchestrates per-capability setup actions across
  * every plugin loaded from `holocron.config.json`.
  *
  * Per CLAUDE.md soft-skip: each step is wrapped in a try/catch and
@@ -84,7 +84,7 @@ import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/setup/run-setup.ts",
-	tool: "holocron setup",
+	tool: "holocron repo setup",
 });
 // Thin-caller workflow content comes from astromech.thinCallers(), not this
 // file — a separate binding so its header points contributors at the actual
@@ -93,7 +93,7 @@ const { workflowHeader } = createHeader({
 // templates (labeler.yml, dependabot.yml, dco.yml, config.yml).
 const { workflowHeader: thinCallerHeader } = createHeader({
 	source: "packages/astromech/src/thin-callers.ts",
-	tool: "holocron setup",
+	tool: "holocron repo setup",
 });
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
@@ -101,7 +101,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const logger = getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
-	assertPluginsResolvable(loader, "setup");
+	assertPluginsResolvable(loader, "repo setup");
 
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
@@ -998,7 +998,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(style.hint("       · Metadata                — read (repository permission, auto-included)"));
 		print("");
 		print(style.hint("     Create tokens at: https://github.com/settings/personal-access-tokens/new"));
-		print(style.hint("     Then re-run:      holocron setup --token <your-admin-pat>"));
+		print(style.hint("     Then re-run:      holocron repo setup --token <your-admin-pat>"));
 		print(style.hint("     Store org token:  HOLOCRON_ORG_TOKEN env var or keyring key github.org"));
 	}
 

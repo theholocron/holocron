@@ -36,7 +36,7 @@ export class InfisicalVault implements Vault {
 	private readonly environment: string;
 	/**
 	 * Cache of resolved workspace name/slug → id. `ensureEnvironment`
-	 * is called once per environment during `holocron setup` (dev / stg
+	 * is called once per environment during `holocron repo setup` (dev / stg
 	 * / prd), so a single `GET /v1/workspace` lookup covers all three
 	 * calls in the same run.
 	 */

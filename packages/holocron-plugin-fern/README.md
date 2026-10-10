@@ -42,7 +42,7 @@ pnpm add -D @theholocron/holocron-plugin-fern
 | `domain`  | No       | Base domain (`"wiki.theholocron.dev"`) or full path (`"wiki.theholocron.dev/myrepo"`). When a base domain is given, the repo name is appended automatically as a basepath. |
 | `fernOrg` | No       | Fern workspace slug. Defaults to `config.org`. Set this when the Fern workspace name differs from the GitHub org (e.g. workspace `"holocron"`, org `"theholocron"`).       |
 
-## What `holocron setup` does
+## What `holocron repo setup` does
 
 1. **Writes `fern/fern.config.json`** — Fern workspace org name and pinned
    CLI version. Always overwritten.
@@ -79,7 +79,7 @@ DNS: add one CNAME record — `wiki.theholocron.dev` →
 Password protection is configured in the **Fern Dashboard**
 (`dashboard.buildwithfern.com`) — it is not configurable via `docs.yml` or
 any CLI flag. Configure access control manually in the dashboard after
-running `holocron setup`.
+running `holocron repo setup`.
 
 ## CI secrets
 

@@ -54,7 +54,7 @@ export interface NetlifyDeploymentOptions {
 	 * scoped to `/accounts/{account_id}/env`, by id — not slug).
 	 */
 	accountId?: string;
-	/** Custom domain `holocron setup` should attach to the site. */
+	/** Custom domain `holocron repo setup` should attach to the site. */
 	domain?: string;
 }
 

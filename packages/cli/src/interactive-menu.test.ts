@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { COMMAND_CONTEXTS } from "./commands/contexts.js";
+
 const inputMock = vi.fn();
 const selectMock = vi.fn();
 const confirmMock = vi.fn();
@@ -25,6 +27,7 @@ const {
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
+	entriesUnder,
 	forwardedFlags,
 	getEntry,
 	launchMenu,
@@ -51,13 +54,43 @@ describe("COMMAND_REGISTRY", () => {
 		expect(selectPositionals.every((p) => p.choices !== undefined)).toBe(true);
 	});
 
-	it("groups are limited to the three known parent commands", () => {
-		const groups = new Set(COMMAND_REGISTRY.map((e) => e.group).filter(Boolean));
-		expect(groups).toEqual(new Set(["auth", "skills", "upgrade"]));
+	it("covers every command on the documented surface, except the CI/hook-only ones", () => {
+		const excluded = new Set(["run", "run lint commit-msg"]);
+		const missing = Object.keys(COMMAND_CONTEXTS)
+			.filter((name) => !excluded.has(name))
+			.filter((name) => !COMMAND_REGISTRY.some((e) => e.name === name));
+		expect(missing).toEqual([]);
+	});
+
+	it("has no entry for a command outside the documented surface", () => {
+		const stray = COMMAND_REGISTRY.map((e) => e.name).filter((name) => !(name in COMMAND_CONTEXTS));
+		expect(stray).toEqual([]);
 	});
 
 	it("run is deliberately excluded (CI/scripting-oriented — no interactive fallback)", () => {
 		expect(COMMAND_REGISTRY.some((e) => e.name === "run")).toBe(false);
+	});
+});
+
+describe("entriesUnder", () => {
+	it("lists every nested entry under a parent, at any depth, but not the parent itself", () => {
+		const names = entriesUnder("repo").map((e) => e.name);
+		expect(names).toEqual(
+			expect.arrayContaining([
+				"repo setup",
+				"repo sync",
+				"repo sync readme",
+				"repo upgrade node",
+				"repo upgrade deps",
+			])
+		);
+		expect(entriesUnder("repo upgrade").map((e) => e.name)).toEqual(["repo upgrade node", "repo upgrade deps"]);
+		expect(entriesUnder("deploy").map((e) => e.name)).toEqual(["deploy cleanup-preview", "deploy on-release"]);
+	});
+
+	it("does not confuse a parent with a command that merely starts with the same letters", () => {
+		expect(entriesUnder("sync").map((e) => e.name)).toEqual(["sync github"]);
+		expect(entriesUnder("secret")).toEqual([]);
 	});
 });
 
@@ -82,10 +115,7 @@ describe("pickCommand", () => {
 
 	it("passes the message through to search()", async () => {
 		searchMock.mockResolvedValue("auth set");
-		await pickCommand(
-			COMMAND_REGISTRY.filter((e) => e.group === "auth"),
-			"auth — choose a subcommand:"
-		);
+		await pickCommand(entriesUnder("auth"), "auth — choose a subcommand:");
 		expect(searchMock).toHaveBeenCalledWith(expect.objectContaining({ message: "auth — choose a subcommand:" }));
 	});
 
@@ -144,14 +174,14 @@ describe("promptForPositionals", () => {
 
 	it("prompts via input() for a missing input-type positional", async () => {
 		inputMock.mockResolvedValue("my-secret");
-		const values = await promptForPositionals(getEntry("secret set"), {});
+		const values = await promptForPositionals(getEntry("secrets set"), {});
 		expect(values).toEqual(["my-secret"]);
 		expect(inputMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Secret name:" }));
 	});
 
 	it("forwards a positional's validate function to input()", async () => {
 		inputMock.mockResolvedValue("22");
-		await promptForPositionals(getEntry("cleanup-preview"), {});
+		await promptForPositionals(getEntry("deploy cleanup-preview"), {});
 		const call = inputMock.mock.calls[0]![0] as { validate: (v: string) => boolean | string };
 		expect(call.validate("42")).toBe(true);
 		expect(call.validate("nope")).toMatch(/number/);
@@ -203,13 +233,13 @@ describe("promptForPositionals", () => {
 
 	it("resolves multiple positionals in order", async () => {
 		inputMock.mockResolvedValueOnce("my-slug").mockResolvedValueOnce("MyVendor");
-		const values = await promptForPositionals(getEntry("plugin create"), {});
+		const values = await promptForPositionals(getEntry("new plugin"), {});
 		expect(values).toEqual(["my-slug", "MyVendor"]);
 	});
 
 	it("mixes present-in-argv and prompted positionals", async () => {
 		inputMock.mockResolvedValue("MyVendor");
-		const values = await promptForPositionals(getEntry("plugin create"), { slug: "my-slug" });
+		const values = await promptForPositionals(getEntry("new plugin"), { slug: "my-slug" });
 		expect(values).toEqual(["my-slug", "MyVendor"]);
 		expect(inputMock).toHaveBeenCalledTimes(1);
 	});
@@ -224,8 +254,8 @@ describe("promptForPositionals", () => {
 
 	it("uses `cliArg` (the kebab-case positional) in the non-TTY hint when it differs from the argv key", async () => {
 		setTTY(false);
-		const err = await promptForPositionals(getEntry("bump-versions"), {}).catch((e: unknown) => e);
-		expect((err as Error).message).toMatch(/holocron bump-versions <new-version>/);
+		const err = await promptForPositionals(getEntry("package bump-versions"), {}).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/holocron package bump-versions <new-version>/);
 	});
 });
 

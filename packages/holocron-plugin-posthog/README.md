@@ -53,6 +53,6 @@ runtime — the personal key is for management only.
 | `whoami`        | Calls `/api/users/@me/` to verify the token and return the org slug.                                                                                                           |
 | `ensureProject` | Lists projects and returns the existing one if found by name; creates it via `POST /api/projects/` otherwise. Returns the project's `api_token` (`phc_*`) and `alreadyExists`. |
 
-`holocron setup` calls `ensureProject` and pushes `NEXT_PUBLIC_POSTHOG_KEY`
+`holocron repo setup` calls `ensureProject` and pushes `NEXT_PUBLIC_POSTHOG_KEY`
 (the project `api_token`) and `NEXT_PUBLIC_POSTHOG_HOST` (the resolved
 `host` value) to GitHub Secrets.

@@ -34,7 +34,7 @@ export type WorkflowHeaderFormat = "yaml" | "cjs" | "shebang";
 export interface CreateHeaderOptions {
 	/** Path within theholocron/holocron that owns the file being generated. */
 	source: string;
-	/** CLI command that produces the file. Defaults to "holocron setup". */
+	/** CLI command that produces the file. Defaults to "holocron repo setup". */
 	tool?: string;
 	/** Set true only when writing to theholocron/.github itself. */
 	forPrimary?: boolean;
@@ -58,7 +58,7 @@ export interface HeaderFunctions {
 }
 
 export function createHeader(options: CreateHeaderOptions): HeaderFunctions {
-	const { source, tool = "holocron setup", forPrimary = false } = options;
+	const { source, tool = "holocron repo setup", forPrimary = false } = options;
 
 	const doNotEdit = forPrimary
 		? `AUTO-GENERATED — do not edit in theholocron/.github directly.`
@@ -94,7 +94,7 @@ export function createHeader(options: CreateHeaderOptions): HeaderFunctions {
 
 		scaffoldHeader(): string {
 			return [
-				`# Scaffolded by holocron setup — edit this file freely.`,
+				`# Scaffolded by holocron repo setup — edit this file freely.`,
 				`# Source:  theholocron/holocron · ${source}`,
 				``,
 			].join("\n");

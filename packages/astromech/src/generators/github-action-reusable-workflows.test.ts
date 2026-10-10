@@ -62,10 +62,10 @@ describe("reusableTemplates()", () => {
 		expect(action).toContain('exit "$exit_code"');
 	});
 
-	it("platform.repoSync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
+	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
 		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/command: sync/);
+		expect(wf).toMatch(/command: repo sync/);
 		expect(wf).not.toContain("node packages/cli/dist/cli.mjs");
 		// the standalone `pnpm build` step is gone — the action handles it
 		expect(wf).not.toMatch(/^\s+- run: pnpm build\n\s+name: Build CLI/m);
@@ -77,7 +77,7 @@ describe("reusableTemplates()", () => {
 		expect(typecheck).toContain(
 			"# Source:  theholocron/holocron · packages/astromech/src/generators/github-action-reusable-workflows.ts"
 		);
-		expect(typecheck).toContain("# Tool:    holocron sync-github");
+		expect(typecheck).toContain("# Tool:    holocron sync github");
 		// A live `Synced:` timestamp would defeat sync-github's unchanged-file skip.
 		expect(typecheck).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
 		expect(typecheck).not.toContain("Synced:");
@@ -159,7 +159,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(deployJob).toContain("inputs.dry-run != true");
 		// It deploys the release commit, from the release job's outputs.
 		expect(deployJob).toContain("ref: ${{ needs.release.outputs.commit }}");
-		expect(deployJob).toContain("command: deploy-on-release");
+		expect(deployJob).toContain("command: deploy on-release");
 		for (const output of ["channel", "previous", "commit"]) {
 			expect(deployJob).toContain(`needs.release.outputs.${output}`);
 			expect(releaseJob).toContain(`${output}: \${{ steps.release.outputs.${output} }}`);

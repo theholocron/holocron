@@ -49,7 +49,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	// c8 ignore next -- real PluginLoader construction is integration-level; unit tests always supply loader
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "cleanup-preview");
+	assertPluginsResolvable(loader, "deploy cleanup-preview");
 	logger.info({ pr: input.prNumber, project: input.project }, "cleanup-preview: start");
 
 	// ── 1. Look up the PR ───────────────────────────────────────────────

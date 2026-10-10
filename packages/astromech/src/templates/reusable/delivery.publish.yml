@@ -36,7 +36,7 @@ on: # yamllint disable-line rule:truthy
       deploy-on-release:
         description: >
           When true, runs a separate `deploy` job after a successful release
-          (holocron#930): `holocron deploy-on-release` deploys every workspace
+          (holocron#930): `holocron deploy on-release` deploys every workspace
           package whose `delivery.deploy` task is `with: { on: release }`, when
           the release is on its channel and changes its paths. The job is its
           own check, re-runnable on its own, and gets VERCEL_TOKEN; the release
@@ -256,7 +256,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         with:
-          command: deploy-on-release
+          command: deploy on-release
           args: >-
             --channel=${{ needs.release.outputs.channel }}
             --from=${{ needs.release.outputs.previous }}

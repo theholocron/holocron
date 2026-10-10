@@ -69,7 +69,7 @@ documents, not a naming convention repos need to follow.
 | `delivery.publish`                       | semantic-release                                                                                                                                                 | no local equivalent — CI only; carries `preview` (npm dist-tags)                                         |
 | `delivery.deploy`                        | Cloudflare Pages / Vercel                                                                                                                                        | no local equivalent — CI only; carries `preview`                                                         |
 | `delivery.bundleSize`                    | bundle-size upload to Codecov                                                                                                                                    | no local equivalent — CI only                                                                            |
-| `platform.repoSync`                      | `holocron sync`                                                                                                                                                  | keeps generated files current                                                                            |
+| `platform.repoSync`                      | `holocron repo sync`                                                                                                                                             | keeps generated files current                                                                            |
 | `platform.commitStandards`               | commitlint                                                                                                                                                       | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI        |
 | `platform.repoValidation`                | `scripts/validate-adrs.mjs`, `scripts/validate-registry.mjs`, `scripts/validate-docs-presence.mjs`                                                               | a job-bearing task — spec/ADR frontmatter, registry-doc completeness, and docs-presence, not linters     |
 | `knowledge.wiki`                         | Fern                                                                                                                                                             | publishes `docs/wiki/*.md` — not a sync, a publish; carries `preview`                                    |
@@ -174,7 +174,7 @@ de-duplicated. Most tasks are single always-run jobs now, so their context
 names that job directly (`"Typecheck / tsc --noEmit"`) — the `… /
 Conclusion` fan-in aggregate is only used where a task genuinely has
 several conditionally-run jobs feeding one check
-(`verification.unitTests`, `platform.repoValidation`). `holocron setup`
+(`verification.unitTests`, `platform.repoValidation`). `holocron repo setup`
 prepends `"DCO"` and applies the list for `protection: "strict"` repos.
 Policy-free — manifest only.
 
@@ -188,7 +188,7 @@ came from), same manifest-derived category as `thinCallers()`. Pass the
 current file's content (or `null`) and it either merges the
 `individual_components` list in (preserving everything else in the file —
 thresholds, flags, custom rules) or scaffolds a fresh file from the base
-template. `holocron setup` writes the result via the `source` capability;
+template. `holocron repo setup` writes the result via the `source` capability;
 this method never touches the filesystem beyond reading `packages/*` and
 `apps/*` under `cwd`.
 
@@ -201,7 +201,7 @@ Deploys the workspace packages whose manifest declares it (holocron#930):
 tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
 ```
 
-`holocron deploy-on-release --channel=<alpha|main> --from=<previous release commit> --to=<release commit>`
+`holocron deploy on-release --channel=<alpha|main> --from=<previous release commit> --to=<release commit>`
 (or `deployOnRelease()` from `@theholocron/astromech`) deploys each such package
 when the release is on its `channel` (default `main`, the stable release;
 set `alpha` for prereleases) and changes the package or one of its `workspace:*` dependencies

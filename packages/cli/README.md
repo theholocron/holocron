@@ -17,8 +17,8 @@ holocron --help
 ## Interactive mode
 
 Run `holocron` with no command, a parent command with no subcommand
-(`holocron auth`, `holocron skills`, `holocron upgrade`), or a leaf command
-missing a required positional (`holocron deploy`, `holocron secret set`), and
+(`holocron auth`, `holocron skills`, `holocron repo`, `holocron new`, `holocron package`, `holocron secrets`, `holocron sync`), or a leaf command
+missing a required positional (`holocron deploy`, `holocron secrets set`), and
 you get a prompt instead of a `--help` dead end:
 
 ```console
@@ -54,11 +54,11 @@ entirely, straight to the real run, for when you already know what you want.
 
 Every command is tagged with how much of a repo it needs:
 
-| Context      | Needs                                                    | Examples                                                                                                            |
-| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `global`     | the CLI binary alone                                     | `version`, `clone`, `new`, `upgrade node`, `auth set` / `check`, `plugin create`, `run lint commit-msg`, `skills …` |
-| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `config show`, `sync-readme`                                                                       |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `secrets sync`, `deploy`                                                                 |
+| Context      | Needs                                                    | Examples                                                                                                                          |
+| ------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin`, `repo upgrade …`, `auth set` / `check`, `package …`, `run lint commit-msg`, `skills …` |
+| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `config show`, `repo sync readme`, `deploy on-release`                                                           |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `secrets …`, `deploy`, `sync github`                                                         |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -133,18 +133,18 @@ A minimal config — for repos with a `package.json` and a GitHub remote
 
 ### repo options
 
-Additional `repo` fields recognised by `holocron setup`:
+Additional `repo` fields recognised by `holocron repo setup`:
 
-| Field             | Type                                    | Description                                                                                                                                                                |
-| ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `repo.teams`      | `Array<string \| { slug, permission }>` | GitHub teams granted repo access. String shorthand defaults to `push` (Write). `holocron setup` also writes `.github/CODEOWNERS` for teams with `push`/`maintain`/`admin`. |
-| `repo.topics`     | `string[]`                              | GitHub topics set on the repository.                                                                                                                                       |
-| `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron setup`. For `"strict"`, the required status checks are derived from the task manifest — see below.                           |
-| `repo.properties` | `RepoProperties`                        | Org-level custom property values synced to the GitHub dashboard.                                                                                                           |
+| Field             | Type                                    | Description                                                                                                                                                                     |
+| ----------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo.teams`      | `Array<string \| { slug, permission }>` | GitHub teams granted repo access. String shorthand defaults to `push` (Write). `holocron repo setup` also writes `.github/CODEOWNERS` for teams with `push`/`maintain`/`admin`. |
+| `repo.topics`     | `string[]`                              | GitHub topics set on the repository.                                                                                                                                            |
+| `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron repo setup`. For `"strict"`, the required status checks are derived from the task manifest — see below.                           |
+| `repo.properties` | `RepoProperties`                        | Org-level custom property values synced to the GitHub dashboard.                                                                                                                |
 
 ### Custom properties synced to GitHub
 
-`holocron setup` and `holocron sync` both call `syncProperties()` with two
+`holocron repo setup` and `holocron repo sync` both call `syncProperties()` with two
 kinds of fields — always one-way (`holocron.config.ts` → resolved →
 properties; properties are never a second editable source of truth):
 
@@ -190,7 +190,7 @@ posts, instead of reporting pass/fail.
 
 ### Required status checks (`protection: "strict"`)
 
-`holocron setup` builds the branch-protection required-check list from the
+`holocron repo setup` builds the branch-protection required-check list from the
 manifest, not a hand-maintained array:
 
 - `"DCO"` (hard-prepended), then
@@ -216,10 +216,10 @@ The generated ruleset also sets `require_extra_approval_for_unattributed_changes
 false` — with `required_approving_review_count: 0` and a single maintainer, the
 GitHub default (`true`) is an unsatisfiable block on any PR with an
 unverified/unattributed commit. Repository-admin bypass still covers the real
-risk. And the `codecov.yml` `holocron setup` writes carries `if_not_found:
+risk. And the `codecov.yml` `holocron repo setup` writes carries `if_not_found:
 success` on every status default, so an infra-only PR (dep bump, config,
 lockfile — no coverable change) passes instead of hanging on a `codecov/*`
-required check that never posts. A re-run of `holocron setup` backfills both into
+required check that never posts. A re-run of `holocron repo setup` backfills both into
 an existing repo.
 
 ### Default branch (`repo.defaultBranch`)
@@ -231,7 +231,7 @@ export default defineConfig({
 });
 ```
 
-`holocron setup` syncs GitHub's repo-level default branch (`HEAD`) — what a
+`holocron repo setup` syncs GitHub's repo-level default branch (`HEAD`) — what a
 fresh clone checks out, what `gh pr create`/the compare UI target by default,
 and what Sentinel's `validateConfig()` reads (it only ever reads config from
 the repo's default branch, never a PR ref — a deliberate security boundary).
@@ -252,7 +252,7 @@ export default defineConfig({
 });
 ```
 
-`holocron setup` writes `.husky/pre-push` (runs `holocron run ci` before every
+`holocron repo setup` writes `.husky/pre-push` (runs `holocron run ci` before every
 push) and `.husky/pre-commit` (runs `gitleaks protect --staged` + `lint-staged`
 before every commit — scoped to staged changes, not the whole history, so a
 past false positive can't permanently block future commits) and sets
@@ -263,7 +263,7 @@ setup --hooks` / `--no-hooks` override per run. Bypass one push with `git push
 
 ### Task scripts
 
-`holocron sync` reconciles `package.json#scripts` from the `tasks` manifest
+`holocron repo sync` reconciles `package.json#scripts` from the `tasks` manifest
 (merge, never clobber — only the managed keys are touched):
 
 ```ts
@@ -299,7 +299,7 @@ export default defineConfig({
 `holocron.config`'s `tasks` — **task arrays concatenate**
 (`holocron.config` first), the dedicated file **wins on scalars**,
 `extraRequiredChecks` concatenate. `holocron run` / `holocron run ci` /
-`holocron setup` / `holocron sync` all read the merged result, so the
+`holocron repo setup` / `holocron repo sync` all read the merged result, so the
 split is transparent. Useful for keeping the capability/provider config
 and the "what this repo runs" manifest in separate files (this repo does).
 
@@ -326,10 +326,10 @@ job execute the same thing — at a turbo root both are
 `turbo run test -- --coverage` (the registry's org-default flags flow through
 turbo's `--`).
 
-### `holocron deploy-on-release`
+### `holocron deploy on-release`
 
 ```bash
-holocron deploy-on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--dry-run]
+holocron deploy on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--dry-run]
 ```
 
 Deploys every workspace package whose own `holocron.config` declares
@@ -394,7 +394,7 @@ export default defineConfig({
 
 ### Skills installer
 
-`holocron setup` can install shared skills from `@theholocron/skills` into the local repo:
+`holocron repo setup` can install shared skills from `@theholocron/skills` into the local repo:
 
 ```ts
 export default defineConfig({
@@ -457,10 +457,10 @@ export default acmeConfig;
 
 ## Upgrading
 
-- **`holocron upgrade node <to>`** — patches every Node.js version pin
+- **`holocron repo upgrade node <to>`** — patches every Node.js version pin
   (`engines.node`, `.nvmrc`, `.node-version`, `.github/workflows/*`,
   `Dockerfile`, `.tool-versions`) to a new major.
-- **`holocron upgrade deps`** — bumps every `@theholocron/*` pin in
+- **`holocron repo upgrade deps`** — bumps every `@theholocron/*` pin in
   `pnpm-workspace.yaml` (`catalog:` and every named `catalogs.*`) to its latest
   published version, then migrates `holocron.config.ts` from the 7.x preset
   shape (`const { repo, workflows } = node()` + `repo.requiredChecks` +
@@ -611,14 +611,14 @@ the local override exists to exempt.
   capability config packages, builds the capability registry
 - `src/cli.ts` — yargs entry, dispatches subcommands. `holocron run` / `ci` are
   delegated to [`@theholocron/astromech`](../astromech) (`createAstromech`).
-  `holocron sync` / `holocron setup` write each repo's `.github/workflows/*.yml`
-  thin callers from `astromech.thinCallers()`; `holocron sync-github` pushes the
+  `holocron repo sync` / `holocron repo setup` write each repo's `.github/workflows/*.yml`
+  thin callers from `astromech.thinCallers()`; `holocron sync github` pushes the
   reusable `workflow_call` implementations + composite actions from
   `astromech.reusableTemplates()` to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
-- `src/commands/` — `setup`, `sync`, `doctor`, `deploy`, `secret set`,
-  `secrets sync`, `publish`, `bump-versions`, `sync-github`, `upgrade node`,
-  `upgrade deps`, `plugin create`, `auth`
+- `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`, `secrets set`,
+  `secrets sync`, `package publish`, `package bump-versions`, `sync github`,
+  `repo upgrade node`, `repo upgrade deps`, `new plugin`, `auth`
 - `src/interactive-menu.ts` — the interactive fallback: `COMMAND_REGISTRY`,
   `launchMenu` (Layers 1–2, picks + spawns a fresh `holocron <command>`),
   `promptForPositionals` (Layer 3, called inline from each leaf command's

@@ -16,7 +16,7 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 	teamId?: string;
 	/** Default framework slug for new project creates. Defaults to "nextjs". */
 	defaultFramework?: string;
-	/** Custom domain that `holocron setup` should attach to the Vercel project. */
+	/** Custom domain that `holocron repo setup` should attach to the Vercel project. */
 	domain?: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;

@@ -1,5 +1,5 @@
 ---
-title: "ci"
+title: "run ci"
 description: Run the merge-gating checks locally, in CI order — "will CI pass?".
 ---
 
@@ -61,9 +61,9 @@ Exit code is `1` if any check fails, `0` otherwise.
 
 ## Pre-push hook
 
-`holocron setup` installs `.husky/pre-push` running `holocron run ci` for
+`holocron repo setup` installs `.husky/pre-push` running `holocron run ci` for
 `protection: "strict"` repos (opt out with `hooks: false` in `holocron.config`,
-or `holocron setup --no-hooks`). It also sets `package.json#scripts.prepare` to
+or `holocron repo setup --no-hooks`). It also sets `package.json#scripts.prepare` to
 `husky` — run `pnpm install` once to activate the hook. Skip a single push with:
 
 ```bash

@@ -23,7 +23,7 @@ describe("createCodecovConfig", () => {
 	});
 
 	it("includes the scaffold header", () => {
-		expect(createCodecovConfig([])).toContain("Scaffolded by holocron setup");
+		expect(createCodecovConfig([])).toContain("Scaffolded by holocron repo setup");
 	});
 
 	it("produces individual_components entry for each package using slug as name", () => {
@@ -218,7 +218,7 @@ describe("codecovConfig", () => {
 	it("scaffolds a new file when existing is null", () => {
 		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
 		const out = codecovConfig(root, null);
-		expect(out).toContain("Scaffolded by holocron setup");
+		expect(out).toContain("Scaffolded by holocron repo setup");
 		expect(out).toContain("individual_components:");
 	});
 

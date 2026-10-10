@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · packages/cli/src/templates/configs/editorconfig/create-config.ts
-# Tool:    holocron setup
+# Tool:    holocron repo setup
 # Changes: edit source in theholocron/holocron
 root = true
 

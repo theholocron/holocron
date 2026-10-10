@@ -1,5 +1,5 @@
 /**
- * `holocron plugin create <slug> <vendor>` — scaffold a new plugin
+ * `holocron new plugin <slug> <vendor>` — scaffold a new plugin
  * package matching the proven template.
  *
  * Design: see `docs/wiki/specifications/tool-plugin-create.spec.md`.
@@ -265,7 +265,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 function preflight(cwd: string): void {
 	if (!existsSync(path.join(cwd, "pnpm-workspace.yaml"))) {
 		throw new PluginCreateError(
-			`\`pnpm-workspace.yaml\` not found in \`${cwd}\`. Run \`holocron plugin create\` from the monorepo root.`
+			`\`pnpm-workspace.yaml\` not found in \`${cwd}\`. Run \`holocron new plugin\` from the monorepo root.`
 		);
 	}
 	if (!existsSync(path.join(cwd, "packages"))) {

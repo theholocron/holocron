@@ -18,7 +18,7 @@ The Sentry plugin activates automatically at runtime when `HOLOCRON_SENTRY_DSN`
 (fallback: `SENTRY_DSN`) is present in the environment — no provider entry in
 `holocron.config` is required for the CLI to route errors to Sentry.
 
-The `errors` provider entry is used by `holocron setup` — it calls
+The `errors` provider entry is used by `holocron repo setup` — it calls
 `ensureProject` and pushes the DSN to every env key the capability declares
 (`SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN`) at repo scope via the `secrets`
 capability — and by `holocron doctor` (connectivity). Once setup has run, the
@@ -31,7 +31,7 @@ export SENTRY_DSN=https://...@sentry.io/...
 
 ## Config
 
-The provider entry is optional at runtime but required if you want `holocron setup`
+The provider entry is optional at runtime but required if you want `holocron repo setup`
 to provision the project for you:
 
 ```ts

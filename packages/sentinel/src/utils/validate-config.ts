@@ -24,7 +24,7 @@
  *
  * D8 parity: the actual execution of `holocron.config.ts` reuses
  * `@theholocron/datapad`'s `loadConfigFromContent()` unchanged — the same
- * `loadFile` internals `holocron setup`/`sync` use locally via
+ * `loadFile` internals `holocron repo setup`/`sync` use locally via
  * `loadConfigFile()`, not a bespoke server-side parser.
  *
  * The temp directory itself lives under the OS tmp dir (`os.tmpdir()`) —

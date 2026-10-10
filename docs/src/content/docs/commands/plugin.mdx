@@ -1,10 +1,10 @@
 ---
-title: "plugin create"
+title: "new plugin"
 description: Scaffold a new @theholocron/holocron-plugin-<slug> package inside the monorepo.
 ---
 
 ```bash
-holocron plugin create <slug> <vendor> [--capability <key>] [--token-env <name>] [--vendor-env <name>] [--base-url <url>] [--no-verify]
+holocron new plugin <slug> <vendor> [--capability <key>] [--token-env <name>] [--vendor-env <name>] [--base-url <url>] [--no-verify]
 ```
 
 Generates the full scaffold for a new Holocron plugin package. If `--capability`, `--vendor-env`, or `--base-url` are omitted, the CLI prompts interactively.
@@ -40,14 +40,14 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 
 ```bash
 # Interactive
-holocron plugin create stripe Stripe
+holocron new plugin stripe Stripe
 
 # Fully non-interactive
-holocron plugin create stripe Stripe \
+holocron new plugin stripe Stripe \
   --capability vault \
   --vendor-env STRIPE_API_KEY \
   --base-url https://api.stripe.com
 
 # Skip post-scaffold checks
-holocron plugin create stripe Stripe --no-verify
+holocron new plugin stripe Stripe --no-verify
 ```

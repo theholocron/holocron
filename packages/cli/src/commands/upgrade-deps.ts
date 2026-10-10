@@ -1,5 +1,5 @@
 /**
- * `holocron upgrade deps` — bring a repo's `@theholocron/*` dependency pins and
+ * `holocron repo upgrade deps` — bring a repo's `@theholocron/*` dependency pins and
  * its `holocron.config.ts` up to the current major.
  *
  * Two concerns:

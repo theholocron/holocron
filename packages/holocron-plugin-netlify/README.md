@@ -57,7 +57,7 @@ Plugin options, via the tuple form:
         // Non-secret identifier, safe to commit (same status as
         // Vercel's teamId / Cloudflare's accountId elsewhere in this org).
         "accountId": "6ac41cd9a87355ef3d13d261",
-        // Custom domain `holocron setup` attaches to the site.
+        // Custom domain `holocron repo setup` attaches to the site.
         "domain": "sentinel.theholocron.dev",
       },
     ],

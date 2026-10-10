@@ -1,7 +1,7 @@
 /**
  * Canonical AI engineering workflow role prompts.
  *
- * Written to `.agents/prompts/<role>.md` by `holocron setup` when `agent` is
+ * Written to `.agents/prompts/<role>.md` by `holocron repo setup` when `agent` is
  * configured. Paths are gitignored and regenerated on every setup run so the
  * content always reflects the current CLI version.
  *

@@ -94,7 +94,7 @@ export interface Astromech {
 	 */
 	thinCallers(): Map<string, string>;
 	/**
-	 * The complete reusable-workflow batch `holocron sync-github` pushes to
+	 * The complete reusable-workflow batch `holocron sync github` pushes to
 	 * `theholocron/.github` — repo-relative path → content, "do not edit" header
 	 * already applied to the YAML. Config-independent (the same for every repo).
 	 */
@@ -110,7 +110,7 @@ export interface Astromech {
 	/**
 	 * The branch-protection required-status-check contexts for this repo —
 	 * every `required: true` task's check context plus `extraRequiredChecks`,
-	 * ordered and de-duplicated. `holocron setup` prepends `"DCO"` and applies
+	 * ordered and de-duplicated. `holocron repo setup` prepends `"DCO"` and applies
 	 * the list; this method is policy-free (manifest only).
 	 */
 	requiredChecks(): string[];
@@ -118,7 +118,7 @@ export interface Astromech {
 	 * This repo's `codecov.yml` — component `paths` derived from `packages/*`.
 	 * Pass the current file's content (`null` if none exists yet) to either
 	 * merge the component list in or scaffold a fresh file. Policy-free same
-	 * as {@link requiredChecks} — `holocron setup` owns writing the result.
+	 * as {@link requiredChecks} — `holocron repo setup` owns writing the result.
 	 */
 	codecovConfig(existing: string | null): string;
 	/**

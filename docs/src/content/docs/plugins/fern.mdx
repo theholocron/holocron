@@ -39,9 +39,9 @@ providers: {
 | `domain`  | No       | Base domain (`"wiki.theholocron.dev"`) or full path (`"wiki.theholocron.dev/myrepo"`). A bare host gets the repo name appended automatically as a basepath.          |
 | `fernOrg` | No       | Fern workspace slug. Defaults to `config.org`. Set this when the Fern workspace name differs from the GitHub org (e.g. workspace `"holocron"`, org `"theholocron"`). |
 
-## What `holocron setup` does
+## What `holocron repo setup` does
 
-Running `holocron setup` with `providers.wiki: "fern"` performs three steps:
+Running `holocron repo setup` with `providers.wiki: "fern"` performs three steps:
 
 1. **`fern/fern.config.json`** — workspace org name and pinned Fern CLI
    version. Always overwritten so the pinned version stays current.
@@ -84,7 +84,7 @@ DNS: one CNAME record — `wiki.theholocron.dev` →
 
 ## Authentication
 
-`HOLOCRON_FERN_TOKEN` is a CI-only secret — it is not used by `holocron setup` and
+`HOLOCRON_FERN_TOKEN` is a CI-only secret — it is not used by `holocron repo setup` and
 does not go in the keyring. Add it directly to your repo's GitHub Secrets.
 
 **Resolution order:**
@@ -112,7 +112,7 @@ The `wiki.yml` workflow passes it to `fern generate --docs` via
 
 :::note
 **Password protection** is configured in the Fern Dashboard — not in
-`docs.yml` or via any CLI flag. After running `holocron setup`, configure
+`docs.yml` or via any CLI flag. After running `holocron repo setup`, configure
 access control at `dashboard.buildwithfern.com`.
 :::
 
@@ -120,4 +120,4 @@ access control at `dashboard.buildwithfern.com`.
 
 - `provision(opts?)` — writes `fern/fern.config.json` and scaffolds
   `fern/docs.yml` (skipped if already present). Called automatically by
-  `holocron setup` when `providers.wiki: "fern"` is set.
+  `holocron repo setup` when `providers.wiki: "fern"` is set.

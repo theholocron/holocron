@@ -60,11 +60,11 @@ export interface TasksConfig {
 	/**
 	 * Required status-check contexts not backed by a task — codecov gates,
 	 * a bundle-build check, … Appended to `astromech.requiredChecks()` after the
-	 * `required`-task contexts. (`DCO` is prepended by `holocron setup` itself.)
+	 * `required`-task contexts. (`DCO` is prepended by `holocron repo setup` itself.)
 	 */
 	extraRequiredChecks?: string[];
 	/**
-	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
+	 * Git hooks `holocron repo setup` installs. `true` / `{ prePush: true }` writes
 	 * `.husky/pre-push` (runs `holocron run ci`); `false` / `{ prePush: false }`
 	 * opts out. Omitted → on for `protection: "strict"` repos, off otherwise.
 	 * When enabled, `packageScripts()` also emits `prepare: "husky"`.

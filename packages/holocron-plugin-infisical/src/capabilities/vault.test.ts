@@ -253,7 +253,7 @@ describe("InfisicalVault.ensureEnvironment", () => {
 		expect(stub.calls[1]?.body).toEqual({ environmentName: "dev", environmentSlug: "dev" });
 	});
 
-	it("caches the workspace lookup across sequential calls (holocron setup fires 3 in a row)", async () => {
+	it("caches the workspace lookup across sequential calls (holocron repo setup fires 3 in a row)", async () => {
 		const { client, stub } = makeClient([
 			{
 				status: 200,

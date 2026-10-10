@@ -1,5 +1,5 @@
 /**
- * `holocron secret set` — one-shot single-secret push.
+ * `holocron secrets set` — one-shot single-secret push.
  *
  * Complements `holocron secrets sync` (bulk vault → destinations) for
  * ad-hoc scenarios:
@@ -62,7 +62,7 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "secret set");
+	assertPluginsResolvable(loader, "secrets set");
 
 	const dryRun = input.context.dryRun ?? false;
 	const scope: SecretScope = input.scope ?? { kind: "repo" };

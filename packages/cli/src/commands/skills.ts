@@ -1,7 +1,7 @@
 /**
  * `holocron skills` — install, remove, and update agent skills from @theholocron/skills.
  *
- * Unlike `holocron setup`, this command is purely local (no GitHub token
+ * Unlike `holocron repo setup`, this command is purely local (no GitHub token
  * required). It reads `agent` and `skills` from the config and installs
  * the listed skills into `.agents/skills/<name>/` with a symlink at the
  * agent-specific path (e.g. `.claude/skills/<name>` for Claude Code).

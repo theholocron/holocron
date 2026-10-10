@@ -43,13 +43,13 @@ holocron auth set cloudflare --org theholocron <TOKEN-A>
 holocron auth set cloudflare --org client-co   <TOKEN-B>
 
 # theholocron project (org: "theholocron" in config) → picks up TOKEN-A automatically
-cd ~/Code/theholocron/some-project && holocron setup
+cd ~/Code/theholocron/some-project && holocron repo setup
 
 # client-co project (org: "client-co" in config) → picks up TOKEN-B automatically
-cd ~/Code/client-co/some-project && holocron setup
+cd ~/Code/client-co/some-project && holocron repo setup
 
 # One-off override
-holocron setup --org client-co
+holocron repo setup --org client-co
 ```
 
 ## GitHub tokens
@@ -58,7 +58,7 @@ holocron setup --org client-co
 | ------------------------ | ---------------- | ------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `HOLOCRON_READ_TOKEN`    | `github.read`    | Fine-grained       | `clone`, CI run listing                                                          | `contents: read`, `actions: read`, `metadata: read`                                                            |
 | `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | Fine-grained       | `issues` capability (create, transition, comment)                                | `issues: read/write`, `metadata: read`                                                                         |
-| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | Fine-grained       | `sync-github` — push workflow templates, open PRs                                | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                                   |
+| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | Fine-grained       | `sync github` — push workflow templates, open PRs                                | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                                   |
 | `HOLOCRON_RELEASE_TOKEN` | `github.release` | Fine-grained       | semantic-release: tags, releases, changelogs                                     | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                      |
 | `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties | `administration: read/write`, `secrets: read/write`, `environments: read/write`                                |
 | `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                        | `pages: read/write`, `metadata: read`                                                                          |
@@ -123,8 +123,8 @@ env:
 holocron clone --token ghp_xxx --org theholocron
 
 # Keyed form: target a specific provider
-holocron sync-github --token github=ghp_zzz
+holocron sync github --token github=ghp_zzz
 
 # Multiple providers
-holocron setup --token github=ghp_xxx --token vercel=v_yyy
+holocron repo setup --token github=ghp_xxx --token vercel=v_yyy
 ```

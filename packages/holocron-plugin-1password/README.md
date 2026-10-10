@@ -145,7 +145,7 @@ convention):
 `ensureProject` / `ensureEnvironment` — 1Password's data model
 doesn't have projects with sub-configs the way Doppler / Infisical
 do. The vault + item hierarchy is created via the 1P UI or `op item
-create`, not via `holocron setup`. The methods are omitted;
+create`, not via `holocron repo setup`. The methods are omitted;
 `runSetup` skips them cleanly (see the [`Vault`
 interface](../cli/src/capabilities/index.ts)).
 

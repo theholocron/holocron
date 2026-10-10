@@ -114,7 +114,7 @@ export function deriveCapabilities(providers: ResolvedProvidersConfig | undefine
 }
 
 /**
- * `source` + `ci` are the minimal baseline every repo `holocron setup`
+ * `source` + `ci` are the minimal baseline every repo `holocron repo setup`
  * touches wires — every `holocron.config.ts` in this org already satisfies
  * this, so `non-compliant` here means drift (a provider manually removed
  * after setup), not an unmet aspirational policy. Deliberately not a richer

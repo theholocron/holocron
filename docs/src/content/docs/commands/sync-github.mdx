@@ -1,10 +1,10 @@
 ---
-title: "sync-github"
+title: "sync github"
 description: Sync workflow templates and composite actions to theholocron/.github via the GitHub API.
 ---
 
 ```bash
-holocron sync-github [--repo owner/repo] [--branch <branch>] [--pr] [--message <msg>] [--output-dir <path>] [--dry-run]
+holocron sync github [--repo owner/repo] [--branch <branch>] [--pr] [--message <msg>] [--output-dir <path>] [--dry-run]
 ```
 
 Generates workflow thin callers and composite action files from the source-of-truth templates in `packages/cli/src/commands/` and pushes them to `theholocron/.github` (or any target repo). This is an internal CI command — the `sync-workflow-templates` workflow in holocron itself runs it automatically on push to `main`.
@@ -24,16 +24,16 @@ Generates workflow thin callers and composite action files from the source-of-tr
 
 ```bash
 # Push to theholocron/.github default branch
-holocron sync-github
+holocron sync github
 
 # Push to a PR branch (useful for protected repos)
-holocron sync-github --branch chore/sync --pr
+holocron sync github --branch chore/sync --pr
 
 # Write locally for inspection
-holocron sync-github --output-dir /tmp/sync-preview
+holocron sync github --output-dir /tmp/sync-preview
 
 # Dry-run
-holocron sync-github --dry-run
+holocron sync github --dry-run
 ```
 
 ## Authentication

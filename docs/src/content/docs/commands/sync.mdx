@@ -1,10 +1,10 @@
 ---
-title: "sync"
+title: "repo sync"
 description: Sync repository metadata from holocron.config.ts to GitHub and local files.
 ---
 
 ```bash
-holocron sync [steps..] [--repo owner/name] [--dry-run]
+holocron repo sync [steps..] [--repo owner/name] [--dry-run]
 ```
 
 `sync` pushes metadata defined in `holocron.config.ts` to the configured `source` provider (GitHub) and to local files. Run it after updating any of the synced fields in config.
@@ -14,8 +14,8 @@ holocron sync [steps..] [--repo owner/name] [--dry-run]
 Pass specific step names to run only those steps. Omit to run all.
 
 ```bash
-holocron sync                               # run all steps
-holocron sync labels properties             # run only labels and properties
+holocron repo sync                               # run all steps
+holocron repo sync labels properties             # run only labels and properties
 ```
 
 | Step          | What it syncs                                                                               | Requires provider token      |
@@ -66,14 +66,14 @@ tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"]
 
 ```bash
 # Sync everything
-holocron sync
+holocron repo sync
 
 # Only sync labels and topics to GitHub
-holocron sync labels topics
+holocron repo sync labels topics
 
 # Update local package.json fields without touching GitHub
-holocron sync description homepage keywords scripts
+holocron repo sync description homepage keywords scripts
 
 # Dry-run all
-holocron sync --dry-run
+holocron repo sync --dry-run
 ```

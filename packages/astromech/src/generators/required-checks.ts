@@ -4,7 +4,7 @@
  * {@link WORKFLOW_CHECK_CONTEXTS} entry; `config.extraRequiredChecks` adds
  * contexts not backed by a task (codecov, DCO is prepended by the caller).
  *
- * `@theholocron/cli`'s `holocron setup` calls this instead of the old
+ * `@theholocron/cli`'s `holocron repo setup` calls this instead of the old
  * hand-maintained `repo.requiredChecks` array. Policy-free — it only knows the
  * manifest.
  */

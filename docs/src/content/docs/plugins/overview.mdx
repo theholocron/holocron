@@ -52,7 +52,7 @@ Plugins are the adapters between the Holocron CLI's capability interfaces and re
 
 ## Writing a community plugin
 
-Use `holocron plugin create <slug> <Vendor>` to scaffold a new plugin. The generated package includes:
+Use `holocron new plugin <slug> <Vendor>` to scaffold a new plugin. The generated package includes:
 
 - `createPlugin(options)` — factory function returning `{ name, capabilities }`
 - `verifyToken(token)` — called by `holocron auth set <slug>` to validate before storing

@@ -45,7 +45,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   sync:
-    name: Run holocron sync
+    name: Run holocron repo sync
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -71,20 +71,20 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - name: Run holocron sync
+      - name: Run holocron repo sync
         # The `holocron` action resolves @theholocron/cli from node_modules (or
         # builds the workspace when it's an unbuilt checkout — the holocron repo
         # itself). `inputs.steps` is a space-separated list or empty; the
         # `--steps <list>` arg is omitted when empty.
         uses: theholocron/.github/.github/actions/holocron@main
         with:
-          command: sync
+          command: repo sync
           args: ${{ inputs.steps != '' && format('--steps {0}', inputs.steps) || '' }}
 
       - name: Format generated files
         run: |
           pnpm exec prettier --write README.md docs/src/content/docs/index.mdx 2>/dev/null || true
-          # `holocron sync` writes package.json fields (keywords, description,
+          # `holocron repo sync` writes package.json fields (keywords, description,
           # homepage) with a plain assignment, which appends new keys at the
           # end — re-apply the canonical order the lint config enforces.
           pnpm exec eslint --fix --no-warn-ignored package.json 2>/dev/null || true

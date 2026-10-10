@@ -62,7 +62,7 @@ TODO: fill in as capability methods land.
 
 ## Status
 
-**\`v2.0.0-alpha.1\`** — scaffolded via \`holocron plugin create\`.
+**\`v2.0.0-alpha.1\`** — scaffolded via \`holocron new plugin\`.
 Not yet published; capability methods are stubs.
 `;
 }

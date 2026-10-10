@@ -34,7 +34,7 @@ export default defineConfig({
 		defaultBranch: "alpha",
 	},
 	// Required status checks not backed by a `{ required: true }` task.
-	// `holocron setup` appends these to the task-derived contexts from
+	// `holocron repo setup` appends these to the task-derived contexts from
 	// `astromech.requiredChecks()`. codecov/patch + codecov/project are
 	// project-wide gates; the rest are repo-specific. The old preset's
 	// "audit / Conclusion" is gone — the decomposed audit tasks
@@ -102,7 +102,7 @@ export default defineConfig({
 		secrets: "github",
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
-		// Errors: Sentry — `holocron setup` provisions the project and pushes the
+		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
 		// DSN to repo secrets. Runtime error reporting (telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: ["sentry", { org: "theholocron" }],
