@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#975
 blocked-by: []
 related:
@@ -123,9 +123,11 @@ they re-sync; the release notes should say so.
 2. `run` absorbs `ci` / `lint commit-msg`; husky hooks, templates and every
    reference to the old names updated in the same PR (theholocron/holocron#977).
 3. Regroup the rest + `COMMAND_CONTEXTS` + menu completeness test, with the
-   reference sweep (workflow templates, `command:` inputs, release config, docs).
-4. Anything the sweep left behind, plus verifying `holocron sync github`
-   regenerates a clean tree.
+   reference sweep (workflow templates, `command:` inputs, release config, docs)
+   (#978, merged).
+4. Leftovers and a regeneration check of the local sync steps (#979, merged).
+   Still manual: run `holocron sync github` to push the regenerated reusable
+   templates to `theholocron/.github` (needs the sync token).
 
 ## Out of scope
 

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#971
 blocked-by: []
 related: []
@@ -50,9 +50,11 @@ Module: `packages/cli/src/json-view.ts`, split into a pure core and a thin TTY l
 
 ### 3. Interactive mode
 
-- Opt-in via `--interactive` (never the default). Checks `process.stdin.isTTY`
-  and `process.stdout.isTTY` first; throws `NonInteractiveError` otherwise
-  (already in `USER_FACING_ERRORS`).
+- **On by default** when stdin and stdout are both TTYs and no `--depth` was
+  given (shipped: #973; the first draft made it opt-in). `--no-interactive`
+  forces static output. An explicit `--interactive` without a TTY throws
+  `NonInteractiveError` (already in `USER_FACING_ERRORS`); the default
+  falls back to static output.
 - Keys: `↑`/`↓` (`k`/`j`) move, `→`/`Enter`/`Space` expand, `←` collapse (or
   jump to parent), `E`/`C` expand/collapse all, `q`/`Esc`/`Ctrl-C` quit.
 - Viewport = `process.stdout.rows - 1` lines, scrolled to keep the cursor
@@ -63,7 +65,7 @@ Module: `packages/cli/src/json-view.ts`, split into a pure core and a thin TTY l
 
 ### CLI surface
 
-`holocron config show [--depth <n>] [--interactive]`. `config show` is already
+`holocron config show [--depth <n>] [--[no-]interactive]`. `config show` is already
 `repo-aware` in `COMMAND_CONTEXTS`; no context change. `viewJson()` is shared so
 `doctor` and other reports can adopt it later without a new spec.
 
@@ -84,5 +86,4 @@ Module: `packages/cli/src/json-view.ts`, split into a pure core and a thin TTY l
 ## Open questions
 
 - Truncate long string values in the tree (with a "show full" key), or wrap?
-- Should `--depth` also be honoured by non-TTY output in a `--pretty` flag, or
-  stay TTY-only as above?
+- Resolved: `--depth` stays TTY-only; non-TTY output is always plain JSON.
