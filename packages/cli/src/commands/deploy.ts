@@ -235,7 +235,7 @@ export interface DeployFilesReport {
 	message?: string;
 }
 
-// Deliberately no "dist" here, unlike holocron new's own file-walker this
+// Deliberately no "dist" here, unlike holocron new repo's own file-walker this
 // was modeled on: --files exists specifically to deploy build output, so
 // a directory literally named "dist" is exactly what a caller usually
 // means to include, not exclude.
