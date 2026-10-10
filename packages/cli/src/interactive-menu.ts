@@ -266,50 +266,105 @@ export function getEntry(name: string): CommandEntry {
 	return entry;
 }
 
+/** A row in one level of the nested menu: a command to run, a group to open, or "back". */
+export interface MenuItem {
+	name: string;
+	/** A command name, `group:<path>` to open a submenu, or {@link BACK}. */
+	value: string;
+	description: string;
+	/** Lower-cased text the search box matches against (a group includes everything under it). */
+	haystack: string;
+}
+
+const GROUP = "group:";
+/** The "← back" item's value; only offered below the first level. */
+export const BACK = "back";
+
 /**
- * Layer 2: every entry nested under `parent` (`"repo"` → `repo setup`, `repo sync`,
- * `repo upgrade node`, …), including deeper levels. Matches on the name prefix, so a
- * new subcommand shows up under its parent just by being registered.
+ * One level of the menu, derived from the registered command names: the next word
+ * of every entry under `path` (`[]` is the top). A word is
+ *
+ * - a **command** when nothing is nested under it (`doctor`);
+ * - a **group** when commands are nested under it (`repo` → `repo setup`, `repo sync`, …),
+ *   which can nest as deep as the names go (`repo upgrade` → `repo upgrade node`);
+ *
+ * Every row is a single word, never a "<command> <subcommand>" path: `config show` is
+ * `config ›` then `show`, even when a group holds just one command.
+ *
+ * A path that is itself runnable (`repo sync`, `deploy`) gets a leading "<word> (run it)" item.
+ * Registration order is kept.
  */
-export function entriesUnder(parent: string): CommandEntry[] {
-	return COMMAND_REGISTRY.filter((e) => e.name.startsWith(`${parent} `));
+export function menuItems(entries: CommandEntry[], path: string[] = []): MenuItem[] {
+	const prefix = path.join(" ");
+	const own = prefix ? entries.find((e) => e.name === prefix) : undefined;
+	const under = prefix ? entries.filter((e) => e.name.startsWith(`${prefix} `)) : entries;
+	const haystackOf = (list: CommandEntry[]): string =>
+		list.map((e) => `${e.name} ${e.description}`.toLowerCase()).join(" ");
+
+	const items: MenuItem[] = [];
+	if (own) {
+		items.push({
+			name: `${path[path.length - 1]!} (run it)`,
+			value: own.name,
+			description: own.description,
+			haystack: haystackOf([own]),
+		});
+	}
+	const words = [...new Set(under.map((e) => e.name.split(" ")[path.length]!))];
+	for (const word of words) {
+		const full = [...path, word].join(" ");
+		const family = under.filter((e) => e.name === full || e.name.startsWith(`${full} `));
+		const self = family.find((e) => e.name === full);
+		const nested = family.filter((e) => e.name !== full);
+		if (nested.length === 0 && self) {
+			items.push({ name: word, value: full, description: self.description, haystack: haystackOf([self]) });
+		} else {
+			const children = [...new Set(nested.map((e) => e.name.split(" ")[path.length + 1]!))];
+			items.push({
+				name: `${word} ›`,
+				value: `${GROUP}${full}`,
+				description: children.join(", "),
+				haystack: haystackOf(family),
+			});
+		}
+	}
+	return items;
 }
 
 /**
- * Searchable autocomplete over `entries` — the Layer 1 top-level picker, and
- * (passed a `group`-filtered subset) the Layer 2 parent-command picker.
- * `select()` would work too at these list sizes, but `search()` degrades
- * gracefully as the surface grows and costs nothing when it doesn't.
+ * Searchable autocomplete over one menu level's `items`. `select()` would work too
+ * at these list sizes, but `search()` degrades gracefully as the surface grows and
+ * costs nothing when it doesn't. Resolves to the picked item's `value`.
  */
-export async function pickCommand(
-	entries: CommandEntry[],
-	message = "What would you like to do?"
-): Promise<CommandEntry> {
-	const byName = new Map(entries.map((e) => [e.name, e]));
-	const picked = await search<string>({
+export async function pickMenuItem(items: MenuItem[], message = "What would you like to do?"): Promise<string> {
+	return search<string>({
 		message,
-		source: (term) => searchChoices(entries, term),
+		source: (term) => searchChoices(items, term),
 	});
-	// `source` only ever returns names drawn from `entries`, so this is always defined.
-	return byName.get(picked)!;
 }
 
 /**
  * `@inquirer/search`'s `source` callback, factored out as a plain function —
  * unit-testable directly instead of only through a mocked `search()` call.
- * Empty/undefined `term` (nothing typed yet) returns every entry.
+ * Empty/undefined `term` (nothing typed yet) returns every item.
  */
 export function searchChoices(
-	entries: CommandEntry[],
+	items: MenuItem[],
 	term: string | undefined
 ): Array<{ name: string; value: string; description: string }> {
-	const pool = !term ? entries : entries.filter((e) => matches(e, term));
-	return pool.map((e) => ({ name: e.name, value: e.name, description: e.description }));
-}
-
-function matches(entry: CommandEntry, term: string): boolean {
-	const needle = term.toLowerCase();
-	return entry.name.toLowerCase().includes(needle) || entry.description.toLowerCase().includes(needle);
+	const needle = term?.toLowerCase();
+	const pool = !needle ? items : items.filter((i) => i.haystack.includes(needle));
+	// Name-prefix hits, then other name hits, then description-only hits (stable, so
+	// registry order holds within each bucket): typing `repo` should land on the `repo`
+	// group, not on `clone` whose description says "repo", and `up` on `upgrade`, not `setup`.
+	const rank = (i: MenuItem): number => {
+		if (!needle) return 0;
+		const name = i.name.toLowerCase();
+		return name.startsWith(needle) ? 0 : name.includes(needle) ? 1 : 2;
+	};
+	return [...pool]
+		.sort((a, b) => rank(a) - rank(b))
+		.map((i) => ({ name: i.name, value: i.value, description: i.description }));
 }
 
 /**
@@ -443,14 +498,17 @@ export function shouldPreviewDryRun(entry: CommandEntry, parentArgv: Record<stri
 }
 
 /**
- * Layers 1 and 2: pick a command from `entries`, prompt for its required
- * positionals, spawn it as a fresh `holocron` invocation, and set
- * `process.exitCode` from the child — the caller (a `$0` handler in
- * `cli.ts`) returns normally afterward so the parent's own telemetry
- * flush / update-notifier tail still runs. The parent's own
- * `command_completed` event fires with command name "unknown" (the
- * middleware ran before any command was picked) — left as-is rather than
- * suppressed; it's a real, useful signal ("the menu got used").
+ * Layers 1 and 2: walk the nested menu over `entries` (starting at `startPath`,
+ * `[]` for the top), prompt for the picked command's required positionals, spawn
+ * it as a fresh `holocron` invocation, and set `process.exitCode` from the child —
+ * the caller (a `$0` handler in `cli.ts`) returns normally afterward so the
+ * parent's own telemetry flush / update-notifier tail still runs. The parent's
+ * own `command_completed` event fires with command name "unknown" (the middleware
+ * ran before any command was picked) — left as-is rather than suppressed; it's a
+ * real, useful signal ("the menu got used").
+ *
+ * Picking a group opens its submenu, which has a "← back" item; a command ends
+ * the walk. See {@link menuItems} for how a level is built.
  *
  * For a command that honours `--dry-run` ({@link CommandEntry.supportsDryRun})
  * and wasn't opted out via `--skip-dry-run` ({@link shouldPreviewDryRun}),
@@ -466,12 +524,31 @@ export async function launchMenu(
 	entries: CommandEntry[],
 	parentArgv: Record<string, unknown>,
 	pickMessage?: string,
-	nonInteractiveMessage = "Run `holocron --help` to see available commands."
+	nonInteractiveMessage = "Run `holocron --help` to see available commands.",
+	startPath: string[] = []
 ): Promise<void> {
 	if (!process.stdin.isTTY) {
 		throw new NonInteractiveError(nonInteractiveMessage);
 	}
-	const picked = await pickCommand(entries, pickMessage);
+	const stack: string[][] = [startPath];
+	let picked: CommandEntry | undefined;
+	while (!picked) {
+		const path = stack[stack.length - 1]!;
+		const items = menuItems(entries, path);
+		if (stack.length > 1) {
+			items.push({ name: "← back", value: BACK, description: "Return to the previous menu", haystack: "back" });
+		}
+		const message = stack.length === 1 ? pickMessage : `${path.join(" ")} — choose a subcommand:`;
+		const value = await pickMenuItem(items, message);
+		if (value === BACK) {
+			stack.pop();
+		} else if (value.startsWith(GROUP)) {
+			stack.push(value.slice(GROUP.length).split(" "));
+		} else {
+			// `value` is drawn from `items`, which are built from `entries`, so this is always defined.
+			picked = entries.find((e) => e.name === value);
+		}
+	}
 	const positionals = await promptForPositionals(picked, {});
 
 	if (shouldPreviewDryRun(picked, parentArgv)) {

@@ -38,7 +38,6 @@ import {
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
-	entriesUnder,
 	getEntry,
 	launchMenu,
 	NonInteractiveError,
@@ -142,13 +141,14 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 	}
 }
 
-/** Layer 2: a bare group command (`holocron repo`, `holocron auth`, …) picks among its subcommands. */
+/** Layer 2: a bare group command (`holocron repo`, `holocron repo upgrade`, …) opens the menu at that level. */
 async function launchGroupMenu(parent: string, argv: Record<string, unknown>): Promise<void> {
 	await launchMenu(
-		entriesUnder(parent),
+		COMMAND_REGISTRY,
 		argv,
 		`${parent} — choose a subcommand:`,
-		`Run \`holocron ${parent} --help\` to see available ${parent} subcommands.`
+		`Run \`holocron ${parent} --help\` to see available ${parent} subcommands.`,
+		parent.split(" ")
 	);
 }
 
