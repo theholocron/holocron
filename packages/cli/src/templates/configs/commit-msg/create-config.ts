@@ -6,7 +6,7 @@ const { workflowHeader } = createHeader({
 });
 
 /**
- * `.husky/commit-msg` — lints the commit message via `holocron lint
+ * `.husky/commit-msg` — lints the commit message via `holocron run lint
  * commit-msg` (holocron#789), the real programmatic replacement for
  * shelling out to `commitlint --edit`. Installed by `holocron setup` when
  * hooks are enabled. Same `__HOLOCRON_SCRIPT__` substitution as `pre-push`.

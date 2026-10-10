@@ -95,9 +95,10 @@ const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true
  * The full command surface, hand-maintained in parallel with `cli.ts`'s
  * yargs registrations (this module does not introspect yargs at runtime).
  * `run <task>` is deliberately excluded — it's CI/scripting-oriented, and an
- * interactive prompt in front of it would work against that. `lint
- * commit-msg <file>` is excluded for the same reason: it's invoked
- * exclusively from `.husky/commit-msg "$1"`, never typed by a human.
+ * interactive prompt in front of it would work against that. (`run ci` is a
+ * concrete, prompt-free entry, so it stays.) `run lint commit-msg <file>` is
+ * excluded for the same reason: it's invoked exclusively from
+ * `.husky/commit-msg "$1"`, never typed by a human.
  */
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
@@ -169,7 +170,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
-		name: "ci",
+		name: "run ci",
 		description: "Run the merge-gating checks locally, in CI order — 'will CI pass?'",
 		positionals: [],
 		supportsDryRun: true,

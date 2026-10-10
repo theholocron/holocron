@@ -301,11 +301,11 @@ export interface TaskEntryConfig {
 	with?: WorkflowWithConfig;
 	paths?: string[];
 	linters?: string[];
-	/** Emit a `.github/workflows/<name>.yml` thin caller + include in `holocron ci`. Default `true`. */
+	/** Emit a `.github/workflows/<name>.yml` thin caller + include in `holocron run ci`. Default `true`. */
 	ci?: boolean;
 	/** Write a `package.json` script + let `holocron run <name>` resolve the task. Default `true`. */
 	local?: boolean;
-	/** The task's CI check context is a required status check + part of `holocron ci`'s default run. */
+	/** The task's CI check context is a required status check + part of `holocron run ci`'s default run. */
 	required?: boolean;
 }
 
@@ -339,7 +339,7 @@ export interface HolocronConfig {
 	 * The task manifest — what this repo runs. Each entry is a task name
 	 * (backed by a reusable workflow in `theholocron/.github`), or the object
 	 * form to pass `with:` inputs. `@theholocron/astromech` reads this as the
-	 * single source for `holocron run` / `holocron ci` / the generated CI
+	 * single source for `holocron run` / `holocron run ci` / the generated CI
 	 * workflows / `package.json` scripts.
 	 *
 	 * Supported values (intent-facing vocabulary — epic #672, D3):
@@ -428,7 +428,7 @@ export interface HolocronConfig {
 	extraRequiredChecks?: string[];
 	/**
 	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
-	 * `.husky/pre-push` (runs `holocron ci` before every push); `false` /
+	 * `.husky/pre-push` (runs `holocron run ci` before every push); `false` /
 	 * `{ prePush: false }` opts out. Omitted → on for `protection: "strict"`,
 	 * off otherwise. `--hooks` / `--no-hooks` on `holocron setup` override.
 	 */

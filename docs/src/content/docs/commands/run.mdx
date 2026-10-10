@@ -23,18 +23,19 @@ change in the CLI — every repo gets it.
 
 ## How a task resolves
 
-```
-J. a job is given                → the task's <job> sub-runner     (unknown job → exit 1)
-1. turbo.json defines the task   → turbo run <task>               (monorepo root)
+J. a job is given → the task's <job> sub-runner (unknown job → exit 1)
+
+1. turbo.json defines the task → turbo run <task> (monorepo root)
 2. package.json has a <task> script (and it isn't `holocron run …`)
-                                 → <detected pm> run <task>
+   → <detected pm> run <task>
 3. the task registry has a local runner
-                                 → <tool> <args> <org-flags>       (e.g. --coverage)
-3b. the task is a linterGroup    → the resolved linter set        (see below)
+   → <tool> <args> <org-flags> (e.g. --coverage)
+   3b. the task is a linterGroup → the resolved linter set (see below)
 4. the task is a container of sub-jobs (`platform.repoValidation`)
-                                 → run each job in declared order
-5. known task, nothing to run    → "no <task> task for this repo", exit 0
-6. unknown task                  → error, exit 1
+   → run each job in declared order
+5. known task, nothing to run → "no <task> task for this repo", exit 0
+6. unknown task → error, exit 1
+
 ```
 
 An explicit `package.json` script always wins over the registry default — if
@@ -82,11 +83,11 @@ command. Locally:
   carve-out a `local: null` task gets. It only fails when a linter _could_
   run locally but its tool just isn't installed.
 
-```
 $ holocron run sourceQuality.staticAnalysis
 → eslint .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 · git-merge-conflict-markers (CI only)
+
 ```
 
 Install the missing binaries (`brew install actionlint gitleaks yamllint …`)
@@ -99,9 +100,18 @@ to run the full CI set locally.
 | `--dry-run`      | Print the resolved command without running it                   |
 | `--required`     | Exit 1 (instead of 0) if this repo has no such task             |
 | `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                   |
+| `--all`          | With `run ci`: run every `ci: true` task, not just required     |
 | `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
 
-See also [`holocron ci`](/holocron/commands/ci/) — run every required check at once.
+## Unique tasks
+
+Two names don't resolve through the task registry — `run` handles them itself:
+
+- **`holocron run ci`** — run every merge-gating check, in CI order
+  (`--all` for every `ci: true` task). See [`holocron run ci`](/holocron/commands/ci/).
+- **`holocron run lint commit-msg <file>`** — lint a commit message file
+  (the `.husky/commit-msg` hook passes git's `$1`). Exits 1 on a violation.
+  Works from a bare install: it needs no `holocron.config`.
 
 ## Examples
 
@@ -120,5 +130,5 @@ holocron run verification.performance          # just Lighthouse CI
 At a turbo root, `holocron run verification.unitTests` is
 `turbo run verification.unitTests` — turbo's cache and dependency graph are
 untouched. Inside a package, it runs the tool directly. `turbo.json` doesn't
-change (its task keys just need to match the task names your
+change (its task keys need to match the task names your
 `holocron.config.ts` uses).

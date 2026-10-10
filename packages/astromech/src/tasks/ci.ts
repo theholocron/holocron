@@ -1,5 +1,5 @@
 /**
- * `holocron ci` / `astromech.ci()` — run the merge-gating checks locally, in CI
+ * `holocron run ci` / `astromech.ci()` — run the merge-gating checks locally, in CI
  * order, and exit non-zero on the first failure. The "will CI pass?" command a
  * `pre-push` hook and the agent skills point at.
  *
@@ -63,7 +63,7 @@ export function runCi(input: CiInput): CiReport {
 
 	const ordered = [...selected].sort((a, b) => CI_ORDER.indexOf(a.name) - CI_ORDER.indexOf(b.name));
 
-	print(`holocron ci — ${input.scope === "all" ? "all CI checks" : "required checks"} (${ordered.length})`);
+	print(`holocron run ci — ${input.scope === "all" ? "all CI checks" : "required checks"} (${ordered.length})`);
 	if (fellBack) print("  (no required tasks in the manifest — running every CI task)");
 	print("");
 
@@ -105,7 +105,7 @@ export function runCi(input: CiInput): CiReport {
 
 	print("");
 	if (ordered.length === 0) {
-		print("holocron ci — nothing to run");
+		print("holocron run ci — nothing to run");
 	} else if (failed > 0) {
 		print(`✗ ${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ""}`);
 	} else {

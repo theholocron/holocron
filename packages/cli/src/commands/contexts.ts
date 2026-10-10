@@ -49,10 +49,11 @@ export const COMMAND_CONTEXTS = {
 	"skills install": "global",
 	"skills remove": "global",
 	"skills update": "global",
-	"lint commit-msg": "global",
+	// The `.husky/commit-msg` hook: works from a bare install, no holocron.config.
+	"run lint commit-msg": "global",
 
 	run: "repo-aware",
-	ci: "repo-aware",
+	"run ci": "repo-aware",
 	// Reads each package's `holocron.config` and runs `pnpm --filter <pkg> delivery.deploy`
 	// — no plugins of its own (the package's deploy script resolves them).
 	"deploy-on-release": "repo-aware",

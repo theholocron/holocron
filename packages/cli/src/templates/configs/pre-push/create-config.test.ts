@@ -16,12 +16,12 @@ describe("pre-push createConfig", () => {
 		expect(headerLine).toBeGreaterThan(shebangLine);
 	});
 
-	it("runs `holocron ci` via the default script", () => {
-		expect(createConfig()).toContain("pnpm exec holocron ci");
+	it("runs `holocron run ci` via the default script", () => {
+		expect(createConfig()).toContain("pnpm exec holocron run ci");
 	});
 
 	it("substitutes a custom holocron script", () => {
-		expect(createConfig("node packages/cli/dist/cli.mjs")).toContain("node packages/cli/dist/cli.mjs ci");
+		expect(createConfig("node packages/cli/dist/cli.mjs")).toContain("node packages/cli/dist/cli.mjs run ci");
 		expect(createConfig("node packages/cli/dist/cli.mjs")).not.toContain("__HOLOCRON_SCRIPT__");
 	});
 
@@ -32,6 +32,6 @@ describe("pre-push createConfig", () => {
 	it("no-ops in CI (before invoking holocron)", () => {
 		const out = createConfig();
 		expect(out).toContain('[ -n "$CI" ] && exit 0');
-		expect(out.indexOf('"$CI"')).toBeLessThan(out.indexOf("holocron ci"));
+		expect(out.indexOf('"$CI"')).toBeLessThan(out.indexOf("holocron run ci"));
 	});
 });

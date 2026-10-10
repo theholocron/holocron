@@ -299,7 +299,7 @@ describe("runUpgradeDeps", () => {
 		expect(report.configMigrated).toBe(true);
 		expect(f.store["pnpm-workspace.yaml"]).toContain("^4.15.0");
 		expect(f.store["holocron.config.ts"]).toContain("const preset =");
-		expect(lines.join("\n")).toContain("holocron ci");
+		expect(lines.join("\n")).toContain("holocron run ci");
 	});
 
 	it("dry-run writes nothing", async () => {

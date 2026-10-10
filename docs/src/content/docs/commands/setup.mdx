@@ -18,7 +18,7 @@ holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 | Write `.editorconfig`        | Canonical editor settings (tab indent, LF line endings, etc.)                                         |
 | Write `.alexrc.json`         | Shared inclusive-language allow-list                                                                  |
 | Write `commitlint.config.ts` | CommitLint config extending `@theholocron/commitlint-config`                                          |
-| Write `.husky/pre-push`      | When hooks are enabled — runs `holocron ci` before every push (see below)                             |
+| Write `.husky/pre-push`      | When hooks are enabled — runs `holocron run ci` before every push (see below)                         |
 | Update `codecov.yml`         | Syncs `individual_components` to match `packages/*/` workspace entries                                |
 | Write `turbo.json`           | Generated from the fan-out-eligible tasks in `tasks[]` — skipped when none are eligible               |
 | Install CI workflows         | Writes `.github/workflows/<name>.yml` for each entry in `workflows[]`                                 |
@@ -50,7 +50,7 @@ top-level `extraRequiredChecks`. No hand-maintained list.
 
 **Pre-push hook.** When hooks are enabled — on by default for
 `protection: "strict"`, gated by the `hooks` config field, overridable with
-`--hooks` / `--no-hooks` — `setup` writes `.husky/pre-push` (runs `holocron ci`)
+`--hooks` / `--no-hooks` — `setup` writes `.husky/pre-push` (runs `holocron run ci`)
 and sets `package.json#scripts.prepare` to `husky` (unless `syncScripts: false`).
 Run `pnpm install` once to activate it; bypass one push with `git push --no-verify`.
 

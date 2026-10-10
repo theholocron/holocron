@@ -1,6 +1,6 @@
 /**
  * The task registry — how each task runs *locally*, without GitHub
- * Actions. `holocron run <task>` and `holocron ci` resolve against this;
+ * Actions. `holocron run <task>` and `holocron run ci` resolve against this;
  * adding a task here gives every repo that task.
  *
  * Keyed identically to the workflow templates — a task IS a workflow. This
@@ -56,7 +56,7 @@ export interface JobDef {
 	/**
 	 * The CI status-check context this job reports as (e.g.
 	 * `platform.repoValidation / Validate registry consistency`) — every sub-job is a CI job.
-	 * `holocron run <task>` and `holocron ci` label each job line with it;
+	 * `holocron run <task>` and `holocron run ci` label each job line with it;
 	 * the task-level `… / Conclusion` context (only for tasks with several
 	 * jobs) lives in `WORKFLOW_CHECK_CONTEXTS`.
 	 */
@@ -68,7 +68,7 @@ export interface TaskDef {
 	 * `null` — the registry has no built-in runner (CodeQL, deploys, the
 	 * bundle-size job). An explicit turbo task or `package.json` script still
 	 * runs (resolution steps 1–2); with neither, `holocron run` does nothing
-	 * and `holocron ci` skips it — never a failure, even when the task is
+	 * and `holocron run ci` skips it — never a failure, even when the task is
 	 * `required` (a CI-only check isn't a local one).
 	 */
 	local: LocalRunner | null;
@@ -227,10 +227,10 @@ export const TASKS: Record<string, TaskDef> = {
 export const KNOWN_TASKS = new Set(Object.keys(TASKS));
 
 /**
- * The order `holocron ci` runs tasks in — cheapest / fastest signal first, so
+ * The order `holocron run ci` runs tasks in — cheapest / fastest signal first, so
  * an agent or a `pre-push` hook fails early. Tasks not listed here run last, in
  * manifest order. (The generated thin callers carry no `needs:` — cross-workflow
- * ordering lives in `theholocron/.github` — so `holocron ci` declares its own.)
+ * ordering lives in `theholocron/.github` — so `holocron run ci` declares its own.)
  */
 export const CI_ORDER: string[] = [
 	"verification.typeSafety",

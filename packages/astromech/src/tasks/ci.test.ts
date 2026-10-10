@@ -158,7 +158,7 @@ describe("runCi", () => {
 		expect(report.jobs.find((j) => j.task === "platform.repoValidation")!.status).toBe("ok");
 	});
 
-	it("does not fail `holocron ci` when a jobs-bearing task is required but no sub-job runs locally", () => {
+	it("does not fail `holocron run ci` when a jobs-bearing task is required but no sub-job runs locally", () => {
 		const { run, exec } = makeCi({ "package.json": PKG }); // node not on PATH
 		const report = run({ tasks: [{ name: "platform.repoValidation", required: true }] });
 		expect(report.status).toBe("ok");

@@ -1,7 +1,7 @@
 # `@theholocron/astromech`
 
 The Holocron task runner. One **task manifest** per repo, and every
-derived surface comes from it: `holocron run` (local), `holocron ci` (the
+derived surface comes from it: `holocron run` (local), `holocron run ci` (the
 CI suite run locally), the generated GitHub Actions workflows, the
 `package.json` scripts, and the branch-protection required-checks list.
 
@@ -124,7 +124,7 @@ through the GitHub API).
 
 | `TaskEntry` field        | Effect                                                      |
 | ------------------------ | ----------------------------------------------------------- |
-| `ci` (default `true`)    | emit the CI workflow; include in `holocron ci`              |
+| `ci` (default `true`)    | emit the CI workflow; include in `holocron run ci`          |
 | `local` (default `true`) | write the `package.json` script; `holocron run` resolves it |
 | `local: false`           | `holocron run <name>` → "CI-only task", exit 0              |
 | `required`               | the task's check context is a required status check         |
@@ -151,7 +151,7 @@ the same resolution as `run()`, in `CI_ORDER`, and returns `{ status, jobs }`.
 A `required` task whose local runner can't run is a failure — **except** a
 task that's genuinely CI-only (`local: null`, or a `linterGroup` whose every
 member lacks a local binary entirely, like `platform.commitStandards`),
-which is reported skipped even when required. `holocron ci` sets the
+which is reported skipped even when required. `holocron run ci` sets the
 process exit code from `status`.
 
 `thinCallers()` returns the raw `.github/workflows/*.yml` content (no

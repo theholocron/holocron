@@ -353,7 +353,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			steps.push(
 				await runStep("source", "write .husky/pre-push", dryRun, async () => {
 					await source.writeRepoFile(".husky/pre-push", createPrePush(config.holocronScript));
-					return "runs `holocron ci` before push — bypass with `git push --no-verify`";
+					return "runs `holocron run ci` before push — bypass with `git push --no-verify`";
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
