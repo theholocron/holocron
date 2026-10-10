@@ -23,17 +23,19 @@ change in the CLI — every repo gets it.
 
 ## How a task resolves
 
-J. a job is given                → the task's <job> sub-runner     (unknown job → exit 1)
-1. turbo.json defines the task   → turbo run <task>               (monorepo root)
+J. a job is given → the task's <job> sub-runner (unknown job → exit 1)
+
+1. turbo.json defines the task → turbo run <task> (monorepo root)
 2. package.json has a <task> script (and it isn't `holocron run …`)
-                                 → <detected pm> run <task>
+   → <detected pm> run <task>
 3. the task registry has a local runner
-                                 → <tool> <args> <org-flags>       (e.g. --coverage)
-3b. the task is a linterGroup    → the resolved linter set        (see below)
+   → <tool> <args> <org-flags> (e.g. --coverage)
+   3b. the task is a linterGroup → the resolved linter set (see below)
 4. the task is a container of sub-jobs (`platform.repoValidation`)
-                                 → run each job in declared order
-5. known task, nothing to run    → "no <task> task for this repo", exit 0
-6. unknown task                  → error, exit 1
+   → run each job in declared order
+5. known task, nothing to run → "no <task> task for this repo", exit 0
+6. unknown task → error, exit 1
+
 ```
 
 An explicit `package.json` script always wins over the registry default — if
@@ -86,7 +88,7 @@ $ holocron run sourceQuality.staticAnalysis
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 · git-merge-conflict-markers (CI only)
 
-````
+```
 
 Install the missing binaries (`brew install actionlint gitleaks yamllint …`)
 to run the full CI set locally.
@@ -121,7 +123,7 @@ holocron run e2e --required                    # fail if the repo has no e2e tas
 holocron run verification.unitTests -- --filter web  # passthrough turbo's --filter at a monorepo root
 holocron run platform.repoValidation           # every validation sub-job in order
 holocron run verification.performance          # just Lighthouse CI
-````
+```
 
 ## Monorepos
 
