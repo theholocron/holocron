@@ -15,6 +15,8 @@ runs them, stopping with a non-zero exit on the first failure. It's the
 
 By default: every task marked `required: true` in `holocron.config`. If nothing
 is marked required, it falls back to every `ci: true` task (with a note).
+
+```bash
 $ holocron run ci
 holocron run ci — required checks (3)
 
@@ -28,6 +30,7 @@ holocron run ci — required checks (3)
 → vitest run --coverage
 
 ✓ 3 passed
+```
 
 - Each task runs through the same resolution as `holocron run <task>` (turbo →
   a `package.json` script → the registry tool; a `linterGroup` task like
