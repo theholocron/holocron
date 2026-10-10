@@ -82,7 +82,6 @@ command. Locally:
   carve-out a `local: null` task gets. It only fails when a linter _could_
   run locally but its tool just isn't installed.
 
-```
 $ holocron run sourceQuality.staticAnalysis
 → eslint .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
@@ -102,7 +101,7 @@ to run the full CI set locally.
 | `--all`          | With `run ci`: run every `ci: true` task, not just required     |
 | `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
 
-## Special tasks
+## Unique tasks
 
 Two names don't resolve through the task registry — `run` handles them itself:
 
@@ -129,5 +128,5 @@ holocron run verification.performance          # just Lighthouse CI
 At a turbo root, `holocron run verification.unitTests` is
 `turbo run verification.unitTests` — turbo's cache and dependency graph are
 untouched. Inside a package, it runs the tool directly. `turbo.json` doesn't
-change (its task keys just need to match the task names your
+change (its task keys need to match the task names your
 `holocron.config.ts` uses).

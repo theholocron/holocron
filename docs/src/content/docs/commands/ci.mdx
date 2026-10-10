@@ -16,7 +16,6 @@ runs them, stopping with a non-zero exit on the first failure. It's the
 By default: every task marked `required: true` in `holocron.config`. If nothing
 is marked required, it falls back to every `ci: true` task (with a note).
 
-```
 $ holocron run ci
 holocron run ci — required checks (3)
 
@@ -53,7 +52,7 @@ holocron run ci — required checks (3)
 
 | Option           | Description                                                       |
 | ---------------- | ----------------------------------------------------------------- |
-| `--all`          | Run every `ci: true` task, not just the required ones             |
+| `--all`          | Run every `ci: true` task, not only the required ones             |
 | `--filter <pkg>` | `turbo --filter=<pkg>` passthrough — scope the run to one package |
 | `--dry-run`      | Print the plan without running anything                           |
 
