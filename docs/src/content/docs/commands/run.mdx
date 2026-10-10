@@ -23,7 +23,6 @@ change in the CLI — every repo gets it.
 
 ## How a task resolves
 
-```
 J. a job is given                → the task's <job> sub-runner     (unknown job → exit 1)
 1. turbo.json defines the task   → turbo run <task>               (monorepo root)
 2. package.json has a <task> script (and it isn't `holocron run …`)
