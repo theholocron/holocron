@@ -38,6 +38,7 @@ import {
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
+	entriesUnder,
 	getEntry,
 	launchMenu,
 	NonInteractiveError,
@@ -141,6 +142,16 @@ function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
 	}
 }
 
+/** Layer 2: a bare group command (`holocron repo`, `holocron auth`, …) picks among its subcommands. */
+async function launchGroupMenu(parent: string, argv: Record<string, unknown>): Promise<void> {
+	await launchMenu(
+		entriesUnder(parent),
+		argv,
+		`${parent} — choose a subcommand:`,
+		`Run \`holocron ${parent} --help\` to see available ${parent} subcommands.`
+	);
+}
+
 init(CLI_VERSION);
 const updateCheckPromise = checkForUpdates(CLI_VERSION);
 
@@ -218,7 +229,7 @@ try {
 				"quiet by default (no console output regardless of level) — this opts back in.",
 		})
 		.middleware((argv) => {
-			const name = (argv._ as string[]).slice(0, 2).join(" ") || "unknown";
+			const name = (argv._ as string[]).slice(0, 3).join(" ") || "unknown";
 			printRunId = Boolean(argv.debug || argv.verbose);
 			// Establish the root logger first (command name + flags + env) so its
 			// `runId` is available to tag telemetry events. Handlers that load a
@@ -329,41 +340,6 @@ try {
 			}
 		)
 		.command(
-			"setup",
-			"Apply infra setup actions across every configured capability",
-			(y) =>
-				y
-					.option("repo", {
-						type: "string",
-						describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
-					})
-					.option("hooks", {
-						type: "boolean",
-						describe:
-							"Install git hooks (.husky/pre-push → holocron run ci). Default: on for protection:'strict'. --no-hooks to skip.",
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runSetup({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...(argv.repo ? { repo: argv.repo } : {}),
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-					...(argv.hooks !== undefined ? { hooks: argv.hooks as boolean } : {}),
-				});
-				if (report.summary.fail > 0) {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
 			"skills",
 			"Manage agent skills from the @theholocron/skills registry",
 			(y) =>
@@ -415,383 +391,10 @@ try {
 						false,
 						() => {},
 						async (argv) => {
-							await launchMenu(
-								COMMAND_REGISTRY.filter((e) => e.group === "skills"),
-								argv,
-								"skills — choose a subcommand:",
-								"Run `holocron skills --help` to see available skills subcommands."
-							);
+							await launchGroupMenu("skills", argv);
 						}
 					),
 			() => {}
-		)
-		.command(
-			"secret set [name] [value]",
-			"Set a single secret via the configured `secrets` capability",
-			(y) =>
-				y
-					.positional("name", {
-						type: "string",
-						describe: "Secret name (e.g., NPM_TOKEN)",
-					})
-					.positional("value", {
-						type: "string",
-						describe:
-							"Secret value (positional). If omitted, sources from --from-stdin, --from-env, or env var matching <name>.",
-					})
-					.option("from-stdin", {
-						type: "boolean",
-						default: false,
-						describe: "Read the secret value from stdin",
-					})
-					.option("from-env", {
-						type: "string",
-						describe: "Read the secret value from the named env var (otherwise: env var matching <name>)",
-					})
-					.option("scope", {
-						type: "string",
-						default: "repo",
-						describe: 'Scope: "repo" (default), "env=<name>", or "org=<name>"',
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const [name] = await promptForPositionals(getEntry("secret set"), argv as Record<string, unknown>);
-				const scopeArg = argv.scope as string;
-				const scope = parseScope(scopeArg);
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runSecretSet({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-					name: name!,
-					...(argv.value ? { value: argv.value as string } : {}),
-					...(argv.fromStdin ? { fromStdin: true } : {}),
-					...(argv.fromEnv ? { fromEnv: argv.fromEnv as string } : {}),
-					scope,
-				});
-				if (report.status === "fail") {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"secrets sync [environmentId]",
-			"Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
-			(y) =>
-				y
-					.positional("environmentId", {
-						type: "string",
-						describe: "Vault environment id to read (1P Environment id, etc.)",
-					})
-					.option("project-id", {
-						type: "string",
-						describe: "Deployment project id (e.g., Vercel prj_*). Required when deployment is loaded.",
-					})
-					.option("target", {
-						type: "array",
-						default: ["production", "preview"] as Array<"development" | "preview" | "production">,
-						describe: "Deployment targets to sync to. Defaults to production + preview.",
-					})
-					.option("github-secret", {
-						type: "array",
-						describe: "Vault key(s) to push to GH Actions secrets (repeatable). Omit to push every key.",
-					})
-					.option("github-secret-scope", {
-						type: "string",
-						default: "repo",
-						describe:
-							'Scope applied to every --github-secret key: "repo" (default), "env=<name>", or "org=<name>".',
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const githubSecretScope = parseScope(argv.githubSecretScope as string);
-				const [environmentId] = await promptForPositionals(
-					getEntry("secrets sync"),
-					argv as Record<string, unknown>
-				);
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runSecretsSync({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-					environmentId: environmentId!,
-					...(argv.projectId ? { projectId: argv.projectId } : {}),
-					...(argv.githubSecret?.length ? { githubSecretKeys: argv.githubSecret as string[] } : {}),
-					githubSecretScope,
-					targets: argv.target as Array<"development" | "preview" | "production">,
-				});
-				if (report.summary.fail > 0) {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"deploy [branch]",
-			"Trigger a deployment via the configured `deployment` capability",
-			(y) =>
-				y
-					.positional("branch", {
-						type: "string",
-						describe: "Git branch to deploy (omit when using --files)",
-					})
-					.option("project-id", {
-						type: "string",
-						demandOption: true,
-						describe: "Deployment project id (e.g., Vercel prj_*)",
-					})
-					.option("target", {
-						type: "string",
-						choices: ["production", "staging"] as const,
-						describe: "Named environment to deploy into. Omit for a branch preview.",
-					})
-					.option("files", {
-						type: "string",
-						describe:
-							"Deploy from a local directory of source files instead of a Git branch — calls deployFunction(), no linked repo required. Conflicts with `branch`.",
-					})
-					.conflicts("files", "branch"),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const context = {
-					repoRoot: argv.cwd,
-					dryRun: argv.dryRun,
-					...tokens,
-					org: resolveOrg(argv, loaded.resolved),
-				};
-
-				if (argv.files) {
-					const report = await runDeployFromFiles({
-						loaded,
-						context,
-						projectId: argv.projectId as string,
-						dir: argv.files as string,
-						...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
-					});
-					if (report.status === "fail") {
-						process.exitCode = 1;
-					}
-					return;
-				}
-
-				const [branch] = await promptForPositionals(getEntry("deploy"), argv as Record<string, unknown>);
-				const report = await runDeploy({
-					loaded,
-					context,
-					projectId: argv.projectId as string,
-					branch: branch!,
-					...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
-				});
-				if (report.status === "fail") {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"cleanup-preview [pr]",
-			"List and delete Cloudflare Pages preview deployments for a GitHub PR",
-			(y) =>
-				y
-					.positional("pr", {
-						type: "number",
-						describe: "PR number to clean up",
-					})
-					.option("project", {
-						type: "string",
-						demandOption: true,
-						describe: "Cloudflare Pages project name (e.g. theholocron-preview)",
-					})
-					.option("repo", {
-						type: "string",
-						describe: "GitHub repo as owner/name — defaults to the repo in holocron.config",
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const [pr] = await promptForPositionals(getEntry("cleanup-preview"), argv as Record<string, unknown>);
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runCleanupPreview({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-					prNumber: Number(pr),
-					project: argv.project as string,
-					...(argv.repo ? { repo: argv.repo as string } : {}),
-				});
-				if (report.status === "fail") {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"bump-versions [new-version]",
-			"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
-			(y) =>
-				y.positional("new-version", {
-					type: "string",
-					describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
-				}),
-			async (argv) => {
-				const [newVersion] = await promptForPositionals(
-					getEntry("bump-versions"),
-					argv as Record<string, unknown>
-				);
-				const report = await runNpmBumpVersions({
-					version: newVersion!,
-					cwd: argv.cwd,
-					dryRun: argv.dryRun,
-				});
-				if (report.status === "fail") {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"publish",
-			"Publish @theholocron/* packages to npm",
-			(y) =>
-				y
-					.option("initial", {
-						type: "boolean",
-						default: false,
-						describe:
-							"One-shot bootstrap publish for trusted-publishing-eligible packages (npm needs the " +
-							"package to exist before Trusted Publishing can be configured for it). Skips the " +
-							"steady-state OIDC path below — use only for a package's very first publish.",
-					})
-					.option("tag", {
-						type: "string",
-						describe:
-							"npm distribution tag. Defaults to alpha for --initial, latest for a steady-state publish.",
-					})
-					.option("otp", {
-						type: "string",
-						describe: "One-time password from your authenticator (required if npm needs 2FA for writes)",
-					})
-					.option("sync-trust", {
-						type: "array",
-						describe:
-							"Migrate npm Trusted Publisher config to a new workflow filename across every public " +
-							"package: --sync-trust <old-file> <new-file>. See issue #689 — npm requires fresh " +
-							"interactive 2FA per package; re-run after approving the printed authUrl if it stops early.",
-					})
-					.option("repo", {
-						type: "string",
-						describe:
-							"owner/repo for Trusted Publisher config (--sync-trust). Defaults to theholocron/holocron.",
-					})
-					.option("provenance", {
-						type: "boolean",
-						default: true,
-						describe: "Publish with --provenance (steady-state only). Default on — free under CI/OIDC.",
-					})
-					.option("skip-already-published", {
-						type: "boolean",
-						default: false,
-						describe:
-							"Steady-state only: check `npm view <pkg>@<version>` before publishing each package and " +
-							"skip it if that exact version already exists, instead of one bulk publish. For repos " +
-							"that ship many independently-versioned packages where a release doesn't bump every one.",
-					}),
-			async (argv) => {
-				if (argv.syncTrust) {
-					const [oldFile, newFile] = argv.syncTrust as [string?, string?];
-					if (!oldFile || !newFile) {
-						reportError("publish --sync-trust requires exactly two values: <old-file> <new-file>");
-						process.exitCode = 1;
-						return;
-					}
-					const report = await runSyncTrust({
-						cwd: argv.cwd,
-						oldFile,
-						newFile,
-						dryRun: argv.dryRun,
-						...(argv.repo ? { repo: argv.repo as string } : {}),
-					});
-					if (report.status === "fail") {
-						process.exitCode = 1;
-					}
-					return;
-				}
-				if (argv.initial) {
-					const report = await runPublish({
-						cwd: argv.cwd,
-						dryRun: argv.dryRun,
-						...(argv.tag ? { tag: argv.tag as string } : {}),
-						...(argv.otp ? { otp: argv.otp as string } : {}),
-					});
-					if (report.status === "fail") {
-						process.exitCode = 1;
-					}
-					return;
-				}
-				const report = await runSteadyPublish({
-					cwd: argv.cwd,
-					dryRun: argv.dryRun,
-					provenance: argv.provenance as boolean,
-					skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
-					...(argv.tag ? { tag: argv.tag as string } : {}),
-					...(argv.otp ? { otp: argv.otp as string } : {}),
-				});
-				if (report.status === "fail") {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"sync [steps..]",
-			"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
-			(y) =>
-				y
-					.positional("steps", {
-						type: "string",
-						array: true,
-						describe:
-							"Steps to run: labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki (default: all)",
-					})
-					.option("repo", {
-						type: "string",
-						describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runSync({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...(argv.repo ? { repo: argv.repo } : {}),
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-					...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps as string[] } : {}),
-				});
-				if (report.summary.fail > 0) {
-					process.exitCode = 1;
-				}
-			}
 		)
 		.command(
 			"run <task> [job] [passthrough..]",
@@ -886,118 +489,6 @@ try {
 			}
 		)
 		.command(
-			"deploy-on-release",
-			"Deploy every workspace package whose delivery.deploy task is `on: release` — run by the delivery.publish workflow's deploy job",
-			(y) =>
-				y
-					.option("channel", {
-						type: "string",
-						default: "",
-						describe:
-							"The release's channel: its prerelease identifier (`alpha`); empty or `main` for a stable release.",
-					})
-					.option("from", {
-						type: "string",
-						describe: "The previous release's commit, to diff against. Omit when there is none.",
-					})
-					.option("to", {
-						type: "string",
-						describe: "The release commit. Default HEAD.",
-					}),
-			async (argv) => {
-				const report = await deployOnRelease({
-					cwd: argv.cwd as string,
-					channel: argv.channel as string,
-					// An empty value (an unset workflow output) means "not given".
-					...(argv.from ? { from: argv.from as string } : {}),
-					...(argv.to ? { to: argv.to as string } : {}),
-					dryRun: argv.dryRun,
-					print: (line) => console.log(line),
-				});
-				if (report.status === "fail") process.exitCode = 1;
-			}
-		)
-		.command(
-			"sync-github",
-			"Sync workflow templates and composite actions to theholocron/.github",
-			(y) =>
-				y
-					.option("repo", {
-						type: "string",
-						default: "theholocron/.github",
-						describe: "Target org/repo (default: theholocron/.github)",
-					})
-					.option("branch", {
-						type: "string",
-						describe:
-							"Push to this branch instead of the default branch (enables PR-based workflow for protected repos)",
-					})
-					.option("pr", {
-						type: "boolean",
-						default: false,
-						describe: "Open a PR after pushing to --branch (no-op without --branch)",
-					})
-					.option("message", {
-						type: "string",
-						describe: "Commit message (default: chore: sync from theholocron/holocron)",
-					})
-					.option("output-dir", {
-						type: "string",
-						describe: "Write generated files to this local directory instead of pushing (for validation)",
-					}),
-			async (argv) => {
-				const outputDir = argv["output-dir"] as string | undefined;
-				const parsed = tokenContext(argv.token);
-				if (!parsed) return;
-				let token: string;
-				if (outputDir) {
-					token = "no-token-needed";
-				} else {
-					try {
-						token = resolveSyncToken({ cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken });
-					} catch (err) {
-						reportError(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
-						process.exitCode = 1;
-						return;
-					}
-				}
-				const report = await runSyncGithub({
-					token,
-					repo: argv.repo,
-					dryRun: argv.dryRun,
-					...(argv.branch ? { branch: argv.branch } : {}),
-					...(argv.pr ? { createPr: true } : {}),
-					...(argv.message ? { message: argv.message } : {}),
-					...(outputDir ? { outputDir } : {}),
-				});
-				if (report.status === "fail") {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"sync-readme",
-			"Sync the Installation + Usage block in README.md from package.json",
-			(y) =>
-				y.option("dry-run", {
-					type: "boolean",
-					describe: "Print what would change without writing",
-					default: false,
-				}),
-			async (argv) => {
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runSyncReadme({
-					loaded,
-					context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
-				});
-				if (report.status === "fail") {
-					if (report.message) reportError(`sync-readme: ${report.message}`);
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
 			"config show",
 			"Print the resolved holocron config",
 			(y) =>
@@ -1015,451 +506,6 @@ try {
 				const loaded = await loadConfig(argv.cwd);
 				await viewJson(loaded.resolved, { depth: argv.depth, interactive: argv.interactive });
 			}
-		)
-		.command(
-			"new [type] [name]",
-			"Scaffold a new repo from a GitHub template (e.g. cli, react, nextjs, node, monorepo, base)",
-			(y) =>
-				y
-					.positional("type", {
-						type: "string",
-						describe:
-							"Template type — maps to theholocron/<type>-template " +
-							"(e.g. cli, react, nextjs, node, monorepo, base)",
-					})
-					.positional("name", {
-						type: "string",
-						describe: "New repo name (kebab-case, e.g. my-tool)",
-					})
-					.option("description", {
-						type: "string",
-						describe: "Short description — replaces <description> placeholders in the template",
-					})
-					.option("homepage", {
-						type: "string",
-						describe: "Homepage URL — replaces <homepage> placeholders and appears in holocron.config.ts",
-					})
-					.option("vault", {
-						type: "string",
-						describe: "Vault provider: none, doppler, 1password, infisical",
-					})
-					.option("deployment", {
-						type: "string",
-						describe: "Deployment provider: none, vercel",
-					})
-					.option("agent", {
-						type: "string",
-						describe: "AI agent: claude, none",
-					})
-					.option("runtime-environment", {
-						type: "string",
-						describe: "Runtime environment: node, browser, universal, none",
-					})
-					.option("topics", {
-						type: "string",
-						describe: "Comma-separated repo topics (e.g. typescript,nodejs)",
-					})
-					.option("protection", {
-						type: "string",
-						describe: "Branch protection level: strict, balanced, minimal",
-					})
-					.option("open-source", {
-						type: "boolean",
-						describe: "Whether the repo is open source (default: true)",
-					})
-					.option("uses-external-packages", {
-						type: "boolean",
-						describe: "Whether the repo calls external APIs or services (default: true)",
-					})
-					.option("skills", {
-						type: "string",
-						describe: "Comma-separated agent skill names (e.g. git-safety,pr-workflow)",
-					})
-					.option("is-template", {
-						type: "boolean",
-						describe: "Mark the new repo as a GitHub template repository",
-					})
-					.option("org", {
-						type: "string",
-						default: "theholocron",
-						describe: "GitHub org that owns the template and will own the new repo",
-					})
-					.option("verify", {
-						type: "boolean",
-						default: true,
-						describe: "Run pnpm install + holocron setup after bootstrapping (--no-verify skips)",
-					}),
-			async (argv) => {
-				try {
-					const tokens = tokenContext(argv.token);
-					if (!tokens) return;
-					const adminToken = tokens.cliTokens?.["github"] ?? tokens.cliToken;
-
-					let type = argv.type as string | undefined;
-					let name = argv.name as string | undefined;
-					let description = argv.description as string | undefined;
-					let homepage = argv.homepage as string | undefined;
-					let vaultProvider = argv.vault as string | undefined;
-					let vaultProject: string | undefined;
-					let vaultConfig: string | undefined;
-					let deploymentProvider = argv.deployment as string | undefined;
-					let agent = argv.agent as string | undefined;
-					let runtimeEnvironment = argv.runtimeEnvironment as string | undefined;
-					let topics: string[] = parseTopics(argv.topics as string | undefined);
-					let protection = argv.protection as string | undefined;
-					let openSource = argv.openSource as boolean | undefined;
-					let usesExternalPackages = argv.usesExternalPackages as boolean | undefined;
-					let skills: string[] = parseTopics(argv.skills as string | undefined);
-					const isTemplate = argv.isTemplate as boolean | undefined;
-
-					// Interactive wizard — skip any field already supplied as a CLI arg
-					if (!type) {
-						type = await select({
-							message: "Template type:",
-							choices: [
-								{ name: "node    — Node.js library or tool", value: "node" },
-								{ name: "cli     — CLI application (inquirer, chalk, yargs)", value: "cli" },
-								{ name: "monorepo — Turbo monorepo", value: "monorepo" },
-								{ name: "react   — React component library", value: "react" },
-								{ name: "nextjs  — Next.js application", value: "nextjs" },
-								{ name: "base    — Minimal repo (no package.json)", value: "base" },
-							],
-						});
-					}
-
-					if (!name) {
-						name = await input({
-							message: "Repo name (kebab-case):",
-							validate: validateRepoName,
-						});
-						name = name.trim();
-					}
-
-					if (description === undefined) {
-						description = await input({ message: "Short description:" });
-					}
-
-					if (homepage === undefined) {
-						const raw = await input({ message: "Homepage URL (optional, Enter to skip):" });
-						homepage = raw.trim() || undefined;
-					}
-
-					if (!runtimeEnvironment) {
-						runtimeEnvironment = await select({
-							message: "Runtime environment:",
-							choices: [
-								{ name: "node      — Node.js process", value: "node" },
-								{ name: "browser   — Browser only", value: "browser" },
-								{ name: "universal — Node.js + browser", value: "universal" },
-								{ name: "none      — No runtime (docs, config, etc.)", value: "none" },
-							],
-							default: type === "base" ? "none" : "node",
-						});
-					}
-
-					if (!vaultProvider) {
-						vaultProvider = await select({
-							message: "Vault provider:",
-							choices: [
-								{ name: "None", value: "none" },
-								{ name: "Doppler", value: "doppler" },
-								{ name: "1Password", value: "1password" },
-								{ name: "Infisical", value: "infisical" },
-							],
-						});
-					}
-
-					if (vaultProvider === "doppler") {
-						vaultProject = await input({ message: "Doppler project name:", default: name });
-						vaultConfig = await input({ message: "Doppler config:", default: "dev" });
-					} else if (vaultProvider === "1password" || vaultProvider === "infisical") {
-						vaultProject = await input({
-							message: `${vaultProvider === "1password" ? "1Password vault" : "Infisical project"} name:`,
-							default: name,
-						});
-					}
-
-					if (!deploymentProvider) {
-						deploymentProvider = await select({
-							message: "Deployment provider:",
-							choices: [
-								{ name: "None", value: "none" },
-								{ name: "Vercel", value: "vercel" },
-							],
-						});
-					}
-
-					if (!agent) {
-						agent = await select({
-							message: "AI agent:",
-							choices: [
-								{ name: "Claude", value: "claude" },
-								{ name: "None", value: "none" },
-							],
-						});
-					}
-
-					if (topics.length === 0) {
-						const raw = await input({ message: "Topics (comma-separated, optional):" });
-						topics = parseTopics(raw);
-					}
-
-					if (!protection) {
-						protection = await select({
-							message: "Branch protection:",
-							choices: [
-								{ name: "strict    — required reviews + passing checks", value: "strict" },
-								{ name: "balanced  — required reviews, flexible checks", value: "balanced" },
-								{ name: "minimal   — branch protection only", value: "minimal" },
-							],
-						});
-					}
-
-					if (openSource === undefined) {
-						const ans = await select({
-							message: "Open source?",
-							choices: [
-								{ name: "Yes", value: "yes" },
-								{ name: "No", value: "no" },
-							],
-						});
-						openSource = ans === "yes";
-					}
-
-					if (usesExternalPackages === undefined) {
-						const ans = await select({
-							message: "Uses external APIs or services?",
-							choices: [
-								{ name: "Yes", value: "yes" },
-								{ name: "No", value: "no" },
-							],
-						});
-						usesExternalPackages = ans === "yes";
-					}
-
-					if (skills.length === 0) {
-						const raw = await input({ message: "Agent skills (comma-separated, optional):" });
-						skills = parseTopics(raw);
-					}
-
-					if (!type) {
-						reportError("new: template type is required");
-						process.exitCode = 1;
-						return;
-					}
-					if (!name) {
-						reportError("new: repo name is required");
-						process.exitCode = 1;
-						return;
-					}
-
-					const report = await runNew({
-						type,
-						name,
-						description: description || undefined,
-						homepage,
-						vaultProvider: (vaultProvider as "doppler" | "1password" | "infisical" | "none") ?? "none",
-						vaultProject,
-						vaultConfig,
-						deploymentProvider: (deploymentProvider as "vercel" | "none") ?? "none",
-						agent: (agent as "claude" | "none") ?? "claude",
-						runtimeEnvironment: (runtimeEnvironment as "node" | "browser" | "universal" | "none") ?? "node",
-						protection: protection ?? "strict",
-						openSource: openSource ?? true,
-						usesExternalPackages: usesExternalPackages ?? true,
-						topics,
-						skills,
-						isTemplate,
-						org: argv.org,
-						token: adminToken,
-						dryRun: argv.dryRun,
-						noVerify: !argv.verify,
-						cwd: argv.cwd,
-					});
-					if (report.status === "fail") process.exitCode = 1;
-				} catch (err) {
-					if (err instanceof NewError) {
-						reportError(`new: ${err.message}`);
-						process.exitCode = 1;
-						return;
-					}
-					throw err;
-				}
-			}
-		)
-		.command(
-			"plugin create [slug] [vendor]",
-			"Scaffold a new @theholocron/holocron-plugin-<slug> package",
-			(y) =>
-				y
-					.positional("slug", { type: "string", describe: "Package slug (kebab-case)" })
-					.positional("vendor", {
-						type: "string",
-						describe: "Vendor display name (PascalCase)",
-					})
-					.option("capability", {
-						type: "string",
-						describe:
-							"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|errors|logs|wiki|workers",
-					})
-					.option("token-env", {
-						type: "string",
-						describe: "Holocron env var name (defaults to HOLOCRON_<VENDOR>_TOKEN)",
-					})
-					.option("vendor-env", {
-						type: "string",
-						describe: "Vendor-native env var name",
-					})
-					.option("base-url", {
-						type: "string",
-						describe: "REST base URL",
-					})
-					.option("verify", {
-						type: "boolean",
-						default: true,
-						describe:
-							"Run post-scaffold pnpm install + typecheck + lint + test (default true; --no-verify skips)",
-					}),
-			async (argv) => {
-				try {
-					const [slug, vendor] = await promptForPositionals(
-						getEntry("plugin create"),
-						argv as Record<string, unknown>
-					);
-					const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
-						{
-							capability: argv.capability as string | undefined,
-							vendorEnv: argv.vendorEnv as string | undefined,
-							baseUrl: argv.baseUrl as string | undefined,
-						},
-						{
-							selectCapability: () =>
-								select({
-									message: "Capability:",
-									choices: Object.keys(CARDINALITY).map((k) => ({ name: k, value: k })),
-								}),
-							inputVendorEnv: () =>
-								input({
-									message: `Vendor-native env var for the ${vendor} token (e.g. MYVENDOR_API_KEY):`,
-								}),
-							inputBaseUrl: () =>
-								input({
-									message: `REST base URL for the ${vendor} API (e.g. https://api.myvendor.com):`,
-								}),
-						}
-					);
-
-					const report = runPluginCreate({
-						slug: slug!,
-						vendorName: vendor!,
-						capability,
-						vendorEnv,
-						baseUrl,
-						...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv as string } : {}),
-						dryRun: argv.dryRun,
-						// Yargs: `--no-verify` flips `argv.verify` to false. We pass
-						// the inverse to preserve the internal `noVerify` naming.
-						noVerify: !argv.verify,
-						cwd: argv.cwd,
-					});
-					if (report.status === "fail") process.exitCode = 1;
-				} catch (err) {
-					if (err instanceof PluginCreateError) {
-						reportError(`plugin create: ${err.message}`);
-						process.exitCode = 1;
-						return;
-					}
-					throw err;
-				}
-			}
-		)
-		.command(
-			"upgrade",
-			"Upgrade toolchain version pins across the repo",
-			(y) =>
-				y
-					.command(
-						"node [to]",
-						"Scan the repo and update every Node.js version pin to a new major",
-						(yy) =>
-							yy
-								.positional("to", {
-									type: "number",
-									describe: "Target Node.js major version (e.g., 22)",
-								})
-								.option("from", {
-									type: "number",
-									describe:
-										"Current major version to replace. Auto-detected from .nvmrc / engines.node when omitted.",
-								}),
-						async (argv) => {
-							const [to] = await promptForPositionals(
-								getEntry("upgrade node"),
-								argv as Record<string, unknown>
-							);
-							// Read upgrade.node.extra from holocron.config.json if present.
-							// We read the raw file directly rather than through loadConfig because
-							// the upgrade config is not part of the plugin schema.
-							let extra: string[] = [];
-							try {
-								const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
-								const cfg = JSON.parse(raw) as { upgrade?: { node?: { extra?: unknown } } };
-								const extraRaw = cfg.upgrade?.node?.extra;
-								if (Array.isArray(extraRaw)) {
-									extra = extraRaw as string[];
-								}
-							} catch {
-								/* no config or no upgrade section — fine */
-							}
-
-							const report = await runUpgradeNode({
-								to: Number(to),
-								...(argv.from != null ? { from: argv.from as number } : {}),
-								cwd: argv.cwd,
-								dryRun: argv.dryRun,
-								extra,
-							});
-							if (report.status === "fail") {
-								if (report.message) reportError(`upgrade node: ${report.message}`);
-								process.exitCode = 1;
-							}
-						}
-					)
-					.command(
-						"deps",
-						"Bump every @theholocron/* pin to latest and migrate holocron.config.ts to the current preset API",
-						(yy) =>
-							yy.option("pins-only", {
-								type: "boolean",
-								default: false,
-								describe: "Only bump the catalog pins — skip the holocron.config.ts migration",
-							}),
-						async (argv) => {
-							const report = await runUpgradeDeps({
-								cwd: argv.cwd,
-								dryRun: argv.dryRun,
-								pinsOnly: argv.pinsOnly as boolean,
-							});
-							if (report.status === "fail") {
-								if (report.message) reportError(`upgrade deps: ${report.message}`);
-								process.exitCode = 1;
-							}
-						}
-					)
-					.command(
-						"$0",
-						false,
-						() => {},
-						async (argv) => {
-							await launchMenu(
-								COMMAND_REGISTRY.filter((e) => e.group === "upgrade"),
-								argv,
-								"upgrade — choose a subcommand:",
-								"Run `holocron upgrade --help` to see available upgrade subcommands."
-							);
-						}
-					),
-			() => {}
 		)
 		.command(
 			"auth <subcommand>",
@@ -1524,12 +570,7 @@ try {
 						false,
 						() => {},
 						async (argv) => {
-							await launchMenu(
-								COMMAND_REGISTRY.filter((e) => e.group === "auth"),
-								argv,
-								"auth — choose a subcommand:",
-								"Run `holocron auth --help` to see available auth subcommands."
-							);
+							await launchGroupMenu("auth", argv);
 						}
 					),
 			() => {}
@@ -1540,10 +581,1076 @@ try {
 			() => {},
 			async (argv) => {
 				printVersionHeaderOnce();
-				await launchMenu(
-					COMMAND_REGISTRY.filter((e) => !e.group),
-					argv
-				);
+				await launchMenu(COMMAND_REGISTRY, argv);
+			}
+		)
+		.command(
+			"repo",
+			"Set up, sync and upgrade the current repo",
+			(g) =>
+				g
+					.command(
+						"setup",
+						"Apply infra setup actions across every configured capability",
+						(y) =>
+							y
+								.option("repo", {
+									type: "string",
+									describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
+								})
+								.option("hooks", {
+									type: "boolean",
+									describe:
+										"Install git hooks (.husky/pre-push → holocron run ci). Default: on for protection:'strict'. --no-hooks to skip.",
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runSetup({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...(argv.repo ? { repo: argv.repo } : {}),
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								...(argv.hooks !== undefined ? { hooks: argv.hooks as boolean } : {}),
+							});
+							if (report.summary.fail > 0) {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"sync [steps..]",
+						"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
+						(y) =>
+							y
+								.command(
+									"readme",
+									"Sync the Installation + Usage block in README.md from package.json",
+									(y) =>
+										y.option("dry-run", {
+											type: "boolean",
+											describe: "Print what would change without writing",
+											default: false,
+										}),
+									async (argv) => {
+										const loaded = await loadConfig(argv.cwd);
+										applyResolvedConfig(argv, loaded.resolved);
+										const report = await runSyncReadme({
+											loaded,
+											context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
+										});
+										if (report.status === "fail") {
+											if (report.message) reportError(`repo sync readme: ${report.message}`);
+											process.exitCode = 1;
+										}
+									}
+								)
+								.positional("steps", {
+									type: "string",
+									array: true,
+									describe:
+										"Steps to run: labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki (default: all)",
+								})
+								.option("repo", {
+									type: "string",
+									describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runSync({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...(argv.repo ? { repo: argv.repo } : {}),
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps as string[] } : {}),
+							});
+							if (report.summary.fail > 0) {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"upgrade",
+						"Upgrade toolchain version pins across the repo",
+						(y) =>
+							y
+								.command(
+									"node [to]",
+									"Scan the repo and update every Node.js version pin to a new major",
+									(yy) =>
+										yy
+											.positional("to", {
+												type: "number",
+												describe: "Target Node.js major version (e.g., 22)",
+											})
+											.option("from", {
+												type: "number",
+												describe:
+													"Current major version to replace. Auto-detected from .nvmrc / engines.node when omitted.",
+											}),
+									async (argv) => {
+										const [to] = await promptForPositionals(
+											getEntry("repo upgrade node"),
+											argv as Record<string, unknown>
+										);
+										// Read upgrade.node.extra from holocron.config.json if present.
+										// We read the raw file directly rather than through loadConfig because
+										// the upgrade config is not part of the plugin schema.
+										let extra: string[] = [];
+										try {
+											const raw = readFileSync(join(argv.cwd, "holocron.config.json"), "utf8");
+											const cfg = JSON.parse(raw) as { upgrade?: { node?: { extra?: unknown } } };
+											const extraRaw = cfg.upgrade?.node?.extra;
+											if (Array.isArray(extraRaw)) {
+												extra = extraRaw as string[];
+											}
+										} catch {
+											/* no config or no upgrade section — fine */
+										}
+
+										const report = await runUpgradeNode({
+											to: Number(to),
+											...(argv.from != null ? { from: argv.from as number } : {}),
+											cwd: argv.cwd,
+											dryRun: argv.dryRun,
+											extra,
+										});
+										if (report.status === "fail") {
+											if (report.message) reportError(`upgrade node: ${report.message}`);
+											process.exitCode = 1;
+										}
+									}
+								)
+								.command(
+									"deps",
+									"Bump every @theholocron/* pin to latest and migrate holocron.config.ts to the current preset API",
+									(yy) =>
+										yy.option("pins-only", {
+											type: "boolean",
+											default: false,
+											describe:
+												"Only bump the catalog pins — skip the holocron.config.ts migration",
+										}),
+									async (argv) => {
+										const report = await runUpgradeDeps({
+											cwd: argv.cwd,
+											dryRun: argv.dryRun,
+											pinsOnly: argv.pinsOnly as boolean,
+										});
+										if (report.status === "fail") {
+											if (report.message) reportError(`upgrade deps: ${report.message}`);
+											process.exitCode = 1;
+										}
+									}
+								)
+								.command(
+									"$0",
+									false,
+									() => {},
+									async (argv) => {
+										await launchGroupMenu("repo upgrade", argv);
+									}
+								),
+						() => {}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("repo", argv);
+						}
+					),
+			() => {}
+		)
+		.command(
+			"new",
+			"Scaffold a new repo or plugin",
+			(g) =>
+				g
+					.command(
+						"repo [type] [name]",
+						"Scaffold a new repo from a GitHub template (e.g. cli, react, nextjs, node, monorepo, base)",
+						(y) =>
+							y
+								.positional("type", {
+									type: "string",
+									describe:
+										"Template type — maps to theholocron/<type>-template " +
+										"(e.g. cli, react, nextjs, node, monorepo, base)",
+								})
+								.positional("name", {
+									type: "string",
+									describe: "New repo name (kebab-case, e.g. my-tool)",
+								})
+								.option("description", {
+									type: "string",
+									describe: "Short description — replaces <description> placeholders in the template",
+								})
+								.option("homepage", {
+									type: "string",
+									describe:
+										"Homepage URL — replaces <homepage> placeholders and appears in holocron.config.ts",
+								})
+								.option("vault", {
+									type: "string",
+									describe: "Vault provider: none, doppler, 1password, infisical",
+								})
+								.option("deployment", {
+									type: "string",
+									describe: "Deployment provider: none, vercel",
+								})
+								.option("agent", {
+									type: "string",
+									describe: "AI agent: claude, none",
+								})
+								.option("runtime-environment", {
+									type: "string",
+									describe: "Runtime environment: node, browser, universal, none",
+								})
+								.option("topics", {
+									type: "string",
+									describe: "Comma-separated repo topics (e.g. typescript,nodejs)",
+								})
+								.option("protection", {
+									type: "string",
+									describe: "Branch protection level: strict, balanced, minimal",
+								})
+								.option("open-source", {
+									type: "boolean",
+									describe: "Whether the repo is open source (default: true)",
+								})
+								.option("uses-external-packages", {
+									type: "boolean",
+									describe: "Whether the repo calls external APIs or services (default: true)",
+								})
+								.option("skills", {
+									type: "string",
+									describe: "Comma-separated agent skill names (e.g. git-safety,pr-workflow)",
+								})
+								.option("is-template", {
+									type: "boolean",
+									describe: "Mark the new repo as a GitHub template repository",
+								})
+								.option("org", {
+									type: "string",
+									default: "theholocron",
+									describe: "GitHub org that owns the template and will own the new repo",
+								})
+								.option("verify", {
+									type: "boolean",
+									default: true,
+									describe:
+										"Run pnpm install + holocron repo setup after bootstrapping (--no-verify skips)",
+								}),
+						async (argv) => {
+							try {
+								const tokens = tokenContext(argv.token);
+								if (!tokens) return;
+								const adminToken = tokens.cliTokens?.["github"] ?? tokens.cliToken;
+
+								let type = argv.type as string | undefined;
+								let name = argv.name as string | undefined;
+								let description = argv.description as string | undefined;
+								let homepage = argv.homepage as string | undefined;
+								let vaultProvider = argv.vault as string | undefined;
+								let vaultProject: string | undefined;
+								let vaultConfig: string | undefined;
+								let deploymentProvider = argv.deployment as string | undefined;
+								let agent = argv.agent as string | undefined;
+								let runtimeEnvironment = argv.runtimeEnvironment as string | undefined;
+								let topics: string[] = parseTopics(argv.topics as string | undefined);
+								let protection = argv.protection as string | undefined;
+								let openSource = argv.openSource as boolean | undefined;
+								let usesExternalPackages = argv.usesExternalPackages as boolean | undefined;
+								let skills: string[] = parseTopics(argv.skills as string | undefined);
+								const isTemplate = argv.isTemplate as boolean | undefined;
+
+								// Interactive wizard — skip any field already supplied as a CLI arg
+								if (!type) {
+									type = await select({
+										message: "Template type:",
+										choices: [
+											{ name: "node    — Node.js library or tool", value: "node" },
+											{
+												name: "cli     — CLI application (inquirer, chalk, yargs)",
+												value: "cli",
+											},
+											{ name: "monorepo — Turbo monorepo", value: "monorepo" },
+											{ name: "react   — React component library", value: "react" },
+											{ name: "nextjs  — Next.js application", value: "nextjs" },
+											{ name: "base    — Minimal repo (no package.json)", value: "base" },
+										],
+									});
+								}
+
+								if (!name) {
+									name = await input({
+										message: "Repo name (kebab-case):",
+										validate: validateRepoName,
+									});
+									name = name.trim();
+								}
+
+								if (description === undefined) {
+									description = await input({ message: "Short description:" });
+								}
+
+								if (homepage === undefined) {
+									const raw = await input({ message: "Homepage URL (optional, Enter to skip):" });
+									homepage = raw.trim() || undefined;
+								}
+
+								if (!runtimeEnvironment) {
+									runtimeEnvironment = await select({
+										message: "Runtime environment:",
+										choices: [
+											{ name: "node      — Node.js process", value: "node" },
+											{ name: "browser   — Browser only", value: "browser" },
+											{ name: "universal — Node.js + browser", value: "universal" },
+											{ name: "none      — No runtime (docs, config, etc.)", value: "none" },
+										],
+										default: type === "base" ? "none" : "node",
+									});
+								}
+
+								if (!vaultProvider) {
+									vaultProvider = await select({
+										message: "Vault provider:",
+										choices: [
+											{ name: "None", value: "none" },
+											{ name: "Doppler", value: "doppler" },
+											{ name: "1Password", value: "1password" },
+											{ name: "Infisical", value: "infisical" },
+										],
+									});
+								}
+
+								if (vaultProvider === "doppler") {
+									vaultProject = await input({ message: "Doppler project name:", default: name });
+									vaultConfig = await input({ message: "Doppler config:", default: "dev" });
+								} else if (vaultProvider === "1password" || vaultProvider === "infisical") {
+									vaultProject = await input({
+										message: `${vaultProvider === "1password" ? "1Password vault" : "Infisical project"} name:`,
+										default: name,
+									});
+								}
+
+								if (!deploymentProvider) {
+									deploymentProvider = await select({
+										message: "Deployment provider:",
+										choices: [
+											{ name: "None", value: "none" },
+											{ name: "Vercel", value: "vercel" },
+										],
+									});
+								}
+
+								if (!agent) {
+									agent = await select({
+										message: "AI agent:",
+										choices: [
+											{ name: "Claude", value: "claude" },
+											{ name: "None", value: "none" },
+										],
+									});
+								}
+
+								if (topics.length === 0) {
+									const raw = await input({ message: "Topics (comma-separated, optional):" });
+									topics = parseTopics(raw);
+								}
+
+								if (!protection) {
+									protection = await select({
+										message: "Branch protection:",
+										choices: [
+											{ name: "strict    — required reviews + passing checks", value: "strict" },
+											{
+												name: "balanced  — required reviews, flexible checks",
+												value: "balanced",
+											},
+											{ name: "minimal   — branch protection only", value: "minimal" },
+										],
+									});
+								}
+
+								if (openSource === undefined) {
+									const ans = await select({
+										message: "Open source?",
+										choices: [
+											{ name: "Yes", value: "yes" },
+											{ name: "No", value: "no" },
+										],
+									});
+									openSource = ans === "yes";
+								}
+
+								if (usesExternalPackages === undefined) {
+									const ans = await select({
+										message: "Uses external APIs or services?",
+										choices: [
+											{ name: "Yes", value: "yes" },
+											{ name: "No", value: "no" },
+										],
+									});
+									usesExternalPackages = ans === "yes";
+								}
+
+								if (skills.length === 0) {
+									const raw = await input({ message: "Agent skills (comma-separated, optional):" });
+									skills = parseTopics(raw);
+								}
+
+								if (!type) {
+									reportError("new: template type is required");
+									process.exitCode = 1;
+									return;
+								}
+								if (!name) {
+									reportError("new: repo name is required");
+									process.exitCode = 1;
+									return;
+								}
+
+								const report = await runNew({
+									type,
+									name,
+									description: description || undefined,
+									homepage,
+									vaultProvider:
+										(vaultProvider as "doppler" | "1password" | "infisical" | "none") ?? "none",
+									vaultProject,
+									vaultConfig,
+									deploymentProvider: (deploymentProvider as "vercel" | "none") ?? "none",
+									agent: (agent as "claude" | "none") ?? "claude",
+									runtimeEnvironment:
+										(runtimeEnvironment as "node" | "browser" | "universal" | "none") ?? "node",
+									protection: protection ?? "strict",
+									openSource: openSource ?? true,
+									usesExternalPackages: usesExternalPackages ?? true,
+									topics,
+									skills,
+									isTemplate,
+									org: argv.org,
+									token: adminToken,
+									dryRun: argv.dryRun,
+									noVerify: !argv.verify,
+									cwd: argv.cwd,
+								});
+								if (report.status === "fail") process.exitCode = 1;
+							} catch (err) {
+								if (err instanceof NewError) {
+									reportError(`new: ${err.message}`);
+									process.exitCode = 1;
+									return;
+								}
+								throw err;
+							}
+						}
+					)
+					.command(
+						"plugin [slug] [vendor]",
+						"Scaffold a new @theholocron/holocron-plugin-<slug> package",
+						(y) =>
+							y
+								.positional("slug", { type: "string", describe: "Package slug (kebab-case)" })
+								.positional("vendor", {
+									type: "string",
+									describe: "Vendor display name (PascalCase)",
+								})
+								.option("capability", {
+									type: "string",
+									describe:
+										"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|errors|logs|wiki|workers",
+								})
+								.option("token-env", {
+									type: "string",
+									describe: "Holocron env var name (defaults to HOLOCRON_<VENDOR>_TOKEN)",
+								})
+								.option("vendor-env", {
+									type: "string",
+									describe: "Vendor-native env var name",
+								})
+								.option("base-url", {
+									type: "string",
+									describe: "REST base URL",
+								})
+								.option("verify", {
+									type: "boolean",
+									default: true,
+									describe:
+										"Run post-scaffold pnpm install + typecheck + lint + test (default true; --no-verify skips)",
+								}),
+						async (argv) => {
+							try {
+								const [slug, vendor] = await promptForPositionals(
+									getEntry("new plugin"),
+									argv as Record<string, unknown>
+								);
+								const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
+									{
+										capability: argv.capability as string | undefined,
+										vendorEnv: argv.vendorEnv as string | undefined,
+										baseUrl: argv.baseUrl as string | undefined,
+									},
+									{
+										selectCapability: () =>
+											select({
+												message: "Capability:",
+												choices: Object.keys(CARDINALITY).map((k) => ({ name: k, value: k })),
+											}),
+										inputVendorEnv: () =>
+											input({
+												message: `Vendor-native env var for the ${vendor} token (e.g. MYVENDOR_API_KEY):`,
+											}),
+										inputBaseUrl: () =>
+											input({
+												message: `REST base URL for the ${vendor} API (e.g. https://api.myvendor.com):`,
+											}),
+									}
+								);
+
+								const report = runPluginCreate({
+									slug: slug!,
+									vendorName: vendor!,
+									capability,
+									vendorEnv,
+									baseUrl,
+									...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv as string } : {}),
+									dryRun: argv.dryRun,
+									// Yargs: `--no-verify` flips `argv.verify` to false. We pass
+									// the inverse to preserve the internal `noVerify` naming.
+									noVerify: !argv.verify,
+									cwd: argv.cwd,
+								});
+								if (report.status === "fail") process.exitCode = 1;
+							} catch (err) {
+								if (err instanceof PluginCreateError) {
+									reportError(`plugin create: ${err.message}`);
+									process.exitCode = 1;
+									return;
+								}
+								throw err;
+							}
+						}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("new", argv);
+						}
+					),
+			() => {}
+		)
+		.command(
+			"secrets",
+			"Set secrets and sync vault environments",
+			(g) =>
+				g
+					.command(
+						"set [name] [value]",
+						"Set a single secret via the configured `secrets` capability",
+						(y) =>
+							y
+								.positional("name", {
+									type: "string",
+									describe: "Secret name (e.g., NPM_TOKEN)",
+								})
+								.positional("value", {
+									type: "string",
+									describe:
+										"Secret value (positional). If omitted, sources from --from-stdin, --from-env, or env var matching <name>.",
+								})
+								.option("from-stdin", {
+									type: "boolean",
+									default: false,
+									describe: "Read the secret value from stdin",
+								})
+								.option("from-env", {
+									type: "string",
+									describe:
+										"Read the secret value from the named env var (otherwise: env var matching <name>)",
+								})
+								.option("scope", {
+									type: "string",
+									default: "repo",
+									describe: 'Scope: "repo" (default), "env=<name>", or "org=<name>"',
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const [name] = await promptForPositionals(
+								getEntry("secrets set"),
+								argv as Record<string, unknown>
+							);
+							const scopeArg = argv.scope as string;
+							const scope = parseScope(scopeArg);
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runSecretSet({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								name: name!,
+								...(argv.value ? { value: argv.value as string } : {}),
+								...(argv.fromStdin ? { fromStdin: true } : {}),
+								...(argv.fromEnv ? { fromEnv: argv.fromEnv as string } : {}),
+								scope,
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"sync [environmentId]",
+						"Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
+						(y) =>
+							y
+								.positional("environmentId", {
+									type: "string",
+									describe: "Vault environment id to read (1P Environment id, etc.)",
+								})
+								.option("project-id", {
+									type: "string",
+									describe:
+										"Deployment project id (e.g., Vercel prj_*). Required when deployment is loaded.",
+								})
+								.option("target", {
+									type: "array",
+									default: ["production", "preview"] as Array<
+										"development" | "preview" | "production"
+									>,
+									describe: "Deployment targets to sync to. Defaults to production + preview.",
+								})
+								.option("github-secret", {
+									type: "array",
+									describe:
+										"Vault key(s) to push to GH Actions secrets (repeatable). Omit to push every key.",
+								})
+								.option("github-secret-scope", {
+									type: "string",
+									default: "repo",
+									describe:
+										'Scope applied to every --github-secret key: "repo" (default), "env=<name>", or "org=<name>".',
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const githubSecretScope = parseScope(argv.githubSecretScope as string);
+							const [environmentId] = await promptForPositionals(
+								getEntry("secrets sync"),
+								argv as Record<string, unknown>
+							);
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runSecretsSync({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								environmentId: environmentId!,
+								...(argv.projectId ? { projectId: argv.projectId } : {}),
+								...(argv.githubSecret?.length
+									? { githubSecretKeys: argv.githubSecret as string[] }
+									: {}),
+								githubSecretScope,
+								targets: argv.target as Array<"development" | "preview" | "production">,
+							});
+							if (report.summary.fail > 0) {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("secrets", argv);
+						}
+					),
+			() => {}
+		)
+		.command(
+			"sync",
+			"Sync generated files to other repos",
+			(g) =>
+				g
+					.command(
+						"github",
+						"Sync workflow templates and composite actions to theholocron/.github",
+						(y) =>
+							y
+								.option("repo", {
+									type: "string",
+									default: "theholocron/.github",
+									describe: "Target org/repo (default: theholocron/.github)",
+								})
+								.option("branch", {
+									type: "string",
+									describe:
+										"Push to this branch instead of the default branch (enables PR-based workflow for protected repos)",
+								})
+								.option("pr", {
+									type: "boolean",
+									default: false,
+									describe: "Open a PR after pushing to --branch (no-op without --branch)",
+								})
+								.option("message", {
+									type: "string",
+									describe: "Commit message (default: chore: sync from theholocron/holocron)",
+								})
+								.option("output-dir", {
+									type: "string",
+									describe:
+										"Write generated files to this local directory instead of pushing (for validation)",
+								}),
+						async (argv) => {
+							const outputDir = argv["output-dir"] as string | undefined;
+							const parsed = tokenContext(argv.token);
+							if (!parsed) return;
+							let token: string;
+							if (outputDir) {
+								token = "no-token-needed";
+							} else {
+								try {
+									token = resolveSyncToken({
+										cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken,
+									});
+								} catch (err) {
+									reportError(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
+									process.exitCode = 1;
+									return;
+								}
+							}
+							const report = await runSyncGithub({
+								token,
+								repo: argv.repo,
+								dryRun: argv.dryRun,
+								...(argv.branch ? { branch: argv.branch } : {}),
+								...(argv.pr ? { createPr: true } : {}),
+								...(argv.message ? { message: argv.message } : {}),
+								...(outputDir ? { outputDir } : {}),
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("sync", argv);
+						}
+					),
+			() => {}
+		)
+		.command(
+			"package",
+			"Version and publish workspace packages",
+			(g) =>
+				g
+					.command(
+						"bump-versions [new-version]",
+						"Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
+						(y) =>
+							y.positional("new-version", {
+								type: "string",
+								describe: "Version to set (e.g., 4.2.0 or 2.0.0-alpha.1)",
+							}),
+						async (argv) => {
+							const [newVersion] = await promptForPositionals(
+								getEntry("package bump-versions"),
+								argv as Record<string, unknown>
+							);
+							const report = await runNpmBumpVersions({
+								version: newVersion!,
+								cwd: argv.cwd,
+								dryRun: argv.dryRun,
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"publish",
+						"Publish @theholocron/* packages to npm",
+						(y) =>
+							y
+								.option("initial", {
+									type: "boolean",
+									default: false,
+									describe:
+										"One-shot bootstrap publish for trusted-publishing-eligible packages (npm needs the " +
+										"package to exist before Trusted Publishing can be configured for it). Skips the " +
+										"steady-state OIDC path below — use only for a package's very first publish.",
+								})
+								.option("tag", {
+									type: "string",
+									describe:
+										"npm distribution tag. Defaults to alpha for --initial, latest for a steady-state publish.",
+								})
+								.option("otp", {
+									type: "string",
+									describe:
+										"One-time password from your authenticator (required if npm needs 2FA for writes)",
+								})
+								.option("sync-trust", {
+									type: "array",
+									describe:
+										"Migrate npm Trusted Publisher config to a new workflow filename across every public " +
+										"package: --sync-trust <old-file> <new-file>. See issue #689 — npm requires fresh " +
+										"interactive 2FA per package; re-run after approving the printed authUrl if it stops early.",
+								})
+								.option("repo", {
+									type: "string",
+									describe:
+										"owner/repo for Trusted Publisher config (--sync-trust). Defaults to theholocron/holocron.",
+								})
+								.option("provenance", {
+									type: "boolean",
+									default: true,
+									describe:
+										"Publish with --provenance (steady-state only). Default on — free under CI/OIDC.",
+								})
+								.option("skip-already-published", {
+									type: "boolean",
+									default: false,
+									describe:
+										"Steady-state only: check `npm view <pkg>@<version>` before publishing each package and " +
+										"skip it if that exact version already exists, instead of one bulk publish. For repos " +
+										"that ship many independently-versioned packages where a release doesn't bump every one.",
+								}),
+						async (argv) => {
+							if (argv.syncTrust) {
+								const [oldFile, newFile] = argv.syncTrust as [string?, string?];
+								if (!oldFile || !newFile) {
+									reportError(
+										"publish --sync-trust requires exactly two values: <old-file> <new-file>"
+									);
+									process.exitCode = 1;
+									return;
+								}
+								const report = await runSyncTrust({
+									cwd: argv.cwd,
+									oldFile,
+									newFile,
+									dryRun: argv.dryRun,
+									...(argv.repo ? { repo: argv.repo as string } : {}),
+								});
+								if (report.status === "fail") {
+									process.exitCode = 1;
+								}
+								return;
+							}
+							if (argv.initial) {
+								const report = await runPublish({
+									cwd: argv.cwd,
+									dryRun: argv.dryRun,
+									...(argv.tag ? { tag: argv.tag as string } : {}),
+									...(argv.otp ? { otp: argv.otp as string } : {}),
+								});
+								if (report.status === "fail") {
+									process.exitCode = 1;
+								}
+								return;
+							}
+							const report = await runSteadyPublish({
+								cwd: argv.cwd,
+								dryRun: argv.dryRun,
+								provenance: argv.provenance as boolean,
+								skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
+								...(argv.tag ? { tag: argv.tag as string } : {}),
+								...(argv.otp ? { otp: argv.otp as string } : {}),
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("package", argv);
+						}
+					),
+			() => {}
+		)
+		.command(
+			"deploy [branch]",
+			"Trigger a deployment via the configured `deployment` capability",
+			(y) =>
+				y
+					.command(
+						"cleanup-preview [pr]",
+						"List and delete Cloudflare Pages preview deployments for a GitHub PR",
+						(y) =>
+							y
+								.positional("pr", {
+									type: "number",
+									describe: "PR number to clean up",
+								})
+								.option("project", {
+									type: "string",
+									demandOption: true,
+									describe: "Cloudflare Pages project name (e.g. theholocron-preview)",
+								})
+								.option("repo", {
+									type: "string",
+									describe: "GitHub repo as owner/name — defaults to the repo in holocron.config",
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const [pr] = await promptForPositionals(
+								getEntry("deploy cleanup-preview"),
+								argv as Record<string, unknown>
+							);
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runCleanupPreview({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								prNumber: Number(pr),
+								project: argv.project as string,
+								...(argv.repo ? { repo: argv.repo as string } : {}),
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"on-release",
+						"Deploy every workspace package whose delivery.deploy task is `on: release` — run by the delivery.publish workflow's deploy job",
+						(y) =>
+							y
+								.option("channel", {
+									type: "string",
+									default: "",
+									describe:
+										"The release's channel: its prerelease identifier (`alpha`); empty or `main` for a stable release.",
+								})
+								.option("from", {
+									type: "string",
+									describe:
+										"The previous release's commit, to diff against. Omit when there is none.",
+								})
+								.option("to", {
+									type: "string",
+									describe: "The release commit. Default HEAD.",
+								}),
+						async (argv) => {
+							const report = await deployOnRelease({
+								cwd: argv.cwd as string,
+								channel: argv.channel as string,
+								// An empty value (an unset workflow output) means "not given".
+								...(argv.from ? { from: argv.from as string } : {}),
+								...(argv.to ? { to: argv.to as string } : {}),
+								dryRun: argv.dryRun,
+								print: (line) => console.log(line),
+							});
+							if (report.status === "fail") process.exitCode = 1;
+						}
+					)
+					.positional("branch", {
+						type: "string",
+						describe: "Git branch to deploy (omit when using --files)",
+					})
+					// Not `demandOption`: yargs would make every nested subcommand
+					// (`deploy on-release`, `deploy cleanup-preview`) inherit it. The
+					// handler below enforces it for the trigger itself.
+					.option("project-id", {
+						type: "string",
+						describe: "Deployment project id (required to trigger a deployment, e.g. Vercel prj_*)",
+					})
+					.option("target", {
+						type: "string",
+						choices: ["production", "staging"] as const,
+						describe: "Named environment to deploy into. Omit for a branch preview.",
+					})
+					.option("files", {
+						type: "string",
+						describe:
+							"Deploy from a local directory of source files instead of a Git branch — calls deployFunction(), no linked repo required. Conflicts with `branch`.",
+					})
+					.conflicts("files", "branch"),
+			async (argv) => {
+				if (!argv.projectId) {
+					reportError("deploy: missing required argument --project-id");
+					process.exitCode = 1;
+					return;
+				}
+				const tokens = tokenContext(argv.token);
+				if (!tokens) return;
+				const loaded = await loadConfig(argv.cwd);
+				applyResolvedConfig(argv, loaded.resolved);
+				const context = {
+					repoRoot: argv.cwd,
+					dryRun: argv.dryRun,
+					...tokens,
+					org: resolveOrg(argv, loaded.resolved),
+				};
+
+				if (argv.files) {
+					const report = await runDeployFromFiles({
+						loaded,
+						context,
+						projectId: argv.projectId as string,
+						dir: argv.files as string,
+						...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+					});
+					if (report.status === "fail") {
+						process.exitCode = 1;
+					}
+					return;
+				}
+
+				const [branch] = await promptForPositionals(getEntry("deploy"), argv as Record<string, unknown>);
+				const report = await runDeploy({
+					loaded,
+					context,
+					projectId: argv.projectId as string,
+					branch: branch!,
+					...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+				});
+				if (report.status === "fail") {
+					process.exitCode = 1;
+				}
 			}
 		)
 		.strict()

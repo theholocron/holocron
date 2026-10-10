@@ -21,9 +21,9 @@
 export type ExecutionContext = "global" | "repo-aware" | "workspace";
 
 /**
- * Command → context. Keys are the command name as it lands in yargs'
- * `argv._` — the full path for sub-commands (`"auth set"`, `"upgrade
- * node"`), the bare verb otherwise.
+ * Command → context. Keys are the full command path as it lands in
+ * yargs' `argv._` (`"auth set"`, `"repo upgrade node"`), the bare verb
+ * otherwise; a longer, more specific key wins over its parent.
  *
  * - **`global`** — needs nothing but the CLI binary. Works anywhere.
  * - **`repo-aware`** — reads `./holocron.config` + `./package.json`
@@ -33,10 +33,10 @@ export type ExecutionContext = "global" | "repo-aware" | "workspace";
  */
 export const COMMAND_CONTEXTS = {
 	clone: "global",
-	new: "global",
-	"upgrade node": "global",
-	"upgrade deps": "global",
-	"plugin create": "global",
+	"new repo": "global",
+	"new plugin": "global",
+	"repo upgrade node": "global",
+	"repo upgrade deps": "global",
 	"auth set": "global",
 	"auth unset": "global",
 	"auth list": "global",
@@ -44,8 +44,8 @@ export const COMMAND_CONTEXTS = {
 	// verification skipped" when the plugin isn't resolvable — so it's usable
 	// from a global install. See `runAuthCheck`.
 	"auth check": "global",
-	"bump-versions": "global",
-	publish: "global",
+	"package bump-versions": "global",
+	"package publish": "global",
 	"skills install": "global",
 	"skills remove": "global",
 	"skills update": "global",
@@ -56,21 +56,21 @@ export const COMMAND_CONTEXTS = {
 	"run ci": "repo-aware",
 	// Reads each package's `holocron.config` and runs `pnpm --filter <pkg> delivery.deploy`
 	// — no plugins of its own (the package's deploy script resolves them).
-	"deploy-on-release": "repo-aware",
+	"deploy on-release": "repo-aware",
 	"config show": "repo-aware",
 	// Writes README + package.json metadata from config; never loads a plugin.
-	"sync-readme": "repo-aware",
+	"repo sync readme": "repo-aware",
 
 	doctor: "workspace",
-	setup: "workspace",
-	"secret set": "workspace",
+	"repo setup": "workspace",
+	"secrets set": "workspace",
 	"secrets sync": "workspace",
 	deploy: "workspace",
-	"cleanup-preview": "workspace",
-	sync: "workspace",
+	"deploy cleanup-preview": "workspace",
+	"repo sync": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron
 	// monorepo checkout (not plugins), so only ever run with `pnpm exec`.
-	"sync-github": "workspace",
+	"sync github": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**
@@ -80,9 +80,13 @@ export const COMMAND_CONTEXTS = {
  */
 export function contextForCommand(name: string): ExecutionContext | undefined {
 	const map = COMMAND_CONTEXTS as Record<string, ExecutionContext>;
-	if (map[name]) return map[name];
-	const verb = name.split(" ")[0] ?? "";
-	return map[verb];
+	const tokens = name.split(" ").filter(Boolean);
+	// Longest prefix wins: `repo sync labels` → `repo sync`, `run lint commit-msg` stays exact.
+	for (let n = tokens.length; n > 0; n--) {
+		const ctx = map[tokens.slice(0, n).join(" ")];
+		if (ctx) return ctx;
+	}
+	return undefined;
 }
 
 /** Command names in a given context, in registration order. */

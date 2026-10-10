@@ -31,7 +31,7 @@
  * listing which packages to build) is a structurally different, genuinely
  * per-repo document — out of scope here, same as Bucket C content.
  *
- * Not yet wired into `holocron setup`'s per-package write loop (every
+ * Not yet wired into `holocron repo setup`'s per-package write loop (every
  * other Bucket B file there is a single repo-root file, safely
  * overwritten every run — `tsconfig.json` is per-package, and most
  * packages' files still carry real hand-authored content today, not yet

@@ -12,7 +12,7 @@
  * `channel` defaults to `main` (a stable release); set a prerelease identifier
  * such as `alpha` to deploy those releases instead.
  *
- * The shared `delivery.publish` workflow runs this (`holocron deploy-on-release`)
+ * The shared `delivery.publish` workflow runs this (`holocron deploy on-release`)
  * as its own `deploy` job after the release job, so a deploy is a separate,
  * re-runnable check rather than a step buried in the release log. Each package
  * with such a task deploys when the release is on its `channel` and changes a file under its paths: the package itself plus its

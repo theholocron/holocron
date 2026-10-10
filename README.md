@@ -122,8 +122,8 @@ Then:
 
 <!-- prettier-ignore -->
 ```bash
-holocron setup           # apply the whole config, top to bottom
-holocron sync            # sync README, labels, topics, keywords from config
+holocron repo setup           # apply the whole config, top to bottom
+holocron repo sync            # sync README, labels, topics, keywords from config
 holocron sync readme     # readme marker blocks only
 holocron doctor          # check everything's wired right
 holocron secrets sync    # vault → secrets + deployment env vars + .env
@@ -153,7 +153,6 @@ required capability. Everything else that needs secrets (CI, runtime
 env vars, local `.env`) syncs FROM the vault:
 
 <!-- prettier-ignore -->
-```
 vault (1Password)
   ├─→ secrets       (GitHub Actions)
   ├─→ deployment    (Vercel env vars)
@@ -164,7 +163,6 @@ vault (1Password)
 ## Repo layout (v2)
 
 <!-- prettier-ignore -->
-```
 packages/
   cli/                            — @theholocron/cli                        (binary + capability runtime)
   holocron-plugin-github/         — @theholocron/holocron-plugin-github     (source, ci, secrets, environments, issues)

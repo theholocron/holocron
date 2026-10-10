@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · packages/cli/src/templates/configs/yamllint/create-config.ts
-# Tool:    holocron setup
+# Tool:    holocron repo setup
 # Changes: edit source in theholocron/holocron
 pnpm-lock.yaml

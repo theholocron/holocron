@@ -73,9 +73,9 @@ Capability covers:
   ownership state, returning a per-project CNAME target — never a
   fixed well-known host — only when DNS isn't already configured. The
   returned DNS record is handed to the configured `dns` provider by
-  `holocron setup`.
+  `holocron repo setup`.
 
-Declare the production domain in the Vercel provider options. On `holocron setup`,
+Declare the production domain in the Vercel provider options. On `holocron repo setup`,
 the domain is attached to the project and any Vercel verification CNAME is
 upserted through the configured DNS provider:
 

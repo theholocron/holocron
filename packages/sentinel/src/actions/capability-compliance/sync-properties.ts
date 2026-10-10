@@ -1,6 +1,6 @@
 /**
  * Resolves and syncs GitHub custom properties for a repo — the same 10
- * fields `holocron sync`'s `properties` step computes (6 manual, straight
+ * fields `holocron repo sync`'s `properties` step computes (6 manual, straight
  * from `holocron.config.ts`'s `repo.properties`/`repo.protection`; 4
  * derived — #677) — from data fetched over the GitHub API instead of a
  * local checkout, so it can run from a webhook delivery.
@@ -8,7 +8,7 @@
  * D8 parity: the actual derivation logic —
  * `deriveProfile()`/`deriveStack()`/`deriveCapabilities()`/
  * `deriveCompliance()` — is imported from `@theholocron/cli` unchanged,
- * the same functions `holocron sync` calls locally. Only the *inputs* to
+ * the same functions `holocron repo sync` calls locally. Only the *inputs* to
  * those functions are gathered differently here (GitHub Contents/Trees
  * API reads instead of local filesystem reads) — inherent to running
  * from a webhook with no checkout, not a parallel reimplementation of
@@ -73,7 +73,7 @@ interface ConfigRepoShape {
 
 const WORKSPACE_PACKAGE_JSON = /^(?:packages|apps)\/[^/]+\/package\.json$/;
 
-/** Fetches and JSON-parses a file from the repo's default branch. `null` on 404 — matches `holocron sync`'s own soft-fail for a missing/invalid package.json. */
+/** Fetches and JSON-parses a file from the repo's default branch. `null` on 404 — matches `holocron repo sync`'s own soft-fail for a missing/invalid package.json. */
 async function fetchJson(
 	client: Pick<GitHubClient, "git">,
 	repo: string,
@@ -88,7 +88,7 @@ async function fetchJson(
 	}
 }
 
-/** Whether a path exists on the default branch — 404 vs. any other response. Used for `pnpm-workspace.yaml` monorepo detection, mirroring `holocron sync`'s local `access()` check. */
+/** Whether a path exists on the default branch — 404 vs. any other response. Used for `pnpm-workspace.yaml` monorepo detection, mirroring `holocron repo sync`'s local `access()` check. */
 async function pathExists(client: Pick<GitHubClient, "git">, repo: string, path: string): Promise<boolean> {
 	try {
 		await client.git.getContents(repo, path);

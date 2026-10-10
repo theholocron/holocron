@@ -67,7 +67,7 @@ branch is never a valid `ref` here. Returns one of:
 
 Execution reuses `@theholocron/datapad`'s `loadConfigFromContent()`
 (fetched content, not a file already on disk — the same `loadFile`
-internals `loadConfigFile()` uses locally for `holocron setup`/`sync`,
+internals `loadConfigFile()` uses locally for `holocron repo setup`/`sync`,
 D8) — so a real
 `holocron.config.ts` that does
 `import { defineConfig } from "@theholocron/cli"` (the CLI README's own
@@ -110,7 +110,7 @@ of orgs/accounts unchanged.
 ## `syncPropertiesFromConfig({ client, repo, defaultBranch, config })`
 
 Resolves and syncs GitHub custom properties for a repo — the same 10
-fields `holocron sync`'s `properties` step computes (6 manual, straight
+fields `holocron repo sync`'s `properties` step computes (6 manual, straight
 from `holocron.config.ts`'s `repo.properties` / `repo.protection`; 4
 derived — #677) — from data fetched over the GitHub API instead of a
 local checkout, so it can run from a webhook delivery. Pass
@@ -120,7 +120,7 @@ re-fetching the same file.
 The derivation logic itself —
 `deriveProfile()`/`deriveStack()`/`deriveCapabilities()`/`deriveCompliance()`
 — is imported from `@theholocron/cli` unchanged (D8): the same functions
-`holocron sync` calls locally. Only the _inputs_ differ: workspace-package
+`holocron repo sync` calls locally. Only the _inputs_ differ: workspace-package
 discovery walks the default branch's tree via `client.git.getTree()`
 (recursive) instead of a local `readdir`, filtering for
 `packages/*/package.json` and `apps/*/package.json`. Every read goes
@@ -290,7 +290,7 @@ tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
 ```
 
 The shared `delivery.publish` workflow then runs a separate **Deploy** job
-after the release job, which calls `holocron deploy-on-release`: it scans every
+after the release job, which calls `holocron deploy on-release`: it scans every
 workspace package for such a task and, for each, runs the package's
 `delivery.deploy` script when the release is on its `channel` (default `main`,
 the stable release; Sentinel sets `alpha`) and changes the package or one of its `workspace:*` dependencies (the
@@ -329,7 +329,7 @@ one.
 setup step, not something to redo on every deploy:
 
 ```bash
-holocron setup --cwd packages/sentinel
+holocron repo setup --cwd packages/sentinel
 ```
 
 Attaches `sentinel.theholocron.dev` (declared in `holocron.config.ts`)
@@ -337,7 +337,7 @@ to the Vercel project via `Deployment.ensureCustomDomain()`, then hands
 the CNAME verification challenge Vercel returns straight to
 Cloudflare's `dns` capability — fully automated, no manual DNS entry.
 Sentinel has no `source` provider configured, so every repo-settings
-step `holocron setup` normally runs is cleanly skipped; only the
+step `holocron repo setup` normally runs is cleanly skipped; only the
 `deployment`/`dns`/`vault` steps this config actually declares run.
 
 ### Why production only
@@ -406,7 +406,7 @@ registering under the org from the start avoids the detour.
 **Order:** deploy first, then attach the custom domain, then register.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
 set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
-["Custom domain"](#custom-domain-one-time) step — `holocron setup
+["Custom domain"](#custom-domain-one-time) step — `holocron repo setup
 --cwd packages/sentinel` attaches `sentinel.theholocron.dev` and hands
 Cloudflare the verification CNAME automatically. That domain, not a
 per-deployment `*.vercel.app` URL, is the stable webhook URL below.

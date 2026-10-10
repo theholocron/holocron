@@ -3,7 +3,7 @@
  *
  * `WORKFLOW_TEMPLATES` holds each reusable `.github/workflows/<name>.yml`
  * (synced to `theholocron/.github`); `generateThinCallerContent` wraps one
- * into the thin caller `holocron setup` / `holocron sync` write locally.
+ * into the thin caller `holocron repo setup` / `holocron repo sync` write locally.
  */
 
 import bookkeepingYml from "../templates/workflows/bookkeeping.yml";
@@ -193,7 +193,7 @@ export interface PreviewConfig {
 	project: string;
 	/**
 	 * Base domain for preview URLs (e.g. `"preview.theholocron.dev"`).
-	 * When set, `holocron setup` automatically provisions:
+	 * When set, `holocron repo setup` automatically provisions:
 	 * - Cloudflare Pages custom domain `*.<domain>` on the project
 	 * - DNS wildcard CNAME `*.<domain>` → `<project>.pages.dev`
 	 *
@@ -331,7 +331,7 @@ export function generateCombinedDeployContent(
  *   - run-chromatic object → run-chromatic: true + chromatic-projects
  *   - plain arrays → JSON-stringified for YAML scalar quoting
  *
- * Used by both `holocron setup` and `sync-workflow-templates`.
+ * Used by both `holocron repo setup` and `sync-workflow-templates`.
  */
 export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
 	const result = { ...raw };
@@ -371,7 +371,7 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<stri
 
 /**
  * Derive on.push.paths entries from the deploy with: shorthand.
- * Used by both `holocron setup` and `sync-workflow-templates`.
+ * Used by both `holocron repo setup` and `sync-workflow-templates`.
  */
 export function deriveDeployPaths(raw: Record<string, unknown>): string[] {
 	const paths: string[] = [];

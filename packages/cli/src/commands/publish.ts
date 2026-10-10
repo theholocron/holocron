@@ -1,5 +1,5 @@
 /**
- * `holocron publish --initial` — bottles up the chicken-and-egg bootstrap
+ * `holocron package publish --initial` — bottles up the chicken-and-egg bootstrap
  * that every new npm-published holocron monorepo hits.
  *
  * npm requires a package to exist before Trusted Publishing can be
@@ -13,14 +13,14 @@
  *
  *   $ pnpm install --frozen-lockfile
  *   $ pnpm build
- *   $ pnpm exec tsx packages/cli/src/cli.ts publish --initial
+ *   $ pnpm exec tsx packages/cli/src/cli.ts package publish --initial
  *
  * `npm login --auth-type=web` runs automatically the first time — no
  * separate manual step. `pnpm install` + `pnpm build` stay outside the
  * command (no pnpm-inside-pnpm).
  *
  * `--initial` is required today — this command only implements the
- * bootstrap publish. A non-initial `holocron publish` (for a manual publish
+ * bootstrap publish. A non-initial `holocron package publish` (for a manual publish
  * outside the semantic-release/OIDC steady state) isn't built yet; the flag
  * exists so the surface doesn't need another rename when it is.
  *
@@ -143,7 +143,7 @@ interface NpmTrustError {
 }
 
 /**
- * `holocron publish --sync-trust <old-file> <new-file>` — bulk-migrates npm
+ * `holocron package publish --sync-trust <old-file> <new-file>` — bulk-migrates npm
  * Trusted Publisher (OIDC) config to a new workflow filename across every
  * public package. See issue #689 / `scripts/npm-trust-migrate.sh` (the
  * shell-script prototype this supersedes) for the full "why": npm ties
@@ -385,7 +385,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (publish.stdout.includes("EOTP") || publish.stderr.includes("EOTP")) {
 			print("");
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
-			print(`    pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp <6-digit-code>`);
+			print(`    pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp <6-digit-code>`);
 		}
 		logger.warn({ tag, reason: message }, "publish --initial: done");
 		return { status: "fail", message, packageNames };
@@ -426,7 +426,7 @@ export interface RunSteadyPublishInput {
 }
 
 /**
- * `holocron publish` (no `--initial`) — the steady-state publish
+ * `holocron package publish` (no `--initial`) — the steady-state publish
  * `exec.publishCmd` in `release.config.ts` should call, replacing each
  * repo's hand-typed `pnpm -r --filter=./packages/* publish ...` shell (which
  * differs, today, only in monorepo-vs-single-package, provenance on/off, and
@@ -519,7 +519,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 		if (publish.stdout.includes("EOTP") || publish.stderr.includes("EOTP")) {
 			print("");
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
-			print(`    pnpm exec holocron publish --otp <6-digit-code>`);
+			print(`    pnpm exec holocron package publish --otp <6-digit-code>`);
 		}
 		logger.warn({ tag, reason: message }, "publish: done");
 		return { status: "fail", message, packageNames };

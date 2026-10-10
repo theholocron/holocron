@@ -1,10 +1,10 @@
 ---
-title: "setup"
+title: "repo setup"
 description: Apply all infra setup actions across every configured capability.
 ---
 
 ```bash
-holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
+holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 ```
 
 `setup` is the primary provisioning command. It applies a deterministic set of infrastructure actions for every configured capability. Each step is wrapped in a try/catch — failures are reported but don't abort subsequent steps. A summary at the end shows counts for ok, fail, and skip.
@@ -85,17 +85,17 @@ Run `pnpm install` once to activate it; bypass one push with `git push --no-veri
 
 ```bash
 # Full setup
-holocron setup
+holocron repo setup
 
 # Dry-run — see every action without executing
-holocron setup --dry-run
+holocron repo setup --dry-run
 
 # Target a specific repo
-holocron setup --repo my-org/my-project
+holocron repo setup --repo my-org/my-project
 ```
 
 ## Notes
 
-- Workflow files written by `setup` are **generated artifacts** — overwritten on each run. Do not edit them manually; edit the workflow templates in `theholocron/holocron` and run `holocron sync-github` instead.
+- Workflow files written by `setup` are **generated artifacts** — overwritten on each run. Do not edit them manually; edit the workflow templates in `theholocron/holocron` and run `holocron sync github` instead.
 - Skills are gitignored and re-installed on each `setup` run. Running `setup` on a fresh clone restores them.
 - `setup` is idempotent — running it again on the same repo produces the same result and does not create duplicate labels, environments, or teams.

@@ -5,7 +5,7 @@
  * adapted to the holocron `Deployment` interface:
  *
  *   - `ensureProject` is the idempotent create (GET-then-POST), since
- *     `holocron setup` re-runs on every invocation
+ *     `holocron repo setup` re-runs on every invocation
  *   - `setEnvVar` uses Vercel's `upsert=true` so it's idempotent
  *     create-or-update
  *   - `triggerDeployment` infers a branch preview when `target` is
@@ -34,7 +34,7 @@ import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
 export interface DeploymentOptions {
 	/** Optional framework hint passed to project creates. Defaults to "nextjs". */
 	defaultFramework?: string;
-	/** Custom domain that `holocron setup` should attach to this project. */
+	/** Custom domain that `holocron repo setup` should attach to this project. */
 	domain?: string;
 }
 
@@ -165,7 +165,7 @@ export class VercelDeployment implements Deployment {
 	 * `misconfigured` + a `recommendedCNAME`, per-project, never a fixed
 	 * well-known host — always read it from this response, never
 	 * hardcode it. Returned as a `DnsRecordRequest` — the caller (e.g.
-	 * `holocron setup`'s custom-domain step) hands it straight to
+	 * `holocron repo setup`'s custom-domain step) hands it straight to
 	 * `dns.upsertRecord()`, same as `Wiki.dnsRecord()` already does for
 	 * the wiki's own domain.
 	 */

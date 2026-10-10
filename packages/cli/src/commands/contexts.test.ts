@@ -9,33 +9,33 @@ import { COMMAND_CONTEXTS, commandsInContext, contextForCommand } from "./contex
  */
 const EVERY_COMMAND = [
 	"clone",
-	"new",
-	"upgrade node",
-	"upgrade deps",
-	"plugin create",
+	"new repo",
+	"new plugin",
+	"repo upgrade node",
+	"repo upgrade deps",
 	"auth set",
 	"auth unset",
 	"auth list",
 	"auth check",
-	"bump-versions",
-	"publish",
+	"package bump-versions",
+	"package publish",
 	"skills install",
 	"skills remove",
 	"skills update",
 	"run lint commit-msg",
 	"run",
 	"run ci",
-	"deploy-on-release",
+	"deploy on-release",
 	"config show",
-	"sync-readme",
+	"repo sync readme",
 	"doctor",
-	"setup",
-	"secret set",
+	"repo setup",
+	"secrets set",
 	"secrets sync",
 	"deploy",
-	"cleanup-preview",
-	"sync",
-	"sync-github",
+	"deploy cleanup-preview",
+	"repo sync",
+	"sync github",
 ];
 
 describe("COMMAND_CONTEXTS", () => {
@@ -60,7 +60,15 @@ describe("COMMAND_CONTEXTS", () => {
 	});
 
 	it("keeps the plugin-dependent commands in `workspace`", () => {
-		for (const cmd of ["sync", "setup", "doctor", "secrets sync", "deploy", "cleanup-preview", "secret set"]) {
+		for (const cmd of [
+			"repo sync",
+			"repo setup",
+			"doctor",
+			"secrets sync",
+			"deploy",
+			"deploy cleanup-preview",
+			"secrets set",
+		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");
 		}
 	});
@@ -68,10 +76,10 @@ describe("COMMAND_CONTEXTS", () => {
 	it("keeps the plugin-free commands out of `workspace`", () => {
 		for (const cmd of [
 			"clone",
-			"new",
+			"new repo",
 			"run",
 			"run ci",
-			"deploy-on-release",
+			"deploy on-release",
 			"config show",
 			"auth set",
 			"auth check",
@@ -83,16 +91,27 @@ describe("COMMAND_CONTEXTS", () => {
 
 describe("contextForCommand", () => {
 	it("resolves an exact multi-token key", () => {
-		expect(contextForCommand("upgrade node")).toBe("global");
+		expect(contextForCommand("repo upgrade node")).toBe("global");
 		expect(contextForCommand("secrets sync")).toBe("workspace");
 	});
 
-	it("falls back to the leading verb for an unlisted sub-command", () => {
-		expect(contextForCommand("skills whatever")).toBe(undefined);
-		expect(contextForCommand("auth")).toBe(undefined);
+	it("keeps a more specific key over its parent (deploy vs deploy on-release, run vs run ci)", () => {
+		expect(contextForCommand("deploy")).toBe("workspace");
+		expect(contextForCommand("deploy on-release")).toBe("repo-aware");
+		expect(contextForCommand("run")).toBe("repo-aware");
+		expect(contextForCommand("run lint commit-msg")).toBe("global");
 	});
 
-	it("returns undefined for an unknown command", () => {
+	it("falls back to the longest known prefix for an unlisted sub-command or step", () => {
+		expect(contextForCommand("repo sync labels")).toBe("workspace");
+		expect(contextForCommand("repo sync readme extra")).toBe("repo-aware");
+		expect(contextForCommand("run audit performance")).toBe("repo-aware");
+	});
+
+	it("returns undefined for a bare group or an unknown command", () => {
+		expect(contextForCommand("skills whatever")).toBeUndefined();
+		expect(contextForCommand("repo")).toBeUndefined();
 		expect(contextForCommand("teleport")).toBeUndefined();
+		expect(contextForCommand("")).toBeUndefined();
 	});
 });

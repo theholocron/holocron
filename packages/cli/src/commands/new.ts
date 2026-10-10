@@ -1,5 +1,5 @@
 /**
- * `holocron new <type> <name>` — create a GitHub repo from a template and
+ * `holocron new repo <type> <name>` — create a GitHub repo from a template and
  * bootstrap it by replacing all template-slug casing variants with the new
  * project name, then generate a `holocron.config.ts` from the answers given
  * during the interactive wizard.
@@ -55,7 +55,7 @@ export interface RunNewInput {
 	isTemplate?: boolean;
 	/** GitHub org that owns both the template and the new repo. Default: "theholocron". */
 	org?: string;
-	/** GitHub admin token forwarded to `holocron setup` during verify. */
+	/** GitHub admin token forwarded to `holocron repo setup` during verify. */
 	token?: string;
 	dryRun?: boolean;
 	noVerify?: boolean;
@@ -170,7 +170,7 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 		``,
 		// `compose(node(), typecheck())` is the org baseline preset — the full
 		// task manifest (lint/test/typecheck required, security/review/… ) rides
-		// in via `...preset`, so `holocron setup` can derive CodeQL mode and the
+		// in via `...preset`, so `holocron repo setup` can derive CodeQL mode and the
 		// required-check contexts. See theholocron/holocron#642.
 		`const preset = compose(node(), typecheck());`,
 		`export default defineConfig({`,
@@ -554,7 +554,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		}
 
 		print("");
-		print("  Running holocron setup…");
+		print("  Running holocron repo setup…");
 		try {
 			const setupArgs: string[] = ["setup"];
 			const setupEnv: Record<string, string> = {};
@@ -579,7 +579,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 
 			execFn("holocron", setupArgs, { cwd: repoDir, stdio: "inherit", env: setupEnv });
 		} catch {
-			print("  ✗ holocron setup failed — run it manually after checking your config");
+			print("  ✗ holocron repo setup failed — run it manually after checking your config");
 		}
 	}
 
@@ -590,7 +590,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	print(`    1. cd ${repoDir}`);
 	if (input.noVerify) {
 		print(`    2. pnpm install`);
-		print(`    3. holocron setup  # wire up secrets, teams, labels, etc.`);
+		print(`    3. holocron repo setup  # wire up secrets, teams, labels, etc.`);
 		print(`    4. git push -u origin HEAD`);
 	} else {
 		print(`    2. git push -u origin HEAD`);

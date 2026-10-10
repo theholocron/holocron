@@ -19,7 +19,7 @@ import { gitBlobSha as _gitBlobSha, runSyncGithub } from "./sync-github.js";
 // Actions, reusable workflow definitions, and workflow-templates are only pushed
 // to the primary .github repo. WORKFLOW_TEMPLATE_PROPERTIES adds one
 // .properties.json per keyed template. Secondary repos get nothing —
-// their thin callers are managed by `holocron sync --steps workflows`.
+// their thin callers are managed by `holocron repo sync --steps workflows`.
 const PROPS_COUNT = Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
 const PRIMARY_FILE_COUNT =
 	Object.keys(REUSABLE_ACTIONS).length +
@@ -161,7 +161,7 @@ describe("runSyncGithub", () => {
 		spy.mockRestore();
 	});
 
-	it("writes nothing to secondary repos — thin callers are managed by holocron sync", async () => {
+	it("writes nothing to secondary repos — thin callers are managed by holocron repo sync", async () => {
 		const { fn, calls } = makeFetch();
 		const report = await runSyncGithub({
 			token: "ghp_test",

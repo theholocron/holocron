@@ -30,11 +30,11 @@ Three repos, one rule per concern:
 - **Task manifest → `@theholocron/astromech`** (ADR-0009, epic #581). One
   `tasks` array in `holocron.config` drives every workflow surface:
   `holocron run` / `holocron run ci`, each repo's `.github/workflows/*.yml`
-  thin callers (`astromech.thinCallers()`, consumed by `holocron sync` /
-  `holocron setup`), `package.json` scripts, the linter set, the
+  thin callers (`astromech.thinCallers()`, consumed by `holocron repo sync` /
+  `holocron repo setup`), `package.json` scripts, the linter set, the
   branch-protection required checks, and the reusable `workflow_call`
   implementations pushed to `theholocron/.github`
-  (`astromech.reusableTemplates()`, consumed by `holocron sync-github`).
+  (`astromech.reusableTemplates()`, consumed by `holocron sync github`).
   The loop closes both ways: the reusable `typecheck` / `test` / `audit`
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
@@ -47,7 +47,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
   are generated from `packages/astromech/src/templates/` and pushed by
-  `holocron sync-github`; edit the source here, never those repos directly.
+  `holocron sync github`; edit the source here, never those repos directly.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
     commands branch at the orchestrator layer, not in capabilities.
@@ -75,7 +75,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `tool-interactive-cli-menu`, #438). A command with a required positional
     gets a `COMMAND_REGISTRY` entry so a missing arg prompts instead of
     hard-failing; interactive prompting itself stays inline in `cli.ts`'s
-    handler bodies (the same place `new` / `plugin create` already prompt),
+    handler bodies (the same place `new repo` / `new plugin` already prompt),
     not in the `commands/*.ts` modules. Every prompt path checks
     `process.stdin.isTTY` first and throws `NonInteractiveError` (also in
     `USER_FACING_ERRORS`) instead of relying on `@inquirer/prompts`'
@@ -217,7 +217,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   expect(result.ok).toBe(true);
   expect((result as { ok: boolean; subject?: string }).subject).toMatch(/pattern/);
   ```
-- **`holocron upgrade node` pattern registry.** When you introduce a
+- **`holocron repo upgrade node` pattern registry.** When you introduce a
   new file type that pins the Node.js version (e.g., a new CI platform's
   config, an `.engines` file, a custom script), add a `Pattern` entry to
   the `PATTERNS` array in
@@ -251,11 +251,11 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   no `NPM_TOKEN` secret anywhere. Each package has a Trusted
   Publisher registered on npmjs.com (Publisher: GitHub Actions,
   Repo: theholocron/holocron, Workflow: release.yml).
-- **First publish for a new package** uses `holocron publish --initial`
+- **First publish for a new package** uses `holocron package publish --initial`
   (chicken-and-egg: trusted publishing needs the package to exist
   first). The command runs `npm login --auth-type=web` itself when
   `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
-  → `pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp <code>`.
+  → `pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp <code>`.
 
 ## Repo layout
 

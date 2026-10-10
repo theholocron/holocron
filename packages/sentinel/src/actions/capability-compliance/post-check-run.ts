@@ -33,7 +33,7 @@
  * `REQUIRED_BASELINE`, i.e. the repo's `holocron.config` being
  * baseline-compatible. **Renaming this string changes a live required
  * status check** — `holocron.config.ts`'s own `extraRequiredChecks`
- * entry must be updated in the same change, and `holocron setup` (or
+ * entry must be updated in the same change, and `holocron repo setup` (or
  * the ruleset-PATCH mechanism it wraps) re-run against this repo
  * before merge, or the old name stays required forever with nothing
  * left posting it.

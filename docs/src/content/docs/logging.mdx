@@ -67,7 +67,7 @@ Child loggers inherit every binding from their parent and add their own, so pass
 
 ## What the commands emit
 
-`setup`, `doctor`, `sync`, `secrets sync`, `deploy`, and `cleanup-preview`
+`repo setup`, `doctor`, `repo sync`, `secrets sync`, `deploy`, and `deploy cleanup-preview`
 emit a structured line per unit of work — a `<command>: start`, one line
 per step / row / file (with `capability`, `step`, `status`, `detail`), and
 a `<command>: done` carrying the `ok` / `fail` / `skip` counts. Pull a
@@ -144,7 +144,7 @@ Store the token in the OS keyring once:
 holocron auth set axiom.theholocron <TOKEN>
 ```
 
-That token backs both `holocron setup` / `holocron doctor` (the `logs`
+That token backs both `holocron repo setup` / `holocron doctor` (the `logs`
 capability, which provisions and checks the datasets) **and** the logger's
 Axiom transport. Then opt local runs into shipping by naming the dataset in
 `holocron.config` — `log: { axiom: { dataset: "holocron-local" } }`.

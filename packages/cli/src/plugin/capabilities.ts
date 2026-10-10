@@ -494,7 +494,7 @@ export interface Deployment extends ProviderIdentity {
 	readonly key: "deployment";
 	/**
 	 * Custom domain declared in the deployment provider's configuration.
-	 * `holocron setup` attaches it to the configured project and hands any
+	 * `holocron repo setup` attaches it to the configured project and hands any
 	 * returned verification record to the `dns` capability.
 	 */
 	readonly domain?: string;
@@ -827,7 +827,7 @@ export interface Dns extends ProviderIdentity {
 // Both are self-contained: they activate at runtime from env vars alone
 // (`HOLOCRON_SENTRY_DSN`, `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`)
 // with no provider entry in `holocron.config`. The provider entry only
-// enables `holocron setup` provisioning and `holocron doctor` checks.
+// enables `holocron repo setup` provisioning and `holocron doctor` checks.
 // ───────────────────────────────────────────────────────────────────────
 
 export interface Errors extends ProviderIdentity {

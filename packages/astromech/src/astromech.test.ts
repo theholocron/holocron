@@ -384,7 +384,7 @@ describe("createAstromech().codecovConfig", () => {
 		const { codecovConfig } = await import("./generators/codecov.js");
 		const viaFactory = createAstromech({ cwd: "/repo" }).codecovConfig(null);
 		expect(viaFactory).toEqual(codecovConfig("/repo", null));
-		expect(viaFactory).toContain("Scaffolded by holocron setup");
+		expect(viaFactory).toContain("Scaffolded by holocron repo setup");
 	});
 
 	it("merges into an existing file when one is passed", () => {

@@ -79,7 +79,7 @@ Zone ids are cached per plugin instance for the lifetime of the process.
 
 ## `deployment` capability
 
-Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. Used by `holocron setup` to provision per-PR preview deployments.
+Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. Used by `holocron repo setup` to provision per-PR preview deployments.
 
 | Method                  | What it does                                                                                                            |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -106,7 +106,7 @@ cache, separate from `dns`'s.
 
 ### Preview deployment setup
 
-When `preview: true` (or `preview: { project, domain }`) is set in a repo's deploy config, `holocron setup` calls:
+When `preview: true` (or `preview: { project, domain }`) is set in a repo's deploy config, `holocron repo setup` calls:
 
 1. `ensureProject` — creates `<org>-preview` if it doesn't exist
 2. `ensureCustomDomain` — attaches `*.<domain>` to the project

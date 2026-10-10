@@ -7,7 +7,7 @@ const { workflowHeader } = createHeader({
 
 /**
  * `.husky/pre-commit` — runs GitLeaks (scoped to staged changes) and
- * lint-staged before every commit. Installed by `holocron setup` when hooks
+ * lint-staged before every commit. Installed by `holocron repo setup` when hooks
  * are enabled (default for `protection: "strict"`). `git commit --no-verify`
  * bypasses it.
  *

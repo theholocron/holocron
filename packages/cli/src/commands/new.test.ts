@@ -312,7 +312,7 @@ describe("runNew — happy path", () => {
 		expect(lines.some((l) => l.includes("disk full"))).toBe(true);
 	});
 
-	it("continues with ok status when holocron setup throws", async () => {
+	it("continues with ok status when holocron repo setup throws", async () => {
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
 		});
@@ -322,10 +322,10 @@ describe("runNew — happy path", () => {
 		const lines: string[] = [];
 		const report = await runNew({ ...BASE, exec, readFile, writeFile, walkFiles, print: (l) => lines.push(l) });
 		expect(report.status).toBe("ok");
-		expect(lines.some((l) => l.includes("holocron setup failed"))).toBe(true);
+		expect(lines.some((l) => l.includes("holocron repo setup failed"))).toBe(true);
 	});
 
-	it("runs pnpm install and holocron setup unless --no-verify", async () => {
+	it("runs pnpm install and holocron repo setup unless --no-verify", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
@@ -336,7 +336,7 @@ describe("runNew — happy path", () => {
 		expect(calls.some((c) => c.cmd === "holocron" && c.args.includes("setup"))).toBe(true);
 	});
 
-	it("skips pnpm install and holocron setup when noVerify is true", async () => {
+	it("skips pnpm install and holocron repo setup when noVerify is true", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
@@ -716,8 +716,8 @@ function keychainResult(token: string | null): SpawnResult {
 	} as SpawnResult;
 }
 
-describe("runNew — token forwarding to holocron setup", () => {
-	it("passes --token (admin) to holocron setup when token is provided as input", async () => {
+describe("runNew — token forwarding to holocron repo setup", () => {
+	it("passes --token (admin) to holocron repo setup when token is provided as input", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({
 			"/workspace/my-tool/package.json": { content: JSON.stringify({ name: "@theholocron/cli-template" }) },
@@ -784,7 +784,7 @@ describe("runNew — token forwarding to holocron setup", () => {
 		}
 	});
 
-	it("calls holocron setup without --token when all keychain lookups fail", async () => {
+	it("calls holocron repo setup without --token when all keychain lookups fail", async () => {
 		const { spawnSync } = await import("node:child_process");
 		vi.mocked(spawnSync)
 			.mockReturnValueOnce({ status: 0 } as SpawnResult) // gh --version preflight

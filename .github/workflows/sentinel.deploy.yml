@@ -19,7 +19,7 @@
 # per D8's "one engine" convention.
 #
 # Alpha releases deploy themselves (holocron#928, #930): the Delivery
-# workflow's Deploy job runs `holocron deploy-on-release` after the release
+# workflow's Deploy job runs `holocron deploy on-release` after the release
 # job, deploying Sentinel's `delivery.deploy` task (`on: "release"` in its
 # holocron.config.ts) once every package has published. This workflow stays
 # for manual redeploys and stable `main` merges.

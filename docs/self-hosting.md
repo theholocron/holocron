@@ -24,7 +24,7 @@ Trusted Publishing for it. So the actual flow for any new
 After step 3, no operator action is needed for that package again.
 
 The initial v2 bootstrap ran this for all 7 packages together (via
-`holocron publish --initial`, which does step 1 in a single
+`holocron package publish --initial`, which does step 1 in a single
 invocation across the workspace — a monorepo `pnpm -r --filter=./packages/*`
 publish, or a plain `pnpm publish` for a single-package repo like a
 scaffolded plugin/template). Any new plugin added later needs to walk
@@ -48,7 +48,7 @@ pnpm build
 # one-time password from your authenticator and pass it via --otp. The
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
-pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp 123456
+pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp 123456
 
 ```
 
@@ -105,7 +105,7 @@ that produced it.
 ## Ad-hoc secret setting (still useful)
 
 For one-off secrets that ARE token-based (not covered by OIDC), the
-`secret set` command still helps:
+`secrets set` command still helps:
 
 <!-- prettier-ignore -->
 ```bash
@@ -113,10 +113,10 @@ For one-off secrets that ARE token-based (not covered by OIDC), the
 # The admin token (stored in the keyring via `holocron auth set github.admin`)
 # is picked up automatically — no env var needed if the keyring is populated.
 DEPLOY_HOOK=https://api.vercel.com/.../v1 \
-  holocron secret set DEPLOY_HOOK
+  holocron secrets set DEPLOY_HOOK
 
 # Org-level secrets use --scope:
-holocron secret set SOME_ORG_SECRET --scope org=theholocron
+holocron secrets set SOME_ORG_SECRET --scope org=theholocron
 
 ```
 

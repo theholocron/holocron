@@ -9,8 +9,8 @@ import { defineConfig } from "@theholocron/astromech/config";
  * for why they're hand-declared instead of spread from the `nodeDocs()`
  * preset), this file adds the repo-specific ones. astromech's
  * `loadTasksConfig` merges them — task arrays concatenate, this file wins
- * on scalars — and `holocron run` / `holocron run ci` / `holocron setup` /
- * `holocron sync` all read the merged manifest.
+ * on scalars — and `holocron run` / `holocron run ci` / `holocron repo setup` /
+ * `holocron repo sync` all read the merged manifest.
  */
 export default defineConfig({
 	tasks: [
@@ -43,6 +43,6 @@ export default defineConfig({
 	],
 	// This repo's root scripts stay bootstrap-safe raw commands — `holocron`
 	// here IS the local build artifact (`node packages/cli/dist/cli.mjs`), not
-	// an installed bin — so `holocron sync` must not rewrite package.json scripts.
+	// an installed bin — so `holocron repo sync` must not rewrite package.json scripts.
 	syncScripts: false,
 });

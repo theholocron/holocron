@@ -1,12 +1,12 @@
 ---
-title: "publish"
+title: "package publish"
 description: Publish @theholocron/* packages to npm — steady-state (CI/OIDC) or the one-shot Trusted Publishing bootstrap.
 ---
 
 ```bash
-holocron publish [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--dry-run]
-holocron publish --initial [--tag <tag>] [--otp <code>] [--dry-run]
-holocron publish --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--dry-run]
+holocron package publish [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--dry-run]
+holocron package publish --initial [--tag <tag>] [--otp <code>] [--dry-run]
+holocron package publish --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--dry-run]
 ```
 
 Three modes:
@@ -20,7 +20,7 @@ Three modes:
 npm's Trusted Publisher config is tied to a specific workflow **filename** per package. Renaming the release workflow (e.g. `release.yml` → `delivery.publish.yml`) breaks OIDC publish (`ENEEDAUTH`) for every package still registered under the old filename until each one is updated to match.
 
 ```bash
-holocron publish --sync-trust release.yml delivery.publish.yml
+holocron package publish --sync-trust release.yml delivery.publish.yml
 ```
 
 For every public package (auto-discovered the same way as `--initial`): revokes the existing trust config if its `file` doesn't already match, then creates a new one pointing at the new filename. Already-migrated packages are skipped, so it's safe to re-run.
@@ -33,12 +33,12 @@ See [issue #689](https://github.com/theholocron/holocron/issues/689) for the ful
 
 ```bash
 # Steady-state — the exec.publishCmd release.config.ts calls in CI.
-pnpm exec holocron publish
+pnpm exec holocron package publish
 
 # Skip packages whose exact version already exists on npm — for repos
 # with many independently-versioned packages where a release doesn't
 # bump every one (configs' own case).
-pnpm exec holocron publish --skip-already-published
+pnpm exec holocron package publish --skip-already-published
 ```
 
 ```bash
@@ -48,7 +48,7 @@ pnpm install --frozen-lockfile && pnpm build
 # 2. Bootstrap publish — logs in via `npm login --auth-type=web` automatically
 #    if `npm whoami` shows no session, then publishes and prints Trusted
 #    Publisher config links.
-holocron publish --initial --otp 123456
+holocron package publish --initial --otp 123456
 ```
 
 After `--initial` runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)).

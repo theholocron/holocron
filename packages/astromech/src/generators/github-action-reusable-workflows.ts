@@ -1,6 +1,6 @@
 /**
  * The **reusable** GitHub Actions surface pushed to `theholocron/.github` by
- * `holocron sync-github` — the `workflow_call` implementations and composite
+ * `holocron sync github` — the `workflow_call` implementations and composite
  * actions that every repo's thin callers delegate to.
  *
  * `theholocron/.github` is a **pure sync target**: `.github/workflows/*`,
@@ -109,20 +109,20 @@ const SOURCE = "packages/astromech/src/generators/github-action-reusable-workflo
  * "AUTO-GENERATED — do not edit" header for the YAML pushed to
  * `theholocron/.github`. Matches `createHeader().workflowHeader({ forPrimary: true })`
  * field-for-field, minus any timestamp — a live `Synced:` line makes the content
- * hash change on every run and defeats `sync-github`'s unchanged-file skip.
+ * hash change on every run and defeats `sync github`'s unchanged-file skip.
  */
 function reusableHeader(): string {
 	return [
 		`# AUTO-GENERATED — do not edit in theholocron/.github directly.`,
 		`# Source:  theholocron/holocron · ${SOURCE}`,
-		`# Tool:    holocron sync-github`,
+		`# Tool:    holocron sync github`,
 		`# Changes: edit source in theholocron/holocron`,
 		``,
 	].join("\n");
 }
 
 /**
- * The complete file batch `holocron sync-github` pushes to `theholocron/.github`:
+ * The complete file batch `holocron sync github` pushes to `theholocron/.github`:
  * path → content. YAML gets the "do not edit" header; the starter-workflow
  * `.properties.json` files are left bare (native JSON, not a commented file).
  */

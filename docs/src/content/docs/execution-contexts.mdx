@@ -11,11 +11,11 @@ the provider plugins resolvable too.
 
 ## The three contexts
 
-| Context          | Needs                                                                                                                      | Commands                                                                                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`global`**     | nothing but the CLI binary                                                                                                 | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `run lint commit-msg`, `auth set` / `unset` / `list` / `check`, `bump-versions`, `publish`, `skills install` / `remove` / `update` |
-| **`repo-aware`** | `./holocron.config` + `./package.json` in the working directory — but no plugins                                           | `run`, `run ci`, `config show`, `sync-readme`                                                                                                                                                                  |
-| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `deploy`, `cleanup-preview`, `sync-github`                                                                                                            |
+| Context          | Needs                                                                                                                      | Commands                                                                                                                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`global`**     | nothing but the CLI binary                                                                                                 | `version`, `clone`, `new repo`, `new plugin`, `repo upgrade node` / `deps`, `run lint commit-msg`, `auth set` / `unset` / `list` / `check`, `package bump-versions`, `package publish`, `skills install` / `remove` / `update` |
+| **`repo-aware`** | `./holocron.config` + `./package.json` in the working directory — but no plugins                                           | `run`, `run ci`, `config show`, `repo sync readme`, `deploy on-release`                                                                                                                                                        |
+| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `repo setup`, `repo sync`, `secrets set`, `secrets sync`, `deploy`, `deploy cleanup-preview`, `sync github`                                                                                                          |
 
 `holocron --help` prints this same grouping in its epilogue.
 
@@ -25,10 +25,10 @@ A `workspace` command run where its plugins can't be resolved fails with a
 single actionable line rather than a raw `Cannot find package` stack trace:
 
 ```
-$ holocron sync
+$ holocron repo sync
 sync needs @theholocron/holocron-plugin-github, but no plugin package resolves here.
 Run it from a repo that has the @theholocron/holocron-plugin-* packages as
-devDependencies, or `pnpm exec holocron sync`. A global install can't resolve them.
+devDependencies, or `pnpm exec holocron repo sync`. A global install can't resolve them.
 ```
 
 The fix is to install the plugins you need next to the CLI:

@@ -76,8 +76,6 @@ export interface CommandEntry {
 	description: string;
 	/** Required positionals only, in order. Empty when the command needs none. */
 	positionals: PositionalPrompt[];
-	/** Parent command, for Layer 2 grouping: `"auth" | "skills" | "upgrade"`. */
-	group?: string;
 	/**
 	 * Whether this command's handler honours the global `--dry-run` flag.
 	 * Drives `launchMenu`'s dry-run offer: a menu-launched command with this
@@ -121,13 +119,13 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
-		name: "setup",
+		name: "repo setup",
 		description: "Apply infra setup actions across every configured capability",
 		positionals: [],
 		supportsDryRun: true,
 	},
 	{
-		name: "secret set",
+		name: "secrets set",
 		description: "Set a single secret via the configured `secrets` capability",
 		positionals: [{ key: "name", message: "Secret name:", type: "input" }],
 		supportsDryRun: true,
@@ -145,25 +143,31 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
-		name: "cleanup-preview",
+		name: "deploy cleanup-preview",
 		description: "List and delete Cloudflare Pages preview deployments for a GitHub PR",
 		positionals: [{ key: "pr", message: "PR number:", type: "input", validate: numeric }],
 		supportsDryRun: true,
 	},
 	{
-		name: "bump-versions",
+		name: "deploy on-release",
+		description: "Deploy every workspace package whose delivery.deploy task is `on: release`",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
+		name: "package bump-versions",
 		description: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
 		positionals: [{ key: "newVersion", cliArg: "new-version", message: "New version:", type: "input" }],
 		supportsDryRun: true,
 	},
 	{
-		name: "publish",
+		name: "package publish",
 		description: "Publish @theholocron/* packages to npm",
 		positionals: [],
 		supportsDryRun: true,
 	},
 	{
-		name: "sync",
+		name: "repo sync",
 		description:
 			"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
 		positionals: [],
@@ -176,26 +180,26 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
-		name: "sync-github",
+		name: "sync github",
 		description: "Sync workflow templates and composite actions to theholocron/.github",
 		positionals: [],
 		supportsDryRun: true,
 	},
 	{
-		name: "sync-readme",
+		name: "repo sync readme",
 		description: "Sync the Installation + Usage block in README.md from package.json",
 		positionals: [],
 		supportsDryRun: true,
 	},
 	{ name: "config show", description: "Print the resolved holocron config", positionals: [] },
 	{
-		name: "new",
+		name: "new repo",
 		description: "Scaffold a new repo from a GitHub template (e.g. cli, react, nextjs, node, monorepo, base)",
 		positionals: [],
 		supportsDryRun: true,
 	},
 	{
-		name: "plugin create",
+		name: "new plugin",
 		description: "Scaffold a new @theholocron/holocron-plugin-<slug> package",
 		positionals: [
 			{ key: "slug", message: "Package slug (kebab-case):", type: "input" },
@@ -207,60 +211,51 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		name: "skills install",
 		description: "Copy skills from @theholocron/skills into .agents/ with agent symlinks",
 		positionals: [],
-		group: "skills",
 		supportsDryRun: true,
 	},
 	{
 		name: "skills remove",
 		description: "Remove installed skills via npx skills remove",
 		positionals: [],
-		group: "skills",
 		supportsDryRun: true,
 	},
 	{
 		name: "skills update",
 		description: "Update installed skills to their latest upstream versions via npx skills update",
 		positionals: [],
-		group: "skills",
 		supportsDryRun: true,
 	},
 	{
-		name: "upgrade node",
+		name: "repo upgrade node",
 		description: "Scan the repo and update every Node.js version pin to a new major",
 		positionals: [{ key: "to", message: "Target Node.js major version:", type: "input", validate: numeric }],
-		group: "upgrade",
 		supportsDryRun: true,
 	},
 	{
-		name: "upgrade deps",
+		name: "repo upgrade deps",
 		description: "Bump every @theholocron/* pin to latest and migrate holocron.config.ts to the current preset API",
 		positionals: [],
-		group: "upgrade",
 		supportsDryRun: true,
 	},
 	{
 		name: "auth set",
 		description: "Verify + store a bootstrap token for a provider",
 		positionals: [{ key: "provider", message: "Provider name:", type: "input" }],
-		group: "auth",
 	},
 	{
 		name: "auth unset",
 		description: "Remove a stored bootstrap token",
 		positionals: [{ key: "provider", message: "Provider:", type: "select", choices: listStoredProviders }],
-		group: "auth",
 	},
 	{
 		name: "auth check",
 		description: "Re-verify a stored bootstrap token",
 		positionals: [{ key: "provider", message: "Provider:", type: "select", choices: listStoredProviders }],
-		group: "auth",
 	},
 	{
 		name: "auth list",
 		description: "List every provider with a stored bootstrap token",
 		positionals: [],
-		group: "auth",
 	},
 ];
 
@@ -269,6 +264,15 @@ export function getEntry(name: string): CommandEntry {
 	const entry = COMMAND_REGISTRY.find((e) => e.name === name);
 	if (!entry) throw new Error(`interactive-menu: no COMMAND_REGISTRY entry named "${name}"`);
 	return entry;
+}
+
+/**
+ * Layer 2: every entry nested under `parent` (`"repo"` → `repo setup`, `repo sync`,
+ * `repo upgrade node`, …), including deeper levels. Matches on the name prefix, so a
+ * new subcommand shows up under its parent just by being registered.
+ */
+export function entriesUnder(parent: string): CommandEntry[] {
+	return COMMAND_REGISTRY.filter((e) => e.name.startsWith(`${parent} `));
 }
 
 /**

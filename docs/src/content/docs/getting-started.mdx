@@ -77,7 +77,7 @@ This loads every configured plugin and runs a smoke check against each provider.
 ## Run setup
 
 ```bash
-holocron setup
+holocron repo setup
 ```
 
 `setup` applies all infrastructure actions for the configured capabilities:
@@ -95,7 +95,7 @@ Add `--dry-run` to see what would happen without making any changes.
 After updating `holocron.config.ts`:
 
 ```bash
-holocron sync
+holocron repo sync
 ```
 
 This syncs labels, custom properties, topics, teams, the repo description, and the homepage URL to GitHub.

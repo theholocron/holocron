@@ -90,7 +90,7 @@ Pass a token directly for a single invocation without touching env vars or the k
 
 ```sh
 holocron clone --token github=ghp_xxx theholocron/holocron
-holocron sync-github --token github=ghp_zzz
+holocron sync github --token github=ghp_zzz
 ```
 
 ### CI-only exception: org-scoped secret writes
@@ -155,7 +155,7 @@ secret. The `wiki.yml` reusable workflow picks it up via `secrets: inherit`
 and maps it to `FERN_TOKEN` for the Fern CLI.
 
 Password protection is configured in the Fern Dashboard only — no token is
-needed for `holocron setup`.
+needed for `holocron repo setup`.
 
 ### Vercel + Doppler (Sentinel's CI, `.github/workflows/sentinel.*.yml`)
 
@@ -238,7 +238,7 @@ All three are CI-only by design — deliberately kept out of
   `doppler`, but shouldn't — that key already holds your personal Doppler
   login (full account access). Overwriting it with a config-scoped,
   read-only service token would break anything local that needs broader
-  Doppler access (e.g. `holocron setup`'s project/environment bootstrap
+  Doppler access (e.g. `holocron repo setup`'s project/environment bootstrap
   calls).
 - **`VERCEL_TOKEN`**, if reused from your existing personal token, is
   already in the keyring — nothing to add. A dedicated CI-only token has

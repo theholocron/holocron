@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-fern` — entrypoint.
  *
  * Implements the `wiki` capability using Fern (buildwithfern.com).
- * `holocron setup` loads this plugin when `providers.wiki: "fern"` is
+ * `holocron repo setup` loads this plugin when `providers.wiki: "fern"` is
  * declared in `holocron.config.ts` and calls `wiki.provision()` to write
  * `fern/fern.config.json` and a `fern/docs.yml` scaffold.
  *

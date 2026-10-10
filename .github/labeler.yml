@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · packages/cli/src/commands/setup/run-setup.ts
-# Tool:    holocron setup
+# Tool:    holocron repo setup
 # Changes: edit source in theholocron/holocron
 bug:
   - "^fix"

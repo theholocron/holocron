@@ -122,8 +122,10 @@ they re-sync; the release notes should say so.
 1. Spec (this PR).
 2. `run` absorbs `ci` / `lint commit-msg`; husky hooks, templates and every
    reference to the old names updated in the same PR (theholocron/holocron#977).
-3. Regroup the rest + `COMMAND_CONTEXTS` + menu completeness test.
-4. Templates/docs sweep and `sync-github` regeneration.
+3. Regroup the rest + `COMMAND_CONTEXTS` + menu completeness test, with the
+   reference sweep (workflow templates, `command:` inputs, release config, docs).
+4. Anything the sweep left behind, plus verifying `holocron sync github`
+   regenerates a clean tree.
 
 ## Out of scope
 
@@ -134,3 +136,16 @@ they re-sync; the release notes should say so.
 
 - Should `package` also grow `package version`/`package pack` later, or stay
   `bump-versions` and `publish`?
+
+## Implementation notes
+
+- `deploy` keeps `--project-id` but no longer `demandOption`s it: yargs makes
+  nested subcommands inherit a parent's required options, so `deploy on-release`
+  would have demanded it. The default handler enforces it instead.
+- `repo sync readme` is a real subcommand (still no plugins, `repo-aware`), not
+  the `readme` step of `repo sync [steps..]`; `repo sync labels readme` still
+  runs the step.
+- The `holocron` composite action word-splits `command`, so multi-word values
+  (`repo sync`, `deploy on-release`) become separate arguments.
+- `# managed by holocron setup — …` lines in `.gitignore` are block markers, not
+  command references; they are unchanged so existing blocks are still found.
