@@ -710,7 +710,7 @@ describe("runDeployFromFiles", () => {
 			if (dir) rmSync(dir, { recursive: true, force: true });
 		});
 
-		it("recursively reads real files (including a dist/ subdir — not skipped, unlike holocron new's walker), skipping .git/node_modules/.turbo, keyed relative + POSIX-separated", async () => {
+		it("recursively reads real files (including a dist/ subdir — not skipped, unlike holocron new repo's walker), skipping .git/node_modules/.turbo, keyed relative + POSIX-separated", async () => {
 			dir = mkdtempSync(join(tmpdir(), "holocron-deploy-test-"));
 			mkdirSync(join(dir, "api"), { recursive: true });
 			mkdirSync(join(dir, "dist"), { recursive: true });
