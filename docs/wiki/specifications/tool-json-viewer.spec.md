@@ -53,7 +53,7 @@ Module: `packages/cli/src/json-view.ts`, split into a pure core and a thin TTY l
 - **On by default** when stdin and stdout are both TTYs and no `--depth` was
   given (shipped: #973; the first draft made it opt-in). `--no-interactive`
   forces static output. An explicit `--interactive` without a TTY throws
-  `NonInteractiveError` (already in `USER_FACING_ERRORS`); the default just
+  `NonInteractiveError` (already in `USER_FACING_ERRORS`); the default
   falls back to static output.
 - Keys: `↑`/`↓` (`k`/`j`) move, `→`/`Enter`/`Space` expand, `←` collapse (or
   jump to parent), `E`/`C` expand/collapse all, `q`/`Esc`/`Ctrl-C` quit.
