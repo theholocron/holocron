@@ -10,8 +10,9 @@ Holocron uses one Personal Access Token per capability group. Each token carries
 For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.), the chain is:
 
 --token flag
-  → HOLOCRON_<FEATURE>_TOKEN   (feature-specific env var)
-  → keyring("github.<feature>") (stored via `holocron auth set`)
+→ HOLOCRON\_<FEATURE>\_TOKEN (feature-specific env var)
+→ keyring("github.<feature>") (stored via `holocron auth set`)
+
 ```
 
 No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure.

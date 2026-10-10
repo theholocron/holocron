@@ -90,17 +90,18 @@ does not go in the keyring. Add it directly to your repo's GitHub Secrets.
 **Resolution order:**
 
 --token flag
-  → HOLOCRON_FERN_TOKEN        (env var)
-  → FERN_TOKEN                 (Fern's native env var — vendor fallback)
-  → keyring "fern.theholocron" (org-namespaced)
-  → keyring "fern"             (unnamespaced fallback)
-```
+→ HOLOCRON_FERN_TOKEN (env var)
+→ FERN_TOKEN (Fern's native env var — vendor fallback)
+→ keyring "fern.theholocron" (org-namespaced)
+→ keyring "fern" (unnamespaced fallback)
+
+````
 
 **Store in keyring:**
 
 ```sh
 holocron auth set fern <token>
-```
+````
 
 1. Go to `dashboard.buildwithfern.com` → **Settings → API tokens**
 2. Create a token with publish permissions
