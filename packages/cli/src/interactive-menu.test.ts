@@ -27,12 +27,13 @@ const {
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
-	entriesUnder,
+	BACK,
 	forwardedFlags,
 	getEntry,
 	launchMenu,
+	menuItems,
 	NonInteractiveError,
-	pickCommand,
+	pickMenuItem,
 	promptForPositionals,
 	searchChoices,
 	shouldPreviewDryRun,
@@ -72,25 +73,78 @@ describe("COMMAND_REGISTRY", () => {
 	});
 });
 
-describe("entriesUnder", () => {
-	it("lists every nested entry under a parent, at any depth, but not the parent itself", () => {
-		const names = entriesUnder("repo").map((e) => e.name);
-		expect(names).toEqual(
-			expect.arrayContaining([
-				"repo setup",
-				"repo sync",
-				"repo sync readme",
-				"repo upgrade node",
-				"repo upgrade deps",
-			])
-		);
-		expect(entriesUnder("repo upgrade").map((e) => e.name)).toEqual(["repo upgrade node", "repo upgrade deps"]);
-		expect(entriesUnder("deploy").map((e) => e.name)).toEqual(["deploy cleanup-preview", "deploy on-release"]);
+describe("menuItems — one level of the nested menu", () => {
+	const names = (path: string[] = []) => menuItems(COMMAND_REGISTRY, path).map((i) => i.name);
+	const valueOf = (name: string, path: string[] = []) =>
+		menuItems(COMMAND_REGISTRY, path).find((i) => i.name === name)?.value;
+
+	it("the top level shows one row per first word, with groups opening a submenu", () => {
+		expect(valueOf("repo ›")).toBe("group:repo");
+		expect(valueOf("auth ›")).toBe("group:auth");
+		expect(valueOf("doctor")).toBe("doctor");
 	});
 
-	it("does not confuse a parent with a command that merely starts with the same letters", () => {
-		expect(entriesUnder("sync").map((e) => e.name)).toEqual(["sync github"]);
-		expect(entriesUnder("secret")).toEqual([]);
+	it("never shows a `<command> <subcommand>` path: every row at every level is one word", () => {
+		const rows: string[] = [];
+		const walk = (path: string[]): void => {
+			for (const item of menuItems(COMMAND_REGISTRY, path)) {
+				rows.push(item.name);
+				if (item.value.startsWith("group:")) walk(item.value.slice("group:".length).split(" "));
+			}
+		};
+		walk([]);
+		const bad = rows.filter((n) =>
+			n
+				.replace(/ ›$/, "")
+				.replace(/ \(run it\)$/, "")
+				.includes(" ")
+		);
+		expect(bad).toEqual([]);
+	});
+
+	it("does not collapse a one-command group: `config show` is config › then show", () => {
+		expect(names()).toContain("config ›");
+		expect(names()).not.toContain("config show");
+		expect(names(["config"])).toEqual(["show"]);
+		expect(valueOf("show", ["config"])).toBe("config show");
+		expect(names(["sync"])).toEqual(["github"]);
+		expect(names(["run"])).toEqual(["ci"]);
+		expect(valueOf("ci", ["run"])).toBe("run ci");
+	});
+
+	it("shows the next word under a group, and nests as deep as the names go", () => {
+		expect(names(["repo"])).toEqual(["setup", "sync ›", "upgrade ›"]);
+		expect(valueOf("setup", ["repo"])).toBe("repo setup");
+		expect(valueOf("upgrade ›", ["repo"])).toBe("group:repo upgrade");
+		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
+		expect(valueOf("node", ["repo", "upgrade"])).toBe("repo upgrade node");
+	});
+
+	it("a group that is also runnable gets a leading `<word> (run it)` item (repo sync, deploy)", () => {
+		const sync = menuItems(COMMAND_REGISTRY, ["repo", "sync"]);
+		expect(sync[0]).toMatchObject({ name: "sync (run it)", value: "repo sync" });
+		expect(sync.map((i) => i.value)).toContain("repo sync readme");
+		const deploy = menuItems(COMMAND_REGISTRY, ["deploy"]);
+		expect(deploy[0]).toMatchObject({ name: "deploy (run it)", value: "deploy" });
+		expect(deploy.map((i) => i.value)).toEqual(["deploy", "deploy cleanup-preview", "deploy on-release"]);
+	});
+
+	it("a group's description lists its children, and its haystack covers everything under it", () => {
+		const repo = menuItems(COMMAND_REGISTRY).find((i) => i.value === "group:repo")!;
+		expect(repo.description).toBe("setup, sync, upgrade");
+		expect(repo.haystack).toContain("repo upgrade node");
+	});
+
+	it("reaches every registered command exactly once by walking the tree", () => {
+		const reached: string[] = [];
+		const walk = (path: string[]): void => {
+			for (const item of menuItems(COMMAND_REGISTRY, path)) {
+				if (item.value.startsWith("group:")) walk(item.value.slice("group:".length).split(" "));
+				else reached.push(item.value);
+			}
+		};
+		walk([]);
+		expect([...reached].sort()).toEqual(COMMAND_REGISTRY.map((e) => e.name).sort());
 	});
 });
 
@@ -104,55 +158,70 @@ describe("getEntry", () => {
 	});
 });
 
-describe("pickCommand", () => {
+describe("pickMenuItem", () => {
 	beforeEach(() => searchMock.mockReset());
+	const items = menuItems(COMMAND_REGISTRY);
 
-	it("resolves the selected value back to its CommandEntry", async () => {
-		searchMock.mockResolvedValue("doctor");
-		const picked = await pickCommand(COMMAND_REGISTRY);
-		expect(picked).toBe(getEntry("doctor"));
+	it("resolves to the picked item's value", async () => {
+		searchMock.mockResolvedValue("group:repo");
+		expect(await pickMenuItem(items)).toBe("group:repo");
 	});
 
 	it("passes the message through to search()", async () => {
 		searchMock.mockResolvedValue("auth set");
-		await pickCommand(entriesUnder("auth"), "auth — choose a subcommand:");
+		await pickMenuItem(menuItems(COMMAND_REGISTRY, ["auth"]), "auth — choose a subcommand:");
 		expect(searchMock).toHaveBeenCalledWith(expect.objectContaining({ message: "auth — choose a subcommand:" }));
 	});
 
 	it("wires its `source` callback straight to searchChoices", async () => {
 		searchMock.mockResolvedValue("doctor");
-		await pickCommand(COMMAND_REGISTRY);
+		await pickMenuItem(items);
 		const { source } = searchMock.mock.calls[0]![0] as {
 			source: (term: string | undefined) => ReturnType<typeof searchChoices>;
 		};
-		expect(source("doctor")).toEqual(searchChoices(COMMAND_REGISTRY, "doctor"));
+		expect(source("doctor")).toEqual(searchChoices(items, "doctor"));
 	});
 });
 
-describe("searchChoices — the `source` callback pickCommand hands to search()", () => {
-	it("returns every entry when the term is empty or undefined", () => {
-		expect(searchChoices(COMMAND_REGISTRY, undefined)).toHaveLength(COMMAND_REGISTRY.length);
-		expect(searchChoices(COMMAND_REGISTRY, "")).toHaveLength(COMMAND_REGISTRY.length);
+describe("searchChoices — the `source` callback pickMenuItem hands to search()", () => {
+	const items = menuItems(COMMAND_REGISTRY);
+
+	it("returns every item when the term is empty or undefined", () => {
+		expect(searchChoices(items, undefined)).toHaveLength(items.length);
+		expect(searchChoices(items, "")).toHaveLength(items.length);
 	});
 
-	it("filters out entries that match neither the name nor the description", () => {
-		const choices = searchChoices(COMMAND_REGISTRY, "zzz-no-such-command");
-		expect(choices).toEqual([]);
+	it("filters out items that match neither the name nor the description", () => {
+		expect(searchChoices(items, "zzz-no-such-command")).toEqual([]);
 	});
 
 	it("matches the name case-insensitively", () => {
-		const choices = searchChoices(COMMAND_REGISTRY, "DOCTOR");
-		expect(choices.map((c) => c.value)).toEqual(["doctor"]);
+		expect(searchChoices(items, "DOCTOR").map((c) => c.value)).toEqual(["doctor"]);
 	});
 
 	it("also matches on the description, not just the name", () => {
-		// "secrets sync"'s description mentions "deployment env vars" — no "deploy" in its name.
-		const choices = searchChoices(COMMAND_REGISTRY, "deployment env vars");
-		expect(choices.map((c) => c.value)).toEqual(["secrets sync"]);
+		// "secrets sync"'s description mentions "deployment env vars"; it sits inside the `secrets` group.
+		expect(searchChoices(items, "deployment env vars").map((c) => c.value)).toContain("group:secrets");
+	});
+
+	it("finds a nested command from the top by name: `upgrade` surfaces the repo group", () => {
+		expect(searchChoices(items, "upgrade").map((c) => c.value)).toContain("group:repo");
+	});
+
+	it("ranks name matches above description-only matches (typing `repo` lands on the repo group, not clone)", () => {
+		const values = searchChoices(items, "repo").map((c) => c.value);
+		expect(values[0]).toBe("group:repo");
+		expect(values).toContain("clone");
+		expect(values.indexOf("group:repo")).toBeLessThan(values.indexOf("clone"));
+	});
+
+	it("ranks a name prefix above a name substring (`up` → upgrade before setup)", () => {
+		const values = searchChoices(menuItems(COMMAND_REGISTRY, ["repo"]), "up").map((c) => c.value);
+		expect(values).toEqual(["group:repo upgrade", "repo setup"]);
 	});
 
 	it("each choice carries name, value, and description", () => {
-		const [choice] = searchChoices(COMMAND_REGISTRY, "doctor");
+		const [choice] = searchChoices(items, "doctor");
 		expect(choice).toEqual({ name: "doctor", value: "doctor", description: getEntry("doctor").description });
 	});
 });
@@ -368,6 +437,87 @@ describe("launchMenu", () => {
 		});
 		expect(process.exitCode).toBe(3);
 		process.exitCode = original;
+	});
+
+	it("opens a group's submenu, then a nested group, then runs the command it ends on", async () => {
+		setTTY(true);
+		searchMock
+			.mockResolvedValueOnce("group:repo")
+			.mockResolvedValueOnce("group:repo upgrade")
+			.mockResolvedValueOnce("repo upgrade deps");
+		const child = new EventEmitter();
+		spawnMock.mockReturnValue(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, { skipDryRun: true });
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled());
+		child.emit("exit", 0);
+		await done;
+
+		const messages = searchMock.mock.calls.map((c) => (c[0] as { message: string }).message);
+		expect(messages).toEqual([
+			"What would you like to do?",
+			"repo — choose a subcommand:",
+			"repo upgrade — choose a subcommand:",
+		]);
+		expect(spawnMock.mock.calls[0]![1]).toEqual([process.argv[1], "repo", "upgrade", "deps"]);
+	});
+
+	it("offers ← back below the first level only, and back returns to the previous level", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValueOnce("group:repo").mockResolvedValueOnce(BACK).mockResolvedValueOnce("doctor");
+		const child = new EventEmitter();
+		spawnMock.mockReturnValue(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, { skipDryRun: true });
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled());
+		child.emit("exit", 0);
+		await done;
+
+		const levels = searchMock.mock.calls.map((c) => c[0] as { source: (t?: string) => Array<{ value: string }> });
+		expect(levels[0]!.source().map((i) => i.value)).not.toContain(BACK);
+		expect(levels[1]!.source().map((i) => i.value)).toContain(BACK);
+		// third prompt is the top level again, after going back
+		expect(levels[2]!.source().map((i) => i.value)).toContain("group:repo");
+		expect(spawnMock.mock.calls[0]![1]).toEqual([process.argv[1], "doctor"]);
+	});
+
+	it("starts at `startPath` (a bare group command) without a back item at that level", async () => {
+		setTTY(true);
+		searchMock.mockResolvedValueOnce("repo setup");
+		const child = new EventEmitter();
+		spawnMock.mockReturnValue(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, { skipDryRun: true }, "repo — choose a subcommand:", undefined, [
+			"repo",
+		]);
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled());
+		child.emit("exit", 0);
+		await done;
+
+		const level = searchMock.mock.calls[0]![0] as {
+			message: string;
+			source: (t?: string) => Array<{ value: string }>;
+		};
+		expect(level.message).toBe("repo — choose a subcommand:");
+		expect(level.source().map((i) => i.value)).toEqual(["repo setup", "group:repo sync", "group:repo upgrade"]);
+		expect(spawnMock.mock.calls[0]![1]).toEqual([process.argv[1], "repo", "setup"]);
+	});
+
+	it("runs a runnable group itself via its leading `(run it)` item", async () => {
+		setTTY(true);
+		searchMock
+			.mockResolvedValueOnce("group:repo")
+			.mockResolvedValueOnce("group:repo sync")
+			.mockResolvedValueOnce("repo sync");
+		const child = new EventEmitter();
+		spawnMock.mockReturnValue(child);
+
+		const done = launchMenu(COMMAND_REGISTRY, { skipDryRun: true });
+		await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled());
+		child.emit("exit", 0);
+		await done;
+
+		expect(spawnMock.mock.calls[0]![1]).toEqual([process.argv[1], "repo", "sync"]);
 	});
 
 	it("suppresses the child's own update check — the parent's tail notifier already covers it", async () => {

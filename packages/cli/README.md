@@ -17,17 +17,25 @@ holocron --help
 ## Interactive mode
 
 Run `holocron` with no command, a parent command with no subcommand
-(`holocron auth`, `holocron skills`, `holocron repo`, `holocron new`, `holocron package`, `holocron secrets`, `holocron sync`), or a leaf command
+(`holocron auth`, `holocron repo`, `holocron repo upgrade`, …), or a leaf command
 missing a required positional (`holocron deploy`, `holocron secrets set`), and
-you get a prompt instead of a `--help` dead end:
+you get a prompt instead of a `--help` dead end.
+
+The menu mirrors the command tree: each level shows only the next word, and a
+group (marked `›`) opens its own submenu, as deep as the commands nest. Nothing
+is shown as a `<command> <subcommand>` path — `config show` is `config ›` then
+`show`. Every submenu has a `← back` item, and a command that is also a group
+(`repo sync`, `deploy`) has a `(run it)` item at the top of its submenu. Typing
+searches the whole tree — `upgrade` at the top finds the `repo` group — with
+name matches ranked above description matches.
 
 ```console
 $ holocron
-? What would you like to do? › dep
-────────────────────────────────────────────────
-❯ deploy   Trigger a deployment via the configured `deployment` capability
-
-? Branch to deploy: › main
+? What would you like to do? › repo
+❯ repo ›
+? repo — choose a subcommand: › upgrade
+? repo upgrade — choose a subcommand: › node
+? Target Node.js major version: › 24
 ```
 
 The picked command spawns as a normal `holocron <command> …` invocation —
