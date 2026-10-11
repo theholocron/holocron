@@ -349,6 +349,40 @@ describe("createAstromech().packageScripts", () => {
 	});
 });
 
+describe("createAstromech().runnableTasks", () => {
+	it("returns the same task names packageScripts() would, minus the holocron/prepare entries", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", { name: "delivery.publish" }],
+			},
+		});
+		expect(astromech.runnableTasks()).toEqual(["sourceQuality.staticAnalysis", "verification.unitTests"]);
+	});
+
+	it("skips local: false and genuinely local: null tasks, same filter as packageScripts()", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "verification.unitTests", local: false }, "security.codeScanning", "delivery.build"],
+			},
+		});
+		expect(astromech.runnableTasks()).toEqual(["delivery.build"]);
+	});
+
+	it("is unaffected by syncScripts: false — the exact gap that silently emptied the picker live", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["verification.unitTests"], syncScripts: false },
+		});
+		expect(astromech.runnableTasks()).toEqual(["verification.unitTests"]);
+	});
+
+	it("returns [] with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).runnableTasks()).toEqual([]);
+	});
+});
+
 describe("createAstromech().reusableTemplates", () => {
 	it("delegates to the bare reusableTemplates() — config-independent", async () => {
 		const { reusableTemplates } = await import("./generators/github-action-reusable-workflows.js");

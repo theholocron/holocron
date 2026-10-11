@@ -108,6 +108,15 @@ export interface Astromech {
 	 */
 	packageScripts(): Record<string, string>;
 	/**
+	 * Task names this repo's manifest can actually run locally — the same
+	 * filter {@link packageScripts} applies (skips `local: false` and tasks
+	 * with no local runner at all), but independent of `syncScripts`: a repo
+	 * that opts out of generated `package.json` scripts still has real
+	 * runnable tasks. Empty when there is no config. Backs `holocron`'s own
+	 * interactive task picker (`run` with no task given).
+	 */
+	runnableTasks(): string[];
+	/**
 	 * The branch-protection required-status-check contexts for this repo —
 	 * every `required: true` task's check context plus `extraRequiredChecks`,
 	 * ordered and de-duplicated. `holocron repo setup` prepends `"DCO"` and applies
@@ -186,6 +195,29 @@ export function createAstromech(options: AstromechOptions): Astromech {
 	};
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
+
+	/**
+	 * Task names this repo's manifest can actually run locally — shared by
+	 * {@link packageScripts} and by `holocron`'s own interactive task picker.
+	 * Deliberately independent of `syncScripts`/`holocronScript`/`hooks`:
+	 * those govern whether/how `package.json` scripts get *written*, not
+	 * which tasks exist to run. A repo with `syncScripts: false` (this repo
+	 * itself, among others) still has real runnable tasks — found live when
+	 * `packageScripts()`'s `{}` short-circuit silently emptied the picker too.
+	 */
+	const runnableTaskNames = (): string[] => {
+		const out: string[] = [];
+		for (const entry of items()) {
+			const def = TASKS[entry.name];
+			// `local: null` alone means genuinely no local equivalent
+			// (security.codeScanning, delivery.deploy); a `linterGroup` or `jobs`
+			// task still runs locally even though its own `local` is null.
+			const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
+			if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
+			out.push(entry.name);
+		}
+		return out;
+	};
 
 	return {
 		run: (task, opts = {}) =>
@@ -284,20 +316,14 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const out: Record<string, string> = {};
 			if (!options.config || options.config.syncScripts === false) return out;
 			out.holocron = options.config.holocronScript ?? "holocron";
-			for (const entry of items()) {
-				const def = TASKS[entry.name];
-				// `local: null` alone means genuinely no local equivalent
-				// (security.codeScanning, delivery.deploy); a `linterGroup` or `jobs`
-				// task still runs locally even though its own `local` is null.
-				const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
-				if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
+			for (const name of runnableTaskNames()) {
 				// Trailing `--` matters: turbo/pnpm append extra args to a script's
 				// command text directly, without inserting their own `--` — e.g.
 				// `pnpm run <task> --coverage`, not `pnpm run <task> -- --coverage`.
 				// Without it here, that lands as an argument to `holocron run`
 				// itself ("Unknown argument: coverage"), not as passthrough to the
 				// tool. A bare trailing `--` is a no-op when nothing gets appended.
-				out[entry.name] = `holocron run ${entry.name} --`;
+				out[name] = `holocron run ${name} --`;
 			}
 			// Enabled hooks need `husky` to run on install to register the hook path.
 			const hooks = options.config.hooks;
@@ -305,6 +331,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			if (hooksOn) out.prepare = "husky";
 			return out;
 		},
+
+		runnableTasks: () => runnableTaskNames(),
 
 		reusableTemplates: () => resolveReusableTemplates(),
 

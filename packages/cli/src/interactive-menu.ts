@@ -37,6 +37,8 @@ import { spawn } from "node:child_process";
 
 import { confirm, input, select } from "@inquirer/prompts";
 import search from "@inquirer/search";
+import { createAstromech } from "@theholocron/astromech";
+import { loadTasksConfig } from "@theholocron/astromech/config";
 
 import { listStoredProviders } from "./auth/keyring.js";
 
@@ -62,9 +64,14 @@ export interface PositionalPrompt {
 	 * Required when `type === "select"`. A plain list for a fixed set, or a
 	 * thunk for a set resolved at prompt time (e.g. `auth unset`'s provider
 	 * choices are whatever currently has a stored token — there's no fixed
-	 * provider list, providers are open-ended plugin packages).
+	 * provider list, providers are open-ended plugin packages; `run`'s task
+	 * choices are this repo's resolved task manifest, read from `argv.cwd`).
+	 * The thunk receives the same `argv` `promptForPositionals` was called
+	 * with — ignored by thunks that don't need it (e.g. `listStoredProviders`,
+	 * which is machine-global) — and may return a `Promise` for a thunk that
+	 * needs to load config first.
 	 */
-	choices?: string[] | (() => string[]);
+	choices?: string[] | ((argv: Record<string, unknown>) => string[] | Promise<string[]>);
 	/** Optional `input()` validation — e.g. numeric positionals. */
 	validate?: (value: string) => boolean | string;
 }
@@ -90,13 +97,32 @@ export interface CommandEntry {
 const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true : "enter a number");
 
 /**
+ * `run`'s task picker choices: this repo's own resolved task manifest,
+ * filtered to what's actually runnable locally — `Astromech.runnableTasks()`,
+ * reused rather than reimplemented (deliberately *not* `packageScripts()`,
+ * whose `syncScripts: false` short-circuit returns `{}` for repos — this one
+ * included — that opt out of generated `package.json` scripts but still
+ * have real runnable tasks). Empty (never throws) when there's no config to
+ * resolve — `promptForPositionals` turns an empty choice list into a clear
+ * "nothing to pick from" error.
+ */
+export async function listRunnableTasks(argv: Record<string, unknown>): Promise<string[]> {
+	const cwd = typeof argv.cwd === "string" ? argv.cwd : process.cwd();
+	const config = await loadTasksConfig(cwd).catch(() => undefined);
+	return createAstromech({ cwd, config }).runnableTasks();
+}
+
+/**
  * The full command surface, hand-maintained in parallel with `cli.ts`'s
  * yargs registrations (this module does not introspect yargs at runtime).
- * `run <task>` is deliberately excluded — it's CI/scripting-oriented, and an
- * interactive prompt in front of it would work against that. (`run ci` is a
- * concrete, prompt-free entry, so it stays.) `run lint commit-msg <file>` is
- * excluded for the same reason: it's invoked exclusively from
- * `.husky/commit-msg "$1"`, never typed by a human.
+ * `run <task>` gets a task picker ({@link listRunnableTasks}) rather than a
+ * fixed positional list — the task namespace is this repo's own resolved
+ * manifest, not a static set `cli.ts` can hand-enumerate the way every
+ * other entry's positionals are. `job` and `passthrough` stay un-prompted;
+ * picking a task and running it plain covers the common case, and typing
+ * `holocron run <task> <job> -- <args>` directly is one step away for
+ * everything else. `run lint commit-msg <file>` stays excluded: it's
+ * invoked exclusively from `.husky/commit-msg "$1"`, never typed by a human.
  */
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
@@ -171,6 +197,12 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		description:
 			"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
 		positionals: [],
+		supportsDryRun: true,
+	},
+	{
+		name: "run",
+		description: "Run a task locally (test, typecheck, lint, build, audit, …)",
+		positionals: [{ key: "task", message: "Task to run:", type: "select", choices: listRunnableTasks }],
 		supportsDryRun: true,
 	},
 	{
@@ -392,10 +424,10 @@ export async function promptForPositionals(entry: CommandEntry, argv: Record<str
 		}
 		if (positional.type === "select") {
 			const choices =
-				typeof positional.choices === "function" ? positional.choices() : (positional.choices ?? []);
+				typeof positional.choices === "function" ? await positional.choices(argv) : (positional.choices ?? []);
 			if (choices.length === 0) {
 				throw new NonInteractiveError(
-					`\`${entry.name}\`: no ${positional.key} to choose from — nothing stored yet`
+					`\`${entry.name}\`: no ${positional.key} to choose from — nothing available`
 				);
 			}
 			out.push(await select({ message: positional.message, choices: choices.map((c) => ({ value: c })) }));
@@ -549,7 +581,7 @@ export async function launchMenu(
 			picked = entries.find((e) => e.name === value);
 		}
 	}
-	const positionals = await promptForPositionals(picked, {});
+	const positionals = await promptForPositionals(picked, parentArgv);
 
 	if (shouldPreviewDryRun(picked, parentArgv)) {
 		const dryExit = await spawnChild(buildChildArgv(picked, positionals, parentArgv, true), {
