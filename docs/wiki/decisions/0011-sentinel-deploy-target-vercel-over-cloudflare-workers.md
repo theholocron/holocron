@@ -5,7 +5,7 @@ status: accepted
 date: 2026-09-16
 owners: []
 specs:
-  - .notes/tech-sentinel-v1.spec.md
+  - docs/wiki/specifications/tech-sentinel-v1.spec.md
 discussion:
   github: https://github.com/theholocron/holocron/pull/730
 supersedes: []
@@ -130,7 +130,7 @@ handler.
 ## References
 
 - Issue: #679 (Sentinel v1), epic #672 (Holocron Platform)
-- Spec: `.notes/tech-sentinel-v1.spec.md` — "Resolved — deploy target"
+- Spec: `docs/wiki/specifications/tech-sentinel-v1.spec.md` — "Resolved — deploy target"
   section carries the same account in narrative form, kept in sync with
   this ADR
 - PRs: #342 (Cloudflare Workers secrets), #343 (GitHub App auth), #729

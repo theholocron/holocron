@@ -27,7 +27,7 @@ amendment called out below (D6-amended).
   `holocron_capabilities`/`holocron_stack`/`holocron_compliance`), the
   "Config resolution" Bucket A/B/C split (still the right frame — see
   below), and D6, the security boundary this spec amends.
-- **`.notes/tech-sentinel-v1.spec.md`** (issue #679) — the App itself:
+- **`docs/wiki/specifications/tech-sentinel-v1.spec.md`** (issue #679) — the App itself:
   webhook receiver, `validateConfig()`, deploy-target ADR (Vercel Functions).
   Shipped. Nothing here changes that mechanism — Sentinel still validates
   `holocron.config.ts` the same way; this spec is about what Sentinel does

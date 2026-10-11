@@ -1,12 +1,12 @@
 ---
 id: ADR-0006
 title: "Auto-broadcast wiki navbar sync on push"
-status: proposed
+status: accepted
 date: 2026-09-05
 owners: []
 specs: []
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/518
 supersedes: []
 superseded-by: []
 tags: [wiki, fern, sync, automation, ci]
@@ -14,7 +14,7 @@ tags: [wiki, fern, sync, automation, ci]
 
 # Auto-broadcast wiki navbar sync on push
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-05
 
 ## Context and Problem Statement
@@ -113,6 +113,13 @@ Add one step at the end of the reusable `sync.yml` template
     GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
 ```
 
-After merging the template change, run `holocron sync-github` to push the
+After merging the template change, run `holocron sync github` to push the
 updated `sync.yml` to all secondary repos (or let the existing
 `sync-github.yml` CI do it on the next merge to `main`).
+
+> **As built:** the step lives in `packages/astromech/src/templates/reusable/platform.repoSync.yml`
+> (the `sync.yml` template moved there in the astromech extraction, epic #581,
+> after this ADR was written). The broadcast target renamed from
+> `sync-broadcast.yml` to `sync-dispatch.yml`, and the `if:` guard also checks
+> `inputs.steps` so a scoped `repo sync` run doesn't broadcast when `wiki`
+> wasn't part of what it synced.

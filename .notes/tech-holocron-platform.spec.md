@@ -397,7 +397,7 @@ deciding _on its own, from a webhook event_ to invoke either — not the
 underlying capability. Full list, kept as one running backlog: #674.
 
 **Open, not yet decided:** superseded by the dedicated workstream spec,
-`.notes/tech-sentinel-v1.spec.md` — package location and secrets storage are
+`docs/wiki/specifications/tech-sentinel-v1.spec.md` — package location and secrets storage are
 resolved there (`packages/sentinel`, `@theholocron/sentinel`, the existing
 `vault` capability); deploy target (Vercel vs. Cloudflare Workers) remains
 open.
@@ -480,7 +480,7 @@ open.
   a consequence of there being less for it to find.
 - ~~App deploy target (Vercel vs. Cloudflare Workers) — deferred to its own
   ADR ahead of Phase 4.~~ **Resolved**: Vercel Functions, per ADR-0011 and
-  `.notes/tech-sentinel-v1.spec.md`'s "Resolved — deploy target" section.
+  `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s "Resolved — deploy target" section.
   Phase B (GitHub App v1, #679) shipped and closed.
 - ~~Whether `astromech.requiredChecks()` is fully replaced by the `workflows`
   ruleset rule or continues to exist for checks that rule type can't

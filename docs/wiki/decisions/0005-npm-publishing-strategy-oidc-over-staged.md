@@ -6,7 +6,7 @@ date: 2026-09-05
 owners: []
 specs: []
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/516
 supersedes: []
 superseded-by: []
 tags: [release, npm, ci, oidc, security]

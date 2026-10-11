@@ -5,8 +5,9 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. Deploy target: Vercel Functions — see `.notes/tech-sentinel-v1.spec.md`
-> (repo root)'s "Resolved — deploy target" section for why (reversed from
+> own. Deploy target: Vercel Functions — see
+> `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s "Resolved — deploy
+> target" section for why (reversed from
 > an earlier Cloudflare Workers choice) and what's still open (a thin
 > per-platform adapter, plus Sentinel's own `holocron.config.ts`).
 
@@ -89,9 +90,9 @@ categories matter in v1, and what a normalized `SentinelEvent` looks
 like — stays in this function.
 
 A plain function over `{ body, headers, secret }` — no HTTP framework, no
-deploy target assumed, so it slots into whichever runtime
-`.notes/tech-sentinel-v1.spec.md`'s still-open deploy-target decision
-lands on. Throws `WebhookVerificationError` for a missing/wrong secret, a
+deploy target assumed, even though Vercel (ADR-0011,
+`docs/wiki/specifications/tech-sentinel-v1.spec.md`) is what it actually
+runs on. Throws `WebhookVerificationError` for a missing/wrong secret, a
 missing/malformed signature, a missing `X-GitHub-Event` header, or a body
 that isn't valid JSON. Returns one of:
 
@@ -258,8 +259,8 @@ Deploy target: **Vercel Functions**, not Cloudflare Workers — reversed
 mid-build once this handler surfaced why: `validateConfig()` needs a
 real filesystem and real dynamic `import()` (to execute a fetched
 `holocron.config.ts` as an actual module), neither of which Workers'
-V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
-— deploy target" section for the full account.
+V8-isolate model has. See `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s
+"Resolved — deploy target" section for the full account.
 
 ## Deploying
 

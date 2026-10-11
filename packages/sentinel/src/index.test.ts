@@ -11,7 +11,7 @@ const FULL_GRAPH_IMPORT_TIMEOUT_MS = 30_000;
 
 describe("@theholocron/sentinel", () => {
 	it(
-		"imports cleanly (scaffolding only — see .notes/tech-sentinel-v1.spec.md)",
+		"imports cleanly (scaffolding only — see docs/wiki/specifications/tech-sentinel-v1.spec.md)",
 		async () => {
 			await expect(import("./index.js")).resolves.toBeDefined();
 		},
