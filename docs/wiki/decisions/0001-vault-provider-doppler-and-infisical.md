@@ -58,7 +58,7 @@ plugin is retained but no longer the default.
 - Two plugin packages to maintain instead of one
 - SaaS dependency on both Doppler and Infisical cloud for the free tiers
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Doppler
 

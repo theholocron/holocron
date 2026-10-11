@@ -76,7 +76,7 @@ cases executing) a **same-repo** PR branch's content is no riskier than what
 GitHub Actions _already does today_ for every normal PR in this org — Actions
 checks out and runs PR-branch code with full secrets access by default for
 non-fork PRs, because GitHub's own trust model already treats same-repo PRs
-as trusted. D6's blanket ban is more conservative than this org's actual
+as trusted. D6's blanket ban is more cautious than this org's actual
 threat model calls for.
 
 **What doesn't change**: a GitHub App installation token is a real
@@ -250,8 +250,8 @@ wasn't visible when it was written: Vercel's Active-CPU billing is driven
 by exactly the work Bucket 1 keeps centralized in Sentinel (real
 `ESLint.Linter.verify()`, markdownlint, actionlint's WASM run, on every PR
 org-wide). Finishing this spec as scoped — more tasks moving _into_
-Sentinel's own execution over time — makes that cost driver bigger, not
-smaller. "Sentinel as centralized CI runner" and "Sentinel's hosting cost
+Sentinel's own execution over time — grows that cost driver, not
+shrinks it. "Sentinel as centralized CI runner" and "Sentinel's hosting cost
 needs to come down" pull in opposite directions as currently designed.
 
 **Open question this raises, not yet decided**: should Bucket 1 _also_

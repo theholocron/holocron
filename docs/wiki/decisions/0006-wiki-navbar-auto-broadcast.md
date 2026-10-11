@@ -65,19 +65,19 @@ from re-broadcasting.
   discovery (e.g. a Fern version bump), it still triggers the broadcast —
   harmless but slightly noisy.
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Option A — Event-driven dispatch
 
 - Good, because propagation is instant — no drift window.
 - Good, because no new infrastructure (cron, separate workflow).
-- Good, because the loop guard is simple and verifiable.
+- Good, because the loop guard can be verified by inspection.
 - Bad, because any `fern/docs.yml` change on `push` triggers the broadcast,
   not only changes caused by new wiki discovery.
 
 ### Option B — Scheduled broadcast
 
-- Good, because it is simple — one new `schedule:` trigger in
+- Good, because it is minimal — one new `schedule:` trigger in
   `sync-broadcast.yml`.
 - Good, because it catches drift from any source (new repo, renamed repo, etc.).
 - Bad, because propagation lags by up to the schedule interval (hours/days).
@@ -92,7 +92,7 @@ from re-broadcasting.
 
 Add one step at the end of the reusable `sync.yml` template
 (`packages/cli/src/templates/index.ts`, `REUSABLE_WORKFLOWS` entry for
-`sync`). The step fires only when:
+`sync`). The step runs only when:
 
 1. `auto-commit` detected changes (`steps.auto-commit.outputs.changes-detected == 'true'`), and
 2. the triggering event was a `push` (not a `workflow_dispatch` from a prior broadcast).

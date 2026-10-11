@@ -172,12 +172,12 @@ would want to act on individually.
 ## Findings outside the PR's diff (holocron#906)
 
 GitHub only accepts a review comment on a line that is part of the PR's
-diff, and a single out-of-diff comment makes it reject the **whole**
+diff, and a single out-of-diff comment makes GitHub discard the **whole**
 review with a 422. Errors on unchanged lines of a changed file are
 common. actionlint (#904, which joined eslint and markdownlint on this
 mechanism) reports a `needs:` mistake at the job key, and any rule can
-flag a line next to the edit. When the review was rejected, the check
-run still failed, but the inline signal was lost entirely.
+flag a line next to the edit. When the review was discarded, the check
+run still came back red, but the inline signal was lost entirely.
 
 `postErrorReview()` now fetches the PR's files and splits errors against
 each file's unified-diff `patch` hunks (`commentableLines()`: every

@@ -19,7 +19,7 @@ Workstream spec under the [Holocron Platform epic](https://github.com/theholocro
 watches, validates, and reports, never acting on its own, which is exactly
 what this App does (v1 scope, below). "GitHub App" stays as GitHub's own
 platform term for the underlying integration type; it isn't renamed,
-just the thing we're building on top of it.
+only the thing we're building on top of it.
 
 ## Scope — in for v1
 
@@ -39,9 +39,9 @@ The App autonomously **triggering** autofix PRs or PR comments on webhook
 events, and dashboards. This does not remove anything that exists today —
 `holocron sync-github --pr` already opens autofix PRs (the CLI-driven
 mechanism used for the fleet-wide fixes this org has already shipped), and
-`Issues.comment()` already exists as a capability primitive
-(`packages/holocron-plugin-github/src/capabilities/issues.ts`), just not
-wired into a live workflow yet. What's deferred is the App deciding **on its
+`Issues.comment()` already exists as a capability building block
+(`packages/holocron-plugin-github/src/capabilities/issues.ts`), not yet
+wired into a live workflow. What's deferred is the App deciding **on its
 own, from a webhook event**, to invoke either — not the underlying
 capability. Full list, kept as one running backlog: #674.
 
@@ -83,11 +83,11 @@ capability. Full list, kept as one running backlog: #674.
   (Cloudflare Workers) — whichever deploy target below ends up hosting this,
   the mechanism is already built, not new work. No new secrets
   infrastructure needed; this was never actually an open question once
-  framed as "this package's own secrets," not "a special App-only path."
+  framed as "this package's own secrets," not "a dedicated App-only path."
 
 ## Resolved — deploy target: Vercel Functions (reversed from Cloudflare Workers)
 
-Full account, decision drivers, and pros/cons:
+Full account, decision drivers, and trade-offs:
 `docs/wiki/decisions/0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md`
 (ADR-0011). This section carries the same narrative inline for the spec's
 own flow — keep both in sync.
@@ -98,7 +98,7 @@ secret-binding support (`clients` repo, #342), GitHub App authentication
 (`clients` repo, #343 — Web Crypto only, so it'd run unchanged on
 Workers or Node either way), and a `Workers.deployScript()` capability
 extension (`packages/cli` + `holocron-plugin-cloudflare`, #729) for
-deploying an arbitrary script, not just the existing wiki reverse-proxy.
+deploying an arbitrary script, not only the existing wiki reverse-proxy.
 
 **Reversed once `packages/sentinel/src/handler.ts` actually got built**,
 targeting the real blocker: `validateConfig()` fetches a repo's
@@ -129,10 +129,10 @@ duplication cleanup #729 also did are legitimate, general-purpose
 capability surface for `holocron-plugin-cloudflare` regardless of
 Sentinel's own deploy target (the wiki proxy already used the module;
 future work — this org's or `rando`'s — can use `deployScript()` for any
-other Worker). It's just not what Sentinel itself deploys through.
+other Worker). It's only not what Sentinel itself deploys through.
 
 **Vercel's `Deployment` capability needs the same shape of extension**
-`Workers` just got — it currently models a framework-aware project
+`Workers` already got — it currently models a framework-aware project
 (docs/app deployments), not "deploy one serverless function." Not yet
 started; tracked as its own PR-stack item below, mirroring the Workers
 work rather than repeating its research from scratch.
@@ -158,9 +158,9 @@ shipped, in what order.
 
 - [x] Scaffold `packages/sentinel` (`@theholocron/sentinel`): package.json,
       tsconfig, empty webhook-receiver entry point — no deploy target wired
-      yet, just the package existing and typechecking/building in the
+      yet, only the package existing and typechecking/building in the
       workspace (#718). Its own `holocron.config.ts` deferred to the deploy
-      wiring step below — premature to wire a `vault`/`deployment` provider
+      wiring step below — too early to wire a `vault`/`deployment` provider
       before the deploy target is chosen.
 - [x] Schema validation: `validateConfig()` fetches `holocron.config.*`
       (TS-first probe order, matching `datapad`) via `client.git.getContents()`
@@ -229,7 +229,7 @@ shipped, in what order.
       present" (success) or "missing: Y" (failure). D8: "missing" comes
       from a new `missingCapabilities()` sibling to `@theholocron/cli`'s
       `deriveCompliance()` — same `REQUIRED_BASELINE` table, returning
-      which entries are absent rather than just whether any are, so _why_
+      which entries are absent rather than only whether any are, so _why_
       can never drift from _whether_. The check's display name stays
       `"Sentinel / Capability Compliance"` (human-readable "App / Report",
       matching `CodeQL`/`Devin Review` — externally-posted checks with no
@@ -270,7 +270,7 @@ shipped, in what order.
 - [x] Deploy-target reversal: Vercel Functions, not Cloudflare Workers —
       see "Resolved — deploy target" above for why. The Cloudflare
       `deployScript()` work above stands regardless — general
-      infrastructure, just not what Sentinel itself deploys through.
+      infrastructure, only not what Sentinel itself deploys through.
 - [x] Sentinel's webhook-handling core (`src/handler.ts`,
       `handleWebhookRequest(request, env)`): wires `parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun` into a
@@ -306,7 +306,7 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       and result shapes (`DeployFunctionResult` vs `DeploymentRecord`)
       genuinely differ — wired to `--files <dir>` on the existing
       `deploy` command, `.conflicts()`-paired with the `branch`
-      positional. Errors clearly when the configured provider has no
+      positional. Errors plainly when the configured provider has no
       `deployFunction` (optional capability method).
 - [x] Sentinel's own `holocron.config.ts`
       (`packages/sentinel/holocron.config.ts`) — wires `deployment`
@@ -342,7 +342,7 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       because `validateConfig()`'s TS-loading goes through `tsx`'s
       `register()` — a genuine runtime module-loader-hook API that
       can't be bundled regardless of approach — so _some_ install step
-      was unavoidable either way; simplest to just let Vercel install
+      was unavoidable either way; simplest to let Vercel install
       normally rather than build a partial-bundle-plus-vendored-tsx
       hybrid for a smaller but still-nonzero win. Also fixed a real bug
       found in the process: `deploy --files`'s default file-walker

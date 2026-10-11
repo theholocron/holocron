@@ -68,7 +68,7 @@ The full precedence order for every plugin:
 - Requires `@napi-rs/keyring` — Rust-based N-API prebuilts, one extra native dependency
 - Keyring availability varies by OS (macOS Keychain, Linux Secret Service, Windows Credential Manager)
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Shell out to vendor CLI
 

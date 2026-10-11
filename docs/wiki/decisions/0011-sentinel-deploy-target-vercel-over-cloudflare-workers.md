@@ -24,7 +24,7 @@ Accepted
 Sentinel (#679, epic #672) is a webhook receiver: GitHub delivers an event,
 Sentinel has to respond inside GitHub's ~10s webhook timeout. That response
 includes `validateConfig()` — fetching a repo's `holocron.config.*` over the
-GitHub API and **executing it as a real module**, not just parsing it, so a
+GitHub API and **executing it as a real module**, not only parsing it, so a
 config doing `import { defineConfig } from "@theholocron/cli"` (the CLI's
 own documented pattern, D8 in the epic spec: Sentinel must run the exact
 same resolution path a developer or CI job uses, never a bespoke
@@ -55,7 +55,7 @@ Built out for Workers before the gap surfaced: Cloudflare Workers
 secret-binding support (`clients` repo, #342), GitHub App authentication
 (`clients` repo, #343), and a `Workers.deployScript()` capability extension
 (`packages/cli` + `holocron-plugin-cloudflare`, #729) for deploying an
-arbitrary script, not just the existing wiki reverse-proxy.
+arbitrary script, not only the existing wiki reverse-proxy.
 
 ### The blocker
 
@@ -107,10 +107,10 @@ handler.
   use — but it was built against an assumption that didn't hold for this
   consumer.
 - `Deployment` (Vercel) needs the same shape of capability extension
-  `Workers.deployScript()` just did — not yet started, tracked as its own
+  `Workers.deployScript()` already got — not yet started, tracked as its own
   PR-stack item on #679.
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Cloudflare Workers
 

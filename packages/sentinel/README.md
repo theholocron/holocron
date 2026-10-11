@@ -304,9 +304,9 @@ ago, and Vercel's `npm install` runs the instant the deploy starts (a
 hand-dispatched deploy once raced the release and lost by five seconds).
 
 Because it is its own job it is its own check in the run, with its own log, and
-**Re-run failed jobs** re-runs only the deploy, never the release. A failed
+`Re-run failed jobs` re-runs only the deploy, never the release. A broken
 deploy (a missing Vercel token, a Vercel build error, npm not serving the
-versions in time) fails that job and nothing else: the release is already
+versions in time) marks that job red and nothing else: the release is already
 published and stays so. `VERCEL_TOKEN` reaches only the Deploy job, never the
 release job, and only because this repo opts in: `astromech.config.ts` sets
 `deploy-on-release: true` on its `delivery.publish` task. A second app needs
@@ -388,7 +388,7 @@ isn't in this package's `dependencies` (`scripts/bundle-externals.mjs`).
 `engines.node` is rewritten from this package's own range
 to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
 `scripts/vercel-engines.mjs`): Vercel picks the function's Node version
-from it, and rejects an open range with `invalid_version_value`
+from it, and refuses an open range with `invalid_version_value`
 (holocron#911).
 
 ## GitHub App registration (manual, one-time)

@@ -69,7 +69,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     otherwise. A `workspace` command calls
     `assertPluginsResolvable(loader, name)` right after `loader.load()`;
     it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
-    `USER_FACING_ERRORS` catch) only when every provider failed with a
+    `USER_FACING_ERRORS` catch) only when every provider errored with a
     missing-package error — the global-install case.
   - **Interactive fallback** (`packages/cli/src/interactive-menu.ts`, spec
     `tool-interactive-cli-menu`, #438). A command with a required positional

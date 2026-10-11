@@ -27,7 +27,7 @@ actions — on every PR/push across every repo in the org. That's genuine
 CPU-bound work (unlike a pure I/O-bound webhook relay), and it scales with
 org-wide PR volume.
 
-Vercel Pro's Spend Management (confirmed available on Pro, not
+Spend Management on Vercel's Pro plan (confirmed available on Pro, not
 Enterprise-only, contrary to an earlier assumption — see
 `docs/spend-management`) can hard-cap spend with a "pause production
 deployments" action, checked every few minutes. That removes the
