@@ -6,7 +6,7 @@ date: 2026-09-05
 owners: []
 specs: []
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/516
 supersedes: []
 superseded-by: []
 tags: [release, npm, ci, oidc, security]
@@ -70,7 +70,7 @@ automation token as a drop-in fix that avoids OIDC entirely.
 - No human approval gate before packages go live (acceptable for a personal
   OSS project; less acceptable if the project grows)
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Keep OIDC Trusted Publishers (status quo)
 

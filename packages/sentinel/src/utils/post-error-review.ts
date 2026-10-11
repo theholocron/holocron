@@ -1,6 +1,6 @@
 /**
  * Posts error-severity findings as a PR review instead of (only) a check-run
- * annotation (holocron#860, `.notes/tech-sentinel-review-comments.spec.md`)
+ * annotation (holocron#860, `docs/wiki/specifications/tech-sentinel-review-comments.spec.md`)
  * — shared, identical mechanism for eslint, markdownlint and actionlint, the
  * Bucket 1 checks with a real per-finding severity axis to split on.
  *

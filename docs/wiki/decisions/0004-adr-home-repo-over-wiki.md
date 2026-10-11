@@ -8,7 +8,7 @@ specs:
   - docs/wiki/specifications/docs-architecture.spec.md
   - docs/wiki/specifications/knowledge-system.spec.md
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [adr, documentation, knowledge-system]
@@ -19,13 +19,19 @@ tags: [adr, documentation, knowledge-system]
 - Status: accepted
 - Date: 2026-08-28
 
+> This is the ADR that establishes the Git-based ADR process itself, so it
+> predates its own convention by definition — it was authored on the GitHub
+> Wiki and bulk-migrated into this repo by #490. The linked discussion is
+> that migration, not the original decision conversation; no single PR
+> captures the latter.
+
 ## Context and Problem Statement
 
 The engineering knowledge system spec defines a canonical layout for ADRs
 and other documentation. A recurring question across teams: should ADRs
 live in the repository alongside code, or in the GitHub Wiki as standalone
-institutional knowledge? Both have valid arguments and the choice is not
-obvious.
+institutional knowledge? Both have valid arguments and the choice isn't
+settled on its own.
 
 ## Decision Drivers
 
@@ -44,7 +50,7 @@ obvious.
 Chosen option: **Repository at `docs/decisions/`**, because the PR
 review requirement is the deciding factor: an ADR must be discussed and
 accepted before it is committed, which maps naturally to the PR workflow.
-The Wiki's separate Git history makes that review harder to enforce.
+The Wiki's separate Git history has none of the PR mechanics a repo file gets for free, making that review far more difficult to enforce.
 
 ### Positive Consequences
 
@@ -59,7 +65,7 @@ The Wiki's separate Git history makes that review harder to enforce.
 - ADRs are tied to the repo's default branch — consulting a specific version requires checking out a commit
 - GitHub Wiki offers a nicer browsing UX than raw Markdown on GitHub.com
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### GitHub Wiki
 

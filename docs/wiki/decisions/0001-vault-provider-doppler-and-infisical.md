@@ -7,7 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/tech-vault-choice.spec.md
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [vault, plugins, secrets]
@@ -17,6 +17,11 @@ tags: [vault, plugins, secrets]
 
 - Status: accepted
 - Date: 2026-08-12
+
+> This ADR predates the Git-based ADR process (ADR-0004) itself — it
+> was authored on the GitHub Wiki and bulk-migrated into this repo by
+> #490. The linked discussion is that migration, not the original
+> decision conversation; no single PR captures the latter.
 
 ## Context and Problem Statement
 
@@ -58,7 +63,7 @@ plugin is retained but no longer the default.
 - Two plugin packages to maintain instead of one
 - SaaS dependency on both Doppler and Infisical cloud for the free tiers
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Doppler
 

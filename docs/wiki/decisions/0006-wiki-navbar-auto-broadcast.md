@@ -1,12 +1,12 @@
 ---
 id: ADR-0006
 title: "Auto-broadcast wiki navbar sync on push"
-status: proposed
+status: accepted
 date: 2026-09-05
 owners: []
 specs: []
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/518
 supersedes: []
 superseded-by: []
 tags: [wiki, fern, sync, automation, ci]
@@ -14,7 +14,7 @@ tags: [wiki, fern, sync, automation, ci]
 
 # Auto-broadcast wiki navbar sync on push
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-05
 
 ## Context and Problem Statement
@@ -65,19 +65,19 @@ from re-broadcasting.
   discovery (e.g. a Fern version bump), it still triggers the broadcast —
   harmless but slightly noisy.
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Option A — Event-driven dispatch
 
 - Good, because propagation is instant — no drift window.
 - Good, because no new infrastructure (cron, separate workflow).
-- Good, because the loop guard is simple and verifiable.
+- Good, because the loop guard can be verified by inspection.
 - Bad, because any `fern/docs.yml` change on `push` triggers the broadcast,
   not only changes caused by new wiki discovery.
 
 ### Option B — Scheduled broadcast
 
-- Good, because it is simple — one new `schedule:` trigger in
+- Good, because it is minimal — one new `schedule:` trigger in
   `sync-broadcast.yml`.
 - Good, because it catches drift from any source (new repo, renamed repo, etc.).
 - Bad, because propagation lags by up to the schedule interval (hours/days).
@@ -92,7 +92,7 @@ from re-broadcasting.
 
 Add one step at the end of the reusable `sync.yml` template
 (`packages/cli/src/templates/index.ts`, `REUSABLE_WORKFLOWS` entry for
-`sync`). The step fires only when:
+`sync`). The step runs only when:
 
 1. `auto-commit` detected changes (`steps.auto-commit.outputs.changes-detected == 'true'`), and
 2. the triggering event was a `push` (not a `workflow_dispatch` from a prior broadcast).
@@ -113,6 +113,13 @@ Add one step at the end of the reusable `sync.yml` template
     GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
 ```
 
-After merging the template change, run `holocron sync-github` to push the
+After merging the template change, run `holocron sync github` to push the
 updated `sync.yml` to all secondary repos (or let the existing
 `sync-github.yml` CI do it on the next merge to `main`).
+
+> **As built:** the step lives in `packages/astromech/src/templates/reusable/platform.repoSync.yml`
+> (the `sync.yml` template moved there in the astromech extraction, epic #581,
+> after this ADR was written). The broadcast target renamed from
+> `sync-broadcast.yml` to `sync-dispatch.yml`, and the `if:` guard also checks
+> `inputs.steps` so a scoped `repo sync` run doesn't broadcast when `wiki`
+> wasn't part of what it synced.

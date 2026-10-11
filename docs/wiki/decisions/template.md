@@ -45,7 +45,7 @@ Chosen option: **[Option A]**, because [one-sentence justification].
 
 - …
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### [Option A]
 

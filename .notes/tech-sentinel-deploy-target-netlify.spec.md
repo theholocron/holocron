@@ -1,7 +1,7 @@
 ---
 status: draft
 issue: theholocron/holocron#940
-blocked-by: []
+blocked-by: [theholocron/holocron#945]
 related:
   - theholocron/holocron#679
 ---
@@ -27,7 +27,7 @@ actions — on every PR/push across every repo in the org. That's genuine
 CPU-bound work (unlike a pure I/O-bound webhook relay), and it scales with
 org-wide PR volume.
 
-Vercel Pro's Spend Management (confirmed available on Pro, not
+Spend Management on Vercel's Pro plan (confirmed available on Pro, not
 Enterprise-only, contrary to an earlier assumption — see
 `docs/spend-management`) can hard-cap spend with a "pause production
 deployments" action, checked every few minutes. That removes the
@@ -292,7 +292,7 @@ If the spike confirms the runtime assumption and the migration lands, this
 spec's conclusion should get recorded as a new ADR (not an edit to
 ADR-0011, which stays accurate as a historical record of the
 Vercel-over-Workers decision) — mirroring how ADR-0011 itself followed
-`.notes/tech-sentinel-v1.spec.md`. If the spike fails, this spec moves to
+`docs/wiki/specifications/tech-sentinel-v1.spec.md`. If the spike fails, this spec moves to
 `superseded` with the failure reason recorded, and the fallback (AWS
 Lambda, or staying on Vercel Pro) gets its own follow-up issue.
 

@@ -5,8 +5,9 @@ Holocron's minimal GitHub App — webhook receiver, default-branch-only
 resolution run.
 
 > A sentinel droid: it watches, validates, and reports — never acts on its
-> own. Deploy target: Vercel Functions — see `.notes/tech-sentinel-v1.spec.md`
-> (repo root)'s "Resolved — deploy target" section for why (reversed from
+> own. Deploy target: Vercel Functions — see
+> `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s "Resolved — deploy
+> target" section for why (reversed from
 > an earlier Cloudflare Workers choice) and what's still open (a thin
 > per-platform adapter, plus Sentinel's own `holocron.config.ts`).
 
@@ -89,9 +90,9 @@ categories matter in v1, and what a normalized `SentinelEvent` looks
 like — stays in this function.
 
 A plain function over `{ body, headers, secret }` — no HTTP framework, no
-deploy target assumed, so it slots into whichever runtime
-`.notes/tech-sentinel-v1.spec.md`'s still-open deploy-target decision
-lands on. Throws `WebhookVerificationError` for a missing/wrong secret, a
+deploy target assumed, even though Vercel (ADR-0011,
+`docs/wiki/specifications/tech-sentinel-v1.spec.md`) is what it actually
+runs on. Throws `WebhookVerificationError` for a missing/wrong secret, a
 missing/malformed signature, a missing `X-GitHub-Event` header, or a body
 that isn't valid JSON. Returns one of:
 
@@ -258,8 +259,8 @@ Deploy target: **Vercel Functions**, not Cloudflare Workers — reversed
 mid-build once this handler surfaced why: `validateConfig()` needs a
 real filesystem and real dynamic `import()` (to execute a fetched
 `holocron.config.ts` as an actual module), neither of which Workers'
-V8-isolate model has. See `.notes/tech-sentinel-v1.spec.md`'s "Resolved
-— deploy target" section for the full account.
+V8-isolate model has. See `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s
+"Resolved — deploy target" section for the full account.
 
 ## Deploying
 
@@ -303,9 +304,9 @@ ago, and Vercel's `npm install` runs the instant the deploy starts (a
 hand-dispatched deploy once raced the release and lost by five seconds).
 
 Because it is its own job it is its own check in the run, with its own log, and
-**Re-run failed jobs** re-runs only the deploy, never the release. A failed
+`Re-run failed jobs` re-runs only the deploy, never the release. A broken
 deploy (a missing Vercel token, a Vercel build error, npm not serving the
-versions in time) fails that job and nothing else: the release is already
+versions in time) marks that job red and nothing else: the release is already
 published and stays so. `VERCEL_TOKEN` reaches only the Deploy job, never the
 release job, and only because this repo opts in: `astromech.config.ts` sets
 `deploy-on-release: true` on its `delivery.publish` task. A second app needs
@@ -387,7 +388,7 @@ isn't in this package's `dependencies` (`scripts/bundle-externals.mjs`).
 `engines.node` is rewritten from this package's own range
 to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
 `scripts/vercel-engines.mjs`): Vercel picks the function's Node version
-from it, and rejects an open range with `invalid_version_value`
+from it, and refuses an open range with `invalid_version_value`
 (holocron#911).
 
 ## GitHub App registration (manual, one-time)

@@ -1,12 +1,12 @@
 ---
 id: ADR-0012
 title: "Axiom dataset scoping: execution context over blanket local/CI"
-status: proposed
+status: accepted
 date: 2026-10-08
 owners: []
 specs: []
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/967
 supersedes: []
 superseded-by: []
 tags: [logging, observability, axiom, execution-context]
@@ -16,7 +16,7 @@ tags: [logging, observability, axiom, execution-context]
 
 ## Status
 
-Proposed
+Accepted — implemented in #968.
 
 ## Context
 
