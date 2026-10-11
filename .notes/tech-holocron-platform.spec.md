@@ -121,7 +121,7 @@ accepts an explicit external config path. Verified today:
 --config`, `knip --config` (`-c`), `commitlint --config` (`-g`),
 `semantic-release --extends` (`-e`). The target:
 
-```
+```text
 eslint --config <resolved path> .
 prettier --config <resolved path> --check .
 vitest run --config <resolved path>

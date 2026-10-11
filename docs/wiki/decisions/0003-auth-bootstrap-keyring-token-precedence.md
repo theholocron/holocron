@@ -48,7 +48,7 @@ gracefully to env vars or flags in CI.
 
 The full precedence order for every plugin:
 
-```
+```text
 1. --token             CLI flag (per-command override)
 2. HOLOCRON_<X>_TOKEN  holocron-namespaced env var
 3. <VENDOR>_TOKEN      vendor's own env var
