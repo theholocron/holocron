@@ -9,10 +9,10 @@ Holocron uses one Personal Access Token per capability group. Each token carries
 
 For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.), the chain is:
 
+```text
 --token flag
-→ HOLOCRON\_<FEATURE>\_TOKEN (feature-specific env var)
+→ HOLOCRON_<FEATURE>_TOKEN (feature-specific env var)
 → keyring("github.<feature>") (stored via `holocron auth set`)
-
 ```
 
 No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure.
@@ -21,6 +21,7 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 
 For every other provider plugin (Axiom, Cloudflare, Sentry, Slack, Vercel, etc.), tokens are resolved in this order:
 
+```text
 --token flag
   → HOLOCRON_<PROVIDER>_TOKEN   (e.g. HOLOCRON_CLOUDFLARE_TOKEN)
   → <VENDOR>_TOKEN              (e.g. CLOUDFLARE_API_TOKEN)
