@@ -16,7 +16,7 @@ related:
 # Holocron Platform — intent vocabulary, custom-properties sync, minimal GitHub App
 
 > Design conversation (ChatGPT, shared transcript) that seeded this spec:
-> https://chatgpt.com/share/6aa70455-d25c-83e8-8c81-f2206a6d8a43
+> <https://chatgpt.com/share/6aa70455-d25c-83e8-8c81-f2206a6d8a43>
 
 ## Problem
 
