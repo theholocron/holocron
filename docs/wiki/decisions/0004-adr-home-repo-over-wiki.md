@@ -8,7 +8,7 @@ specs:
   - docs/wiki/specifications/docs-architecture.spec.md
   - docs/wiki/specifications/knowledge-system.spec.md
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [adr, documentation, knowledge-system]
@@ -18,6 +18,12 @@ tags: [adr, documentation, knowledge-system]
 
 - Status: accepted
 - Date: 2026-08-28
+
+> This is the ADR that establishes the Git-based ADR process itself, so it
+> predates its own convention by definition — it was authored on the GitHub
+> Wiki and bulk-migrated into this repo by #490. The linked discussion is
+> that migration, not the original decision conversation; no single PR
+> captures the latter.
 
 ## Context and Problem Statement
 

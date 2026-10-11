@@ -5,9 +5,9 @@ status: accepted
 date: 2026-08-27
 owners: []
 specs:
-  - .notes/tool-interactive-cli-menu.spec.md
+  - docs/wiki/specifications/tool-interactive-cli-menu.spec.md
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [cli, interactive-menu, architecture]
@@ -17,6 +17,11 @@ tags: [cli, interactive-menu, architecture]
 
 - Status: accepted
 - Date: 2026-08-27
+
+> This ADR predates the Git-based ADR process (ADR-0004) itself — it
+> was authored on the GitHub Wiki and bulk-migrated into this repo by
+> #490. The linked discussion is that migration, not the original
+> decision conversation; no single PR captures the latter.
 
 ## Context and Problem Statement
 
