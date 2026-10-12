@@ -84,7 +84,7 @@ day.
 
 [`#678`](https://github.com/theholocron/holocron/issues/678) (closed,
 `tech-ruleset-workflows-rule.spec.md`) investigated replacing context-string
-matching with GitHub's `workflows` ruleset rule type specifically to kill this
+matching with GitHub's `workflows` ruleset rule type specifically to eliminate this
 failure mode — the investigation concluded without that migration landing
 (the spec file is still `status: draft` in `.notes/`, not moved to
 `docs/wiki/specifications/`, which looks like drift worth a follow-up but is
