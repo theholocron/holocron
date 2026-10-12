@@ -1,3 +1,13 @@
+## [1.11.0](https://github.com/theholocron/skills/compare/v1.10.1...v1.11.0) (2026-10-12)
+
+### Features
+
+* register 5 more Vercel ecosystem skills ([#105](https://github.com/theholocron/skills/issues/105)) ([bd84e99](https://github.com/theholocron/skills/commit/bd84e9907bdf235f4658ebfab185acb389df4a9d)), closes [#101](https://github.com/theholocron/skills/issues/101)
+
+### Documentation
+
+* **commit-standards:** 📚️ add validate-before-committing workflow ([#101](https://github.com/theholocron/skills/issues/101)) ([dfd2286](https://github.com/theholocron/skills/commit/dfd22860e64fe1bb9c48890143d33ed333945884))
+
 ## [1.10.1](https://github.com/theholocron/skills/compare/v1.10.0...v1.10.1) (2026-09-15)
 
 ### Bug Fixes
