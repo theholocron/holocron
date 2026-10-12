@@ -156,6 +156,7 @@ vault (1Password)
   ├─ secrets       (GitHub Actions)
   ├─ deployment    (Vercel env vars)
   └─ local .env    (for dev)
+
 ```
 
 ## Repo layout (v2)
