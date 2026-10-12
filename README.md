@@ -61,7 +61,7 @@ export default defineConfig({
 });
 ```
 
-# 3. Store fine-grained PATs in the OS keyring (once per machine)
+### 3. Store fine-grained PATs in the OS keyring (once per machine)
 
 See docs/tokens.md for the full list of feature tokens and required scopes.
 
