@@ -74,8 +74,7 @@ monitoring: [
 
 ## Status
 
-**`v2.0.0-alpha.1`** — ships with an inline `createRestClient`-based
-REST wrapper (`src/rest.ts`). Once `@theholocron/checkly-client` is
-published, `rest.ts` migrates to re-export from it (two-phase pattern,
-see `.claude/skills/holocron-skill-plugin/`) — endpoint shapes won't
-change, only where the wrapper's implementation lives.
+**`v2.0.0-alpha.1`** — `src/rest.ts` re-exports `@theholocron/checkly-client`
+directly (two-phase plugin pattern, see `.claude/skills/holocron-skill-plugin/`
+— shipped with an inline wrapper first, migrated once the typed client
+published).

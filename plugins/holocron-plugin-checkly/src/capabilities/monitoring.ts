@@ -12,28 +12,16 @@
 
 import type { Monitoring, MonitoringCheck, MonitoringCheckInput } from "@theholocron/cli";
 
-import type { ChecklyRestClient } from "../rest.js";
+import type { ApiCheck, ApiCheckInput, AssertionComparison, AssertionSource, ChecklyClient } from "../rest.js";
 
-interface ChecklyAssertion {
-	source: "STATUS_CODE" | "RESPONSE_TIME" | "TEXT_BODY" | "HEADERS";
-	comparison: "EQUALS" | "NOT_EQUALS" | "CONTAINS" | "NOT_CONTAINS" | "GREATER_THAN" | "LESS_THAN";
-	property?: string;
-	target?: string;
-}
-
-interface ChecklyApiCheck {
-	id: string;
-	name: string;
-}
-
-const SOURCE_MAP: Record<string, ChecklyAssertion["source"]> = {
+const SOURCE_MAP: Record<string, AssertionSource> = {
 	status_code: "STATUS_CODE",
 	response_time: "RESPONSE_TIME",
 	body: "TEXT_BODY",
 	header: "HEADERS",
 };
 
-const COMPARISON_MAP: Record<string, ChecklyAssertion["comparison"]> = {
+const COMPARISON_MAP: Record<string, AssertionComparison> = {
 	equals: "EQUALS",
 	not_equals: "NOT_EQUALS",
 	contains: "CONTAINS",
@@ -42,7 +30,7 @@ const COMPARISON_MAP: Record<string, ChecklyAssertion["comparison"]> = {
 	less_than: "LESS_THAN",
 };
 
-function toChecklyPayload(input: MonitoringCheckInput) {
+function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 	return {
 		name: input.name,
 		...(input.frequency !== undefined ? { frequency: input.frequency } : {}),
@@ -50,7 +38,7 @@ function toChecklyPayload(input: MonitoringCheckInput) {
 		request: {
 			url: input.url,
 			method: input.method ?? "GET",
-			assertions: (input.assertions ?? []).map((a): ChecklyAssertion => ({
+			assertions: (input.assertions ?? []).map((a) => ({
 				source: SOURCE_MAP[a.source]!,
 				comparison: COMPARISON_MAP[a.comparison]!,
 				...(a.property !== undefined ? { property: a.property } : {}),
@@ -70,7 +58,7 @@ export class ChecklyMonitoring implements Monitoring {
 	readonly checks: readonly MonitoringCheckInput[];
 
 	constructor(
-		private readonly rest: () => ChecklyRestClient,
+		private readonly client: () => ChecklyClient,
 		opts: ChecklyMonitoringOptions = {}
 	) {
 		this.checks = opts.checks ?? [];
@@ -78,7 +66,7 @@ export class ChecklyMonitoring implements Monitoring {
 
 	async whoami(): Promise<{ ok: boolean }> {
 		try {
-			await this.rest().request("/checks", { query: { limit: "1" } });
+			await this.client().checks.list({ limit: 1 });
 			return { ok: true };
 		} catch {
 			return { ok: false };
@@ -90,23 +78,17 @@ export class ChecklyMonitoring implements Monitoring {
 		const payload = toChecklyPayload(input);
 
 		if (existing) {
-			const updated = await this.rest().request<ChecklyApiCheck>(`/checks/api/${existing.id}`, {
-				method: "PUT",
-				body: payload,
-			});
+			const updated = await this.client().checks.update(existing.id, payload);
 			return { check: { id: updated.id, name: updated.name }, alreadyExists: true };
 		}
 
-		const created = await this.rest().request<ChecklyApiCheck>("/checks/api", {
-			method: "POST",
-			body: payload,
-		});
+		const created = await this.client().checks.create(payload);
 		return { check: { id: created.id, name: created.name }, alreadyExists: false };
 	}
 
 	/** Checkly's `search` param is a case-insensitive partial match — narrow to the exact name ourselves. */
-	private async findByExactName(name: string): Promise<ChecklyApiCheck | undefined> {
-		const candidates = await this.rest().request<ChecklyApiCheck[]>("/checks", { query: { search: name } });
+	private async findByExactName(name: string): Promise<ApiCheck | undefined> {
+		const candidates = await this.client().checks.list({ search: name });
 		return candidates.find((c) => c.name === name);
 	}
 }

@@ -136,9 +136,10 @@ endpoint needs.
   `locations`, default `frequency`/`tags`) aren't modeled 1:1 — only
   what one API check needs today. Revisit if browser checks, heartbeats,
   or multi-location tuning become necessary.
-- The inline REST wrapper (`src/rest.ts`) duplicates
-  `@theholocron/checkly-client`'s shape until that package publishes
-  and the plugin migrates to re-export from it.
+- The inline REST wrapper (`src/rest.ts`) duplicated
+  `@theholocron/checkly-client`'s shape until that package published —
+  resolved as of `@theholocron/checkly-client@1.40.0`; `rest.ts` now
+  re-exports from it directly.
 
 ## Trade-offs of the Options
 
@@ -158,8 +159,8 @@ endpoint needs.
   other vendor integration gets, and opens the door to future
   monitoring vendors via one shared capability shape.
 - Bad, because it's more code than the vendor's own CLI needed, and
-  ships with a temporary inline REST wrapper pending the typed
-  client's publish.
+  (at implementation time) shipped with a temporary inline REST
+  wrapper pending the typed client's publish.
 
 ### Do nothing
 
@@ -174,5 +175,5 @@ endpoint needs.
   creation, `accountId` fill-in)
 - PR: #997 (original file-based implementation, then evolved into this
   plugin on the same branch)
-- `theholocron/clients#393`/`#394` — `@theholocron/checkly-client`, the
-  typed client this plugin migrates to once published
+- `theholocron/clients#393`/`#394` — `@theholocron/checkly-client`,
+  published as `1.40.0`; the plugin now consumes it directly

@@ -38,7 +38,9 @@
     "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
+    "@theholocron/checkly-client": "catalog:clients",
     "@theholocron/cli": "workspace:*",
+    "@theholocron/http-client": "catalog:clients",
     "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/tsconfig": "catalog:configs",
     "@types/node": "catalog:",
@@ -51,6 +53,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@theholocron/checkly-client": "catalog:clients",
     "@theholocron/cli": "workspace:*",
     "@theholocron/misc-utils": "catalog:utils"
   },

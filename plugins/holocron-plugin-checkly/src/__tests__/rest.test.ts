@@ -1,39 +1,57 @@
 import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { createChecklyRestClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
+import { createChecklyClient } from "../rest.js";
 
-describe("createChecklyRestClient", () => {
+const DEFAULT_BASE_URL = "https://api.checklyhq.com/v1";
+
+describe("createChecklyClient", () => {
 	it("sends bearer + accept + x-checkly-account headers and returns the parsed body", async () => {
-		const stub = stubFetch([{ status: 200, body: { ok: true } }]);
-		const client = createChecklyRestClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
-		const res = await client.request<{ ok: boolean }>("/me");
-		expect(res.ok).toBe(true);
+		const stub = stubFetch([{ status: 200, body: [{ id: "c1", name: "demo" }] }]);
+		const client = createChecklyClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
+		const checks = await client.checks.list();
+		expect(checks).toEqual([{ id: "c1", name: "demo" }]);
+		expect(stub.calls[0]?.url).toBe(`${DEFAULT_BASE_URL}/checks`);
 		expect(stub.calls[0]?.headers["authorization"]).toBe("Bearer t");
 		expect(stub.calls[0]?.headers["accept"]).toBe("application/json");
 		expect(stub.calls[0]?.headers["x-checkly-account"]).toBe("acct-1");
 	});
 
-	it("serializes body as JSON and sets content-type when present", async () => {
-		const stub = stubFetch([{ status: 200, body: {} }]);
-		const client = createChecklyRestClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
-		await client.request<unknown>("/resource", { method: "POST", body: { name: "demo" } });
+	it("POSTs a JSON body to create a check", async () => {
+		const stub = stubFetch([{ status: 200, body: { id: "c2", name: "created" } }]);
+		const client = createChecklyClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
+		await client.checks.create({ name: "created", request: { url: "https://example.com", method: "GET" } });
 		expect(stub.calls[0]?.method).toBe("POST");
+		expect(stub.calls[0]?.url).toBe(`${DEFAULT_BASE_URL}/checks/api`);
 		expect(stub.calls[0]?.headers["content-type"]).toBe("application/json");
-		expect(stub.calls[0]?.body).toEqual({ name: "demo" });
+		expect(stub.calls[0]?.body).toMatchObject({ name: "created" });
 	});
 
-	it("returns undefined on 204", async () => {
-		const stub = stubFetch([{ status: 204 }]);
-		const client = createChecklyRestClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
-		expect(await client.request<unknown>("/whatever")).toBeUndefined();
+	it("PUTs a JSON body to update a check by id", async () => {
+		const stub = stubFetch([{ status: 200, body: { id: "c3", name: "updated" } }]);
+		const client = createChecklyClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
+		await client.checks.update("c3", { name: "updated", request: { url: "https://example.com", method: "GET" } });
+		expect(stub.calls[0]?.method).toBe("PUT");
+		expect(stub.calls[0]?.url).toBe(`${DEFAULT_BASE_URL}/checks/api/c3`);
+	});
+
+	it("honours a custom base URL", async () => {
+		const stub = stubFetch([{ status: 200, body: [] }]);
+		const client = createChecklyClient({
+			token: "t",
+			accountId: "acct-1",
+			baseUrl: "https://eu.api.checklyhq.com/v1",
+			fetch: stub.fetch,
+		});
+		await client.checks.list();
+		expect(stub.calls[0]?.url).toBe("https://eu.api.checklyhq.com/v1/checks");
 	});
 
 	it("throws ProviderApiError with the HTTP status on non-2xx", async () => {
 		const stub = stubFetch([{ status: 401, body: { messages: ["invalid"] } }]);
-		const client = createChecklyRestClient({ token: "bad", accountId: "acct-1", fetch: stub.fetch });
-		const err = await client.request<unknown>("/me").catch((e: unknown) => e);
+		const client = createChecklyClient({ token: "bad", accountId: "acct-1", fetch: stub.fetch });
+		const err = await client.checks.list().catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as ProviderApiError).status).toBe(401);
 	});
@@ -42,18 +60,9 @@ describe("createChecklyRestClient", () => {
 		const throwing: typeof fetch = async () => {
 			throw new TypeError("fetch failed");
 		};
-		const client = createChecklyRestClient({ token: "t", accountId: "acct-1", fetch: throwing });
-		const err = await client.request<unknown>("/me").catch((e: unknown) => e);
+		const client = createChecklyClient({ token: "t", accountId: "acct-1", fetch: throwing });
+		const err = await client.checks.list().catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as ProviderApiError).status).toBe(0);
-	});
-
-	it("trims trailing slashes from the base URL", () => {
-		const client = createChecklyRestClient({
-			token: "t",
-			accountId: "acct-1",
-			baseUrl: "https://api.checklyhq.com/v1//",
-		});
-		expect(client.baseUrl).toBe("https://api.checklyhq.com/v1");
 	});
 });

@@ -31,18 +31,32 @@ this check is reachability only.
 
 ### Packages
 
-- **`@theholocron/checkly-client`** (`theholocron/clients`, PR #394) —
-  typed REST client. Covers `checks.list/get/create/update/delete`
-  against Checkly's API-check endpoints only; browser checks,
-  heartbeats, and dashboards are out of scope until a real consumer
-  needs them. Not yet published to npm.
+- **`@theholocron/checkly-client`** (`theholocron/clients`, PR #394,
+  published as `1.40.0`) — typed REST client. Covers
+  `checks.list/get/create/update/delete` against Checkly's API-check
+  endpoints only; browser checks, heartbeats, and dashboards are out
+  of scope until a real consumer needs them.
 - **`@theholocron/holocron-plugin-checkly`** (`plugins/holocron-plugin-checkly`)
-  — implements the new `monitoring` capability. Ships with its own
-  inline `createRestClient`-based wrapper (`src/rest.ts`) rather than
-  depending on `checkly-client` directly — the two-phase plugin
-  pattern (ship with an inline wrapper, migrate once the typed client
-  publishes) avoids blocking the plugin on a cross-repo npm publish
-  that needs a human's 2FA for the first release.
+  — implements the new `monitoring` capability. Initially shipped with
+  its own inline `createRestClient`-based wrapper (`src/rest.ts`)
+  rather than depending on `checkly-client` directly — the two-phase
+  plugin pattern (ship with an inline wrapper, migrate once the typed
+  client publishes) avoided blocking the plugin on a cross-repo npm
+  publish that needed a human's 2FA for the first release. Now that
+  `1.40.0` is published, `src/rest.ts` is a pure re-export barrel from
+  `@theholocron/checkly-client` — `src/capabilities/monitoring.ts`
+  calls the typed `client.checks.list/create/update` methods directly
+  instead of raw `.request()` calls.
+
+  Migrating surfaced a real bug: `@theholocron/checkly-client`'s own
+  dependency on `@theholocron/http-client@^1.40.0` was stricter than
+  this workspace's exact-pinned `overrides.@theholocron/http-client`
+  (`1.39.0`), so pnpm resolved a **second** physical `http-client`
+  instance for it — the same `instanceof ProviderApiError` dual-module
+  hazard `pnpm-workspace.yaml`'s own override comment warns about, this
+  time triggered by a new client's publish rather than a version bump
+  of an existing one. Fixed by bumping the override (and the
+  `catalog:clients` entry) to `1.40.0`.
 
 ### The `monitoring` capability
 

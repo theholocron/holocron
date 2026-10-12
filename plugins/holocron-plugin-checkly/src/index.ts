@@ -10,7 +10,7 @@ import type { Monitoring, MonitoringCheckInput } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ChecklyMonitoring } from "./capabilities/monitoring.js";
-import { type ChecklyRestClient, createChecklyRestClient } from "./rest.js";
+import { type ChecklyClient, createChecklyClient } from "./rest.js";
 
 export interface ChecklyPluginOptions extends ResolveTokenInput {
 	/** Checkly account id — required on every request, not a secret (same status as Vercel's teamId). */
@@ -26,28 +26,28 @@ export interface ChecklyPluginOptions extends ResolveTokenInput {
 export interface PluginContext {
 	options: ChecklyPluginOptions;
 	/** Memoized client — the token is resolved on first use, not at plugin load. */
-	rest: () => ChecklyRestClient;
+	client: () => ChecklyClient;
 }
 
 export function createContext(options: ChecklyPluginOptions): PluginContext {
-	let rest: ChecklyRestClient | undefined;
+	let client: ChecklyClient | undefined;
 	return {
 		options,
-		rest: () => {
-			if (rest) return rest;
-			const restOpts: { token: string; accountId: string; baseUrl?: string; fetch?: typeof fetch } = {
+		client: () => {
+			if (client) return client;
+			const clientOpts: { token: string; accountId: string; baseUrl?: string; fetch?: typeof fetch } = {
 				token: resolveToken(options),
 				accountId: options.accountId,
 			};
-			if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
-			if (options.fetch !== undefined) restOpts.fetch = options.fetch;
-			return (rest = createChecklyRestClient(restOpts));
+			if (options.baseUrl !== undefined) clientOpts.baseUrl = options.baseUrl;
+			if (options.fetch !== undefined) clientOpts.fetch = options.fetch;
+			return (client = createChecklyClient(clientOpts));
 		},
 	};
 }
 
 export function monitoring(ctx: PluginContext): Monitoring {
-	return new ChecklyMonitoring(ctx.rest, { checks: ctx.options.checks });
+	return new ChecklyMonitoring(ctx.client, { checks: ctx.options.checks });
 }
 
 export function createPlugin(options: ChecklyPluginOptions) {
@@ -72,6 +72,6 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { ChecklyMonitoring } from "./capabilities/monitoring.js";
-export { type ChecklyRestClient, createChecklyRestClient } from "./rest.js";
+export { type ChecklyClient, createChecklyClient } from "./rest.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

@@ -1,21 +1,21 @@
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { ChecklyMonitoring } from "../capabilities/monitoring.js";
-import { createChecklyRestClient } from "../rest.js";
-import { stubFetch } from "./helpers.js";
+import { createChecklyClient } from "../rest.js";
 
 function makeCapability(
 	responses: Array<{ status?: number; body?: unknown }>,
 	opts: { checks?: Parameters<typeof ChecklyMonitoring.prototype.ensureCheck>[0][] } = {}
 ) {
 	const stub = stubFetch(responses);
-	const rest = createChecklyRestClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
-	const capability = new ChecklyMonitoring(() => rest, { checks: opts.checks });
+	const client = createChecklyClient({ token: "t", accountId: "acct-1", fetch: stub.fetch });
+	const capability = new ChecklyMonitoring(() => client, { checks: opts.checks });
 	return { capability, stub };
 }
 
 describe("ChecklyMonitoring", () => {
-	it("constructs with a REST client", () => {
+	it("constructs with a Checkly client", () => {
 		const { capability } = makeCapability([]);
 		expect(capability.key).toBe("monitoring");
 	});
