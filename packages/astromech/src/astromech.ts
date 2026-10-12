@@ -30,6 +30,7 @@ import {
 } from "./generators/turbo.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { type CiOptions, type CiReport, runCi } from "./tasks/ci.js";
+import { type GroupReport, matchNamespace, runGroup } from "./tasks/group.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./tasks/run/index.js";
 
 export interface AstromechOptions {
@@ -78,8 +79,15 @@ export interface RunOptions {
 }
 
 export interface Astromech {
-	/** Run one task — or one of its sub-jobs (`opts.job`) — locally. */
-	run(task: string, opts?: RunOptions): RunTaskReport;
+	/**
+	 * Run one task — or one of its sub-jobs (`opts.job`) — locally. When
+	 * `task` isn't an exact registry task but matches the prefix of one or
+	 * more configured tasks (`"sourceQuality"` against `sourceQuality.*`),
+	 * runs every matching task in sequence instead ({@link GroupReport}) —
+	 * `opts.job` is ignored for a namespace match, since a job belongs to
+	 * one task, not a namespace.
+	 */
+	run(task: string, opts?: RunOptions): RunTaskReport | GroupReport;
 	/**
 	 * Run the merge-gating checks locally, in CI order — "will CI pass?".
 	 * Default scope: `required: true` tasks (falls back to every `ci: true`
@@ -107,6 +115,15 @@ export interface Astromech {
 	 * when there is no config or `syncScripts: false`.
 	 */
 	packageScripts(): Record<string, string>;
+	/**
+	 * Task names this repo's manifest can actually run locally — the same
+	 * filter {@link packageScripts} applies (skips `local: false` and tasks
+	 * with no local runner at all), but independent of `syncScripts`: a repo
+	 * that opts out of generated `package.json` scripts still has real
+	 * runnable tasks. Empty when there is no config. Backs `holocron`'s own
+	 * interactive task picker (`run` with no task given).
+	 */
+	runnableTasks(): string[];
 	/**
 	 * The branch-protection required-status-check contexts for this repo —
 	 * every `required: true` task's check context plus `extraRequiredChecks`,
@@ -187,9 +204,45 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
 
+	/**
+	 * Task names this repo's manifest can actually run locally — shared by
+	 * {@link packageScripts} and by `holocron`'s own interactive task picker.
+	 * Deliberately independent of `syncScripts`/`holocronScript`/`hooks`:
+	 * those govern whether/how `package.json` scripts get *written*, not
+	 * which tasks exist to run. A repo with `syncScripts: false` (this repo
+	 * itself, among others) still has real runnable tasks — found live when
+	 * `packageScripts()`'s `{}` short-circuit silently emptied the picker too.
+	 */
+	const runnableTaskNames = (): string[] => {
+		const out: string[] = [];
+		for (const entry of items()) {
+			const def = TASKS[entry.name];
+			// `local: null` alone means genuinely no local equivalent
+			// (security.codeScanning, delivery.deploy); a `linterGroup` or `jobs`
+			// task still runs locally even though its own `local` is null.
+			const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
+			if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
+			out.push(entry.name);
+		}
+		return out;
+	};
+
 	return {
-		run: (task, opts = {}) =>
-			runTask({
+		run: (task, opts = {}) => {
+			// A bare namespace (no exact TASKS entry) that prefixes one or more
+			// configured tasks runs all of them — never shadows a real task
+			// name, since every real entry in TASKS already has a dot-suffix.
+			if (!TASKS[task] && options.config && matchNamespace(options.config, task).length > 0) {
+				return runGroup({
+					...deps,
+					cwd: options.cwd,
+					config: options.config,
+					namespace: task,
+					dryRun: opts.dryRun ?? false,
+					...(opts.filter ? { filter: opts.filter } : {}),
+				});
+			}
+			return runTask({
 				...deps,
 				task,
 				cwd: options.cwd,
@@ -198,7 +251,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
-			}),
+			});
+		},
 
 		ci: (opts = {}) =>
 			runCi({
@@ -284,20 +338,14 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const out: Record<string, string> = {};
 			if (!options.config || options.config.syncScripts === false) return out;
 			out.holocron = options.config.holocronScript ?? "holocron";
-			for (const entry of items()) {
-				const def = TASKS[entry.name];
-				// `local: null` alone means genuinely no local equivalent
-				// (security.codeScanning, delivery.deploy); a `linterGroup` or `jobs`
-				// task still runs locally even though its own `local` is null.
-				const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
-				if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
+			for (const name of runnableTaskNames()) {
 				// Trailing `--` matters: turbo/pnpm append extra args to a script's
 				// command text directly, without inserting their own `--` — e.g.
 				// `pnpm run <task> --coverage`, not `pnpm run <task> -- --coverage`.
 				// Without it here, that lands as an argument to `holocron run`
 				// itself ("Unknown argument: coverage"), not as passthrough to the
 				// tool. A bare trailing `--` is a no-op when nothing gets appended.
-				out[entry.name] = `holocron run ${entry.name} --`;
+				out[name] = `holocron run ${name} --`;
 			}
 			// Enabled hooks need `husky` to run on install to register the hook path.
 			const hooks = options.config.hooks;
@@ -305,6 +353,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			if (hooksOn) out.prepare = "husky";
 			return out;
 		},
+
+		runnableTasks: () => runnableTaskNames(),
 
 		reusableTemplates: () => resolveReusableTemplates(),
 

@@ -35,11 +35,13 @@ import type { TelemetryConfig } from "./config/config.js";
 import { loadConfig } from "./config/load-config.js";
 import { env } from "./env.js";
 import {
+	buildRunMenuEntries,
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
 	getEntry,
 	launchMenu,
+	listRunnableTasks,
 	NonInteractiveError,
 	promptForPositionals,
 } from "./interactive-menu.js";
@@ -581,7 +583,8 @@ try {
 			() => {},
 			async (argv) => {
 				printVersionHeaderOnce();
-				await launchMenu(COMMAND_REGISTRY, argv);
+				const runEntries = buildRunMenuEntries(await listRunnableTasks(argv));
+				await launchMenu([...COMMAND_REGISTRY, ...runEntries], argv);
 			}
 		)
 		.command(

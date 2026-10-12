@@ -22,15 +22,28 @@ vi.mock("node:child_process", () => ({ spawn: (...args: unknown[]) => spawnMock(
 const listStoredProvidersMock = vi.fn();
 vi.mock("./auth/keyring.js", () => ({ listStoredProviders: () => listStoredProvidersMock() }));
 
+const loadTasksConfigMock = vi.fn();
+vi.mock("@theholocron/astromech/config", () => ({
+	loadTasksConfig: (...args: unknown[]) => loadTasksConfigMock(...args),
+}));
+
+const runnableTasksMock = vi.fn();
+const createAstromechMock = vi.fn();
+vi.mock("@theholocron/astromech", () => ({
+	createAstromech: (...args: unknown[]) => createAstromechMock(...args),
+}));
+
 const {
 	buildChildArgv,
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
 	BACK,
+	buildRunMenuEntries,
 	forwardedFlags,
 	getEntry,
 	launchMenu,
+	listRunnableTasks,
 	menuItems,
 	NonInteractiveError,
 	pickMenuItem,
@@ -55,7 +68,7 @@ describe("COMMAND_REGISTRY", () => {
 		expect(selectPositionals.every((p) => p.choices !== undefined)).toBe(true);
 	});
 
-	it("covers every command on the documented surface, except the CI/hook-only ones", () => {
+	it("covers every command on the documented surface, except run (dynamically merged in) and the hook-only one", () => {
 		const excluded = new Set(["run", "run lint commit-msg"]);
 		const missing = Object.keys(COMMAND_CONTEXTS)
 			.filter((name) => !excluded.has(name))
@@ -68,7 +81,7 @@ describe("COMMAND_REGISTRY", () => {
 		expect(stray).toEqual([]);
 	});
 
-	it("run is deliberately excluded (CI/scripting-oriented — no interactive fallback)", () => {
+	it("run has no entry of its own — cli.ts merges in buildRunMenuEntries(listRunnableTasks(argv)) instead", () => {
 		expect(COMMAND_REGISTRY.some((e) => e.name === "run")).toBe(false);
 	});
 });
@@ -108,7 +121,6 @@ describe("menuItems — one level of the nested menu", () => {
 		expect(names(["config"])).toEqual(["show"]);
 		expect(valueOf("show", ["config"])).toBe("config show");
 		expect(names(["sync"])).toEqual(["github"]);
-		expect(names(["run"])).toEqual(["ci"]);
 		expect(valueOf("ci", ["run"])).toBe("run ci");
 	});
 
@@ -127,6 +139,11 @@ describe("menuItems — one level of the nested menu", () => {
 		const deploy = menuItems(COMMAND_REGISTRY, ["deploy"]);
 		expect(deploy[0]).toMatchObject({ name: "deploy (run it)", value: "deploy" });
 		expect(deploy.map((i) => i.value)).toEqual(["deploy", "deploy cleanup-preview", "deploy on-release"]);
+	});
+
+	it("run has no bare entry in the static registry — just `ci` until cli.ts merges in the dynamic task entries", () => {
+		const run = menuItems(COMMAND_REGISTRY, ["run"]);
+		expect(run.map((i) => i.value)).toEqual(["run ci"]);
 	});
 
 	it("a group's description lists its children, and its haystack covers everything under it", () => {
@@ -300,6 +317,17 @@ describe("promptForPositionals", () => {
 		expect(selectMock).not.toHaveBeenCalled();
 	});
 
+	it("falls back to an empty list for a select-type positional with no choices at all", async () => {
+		const entry = {
+			name: "x",
+			description: "d",
+			positionals: [{ key: "thing", message: "Thing:", type: "select" as const }],
+		};
+		const err = await promptForPositionals(entry, {}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(NonInteractiveError);
+		expect(selectMock).not.toHaveBeenCalled();
+	});
+
 	it("resolves multiple positionals in order", async () => {
 		inputMock.mockResolvedValueOnce("my-slug").mockResolvedValueOnce("MyVendor");
 		const values = await promptForPositionals(getEntry("new plugin"), {});
@@ -385,6 +413,95 @@ describe("buildChildArgv", () => {
 	it("passes a dryRunOverride through to forwardedFlags", () => {
 		expect(buildChildArgv(getEntry("doctor"), [], {}, true)).toEqual(["doctor", "--dry-run"]);
 		expect(buildChildArgv(getEntry("doctor"), [], { dryRun: true }, false)).toEqual(["doctor"]);
+	});
+});
+
+describe("listRunnableTasks", () => {
+	beforeEach(() => {
+		loadTasksConfigMock.mockReset();
+		createAstromechMock.mockReset();
+		runnableTasksMock.mockReset();
+		createAstromechMock.mockReturnValue({ runnableTasks: runnableTasksMock });
+	});
+
+	it("delegates to Astromech.runnableTasks(), passing the resolved config through", async () => {
+		loadTasksConfigMock.mockResolvedValue({ tasks: ["verification.unitTests", "sourceQuality.staticAnalysis"] });
+		runnableTasksMock.mockReturnValue(["verification.unitTests", "sourceQuality.staticAnalysis"]);
+		const tasks = await listRunnableTasks({ cwd: "/repo" });
+		expect(tasks).toEqual(["verification.unitTests", "sourceQuality.staticAnalysis"]);
+		expect(createAstromechMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				cwd: "/repo",
+				config: { tasks: ["verification.unitTests", "sourceQuality.staticAnalysis"] },
+			})
+		);
+	});
+
+	it("falls back to process.cwd() when argv.cwd isn't a string", async () => {
+		loadTasksConfigMock.mockResolvedValue({});
+		runnableTasksMock.mockReturnValue([]);
+		await listRunnableTasks({});
+		expect(loadTasksConfigMock).toHaveBeenCalledWith(process.cwd());
+	});
+
+	it("resolves to an empty list (never throws) when loadTasksConfig rejects", async () => {
+		loadTasksConfigMock.mockRejectedValue(new Error("no config file"));
+		runnableTasksMock.mockReturnValue([]);
+		const tasks = await listRunnableTasks({ cwd: "/repo" });
+		expect(tasks).toEqual([]);
+		expect(createAstromechMock).toHaveBeenCalledWith(expect.objectContaining({ cwd: "/repo", config: undefined }));
+	});
+});
+
+describe("buildRunMenuEntries", () => {
+	it("returns [] for an empty task list", () => {
+		expect(buildRunMenuEntries([])).toEqual([]);
+	});
+
+	it("groups a namespace's tasks under a leading `(run it)` group entry plus one leaf per task", () => {
+		const entries = buildRunMenuEntries(["sourceQuality.staticAnalysis", "sourceQuality.formatting"]);
+		expect(entries.map((e) => e.name)).toEqual([
+			"run sourceQuality",
+			"run sourceQuality staticAnalysis",
+			"run sourceQuality formatting",
+		]);
+		expect(entries[0]).toMatchObject({ spawnArgs: ["run", "sourceQuality"], supportsDryRun: true });
+		expect(entries[1]).toMatchObject({ spawnArgs: ["run", "sourceQuality.staticAnalysis"] });
+		expect(entries[2]).toMatchObject({ spawnArgs: ["run", "sourceQuality.formatting"] });
+	});
+
+	it("still emits a group header for a namespace with exactly one task", () => {
+		const entries = buildRunMenuEntries(["delivery.build"]);
+		expect(entries.map((e) => e.name)).toEqual(["run delivery", "run delivery build"]);
+		expect(entries[1]).toMatchObject({ spawnArgs: ["run", "delivery.build"] });
+	});
+
+	it("gives a dotless (namespace-less) task no group header, just a bare leaf", () => {
+		const entries = buildRunMenuEntries(["ci"]);
+		expect(entries.map((e) => e.name)).toEqual(["run ci"]);
+		expect(entries[0]).toMatchObject({ spawnArgs: ["run", "ci"] });
+	});
+
+	it("orders namespace groups per RUN_MENU_NAMESPACE_ORDER, not input order", () => {
+		const entries = buildRunMenuEntries([
+			"verification.unitTests",
+			"delivery.build",
+			"sourceQuality.staticAnalysis",
+		]);
+		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
+		expect(groupNames).toEqual(["run delivery", "run sourceQuality", "run verification"]);
+	});
+
+	it("sorts an unrecognized namespace after every known one, preserving its first-seen order among unknowns", () => {
+		const entries = buildRunMenuEntries(["zzz.custom", "aaa.custom", "delivery.build"]);
+		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
+		expect(groupNames).toEqual(["run delivery", "run zzz", "run aaa"]);
+	});
+
+	it("sorts an unrecognized namespace after a known one even when the unknown one sorted first going in", () => {
+		const entries = buildRunMenuEntries(["delivery.build", "zzz.custom"]);
+		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
+		expect(groupNames).toEqual(["run delivery", "run zzz"]);
 	});
 });
 
