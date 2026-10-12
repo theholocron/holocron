@@ -28,6 +28,7 @@ import type {
 	Errors,
 	Issues,
 	Logs,
+	Monitoring,
 	Secrets,
 	Source,
 	Vault,
@@ -217,6 +218,14 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 					return mk(key, provider, who.ok ? "ok" : "fail", `dataset: ${who.dataset}`);
 				}
 				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
+			}
+			case "monitoring": {
+				const monitoring = impl as Monitoring;
+				if (monitoring.whoami) {
+					const who = await monitoring.whoami();
+					return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token verified" : "token check failed");
+				}
+				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 			}
 			default:
 				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");

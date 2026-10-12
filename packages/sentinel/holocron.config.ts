@@ -38,6 +38,20 @@
  * gets back from `Deployment.ensureCustomDomain()` when it adds
  * `sentinel.theholocron.dev` to the Vercel project, via
  * `Dns.upsertRecord()`.
+ *
+ * `monitoring`: Checkly (holocron#996) — one API check watching
+ * `sentinel.theholocron.dev/api/webhook` from outside Vercel's own
+ * infra, since Sentry/Axiom are both reactive (they only see traffic
+ * that reaches the function) and wouldn't notice if the deployment
+ * stopped receiving traffic at all. Asserts a 405 on a plain GET:
+ * confirmed live that `handleWebhookRequest` rejects non-POST before
+ * touching any webhook-specific logic, so a clean 405 proves the
+ * function is deployed and routing correctly, not crashed/cold/timed
+ * out — full business-logic correctness stays with the existing test
+ * suite. `accountId` is not a secret (same status as Vercel's
+ * `teamId`); the API token is Doppler-sourced like every other secret
+ * here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by `holocron secrets
+ * sync` the same way `vault` already handles the other 5 keys.
  */
 
 import { defineConfig } from "@theholocron/cli";
@@ -52,6 +66,22 @@ export default defineConfig({
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
+		monitoring: [
+			"checkly",
+			{
+				// TODO(#996): fill in once the Checkly account exists — not a
+				// secret, same status as `teamId` above, just not known yet.
+				accountId: "<CHECKLY_ACCOUNT_ID>",
+				checks: [
+					{
+						name: "Sentinel webhook uptime",
+						url: "https://sentinel.theholocron.dev/api/webhook",
+						method: "GET",
+						assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
+					},
+				],
+			},
+		],
 		secrets: "github",
 		vault: ["doppler", { project: "sentinel", config: "prd" }],
 	},

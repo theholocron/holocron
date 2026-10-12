@@ -5,6 +5,6 @@
     "baseUrl": "./",
     "outDir": "./dist"
   },
-  "include": ["src/**/*.ts", "checkly.config.ts", "__checks__/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -35,6 +35,7 @@ import type {
 	Environments,
 	Errors,
 	Logs,
+	Monitoring,
 	Secrets,
 	Source,
 	Tooling,
@@ -886,6 +887,22 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				);
 				print(formatStep(steps[steps.length - 1]!));
 			}
+		}
+	}
+
+	// ── monitoring: ensure each configured check exists ─────────────────
+	if (loader.has("monitoring")) {
+		const monitoring = loader.get("monitoring") as Monitoring;
+		print(style.step("monitoring"));
+
+		for (const checkInput of monitoring.checks) {
+			steps.push(
+				await runStep("monitoring", `ensureCheck ${checkInput.name}`, dryRun, async () => {
+					const result = await monitoring.ensureCheck(checkInput);
+					return `${checkInput.name} ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
 		}
 	}
 

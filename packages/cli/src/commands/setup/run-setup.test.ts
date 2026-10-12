@@ -404,6 +404,43 @@ describe("runSetup", () => {
 		expect(rows[1]?.message).toContain("created");
 	});
 
+	it("ensures every check the monitoring provider is configured with", async () => {
+		const ensured: string[] = [];
+		const checkInput = {
+			name: "Sentinel webhook uptime",
+			url: "https://sentinel.theholocron.dev/api/webhook",
+			method: "GET" as const,
+			assertions: [{ source: "status_code" as const, comparison: "equals" as const, target: "405" }],
+		};
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [checkInput],
+					ensureCheck: async (input: typeof checkInput) => {
+						ensured.push(input.name);
+						return { check: { id: "chk-1", name: input.name }, alreadyExists: false };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(ensured).toEqual(["Sentinel webhook uptime"]);
+		const rows = report.steps.filter((s) => s.capability === "monitoring");
+		expect(rows.map((r) => r.step)).toEqual(["ensureCheck Sentinel webhook uptime"]);
+		expect(rows[0]?.message).toContain("created");
+	});
+
 	it("calls ensureCustomDomain and dns.upsertRecord when deploy has preview.domain", async () => {
 		const customDomainCalls: Array<[string, string]> = [];
 		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];
