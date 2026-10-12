@@ -325,8 +325,8 @@ importers:
         specifier: catalog:configs
         version: 8.7.1(prettier@3.9.6)
       '@theholocron/registry-doc':
-        specifier: ^1.15.0
-        version: 1.15.0
+        specifier: ^1.17.0
+        version: 1.17.0
       '@theholocron/semantic-release-config':
         specifier: catalog:configs
         version: 8.7.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.3.0)(semantic-release@25.0.9(typescript@5.9.3))
@@ -3799,6 +3799,10 @@ packages:
 
   '@theholocron/registry-doc@1.15.0':
     resolution: {integrity: sha512-7ICyAezPMhcWrRNKw0Tp/aeMxYxB3IkaEB1ClhgThL37XtMXwbflVCMtgGW9v0qEnrjAV6/Lu+Sajy2x5otrgQ==}
+    engines: {node: '>=22.0.0'}
+
+  '@theholocron/registry-doc@1.17.0':
+    resolution: {integrity: sha512-HcFnyBAiIRadErWUHKER5Uwi9Sn3Nwt3MnpUrlFPxU6qCpmgeKaZnjeEv8+SYDXuk7jrfYIXEM/szG2vmBU/og==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/semantic-release-config@8.7.1':
@@ -10958,7 +10962,7 @@ snapshots:
       '@theholocron/github-client': 1.38.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/http-client': 1.40.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
-      '@theholocron/registry-doc': 1.15.0
+      '@theholocron/registry-doc': 1.17.0
       chalk: 6.0.0
       ora: 9.4.1
       pino: 10.3.1
@@ -10993,7 +10997,7 @@ snapshots:
       '@theholocron/github-client': 1.38.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/http-client': 1.40.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
-      '@theholocron/registry-doc': 1.15.0
+      '@theholocron/registry-doc': 1.17.0
       chalk: 6.0.0
       ora: 9.4.1
       pino: 10.3.1
@@ -11270,6 +11274,8 @@ snapshots:
       prettier: 3.9.6
 
   '@theholocron/registry-doc@1.15.0': {}
+
+  '@theholocron/registry-doc@1.17.0': {}
 
   '@theholocron/semantic-release-config@8.7.1(@semantic-release/changelog@6.0.3(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/commit-analyzer@13.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/exec@7.1.0(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/git@10.0.1(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/github@12.0.9(semantic-release@25.0.9(typescript@5.9.3)))(@semantic-release/release-notes-generator@14.1.1(semantic-release@25.0.9(typescript@5.9.3)))(conventional-changelog-conventionalcommits@10.3.0)(semantic-release@25.0.9(typescript@5.9.3))':
     dependencies:
