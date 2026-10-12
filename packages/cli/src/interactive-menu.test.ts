@@ -39,6 +39,7 @@ const {
 	DRY_RUN_NOOP_EXIT_CODE,
 	DRY_RUN_PREVIEW_ENV_VAR,
 	BACK,
+	buildRunMenuEntries,
 	forwardedFlags,
 	getEntry,
 	launchMenu,
@@ -67,8 +68,8 @@ describe("COMMAND_REGISTRY", () => {
 		expect(selectPositionals.every((p) => p.choices !== undefined)).toBe(true);
 	});
 
-	it("covers every command on the documented surface, except the hook-only one", () => {
-		const excluded = new Set(["run lint commit-msg"]);
+	it("covers every command on the documented surface, except run (dynamically merged in) and the hook-only one", () => {
+		const excluded = new Set(["run", "run lint commit-msg"]);
 		const missing = Object.keys(COMMAND_CONTEXTS)
 			.filter((name) => !excluded.has(name))
 			.filter((name) => !COMMAND_REGISTRY.some((e) => e.name === name));
@@ -80,12 +81,8 @@ describe("COMMAND_REGISTRY", () => {
 		expect(stray).toEqual([]);
 	});
 
-	it("run gets a task-picker positional instead of being excluded", () => {
-		const run = COMMAND_REGISTRY.find((e) => e.name === "run");
-		expect(run).toBeDefined();
-		expect(run?.positionals).toEqual([
-			expect.objectContaining({ key: "task", type: "select", choices: listRunnableTasks }),
-		]);
+	it("run has no entry of its own — cli.ts merges in buildRunMenuEntries(listRunnableTasks(argv)) instead", () => {
+		expect(COMMAND_REGISTRY.some((e) => e.name === "run")).toBe(false);
 	});
 });
 
@@ -135,16 +132,18 @@ describe("menuItems — one level of the nested menu", () => {
 		expect(valueOf("node", ["repo", "upgrade"])).toBe("repo upgrade node");
 	});
 
-	it("a group that is also runnable gets a leading `<word> (run it)` item (repo sync, deploy, run)", () => {
+	it("a group that is also runnable gets a leading `<word> (run it)` item (repo sync, deploy)", () => {
 		const sync = menuItems(COMMAND_REGISTRY, ["repo", "sync"]);
 		expect(sync[0]).toMatchObject({ name: "sync (run it)", value: "repo sync" });
 		expect(sync.map((i) => i.value)).toContain("repo sync readme");
 		const deploy = menuItems(COMMAND_REGISTRY, ["deploy"]);
 		expect(deploy[0]).toMatchObject({ name: "deploy (run it)", value: "deploy" });
 		expect(deploy.map((i) => i.value)).toEqual(["deploy", "deploy cleanup-preview", "deploy on-release"]);
+	});
+
+	it("run has no bare entry in the static registry — just `ci` until cli.ts merges in the dynamic task entries", () => {
 		const run = menuItems(COMMAND_REGISTRY, ["run"]);
-		expect(run[0]).toMatchObject({ name: "run (run it)", value: "run" });
-		expect(run.map((i) => i.value)).toEqual(["run", "run ci"]);
+		expect(run.map((i) => i.value)).toEqual(["run ci"]);
 	});
 
 	it("a group's description lists its children, and its haystack covers everything under it", () => {
@@ -249,10 +248,6 @@ describe("promptForPositionals", () => {
 		inputMock.mockReset();
 		selectMock.mockReset();
 		listStoredProvidersMock.mockReset();
-		loadTasksConfigMock.mockReset();
-		createAstromechMock.mockReset();
-		runnableTasksMock.mockReset();
-		createAstromechMock.mockReturnValue({ runnableTasks: runnableTasksMock });
 		setTTY(true);
 	});
 	afterEach(() => setTTY(false));
@@ -318,39 +313,8 @@ describe("promptForPositionals", () => {
 		listStoredProvidersMock.mockReturnValue([]);
 		const err = await promptForPositionals(getEntry("auth unset"), {}).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(NonInteractiveError);
-		expect((err as Error).message).toMatch(/nothing available/);
+		expect((err as Error).message).toMatch(/nothing stored yet/);
 		expect(selectMock).not.toHaveBeenCalled();
-	});
-
-	it("resolves run's task choices via the argv-aware thunk, passing argv.cwd through", async () => {
-		loadTasksConfigMock.mockResolvedValue({ tasks: ["verification.unitTests"] });
-		runnableTasksMock.mockReturnValue(["verification.unitTests"]);
-		selectMock.mockResolvedValue("verification.unitTests");
-		const values = await promptForPositionals(getEntry("run"), { cwd: "/repo" });
-		expect(values).toEqual(["verification.unitTests"]);
-		expect(loadTasksConfigMock).toHaveBeenCalledWith("/repo");
-		expect(createAstromechMock).toHaveBeenCalledWith(
-			expect.objectContaining({ cwd: "/repo", config: { tasks: ["verification.unitTests"] } })
-		);
-		expect(selectMock).toHaveBeenCalledWith(
-			expect.objectContaining({ choices: [{ value: "verification.unitTests" }] })
-		);
-	});
-
-	it("falls back to process.cwd() for run's task choices when argv.cwd is absent", async () => {
-		loadTasksConfigMock.mockResolvedValue({});
-		runnableTasksMock.mockReturnValue([]);
-		const err = await promptForPositionals(getEntry("run"), {}).catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(NonInteractiveError);
-		expect(loadTasksConfigMock).toHaveBeenCalledWith(process.cwd());
-	});
-
-	it("throws NonInteractiveError when run resolves to no configured tasks", async () => {
-		loadTasksConfigMock.mockResolvedValue(undefined);
-		runnableTasksMock.mockReturnValue([]);
-		const err = await promptForPositionals(getEntry("run"), { cwd: "/repo" }).catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(NonInteractiveError);
-		expect((err as Error).message).toMatch(/nothing available/);
 	});
 
 	it("resolves multiple positionals in order", async () => {
@@ -475,6 +439,52 @@ describe("listRunnableTasks", () => {
 		const tasks = await listRunnableTasks({ cwd: "/repo" });
 		expect(tasks).toEqual([]);
 		expect(createAstromechMock).toHaveBeenCalledWith(expect.objectContaining({ cwd: "/repo", config: undefined }));
+	});
+});
+
+describe("buildRunMenuEntries", () => {
+	it("returns [] for an empty task list", () => {
+		expect(buildRunMenuEntries([])).toEqual([]);
+	});
+
+	it("groups a namespace's tasks under a leading `(run it)` group entry plus one leaf per task", () => {
+		const entries = buildRunMenuEntries(["sourceQuality.staticAnalysis", "sourceQuality.formatting"]);
+		expect(entries.map((e) => e.name)).toEqual([
+			"run sourceQuality",
+			"run sourceQuality staticAnalysis",
+			"run sourceQuality formatting",
+		]);
+		expect(entries[0]).toMatchObject({ spawnArgs: ["run", "sourceQuality"], supportsDryRun: true });
+		expect(entries[1]).toMatchObject({ spawnArgs: ["run", "sourceQuality.staticAnalysis"] });
+		expect(entries[2]).toMatchObject({ spawnArgs: ["run", "sourceQuality.formatting"] });
+	});
+
+	it("still emits a group header for a namespace with exactly one task", () => {
+		const entries = buildRunMenuEntries(["delivery.build"]);
+		expect(entries.map((e) => e.name)).toEqual(["run delivery", "run delivery build"]);
+		expect(entries[1]).toMatchObject({ spawnArgs: ["run", "delivery.build"] });
+	});
+
+	it("gives a dotless (namespace-less) task no group header, just a bare leaf", () => {
+		const entries = buildRunMenuEntries(["ci"]);
+		expect(entries.map((e) => e.name)).toEqual(["run ci"]);
+		expect(entries[0]).toMatchObject({ spawnArgs: ["run", "ci"] });
+	});
+
+	it("orders namespace groups per RUN_MENU_NAMESPACE_ORDER, not input order", () => {
+		const entries = buildRunMenuEntries([
+			"verification.unitTests",
+			"delivery.build",
+			"sourceQuality.staticAnalysis",
+		]);
+		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
+		expect(groupNames).toEqual(["run delivery", "run sourceQuality", "run verification"]);
+	});
+
+	it("sorts an unrecognized namespace after every known one, preserving its first-seen order among unknowns", () => {
+		const entries = buildRunMenuEntries(["zzz.custom", "aaa.custom", "delivery.build"]);
+		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
+		expect(groupNames).toEqual(["run delivery", "run zzz", "run aaa"]);
 	});
 });
 

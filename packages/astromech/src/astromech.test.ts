@@ -91,6 +91,45 @@ describe("createAstromech().run", () => {
 		expect(warn).toHaveBeenCalledWith(expect.objectContaining({ status: "unknown" }), expect.any(String));
 	});
 
+	it("runs every task under a bare namespace that isn't an exact task name itself", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({
+					tasks: { "sourceQuality.staticAnalysis": {}, "sourceQuality.formatting": {} },
+				}),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis", "sourceQuality.formatting", "verification.unitTests"] },
+			print: () => {},
+		});
+		const report = astromech.run("sourceQuality");
+		expect(report).toMatchObject({
+			status: "ok",
+			jobs: [
+				{ task: "sourceQuality.staticAnalysis", status: "ok" },
+				{ task: "sourceQuality.formatting", status: "ok" },
+			],
+		});
+		expect(exec).toHaveBeenCalledTimes(2);
+	});
+
+	it("never lets a namespace match shadow a real exact task name", () => {
+		// "sourceQuality.staticAnalysis" is itself a real TASKS entry — must run
+		// as that one task, not be (mis)treated as a namespace with zero matches.
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({ "package.json": PKG, "node_modules/.bin/eslint": "" }),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis"] },
+			print: () => {},
+		});
+		const report = astromech.run("sourceQuality.staticAnalysis");
+		expect(report).not.toHaveProperty("jobs");
+		expect(report.status).toBe("ok");
+	});
+
 	it("wires real node:fs / console.log / spawnSync when nothing is injected", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "astromech-"));
 		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" })); // real readFile
@@ -125,9 +164,12 @@ describe("createAstromech().run", () => {
 				config: { tasks: ["sourceQuality.formatting"] },
 			}).run("sourceQuality.formatting", { dryRun: true });
 			expect(report.status).toBe("dry-run");
-			expect(report.command).toContain(join(dir, "node_modules", ".bin", "prettier"));
-			expect(report.command).toContain(join(binDir, "editorconfig-checker"));
-			expect(report.command).not.toContain("markdownlint");
+			// An exact task name (not a namespace) always returns RunTaskReport;
+			// the cast narrows past run()'s RunTaskReport | GroupReport union.
+			const command = (report as { command?: string }).command;
+			expect(command).toContain(join(dir, "node_modules", ".bin", "prettier"));
+			expect(command).toContain(join(binDir, "editorconfig-checker"));
+			expect(command).not.toContain("markdownlint");
 		} finally {
 			process.env["PATH"] = savedPath;
 			log.mockRestore();

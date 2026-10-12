@@ -30,6 +30,7 @@ import {
 } from "./generators/turbo.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { type CiOptions, type CiReport, runCi } from "./tasks/ci.js";
+import { type GroupReport, matchNamespace, runGroup } from "./tasks/group.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./tasks/run/index.js";
 
 export interface AstromechOptions {
@@ -78,8 +79,15 @@ export interface RunOptions {
 }
 
 export interface Astromech {
-	/** Run one task — or one of its sub-jobs (`opts.job`) — locally. */
-	run(task: string, opts?: RunOptions): RunTaskReport;
+	/**
+	 * Run one task — or one of its sub-jobs (`opts.job`) — locally. When
+	 * `task` isn't an exact registry task but matches the prefix of one or
+	 * more configured tasks (`"sourceQuality"` against `sourceQuality.*`),
+	 * runs every matching task in sequence instead ({@link GroupReport}) —
+	 * `opts.job` is ignored for a namespace match, since a job belongs to
+	 * one task, not a namespace.
+	 */
+	run(task: string, opts?: RunOptions): RunTaskReport | GroupReport;
 	/**
 	 * Run the merge-gating checks locally, in CI order — "will CI pass?".
 	 * Default scope: `required: true` tasks (falls back to every `ci: true`
@@ -220,8 +228,21 @@ export function createAstromech(options: AstromechOptions): Astromech {
 	};
 
 	return {
-		run: (task, opts = {}) =>
-			runTask({
+		run: (task, opts = {}) => {
+			// A bare namespace (no exact TASKS entry) that prefixes one or more
+			// configured tasks runs all of them — never shadows a real task
+			// name, since every real entry in TASKS already has a dot-suffix.
+			if (!TASKS[task] && options.config && matchNamespace(options.config, task).length > 0) {
+				return runGroup({
+					...deps,
+					cwd: options.cwd,
+					config: options.config,
+					namespace: task,
+					dryRun: opts.dryRun ?? false,
+					...(opts.filter ? { filter: opts.filter } : {}),
+				});
+			}
+			return runTask({
 				...deps,
 				task,
 				cwd: options.cwd,
@@ -230,7 +251,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
-			}),
+			});
+		},
 
 		ci: (opts = {}) =>
 			runCi({

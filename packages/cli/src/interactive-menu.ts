@@ -64,14 +64,9 @@ export interface PositionalPrompt {
 	 * Required when `type === "select"`. A plain list for a fixed set, or a
 	 * thunk for a set resolved at prompt time (e.g. `auth unset`'s provider
 	 * choices are whatever currently has a stored token — there's no fixed
-	 * provider list, providers are open-ended plugin packages; `run`'s task
-	 * choices are this repo's resolved task manifest, read from `argv.cwd`).
-	 * The thunk receives the same `argv` `promptForPositionals` was called
-	 * with — ignored by thunks that don't need it (e.g. `listStoredProviders`,
-	 * which is machine-global) — and may return a `Promise` for a thunk that
-	 * needs to load config first.
+	 * provider list, providers are open-ended plugin packages).
 	 */
-	choices?: string[] | ((argv: Record<string, unknown>) => string[] | Promise<string[]>);
+	choices?: string[] | (() => string[]);
 	/** Optional `input()` validation — e.g. numeric positionals. */
 	validate?: (value: string) => boolean | string;
 }
@@ -92,19 +87,31 @@ export interface CommandEntry {
 	 * handler's own `dryRun: argv.dryRun` usage in `cli.ts`.
 	 */
 	supportsDryRun?: boolean;
+	/**
+	 * Override for {@link buildChildArgv}: the real CLI argv tokens to spawn,
+	 * when they don't match a naive space-split of `name`. Every static
+	 * entry's `name` already *is* its own argv (`"repo upgrade node"` →
+	 * `["repo", "upgrade", "node"]`, three real yargs tokens) — this exists
+	 * for {@link buildRunMenuEntries}'s dynamically-built task entries, whose
+	 * `name` uses a space per namespace segment purely to get free nesting
+	 * out of {@link menuItems} (`"run sourceQuality staticAnalysis"`), but
+	 * whose real invocation is one dotted positional
+	 * (`["run", "sourceQuality.staticAnalysis"]`), not three separate ones.
+	 */
+	spawnArgs?: string[];
 }
 
 const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true : "enter a number");
 
 /**
- * `run`'s task picker choices: this repo's own resolved task manifest,
- * filtered to what's actually runnable locally — `Astromech.runnableTasks()`,
- * reused rather than reimplemented (deliberately *not* `packageScripts()`,
- * whose `syncScripts: false` short-circuit returns `{}` for repos — this one
+ * This repo's own resolved task manifest, filtered to what's actually
+ * runnable locally — `Astromech.runnableTasks()`, reused rather than
+ * reimplemented (deliberately *not* `packageScripts()`, whose
+ * `syncScripts: false` short-circuit returns `{}` for repos — this one
  * included — that opt out of generated `package.json` scripts but still
  * have real runnable tasks). Empty (never throws) when there's no config to
- * resolve — `promptForPositionals` turns an empty choice list into a clear
- * "nothing to pick from" error.
+ * resolve — feeds {@link buildRunMenuEntries}, which renders an empty list
+ * as "run ›" simply having no children.
  */
 export async function listRunnableTasks(argv: Record<string, unknown>): Promise<string[]> {
 	const cwd = typeof argv.cwd === "string" ? argv.cwd : process.cwd();
@@ -113,16 +120,99 @@ export async function listRunnableTasks(argv: Record<string, unknown>): Promise<
 }
 
 /**
+ * Namespace display order for the `run` menu — deliberately its own thing,
+ * not `@theholocron/astromech`'s `CI_ORDER`: that one is tuned for "cheapest
+ * signal first" in an automated gate, a different goal from "how a person
+ * would naturally work through a repo" (build it, clean up its style, check
+ * it's secure, test it, validate it, document it). A namespace absent here
+ * (a repo-specific one this list doesn't know about) sorts after every
+ * named one, in whatever order it was first seen.
+ */
+const RUN_MENU_NAMESPACE_ORDER = ["delivery", "sourceQuality", "security", "verification", "platform", "knowledge"];
+
+/**
+ * Splits `taskNames` (`"sourceQuality.staticAnalysis"`, …) into namespace
+ * groups, ordered by {@link RUN_MENU_NAMESPACE_ORDER} — insertion order
+ * within each group is `taskNames`' own order (already declaration order,
+ * from {@link listRunnableTasks}). A name with no `.` at all (defensive;
+ * every real registry task has a namespace) is its own bucket, keyed by the
+ * full name, sorted after every namespaced group.
+ */
+function groupByNamespace(taskNames: string[]): Map<string, string[]> {
+	const groups = new Map<string, string[]>();
+	for (const name of taskNames) {
+		const dot = name.indexOf(".");
+		const key = dot === -1 ? name : name.slice(0, dot);
+		const list = groups.get(key);
+		if (list) list.push(name);
+		else groups.set(key, [name]);
+	}
+	const ordered = new Map<string, string[]>();
+	const byMenuOrder = (a: string, b: string) => {
+		const ia = RUN_MENU_NAMESPACE_ORDER.indexOf(a);
+		const ib = RUN_MENU_NAMESPACE_ORDER.indexOf(b);
+		if (ia !== -1 || ib !== -1) return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
+		return 0; // neither is known — keep Map's own insertion (first-seen) order
+	};
+	for (const key of [...groups.keys()].sort(byMenuOrder)) ordered.set(key, groups.get(key)!);
+	return ordered;
+}
+
+/**
+ * Dynamically-built `run` sub-entries for every locally-runnable task
+ * ({@link listRunnableTasks}), grouped by namespace and merged into
+ * `COMMAND_REGISTRY` at `cli.ts`'s `$0` call site — not a registry entry
+ * itself, since the task set is per-repo, not a static surface this module
+ * can hand-enumerate.
+ *
+ * Each namespace becomes a group with a leading "<namespace> (run it)" item
+ * (`holocron run <namespace>` — every task in it, via
+ * `Astromech.runGroup()`) alongside each of its individual tasks, the exact
+ * same "a group that's also runnable" shape `menuItems` already renders for
+ * `repo sync` / `deploy` — reached here for free by using a space, not the
+ * task's own `.`, between namespace and leaf in `name` (`spawnArgs` carries
+ * the real dotted invocation `buildChildArgv` actually spawns).
+ */
+export function buildRunMenuEntries(taskNames: string[]): CommandEntry[] {
+	const entries: CommandEntry[] = [];
+	for (const [namespace, tasks] of groupByNamespace(taskNames)) {
+		const isRealNamespace = tasks[0] !== namespace || tasks.length > 1;
+		if (isRealNamespace) {
+			entries.push({
+				name: `run ${namespace}`,
+				description: `Run every ${namespace}.* task in sequence`,
+				positionals: [],
+				supportsDryRun: true,
+				spawnArgs: ["run", namespace],
+			});
+		}
+		for (const task of tasks) {
+			const leaf = task === namespace ? namespace : task.slice(namespace.length + 1);
+			entries.push({
+				name: isRealNamespace ? `run ${namespace} ${leaf}` : `run ${leaf}`,
+				description: `Run ${task}`,
+				positionals: [],
+				supportsDryRun: true,
+				spawnArgs: ["run", task],
+			});
+		}
+	}
+	return entries;
+}
+
+/**
  * The full command surface, hand-maintained in parallel with `cli.ts`'s
  * yargs registrations (this module does not introspect yargs at runtime).
- * `run <task>` gets a task picker ({@link listRunnableTasks}) rather than a
- * fixed positional list — the task namespace is this repo's own resolved
- * manifest, not a static set `cli.ts` can hand-enumerate the way every
- * other entry's positionals are. `job` and `passthrough` stay un-prompted;
- * picking a task and running it plain covers the common case, and typing
+ * `run <task>` has no entry here at all — `cli.ts`'s `$0` handler merges in
+ * {@link buildRunMenuEntries}'s dynamically-built ones instead, since the
+ * task namespace is this repo's own resolved manifest, not a static set
+ * this module can hand-enumerate the way every other entry's positionals
+ * are. `job` and `passthrough` stay un-prompted either way; picking a task
+ * and running it plain covers the common case, and typing
  * `holocron run <task> <job> -- <args>` directly is one step away for
- * everything else. `run lint commit-msg <file>` stays excluded: it's
- * invoked exclusively from `.husky/commit-msg "$1"`, never typed by a human.
+ * everything else. `run lint commit-msg <file>` stays excluded entirely:
+ * it's invoked exclusively from `.husky/commit-msg "$1"`, never typed by a
+ * human.
  */
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
@@ -197,12 +287,6 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		description:
 			"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
 		positionals: [],
-		supportsDryRun: true,
-	},
-	{
-		name: "run",
-		description: "Run a task locally (test, typecheck, lint, build, audit, …)",
-		positionals: [{ key: "task", message: "Task to run:", type: "select", choices: listRunnableTasks }],
 		supportsDryRun: true,
 	},
 	{
@@ -424,10 +508,10 @@ export async function promptForPositionals(entry: CommandEntry, argv: Record<str
 		}
 		if (positional.type === "select") {
 			const choices =
-				typeof positional.choices === "function" ? await positional.choices(argv) : (positional.choices ?? []);
+				typeof positional.choices === "function" ? positional.choices() : (positional.choices ?? []);
 			if (choices.length === 0) {
 				throw new NonInteractiveError(
-					`\`${entry.name}\`: no ${positional.key} to choose from — nothing available`
+					`\`${entry.name}\`: no ${positional.key} to choose from — nothing stored yet`
 				);
 			}
 			out.push(await select({ message: positional.message, choices: choices.map((c) => ({ value: c })) }));
@@ -464,14 +548,18 @@ export function forwardedFlags(argv: Record<string, unknown>, dryRunOverride?: b
 	return out;
 }
 
-/** `entry.name` split into tokens, resolved positionals appended, then forwarded flags. */
+/** `entry.spawnArgs` if set, else `entry.name` split into tokens — resolved positionals appended, then forwarded flags. */
 export function buildChildArgv(
 	entry: CommandEntry,
 	positionals: string[],
 	parentArgv: Record<string, unknown>,
 	dryRunOverride?: boolean
 ): string[] {
-	return [...entry.name.split(" "), ...positionals, ...forwardedFlags(parentArgv, dryRunOverride)];
+	return [
+		...(entry.spawnArgs ?? entry.name.split(" ")),
+		...positionals,
+		...forwardedFlags(parentArgv, dryRunOverride),
+	];
 }
 
 /**
@@ -581,7 +669,7 @@ export async function launchMenu(
 			picked = entries.find((e) => e.name === value);
 		}
 	}
-	const positionals = await promptForPositionals(picked, parentArgv);
+	const positionals = await promptForPositionals(picked, {});
 
 	if (shouldPreviewDryRun(picked, parentArgv)) {
 		const dryExit = await spawnChild(buildChildArgv(picked, positionals, parentArgv, true), {
