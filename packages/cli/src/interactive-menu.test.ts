@@ -317,6 +317,17 @@ describe("promptForPositionals", () => {
 		expect(selectMock).not.toHaveBeenCalled();
 	});
 
+	it("falls back to an empty list for a select-type positional with no choices at all", async () => {
+		const entry = {
+			name: "x",
+			description: "d",
+			positionals: [{ key: "thing", message: "Thing:", type: "select" as const }],
+		};
+		const err = await promptForPositionals(entry, {}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(NonInteractiveError);
+		expect(selectMock).not.toHaveBeenCalled();
+	});
+
 	it("resolves multiple positionals in order", async () => {
 		inputMock.mockResolvedValueOnce("my-slug").mockResolvedValueOnce("MyVendor");
 		const values = await promptForPositionals(getEntry("new plugin"), {});
@@ -485,6 +496,12 @@ describe("buildRunMenuEntries", () => {
 		const entries = buildRunMenuEntries(["zzz.custom", "aaa.custom", "delivery.build"]);
 		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
 		expect(groupNames).toEqual(["run delivery", "run zzz", "run aaa"]);
+	});
+
+	it("sorts an unrecognized namespace after a known one even when the unknown one sorted first going in", () => {
+		const entries = buildRunMenuEntries(["delivery.build", "zzz.custom"]);
+		const groupNames = entries.filter((e) => e.name.split(" ").length === 2).map((e) => e.name);
+		expect(groupNames).toEqual(["run delivery", "run zzz"]);
 	});
 });
 
