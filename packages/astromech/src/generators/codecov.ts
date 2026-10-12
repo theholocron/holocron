@@ -16,7 +16,7 @@ export interface WorkspacePackage {
 	slug: string;
 	name: string;
 	/** Which workspace root the package was discovered under. Defaults to `"packages"`. */
-	dir?: "packages" | "apps";
+	dir?: "packages" | "apps" | "plugins";
 }
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
@@ -96,7 +96,7 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	);
 }
 
-function readWorkspaceDir(repoRoot: string, dir: "packages" | "apps"): WorkspacePackage[] {
+function readWorkspaceDir(repoRoot: string, dir: "packages" | "apps" | "plugins"): WorkspacePackage[] {
 	const dirPath = join(repoRoot, dir);
 	if (!existsSync(dirPath)) return [];
 	const packages: WorkspacePackage[] = [];
@@ -116,14 +116,19 @@ function readWorkspaceDir(repoRoot: string, dir: "packages" | "apps"): Workspace
 }
 
 /**
- * Every public `packages/*` and `apps/*` workspace, sorted by slug. `[]`
- * when neither directory exists. Monorepo templates (Next.js, React, …)
- * ship user-facing code under `apps/` alongside library code under
- * `packages/` — both need a codecov component so `codecov/patch/<slug>`
- * actually posts for each.
+ * Every public `packages/*`, `apps/*`, and `plugins/*` workspace, sorted by
+ * slug. `[]` when none of the three directories exist. Monorepo templates
+ * (Next.js, React, …) ship user-facing code under `apps/` alongside library
+ * code under `packages/`; `holocron` itself splits vendor plugin packages
+ * into their own `plugins/*` root — every recognized root needs a codecov
+ * component so `codecov/patch/<slug>` actually posts for each.
  */
 export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
-	const packages = [...readWorkspaceDir(repoRoot, "packages"), ...readWorkspaceDir(repoRoot, "apps")];
+	const packages = [
+		...readWorkspaceDir(repoRoot, "packages"),
+		...readWorkspaceDir(repoRoot, "apps"),
+		...readWorkspaceDir(repoRoot, "plugins"),
+	];
 	return packages.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 

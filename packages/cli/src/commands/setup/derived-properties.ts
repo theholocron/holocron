@@ -18,7 +18,7 @@ import type { ResolvedProvidersConfig } from "../../config/config.js";
 
 // "plugin" isn't produced by any heuristic below yet — no repo in the org
 // today is a standalone single-purpose plugin at the *repo* level (plugin
-// packages live inside `holocron`'s own `packages/holocron-plugin-*`, which
+// packages live inside `holocron`'s own `plugins/holocron-plugin-*`, which
 // makes `holocron` itself "platform", not "plugin"). Kept in the union for a
 // future cross-org (`rando`, D10) repo that's nothing but one plugin.
 export type HolocronProfile = "library" | "cli" | "plugin" | "template" | "app" | "docs" | "platform";

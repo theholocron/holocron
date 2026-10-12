@@ -51,6 +51,26 @@ describe("validateRegistry (holocron#925)", () => {
 		expect(decodeURIComponent(calls[1]!.url)).toContain("/contents/packages/cli/package.json?ref=pr-head");
 	});
 
+	it("also checks a touched plugins/<name>/package.json, like the script's plugins/ root", async () => {
+		const { client, calls } = makeClient([
+			{ status: 200, body: [file("plugins/holocron-plugin-stripe/package.json", "added")] },
+			pkgJson({ name: "@theholocron/holocron-plugin-stripe", version: "1.0.0" }),
+		]);
+
+		const result = await run(client).promise;
+
+		expect(result.checked).toEqual([
+			{
+				name: "@theholocron/holocron-plugin-stripe",
+				file: "plugins/holocron-plugin-stripe/package.json",
+				line: 2,
+			},
+		]);
+		expect(decodeURIComponent(calls[1]!.url)).toContain(
+			"/contents/plugins/holocron-plugin-stripe/package.json?ref=pr-head"
+		);
+	});
+
 	it("fails an unregistered public package, anchored on its name line", async () => {
 		const { client } = makeClient([
 			{ status: 200, body: [file("packages/widget/package.json", "added")] },

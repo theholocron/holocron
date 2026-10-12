@@ -212,6 +212,36 @@ describe("readWorkspacePackages", () => {
 		const packages = readWorkspacePackages(root);
 		expect(packages).toEqual([{ slug: "web", name: "@theholocron/web", dir: "apps" }]);
 	});
+
+	it('also discovers plugins/* workspaces, tagged with dir: "plugins" (holocron\'s own layout — vendor plugins split out of packages/)', () => {
+		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
+		mkdirSync(join(root, "packages", "cli"), { recursive: true });
+		writeFileSync(join(root, "packages", "cli", "package.json"), JSON.stringify({ name: "@theholocron/cli" }));
+		mkdirSync(join(root, "plugins", "holocron-plugin-github"), { recursive: true });
+		writeFileSync(
+			join(root, "plugins", "holocron-plugin-github", "package.json"),
+			JSON.stringify({ name: "@theholocron/holocron-plugin-github" })
+		);
+
+		const packages = readWorkspacePackages(root);
+		expect(packages.map((p) => p.slug)).toEqual(["cli", "holocron-plugin-github"]);
+		expect(packages.find((p) => p.slug === "cli")?.dir).toBe("packages");
+		expect(packages.find((p) => p.slug === "holocron-plugin-github")?.dir).toBe("plugins");
+	});
+
+	it("discovers plugins/* even when there's no packages/ or apps/ directory", () => {
+		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
+		mkdirSync(join(root, "plugins", "holocron-plugin-vercel"), { recursive: true });
+		writeFileSync(
+			join(root, "plugins", "holocron-plugin-vercel", "package.json"),
+			JSON.stringify({ name: "@theholocron/holocron-plugin-vercel" })
+		);
+
+		const packages = readWorkspacePackages(root);
+		expect(packages).toEqual([
+			{ slug: "holocron-plugin-vercel", name: "@theholocron/holocron-plugin-vercel", dir: "plugins" },
+		]);
+	});
 });
 
 describe("codecovConfig", () => {

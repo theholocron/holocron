@@ -38,7 +38,7 @@ export function render(inputs: TemplateInputs): string {
  * TODO: replace the positional args below with whatever your
  * capability's methods need (e.g., project id, environment slug,
  * secret name). Adapt the test steps to your capability's method
- * surface. Model on \`packages/holocron-plugin-infisical/scripts/validate.mjs\`.
+ * surface. Model on \`plugins/holocron-plugin-infisical/scripts/validate.mjs\`.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- filled in by operator
@@ -63,7 +63,7 @@ try {
 } catch (err) {
 	if (err instanceof AuthError) {
 		console.error(err.message);
-		console.error("  see: packages/holocron-plugin-${inputs.slug}/README.md#setup");
+		console.error("  see: plugins/holocron-plugin-${inputs.slug}/README.md#setup");
 		process.exit(2);
 	}
 	throw err;

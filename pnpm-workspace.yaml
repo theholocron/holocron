@@ -1,6 +1,7 @@
 packages:
   - "docs"
   - "packages/*"
+  - "plugins/*"
 
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.

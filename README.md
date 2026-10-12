@@ -168,13 +168,16 @@ vault (1Password)
 
 <!-- prettier-ignore -->
 ```bash
-packages/
+packages/                          — core infrastructure (the CLI and its runtime)
   astromech/                       — @theholocron/astromech                   (task runner — holocron run / ci)
   datapad/                         — @theholocron/datapad                     (config-file loader — <name>.config.*)
   cli/                             — @theholocron/cli                         (binary + capability runtime)
   sentinel/                        — @theholocron/sentinel                    (minimal GitHub App — scaffolding only)
+  rollup-plugin-transform-template/ — @theholocron/rollup-plugin-transform-template (template files → default-exported strings)
+plugins/                           — vendor capability providers, one package per provider
   holocron-plugin-github/          — @theholocron/holocron-plugin-github      (source, ci, secrets, environments, issues)
   holocron-plugin-vercel/          — @theholocron/holocron-plugin-vercel      (deployment)
+  holocron-plugin-netlify/         — @theholocron/holocron-plugin-netlify     (deployment)
   holocron-plugin-neon/            — @theholocron/holocron-plugin-neon        (storage)
   holocron-plugin-clerk/           — @theholocron/holocron-plugin-clerk       (auth)
   holocron-plugin-cloudflare/      — @theholocron/holocron-plugin-cloudflare  (dns)

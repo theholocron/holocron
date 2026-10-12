@@ -1,0 +1,74 @@
+{
+  "name": "@theholocron/holocron-plugin-infisical",
+  "version": "5.0.0-alpha.132",
+  "description": "Holocron plugin for Infisical. Implements the vault capability against Infisical's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
+  "keywords": [
+    "holocron",
+    "infisical",
+    "plugin",
+    "vault"
+  ],
+  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-infisical#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "plugins/holocron-plugin-infisical"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "validate": "tsx scripts/validate.mjs",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/http-client": "catalog:clients",
+    "@theholocron/infisical-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/infisical-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/infisical-client": {}
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

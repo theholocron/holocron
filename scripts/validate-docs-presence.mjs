@@ -3,7 +3,8 @@
  * Warns when a PR adds a new public package without a corresponding docs change.
  *
  * Heuristic:
- * - Triggers on new packages/<name>/src/index.ts where package.json has no "private: true"
+ * - Triggers on new packages/<name>/src/index.ts or plugins/<name>/src/index.ts
+ *   where package.json has no "private: true"
  * - A docs change = any file changed under docs/ or matching .md / .mdx
  * - Exits 0 (warning only) so it never blocks emergency fixes
  *
@@ -35,13 +36,13 @@ try {
 // All changed files (for the docs-change check)
 const allChanged = git(`diff --name-only ${baseSha} HEAD`).split("\n").filter(Boolean);
 
-// New public packages: added packages/*/src/index.ts where package is not private
+// New public packages: added packages/*/src/index.ts or plugins/*/src/index.ts where package is not private
 const newPackages = [];
 for (const file of addedFiles) {
-	const match = file.match(/^packages\/([^/]+)\/src\/index\.ts$/);
+	const match = file.match(/^(packages|plugins)\/([^/]+)\/src\/index\.ts$/);
 	if (!match) continue;
-	const pkgName = match[1];
-	const pkgJsonPath = join(root, "packages", pkgName, "package.json");
+	const [, pkgRoot, pkgName] = match;
+	const pkgJsonPath = join(root, pkgRoot, pkgName, "package.json");
 	if (!existsSync(pkgJsonPath)) continue;
 	try {
 		const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));

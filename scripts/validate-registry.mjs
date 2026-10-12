@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Validates that every public package in packages/ has a registry entry
- * in @theholocron/registry-doc.
+ * Validates that every public package in packages/ or plugins/ has a
+ * registry entry in @theholocron/registry-doc.
  *
  * Usage: node scripts/validate-registry.mjs
  */
@@ -13,23 +13,26 @@ import { fileURLToPath } from "node:url";
 import { getRegistry } from "@theholocron/registry-doc";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const packagesDir = join(root, "packages");
 
-// Collect public package names from this workspace.
-const publicPackages = [];
-if (existsSync(packagesDir)) {
-	for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
+function publicPackagesIn(dir) {
+	if (!existsSync(dir)) return [];
+	const names = [];
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
 		if (!entry.isDirectory()) continue;
 		try {
-			const pkg = JSON.parse(readFileSync(join(packagesDir, entry.name, "package.json"), "utf8"));
+			const pkg = JSON.parse(readFileSync(join(dir, entry.name, "package.json"), "utf8"));
 			if (!pkg.private && typeof pkg.name === "string") {
-				publicPackages.push(pkg.name);
+				names.push(pkg.name);
 			}
 		} catch {
 			// no package.json — skip
 		}
 	}
+	return names;
 }
+
+// Collect public package names from this workspace.
+const publicPackages = [...publicPackagesIn(join(root, "packages")), ...publicPackagesIn(join(root, "plugins"))];
 
 if (publicPackages.length === 0) {
 	console.log("No public packages found — nothing to validate.");

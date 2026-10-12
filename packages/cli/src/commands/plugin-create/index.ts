@@ -7,11 +7,11 @@
  * Flow:
  *   1. Preflight — verify CWD is a workspace root (pnpm-workspace.yaml
  *      + packages/ dir present).
- *   2. Slug collision — packages/holocron-plugin-<slug>/ must not exist.
+ *   2. Slug collision — plugins/holocron-plugin-<slug>/ must not exist.
  *   3. Capability sanity — must be one of the 14 known keys; warn for
  *      many-cardinality caps.
  *   4. Generate — for each template, write to
- *      packages/holocron-plugin-<slug>/<path>.
+ *      plugins/holocron-plugin-<slug>/<path>.
  *   5. Verify (unless --no-verify) — runs pnpm install +
  *      pnpm --filter <pkg> typecheck lint test.
  *   6. Print next steps.
@@ -171,7 +171,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 	validateSlug(input.slug);
 	validateVendorName(input.vendorName);
 
-	const packageDir = path.join(cwd, "packages", `holocron-plugin-${input.slug}`);
+	const packageDir = path.join(cwd, "plugins", `holocron-plugin-${input.slug}`);
 	if (existsSync(packageDir)) {
 		throw new PluginCreateError(`\`${packageDir}\` already exists — edit in place or pick a different slug.`);
 	}

@@ -27,7 +27,7 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 
 ## What gets generated
 
-- `packages/holocron-plugin-<slug>/` — fully-typed plugin package with:
+- `plugins/holocron-plugin-<slug>/` — fully-typed plugin package with:
   - `src/index.ts` — `createPlugin` factory + `AUTH_HINT` + public re-exports
   - `src/auth.ts` — token resolver using `createResolveToken`
   - `src/verify-token.ts` — `verifyToken` called by `holocron auth set`

@@ -47,77 +47,82 @@ component_management:
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:
-        - packages/holocron-plugin-1password/**
+        - plugins/holocron-plugin-1password/**
 
     - component_id: holocron-plugin-axiom
       name: "holocron-plugin-axiom"
       paths:
-        - packages/holocron-plugin-axiom/**
+        - plugins/holocron-plugin-axiom/**
 
     - component_id: holocron-plugin-clerk
       name: "holocron-plugin-clerk"
       paths:
-        - packages/holocron-plugin-clerk/**
+        - plugins/holocron-plugin-clerk/**
 
     - component_id: holocron-plugin-cloudflare
       name: "holocron-plugin-cloudflare"
       paths:
-        - packages/holocron-plugin-cloudflare/**
+        - plugins/holocron-plugin-cloudflare/**
 
     - component_id: holocron-plugin-discord
       name: "holocron-plugin-discord"
       paths:
-        - packages/holocron-plugin-discord/**
+        - plugins/holocron-plugin-discord/**
 
     - component_id: holocron-plugin-doppler
       name: "holocron-plugin-doppler"
       paths:
-        - packages/holocron-plugin-doppler/**
+        - plugins/holocron-plugin-doppler/**
 
     - component_id: holocron-plugin-fern
       name: "holocron-plugin-fern"
       paths:
-        - packages/holocron-plugin-fern/**
+        - plugins/holocron-plugin-fern/**
 
     - component_id: holocron-plugin-github
       name: "holocron-plugin-github"
       paths:
-        - packages/holocron-plugin-github/**
+        - plugins/holocron-plugin-github/**
 
     - component_id: holocron-plugin-infisical
       name: "holocron-plugin-infisical"
       paths:
-        - packages/holocron-plugin-infisical/**
+        - plugins/holocron-plugin-infisical/**
 
     - component_id: holocron-plugin-neon
       name: "holocron-plugin-neon"
       paths:
-        - packages/holocron-plugin-neon/**
+        - plugins/holocron-plugin-neon/**
+
+    - component_id: holocron-plugin-netlify
+      name: "holocron-plugin-netlify"
+      paths:
+        - plugins/holocron-plugin-netlify/**
 
     - component_id: holocron-plugin-posthog
       name: "holocron-plugin-posthog"
       paths:
-        - packages/holocron-plugin-posthog/**
+        - plugins/holocron-plugin-posthog/**
 
     - component_id: holocron-plugin-postman
       name: "holocron-plugin-postman"
       paths:
-        - packages/holocron-plugin-postman/**
+        - plugins/holocron-plugin-postman/**
 
     - component_id: holocron-plugin-sentry
       name: "holocron-plugin-sentry"
       paths:
-        - packages/holocron-plugin-sentry/**
+        - plugins/holocron-plugin-sentry/**
 
     - component_id: holocron-plugin-slack
       name: "holocron-plugin-slack"
       paths:
-        - packages/holocron-plugin-slack/**
+        - plugins/holocron-plugin-slack/**
 
     - component_id: holocron-plugin-vercel
       name: "holocron-plugin-vercel"
       paths:
-        - packages/holocron-plugin-vercel/**
+        - plugins/holocron-plugin-vercel/**
 
     - component_id: rollup-plugin-transform-template
       name: "rollup-plugin-transform-template"

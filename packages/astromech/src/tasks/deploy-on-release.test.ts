@@ -154,6 +154,38 @@ describe("workspace discovery", () => {
 		expect(workspacePackages("/repo", tree)).toEqual([]);
 	});
 
+	it("also discovers plugins/* packages, sibling to packages/* (holocron's own layout)", () => {
+		const files: Record<string, unknown> = {
+			"/repo/packages/cli/package.json": { name: "@theholocron/cli" },
+			"/repo/plugins/holocron-plugin-github/package.json": { name: "@theholocron/holocron-plugin-github" },
+		};
+		const tree = {
+			readJson: (path: string) => {
+				if (!(path in files)) throw new Error(`ENOENT: ${path}`);
+				return files[path];
+			},
+			listDirs: (dirPath: string) =>
+				dirPath.endsWith("plugins") ? ["holocron-plugin-github"] : dirPath.endsWith("packages") ? ["cli"] : [],
+		};
+		expect(workspacePackages("/repo", tree).map((p) => p.name)).toEqual([
+			"@theholocron/cli",
+			"@theholocron/holocron-plugin-github",
+		]);
+	});
+
+	it("treats a missing plugins/ directory as empty rather than throwing", () => {
+		const tree = {
+			readJson: (path: string) => {
+				throw new Error(`should not be called: ${path}`);
+			},
+			listDirs: (dirPath: string) => {
+				if (dirPath.endsWith("plugins")) throw new Error(`ENOENT: ${dirPath}`);
+				return [];
+			},
+		};
+		expect(workspacePackages("/repo", tree)).toEqual([]);
+	});
+
 	it("finds each workspace:* dependency, skipping npm dependencies and unrelated packages", () => {
 		const [app] = all as [(typeof all)[number]];
 		expect(workspaceDependencies(app, all).map((d) => [d.name, d.version])).toEqual([

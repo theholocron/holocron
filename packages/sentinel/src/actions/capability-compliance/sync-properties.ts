@@ -21,8 +21,9 @@
  * Known limitation: workspace-package discovery uses one recursive
  * `git.getTree()` call. GitHub truncates a tree response over ~100,000
  * entries (`truncated: true`) — for a repo that large, some `packages/*`
- * / `apps/*` entries could be missed. No repo in this org is remotely
- * close to that size today; revisit (paginated tree walk) if one ever is.
+ * / `apps/*` / `plugins/*` entries could be missed. No repo in this org is
+ * remotely close to that size today; revisit (paginated tree walk) if one
+ * ever is.
  */
 
 import {
@@ -71,7 +72,7 @@ interface ConfigRepoShape {
 	providers?: Record<string, unknown>;
 }
 
-const WORKSPACE_PACKAGE_JSON = /^(?:packages|apps)\/[^/]+\/package\.json$/;
+const WORKSPACE_PACKAGE_JSON = /^(?:packages|apps|plugins)\/[^/]+\/package\.json$/;
 
 /** Fetches and JSON-parses a file from the repo's default branch. `null` on 404 — matches `holocron repo sync`'s own soft-fail for a missing/invalid package.json. */
 async function fetchJson(
@@ -99,7 +100,7 @@ async function pathExists(client: Pick<GitHubClient, "git">, repo: string, path:
 	}
 }
 
-/** Every `packages/*` and `apps/*` workspace's `package.json`, found via one recursive tree walk rather than a local `readdir`. */
+/** Every `packages/*`, `apps/*`, and `plugins/*` workspace's `package.json`, found via one recursive tree walk rather than a local `readdir`. */
 async function fetchWorkspacePackageJsons(
 	client: Pick<GitHubClient, "git">,
 	repo: string,

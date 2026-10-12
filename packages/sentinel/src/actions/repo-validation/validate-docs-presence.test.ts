@@ -56,6 +56,28 @@ describe("validateDocsPresence", () => {
 		expect(decodeURIComponent(calls[1]!.url)).toContain("/contents/packages/widget/package.json?ref=pr-head");
 	});
 
+	it("flags a new plugin package under plugins/, reading its package.json from the plugins/ root", async () => {
+		const { client, calls } = makeClient([
+			{
+				status: 200,
+				body: [
+					file("plugins/holocron-plugin-stripe/src/index.ts"),
+					file("plugins/holocron-plugin-stripe/package.json"),
+				],
+			},
+			pkgJson({ name: "@theholocron/holocron-plugin-stripe" }),
+		]);
+
+		expect(await run(client)).toEqual({
+			newPackages: [{ name: "holocron-plugin-stripe", entry: "plugins/holocron-plugin-stripe/src/index.ts" }],
+			hasDocsChange: false,
+			valid: false,
+		});
+		expect(decodeURIComponent(calls[1]!.url)).toContain(
+			"/contents/plugins/holocron-plugin-stripe/package.json?ref=pr-head"
+		);
+	});
+
 	it("passes a new public package that comes with a docs change", async () => {
 		const { client } = makeClient([
 			{ status: 200, body: [file("packages/widget/src/index.ts"), file("packages/widget/README.md")] },
