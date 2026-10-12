@@ -115,6 +115,25 @@ describe("createAstromech().run", () => {
 		expect(exec).toHaveBeenCalledTimes(2);
 	});
 
+	it("forwards opts.filter through to runGroup when running a bare namespace", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis"] },
+			print: () => {},
+		});
+		astromech.run("sourceQuality", { filter: "@scope/x" });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "sourceQuality.staticAnalysis", "--filter=@scope/x"],
+			expect.objectContaining({ cwd: "/repo" })
+		);
+	});
+
 	it("never lets a namespace match shadow a real exact task name", () => {
 		// "sourceQuality.staticAnalysis" is itself a real TASKS entry — must run
 		// as that one task, not be (mis)treated as a namespace with zero matches.
