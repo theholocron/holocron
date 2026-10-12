@@ -55,6 +55,14 @@ navigation:
             path: ../docs/wiki/decisions/0009-astromech-task-runner-package.md
           - page: ADR-0010 — datapad config loader
             path: ../docs/wiki/decisions/0010-datapad-config-loader.md
+          - page: ADR-0011 — Sentinel deploy target
+            path: ../docs/wiki/decisions/0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md
+          - page: ADR-0012 — Axiom dataset scoping
+            path: ../docs/wiki/decisions/0012-axiom-dataset-scoping-execution-context.md
+          - page: ADR-0013 — Checkly monitoring plugin
+            path: ../docs/wiki/decisions/0013-checkly-monitoring-holocron-plugin.md
+          - page: ADR-0014 — Sourcery GitHub App
+            path: ../docs/wiki/decisions/0014-sourcery-github-app-no-plugin.md
 
   - tab: standards
     layout:
