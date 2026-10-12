@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#992
 blocked-by: []
 related: []
