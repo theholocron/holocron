@@ -77,6 +77,7 @@
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "checkly": "^9.5.0",
     "globals": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
