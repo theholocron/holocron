@@ -221,6 +221,40 @@ describe("syncPropertiesFromConfig — monorepo", () => {
 		expect(calls[6]?.url).toContain("/contents/packages/lib/package.json");
 	});
 
+	it("also walks plugins/* workspace package.json files, like holocron's own layout", async () => {
+		const { client, calls } = makeClient([
+			{ status: 200, body: { content: b64("") } }, // pnpm-workspace.yaml — present, is a monorepo
+			pkgJsonResponse({ name: "root", private: true }), // root package.json
+			{ status: 200, body: { ref: "refs/heads/main", object: { sha: "commit-sha" } } }, // getRef
+			{ status: 200, body: { sha: "commit-sha", tree: { sha: "tree-sha" } } }, // getCommit
+			{
+				status: 200,
+				body: {
+					sha: "tree-sha",
+					truncated: false,
+					tree: [
+						{ path: "packages/cli/package.json", sha: "a", type: "blob" },
+						{ path: "plugins/holocron-plugin-stripe/package.json", sha: "b", type: "blob" },
+					],
+				},
+			},
+			pkgJsonResponse({ name: "@acme/cli", bin: "./dist/cli.js", private: false }),
+			pkgJsonResponse({ name: "@acme/holocron-plugin-stripe", private: false }),
+			{ status: 204 }, // setProperties
+		]);
+
+		const result = await syncPropertiesFromConfig({
+			client,
+			repo: "acme/demo",
+			defaultBranch: "main",
+			config: {},
+		});
+
+		expect(result.properties["holocron_profile"]).toBe("platform");
+		expect(calls[5]?.url).toContain("/contents/packages/cli/package.json");
+		expect(calls[6]?.url).toContain("/contents/plugins/holocron-plugin-stripe/package.json");
+	});
+
 	it("resolves 'library' for a monorepo with no published CLI", async () => {
 		const { client } = makeClient([
 			{ status: 200, body: { content: b64("") } },

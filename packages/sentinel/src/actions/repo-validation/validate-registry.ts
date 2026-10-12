@@ -5,8 +5,9 @@
  * (`scripts/validate-registry.mjs`, holocron#925).
  *
  * The script's rule, scoped like every other Bucket 1 check: a package is
- * checked when its `packages/<name>/package.json` is added or modified in
- * the PR and, at the PR's head ref, has a `name` and isn't `private`. That
+ * checked when its `packages/<name>/package.json` or `plugins/<name>/
+ * package.json` is added or modified in the PR and, at the PR's head ref,
+ * has a `name` and isn't `private`. That
  * covers a new package, a rename and a private-to-public flip; an existing
  * gap in an untouched package isn't this PR's to fix (the CI job keeps
  * checking the whole tree until it's retired). Like the script, a
@@ -23,7 +24,7 @@ import { ProviderApiError } from "@theholocron/http-client";
 import { decodeContents } from "../../utils/decode-contents.js";
 import type { LatestRegistry } from "./load-latest-registry.js";
 
-const PACKAGE_MANIFEST = /^packages\/[^/]+\/package\.json$/;
+const PACKAGE_MANIFEST = /^(?:packages|plugins)\/[^/]+\/package\.json$/;
 
 export interface ValidateRegistryInput {
 	client: Pick<GitHubClient, "pulls" | "git">;

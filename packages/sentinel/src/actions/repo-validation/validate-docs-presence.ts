@@ -5,8 +5,8 @@
  *
  * The heuristic is the script's own:
  * - **A new public package** is an *added* `packages/<name>/src/index.ts`
- *   whose `packages/<name>/package.json` (read at the PR's head ref) isn't
- *   `"private": true`.
+ *   or `plugins/<name>/src/index.ts` whose sibling `package.json` (read at
+ *   the PR's head ref) isn't `"private": true`.
  * - **A docs change** is any changed file under `docs/`, or any `.md` /
  *   `.mdx` file anywhere.
  *
@@ -24,7 +24,7 @@ import { ProviderApiError } from "@theholocron/http-client";
 
 import { decodeContents } from "../../utils/decode-contents.js";
 
-const NEW_PACKAGE_ENTRY = /^packages\/([^/]+)\/src\/index\.ts$/;
+const NEW_PACKAGE_ENTRY = /^(packages|plugins)\/([^/]+)\/src\/index\.ts$/;
 
 export interface ValidateDocsPresenceInput {
 	client: Pick<GitHubClient, "pulls" | "git">;
@@ -36,9 +36,9 @@ export interface ValidateDocsPresenceInput {
 }
 
 export interface NewPublicPackage {
-	/** The `packages/<name>` directory name. */
+	/** The `packages/<name>` or `plugins/<name>` directory name. */
 	name: string;
-	/** The added entry point, `packages/<name>/src/index.ts` — where the check's annotation anchors. */
+	/** The added entry point — where the check's annotation anchors. */
 	entry: string;
 }
 
@@ -63,12 +63,13 @@ export async function validateDocsPresence(input: ValidateDocsPresenceInput): Pr
 	const newPackages: NewPublicPackage[] = [];
 	for (const file of changedFiles) {
 		if (file.status !== "added") continue;
-		const name = NEW_PACKAGE_ENTRY.exec(file.filename)?.[1];
-		if (!name) continue;
+		const match = NEW_PACKAGE_ENTRY.exec(file.filename);
+		if (!match) continue;
+		const [, root, name] = match;
 
 		let pkg: { private?: unknown };
 		try {
-			const contents = await client.git.getContents(repo, `packages/${name}/package.json`, ref);
+			const contents = await client.git.getContents(repo, `${root}/${name}/package.json`, ref);
 			pkg = JSON.parse(decodeContents(contents.content)) as { private?: unknown };
 		} catch (err) {
 			// No package.json (404) or one that isn't JSON: not a publishable

@@ -261,19 +261,29 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 
 <!-- prettier-ignore -->
 ```text
-packages/
+packages/                         — core infrastructure (the CLI and its runtime)
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
+  rollup-plugin-transform-template/ — @theholocron/rollup-plugin-transform-template (Rollup/Vite/Rolldown plugin: template files → default-exported strings)
+plugins/                          — vendor capability providers, one package per provider (split from packages/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
+  holocron-plugin-netlify/        — deployment
   holocron-plugin-neon/           — storage
   holocron-plugin-clerk/          — auth (+ parseWebhook utility)
+  holocron-plugin-cloudflare/     — dns
   holocron-plugin-1password/      — vault (CLI shell-out — only non-REST plugin)
   holocron-plugin-doppler/        — vault (REST)
   holocron-plugin-infisical/      — vault (REST)
+  holocron-plugin-discord/        — notifications
+  holocron-plugin-slack/          — notifications
+  holocron-plugin-axiom/          — logs (REST)
+  holocron-plugin-fern/           — wiki
   holocron-plugin-postman/        — tooling
+  holocron-plugin-posthog/        — analytics
+  holocron-plugin-sentry/         — errors
 holocron.config.ts                — this repo's own config (self-hosted)
 .notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-skill-plugin/ — scaffolding skill for new plugins

@@ -72,12 +72,16 @@ interface Tree {
 	listDirs: (path: string) => string[];
 }
 
-/** Every package under `<repoRoot>/packages/*` with a readable, named `package.json`. */
-export function workspacePackages(repoRoot: string, { readJson, listDirs }: Tree): WorkspacePackage[] {
-	const packagesDir = join(repoRoot, "packages");
-	return listDirs(packagesDir).flatMap((folder) => {
+function scanWorkspaceDir(dirPath: string, { readJson, listDirs }: Tree): WorkspacePackage[] {
+	let folders: string[];
+	try {
+		folders = listDirs(dirPath);
+	} catch {
+		return []; // directory doesn't exist — fine, it's optional (e.g. plugins/)
+	}
+	return folders.flatMap((folder) => {
 		try {
-			const manifest = readJson(join(packagesDir, folder, "package.json")) as {
+			const manifest = readJson(join(dirPath, folder, "package.json")) as {
 				name?: string;
 				version?: string;
 				dependencies?: Record<string, string>;
@@ -86,7 +90,7 @@ export function workspacePackages(repoRoot: string, { readJson, listDirs }: Tree
 			return [
 				{
 					name: manifest.name,
-					dir: join(packagesDir, folder),
+					dir: join(dirPath, folder),
 					version: manifest.version,
 					dependencies: manifest.dependencies ?? {},
 				},
@@ -95,6 +99,18 @@ export function workspacePackages(repoRoot: string, { readJson, listDirs }: Tree
 			return [];
 		}
 	});
+}
+
+/**
+ * Every package under `<repoRoot>/packages/*` and `<repoRoot>/plugins/*`
+ * with a readable, named `package.json` — `holocron`'s own layout splits
+ * vendor plugin packages into `plugins/*`, sibling to `packages/*`.
+ */
+export function workspacePackages(repoRoot: string, tree: Tree): WorkspacePackage[] {
+	return [
+		...scanWorkspaceDir(join(repoRoot, "packages"), tree),
+		...scanWorkspaceDir(join(repoRoot, "plugins"), tree),
+	];
 }
 
 /** The `workspace:*` dependencies of `pkg`, as workspace packages (with their current version). */

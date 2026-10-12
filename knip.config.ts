@@ -24,7 +24,7 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
-		"packages/holocron-plugin-*": {
+		"plugins/holocron-plugin-*": {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
