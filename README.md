@@ -128,7 +128,6 @@ holocron sync readme     # readme marker blocks only
 holocron doctor          # check everything's wired right
 holocron secrets sync    # vault → secrets + deployment env vars + .env
 holocron deploy          # ship to your `deployment` provider
-
 ```
 
 ## How it works
@@ -154,17 +153,19 @@ env vars, local `.env`) syncs FROM the vault:
 
 <!-- prettier-ignore -->
 vault (1Password)
-  ├─→ secrets       (GitHub Actions)
-  ├─→ deployment    (Vercel env vars)
-  └─→ local .env    (for dev)
-
+  ├─ secrets       (GitHub Actions)
+  ├─ deployment    (Vercel env vars)
+  └─ local .env    (for dev)
 ```
 
 ## Repo layout (v2)
 
 <!-- prettier-ignore -->
 packages/
+  astromech/                      — @theholocron/astromech                  (task runner — holocron run / ci)
+  datapad/                        — @theholocron/datapad                    (config-file loader — <name>.config.*)
   cli/                            — @theholocron/cli                        (binary + capability runtime)
+  sentinel/                       — @theholocron/sentinel                   (minimal GitHub App — scaffolding only)
   holocron-plugin-github/         — @theholocron/holocron-plugin-github     (source, ci, secrets, environments, issues)
   holocron-plugin-vercel/         — @theholocron/holocron-plugin-vercel     (deployment)
   holocron-plugin-neon/           — @theholocron/holocron-plugin-neon       (storage)
@@ -178,15 +179,11 @@ packages/
   holocron-plugin-axiom/          — @theholocron/holocron-plugin-axiom      (logs — REST)
   holocron-plugin-slack/          — @theholocron/holocron-plugin-slack      (notifications)
   holocron-plugin-postman/        — @theholocron/holocron-plugin-postman    (tooling)
-  holocron-plugin-posthog/        — @theholocron/holocron-plugin-posthog   (analytics)
+  holocron-plugin-posthog/        — @theholocron/holocron-plugin-posthog    (analytics)
   holocron-plugin-sentry/         — @theholocron/holocron-plugin-sentry     (errors)
-  datapad/                        — @theholocron/datapad                    (config-file loader — <name>.config.*)
-  astromech/                      — @theholocron/astromech                  (task runner — holocron run / ci)
-  sentinel/                       — @theholocron/sentinel                   (minimal GitHub App — scaffolding only)
-holocron.config.ts                — this repo's own holocron config (self-hosted)
-.notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
+holocron.config.ts                — this repo's own holocron config         (self-hosted)
+.notes/                           — in-progress design specs                (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-plugin.md — scaffolding skill for new plugins
-
 ```
 
 ## Self-hosting
