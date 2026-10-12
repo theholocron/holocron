@@ -13,6 +13,7 @@ resolution, base URL construction, and normalised error responses.
 
 | Package                                          | Description                         |
 | ------------------------------------------------ | ----------------------------------- |
+| [`@theholocron/checkly-client`](./checkly)       | Checkly uptime & synthetic checks   |
 | [`@theholocron/clerk-client`](./clerk)           | Clerk user management               |
 | [`@theholocron/cloudflare-client`](./cloudflare) | Cloudflare zones, DNS & tunnels     |
 | [`@theholocron/confluence-client`](./confluence) | Confluence Cloud pages & spaces     |
