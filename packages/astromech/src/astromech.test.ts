@@ -199,6 +199,26 @@ describe("createAstromech().run", () => {
 			await rm(binDir, { recursive: true, force: true });
 		}
 	});
+
+	it("falls back to an empty PATH when process.env.PATH is unset, finding nothing", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-nopath-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const savedPath = process.env["PATH"];
+		delete process.env["PATH"];
+		try {
+			const report = createAstromech({
+				cwd: dir,
+				config: { tasks: ["sourceQuality.structuredDataValidation"] },
+			}).run("sourceQuality.structuredDataValidation");
+			// no node_modules/.bin/yamllint, no PATH to search — tool not found, skipped
+			expect(report.status).toBe("skip");
+		} finally {
+			process.env["PATH"] = savedPath;
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
 });
 
 describe("createAstromech().thinCallers", () => {
