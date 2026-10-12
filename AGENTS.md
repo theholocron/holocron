@@ -18,8 +18,8 @@ Three repos, one rule per concern:
 
 ## Architecture
 
-- **Capability/provider model.** 14 capabilities defined in
-  `packages/cli/src/capabilities/index.ts`. Vendors implement N
+- **Capability/provider model.** 18 capabilities defined in
+  `packages/cli/src/plugin/capabilities.ts`. Vendors implement N
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
   typed autocomplete. `vault` is no longer required (removed constraint).
@@ -262,7 +262,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 <!-- prettier-ignore -->
 ```text
 packages/                         — core infrastructure (the CLI and its runtime)
-  cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
+  cli/                            — @theholocron/cli                       (binary + runtime + 18 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
@@ -284,6 +284,7 @@ plugins/                          — vendor capability providers, one package p
   holocron-plugin-postman/        — tooling
   holocron-plugin-posthog/        — analytics
   holocron-plugin-sentry/         — errors
+  holocron-plugin-checkly/        — monitoring (REST)
 holocron.config.ts                — this repo's own config (self-hosted)
 .notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-skill-plugin/ — scaffolding skill for new plugins
