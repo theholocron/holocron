@@ -17,8 +17,6 @@ packages under [`packages/`](./packages) for the tools it ships.
 
 <!-- /holocron:installation -->
 
-## Quickstart
-
 ### 1. Install the CLI + the source plugin and a vault plugin
 
 <!-- prettier-ignore -->
@@ -32,7 +30,7 @@ pnpm add -D @theholocron/holocron-plugin-doppler
 # or: pnpm add -D @theholocron/holocron-plugin-infisical
 ```
 
-### 2. Drop a holocron.config.ts at your repo root
+### 2. Drop a `holocron.config.ts` at your repo root
 
 Create the config (e.g. `holocron.config.{ts | js | json}`
 
@@ -168,32 +166,32 @@ vault (1Password)
 
 <!-- prettier-ignore -->
 ```bash
-packages/                          — core infrastructure (the CLI and its runtime)
-  astromech/                       — @theholocron/astromech                   (task runner — holocron run / ci)
-  datapad/                         — @theholocron/datapad                     (config-file loader — <name>.config.*)
-  cli/                             — @theholocron/cli                         (binary + capability runtime)
-  sentinel/                        — @theholocron/sentinel                    (minimal GitHub App — scaffolding only)
-  rollup-plugin-transform-template/ — @theholocron/rollup-plugin-transform-template (template files → default-exported strings)
-plugins/                           — vendor capability providers, one package per provider
-  holocron-plugin-github/          — @theholocron/holocron-plugin-github      (source, ci, secrets, environments, issues)
-  holocron-plugin-vercel/          — @theholocron/holocron-plugin-vercel      (deployment)
-  holocron-plugin-netlify/         — @theholocron/holocron-plugin-netlify     (deployment)
-  holocron-plugin-neon/            — @theholocron/holocron-plugin-neon        (storage)
-  holocron-plugin-clerk/           — @theholocron/holocron-plugin-clerk       (auth)
-  holocron-plugin-cloudflare/      — @theholocron/holocron-plugin-cloudflare  (dns)
-  holocron-plugin-1password/       — @theholocron/holocron-plugin-1password   (vault — CLI shell-out)
-  holocron-plugin-doppler/         — @theholocron/holocron-plugin-doppler     (vault — REST)
-  holocron-plugin-infisical/       — @theholocron/holocron-plugin-infisical   (vault — REST)
-  holocron-plugin-discord/         — @theholocron/holocron-plugin-discord     (notifications)
-  holocron-plugin-fern/            — @theholocron/holocron-plugin-fern        (wiki)
-  holocron-plugin-axiom/           — @theholocron/holocron-plugin-axiom       (logs — REST)
-  holocron-plugin-slack/           — @theholocron/holocron-plugin-slack       (notifications)
-  holocron-plugin-postman/         — @theholocron/holocron-plugin-postman     (tooling)
-  holocron-plugin-posthog/         — @theholocron/holocron-plugin-posthog     (analytics)
-  holocron-plugin-sentry/          — @theholocron/holocron-plugin-sentry      (errors)
-holocron.config.ts                 — this repo's own holocron config          (self-hosted)
-.notes/                            — in-progress design specs                 (settled ones move to docs/wiki/specifications/)
-.claude/skills/holocron-plugin.md  — scaffolding skill for new plugins
+packages/                            — core infrastructure                            (the CLI and its runtime)
+  astromech/                         — @theholocron/astromech                         (task runner — holocron run / ci)
+  datapad/                           — @theholocron/datapad                           (config-file loader — <name>.config.*)
+  cli/                               — @theholocron/cli                               (binary + capability runtime)
+  sentinel/                          — @theholocron/sentinel                          (minimal GitHub App — scaffolding only)
+  rollup-plugin-transform-template/  — @theholocron/rollup-plugin-transform-template  (template files → default-exported strings)
+plugins/                             — vendor capability providers                    (one package per provider)
+  holocron-plugin-github/            — @theholocron/holocron-plugin-github            (source, ci, secrets, environments, issues)
+  holocron-plugin-vercel/            — @theholocron/holocron-plugin-vercel            (deployment)
+  holocron-plugin-netlify/           — @theholocron/holocron-plugin-netlify           (deployment)
+  holocron-plugin-neon/              — @theholocron/holocron-plugin-neon              (storage)
+  holocron-plugin-clerk/             — @theholocron/holocron-plugin-clerk             (auth)
+  holocron-plugin-cloudflare/        — @theholocron/holocron-plugin-cloudflare        (dns)
+  holocron-plugin-1password/         — @theholocron/holocron-plugin-1password         (vault — CLI shell-out)
+  holocron-plugin-doppler/           — @theholocron/holocron-plugin-doppler           (vault — REST)
+  holocron-plugin-infisical/         — @theholocron/holocron-plugin-infisical         (vault — REST)
+  holocron-plugin-discord/           — @theholocron/holocron-plugin-discord           (notifications)
+  holocron-plugin-fern/              — @theholocron/holocron-plugin-fern              (wiki)
+  holocron-plugin-axiom/             — @theholocron/holocron-plugin-axiom             (logs — REST)
+  holocron-plugin-slack/             — @theholocron/holocron-plugin-slack             (notifications)
+  holocron-plugin-postman/           — @theholocron/holocron-plugin-postman           (tooling)
+  holocron-plugin-posthog/           — @theholocron/holocron-plugin-posthog           (analytics)
+  holocron-plugin-sentry/            — @theholocron/holocron-plugin-sentry            (errors)
+holocron.config.ts                   — this repo's own holocron config                (self-hosted)
+.notes/                              — in-progress design specs                       (settled ones move to docs/wiki/specifications/)
+.claude/skills/holocron-plugin.md    — scaffolding skill for new plugins
 ```
 
 ## Self-hosting

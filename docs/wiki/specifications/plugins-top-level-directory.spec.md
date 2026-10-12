@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#992
 blocked-by: []
 related: []
@@ -10,7 +10,7 @@ related: []
 `packages/` currently holds 21 workspace packages flat: 5 core-infra
 packages (`cli`, `astromech`, `datapad`, `sentinel`,
 `rollup-plugin-transform-template`) and 16 `holocron-plugin-*` vendor
-packages. As more vendors are added the flat listing gets harder to scan.
+packages. As more vendors are added the flat listing gets difficult to scan.
 Moving the 16 plugin packages to their own top-level `plugins/` directory
 (sibling to `packages/`) keeps `packages/` to the core packages and gives
 "plugin" its own first-class location — matching what the package name
@@ -24,7 +24,7 @@ would produce.
 repo setup`'s codecov-component generation and by the CLI's derived
 custom-properties sync) already scans `packages/*` **and** `apps/*` as
 independent, optional top-level roots — a repo without an `apps/` directory
-just gets `[]` for it. Adding `plugins/*` as a third root is the same
+gets `[]` for it. Adding `plugins/*` as a third root is the same
 pattern, not a new one. Everywhere else, discovery is one level deep under
 a single hardcoded `"packages"` string — those need updating, not
 redesigning.
@@ -51,7 +51,7 @@ fern,github,infisical,neon,netlify,posthog,postman,sentry,slack,vercel}`
 
 ### C. `@theholocron/astromech` (shared, org-wide — used by every repo's
 
-`holocron repo setup`, not just this one)
+`holocron repo setup`, not only this one)
 
 - `src/generators/codecov.ts` — `WorkspacePackage.dir` widens from
   `"packages" | "apps"` to also allow `"plugins"`; `readWorkspacePackages()`
@@ -59,7 +59,7 @@ fern,github,infisical,neon,netlify,posthog,postman,sentry,slack,vercel}`
   `codecovComponentBlock()`'s path-building already reads `dir ?? "packages"`
   generically — no change needed there.
 - `src/tasks/deploy-on-release.ts` — `workspacePackages()` is currently
-  hardcoded to just `packages/*` (no plugin uses `delivery.deploy` today,
+  hardcoded to `packages/*` (no plugin uses `delivery.deploy` today,
   so this isn't a live bug, but it's the same shape of hardcode and should
   scan `plugins/*` too for consistency going forward).
 - Both get test coverage for the new root.
@@ -68,7 +68,7 @@ Fixing (C) also fixes `packages/cli/src/commands/setup/derived-properties.ts`'s
 custom-properties sync for free — `readWorkspacePackageJsons()` there
 already reads `join(repoRoot, dir, slug, "package.json")` using whatever
 `dir` each `WorkspacePackage` carries; it never hardcodes `"packages"`
-itself. Just update its doc comment (line ~21) referencing the old path.
+itself. Update its doc comment (line ~21) referencing the old path.
 
 ### D. `@theholocron/cli` plugin scaffolding (`holocron new plugin`)
 
@@ -125,7 +125,7 @@ mirrors of the same checks, independently hardcoded
   under `packages/holocron-plugin-<slug>/`" → `plugins/holocron-plugin-
 <slug>/`.
 - `CLAUDE.md`'s "Repo layout" diagram and `README.md`'s "Repo layout (v2)"
-  diagram — both restructure the same way: `packages/` keeps just the 5
+  diagram — both restructure the same way: `packages/` keeps the 5
   core packages; a new top-level `plugins/` block lists the 16 vendor
   packages with their existing one-line descriptions. (`README.md`'s
   version is already missing `rollup-plugin-transform-template` and
