@@ -59,7 +59,7 @@ ever reaching `monorepo-nextjs-template`):
    `pull_request_target`, or `merge_group` in its own `on:` — `workflow_call`
    is not a supported trigger.** ([GitHub docs][docs]) Every reusable
    workflow in `theholocron/.github` is `workflow_call`-only by design — that
-   is what makes it reusable. **This kills payoff 3 outright**: the rule can
+   is what makes it reusable. **This negates payoff 3 outright**: the rule can
    never target a reusable workflow directly. It can only target a
    `pull_request`-triggered workflow physically present in the consumer
    repo — which in this org's architecture is exactly the thin-caller file
@@ -115,7 +115,7 @@ cost.
 
 **When to revisit:** if GitHub ever extends this rule type to support
 `workflow_call` triggers directly, or to reference an arbitrary Check Run
-(not just an Actions workflow run) — either change would remove one of the
+(not only an Actions workflow run) — either change would remove one of the
 two structural blockers above and meaningfully change this trade-off.
 Nothing else about this decision is time-bound.
 
