@@ -14,7 +14,7 @@
  * `sourceQuality.*`, `security.*`, `delivery.*`, `platform.*`,
  * `knowledge.*`), not tool names — `eslint`/`vitest`/`tsdown`/… stay
  * internal to this file and `theholocron/configs`. See
- * `.notes/tech-vocabulary-rename.spec.md` (#675) for the full mapping and
+ * `docs/wiki/specifications/tech-vocabulary-rename.spec.md` (#675) for the full mapping and
  * the reasoning behind each namespace and decomposition.
  *
  * Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md` (epic #581).

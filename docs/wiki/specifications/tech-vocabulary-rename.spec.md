@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#675
 blocked-by: []
 related:
@@ -97,14 +97,14 @@ No new abstraction needed — the existing `jobs` shape (already used by
   field — names into `linters.ts`'s existing `LINTERS` table. `run.ts`
   resolves it via the existing `resolveLinters({ explicit, rootFiles })`
   (already supports a restricted explicit list + the config-file detection
-  gate), replacing the old `task === "lint"` special case with a normal
+  gate), replacing the old `task === "lint"` one-off case with a normal
   step in the resolution ladder — checked _after_ turbo/`package.json`
   script resolution, not before, so a decomposed task is a normal
   turbo-delegatable task like any other (today's `lint` aggregate skipped
   that check entirely; no longer necessary once D9 makes `turbo.json`
   universal).
 - The old `config.tasks[].linters` per-repo override list goes away — a
-  repo's choice of which linters run is now just which tasks it includes in
+  repo's choice of which linters run is now only which tasks it includes in
   `tasks: [...]`, directly, consistent with how every other task works.
 
 ## Auto-commit-fix generalizes, doesn't disappear
@@ -125,7 +125,7 @@ mechanism.
 
 - Rewrite `registry.ts` (`TASKS`, `KNOWN_TASKS`, `CI_ORDER`) against the
   locked table above.
-- Generalize `run.ts`: remove the `task === "lint"` special case and
+- Generalize `run.ts`: remove the `task === "lint"` one-off case and
   `runLintAggregate`; add the `linterGroup` resolution step.
 - Update `thin-callers.ts` (`KNOWN_WORKFLOWS`, `WORKFLOW_CHECK_CONTEXTS`) and
   author the workflow templates for the 5 decomposed lint-derived tasks

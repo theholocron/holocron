@@ -59,4 +59,5 @@ export {
 	type DeployOnReleaseReport,
 	type DeployOnReleaseResult,
 } from "./tasks/deploy-on-release.js";
+export { type GroupJobReport, type GroupOptions, type GroupReport, matchNamespace, runGroup } from "./tasks/group.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";

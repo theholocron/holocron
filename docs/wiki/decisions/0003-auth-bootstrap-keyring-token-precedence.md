@@ -7,7 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/tech-auth-bootstrap.spec.md
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [auth, keyring, plugins, security]
@@ -17,6 +17,11 @@ tags: [auth, keyring, plugins, security]
 
 - Status: accepted
 - Date: 2026-08-17
+
+> This ADR predates the Git-based ADR process (ADR-0004) itself — it
+> was authored on the GitHub Wiki and bulk-migrated into this repo by
+> #490. The linked discussion is that migration, not the original
+> decision conversation; no single PR captures the latter.
 
 ## Context and Problem Statement
 
@@ -48,7 +53,7 @@ gracefully to env vars or flags in CI.
 
 The full precedence order for every plugin:
 
-```
+```text
 1. --token             CLI flag (per-command override)
 2. HOLOCRON_<X>_TOKEN  holocron-namespaced env var
 3. <VENDOR>_TOKEN      vendor's own env var
@@ -68,7 +73,7 @@ The full precedence order for every plugin:
 - Requires `@napi-rs/keyring` — Rust-based N-API prebuilts, one extra native dependency
 - Keyring availability varies by OS (macOS Keychain, Linux Secret Service, Windows Credential Manager)
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### Shell out to vendor CLI
 

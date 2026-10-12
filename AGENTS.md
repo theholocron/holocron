@@ -69,7 +69,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     otherwise. A `workspace` command calls
     `assertPluginsResolvable(loader, name)` right after `loader.load()`;
     it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
-    `USER_FACING_ERRORS` catch) only when every provider failed with a
+    `USER_FACING_ERRORS` catch) only when every provider errored with a
     missing-package error — the global-install case.
   - **Interactive fallback** (`packages/cli/src/interactive-menu.ts`, spec
     `tool-interactive-cli-menu`, #438). A command with a required positional
@@ -265,7 +265,7 @@ packages/
   cli/                            — @theholocron/cli                       (binary + runtime + 14 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
-  sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, .notes/tech-sentinel-v1.spec.md)
+  sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
   holocron-plugin-neon/           — storage

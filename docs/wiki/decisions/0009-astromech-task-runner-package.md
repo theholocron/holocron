@@ -20,15 +20,15 @@ tags: [astromech, tasks, ci]
 Accepted
 
 Phases 1–5 shipped (`@theholocron/astromech` + `/config`, `holocron run`,
-`holocron ci`, thin callers, `packageScripts()`, lint parity, and
+`holocron run ci`, thin callers, `packageScripts()`, lint parity, and
 manifest-derived branch-protection checks). As-built notes:
 
-- `holocron ci` job order comes from a declared `CI_ORDER` constant in
+- `holocron run ci` job order comes from a declared `CI_ORDER` constant in
   `registry.ts`, not `needs:` parsing.
 - The check context standardized to the aggregate `… / Conclusion` fan-in
   job. `repo.requiredChecks` was removed with no alias;
   `Capability.requiredChecks` → `Capability.extraRequiredChecks`.
-- `holocron setup` installs a `.husky/pre-push` hook running `holocron ci`
+- `holocron repo setup` installs a `.husky/pre-push` hook running `holocron run ci`
   (on by default for `protection: "strict"`, gated by the `hooks` field).
 
 Phases 6–8 (template-push core, `holocron run <task> <job>` sub-jobs, CI
@@ -40,7 +40,7 @@ Three things describe "what a repo runs", and they drift apart:
 
 1. **CI** — reusable workflows in `theholocron/.github`, selected per repo
    through `config.workflows`, materialised as thin callers in
-   `.github/workflows/*.yml` by `holocron setup` / `holocron sync-github`.
+   `.github/workflows/*.yml` by `holocron repo setup` / `holocron sync github`.
 2. **`package.json` scripts** — hand-written per repo (`pnpm test` →
    `turbo run test` → `vitest run --coverage`).
 3. **Local dev** — the contributor (or an agent) has to know turbo vs pnpm
@@ -109,7 +109,7 @@ const astromech = createAstromech({
 });
 
 await astromech.run(task, { job, passthrough, dryRun, required }); // holocron run
-await astromech.ci({ dryRun, filter, scope }); // holocron ci
+await astromech.ci({ dryRun, filter, scope }); // holocron run ci
 astromech.requiredChecks(); // string[]  — branch-protection check contexts
 astromech.thinCallers(); // Map<filename, yaml>   — .github/workflows/*.yml
 astromech.packageScripts(); // Record<string,string> — { test: "holocron run test", … }
@@ -163,22 +163,22 @@ tasks: [
 ];
 ```
 
-| Field                            | Effect                                                                                                                       |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `ci` (default `true`)            | thin caller written; job runs in `holocron ci`                                                                               |
-| `local` (default `true`)         | `package.json` `"<name>": "holocron run <name>"`; `holocron run <name>` resolves via the manifest                            |
-| `local: false`                   | `holocron run <name>` prints "CI-only task", exit 0                                                                          |
-| `required` (default from preset) | task's check context is a required status check (`holocron setup` branch protection) and part of `holocron ci`'s default run |
-| `with`                           | per-repo override on the same channel the reusable workflow reads                                                            |
+| Field                            | Effect                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci` (default `true`)            | thin caller written; job runs in `holocron run ci`                                                                                    |
+| `local` (default `true`)         | `package.json` `"<name>": "holocron run <name>"`; `holocron run <name>` resolves via the manifest                                     |
+| `local: false`                   | `holocron run <name>` prints "CI-only task", exit 0                                                                                   |
+| `required` (default from preset) | task's check context is a required status check (`holocron repo setup` branch protection) and part of `holocron run ci`'s default run |
+| `with`                           | per-repo override on the same channel the reusable workflow reads                                                                     |
 
-### `holocron ci` — run the required suite locally
+### `holocron run ci` — run the required suite locally
 
-`holocron ci` runs every `required` task (`--all` for every `ci: true`
+`holocron run ci` runs every `required` task (`--all` for every `ci: true`
 task) natively, in dependency order, and exits non-zero on any failure.
 This is the command an agent skill, a git `pre-push` hook, and the
 CLAUDE.md "definition of done" point to for _"will CI pass?"_ — closing
-#451. `holocron setup` can install the `pre-push` hook; the repo's agent
-skill gains a `holocron ci` step.
+#451. `holocron repo setup` can install the `pre-push` hook; the repo's agent
+skill gains a `holocron run ci` step.
 
 ### `lint` — parity through one linter manifest (not an asymmetry)
 
@@ -228,7 +228,7 @@ already points.
 
 ## References
 
-- Issues: #581 (extraction), #449 (`holocron run`), #451 (`holocron ci`),
+- Issues: #581 (extraction), #449 (`holocron run`), #451 (`holocron run ci`),
   #566 (sync-managed scripts), #590 (Phase 1 code, parked)
 - ADR-0007 — the `@theholocron/logger` extraction is the precedent for a
   self-contained non-plugin library the CLI instantiates

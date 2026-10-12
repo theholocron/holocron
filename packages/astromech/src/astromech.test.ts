@@ -91,6 +91,67 @@ describe("createAstromech().run", () => {
 		expect(warn).toHaveBeenCalledWith(expect.objectContaining({ status: "unknown" }), expect.any(String));
 	});
 
+	it("runs every task under a bare namespace that isn't an exact task name itself", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({
+					tasks: { "sourceQuality.staticAnalysis": {}, "sourceQuality.formatting": {} },
+				}),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis", "sourceQuality.formatting", "verification.unitTests"] },
+			print: () => {},
+		});
+		const report = astromech.run("sourceQuality");
+		expect(report).toMatchObject({
+			status: "ok",
+			jobs: [
+				{ task: "sourceQuality.staticAnalysis", status: "ok" },
+				{ task: "sourceQuality.formatting", status: "ok" },
+			],
+		});
+		expect(exec).toHaveBeenCalledTimes(2);
+	});
+
+	it("forwards opts.filter through to runGroup when running a bare namespace", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis"] },
+			print: () => {},
+		});
+		astromech.run("sourceQuality", { filter: "@scope/x" });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "sourceQuality.staticAnalysis", "--filter=@scope/x"],
+			expect.objectContaining({ cwd: "/repo" })
+		);
+	});
+
+	it("never lets a namespace match shadow a real exact task name", () => {
+		// "sourceQuality.staticAnalysis" is itself a real TASKS entry — must run
+		// as that one task, not be (mis)treated as a namespace with zero matches.
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis"] },
+			print: () => {},
+		});
+		const report = astromech.run("sourceQuality.staticAnalysis");
+		expect(report).not.toHaveProperty("jobs");
+		expect(report.status).toBe("ok");
+	});
+
 	it("wires real node:fs / console.log / spawnSync when nothing is injected", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "astromech-"));
 		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" })); // real readFile
@@ -125,14 +186,37 @@ describe("createAstromech().run", () => {
 				config: { tasks: ["sourceQuality.formatting"] },
 			}).run("sourceQuality.formatting", { dryRun: true });
 			expect(report.status).toBe("dry-run");
-			expect(report.command).toContain(join(dir, "node_modules", ".bin", "prettier"));
-			expect(report.command).toContain(join(binDir, "editorconfig-checker"));
-			expect(report.command).not.toContain("markdownlint");
+			// An exact task name (not a namespace) always returns RunTaskReport;
+			// the cast narrows past run()'s RunTaskReport | GroupReport union.
+			const command = (report as { command?: string }).command;
+			expect(command).toContain(join(dir, "node_modules", ".bin", "prettier"));
+			expect(command).toContain(join(binDir, "editorconfig-checker"));
+			expect(command).not.toContain("markdownlint");
 		} finally {
 			process.env["PATH"] = savedPath;
 			log.mockRestore();
 			await rm(dir, { recursive: true, force: true });
 			await rm(binDir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to an empty PATH when process.env.PATH is unset, finding nothing", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-nopath-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const savedPath = process.env["PATH"];
+		delete process.env["PATH"];
+		try {
+			const report = createAstromech({
+				cwd: dir,
+				config: { tasks: ["sourceQuality.structuredDataValidation"] },
+			}).run("sourceQuality.structuredDataValidation");
+			// no node_modules/.bin/yamllint, no PATH to search — tool not found, skipped
+			expect(report.status).toBe("skip");
+		} finally {
+			process.env["PATH"] = savedPath;
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
 		}
 	});
 });
@@ -346,6 +430,40 @@ describe("createAstromech().packageScripts", () => {
 		expect(
 			createAstromech({ cwd: "/repo", config: { tasks: ["verification.unitTests"] } }).packageScripts().prepare
 		).toBeUndefined();
+	});
+});
+
+describe("createAstromech().runnableTasks", () => {
+	it("returns the same task names packageScripts() would, minus the holocron/prepare entries", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", { name: "delivery.publish" }],
+			},
+		});
+		expect(astromech.runnableTasks()).toEqual(["sourceQuality.staticAnalysis", "verification.unitTests"]);
+	});
+
+	it("skips local: false and genuinely local: null tasks, same filter as packageScripts()", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "verification.unitTests", local: false }, "security.codeScanning", "delivery.build"],
+			},
+		});
+		expect(astromech.runnableTasks()).toEqual(["delivery.build"]);
+	});
+
+	it("is unaffected by syncScripts: false — the exact gap that silently emptied the picker live", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["verification.unitTests"], syncScripts: false },
+		});
+		expect(astromech.runnableTasks()).toEqual(["verification.unitTests"]);
+	});
+
+	it("returns [] with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).runnableTasks()).toEqual([]);
 	});
 });
 

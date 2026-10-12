@@ -4,9 +4,9 @@
  * properties sync call, check-run posting) will consume. Handler logic
  * only: no HTTP framework, no deploy target assumed — `parseWebhookEvent()`
  * is a plain function over `{ body, headers, secret }` so it slots into
- * Vercel's `Request`, Cloudflare's `Request`, or anything else once the
- * deploy target (still open — see `.notes/tech-sentinel-v1.spec.md`) is
- * decided.
+ * Vercel's `Request` (the chosen deploy target — ADR-0011,
+ * `docs/wiki/specifications/tech-sentinel-v1.spec.md`) without depending
+ * on that choice.
  *
  * Verification and header/payload shapes are `@theholocron/github-client`'s
  * `verifyGitHubWebhookSignature()` / `parseGitHubWebhookHeaders()` /

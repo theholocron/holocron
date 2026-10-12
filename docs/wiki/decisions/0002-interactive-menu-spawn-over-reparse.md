@@ -5,9 +5,9 @@ status: accepted
 date: 2026-08-27
 owners: []
 specs:
-  - .notes/tool-interactive-cli-menu.spec.md
+  - docs/wiki/specifications/tool-interactive-cli-menu.spec.md
 discussion:
-  github:
+  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [cli, interactive-menu, architecture]
@@ -17,6 +17,11 @@ tags: [cli, interactive-menu, architecture]
 
 - Status: accepted
 - Date: 2026-08-27
+
+> This ADR predates the Git-based ADR process (ADR-0004) itself — it
+> was authored on the GitHub Wiki and bulk-migrated into this repo by
+> #490. The linked discussion is that migration, not the original
+> decision conversation; no single PR captures the latter.
 
 ## Context and Problem Statement
 
@@ -29,7 +34,7 @@ evaluated for how to hand control from the picker to the command.
 - No re-entrancy risk from triggering the default (`$0`) picker again
 - Telemetry and middleware must start fresh for the sub-command
 - Global flags (`--token`, `--org`, `--cwd`, `--dry-run`) must be preserved
-- Control flow must be simple to reason about
+- Control flow must stay predictable, with no implicit shared state
 
 ## Considered Options
 
@@ -47,14 +52,14 @@ self-contained process invocations.
 - No re-entrancy guard needed — the child is a plain top-level invocation
 - Telemetry starts fresh in the child, identical to a direct invocation
 - Global flags forwarded explicitly; no implicit shared state
-- Simpler mental model: picker terminates, command runs independently
+- Simpler conceptual model: picker terminates, command runs independently
 
 ### Negative Consequences
 
 - Slight process-startup overhead for each command invocation via the menu
 - Global flags must be explicitly forwarded — any new global flag needs a corresponding forwarding update in the menu code
 
-## Pros and Cons of the Options
+## Trade-offs of the Options
 
 ### `yargs.parse([command, ...args])` (re-parse)
 

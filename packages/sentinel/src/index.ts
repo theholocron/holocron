@@ -4,7 +4,7 @@
  * A sentinel droid: it watches, validates, and reports — never acts on its
  * own. Webhook receiver, default-branch-only `holocron.config.ts`
  * validation, custom-properties sync, one check run per resolution run.
- * Design: `.notes/tech-sentinel-v1.spec.md` (repo root).
+ * Design: `docs/wiki/specifications/tech-sentinel-v1.spec.md`.
  *
  * `src/utils/` — read-only: fetches, parses, verifies, never mutates
  * GitHub (`validateConfig`, `parseWebhookEvent`, plus their shared
