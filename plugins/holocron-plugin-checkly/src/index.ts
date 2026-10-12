@@ -72,6 +72,18 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { ChecklyMonitoring } from "./capabilities/monitoring.js";
-export { type ChecklyClient, createChecklyClient } from "./rest.js";
+export {
+	type ApiCheck,
+	type ApiCheckInput,
+	type ApiCheckRequest,
+	type Assertion,
+	type AssertionComparison,
+	type AssertionSource,
+	type ChecklyClient,
+	type ChecklyClientOptions,
+	createChecklyClient,
+	type HttpMethod,
+	type ListChecksParams,
+} from "./rest.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
