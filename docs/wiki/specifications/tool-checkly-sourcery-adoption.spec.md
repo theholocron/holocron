@@ -147,7 +147,7 @@ providers: {
 	monitoring: [
 		"checkly",
 		{
-			accountId: "<CHECKLY_ACCOUNT_ID>", // not a secret — placeholder until the account exists
+			accountId: "fb82859a-4f62-4773-8404-db0f29f9262c", // not a secret — same status as Vercel's teamId
 			checks: [
 				{
 					name: "Sentinel webhook uptime",
@@ -164,11 +164,14 @@ providers: {
 
 ### What's left (tracked in #996)
 
-1. Sign up for Checkly's free Hobby tier.
-2. Generate a regular User API key.
-3. Fill in the real `accountId` above (currently a placeholder).
+1. ~~Sign up for Checkly's free Hobby tier.~~ Done.
+2. ~~Generate a regular User API key.~~ Done.
+3. ~~Fill in the real `accountId` above.~~ Done.
 4. Add the key to Doppler (`sentinel`/`prd`) as `CHECKLY_API_KEY`, then
-   `holocron secrets sync`.
+   `holocron secrets sync`. Also set it locally via
+   `holocron auth set checkly <KEY>` (OS keyring) so `holocron doctor`
+   / `holocron repo setup` work from an operator's own machine without
+   it.
 5. `holocron repo setup --cwd packages/sentinel` to provision the
    check; confirm it's live in the Checkly dashboard.
 

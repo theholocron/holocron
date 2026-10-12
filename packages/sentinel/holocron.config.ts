@@ -69,9 +69,7 @@ export default defineConfig({
 		monitoring: [
 			"checkly",
 			{
-				// TODO(#996): fill in once the Checkly account exists — not a
-				// secret, same status as `teamId` above, just not known yet.
-				accountId: "<CHECKLY_ACCOUNT_ID>",
+				accountId: "fb82859a-4f62-4773-8404-db0f29f9262c",
 				checks: [
 					{
 						name: "Sentinel webhook uptime",
