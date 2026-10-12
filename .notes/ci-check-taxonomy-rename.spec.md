@@ -195,7 +195,7 @@ utils/constants.ts`) only has three keys today (`platform`, `verification`,
   `Testing & Type Safety`, `Documentation Delivery` as new entries (`Security`
   is unchanged). Each of the 12 `SENTINEL_*_CHECK_RUN_NAME` constants (plus
   their tests asserting the literal string) needs its job/step label updated
-  too where the table changes it, not just the namespace segment.
+  too where the table changes it, not the namespace segment.
 
 ## Scope
 
