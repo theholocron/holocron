@@ -53,13 +53,18 @@ Skills authored and maintained in this repo. Published inside the npm package.
 Tracked in [`skills-lock.json`](./skills-lock.json) with source provenance and content hash.
 Not committed to this repo — fetched from upstream by `holocron skills update` (planned).
 
-| Skill             | Source                                                          | Description                                                    |
-| ----------------- | --------------------------------------------------------------- | -------------------------------------------------------------- |
-| `find-skills`     | [vercel-labs/skills](https://github.com/vercel-labs/skills)     | Discover and install agent skills from the skills.sh ecosystem |
-| `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills)       | Distinctive, intentional UI design guidance                    |
-| `vercel-cli`      | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Vercel CLI: deploy, env vars, logs, domains, project linking   |
-| `turbopack`       | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin) | Turbopack bundler: HMR, CSS, tree shaking, webpack migration   |
-| `turborepo`       | [vercel/turbo](https://github.com/vercel/turbo)                 | Turborepo task pipeline configuration and cache optimization   |
+| Skill                         | Source                                                                  | Description                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `find-skills`                 | [vercel-labs/skills](https://github.com/vercel-labs/skills)             | Discover and install agent skills from the skills.sh ecosystem                          |
+| `frontend-design`             | [anthropics/skills](https://github.com/anthropics/skills)               | Distinctive, intentional UI design guidance                                             |
+| `vercel-cli`                  | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin)         | Vercel CLI: deploy, env vars, logs, domains, project linking                            |
+| `turbopack`                   | [vercel/vercel-plugin](https://github.com/vercel/vercel-plugin)         | Turbopack bundler: HMR, CSS, tree shaking, webpack migration                            |
+| `turborepo`                   | [vercel/turbo](https://github.com/vercel/turbo)                         | Turborepo task pipeline configuration and cache optimization                            |
+| `vercel-react-best-practices` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | React/Next.js performance optimization guidelines from Vercel Engineering               |
+| `vercel-composition-patterns` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | React composition patterns that scale — avoids boolean prop proliferation               |
+| `web-design-guidelines`       | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | Review UI code for Web Interface Guidelines compliance (accessibility, UX, performance) |
+| `deploy-to-vercel`            | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | Deploy applications and websites to Vercel with framework auto-detection                |
+| `building-components`         | [vercel/components.build](https://github.com/vercel/components.build)   | Building accessible, composable UI components — design tokens, APIs, publishing         |
 
 ## Installation via `holocron setup`
 
