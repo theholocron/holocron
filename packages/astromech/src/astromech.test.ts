@@ -120,7 +120,10 @@ describe("createAstromech().run", () => {
 		// as that one task, not be (mis)treated as a namespace with zero matches.
 		const exec = vi.fn(() => ({ exitCode: 0 }));
 		const astromech = createAstromech({
-			...fs({ "package.json": PKG, "node_modules/.bin/eslint": "" }),
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+			}),
 			exec,
 			config: { tasks: ["sourceQuality.staticAnalysis"] },
 			print: () => {},
