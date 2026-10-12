@@ -54,6 +54,11 @@ component_management:
       paths:
         - plugins/holocron-plugin-axiom/**
 
+    - component_id: holocron-plugin-checkly
+      name: "holocron-plugin-checkly"
+      paths:
+        - plugins/holocron-plugin-checkly/**
+
     - component_id: holocron-plugin-clerk
       name: "holocron-plugin-clerk"
       paths:

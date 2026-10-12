@@ -441,6 +441,35 @@ describe("runSetup", () => {
 		expect(rows[0]?.message).toContain("created");
 	});
 
+	it("reports exists (not created) when the monitoring check already exists", async () => {
+		const checkInput = { name: "Sentinel webhook uptime", url: "https://sentinel.theholocron.dev/api/webhook" };
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [checkInput],
+					ensureCheck: async (input: typeof checkInput) => ({
+						check: { id: "chk-1", name: input.name },
+						alreadyExists: true,
+					}),
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const rows = report.steps.filter((s) => s.capability === "monitoring");
+		expect(rows[0]?.message).toContain("exists");
+	});
+
 	it("calls ensureCustomDomain and dns.upsertRecord when deploy has preview.domain", async () => {
 		const customDomainCalls: Array<[string, string]> = [];
 		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];
