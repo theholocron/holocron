@@ -55,7 +55,14 @@
  * `locations: ["us-east-1"]` is required — confirmed live via
  * `POST /checks/api` returning 400 "You have to set at least one
  * `location` or `privateLocation`" on this (trial) account, which has
- * no account-level default configured.
+ * no account-level default configured. `shouldFail: true` is also
+ * required — confirmed live that the check still reported
+ * `hasFailures: true` with the assertion matching exactly (`actual:
+ * 405` === `target: "405"`, no assertion-level error): Checkly
+ * classifies any response >= 400 as a platform-level failure before
+ * assertions are evaluated at all, and `shouldFail` is the documented
+ * flag to invert that for a check whose healthy response is itself an
+ * error status.
  */
 
 import { defineConfig } from "@theholocron/cli";
@@ -82,6 +89,11 @@ export default defineConfig({
 						// Checkly requires at least one location or privateLocation —
 						// no account-level default exists on a trial/Hobby plan.
 						locations: ["us-east-1"],
+						// 405 is the EXPECTED healthy response here (confirms the
+						// function rejects non-POST) — without shouldFail, Checkly
+						// classifies any 4xx as a platform-level failure before
+						// assertions are even evaluated, regardless of a match.
+						shouldFail: true,
 						assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
 					},
 				],

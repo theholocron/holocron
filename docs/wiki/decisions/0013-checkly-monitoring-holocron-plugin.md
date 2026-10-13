@@ -134,12 +134,17 @@ endpoint needs.
   28 tests) than Checkly's own zero-config CLI would have needed.
 - Checkly's own project-level concepts (`projectName`, `logicalId`,
   default `tags`) aren't modeled 1:1 — only what one API check needs
-  today. `locations` _is_ modeled (required, not optional — Checkly
-  rejects a check with neither `locations` nor `privateLocations` set,
-  confirmed live via a 400 on the first real `holocron repo setup`
-  run against a trial account with no account-level default). Revisit
-  the rest if browser checks, heartbeats, or per-tag defaults become
-  necessary.
+  today. `locations` and `shouldFail` _are_ modeled, both required (not
+  optional) for this specific check: `locations` because Checkly
+  rejects a check with neither `locations` nor `privateLocations` set
+  (confirmed live via a 400 on the first real `holocron repo setup`
+  run against a trial account with no account-level default);
+  `shouldFail` because Checkly classifies any response >= 400 as a
+  platform-level failure before assertions are evaluated at all
+  (confirmed live: the check reported `hasFailures: true` with the
+  status-code assertion matching exactly — `actual: 405` ===
+  `target: "405"`, no assertion-level error). Revisit the rest if
+  browser checks, heartbeats, or per-tag defaults become necessary.
 - The inline REST wrapper (`src/rest.ts`) duplicated
   `@theholocron/checkly-client`'s shape until that package published —
   resolved as of `@theholocron/checkly-client@1.40.0`; `rest.ts` now
@@ -181,3 +186,5 @@ endpoint needs.
   plugin on the same branch)
 - `theholocron/clients#393`/`#394` — `@theholocron/checkly-client`,
   published as `1.40.0`; the plugin now consumes it directly
+- `theholocron/clients#395` — added `shouldFail` to `ApiCheckInput`,
+  published as `1.41.0`
