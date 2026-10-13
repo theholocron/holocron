@@ -27,6 +27,7 @@ export type CapabilityKey =
 	| "analytics"
 	| "errors"
 	| "logs"
+	| "monitoring"
 	| "wiki"
 	| "workers";
 
@@ -48,6 +49,7 @@ export const CARDINALITY = {
 	analytics: "many",
 	errors: "single",
 	logs: "single",
+	monitoring: "single",
 	wiki: "single",
 	workers: "single",
 } as const satisfies Record<CapabilityKey, Cardinality>;
@@ -849,6 +851,68 @@ export interface Logs extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// monitoring — external uptime / synthetic checks
+//
+// Unlike `errors`/`logs`, this one is NOT self-contained: there is no
+// runtime SDK a monitored app imports — the check runs on the provider's
+// own infrastructure, hitting a deployed URL from outside. The plugin's
+// token is only ever used by `holocron repo setup`/`doctor` themselves
+// (the standard 4-step `--token` / `HOLOCRON_<VENDOR>_TOKEN` /
+// `<VENDOR_NATIVE_ENV>` / keyring precedence every other plugin uses),
+// never by the monitored app. Vendor-neutral by design — a future
+// Datadog/Pingdom/UptimeRobot provider implements the same shape;
+// Checkly's own STATUS_CODE/EQUALS-style enums stay internal to that
+// adapter, not leaked into this interface.
+// ───────────────────────────────────────────────────────────────────────
+
+export type MonitoringAssertionSource = "status_code" | "response_time" | "body" | "header";
+
+export type MonitoringAssertionComparison =
+	"equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
+
+export interface MonitoringAssertion {
+	source: MonitoringAssertionSource;
+	comparison: MonitoringAssertionComparison;
+	/** Header name / JSON path — required when `source` needs one (e.g. `"header"`). */
+	property?: string;
+	target?: string;
+}
+
+export type MonitoringHttpMethod = "GET" | "POST" | "PUT" | "HEAD" | "DELETE" | "PATCH";
+
+export interface MonitoringCheckInput {
+	/** Also the idempotency key — `ensureCheck` finds-or-creates by this name. */
+	name: string;
+	url: string;
+	method?: MonitoringHttpMethod;
+	/** Minutes between runs. Adapters round to their own supported values. */
+	frequency?: number;
+	assertions?: MonitoringAssertion[];
+	activated?: boolean;
+}
+
+export interface MonitoringCheck {
+	id: string;
+	name: string;
+}
+
+export interface Monitoring extends ProviderIdentity {
+	readonly key: "monitoring";
+	/**
+	 * Checks this provider is configured to ensure exist — populated from
+	 * the provider's own config (`holocron.config.ts`'s provider tuple),
+	 * the same place `Deployment.domain` comes from. `holocron repo setup`
+	 * loops this list and calls `ensureCheck` for each; empty when none
+	 * are configured.
+	 */
+	readonly checks: readonly MonitoringCheckInput[];
+	/** Auth sanity-check. Throws ProviderApiError on auth failure. */
+	whoami?(): Promise<{ ok: boolean }>;
+	/** Idempotent find-or-create-or-update by `input.name`. */
+	ensureCheck(input: MonitoringCheckInput): Promise<{ check: MonitoringCheck; alreadyExists: boolean }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Multi-provider capabilities — many can be active at once
 // ───────────────────────────────────────────────────────────────────────
 
@@ -1000,6 +1064,7 @@ export interface CapabilityImpls {
 	analytics: Analytics;
 	errors: Errors;
 	logs: Logs;
+	monitoring: Monitoring;
 	wiki: Wiki;
 	workers: Workers;
 }

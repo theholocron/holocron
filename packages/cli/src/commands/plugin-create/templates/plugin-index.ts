@@ -83,6 +83,6 @@ export * from "./auth.js";
 export { type ${clientClass}, ${factoryName} } from "./rest.js";
 export { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
 export { verifyToken } from "./verify-token.js";
-export type { VerifyTokenResult, VerifyTokenSuccess, VerifyTokenFailure } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
 `;
 }

@@ -33,7 +33,7 @@ describe("CARDINALITY", () => {
 	});
 
 	it("covers every capability key", () => {
-		expect(Object.keys(CARDINALITY)).toHaveLength(17);
+		expect(Object.keys(CARDINALITY)).toHaveLength(18);
 	});
 });
 

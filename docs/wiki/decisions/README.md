@@ -41,3 +41,5 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 | [ADR-0010](0010-datapad-config-loader.md)                                 | Datapad — the shared config loader (`@theholocron/datapad`)                | accepted |
 | [ADR-0011](0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md) | Sentinel's deploy target — Vercel Functions over Cloudflare Workers        | accepted |
 | [ADR-0012](0012-axiom-dataset-scoping-execution-context.md)               | Axiom dataset scoping — execution context over blanket local/CI            | accepted |
+| [ADR-0013](0013-checkly-monitoring-holocron-plugin.md)                    | Checkly uptime monitoring — holocron plugin over monitoring-as-code CLI    | accepted |
+| [ADR-0014](0014-sourcery-github-app-no-plugin.md)                         | Sourcery AI PR review — GitHub App install, not a holocron plugin          | accepted |

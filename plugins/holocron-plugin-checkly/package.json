@@ -1,0 +1,66 @@
+{
+  "name": "@theholocron/holocron-plugin-checkly",
+  "version": "2.0.0-alpha.1",
+  "description": "Holocron plugin for Checkly. Implements the monitoring capability against Checkly's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
+  "keywords": [
+    "checkly",
+    "holocron",
+    "monitoring",
+    "plugin"
+  ],
+  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-checkly#readme",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "plugins/holocron-plugin-checkly"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "validate": "tsx scripts/validate.mjs",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "devDependencies": {
+    "@theholocron/checkly-client": "catalog:clients",
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/http-client": "catalog:clients",
+    "@theholocron/misc-utils": "catalog:utils",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@theholocron/checkly-client": "catalog:clients",
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/misc-utils": "catalog:utils"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -479,6 +479,85 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("HOLOCRON_AXIOM_TOKEN");
 	});
 
+	it("monitoring smoke check reports ok when whoami passes", async () => {
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [],
+					ensureCheck: async () => ({ check: { id: "chk-1", name: "x" }, alreadyExists: true }),
+					whoami: async () => ({ ok: true }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "monitoring");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("verified");
+	});
+
+	it("monitoring smoke check reports fail when whoami fails", async () => {
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [],
+					ensureCheck: async () => ({ check: { id: "chk-1", name: "x" }, alreadyExists: true }),
+					whoami: async () => ({ ok: false }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "monitoring");
+		expect(row?.status).toBe("fail");
+	});
+
+	it("monitoring falls through to skip when the provider defines no whoami", async () => {
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [],
+					ensureCheck: async () => ({ check: { id: "chk-1", name: "x" }, alreadyExists: true }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "monitoring");
+		expect(row?.status).toBe("skip");
+		expect(row?.message).toContain("no smoke check defined");
+	});
+
 	it("single-cardinality capability without a smoke check falls through to skip", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

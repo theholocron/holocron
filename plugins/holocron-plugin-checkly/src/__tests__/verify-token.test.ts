@@ -1,0 +1,50 @@
+import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
+
+import { verifyToken } from "../verify-token.js";
+
+describe("verifyToken", () => {
+	it("returns ok with a subject listing every visible account when /accounts returns 200", async () => {
+		const stub = stubFetch([{ status: 200, body: [{ id: "acct-1", name: "Holocron" }] }]);
+		const result = await verifyToken("token", { fetch: stub.fetch });
+		expect(result.ok).toBe(true);
+		expect((result as { ok: boolean; subject?: string }).subject).toBe("Holocron (acct-1)");
+		expect(stub.calls[0]?.url).toContain("/accounts");
+	});
+
+	it("joins multiple visible accounts in the subject", async () => {
+		const stub = stubFetch([
+			{
+				status: 200,
+				body: [
+					{ id: "acct-1", name: "Holocron" },
+					{ id: "acct-2", name: "Sandbox" },
+				],
+			},
+		]);
+		const result = await verifyToken("token", { fetch: stub.fetch });
+		expect((result as { ok: boolean; subject?: string }).subject).toBe("Holocron (acct-1), Sandbox (acct-2)");
+	});
+
+	it("reports no accounts visible when the key can see none", async () => {
+		const stub = stubFetch([{ status: 200, body: [] }]);
+		const result = await verifyToken("token", { fetch: stub.fetch });
+		expect((result as { ok: boolean; subject?: string }).subject).toBe("no accounts visible");
+	});
+
+	it("returns ok:false with the error message on 401", async () => {
+		const stub = stubFetch([{ status: 401, body: { messages: ["Invalid token"] } }]);
+		const result = await verifyToken("bad", { fetch: stub.fetch });
+		expect(result.ok).toBe(false);
+		expect((result as { ok: boolean; message?: string }).message).toMatch(/→ 401/);
+	});
+
+	it("returns ok:false when the network layer throws", async () => {
+		const throwing: typeof fetch = async () => {
+			throw new TypeError("network down");
+		};
+		const result = await verifyToken("t", { fetch: throwing });
+		expect(result.ok).toBe(false);
+		expect((result as { ok: boolean; message?: string }).message).toMatch(/network down/);
+	});
+});

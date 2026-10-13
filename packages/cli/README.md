@@ -606,8 +606,8 @@ the local override exists to exempt.
 
 ## What's in here
 
-- `src/capabilities/` — the 14 capability interfaces that providers
-  implement
+- `src/plugin/capabilities.ts` — the 18 capability interfaces that
+  providers implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`
 - `src/config/load-config.ts` — `loadConfig` — reads `holocron.config.*`
