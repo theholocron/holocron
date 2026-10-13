@@ -200,7 +200,7 @@ providers: {
      next scheduled (or manually triggered) run.~~ Done — first passing
      run confirmed live after `holocron repo setup` pushed the
      `shouldFail` update.
-6. ~~Add a second check covering signature verification, not just
+6. ~~Add a second check covering signature verification, not only
    reachability.~~ Done — a POST with no signature header, asserting
    401 (`handler.ts`'s `parseWebhookEvent()` always rejects an
    unsigned request). This is the only check that actually proves

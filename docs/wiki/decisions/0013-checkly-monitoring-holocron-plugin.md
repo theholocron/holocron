@@ -146,7 +146,7 @@ endpoint needs.
   `target: "405"`, no assertion-level error). `body` is also now
   modeled (optional) — lets a check send a request body, e.g.
   simulating a webhook delivery with no valid signature to verify
-  auth/signature checking end-to-end rather than just that the
+  auth/signature checking end-to-end rather than only that the
   endpoint is reachable. Revisit the rest if
   browser checks, heartbeats, or per-tag defaults become necessary.
 - The inline REST wrapper (`src/rest.ts`) duplicated
