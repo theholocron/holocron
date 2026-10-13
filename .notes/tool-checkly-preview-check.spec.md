@@ -237,11 +237,11 @@ time):
    is also false when step 2 was skipped for a fork PR). `gh api` two
    calls: `POST /repos/.../deployments` with `ref` = the PR head SHA,
    `environment: "Preview"`, `required_contexts: []` (skips GitHub's
-   default wait-for-other-statuses behavior, which would hang forever
+   default wait-for-other-statuses behavior, which would freeze forever
    here — same field `preview.yml` already sets for the same reason),
    then `POST .../deployments/{id}/statuses` with `state: success` and
    `environment_url` = the captured URL, retried up to 3 times (review
-   on #1017 — a transient failure on just the status call would
+   on #1017 — a transient failure on only the status call would
    otherwise leave the deployment permanently pending, and a re-run
    would create a second deployment rather than complete the first).
    Authenticates with `secrets.GH_TOKEN`, **not**
@@ -275,7 +275,7 @@ the standard, intentional GitHub behavior: a `pull_request` run (as
 opposed to the dangerous `pull_request_target`) only gets repository
 secrets when the PR is from a branch on this repo, not a fork — a
 malicious fork PR modifying `scripts/stage-deploy.mjs` to exfiltrate
-`VERCEL_TOKEN` simply never receives it (and now, additionally, never
+`VERCEL_TOKEN` never receives it (and now, additionally, never
 even reaches the step that sets it — see the 3-step split above). No
 cleanup job — `holocron deploy cleanup-preview` exists but is
 interactive (`@inquirer/prompts checkbox()`) and hardcodes the
