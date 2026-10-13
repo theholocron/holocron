@@ -906,6 +906,13 @@ export interface MonitoringCheckInput {
 	 * override that baseline classification on its own.
 	 */
 	shouldFail?: boolean;
+	/**
+	 * Raw request body to send with the check — e.g. simulating a webhook
+	 * delivery to verify signature/auth checking is wired correctly
+	 * end-to-end, rather than just confirming the endpoint is reachable.
+	 * Omitted entirely by default (no body sent).
+	 */
+	body?: string;
 }
 
 export interface MonitoringCheck {

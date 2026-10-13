@@ -40,6 +40,7 @@ function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 		request: {
 			url: input.url,
 			method: input.method ?? "GET",
+			...(input.body !== undefined ? { body: input.body } : {}),
 			assertions: (input.assertions ?? []).map((a) => ({
 				source: SOURCE_MAP[a.source]!,
 				comparison: COMPARISON_MAP[a.comparison]!,

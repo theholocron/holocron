@@ -196,8 +196,22 @@ providers: {
      unblocked live via a direct `PUT` on the existing check, then
      fixed properly in the plugin for future `holocron repo setup`
      runs.
-   - Confirm the check now passes in the Checkly dashboard after the
-     next scheduled (or manually triggered) run.
+   - ~~Confirm the check now passes in the Checkly dashboard after the
+     next scheduled (or manually triggered) run.~~ Done — first passing
+     run confirmed live after `holocron repo setup` pushed the
+     `shouldFail` update.
+6. ~~Add a second check covering signature verification, not only
+   reachability.~~ Done — a POST with no signature header, asserting
+   401 (`handler.ts`'s `parseWebhookEvent()` always rejects an
+   unsigned request). This is the only check that actually proves
+   `SENTINEL_WEBHOOK_SECRET` is correctly wired end-to-end in the
+   deployed environment — the uptime check's 405 fires before
+   signature verification ever runs. Needed `body` support on
+   `ApiCheckRequest` (`theholocron/clients#396`, published as
+   `@theholocron/checkly-client@1.42.0`) since Checkly has no API
+   check without a request to send. Also added a `body`-source
+   assertion to the existing uptime check (catches a regression where
+   the status stays 405 but the response text itself changes).
 
 ### Scaffold-template fix (side effect)
 

@@ -62,7 +62,22 @@ monitoring: [
         method: "GET",
         locations: ["us-east-1"],
         shouldFail: true, // 405 is the EXPECTED healthy response here
-        assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
+        assertions: [
+          { source: "status_code", comparison: "equals", target: "405" },
+          { source: "body", comparison: "equals", target: "Method Not Allowed" },
+        ],
+      },
+      // body lets a check simulate a real request — here, a POST with no
+      // signature header, to prove signature verification is wired
+      // correctly end-to-end rather than just that the endpoint is reachable.
+      {
+        name: "Sentinel webhook signature verification",
+        url: "https://sentinel.theholocron.dev/api/webhook",
+        method: "POST",
+        locations: ["us-east-1"],
+        shouldFail: true, // 401 is the EXPECTED response to an unsigned POST
+        body: "{}",
+        assertions: [{ source: "status_code", comparison: "equals", target: "401" }],
       },
     ],
   },

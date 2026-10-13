@@ -143,7 +143,11 @@ endpoint needs.
   platform-level failure before assertions are evaluated at all
   (confirmed live: the check reported `hasFailures: true` with the
   status-code assertion matching exactly — `actual: 405` ===
-  `target: "405"`, no assertion-level error). Revisit the rest if
+  `target: "405"`, no assertion-level error). `body` is also now
+  modeled (optional) — lets a check send a request body, e.g.
+  simulating a webhook delivery with no valid signature to verify
+  auth/signature checking end-to-end rather than only that the
+  endpoint is reachable. Revisit the rest if
   browser checks, heartbeats, or per-tag defaults become necessary.
 - The inline REST wrapper (`src/rest.ts`) duplicated
   `@theholocron/checkly-client`'s shape until that package published —
@@ -188,3 +192,6 @@ endpoint needs.
   published as `1.40.0`; the plugin now consumes it directly
 - `theholocron/clients#395` — added `shouldFail` to `ApiCheckInput`,
   published as `1.41.0`
+- `theholocron/clients#396` — added `body` to `ApiCheckRequest`,
+  published as `1.42.0`; Sentinel's second check (signature
+  verification) is the first real consumer

@@ -160,5 +160,36 @@ describe("ChecklyMonitoring", () => {
 			expect(stub.calls[1]?.body).not.toHaveProperty("locations");
 			expect(stub.calls[1]?.body).not.toHaveProperty("shouldFail");
 		});
+
+		it("includes a request body when provided", async () => {
+			const { capability, stub } = makeCapability([
+				{ status: 200, body: [] },
+				{ status: 200, body: { id: "check-6", name: "signature-check" } },
+			]);
+
+			await capability.ensureCheck({
+				name: "signature-check",
+				url: "https://example.com",
+				method: "POST",
+				body: "{}",
+				shouldFail: true,
+				assertions: [{ source: "status_code", comparison: "equals", target: "401" }],
+			});
+
+			expect(stub.calls[1]?.body).toMatchObject({
+				request: { url: "https://example.com", method: "POST", body: "{}" },
+			});
+		});
+
+		it("omits the request body when not provided", async () => {
+			const { capability, stub } = makeCapability([
+				{ status: 200, body: [] },
+				{ status: 200, body: { id: "check-7", name: "no-body" } },
+			]);
+
+			await capability.ensureCheck({ name: "no-body", url: "https://example.com" });
+
+			expect((stub.calls[1]?.body as { request: Record<string, unknown> }).request).not.toHaveProperty("body");
+		});
 	});
 });
