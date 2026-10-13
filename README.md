@@ -189,6 +189,7 @@ plugins/                             — vendor capability providers            
   holocron-plugin-postman/           — @theholocron/holocron-plugin-postman           (tooling)
   holocron-plugin-posthog/           — @theholocron/holocron-plugin-posthog           (analytics)
   holocron-plugin-sentry/            — @theholocron/holocron-plugin-sentry            (errors)
+  holocron-plugin-checkly/           — @theholocron/holocron-plugin-checkly           (monitoring)
 holocron.config.ts                   — this repo's own holocron config                (self-hosted)
 .notes/                              — in-progress design specs                       (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-plugin.md    — scaffolding skill for new plugins
