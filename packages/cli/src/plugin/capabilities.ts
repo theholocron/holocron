@@ -889,6 +889,13 @@ export interface MonitoringCheckInput {
 	frequency?: number;
 	assertions?: MonitoringAssertion[];
 	activated?: boolean;
+	/**
+	 * Provider-specific region/datacenter ids to run the check from (e.g.
+	 * Checkly's `"us-east-1"`). Required by some providers — there's no
+	 * universal default; an account with none configured rejects a check
+	 * that omits this entirely.
+	 */
+	locations?: string[];
 }
 
 export interface MonitoringCheck {

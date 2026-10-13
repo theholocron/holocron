@@ -133,9 +133,13 @@ endpoint needs.
 - More code and tests to maintain (REST wrapper, capability class,
   28 tests) than Checkly's own zero-config CLI would have needed.
 - Checkly's own project-level concepts (`projectName`, `logicalId`,
-  `locations`, default `frequency`/`tags`) aren't modeled 1:1 — only
-  what one API check needs today. Revisit if browser checks, heartbeats,
-  or multi-location tuning become necessary.
+  default `tags`) aren't modeled 1:1 — only what one API check needs
+  today. `locations` _is_ modeled (required, not optional — Checkly
+  rejects a check with neither `locations` nor `privateLocations` set,
+  confirmed live via a 400 on the first real `holocron repo setup`
+  run against a trial account with no account-level default). Revisit
+  the rest if browser checks, heartbeats, or per-tag defaults become
+  necessary.
 - The inline REST wrapper (`src/rest.ts`) duplicated
   `@theholocron/checkly-client`'s shape until that package published —
   resolved as of `@theholocron/checkly-client@1.40.0`; `rest.ts` now
