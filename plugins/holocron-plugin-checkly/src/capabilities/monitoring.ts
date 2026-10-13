@@ -35,6 +35,7 @@ function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 		name: input.name,
 		...(input.frequency !== undefined ? { frequency: input.frequency } : {}),
 		...(input.activated !== undefined ? { activated: input.activated } : {}),
+		...(input.locations !== undefined ? { locations: input.locations } : {}),
 		request: {
 			url: input.url,
 			method: input.method ?? "GET",

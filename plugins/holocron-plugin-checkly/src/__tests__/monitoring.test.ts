@@ -119,7 +119,7 @@ describe("ChecklyMonitoring", () => {
 			});
 		});
 
-		it("includes frequency, activated, and assertion property/target when provided", async () => {
+		it("includes frequency, activated, locations, and assertion property/target when provided", async () => {
 			const { capability, stub } = makeCapability([
 				{ status: 200, body: [] },
 				{ status: 200, body: { id: "check-4", name: "full" } },
@@ -130,6 +130,7 @@ describe("ChecklyMonitoring", () => {
 				url: "https://example.com",
 				frequency: 5,
 				activated: false,
+				locations: ["us-east-1", "eu-west-1"],
 				assertions: [{ source: "header", comparison: "contains", property: "content-type", target: "json" }],
 			});
 
@@ -137,12 +138,24 @@ describe("ChecklyMonitoring", () => {
 				name: "full",
 				frequency: 5,
 				activated: false,
+				locations: ["us-east-1", "eu-west-1"],
 				request: {
 					assertions: [
 						{ source: "HEADERS", comparison: "CONTAINS", property: "content-type", target: "json" },
 					],
 				},
 			});
+		});
+
+		it("omits locations when not provided (Checkly rejects a check with none — the operator must opt in)", async () => {
+			const { capability, stub } = makeCapability([
+				{ status: 200, body: [] },
+				{ status: 200, body: { id: "check-5", name: "no-locations" } },
+			]);
+
+			await capability.ensureCheck({ name: "no-locations", url: "https://example.com" });
+
+			expect(stub.calls[1]?.body).not.toHaveProperty("locations");
 		});
 	});
 });

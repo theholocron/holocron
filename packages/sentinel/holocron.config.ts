@@ -52,6 +52,10 @@
  * `teamId`); the API token is Doppler-sourced like every other secret
  * here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by `holocron secrets
  * sync` the same way `vault` already handles the other 5 keys.
+ * `locations: ["us-east-1"]` is required — confirmed live via
+ * `POST /checks/api` returning 400 "You have to set at least one
+ * `location` or `privateLocation`" on this (trial) account, which has
+ * no account-level default configured.
  */
 
 import { defineConfig } from "@theholocron/cli";
@@ -75,6 +79,9 @@ export default defineConfig({
 						name: "Sentinel webhook uptime",
 						url: "https://sentinel.theholocron.dev/api/webhook",
 						method: "GET",
+						// Checkly requires at least one location or privateLocation —
+						// no account-level default exists on a trial/Hobby plan.
+						locations: ["us-east-1"],
 						assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
 					},
 				],

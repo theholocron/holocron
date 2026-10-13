@@ -40,7 +40,11 @@ holocron auth check checkly    # verify — hits GET /v1/accounts
 `accountId` is required on every request (Checkly's `x-checkly-account`
 header) — it is not a secret, the same status as Vercel's `teamId`.
 `checks` is the list of API checks `holocron repo setup` ensures exist,
-each matched and upserted by exact `name`:
+each matched and upserted by exact `name`. **`locations` is required** —
+Checkly rejects a check with neither `locations` nor `privateLocations`
+set (`400 "You have to set at least one location or privateLocation"`)
+on any account with no account-level default configured, which includes
+every free Hobby/trial account:
 
 ```ts
 monitoring: [
@@ -52,6 +56,7 @@ monitoring: [
         name: "Sentinel webhook uptime",
         url: "https://sentinel.theholocron.dev/api/webhook",
         method: "GET",
+        locations: ["us-east-1"],
         assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
       },
     ],

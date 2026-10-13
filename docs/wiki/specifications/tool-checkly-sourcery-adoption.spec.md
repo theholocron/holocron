@@ -153,6 +153,12 @@ providers: {
 					name: "Sentinel webhook uptime",
 					url: "https://sentinel.theholocron.dev/api/webhook",
 					method: "GET",
+					// Required, not optional — Checkly rejects a check with
+					// neither locations nor privateLocations set (confirmed
+					// live: 400 "You have to set at least one location or
+					// privateLocation" on this trial account's first real
+					// holocron repo setup run).
+					locations: ["us-east-1"],
 					assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
 				},
 			],
@@ -167,13 +173,16 @@ providers: {
 1. ~~Sign up for Checkly's free Hobby tier.~~ Done.
 2. ~~Generate a regular User API key.~~ Done.
 3. ~~Fill in the real `accountId` above.~~ Done.
-4. Add the key to Doppler (`sentinel`/`prd`) as `CHECKLY_API_KEY`, then
-   `holocron secrets sync`. Also set it locally via
-   `holocron auth set checkly <KEY>` (OS keyring) so `holocron doctor`
-   / `holocron repo setup` work from an operator's own machine without
-   it.
+4. ~~Set the key locally via `holocron auth set checkly <KEY>` (OS
+   keyring).~~ Done — `holocron auth check checkly` verifies against
+   `GET /accounts`. Still open: add the key to Doppler (`sentinel`/`prd`)
+   as `CHECKLY_API_KEY`, then `holocron secrets sync`, for parity with
+   the other 5 Sentinel secrets.
 5. `holocron repo setup --cwd packages/sentinel` to provision the
-   check; confirm it's live in the Checkly dashboard.
+   check. First real attempt failed — `POST /checks/api → 400` (missing
+   `locations`, see ADR-0013) — fixed by adding `locations: ["us-east-1"]`
+   to the check config above. Re-run and confirm it's live in the
+   Checkly dashboard.
 
 ### Scaffold-template fix (side effect)
 
