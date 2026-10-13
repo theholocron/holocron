@@ -16,6 +16,20 @@
  * mirror Checkly's documented platform behavior (ADR-0013): a response
  * status >= 400 is an automatic failure unless the check's own healthy
  * response is itself an error status.
+ *
+ * Hardening, all driven by this running against a URL the triggering
+ * event controls (a PR's preview deployment), not a trusted static
+ * config value (sourcery review on holocron#1011):
+ *   - `redirect: "manual"` — a check never follows a redirect to
+ *     whatever host the response names. The 3xx itself is what gets
+ *     evaluated; that's also more correct for a monitoring check
+ *     anyway (silently following would hide a real regression).
+ *   - A request deadline (`AbortSignal.timeout`) — a preview that
+ *     accepts the request but never finishes can't hang the check (or
+ *     the ones after it) past the timeout.
+ *   - The body is only read when an assertion actually needs it, and
+ *     even then capped at `maxBodyBytes` — an attacker-reachable
+ *     endpoint can't use an unbounded response to exhaust the runner.
  */
 
 import type { MonitoringAssertion, MonitoringAssertionComparison, MonitoringCheckInput } from "./capabilities.js";
@@ -31,10 +45,20 @@ export interface CheckRunResult {
 }
 
 export interface RunCheckOptions {
-	/** Overrides `input.url` — e.g. a PR's preview deployment URL instead of the check's own configured production one. */
+	/**
+	 * Overrides the origin of `input.url` — e.g. a PR's preview deployment
+	 * origin instead of the check's own configured production one. Only
+	 * the scheme+host+port are taken from this; `input.url`'s own
+	 * path/query are preserved (a bare preview origin would otherwise
+	 * silently drop e.g. `/api/webhook` and test `/` instead).
+	 */
 	url?: string;
 	/** Injectable for testing. Defaults to the global `fetch`. */
 	fetch?: typeof fetch;
+	/** Request timeout in ms, covering the whole request including body read. Default 10s. */
+	timeoutMs?: number;
+	/** Max response body bytes read when an assertion needs the body. Default 1MB. */
+	maxBodyBytes?: number;
 }
 
 export async function runCheckAgainstUrl(
@@ -42,19 +66,27 @@ export async function runCheckAgainstUrl(
 	opts: RunCheckOptions = {}
 ): Promise<CheckRunResult> {
 	const doFetch = opts.fetch ?? fetch;
-	const url = opts.url ?? input.url;
+	const url = resolveUrl(input.url, opts.url);
+	const method = input.method ?? "GET";
+	// GET/HEAD with a body throws a TypeError at the Fetch layer — the
+	// config type permits the combination, but neither method has body
+	// semantics, so the body is simply not meaningful to send for them.
+	const hasBody = input.body !== undefined && method !== "GET" && method !== "HEAD";
+	const needsBody = (input.assertions ?? []).some((a) => a.source === "body");
 	const start = Date.now();
 
 	let response: Response;
-	let bodyText: string;
+	let bodyText = "";
 	try {
 		response = await doFetch(url, {
-			method: input.method ?? "GET",
-			...(input.body !== undefined ? { body: input.body } : {}),
+			method,
+			...(hasBody ? { body: input.body } : {}),
+			redirect: "manual",
+			signal: AbortSignal.timeout(opts.timeoutMs ?? 10_000),
 		});
-		bodyText = await response.text();
+		if (needsBody) bodyText = await readBodyCapped(response, opts.maxBodyBytes ?? 1_000_000);
 	} catch (err) {
-		return { passed: false, failures: [], requestError: err instanceof Error ? err.message : String(err) };
+		return { passed: false, failures: [], requestError: requestErrorMessage(err) };
 	}
 	const responseTimeMs = Date.now() - start;
 
@@ -77,6 +109,45 @@ export async function runCheckAgainstUrl(
 	}
 
 	return { passed: failures.length === 0, status: response.status, responseTimeMs, failures };
+}
+
+/** Swaps in `overrideUrl`'s origin, keeping `originalUrl`'s own path + query. */
+function resolveUrl(originalUrl: string, overrideUrl: string | undefined): string {
+	if (!overrideUrl) return originalUrl;
+	const original = new URL(originalUrl);
+	const resolved = new URL(overrideUrl);
+	resolved.pathname = original.pathname;
+	resolved.search = original.search;
+	return resolved.toString();
+}
+
+function requestErrorMessage(err: unknown): string {
+	if (err instanceof Error) {
+		return err.name === "TimeoutError" ? `request timed out: ${err.message}` : err.message;
+	}
+	return String(err);
+}
+
+/** Reads up to `maxBytes` of the response body, discarding the rest — a large/unending body can't exhaust memory. */
+async function readBodyCapped(response: Response, maxBytes: number): Promise<string> {
+	if (!response.body) return "";
+	const reader = response.body.getReader();
+	const chunks: Uint8Array[] = [];
+	let total = 0;
+	try {
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			const remaining = maxBytes - total;
+			if (remaining <= 0) break;
+			const stored = value.length > remaining ? value.slice(0, remaining) : value;
+			chunks.push(stored);
+			total += stored.length;
+		}
+	} finally {
+		await reader.cancel().catch(() => {});
+	}
+	return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
 }
 
 /** Keeps a failure message readable when `actual` is a full HTML/JSON response body. */

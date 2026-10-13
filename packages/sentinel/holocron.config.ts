@@ -100,7 +100,15 @@ export default defineConfig({
 	// (not every repo with a monitoring provider wants this) since it only
 	// makes sense for a package with both monitoring checks AND a Vercel
 	// preview deployment per PR, both true for Sentinel.
-	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }, "delivery.previewCheck"],
+	tasks: [
+		{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } },
+		// cwd tells the reusable workflow which package directory to run
+		// `holocron monitoring check` from — the generated workflow checks
+		// out the repo root, and this is a monorepo, so without it the CLI
+		// would load this repo's own root holocron.config.ts (no monitoring
+		// provider there) instead of this file.
+		{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } },
+	],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",

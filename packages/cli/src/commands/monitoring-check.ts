@@ -53,15 +53,21 @@ export async function runMonitoringCheck(input: RunMonitoringCheckInput): Promis
 	await loader.load();
 	assertPluginsResolvable(loader, "monitoring check");
 
-	if (!loader.has("monitoring")) {
-		throw new Error(
-			"`monitoring` capability is not configured — add a `monitoring` provider to holocron.config.ts"
-		);
-	}
+	// `get()` re-surfaces the monitoring provider's own load error (a bad
+	// token, a constructor throw, …) when it was configured but failed to
+	// load — never swallowed behind a generic "not configured" message,
+	// which would send an operator chasing the wrong fix.
 	const monitoring = loader.get("monitoring") as Monitoring;
 	const run = input.runCheck ?? runCheckAgainstUrl;
 
 	print(`Holocron monitoring check — against ${input.url}`);
+
+	if (monitoring.checks.length === 0) {
+		const message = "no monitoring checks configured — nothing to validate";
+		print(`✗ ${message}`);
+		logger.warn({ url: input.url }, "monitoring check: no checks configured");
+		return { status: "fail", checks: [] };
+	}
 
 	const checks: MonitoringCheckSummary[] = [];
 	for (const checkInput of monitoring.checks) {

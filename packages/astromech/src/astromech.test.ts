@@ -294,6 +294,26 @@ describe("createAstromech().thinCallers", () => {
 		expect(previewCheck).toContain("deployment_status:");
 		expect(previewCheck).not.toContain("pull_request:");
 		expect(previewCheck).toContain("environment_url");
+		// No fallback to target_url -- it can point at a deployment-details
+		// page instead of the live app; the job's `if:` skips entirely when
+		// environment_url is empty rather than hitting the wrong page.
+		expect(previewCheck).not.toContain("|| github.event.deployment_status.target_url");
+		expect(previewCheck).toContain("environment_url != ''");
+		// Pins the checked-out commit to the one actually deployed --
+		// deployment_status always resolves the workflow run itself
+		// against the default branch.
+		expect(previewCheck).toContain("sha: ${{ github.event.deployment.sha }}");
+	});
+
+	it("merges a monorepo package's cwd into the delivery.previewCheck caller's existing with: block", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } }] },
+		});
+		const previewCheck = astromech.thinCallers().get("delivery.previewCheck.yml")!;
+		expect(previewCheck).toContain("cwd: packages/sentinel");
+		// The static, event-derived values still carry over alongside it.
+		expect(previewCheck).toContain("preview-url: ${{ github.event.deployment_status.environment_url }}");
 	});
 
 	it("knowledge.docs implies the docs: true shorthand — a repo never has to spell it out", () => {

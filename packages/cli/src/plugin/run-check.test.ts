@@ -21,40 +21,128 @@ describe("runCheckAgainstUrl", () => {
 		expect(result).toMatchObject({ passed: true, status: 200, failures: [] });
 	});
 
-	it("overrides url with opts.url, leaving input.url untouched", async () => {
-		let requestedUrl = "";
-		const fetchSpy = (async (url: string | URL) => {
-			requestedUrl = String(url);
-			return new Response("ok", { status: 200 });
-		}) as unknown as typeof fetch;
+	describe("url override", () => {
+		it("swaps in the override origin but keeps input.url's own path and query", async () => {
+			let requestedUrl = "";
+			const fetchSpy = (async (url: string | URL) => {
+				requestedUrl = String(url);
+				return new Response("ok", { status: 200 });
+			}) as unknown as typeof fetch;
 
-		await runCheckAgainstUrl(BASE, { fetch: fetchSpy, url: "https://pr-preview.example.com" });
-		expect(requestedUrl).toBe("https://pr-preview.example.com");
+			await runCheckAgainstUrl(
+				{ ...BASE, url: "https://prod.example.com/api/webhook?x=1" },
+				{ fetch: fetchSpy, url: "https://pr-preview.example.com" }
+			);
+			expect(requestedUrl).toBe("https://pr-preview.example.com/api/webhook?x=1");
+		});
+
+		it("discards any path/query the override itself carries", async () => {
+			let requestedUrl = "";
+			const fetchSpy = (async (url: string | URL) => {
+				requestedUrl = String(url);
+				return new Response("ok", { status: 200 });
+			}) as unknown as typeof fetch;
+
+			await runCheckAgainstUrl(
+				{ ...BASE, url: "https://prod.example.com/api/webhook" },
+				{ fetch: fetchSpy, url: "https://pr-preview.example.com/some/other/path" }
+			);
+			expect(requestedUrl).toBe("https://pr-preview.example.com/api/webhook");
+		});
+
+		it("uses input.url unmodified when no override is given", async () => {
+			let requestedUrl = "";
+			const fetchSpy = (async (url: string | URL) => {
+				requestedUrl = String(url);
+				return new Response("ok", { status: 200 });
+			}) as unknown as typeof fetch;
+
+			await runCheckAgainstUrl(BASE, { fetch: fetchSpy });
+			expect(requestedUrl).toBe(BASE.url);
+		});
 	});
 
-	it("sends the configured method and body", async () => {
-		let seenMethod = "";
-		let seenBody: unknown;
+	it("never follows a redirect — passes redirect: manual to fetch", async () => {
+		let seenRedirect: string | undefined;
 		const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
-			seenMethod = init?.method ?? "";
-			seenBody = init?.body;
-			return new Response("", { status: 401 });
-		}) as unknown as typeof fetch;
-
-		await runCheckAgainstUrl({ ...BASE, method: "POST", body: "{}", shouldFail: true }, { fetch: fetchSpy });
-		expect(seenMethod).toBe("POST");
-		expect(seenBody).toBe("{}");
-	});
-
-	it("defaults to GET when no method is given", async () => {
-		let seenMethod = "";
-		const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
-			seenMethod = init?.method ?? "";
-			return new Response("", { status: 200 });
+			seenRedirect = init?.redirect;
+			return new Response("", { status: 302, headers: { location: "https://elsewhere.example.com" } });
 		}) as unknown as typeof fetch;
 
 		await runCheckAgainstUrl(BASE, { fetch: fetchSpy });
-		expect(seenMethod).toBe("GET");
+		expect(seenRedirect).toBe("manual");
+	});
+
+	it("passes a timeout signal to fetch", async () => {
+		let seenSignal: AbortSignal | undefined;
+		const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
+			seenSignal = init?.signal ?? undefined;
+			return new Response("", { status: 200 });
+		}) as unknown as typeof fetch;
+
+		await runCheckAgainstUrl(BASE, { fetch: fetchSpy, timeoutMs: 5000 });
+		expect(seenSignal).toBeInstanceOf(AbortSignal);
+	});
+
+	it("reports a clearer message when the request times out", async () => {
+		const fetchSpy = (async () => {
+			const err = new Error("The operation was aborted");
+			err.name = "TimeoutError";
+			throw err;
+		}) as unknown as typeof fetch;
+
+		const result = await runCheckAgainstUrl(BASE, { fetch: fetchSpy });
+		expect(result.passed).toBe(false);
+		expect(result.requestError).toContain("timed out");
+	});
+
+	describe("method and body", () => {
+		it("sends the configured method and body for POST", async () => {
+			let seenMethod = "";
+			let seenBody: unknown;
+			const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
+				seenMethod = init?.method ?? "";
+				seenBody = init?.body;
+				return new Response("", { status: 401 });
+			}) as unknown as typeof fetch;
+
+			await runCheckAgainstUrl({ ...BASE, method: "POST", body: "{}", shouldFail: true }, { fetch: fetchSpy });
+			expect(seenMethod).toBe("POST");
+			expect(seenBody).toBe("{}");
+		});
+
+		it("defaults to GET when no method is given", async () => {
+			let seenMethod = "";
+			const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
+				seenMethod = init?.method ?? "";
+				return new Response("", { status: 200 });
+			}) as unknown as typeof fetch;
+
+			await runCheckAgainstUrl(BASE, { fetch: fetchSpy });
+			expect(seenMethod).toBe("GET");
+		});
+
+		it("never sends a body on GET, even when one is configured (fetch throws on GET+body)", async () => {
+			let seenBody: unknown = "unset";
+			const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
+				seenBody = init?.body;
+				return new Response("", { status: 200 });
+			}) as unknown as typeof fetch;
+
+			await runCheckAgainstUrl({ ...BASE, method: "GET", body: "{}" }, { fetch: fetchSpy });
+			expect(seenBody).toBeUndefined();
+		});
+
+		it("never sends a body on HEAD either", async () => {
+			let seenBody: unknown = "unset";
+			const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
+				seenBody = init?.body;
+				return new Response("", { status: 200 });
+			}) as unknown as typeof fetch;
+
+			await runCheckAgainstUrl({ ...BASE, method: "HEAD", body: "{}" }, { fetch: fetchSpy });
+			expect(seenBody).toBeUndefined();
+		});
 	});
 
 	describe("the implicit >=400 classification", () => {
@@ -82,19 +170,59 @@ describe("runCheckAgainstUrl", () => {
 		});
 	});
 
+	describe("body reading", () => {
+		it("does not read the body at all when no assertion needs it", async () => {
+			let bodyAccessed = false;
+			const fetchSpy = (async () => {
+				const real = new Response("huge body that should never be read", { status: 200 });
+				return new Proxy(real, {
+					get(target, prop, receiver) {
+						if (prop === "body") bodyAccessed = true;
+						return Reflect.get(target, prop, receiver);
+					},
+				});
+			}) as unknown as typeof fetch;
+
+			const result = await runCheckAgainstUrl(
+				{ ...BASE, assertions: [{ source: "status_code", comparison: "equals", target: "200" }] },
+				{ fetch: fetchSpy }
+			);
+			expect(result.passed).toBe(true);
+			expect(bodyAccessed).toBe(false);
+		});
+
+		it("reads the body when a body assertion is configured", async () => {
+			const result = await runCheckAgainstUrl(
+				{ ...BASE, assertions: [{ source: "body", comparison: "contains", target: "hello" }] },
+				{ fetch: fakeFetch(200, "say hello world") }
+			);
+			expect(result.passed).toBe(true);
+		});
+
+		it("caps the body at maxBodyBytes instead of buffering it all", async () => {
+			const result = await runCheckAgainstUrl(
+				{ ...BASE, assertions: [{ source: "body", comparison: "equals", target: "ab" }] },
+				{ fetch: fakeFetch(200, "abcdefghij"), maxBodyBytes: 2 }
+			);
+			// The capped body is "ab", which equals the target exactly.
+			expect(result.passed).toBe(true);
+		});
+
+		it("handles a null response body gracefully", async () => {
+			const fetchSpy = (async () => new Response(null, { status: 204 })) as unknown as typeof fetch;
+			const result = await runCheckAgainstUrl(
+				{ ...BASE, assertions: [{ source: "body", comparison: "equals", target: "" }] },
+				{ fetch: fetchSpy }
+			);
+			expect(result.passed).toBe(true);
+		});
+	});
+
 	describe("assertion sources", () => {
 		it("evaluates status_code", async () => {
 			const result = await runCheckAgainstUrl(
 				{ ...BASE, assertions: [{ source: "status_code", comparison: "equals", target: "201" }] },
 				{ fetch: fakeFetch(201) }
-			);
-			expect(result.passed).toBe(true);
-		});
-
-		it("evaluates body", async () => {
-			const result = await runCheckAgainstUrl(
-				{ ...BASE, assertions: [{ source: "body", comparison: "contains", target: "hello" }] },
-				{ fetch: fakeFetch(200, "say hello world") }
 			);
 			expect(result.passed).toBe(true);
 		});

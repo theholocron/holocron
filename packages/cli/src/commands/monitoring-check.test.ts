@@ -118,21 +118,23 @@ describe("runMonitoringCheck", () => {
 		expect(report.checks).toEqual([{ name: "uptime", passed: false, failures: [], requestError: "ECONNREFUSED" }]);
 	});
 
-	it("reports ok with zero checks when none are configured", async () => {
+	it("fails (never silently ok) when zero checks are configured — an unvalidating gate is worse than an error", async () => {
 		const { loaded, loader } = loadedWithMonitoring([]);
+		const lines: string[] = [];
 
 		const report = await runMonitoringCheck({
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			url: "https://pr-preview.example.com",
 			loader,
-			print: () => {},
+			print: (l) => lines.push(l),
 		});
 
-		expect(report).toEqual({ status: "ok", checks: [] });
+		expect(report).toEqual({ status: "fail", checks: [] });
+		expect(lines.some((l) => l.includes("no monitoring checks configured"))).toBe(true);
 	});
 
-	it("throws a clear error when the monitoring capability is not configured", async () => {
+	it("throws a clear error when the monitoring capability is not declared at all", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: {} });
 		const loader = makeLoaderWith(loaded, {});
 
@@ -145,7 +147,37 @@ describe("runMonitoringCheck", () => {
 		}).catch((e: unknown) => e);
 
 		expect(err).toBeInstanceOf(Error);
-		expect((err as Error).message).toMatch(/monitoring.*capability is not configured/);
+		expect((err as Error).message).toMatch(/monitoring.*is not loaded/);
+	});
+
+	it("surfaces the real provider load error, not a generic 'not configured' message", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { monitoring: ["checkly", { checks: [CHECK_A] }] },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": {
+				createPlugin: () => ({
+					name: "checkly",
+					capabilities: {
+						monitoring: () => {
+							throw new Error("Checkly GET /accounts failed: 401 invalid token");
+						},
+					},
+				}),
+			},
+		});
+
+		const err = await runMonitoringCheck({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			url: "https://pr-preview.example.com",
+			loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).toContain("invalid token");
 	});
 
 	it("logs a structured summary line via the injected logger", async () => {
