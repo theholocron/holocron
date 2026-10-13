@@ -1,0 +1,55 @@
+# Pushes astromech's generated reusable workflows + composite actions to
+# theholocron/.github whenever their source templates change here
+# (holocron#1012, holocron#1013). NOT astromech-templated — `sync github`
+# only ever makes sense run from this repo (no other repo has these
+# templates to push), same category as sentinel.deploy.yml/
+# sentinel.secretsSync.yml's hand-maintained precedent.
+#
+# This is deliberately NOT a job added to platform.repoSync.yml. That
+# workflow's `holocron repo sync` never runs `sync github` at all — it syncs
+# README/keywords/local thin-callers/turbo.json, nothing that reaches
+# theholocron/.github (holocron#1013 comment 3) — and its auto-commit +
+# `gh pr create --base main` flow would carry a triggering ref's full commit
+# history into a main-targeted PR if `alpha` were ever added as a trigger
+# (holocron#1013 comment 2). This workflow avoids both problems by pushing
+# straight to theholocron/.github's own default branch — no local commit, no
+# branch, no PR, so there's nothing for `alpha`'s unmerged history to ride
+# along on.
+#
+# Filename matches AGENTS.md's documented manual-dispatch command — rename
+# there too if this ever moves.
+name: Sync workflow templates
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+    paths:
+      - packages/astromech/src/templates/**
+      - packages/cli/src/templates/**
+  workflow_dispatch:
+
+concurrency:
+  group: sync-workflow-templates
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run holocron sync github
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+        with:
+          command: sync github
