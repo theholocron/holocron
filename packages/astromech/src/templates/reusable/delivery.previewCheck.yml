@@ -8,7 +8,7 @@ on: # yamllint disable-line rule:truthy
         required: true
         type: string
       sha:
-        description: The deployed commit SHA — checked out explicitly, since deployment_status always resolves the workflow run against the default branch.
+        description: The deployed commit SHA — checked out explicitly, since GitHub evaluates which version of this workflow file to run from the default branch for a deployment_status event (unlike push/pull_request), and actions/checkout defaults to that same ref absent an explicit override.
         required: true
         type: string
       cwd:
@@ -29,6 +29,11 @@ jobs:
         name: Checkout repository
         with:
           ref: ${{ inputs.sha }}
+          # This checks out and runs a PR's own holocron.config.ts —
+          # untrusted until reviewed. Never leave a credential sitting
+          # in .git/config for that code to read and exfiltrate; no
+          # later step in this job needs to push or pull authenticated.
+          persist-credentials: false
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup

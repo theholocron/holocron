@@ -12,13 +12,24 @@
  *   - `holocron repo setup --cwd packages/sentinel` (one-time, manual):
  *     attaches the custom domain to the Vercel project and hands any
  *     verification CNAME to the `dns` provider — `source` being
- *     unconfigured just means every repo-settings step is skipped
+ *     unconfigured means every repo-settings step is skipped
  *     (each gated on `loader.has("source")`), not that setup fails.
- *   - `delivery.previewCheck` (holocron#1010, per PR): triggered by
- *     Vercel's own `deployment_status` event on a successful Preview
- *     deploy, runs `holocron monitoring check` against that PR's own
- *     preview URL instead of production — see the `monitoring` provider
- *     comment below for why this exists.
+ *   - `.github/workflows/sentinel.previewCheck.yml` (holocron#1010, per
+ *     PR): triggered by Vercel's own `deployment_status` event on a
+ *     successful Preview deploy, runs `holocron monitoring check`
+ *     against that PR's own preview URL instead of production — see
+ *     the `monitoring` provider comment below for why this exists.
+ *     Hand-maintained there, same reason as `sentinel.deploy.yml`/
+ *     `sentinel.secretsSync.yml`: this repo owns Sentinel directly, and
+ *     astromech's generic per-repo thin-caller sync writes relative to
+ *     `--cwd`, not this repo's actual root `.github/workflows/` — a
+ *     `delivery.previewCheck` task entry here would be inert (nothing
+ *     consumes it correctly for a monorepo sub-package), so it's
+ *     deliberately not in `tasks` below. The hand-written workflow
+ *     calls the same reusable `delivery.previewCheck.yml` astromech's
+ *     generic task pushes to `theholocron/.github` for every other,
+ *     non-monorepo consuming repo — nothing Sentinel-specific lives in
+ *     that reusable workflow itself.
  *
  * `deployment`: Vercel, a Team separate from any other Vercel project
  * in this org (ADR-0011's deploy-target decision). `teamId` is not a
@@ -32,7 +43,7 @@
  * `secrets`: GitHub — only ONE of the 5 Doppler keys has a GH Actions
  * consumer at all (`SENTINEL_AXIOM_INGEST_TOKEN`, read by
  * `theholocron/.github`'s `platform.dispatchedCheck.yml`, org-wide since
- * any repo with Bucket 2 dispatch enabled needs it there, not just this
+ * any repo with Bucket 2 dispatch enabled needs it there, not only this
  * one) — every sync invocation must pass `--github-secret
  * SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron` to
  * scope it down to that one key; the other 4 are Vercel-only and would
@@ -58,7 +69,7 @@
  * account, which has no account-level default configured.
  *
  * The uptime check asserts a 405 on a plain GET: confirmed live that
- * `handleWebhookRequest` rejects non-POST before touching any
+ * `handleWebhookRequest` declines non-POST before touching any
  * webhook-specific logic, so a clean 405 with the exact expected body
  * proves the function is deployed and routing correctly, not
  * crashed/cold/timed out — full business-logic correctness stays
@@ -77,7 +88,7 @@
  * `verifyGitHubWebhookSignature()` fails, which it always does given
  * no `X-Hub-Signature-256` header. Unlike the uptime check, this one
  * actually proves `SENTINEL_WEBHOOK_SECRET` made it into the deployed
- * environment correctly: the uptime check's 405 fires before signature
+ * environment correctly: the uptime check's 405 happens before signature
  * verification ever runs, so it can't catch a secret drifting out of
  * sync between Doppler and Vercel — this one can. `body: "{}"`
  * (holocron#996, via `@theholocron/checkly-client`'s request-body
@@ -94,21 +105,12 @@ export default defineConfig({
 	// which reads this task from every workspace package. `paths` default to this
 	// package plus its `workspace:*` dependencies (the packages inlined into
 	// `dist/`).
-	// delivery.previewCheck (holocron#1010): runs the two monitoring checks
-	// below against each PR's own Vercel preview deployment, not just
-	// production — catching a breaking change before merge. Opted in here
-	// (not every repo with a monitoring provider wants this) since it only
-	// makes sense for a package with both monitoring checks AND a Vercel
-	// preview deployment per PR, both true for Sentinel.
-	tasks: [
-		{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } },
-		// cwd tells the reusable workflow which package directory to run
-		// `holocron monitoring check` from — the generated workflow checks
-		// out the repo root, and this is a monorepo, so without it the CLI
-		// would load this repo's own root holocron.config.ts (no monitoring
-		// provider there) instead of this file.
-		{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } },
-	],
+	// No delivery.previewCheck task entry here — see the module doc
+	// comment above for why: astromech's generic per-repo sync can't
+	// write it anywhere GitHub Actions would see it for a monorepo
+	// sub-package, so it would be inert. The actual trigger is the
+	// hand-maintained `.github/workflows/sentinel.previewCheck.yml`.
+	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
@@ -125,7 +127,7 @@ export default defineConfig({
 						// no account-level default exists on a trial/Hobby plan.
 						locations: ["us-east-1"],
 						// 405 is the EXPECTED healthy response here (confirms the
-						// function rejects non-POST) — without shouldFail, Checkly
+						// function declines non-POST) — without shouldFail, Checkly
 						// classifies any 4xx as a platform-level failure before
 						// assertions are even evaluated, regardless of a match.
 						shouldFail: true,

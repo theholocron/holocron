@@ -107,6 +107,25 @@ all (that's a `packages/cli`-only concept) — a package only adds
 a `monitoring` provider with checks, same as how a package only opts
 into `delivery.deploy`'s release-deploy behavior today.
 
+**Correction, found while wiring up Sentinel itself (the first real
+consumer)**: that convention only works for a repo whose own root
+`holocron.config.ts` carries the task — `holocron repo sync`'s
+thin-caller write is relative to `--cwd`, not the actual git repo
+root, so it's useless for a _monorepo sub-package_ (confirmed live: a
+real `repo sync --cwd packages/sentinel` wrote a whole parallel,
+GitHub-invisible `.github/` tree inside `packages/sentinel/` instead
+of this repo's real root `.github/workflows/` — tracked as its own
+tool bug, #1014). Sentinel's `holocron.config.ts` does **not** carry a
+`delivery.previewCheck` entry as a result; instead
+`.github/workflows/sentinel.previewCheck.yml` is hand-maintained, same
+pattern as the two Sentinel-specific workflows that already existed
+before this feature (`sentinel.deploy.yml`, `sentinel.secretsSync.yml`)
+for the identical reason. It calls the exact same reusable
+`delivery.previewCheck.yml` a normal (non-monorepo) repo's generated
+thin caller would — the task/thin-caller/reusable-workflow
+registration below is still correct and still the right path for any
+other repo; Sentinel can't reach it through the automatic one, though.
+
 ### Trigger: `deployment_status`
 
 The thin-caller template (`packages/astromech/src/templates/
@@ -122,18 +141,24 @@ jobs:
   preview-check:
     if: >-
       github.event.deployment_status.state == 'success' &&
-      github.event.deployment.environment == 'Preview'
+      github.event.deployment.environment == 'Preview' &&
+      github.event.deployment_status.environment_url != ''
     uses: theholocron/.github/.github/workflows/delivery.previewCheck.yml@main
     with:
       preview-url: ${{ github.event.deployment_status.environment_url }}
-    secrets: inherit
+      sha: ${{ github.event.deployment.sha }}
 ```
 
 The reusable `workflow_call` implementation
 (`templates/reusable/delivery.previewCheck.yml`) takes `preview-url`
-as a required input, runs `holocron monitoring check <preview-url>`
-through the shared `holocron` composite action, same as every other
-reusable workflow's core step.
+and `sha` as required inputs (plus an optional `cwd`, default `.`),
+checks out `sha` explicitly with `persist-credentials: false` (this
+job runs a PR's own, untrusted `holocron.config.ts` — nothing should
+be left in `.git/config` for it to read), then runs `holocron
+monitoring check <preview-url>` through the shared `holocron`
+composite action, same as every other reusable workflow's core step.
+No `secrets: inherit` on either caller — this job makes no vendor API
+call, so there's nothing it needs to inherit.
 
 No live precedent exists in this org for a thin caller triggered by a
 true external webhook event rather than `push`/`pull_request`/
@@ -146,12 +171,34 @@ instance.
 ## Open risks
 
 - **Unverified: does a `deployment_status`-triggered workflow run
-  actually post as a GitHub check on the PR's commit?** GitHub Actions
-  attaches workflow-run status to whatever SHA the triggering event
-  resolves to, and `deployment_status` carries `deployment.sha` — this
-  should work the same way `push`/`pull_request`-triggered runs do,
-  but needs live confirmation on the first real preview deploy.
+  actually post as a GitHub check on the PR's commit?** A code
+  review on #1015 claimed `deployment_status` runs are associated
+  with the default-branch SHA, not the deployed commit — checked
+  against GitHub's own docs directly: `GITHUB_SHA` for this event is
+  documented as "Commit to be deployed," not the default branch,
+  contradicting that specific claim. What IS real and already handled
+  (the reason `sha`/`ref` are explicit inputs at all): GitHub evaluates
+  _which version of the workflow file itself_ to run from the default
+  branch for this event type (same as `schedule`/`workflow_dispatch`),
+  and `actions/checkout` defaults to that same ref absent an explicit
+  override — a different concern from what the run's own `GITHUB_SHA`
+  resolves to. Whether the resulting check genuinely surfaces on the
+  PR's own Checks tab (the part that would matter for a future
+  `required` check) is still unconfirmed either way — needs a real
+  preview deploy to settle. Deliberately not `required` yet for
+  exactly this reason (see the `delivery.previewCheck` section above).
 - **Vercel must actually set `environment_url` on the `deployment_status`
   event** — confirmed as Vercel's documented behavior for its GitHub
   integration, but not yet confirmed against this org's own Vercel
-  project. `target_url` is the fallback if not.
+  project. No fallback if not — the job's own `if:` requires a
+  non-empty `environment_url` and skips entirely otherwise (changed
+  from an earlier `target_url` fallback, removed per a separate review
+  finding: `target_url` can point at a deployment-details page instead
+  of the live app).
+- **Checkout credential exposure (code review on #1015, fixed)**: the
+  reusable workflow checks out and runs a PR's own, untrusted
+  `holocron.config.ts`. `actions/checkout` now sets
+  `persist-credentials: false` — nothing left in `.git/config` for
+  that code to read and exfiltrate — and the thin callers no longer
+  carry `secrets: inherit`, since nothing in this job needs any
+  secret in the first place.
