@@ -1,0 +1,40 @@
+name: Preview Check
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      preview-url:
+        description: The PR's Vercel preview deployment URL, extracted from the triggering `deployment_status` event.
+        required: true
+        type: string
+      sha:
+        description: The deployed commit SHA — checked out explicitly, since deployment_status always resolves the workflow run against the default branch.
+        required: true
+        type: string
+      cwd:
+        description: Directory to run the check from — the opted-in package's own directory in a monorepo. Defaults to the repo root.
+        required: false
+        type: string
+        default: "."
+
+jobs:
+  preview-check:
+    name: Run monitoring checks against the preview deployment
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          ref: ${{ inputs.sha }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run monitoring checks against the preview deployment
+        with:
+          command: monitoring check
+          args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}

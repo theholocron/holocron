@@ -169,6 +169,29 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("secrets.VERCEL_TOKEN");
 	});
 
+	it("delivery.previewCheck runs `holocron monitoring check` with the preview URL input", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toContain("workflow_call:");
+		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
+		expect(previewCheck).toContain("command: monitoring check");
+		expect(previewCheck).toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
+	});
+
+	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toMatch(/sha:\s*\n\s*description:/);
+		expect(previewCheck).toMatch(
+			/actions\/checkout@[^\n]+\n\s+name: Checkout repository\n\s+with:\n\s+ref: \$\{\{ inputs\.sha \}\}/
+		);
+	});
+
+	it("delivery.previewCheck's cwd input defaults to the repo root for a single-package repo", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toMatch(
+			/cwd:\s*\n\s*description:[^\n]*\n\s*required: false\n\s*type: string\n\s*default: "\."/
+		);
+	});
+
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
 		expect(build).toMatch(/task: delivery\.build/);

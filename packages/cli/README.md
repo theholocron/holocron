@@ -347,8 +347,8 @@ release) is on the task's `channel` (default `main`, the stable release) and cha
 `workspace:*` dependencies between `--from` (the previous release's commit,
 omitted when there is none) and `--to` (default `HEAD`). It waits for npm to
 serve the release's new dependency versions, then runs `pnpm --filter <pkg>
-delivery.deploy`. A package that doesn't apply is skipped; a failed deploy
-exits non-zero. The shared `delivery.publish` workflow runs it as its own
+delivery.deploy`. A package that doesn't apply is skipped; a deploy that
+doesn't succeed exits non-zero. The shared `delivery.publish` workflow runs it as its own
 `deploy` job after the release job (opt in with `deploy-on-release: true`).
 
 ### `holocron run ci`
@@ -384,6 +384,29 @@ isn't the same as it going live (holocron#911).
 Provider plugins support this through the `Deployment` capability's
 existing `getDeployment(id)`. They should set `errorMessage` on the
 returned `DeploymentRecord` whenever the provider exposes one.
+
+### `holocron monitoring check <url>`
+
+Runs every configured `monitoring` check against `<url>` instead of each
+check's own configured `url` — no vendor API call, only a plain HTTP
+request evaluated locally against the exact same `assertions` already in
+`holocron.config.ts`. Built for CI: the `delivery.previewCheck` task runs
+this against a PR's Vercel preview deployment (triggered by
+`deployment_status`, not `push`/`pull_request`), reusing the production
+check definitions to catch a breaking change before merge instead of
+after (holocron#1010).
+
+```ts
+export default defineConfig({
+  tasks: ["delivery.previewCheck"],
+  providers: {
+    monitoring: ["checkly", { accountId: "...", checks: [/* ... */] }],
+  },
+});
+```
+
+Exits non-zero if any check fails — the job's own pass/fail is what
+posts as the GitHub check, no separate reporting step needed.
 
 ### Lint parity
 
@@ -624,9 +647,10 @@ the local override exists to exempt.
   reusable `workflow_call` implementations + composite actions from
   `astromech.reusableTemplates()` to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
-- `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`, `secrets set`,
-  `secrets sync`, `package publish`, `package bump-versions`, `sync github`,
-  `repo upgrade node`, `repo upgrade deps`, `new plugin`, `auth`
+- `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`,
+  `monitoring check`, `secrets set`, `secrets sync`, `package publish`,
+  `package bump-versions`, `sync github`, `repo upgrade node`,
+  `repo upgrade deps`, `new plugin`, `auth`
 - `src/interactive-menu.ts` — the interactive fallback: `COMMAND_REGISTRY`,
   `launchMenu` (Layers 1–2, picks + spawns a fresh `holocron <command>`),
   `promptForPositionals` (Layer 3, called inline from each leaf command's

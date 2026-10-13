@@ -1,0 +1,29 @@
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-check:
+    name: Preview Check
+    # environment_url is the only field documented to point at the live
+    # app — target_url can point at a deployment-details page instead,
+    # so there's no safe fallback to it. No environment_url means
+    # nothing to check; skip the job entirely rather than hit the wrong
+    # page.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Preview' &&
+      github.event.deployment_status.environment_url != ''
+    uses: theholocron/.github/.github/workflows/delivery.previewCheck.yml@main
+    with:
+      preview-url: ${{ github.event.deployment_status.environment_url }}
+      # deployment_status always resolves the workflow against the
+      # default branch — without this, the reusable workflow's checkout
+      # would validate the wrong commit's config against the PR's
+      # actual deployment.
+      sha: ${{ github.event.deployment.sha }}
+    secrets: inherit

@@ -21,6 +21,7 @@ import bookkeepingWorkflow from "../templates/reusable/bookkeeping.yml";
 import buildWorkflow from "../templates/reusable/delivery.build.yml";
 import bundleSizeWorkflow from "../templates/reusable/delivery.bundleSize.yml";
 import deployWorkflow from "../templates/reusable/delivery.deploy.yml";
+import previewCheckWorkflow from "../templates/reusable/delivery.previewCheck.yml";
 import publishWorkflow from "../templates/reusable/delivery.publish.yml";
 import dependenciesWorkflow from "../templates/reusable/dependencies.yml";
 import greetingsWorkflow from "../templates/reusable/greetings.yml";
@@ -61,6 +62,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	"delivery.publish": publishWorkflow,
 	"delivery.deploy": deployWorkflow,
 	"delivery.bundleSize": bundleSizeWorkflow,
+	"delivery.previewCheck": previewCheckWorkflow,
 	"platform.repoSync": repoSyncWorkflow,
 	"platform.commitStandards": commitStandardsWorkflow,
 	"platform.repoValidation": repoValidationWorkflow,

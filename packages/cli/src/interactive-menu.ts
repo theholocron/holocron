@@ -271,6 +271,12 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "monitoring check",
+		description: "Run every configured `monitoring` check against a given URL instead of its own configured url",
+		positionals: [{ key: "url", message: "URL to test against:", type: "input" }],
+		supportsDryRun: false,
+	},
+	{
 		name: "package bump-versions",
 		description: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
 		positionals: [{ key: "newVersion", cliArg: "new-version", message: "New version:", type: "input" }],
