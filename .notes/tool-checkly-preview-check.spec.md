@@ -168,6 +168,76 @@ confirmed in the live `.github` checkout) and proves the generator/
 `on:` plumbing already tolerates it; this is the first _current_
 instance.
 
+### Correction: `deployment_status` never fires for Sentinel on its own
+
+The design above assumed Vercel's native GitHub App integration would
+create the `deployment_status` event, the same way it does for any
+normally git-linked Vercel project. Checked live, by reading
+`holocron-plugin-vercel`'s deployment capability
+(`packages/holocron-plugin-vercel/src/capabilities/deployment.ts`):
+`triggerDeployment()` (the git-branch path) explicitly throws when the
+Vercel project has no linked GitHub repo (`"...cannot trigger a
+deployment. Link the repo first."`). Sentinel deploys through the
+_other_ path, `deployFunction()` — a bare file upload, no git link,
+precisely because it ships as an npm package with no buildable git
+history Vercel could track (see `delivery.deploy`'s own comment in
+`packages/sentinel/holocron.config.ts`). A file-uploaded deployment
+never goes through Vercel's GitHub App, so it never creates a GitHub
+Deployment object, and `deployment_status` never fires — the whole
+mechanism above would sit dead for Sentinel specifically, regardless
+of any dashboard setting, until a PR happened to also get a
+git-linked Vercel preview from somewhere else.
+
+**Fix: synthesize the event ourselves**, instead of depending on
+Vercel's GitHub App. Precedent already exists in this exact repo:
+`templates/reusable/preview.yml` (the docs/Storybook-on-Cloudflare-
+Pages preview flow) deploys via `wrangler`, then manually creates a
+GitHub Deployment + `deployment_status` via `gh api` with the real
+preview URL, purely so other tooling watching that event sees it.
+Same move here, hand-maintained (same non-astromech-templated
+category as `sentinel.deploy.yml`/`sentinel.previewCheck.yml` — this
+operation is monorepo-subpackage-specific, same #1014 reason):
+
+`.github/workflows/sentinel.previewDeploy.yml` — triggers on
+`pull_request` (default types: opened/synchronize/reopened), paths
+`packages/sentinel/**`. Checks out the PR's exact head SHA (not the
+default `pull_request` merge-commit checkout — same category of
+checkout-ref gotcha as the reusable workflow's own `sha` input
+above), runs the new `deploy:preview` package script (`delivery.build`
+→ `stage-deploy.mjs` → `holocron deploy --files .vercel-deploy
+--project-id sentinel`, i.e. `delivery.deploy` minus
+`--target production`, so it defaults to a preview deploy), captures
+the resulting URL from the CLI's own stdout (`runDeployFromFiles`
+already waits for `ready` and prints the bare URL on success — no
+`--json` flag exists, so this greps the last `https://` match out of
+the captured output), then `gh api` two calls: `POST
+/repos/.../deployments` with `ref` = the PR head SHA,
+`environment: "Preview"`, `required_contexts: []` (skips GitHub's
+default wait-for-other-statuses behavior, which would hang forever
+here — same field `preview.yml` already sets for the same reason),
+then `POST .../deployments/{id}/statuses` with `state: success` and
+`environment_url` = the captured URL. The already-merged
+`sentinel.previewCheck.yml` (triggered by `deployment_status`, filters
+on `environment == 'Preview'` and a non-empty `environment_url`) picks
+this up exactly as if Vercel's own integration had produced it —
+**zero changes to that workflow, the reusable `delivery.previewCheck.yml`,
+or the `monitoring check` CLI command**; this only replaces who creates
+the event.
+
+`VERCEL_TOKEN`/`GITHUB_TOKEN` exposure on a `pull_request`-triggered
+job is the standard, intentional GitHub behavior: a `pull_request` run
+(as opposed to the dangerous `pull_request_target`) only gets
+repository secrets when the PR is from a branch on this repo, not a
+fork — a malicious fork PR modifying `scripts/stage-deploy.mjs` to
+exfiltrate `VERCEL_TOKEN` simply never receives it. No cleanup job —
+`holocron deploy cleanup-preview` exists but is interactive
+(`@inquirer/prompts checkbox()`) and hardcodes the Cloudflare
+branch-alias naming convention (`${repo}-pr-${number}`) `preview.yml`
+uses; making it CI-safe and Vercel-aware is its own follow-up, not
+bundled here. Stale preview deployments accumulate until someone
+prunes them from the Vercel dashboard — acceptable for now given low
+PR volume on this package.
+
 ## Open risks
 
 - **Unverified: does a `deployment_status`-triggered workflow run
@@ -187,14 +257,28 @@ instance.
   `required` check) is still unconfirmed either way — needs a real
   preview deploy to settle. Deliberately not `required` yet for
   exactly this reason (see the `delivery.previewCheck` section above).
-- **Vercel must actually set `environment_url` on the `deployment_status`
-  event** — confirmed as Vercel's documented behavior for its GitHub
-  integration, but not yet confirmed against this org's own Vercel
-  project. No fallback if not — the job's own `if:` requires a
-  non-empty `environment_url` and skips entirely otherwise (changed
-  from an earlier `target_url` fallback, removed per a separate review
-  finding: `target_url` can point at a deployment-details page instead
-  of the live app).
+- **`environment_url` presence (resolved for Sentinel)**: no longer
+  depends on Vercel's own GitHub integration setting it — see the
+  "Correction" section above. `sentinel.previewDeploy.yml` sets it
+  itself from the CLI's own captured deploy URL, so it is always
+  non-empty by construction for Sentinel's case. Still a real
+  consideration for any _other_ repo that opts into the generic,
+  astromech-templated `delivery.previewCheck` task and genuinely relies
+  on Vercel's native integration (no fallback if Vercel omits it —
+  `target_url` was deliberately rejected as a fallback per an earlier
+  review finding: it can point at a deployment-details page instead of
+  the live app).
+- **New: URL scraped from CLI stdout, not a structured output.**
+  `sentinel.previewDeploy.yml` greps the last `https://` match out of
+  `holocron deploy --files`'s captured output — there's no `--json`
+  flag on that command. Fragile if the CLI's success-line format ever
+  changes; the step fails loudly (`::error::` + non-zero exit) if no
+  URL is found, rather than silently posting an empty
+  `environment_url`.
+- **New: no automated cleanup of Sentinel's preview deployments.**
+  Each PR touching `packages/sentinel/**` leaves a Vercel preview
+  deployment behind indefinitely. See the "Correction" section above —
+  `deploy cleanup-preview` isn't CI-safe or Vercel-aware yet.
 - **Checkout credential exposure (code review on #1015, fixed)**: the
   reusable workflow checks out and runs a PR's own, untrusted
   `holocron.config.ts`. `actions/checkout` now sets

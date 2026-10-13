@@ -1,0 +1,91 @@
+# Sentinel's own PR-preview deploy (holocron#1010 follow-up). NOT
+# astromech-templated, same reason as sentinel.deploy.yml/
+# sentinel.previewCheck.yml/sentinel.secretsSync.yml — this repo owns
+# Sentinel directly.
+#
+# Vercel's native GitHub integration would normally create the
+# deployment_status event sentinel.previewCheck.yml listens for — but
+# Sentinel deploys via deployFunction() (a bare file upload, no linked
+# git repo, since it ships as an npm package with no buildable git
+# history Vercel could track), which never goes through Vercel's
+# GitHub App. So this job deploys a preview itself (same
+# build-stage-deploy chain as the real `delivery.deploy`, minus
+# `--target production`, via the `deploy:preview` script) and manually
+# creates a GitHub Deployment + deployment_status with the real
+# preview URL — same move `theholocron/.github`'s docs/Storybook
+# preview workflow (templates/reusable/preview.yml) already makes for
+# Cloudflare Pages. sentinel.previewCheck.yml can't tell the
+# difference; it only ever cared about the event, not who created it.
+#
+# Checks out the PR's exact head SHA, not the default pull_request
+# merge-commit ref — the deployed commit must match what's reported in
+# the synthetic deployment's `ref`.
+#
+# VERCEL_TOKEN/GITHUB_TOKEN exposure here is the standard, intentional
+# `pull_request` (not `pull_request_target`) behavior: a fork PR never
+# receives repository secrets, so a malicious `stage-deploy.mjs` edit
+# from a fork can't exfiltrate anything — it just fails on an absent
+# token.
+#
+# No cleanup job: `holocron deploy cleanup-preview` is interactive and
+# hardcodes Cloudflare's branch-alias naming, so it isn't CI-safe or
+# Vercel-aware yet — stale previews accumulate until pruned by hand.
+name: Sentinel Preview Deploy
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    paths:
+      - "packages/sentinel/**"
+
+concurrency:
+  group: sentinel-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build, stage, and deploy a preview
+        id: deploy
+        working-directory: packages/sentinel
+        run: |
+          set -o pipefail
+          pnpm run deploy:preview 2>&1 | tee /tmp/sentinel-preview-deploy.log
+          exit_code=${PIPESTATUS[0]}
+          if [ "$exit_code" -ne 0 ]; then
+            exit "$exit_code"
+          fi
+          url=$(grep -oE 'https://[^[:space:]]+' /tmp/sentinel-preview-deploy.log | tail -1)
+          if [ -z "$url" ]; then
+            echo "::error::deploy succeeded but no preview URL was found in its output"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Report preview deployment to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          payload=$(printf '{"ref":"%s","environment":"Preview","description":"Vercel Preview (file deploy)","production_environment":false,"auto_merge":false,"required_contexts":[]}' "$SHA")
+          deploy_id=$(echo "$payload" | gh api "repos/${GITHUB_REPOSITORY}/deployments" --method POST --input - | jq -r '.id')
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+            --method POST --field state=success --field environment_url="${PREVIEW_URL}"
