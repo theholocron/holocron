@@ -62,6 +62,15 @@ describe("runCheckAgainstUrl", () => {
 		});
 	});
 
+	it("uses the real global fetch when none is injected", async () => {
+		// 127.0.0.1 refusing a connection is immediate and has no network/DNS
+		// dependency — enough to prove the default `?? fetch` branch is the
+		// one making the request, without a real external call.
+		const result = await runCheckAgainstUrl({ ...BASE, url: "http://127.0.0.1:1/" });
+		expect(result.passed).toBe(false);
+		expect(result.requestError).toBeTruthy();
+	});
+
 	it("never follows a redirect — passes redirect: manual to fetch", async () => {
 		let seenRedirect: string | undefined;
 		const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
@@ -205,6 +214,38 @@ describe("runCheckAgainstUrl", () => {
 				{ fetch: fakeFetch(200, "abcdefghij"), maxBodyBytes: 2 }
 			);
 			// The capped body is "ab", which equals the target exactly.
+			expect(result.passed).toBe(true);
+		});
+
+		it("stops reading once the cap is hit, even when it only crosses on a later chunk", async () => {
+			// A hand-rolled reader (not a real ReadableStream/Readable.toWeb —
+			// both are blocked by this repo's n/no-unsupported-features/
+			// node-builtins lint rule for the declared engines.node range)
+			// delivering the body across two chunks, so the cap is only
+			// exceeded on the second read() rather than the first.
+			const encoded = [new TextEncoder().encode("ab"), new TextEncoder().encode("cdef")];
+			let i = 0;
+			const fakeBody = {
+				getReader: () => ({
+					read: async () => (i < encoded.length ? { done: false, value: encoded[i++] } : { done: true }),
+					// A cancel() rejection is swallowed (best-effort cleanup) --
+					// this also exercises that swallow path.
+					cancel: async () => {
+						throw new Error("cancel failed");
+					},
+				}),
+			};
+			const fetchSpy = (async () =>
+				({
+					status: 200,
+					headers: new Headers(),
+					body: fakeBody,
+				}) as unknown as Response) as unknown as typeof fetch;
+
+			const result = await runCheckAgainstUrl(
+				{ ...BASE, assertions: [{ source: "body", comparison: "equals", target: "ab" }] },
+				{ fetch: fetchSpy, maxBodyBytes: 2 }
+			);
 			expect(result.passed).toBe(true);
 		});
 

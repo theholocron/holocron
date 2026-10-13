@@ -180,6 +180,40 @@ describe("runMonitoringCheck", () => {
 		expect((err as Error).message).toContain("invalid token");
 	});
 
+	it("defaults print to console.log when none is injected", async () => {
+		const { loaded, loader } = loadedWithMonitoring([CHECK_A]);
+		const runCheck = vi.fn().mockResolvedValue({ passed: true, status: 200, failures: [] });
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		try {
+			await runMonitoringCheck({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				url: "https://pr-preview.example.com",
+				loader,
+				runCheck,
+			});
+			expect(logSpy).toHaveBeenCalled();
+			expect(logSpy.mock.calls.some((call) => String(call[0]).includes("1 passed, 0 failed"))).toBe(true);
+		} finally {
+			logSpy.mockRestore();
+		}
+	});
+
+	it("constructs a real PluginLoader when none is injected, surfacing its own not-configured error", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: {} });
+
+		const err = await runMonitoringCheck({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			url: "https://pr-preview.example.com",
+			print: () => {},
+		}).catch((e: unknown) => e);
+
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).toMatch(/monitoring.*is not loaded/);
+	});
+
 	it("logs a structured summary line via the injected logger", async () => {
 		const { loaded, loader } = loadedWithMonitoring([CHECK_A]);
 		const log = fakeLogger();
