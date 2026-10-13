@@ -67,39 +67,42 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	// Root is always bumped — private means "don't publish", not "don't version".
 	bumpFile(join(cwd, "package.json"), "root");
 
-	const packagesDir = join(cwd, "packages");
-	let entries: string[];
-	try {
-		entries = listDir(packagesDir);
-	} catch {
-		// No packages/ dir — single-package repo; root bump is sufficient.
-		const status = dryRun ? "dry-run" : "ok";
-		logger.info({ version, status, bumped: bumped.length, skipped: skipped.length }, "npm bump-versions: done");
-		return { status, bumped, skipped };
+	function bumpWorkspaceDir(dirName: "packages" | "plugins"): void {
+		const dirPath = join(cwd, dirName);
+		let entries: string[];
+		try {
+			entries = listDir(dirPath);
+		} catch {
+			return;
+		}
+		for (const entry of entries) {
+			const pkgDir = join(dirPath, entry);
+			try {
+				if (!isDir(pkgDir)) continue;
+			} catch {
+				continue;
+			}
+			const pkgFile = join(pkgDir, "package.json");
+			let pkg: Record<string, unknown>;
+			try {
+				pkg = JSON.parse(readFile(pkgFile)) as Record<string, unknown>;
+			} catch {
+				print(`  ! skipping ${dirName}/${entry}: no package.json or malformed JSON`);
+				continue;
+			}
+			if (pkg.private) {
+				print(`  · skipping private package ${dirName}/${entry}`);
+				skipped.push(`${dirName}/${entry}`);
+				continue;
+			}
+			bumpFile(pkgFile, `${dirName}/${entry}`);
+		}
 	}
 
-	for (const entry of entries) {
-		const pkgDir = join(packagesDir, entry);
-		try {
-			if (!isDir(pkgDir)) continue;
-		} catch {
-			continue;
-		}
-		const pkgFile = join(pkgDir, "package.json");
-		let pkg: Record<string, unknown>;
-		try {
-			pkg = JSON.parse(readFile(pkgFile)) as Record<string, unknown>;
-		} catch {
-			print(`  ! skipping packages/${entry}: no package.json or malformed JSON`);
-			continue;
-		}
-		if (pkg.private) {
-			print(`  · skipping private package packages/${entry}`);
-			skipped.push(`packages/${entry}`);
-			continue;
-		}
-		bumpFile(pkgFile, `packages/${entry}`);
-	}
+	// Each no-ops safely (via the listDir catch above) when its dir doesn't
+	// exist — a single-package repo with neither just gets the root bump.
+	bumpWorkspaceDir("packages");
+	bumpWorkspaceDir("plugins");
 
 	const status = dryRun ? "dry-run" : "ok";
 	logger.info({ version, status, bumped: bumped.length, skipped: skipped.length }, "npm bump-versions: done");

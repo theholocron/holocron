@@ -7,6 +7,7 @@ import { runNpmBumpVersions } from "./npm-bump-versions.js";
 
 const CWD = "/repo";
 const PACKAGES_DIR = join(CWD, "packages");
+const PLUGINS_DIR = join(CWD, "plugins");
 
 function makeFs(files: Record<string, Record<string, unknown>>) {
 	const written: Record<string, string> = {};
@@ -21,15 +22,16 @@ function makeFs(files: Record<string, Record<string, unknown>>) {
 		written[p] = c;
 	};
 	const listDir = (p: string): string[] => {
-		if (p !== PACKAGES_DIR) throw new Error(`ENOENT: ${p}`);
+		const dirName = p === PACKAGES_DIR ? "packages" : p === PLUGINS_DIR ? "plugins" : undefined;
+		if (!dirName) throw new Error(`ENOENT: ${p}`);
 		return Object.keys(files)
-			.filter((k) => k.startsWith("packages/"))
+			.filter((k) => k.startsWith(`${dirName}/`))
 			.map((k) => k.split("/")[1] as string)
 			.filter((v, i, a) => a.indexOf(v) === i);
 	};
 	const isDir = (p: string): boolean => {
 		const rel = toRel(p);
-		return rel.startsWith("packages/") && !rel.endsWith("package.json");
+		return (rel.startsWith("packages/") || rel.startsWith("plugins/")) && !rel.endsWith("package.json");
 	};
 	return { readFile, writeFile, listDir, isDir, written };
 }
@@ -64,6 +66,45 @@ describe("runNpmBumpVersions", () => {
 		);
 		expect(JSON.parse(written[join(CWD, "packages/pkg-a/package.json")]!).version).toBe("4.2.0");
 		expect(JSON.parse(written[join(CWD, "packages/pkg-b/package.json")]!).version).toBe("4.2.0");
+	});
+
+	it("bumps non-private packages under plugins/ alongside packages/ (holocron#993 regression)", async () => {
+		const { readFile, writeFile, listDir, isDir, written } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"packages/cli/package.json": { name: "@acme/cli", version: "4.1.0" },
+			"plugins/plugin-a/package.json": { name: "@acme/plugin-a", version: "4.1.0" },
+			"plugins/plugin-b/package.json": { name: "@acme/plugin-b", version: "4.1.0", private: true },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir,
+			isDir,
+		});
+		expect(report.bumped).toEqual(["root", "packages/cli", "plugins/plugin-a"]);
+		expect(report.skipped).toContain("plugins/plugin-b");
+		expect(JSON.parse(written[join(CWD, "plugins/plugin-a/package.json")]!).version).toBe("4.2.0");
+	});
+
+	it("bumps plugins/* when there is no packages/ dir at all", async () => {
+		const { readFile, writeFile, listDir, isDir, written } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"plugins/plugin-a/package.json": { name: "@acme/plugin-a", version: "4.1.0" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir,
+			isDir,
+		});
+		expect(report.bumped).toEqual(["root", "plugins/plugin-a"]);
+		expect(JSON.parse(written[join(CWD, "plugins/plugin-a/package.json")]!).version).toBe("4.2.0");
 	});
 
 	it("skips private packages", async () => {
@@ -267,5 +308,23 @@ describe("runNpmBumpVersions", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.bumped).toContain("root");
+	});
+
+	it("skips a non-directory entry when isDir returns false (not throwing)", async () => {
+		const { readFile, writeFile, listDir, written } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"packages/pkg/package.json": { name: "@acme/pkg", version: "4.1.0" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir: (p) => (p === PACKAGES_DIR ? ["pkg", "README.md"] : listDir(p)),
+			isDir: (p) => !p.endsWith("README.md"),
+		});
+		expect(report.bumped).toEqual(["root", "packages/pkg"]);
+		expect(JSON.parse(written[join(CWD, "packages/pkg/package.json")]!).version).toBe("4.2.0");
 	});
 });
