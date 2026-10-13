@@ -347,8 +347,8 @@ release) is on the task's `channel` (default `main`, the stable release) and cha
 `workspace:*` dependencies between `--from` (the previous release's commit,
 omitted when there is none) and `--to` (default `HEAD`). It waits for npm to
 serve the release's new dependency versions, then runs `pnpm --filter <pkg>
-delivery.deploy`. A package that doesn't apply is skipped; a failed deploy
-exits non-zero. The shared `delivery.publish` workflow runs it as its own
+delivery.deploy`. A package that doesn't apply is skipped; a deploy that
+doesn't succeed exits non-zero. The shared `delivery.publish` workflow runs it as its own
 `deploy` job after the release job (opt in with `deploy-on-release: true`).
 
 ### `holocron run ci`
@@ -388,7 +388,7 @@ returned `DeploymentRecord` whenever the provider exposes one.
 ### `holocron monitoring check <url>`
 
 Runs every configured `monitoring` check against `<url>` instead of each
-check's own configured `url` — no vendor API call, just a plain HTTP
+check's own configured `url` — no vendor API call, only a plain HTTP
 request evaluated locally against the exact same `assertions` already in
 `holocron.config.ts`. Built for CI: the `delivery.previewCheck` task runs
 this against a PR's Vercel preview deployment (triggered by

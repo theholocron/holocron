@@ -10,7 +10,7 @@ related:
 # Per-PR preview monitoring check
 
 Extends the Checkly uptime monitoring (#996, ADR-0013) to run the same
-check definitions against a PR's Vercel preview deployment, not just
+check definitions against a PR's Vercel preview deployment, not only
 production — so a breaking change is caught before merge, not after.
 
 ## Problem
@@ -94,7 +94,7 @@ Three parallel registry entries (`packages/astromech/src/registry.ts`'s
 `github-action-reusable-workflows.ts`'s `REUSABLE_WORKFLOWS`), all
 keyed `"delivery.previewCheck"` — the normal task-registration shape,
 **not** `delivery.deploy`'s `with: { on: "release" }` pattern (that's
-a special case astromech explicitly skips generating a workflow for;
+an exception astromech explicitly skips generating a workflow for;
 confirmed by reading `astromech.ts`'s own skip-guard and its test).
 `local: null` in the task registry — there's no local equivalent,
 since it needs a live preview URL that only exists once Vercel has
