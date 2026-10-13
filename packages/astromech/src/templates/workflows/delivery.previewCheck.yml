@@ -18,12 +18,15 @@ jobs:
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment == 'Preview' &&
       github.event.deployment_status.environment_url != ''
+    # No secret this job needs -- monitoring check makes no vendor API
+    # call, only a plain HTTP request to the preview URL. Nothing to
+    # inherit, so nothing is exposed to a PR's own (untrusted) code.
     uses: theholocron/.github/.github/workflows/delivery.previewCheck.yml@main
     with:
       preview-url: ${{ github.event.deployment_status.environment_url }}
-      # deployment_status always resolves the workflow against the
-      # default branch — without this, the reusable workflow's checkout
-      # would validate the wrong commit's config against the PR's
-      # actual deployment.
+      # GitHub evaluates which version of this workflow file to run
+      # from the default branch for a deployment_status event (unlike
+      # push/pull_request) -- without this, the reusable workflow's
+      # checkout would default to that same ref instead of the PR's
+      # actual deployed commit.
       sha: ${{ github.event.deployment.sha }}
-    secrets: inherit
