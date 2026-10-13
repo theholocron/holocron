@@ -309,4 +309,22 @@ describe("runNpmBumpVersions", () => {
 		expect(report.status).toBe("ok");
 		expect(report.bumped).toContain("root");
 	});
+
+	it("skips a non-directory entry when isDir returns false (not throwing)", async () => {
+		const { readFile, writeFile, listDir, written } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"packages/pkg/package.json": { name: "@acme/pkg", version: "4.1.0" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir: (p) => (p === PACKAGES_DIR ? ["pkg", "README.md"] : listDir(p)),
+			isDir: (p) => !p.endsWith("README.md"),
+		});
+		expect(report.bumped).toEqual(["root", "packages/pkg"]);
+		expect(JSON.parse(written[join(CWD, "packages/pkg/package.json")]!).version).toBe("4.2.0");
+	});
 });
