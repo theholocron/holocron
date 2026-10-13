@@ -5,6 +5,6 @@ export default defineConfig({
 	exec: {
 		prepareCmd: "node packages/cli/dist/cli.mjs package bump-versions ${nextRelease.version}",
 		publishCmd:
-			"node packages/cli/dist/cli.mjs publish --skip-already-published --tag ${nextRelease.channel || 'latest'}",
+			"node packages/cli/dist/cli.mjs package publish --skip-already-published --tag ${nextRelease.channel || 'latest'}",
 	},
 });
