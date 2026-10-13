@@ -2,13 +2,11 @@ name: Platform
 
 on: # yamllint disable-line rule:truthy
   push:
-    branches: [main, alpha]
+    branches: [main]
     paths:
       - holocron.config.ts
       - package.json
       - pnpm-workspace.yaml
-      - packages/astromech/src/templates/**
-      - packages/cli/src/templates/**
   workflow_dispatch:
     inputs:
       steps:
