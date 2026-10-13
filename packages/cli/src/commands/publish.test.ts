@@ -16,14 +16,13 @@ import {
 	runSyncTrust,
 } from "./publish.js";
 
-function makeTempMonorepo(
-	packages: Array<{ name: string; version?: string; private?: boolean; invalidJson?: boolean }>
-) {
-	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
-	const pkgsDir = join(root, "packages");
-	mkdirSync(pkgsDir);
+type TempPackageSpec = { name: string; version?: string; private?: boolean; invalidJson?: boolean };
+
+function writeTempWorkspaceDir(root: string, dirName: "packages" | "plugins", packages: TempPackageSpec[]) {
+	const dirPath = join(root, dirName);
+	mkdirSync(dirPath);
 	for (const pkg of packages) {
-		const dir = join(pkgsDir, pkg.name.replace(/\//g, "-"));
+		const dir = join(dirPath, pkg.name.replace(/\//g, "-"));
 		mkdirSync(dir);
 		const content = pkg.invalidJson
 			? "not valid json {"
@@ -35,7 +34,25 @@ function makeTempMonorepo(
 		writeFileSync(join(dir, "package.json"), content);
 	}
 	// Directory with no package.json — should be skipped
-	mkdirSync(join(pkgsDir, "no-manifest"));
+	mkdirSync(join(dirPath, "no-manifest"));
+}
+
+function makeTempMonorepo(packages: TempPackageSpec[]) {
+	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+	writeTempWorkspaceDir(root, "packages", packages);
+	return root;
+}
+
+function makeTempMonorepoWithPlugins(packages: TempPackageSpec[], plugins: TempPackageSpec[]) {
+	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+	writeTempWorkspaceDir(root, "packages", packages);
+	writeTempWorkspaceDir(root, "plugins", plugins);
+	return root;
+}
+
+function makeTempPluginsOnlyRepo(plugins: TempPackageSpec[]) {
+	const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
+	writeTempWorkspaceDir(root, "plugins", plugins);
 	return root;
 }
 
@@ -166,6 +183,62 @@ describe("runPublish", () => {
 		expect(calls[1]?.args).toEqual([
 			"-r",
 			"--filter=./packages/*",
+			"publish",
+			"--access",
+			"public",
+			"--no-git-checks",
+			"--tag",
+			"alpha",
+		]);
+	});
+
+	it("includes --filter=./plugins/* alongside --filter=./packages/* when both dirs exist (holocron#993 regression)", async () => {
+		const root = makeTempMonorepoWithPlugins(
+			[{ name: "@theholocron/cli" }],
+			[{ name: "@theholocron/holocron-plugin-axiom" }]
+		);
+		const { exec, calls } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runPublish({
+			cwd: root,
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			print: () => {},
+			exec,
+		});
+		expect(calls[1]?.args).toEqual([
+			"-r",
+			"--filter=./packages/*",
+			"--filter=./plugins/*",
+			"publish",
+			"--access",
+			"public",
+			"--no-git-checks",
+			"--tag",
+			"alpha",
+		]);
+	});
+
+	it("filters on --filter=./plugins/* alone for a plugins-only repo layout", async () => {
+		const root = makeTempPluginsOnlyRepo([{ name: "@theholocron/holocron-plugin-axiom" }]);
+		const { exec, calls } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runPublish({
+			cwd: root,
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			print: () => {},
+			exec,
+		});
+		expect(calls[1]?.args).toEqual([
+			"-r",
+			"--filter=./plugins/*",
 			"publish",
 			"--access",
 			"public",
@@ -493,6 +566,31 @@ describe("runSteadyPublish", () => {
 		]);
 	});
 
+	it("bulk-publishes plugins/* alongside packages/* and discovers their entries (holocron#993 regression)", async () => {
+		const root = makeTempMonorepoWithPlugins(
+			[{ name: "@theholocron/cli", version: "1.0.0" }],
+			[{ name: "@theholocron/holocron-plugin-axiom", version: "2.0.0" }]
+		);
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		const report = await runSteadyPublish({ cwd: root, env: baseEnv, print: () => {}, exec });
+		expect(report.status).toBe("ok");
+		expect(report.packageNames).toEqual(
+			expect.arrayContaining(["@theholocron/cli", "@theholocron/holocron-plugin-axiom"])
+		);
+		expect(calls[0]?.args).toEqual([
+			"-r",
+			"--filter=./packages/*",
+			"--filter=./plugins/*",
+			"publish",
+			"--access",
+			"public",
+			"--no-git-checks",
+			"--tag",
+			"latest",
+			"--provenance",
+		]);
+	});
+
 	it("skips an invalid-JSON package.json when discovering entries", async () => {
 		const root = makeTempMonorepo([{ name: "@theholocron/good" }, { name: "@theholocron/bad", invalidJson: true }]);
 		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
@@ -676,6 +774,32 @@ describe("discoverPublicPackages (via runPublish without packages injection)", (
 		expect(joined).not.toContain("@theholocron/private-c/access");
 		expect(joined).not.toContain("@theholocron/broken-d/access");
 		expect(joined).not.toContain("no-manifest/access");
+	});
+
+	it("also discovers public plugins/* packages alongside packages/* (holocron#993 regression)", async () => {
+		const root = makeTempMonorepoWithPlugins(
+			[{ name: "@theholocron/cli" }],
+			[
+				{ name: "@theholocron/holocron-plugin-axiom" },
+				{ name: "@theholocron/holocron-plugin-private", private: true },
+			]
+		);
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runPublish({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		const joined = lines.join("\n");
+		expect(joined).toContain("@theholocron/cli/access");
+		expect(joined).toContain("@theholocron/holocron-plugin-axiom/access");
+		expect(joined).not.toContain("@theholocron/holocron-plugin-private/access");
 	});
 
 	it("falls back to the root package.json when there's no packages/ dir at all — fails loudly, no publish attempted", async () => {
