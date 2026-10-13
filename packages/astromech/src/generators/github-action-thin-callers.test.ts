@@ -30,6 +30,17 @@ describe("WORKFLOW_TEMPLATES", () => {
 		}
 	});
 
+	it("platform.repoSync triggers on alpha as well as main, and watches the template source dirs (holocron#1012)", () => {
+		// Previously main-only with a 3-file path filter that didn't include
+		// either template directory -- real development happens on alpha,
+		// and nothing watched the actual source `sync github` pushes, so a
+		// merge there never auto-synced theholocron/.github at all.
+		const repoSync = WORKFLOW_TEMPLATES["platform.repoSync"]!;
+		expect(repoSync).toContain("branches: [main, alpha]");
+		expect(repoSync).toContain("packages/astromech/src/templates/**");
+		expect(repoSync).toContain("packages/cli/src/templates/**");
+	});
+
 	it("uses the Conclusion aggregate only for genuinely multi-job tasks", () => {
 		// verification.unitTests (5 conditional jobs) and platform.repoValidation
 		// (2 jobs that both must pass) need a fan-in; every other task is a
