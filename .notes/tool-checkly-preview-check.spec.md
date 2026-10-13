@@ -199,39 +199,87 @@ category as `sentinel.deploy.yml`/`sentinel.previewCheck.yml` — this
 operation is monorepo-subpackage-specific, same #1014 reason):
 
 `.github/workflows/sentinel.previewDeploy.yml` — triggers on
-`pull_request` (default types: opened/synchronize/reopened), paths
-`packages/sentinel/**`. Checks out the PR's exact head SHA (not the
-default `pull_request` merge-commit checkout — same category of
-checkout-ref gotcha as the reusable workflow's own `sha` input
-above), runs the new `deploy:preview` package script (`delivery.build`
-→ `stage-deploy.mjs` → `holocron deploy --files .vercel-deploy
---project-id sentinel`, i.e. `delivery.deploy` minus
-`--target production`, so it defaults to a preview deploy), captures
-the resulting URL from the CLI's own stdout (`runDeployFromFiles`
-already waits for `ready` and prints the bare URL on success — no
-`--json` flag exists, so this greps the last `https://` match out of
-the captured output), then `gh api` two calls: `POST
-/repos/.../deployments` with `ref` = the PR head SHA,
-`environment: "Preview"`, `required_contexts: []` (skips GitHub's
-default wait-for-other-statuses behavior, which would hang forever
-here — same field `preview.yml` already sets for the same reason),
-then `POST .../deployments/{id}/statuses` with `state: success` and
-`environment_url` = the captured URL. The already-merged
-`sentinel.previewCheck.yml` (triggered by `deployment_status`, filters
-on `environment == 'Preview'` and a non-empty `environment_url`) picks
-this up exactly as if Vercel's own integration had produced it —
-**zero changes to that workflow, the reusable `delivery.previewCheck.yml`,
-or the `monitoring check` CLI command**; this only replaces who creates
-the event.
+`pull_request`, paths `packages/sentinel/**` plus its bundled
+`workspace:*` dependencies (`astromech`, `cli`, `datapad` — Sentinel's
+`dist/` inlines them, so a change to any one changes what actually
+ships even with `packages/sentinel/**` itself untouched; found on
+review of #1017). Checks out the PR's exact head SHA (not the default
+`pull_request` merge-commit checkout — same category of checkout-ref
+gotcha as the reusable workflow's own `sha` input above).
 
-`VERCEL_TOKEN`/`GITHUB_TOKEN` exposure on a `pull_request`-triggered
-job is the standard, intentional GitHub behavior: a `pull_request` run
-(as opposed to the dangerous `pull_request_target`) only gets
-repository secrets when the PR is from a branch on this repo, not a
-fork — a malicious fork PR modifying `scripts/stage-deploy.mjs` to
-exfiltrate `VERCEL_TOKEN` simply never receives it. No cleanup job —
-`holocron deploy cleanup-preview` exists but is interactive
-(`@inquirer/prompts checkbox()`) and hardcodes the Cloudflare
+Three steps, deliberately separated (review on #1017 — the original
+single chained script ran the whole `delivery.build → stage-deploy.mjs
+→ holocron deploy` pipeline in one step with `VERCEL_TOKEN` in its env
+throughout, meaning this PR's own `stage-deploy.mjs` and `tsdown`'s
+dependency chain ran WITH the deploy credential present the entire
+time):
+
+1. **Build and stage** — `delivery.build` + `scripts/stage-deploy.mjs`,
+   no `VERCEL_TOKEN` in this step's env at all.
+2. **Deploy preview** — `holocron deploy --files .vercel-deploy
+--project-id sentinel` (i.e. `delivery.deploy` minus
+   `--target production`, so it defaults to a preview deploy) as the
+   step's only command, `VERCEL_TOKEN` scoped to this step alone.
+   Guarded by `if: secrets.VERCEL_TOKEN != ''` — skips cleanly on a
+   fork PR (which never receives it) instead of failing on a missing
+   credential. Captures the URL from the CLI's own stdout
+   (`runDeployFromFiles` already waits for `ready` and prints the bare
+   URL on success; no `--json` flag exists to parse instead), via a
+   regex anchored to a `*.vercel.app` host and a URL-safe character
+   class — not a bare `https://\S+` grab, which review on #1017 flagged
+   as both fragile (captures whatever follows on the matched line,
+   including trailing log content) and a redirect vector (a PR could
+   make any later-printed `https://attacker-host` line get reported as
+   `environment_url`, which `monitoring check` would then fetch with no
+   host allowlist).
+3. **Report preview deployment to GitHub** — only runs when step 2
+   actually succeeded (`if: steps.deploy.outcome == 'success'`, which
+   is also false when step 2 was skipped for a fork PR). `gh api` two
+   calls: `POST /repos/.../deployments` with `ref` = the PR head SHA,
+   `environment: "Preview"`, `required_contexts: []` (skips GitHub's
+   default wait-for-other-statuses behavior, which would hang forever
+   here — same field `preview.yml` already sets for the same reason),
+   then `POST .../deployments/{id}/statuses` with `state: success` and
+   `environment_url` = the captured URL, retried up to 3 times (review
+   on #1017 — a transient failure on just the status call would
+   otherwise leave the deployment permanently pending, and a re-run
+   would create a second deployment rather than complete the first).
+   Authenticates with `secrets.GH_TOKEN`, **not**
+   `secrets.GITHUB_TOKEN` — GitHub does not start a new workflow run
+   for an event created using a run's own `GITHUB_TOKEN` (the same
+   recursive-run guard already documented in this repo's
+   `platform.repoSync.yml`/`sync-github.yml`/etc., all of which use
+   `HOLOCRON_SYNC_TOKEN`/`GH_TOKEN` for exactly this reason). Missed on
+   the first pass of this feature — with `GITHUB_TOKEN`, the deployment
+   and status would both post successfully, look entirely correct on
+   the PR, and `sentinel.previewCheck.yml` would simply never start.
+
+The already-merged `sentinel.previewCheck.yml` (triggered by
+`deployment_status`, filters on `environment == 'Preview'` and a
+non-empty `environment_url`) picks this up exactly as if Vercel's own
+integration had produced it — **zero changes to that workflow, the
+reusable `delivery.previewCheck.yml`, or the `monitoring check` CLI
+command**; this only replaces who creates the event, and (per the
+`GH_TOKEN` note above) makes sure it's created in a form GitHub will
+actually act on.
+
+`secrets sync`'s invocation for Sentinel (`sentinel.secretsSync.yml`)
+was `--target production` only — the CLI's own default is
+`["production", "preview"]`, but this repo's invocation had narrowed
+it, leaving Preview deployments with none of Sentinel's 5 env vars at
+all (not just `SENTINEL_WEBHOOK_SECRET` — review on #1017). Now passes
+`--target production --target preview` explicitly.
+
+`VERCEL_TOKEN`/`GH_TOKEN` exposure on a `pull_request`-triggered job is
+the standard, intentional GitHub behavior: a `pull_request` run (as
+opposed to the dangerous `pull_request_target`) only gets repository
+secrets when the PR is from a branch on this repo, not a fork — a
+malicious fork PR modifying `scripts/stage-deploy.mjs` to exfiltrate
+`VERCEL_TOKEN` simply never receives it (and now, additionally, never
+even reaches the step that sets it — see the 3-step split above). No
+cleanup job — `holocron deploy cleanup-preview` exists but is
+interactive (`@inquirer/prompts checkbox()`) and hardcodes the
+Cloudflare
 branch-alias naming convention (`${repo}-pr-${number}`) `preview.yml`
 uses; making it CI-safe and Vercel-aware is its own follow-up, not
 bundled here. Stale preview deployments accumulate until someone
@@ -240,6 +288,26 @@ PR volume on this package.
 
 ## Open risks
 
+- **New: credentialed step still runs this monorepo's own, PR-affectable
+  CLI build (review on #1017, not fully resolved).** The token-isolation
+  split above keeps `VERCEL_TOKEN` out of the "Build and stage" step
+  that runs this PR's own `stage-deploy.mjs`/`tsdown` chain, but the
+  "Deploy preview" step's `holocron` still resolves to this same
+  monorepo's own `packages/cli` build — which this workflow's own path
+  filter watches, since Sentinel bundles it. A PR modifying
+  `packages/cli/src/commands/deploy.ts` is still exercised with
+  `VERCEL_TOKEN` present, pre-review, on `pull_request`. Shared with
+  `sentinel.deploy.yml`'s production deploy, which has the identical
+  self-hosting property but is gated behind `push: main` (so always
+  post-review) — `pull_request` has no such gate by construction. A
+  real fix (a GitHub `environment:` with required reviewers in front of
+  the "Deploy preview" step) is a deliberate follow-up, not bundled
+  here.
+- **New: `GH_TOKEN` must be a real PAT provisioned on this repo** for
+  the "Report preview deployment" step to work at all — if unset, that
+  step now fails loudly (`::error::`) rather than silently falling back
+  to `GITHUB_TOKEN` and reproducing the exact "check never starts"
+  failure mode this was built to avoid.
 - **Unverified: does a `deployment_status`-triggered workflow run
   actually post as a GitHub check on the PR's commit?** A code
   review on #1015 claimed `deployment_status` runs are associated

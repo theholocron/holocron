@@ -1,41 +1,72 @@
-# Sentinel's own PR-preview deploy (holocron#1010 follow-up). NOT
-# astromech-templated, same reason as sentinel.deploy.yml/
-# sentinel.previewCheck.yml/sentinel.secretsSync.yml — this repo owns
-# Sentinel directly.
+# Sentinel's own PR-preview deploy (holocron#1010 follow-up, holocron#1016,
+# review feedback on holocron#1017). NOT astromech-templated, same reason as
+# sentinel.deploy.yml/sentinel.previewCheck.yml/sentinel.secretsSync.yml —
+# this repo owns Sentinel directly.
 #
 # Vercel's native GitHub integration would normally create the
 # deployment_status event sentinel.previewCheck.yml listens for — but
-# Sentinel deploys via deployFunction() (a bare file upload, no linked
-# git repo, since it ships as an npm package with no buildable git
-# history Vercel could track), which never goes through Vercel's
-# GitHub App. So this job deploys a preview itself (same
-# build-stage-deploy chain as the real `delivery.deploy`, minus
-# `--target production`, via the `deploy:preview` script) and manually
-# creates a GitHub Deployment + deployment_status with the real
-# preview URL — same move `theholocron/.github`'s docs/Storybook
-# preview workflow (templates/reusable/preview.yml) already makes for
-# Cloudflare Pages. sentinel.previewCheck.yml can't tell the
-# difference; it only ever cared about the event, not who created it.
+# Sentinel deploys via deployFunction() (a bare file upload, no linked git
+# repo, since it ships as an npm package with no buildable git history
+# Vercel could track), which never goes through Vercel's GitHub App. So this
+# job deploys a preview itself and manually creates a GitHub Deployment +
+# deployment_status with the real preview URL — same move
+# theholocron/.github's docs/Storybook preview workflow
+# (templates/reusable/preview.yml) already makes for Cloudflare Pages.
+# sentinel.previewCheck.yml can't tell the difference; it only ever cared
+# about the event, not who created it.
 #
 # Checks out the PR's exact head SHA, not the default pull_request
-# merge-commit ref — the deployed commit must match what's reported in
-# the synthetic deployment's `ref`.
+# merge-commit ref — the deployed commit must match what's reported in the
+# synthetic deployment's `ref`.
 #
-# VERCEL_TOKEN/GITHUB_TOKEN exposure here is the standard, intentional
-# `pull_request` (not `pull_request_target`) behavior: a fork PR never
-# receives repository secrets, so a malicious `stage-deploy.mjs` edit
-# from a fork can't exfiltrate anything — it just fails on an absent
-# token.
+# `VERCEL_TOKEN` is scoped ONLY to the final "Deploy preview" step, not the
+# job as a whole: "Build and stage" runs `tsdown` and this PR's own
+# `scripts/stage-deploy.mjs` with no deploy credential in their process env
+# at all, so that PR-controlled code (and any of its transitive
+# dependencies' install/build scripts) has nothing to exfiltrate. Only the
+# already-staged, static `.vercel-deploy/` files reach the credentialed
+# step, which runs the `holocron` CLI itself, not further PR-authored
+# scripts. This is a meaningful narrowing, not a complete one: `holocron`
+# here still resolves to this same monorepo's own packages/cli build, so a
+# PR modifying packages/cli (watched by this workflow's own path filter,
+# since Sentinel bundles it) is still exercised with the token present —
+# the same self-hosting property sentinel.deploy.yml's production deploy
+# already has, just gated there by required review before its `push: main`
+# trigger fires, unlike `pull_request`, which fires pre-review. A full fix
+# (e.g. an `environment:` with required reviewers before the deploy step)
+# is a deliberate follow-up, not bundled here.
 #
-# No cleanup job: `holocron deploy cleanup-preview` is interactive and
-# hardcodes Cloudflare's branch-alias naming, so it isn't CI-safe or
-# Vercel-aware yet — stale previews accumulate until pruned by hand.
+# No secret reaches a fork PR: `pull_request` (never `pull_request_target`)
+# withholds repository secrets from forks, so `secrets.VERCEL_TOKEN` and
+# `secrets.GH_TOKEN` are both empty there. `secrets` isn't a valid context
+# in a step `if:` (actionlint-enforced), so "Deploy preview" checks for an
+# empty token at the shell level and exits 0 with no `url` output instead;
+# "Report preview deployment" then skips via `if: steps.deploy.outputs.url
+# != ''`. Fork PRs to this package get no preview deploy or check until a
+# maintainer's own push/branch picks up the change, not "every matching PR"
+# as originally (incorrectly) described.
+#
+# The deployment_status is posted with `secrets.GH_TOKEN` (a real PAT), NOT
+# `secrets.GITHUB_TOKEN`: GitHub does not start a new workflow run for an
+# event created using the run's own GITHUB_TOKEN (the same recursive-run
+# guard that's why every sync/auto-commit workflow elsewhere in this repo
+# uses HOLOCRON_SYNC_TOKEN/GH_TOKEN instead of GITHUB_TOKEN). Posting with
+# GITHUB_TOKEN here would make sentinel.previewCheck.yml never start at
+# all — confirmed by re-reading that guard; the "Report" step fails loudly
+# instead of silently falling back to a token that can't trigger it.
 name: Sentinel Preview Deploy
 
 on: # yamllint disable-line rule:truthy
   pull_request:
     paths:
+      # Sentinel's dist/ inlines these workspace:* dependencies (per
+      # delivery.deploy's own comment in holocron.config.ts) — a change to
+      # any of them changes what actually ships, even with
+      # packages/sentinel/** itself untouched.
       - "packages/sentinel/**"
+      - "packages/astromech/**"
+      - "packages/cli/**"
+      - "packages/datapad/**"
 
 concurrency:
   group: sentinel-preview-${{ github.event.pull_request.number }}
@@ -49,9 +80,11 @@ jobs:
   deploy:
     name: Deploy preview
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    # Setup + build + stage, plus the CLI's own waitForDeployment polling
+    # (up to 10 minutes by itself, DEFAULT_WAIT_TIMEOUT_MS in deploy.ts) —
+    # a 10-minute job timeout would kill this before the CLI's own wait
+    # loop could even finish, let alone before the status gets reported.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
@@ -62,30 +95,63 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - name: Build, stage, and deploy a preview
+      - name: Build and stage
+        # No VERCEL_TOKEN in this step's env — see the file header.
+        working-directory: packages/sentinel
+        run: pnpm run delivery.build && node scripts/stage-deploy.mjs
+
+      - name: Deploy preview
         id: deploy
         working-directory: packages/sentinel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          # `secrets` isn't available in a step `if:` (actionlint-enforced),
+          # so the fork-PR skip lives here instead: exit 0 with no `url`
+          # output, which the next step's `if:` treats the same as a skip.
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::notice::VERCEL_TOKEN is not available (fork PR) -- skipping preview deploy"
+            exit 0
+          fi
           set -o pipefail
-          pnpm run deploy:preview 2>&1 | tee /tmp/sentinel-preview-deploy.log
+          holocron deploy --files .vercel-deploy --project-id sentinel 2>&1 | tee /tmp/sentinel-preview-deploy.log
           exit_code=${PIPESTATUS[0]}
           if [ "$exit_code" -ne 0 ]; then
             exit "$exit_code"
           fi
-          url=$(grep -oE 'https://[^[:space:]]+' /tmp/sentinel-preview-deploy.log | tail -1)
+          # Only the last *.vercel.app match, anchored to a URL-safe
+          # character class so it stops at the first stray quote/space/
+          # control char rather than swallowing trailing log content —
+          # there's no --json output on this command to parse instead.
+          url=$(grep -oE 'https://[A-Za-z0-9-]+\.vercel\.app[A-Za-z0-9._~:/?#@!$&()*+,;=%-]*' /tmp/sentinel-preview-deploy.log | tail -1)
           if [ -z "$url" ]; then
-            echo "::error::deploy succeeded but no preview URL was found in its output"
+            echo "::error::deploy succeeded but no *.vercel.app preview URL was found in its output"
             exit 1
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Report preview deployment to GitHub
+        # Only after a real deploy actually produced a URL — false both
+        # when the step above failed and when it skipped cleanly (fork PR).
+        if: ${{ steps.deploy.outputs.url != '' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           SHA: ${{ github.event.pull_request.head.sha }}
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
         run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger sentinel.previewCheck.yml (GitHub suppresses new workflow runs for events created by a run's own GITHUB_TOKEN)"
+            exit 1
+          fi
           payload=$(printf '{"ref":"%s","environment":"Preview","description":"Vercel Preview (file deploy)","production_environment":false,"auto_merge":false,"required_contexts":[]}' "$SHA")
           deploy_id=$(echo "$payload" | gh api "repos/${GITHUB_REPOSITORY}/deployments" --method POST --input - | jq -r '.id')
-          gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
-            --method POST --field state=success --field environment_url="${PREVIEW_URL}"
+          for attempt in 1 2 3; do
+            if gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+              --method POST --field state=success --field environment_url="${PREVIEW_URL}"; then
+              exit 0
+            fi
+            echo "status POST failed (attempt ${attempt}/3) for deployment ${deploy_id} -- retrying..." >&2
+            sleep 5
+          done
+          echo "::error::failed to post a success status for deployment ${deploy_id} after 3 attempts -- it is left pending; re-running this job creates a new deployment rather than completing this one"
+          exit 1
