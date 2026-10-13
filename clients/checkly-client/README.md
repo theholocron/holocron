@@ -45,6 +45,22 @@ await checkly.checks.update(check.id, {
   request: check.request,
 });
 
+// A second check with a request body -- e.g. to verify the endpoint's own
+// signature checking, not just that it's reachable. request.body is sent
+// as-is; the client sets Checkly's own bodyType to "RAW" whenever a body
+// is given.
+const signatureCheck = await checkly.checks.create({
+  name: "Sentinel webhook signature verification",
+  locations: ["us-east-1"],
+  shouldFail: true,
+  request: {
+    url: "https://sentinel.theholocron.dev/api/webhook",
+    method: "POST",
+    body: "{}",
+    assertions: [{ source: "STATUS_CODE", comparison: "EQUALS", target: "401" }],
+  },
+});
+
 // Delete it
 await checkly.checks.delete(check.id);
 ```

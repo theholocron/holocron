@@ -33,6 +33,14 @@ export interface ApiCheckRequest {
 	url: string;
 	method: HttpMethod;
 	assertions?: Assertion[];
+	/**
+	 * Raw request body to send with the check — e.g. simulating a webhook
+	 * delivery to verify signature checking is wired correctly end-to-end,
+	 * as opposed to just the endpoint being reachable. Omitted entirely by
+	 * default, leaving Checkly's own `bodyType` at `"NONE"`; `create()`/
+	 * `update()` set it to `"RAW"` whenever a body is given.
+	 */
+	body?: string;
 }
 
 export interface ApiCheckInput {
@@ -78,6 +86,23 @@ export interface ListChecksParams {
 	page?: number;
 }
 
+/**
+ * `ApiCheckInput.request.body` is holocron's simplified shape (just the raw
+ * string); Checkly's wire format pairs it with a `bodyType` discriminator.
+ * `"RAW"` whenever a body is given — the only body shape this client
+ * exposes today — otherwise left unset, so Checkly's own `"NONE"` default
+ * stands.
+ */
+function toWirePayload(input: ApiCheckInput): Record<string, unknown> {
+	return {
+		...input,
+		request: {
+			...input.request,
+			...(input.request.body !== undefined ? { body: input.request.body, bodyType: "RAW" } : {}),
+		},
+	};
+}
+
 export function checks(rest: RestClient) {
 	return {
 		/** List checks, optionally filtered by a case-insensitive partial name match. */
@@ -95,11 +120,17 @@ export function checks(rest: RestClient) {
 
 		/** Create a new API check. */
 		create: (input: ApiCheckInput): Promise<ApiCheck> =>
-			rest.request<ApiCheck>("/checks/api", { method: "POST", body: input }),
+			rest.request<ApiCheck>("/checks/api", {
+				method: "POST",
+				body: toWirePayload(input),
+			}),
 
 		/** Update an existing API check. */
 		update: (id: string, input: ApiCheckInput): Promise<ApiCheck> =>
-			rest.request<ApiCheck>(`/checks/api/${id}`, { method: "PUT", body: input }),
+			rest.request<ApiCheck>(`/checks/api/${id}`, {
+				method: "PUT",
+				body: toWirePayload(input),
+			}),
 
 		/** Delete a check (any type) by id. */
 		delete: (id: string): Promise<void> => rest.request<void>(`/checks/${id}`, { method: "DELETE" }),
