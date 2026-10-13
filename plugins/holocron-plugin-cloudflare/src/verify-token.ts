@@ -24,9 +24,12 @@ export async function verifyToken(token: string, opts: VerifyTokenOptions = {}):
 	}
 
 	try {
-		const zoneList = await client.zones.list({ per_page: 1 });
-		const label = zoneList[0]?.name ?? "unknown";
-		return { ok: true, subject: `zone: ${label}` };
+		const zoneList = await client.zones.list();
+		const names = zoneList.map((z) => z.name);
+		if (names.length === 0) return { ok: true, subject: "no zones visible" };
+		const label =
+			names.length <= 5 ? names.join(", ") : `${names.slice(0, 5).join(", ")} (+${names.length - 5} more)`;
+		return { ok: true, subject: `zones: ${label}` };
 	} catch (err) {
 		const message = errorMessage(err);
 		return { ok: false, message };
