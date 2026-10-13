@@ -180,9 +180,16 @@ providers: {
 3. ~~Fill in the real `accountId` above.~~ Done.
 4. ~~Set the key locally via `holocron auth set checkly <KEY>` (OS
    keyring).~~ Done — `holocron auth check checkly` verifies against
-   `GET /accounts`. Still open: add the key to Doppler (`sentinel`/`prd`)
-   as `CHECKLY_API_KEY`, then `holocron secrets sync`, for parity with
-   the other 5 Sentinel secrets.
+   `GET /accounts`. **Not a Doppler candidate**: unlike the 5 genuine
+   runtime secrets in `sentinel`/`prd` (`GITHUB_APP_ID`,
+   `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`,
+   `SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET` — read by the
+   deployed Vercel function itself and fanned out by `holocron
+secrets sync`), the Checkly key is a provisioning-time credential
+   used only by the `holocron` CLI (`repo setup`/`doctor`), never by
+   the deployed function. OS keychain is the right (and final) home
+   for it — same pattern as the Vercel and Cloudflare tokens, neither
+   of which live in Doppler either.
 5. ~~`holocron repo setup --cwd packages/sentinel` to provision the
    check.~~ Done, after two real-world fixes (see ADR-0013):
    - First attempt failed — `POST /checks/api → 400` (missing
