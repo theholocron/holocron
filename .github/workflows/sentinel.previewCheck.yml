@@ -1,0 +1,50 @@
+# Sentinel's own preview-deployment check (holocron#1010). NOT
+# astromech-templated, same reason as sentinel.deploy.yml/
+# sentinel.secretsSync.yml — this repo owns Sentinel directly, and
+# astromech's generic per-repo thin-caller sync writes relative to
+# --cwd, not this repo's actual root .github/workflows/ — useless for
+# a monorepo sub-package (confirmed live: a real `holocron repo sync
+# --cwd packages/sentinel` wrote a whole parallel, GitHub-invisible
+# .github/ tree inside packages/sentinel/ instead).
+#
+# Calls the same reusable delivery.previewCheck.yml astromech's
+# generic task pushes to theholocron/.github for every other,
+# non-monorepo consuming repo — nothing Sentinel-specific lives in
+# that reusable workflow itself, only the cwd input it was built with
+# from the start.
+#
+# Triggered by deployment_status on a successful Preview deploy — runs
+# the same monitoring checks already configured for production
+# (packages/sentinel/holocron.config.ts's monitoring provider) against
+# that PR's own preview URL instead, catching a breaking change before
+# merge rather than after.
+name: Sentinel Preview Check
+
+on: # yamllint disable-line rule:truthy
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-check:
+    name: Preview Check
+    # environment_url is the only field documented to point at the live
+    # app — target_url can point at a deployment-details page instead,
+    # so there's no safe fallback to it. No environment_url means
+    # nothing to check; skip the job entirely rather than hit the wrong
+    # page.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Preview' &&
+      github.event.deployment_status.environment_url != ''
+    uses: theholocron/.github/.github/workflows/delivery.previewCheck.yml@main
+    with:
+      preview-url: ${{ github.event.deployment_status.environment_url }}
+      # deployment_status always resolves the workflow against the
+      # default branch — without this, the reusable workflow's checkout
+      # would validate the wrong commit's config against the PR's
+      # actual deployment.
+      sha: ${{ github.event.deployment.sha }}
+      cwd: packages/sentinel
+    secrets: inherit

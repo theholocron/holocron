@@ -107,6 +107,25 @@ all (that's a `packages/cli`-only concept) — a package only adds
 a `monitoring` provider with checks, same as how a package only opts
 into `delivery.deploy`'s release-deploy behavior today.
 
+**Correction, found while wiring up Sentinel itself (the first real
+consumer)**: that convention only works for a repo whose own root
+`holocron.config.ts` carries the task — `holocron repo sync`'s
+thin-caller write is relative to `--cwd`, not the actual git repo
+root, so it's useless for a _monorepo sub-package_ (confirmed live: a
+real `repo sync --cwd packages/sentinel` wrote a whole parallel,
+GitHub-invisible `.github/` tree inside `packages/sentinel/` instead
+of this repo's real root `.github/workflows/` — tracked as its own
+tool bug, #1014). Sentinel's `holocron.config.ts` does **not** carry a
+`delivery.previewCheck` entry as a result; instead
+`.github/workflows/sentinel.previewCheck.yml` is hand-maintained, same
+pattern as the two Sentinel-specific workflows that already existed
+before this feature (`sentinel.deploy.yml`, `sentinel.secretsSync.yml`)
+for the identical reason. It calls the exact same reusable
+`delivery.previewCheck.yml` a normal (non-monorepo) repo's generated
+thin caller would — the task/thin-caller/reusable-workflow
+registration below is still correct and still the right path for any
+other repo; Sentinel can't reach it through the automatic one, though.
+
 ### Trigger: `deployment_status`
 
 The thin-caller template (`packages/astromech/src/templates/
