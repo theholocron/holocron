@@ -896,6 +896,16 @@ export interface MonitoringCheckInput {
 	 * that omits this entirely.
 	 */
 	locations?: string[];
+	/**
+	 * Inverts pass/fail: set this when the check's expected-healthy
+	 * response is itself an HTTP error status (e.g. asserting a 404/405
+	 * on an endpoint that should reject certain requests). Without it,
+	 * most providers classify any 4xx/5xx response as a failure at the
+	 * platform level *before* evaluating `assertions` at all — a custom
+	 * assertion that matches the "expected" error status does not
+	 * override that baseline classification on its own.
+	 */
+	shouldFail?: boolean;
 }
 
 export interface MonitoringCheck {

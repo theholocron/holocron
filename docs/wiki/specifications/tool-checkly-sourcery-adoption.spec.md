@@ -159,6 +159,11 @@ providers: {
 					// privateLocation" on this trial account's first real
 					// holocron repo setup run).
 					locations: ["us-east-1"],
+					// 405 is the EXPECTED healthy response — without shouldFail,
+					// Checkly classifies any >=400 response as a platform-level
+					// failure before assertions are evaluated (confirmed live:
+					// hasFailures: true with the assertion matching exactly).
+					shouldFail: true,
 					assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
 				},
 			],
@@ -178,11 +183,21 @@ providers: {
    `GET /accounts`. Still open: add the key to Doppler (`sentinel`/`prd`)
    as `CHECKLY_API_KEY`, then `holocron secrets sync`, for parity with
    the other 5 Sentinel secrets.
-5. `holocron repo setup --cwd packages/sentinel` to provision the
-   check. First real attempt failed — `POST /checks/api → 400` (missing
-   `locations`, see ADR-0013) — fixed by adding `locations: ["us-east-1"]`
-   to the check config above. Re-run and confirm it's live in the
-   Checkly dashboard.
+5. ~~`holocron repo setup --cwd packages/sentinel` to provision the
+   check.~~ Done, after two real-world fixes (see ADR-0013):
+   - First attempt failed — `POST /checks/api → 400` (missing
+     `locations`) — fixed by adding `locations: ["us-east-1"]`.
+   - Check created, but every run reported `hasFailures: true` despite
+     the status-code assertion matching exactly (`actual: 405` ===
+     `target: "405"`) — Checkly classifies any >=400 response as a
+     platform-level failure before assertions are evaluated at all.
+     Fixed by adding `shouldFail: true` (`theholocron/clients#395`,
+     published as `@theholocron/checkly-client@1.41.0`) — immediately
+     unblocked live via a direct `PUT` on the existing check, then
+     fixed properly in the plugin for future `holocron repo setup`
+     runs.
+   - Confirm the check now passes in the Checkly dashboard after the
+     next scheduled (or manually triggered) run.
 
 ### Scaffold-template fix (side effect)
 

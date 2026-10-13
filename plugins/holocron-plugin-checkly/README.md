@@ -44,7 +44,11 @@ each matched and upserted by exact `name`. **`locations` is required** —
 Checkly rejects a check with neither `locations` nor `privateLocations`
 set (`400 "You have to set at least one location or privateLocation"`)
 on any account with no account-level default configured, which includes
-every free Hobby/trial account:
+every free Hobby/trial account. **`shouldFail` is required whenever the
+check's healthy response is itself an HTTP error status** — Checkly
+classifies any response >= 400 as a platform-level failure before
+assertions are evaluated at all; a custom assertion that matches the
+"expected" error status does not override that on its own:
 
 ```ts
 monitoring: [
@@ -57,6 +61,7 @@ monitoring: [
         url: "https://sentinel.theholocron.dev/api/webhook",
         method: "GET",
         locations: ["us-east-1"],
+        shouldFail: true, // 405 is the EXPECTED healthy response here
         assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
       },
     ],
