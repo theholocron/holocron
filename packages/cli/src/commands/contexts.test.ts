@@ -34,6 +34,7 @@ const EVERY_COMMAND = [
 	"secrets sync",
 	"deploy",
 	"deploy cleanup-preview",
+	"monitoring check",
 	"repo sync",
 	"sync github",
 ];
@@ -68,6 +69,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"deploy",
 			"deploy cleanup-preview",
 			"secrets set",
+			"monitoring check",
 		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");
 		}

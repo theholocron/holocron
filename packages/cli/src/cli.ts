@@ -17,6 +17,7 @@ import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone
 import { commandsInContext } from "./commands/contexts.js";
 import { runDeploy, runDeployFromFiles } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runMonitoringCheck } from "./commands/monitoring-check.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
@@ -1655,6 +1656,53 @@ try {
 					process.exitCode = 1;
 				}
 			}
+		)
+		.command(
+			"monitoring",
+			"Run monitoring checks ad hoc, outside the configured provider",
+			(g) =>
+				g
+					.command(
+						"check <url>",
+						"Run every configured `monitoring` check against a given URL instead of its own configured url",
+						(y) =>
+							y.positional("url", {
+								type: "string",
+								describe: "URL to test every configured check against (e.g. a PR's preview deployment)",
+							}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const [url] = await promptForPositionals(
+								getEntry("monitoring check"),
+								argv as Record<string, unknown>
+							);
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runMonitoringCheck({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								url: url!,
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("monitoring", argv);
+						}
+					),
+			() => {}
 		)
 		.strict()
 		.help()

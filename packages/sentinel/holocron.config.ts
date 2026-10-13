@@ -6,7 +6,7 @@
  * gate (no `source` provider — Sentinel has no repo-settings surface
  * of its own to check).
  *
- * Two separate invocations, different frequency:
+ * Three separate invocations, different frequency:
  *   - `pnpm run delivery.deploy` (recurring, every real deploy):
  *     build → stage → `holocron deploy --target production`.
  *   - `holocron repo setup --cwd packages/sentinel` (one-time, manual):
@@ -14,6 +14,11 @@
  *     verification CNAME to the `dns` provider — `source` being
  *     unconfigured just means every repo-settings step is skipped
  *     (each gated on `loader.has("source")`), not that setup fails.
+ *   - `delivery.previewCheck` (holocron#1010, per PR): triggered by
+ *     Vercel's own `deployment_status` event on a successful Preview
+ *     deploy, runs `holocron monitoring check` against that PR's own
+ *     preview URL instead of production — see the `monitoring` provider
+ *     comment below for why this exists.
  *
  * `deployment`: Vercel, a Team separate from any other Vercel project
  * in this org (ADR-0011's deploy-target decision). `teamId` is not a
@@ -89,7 +94,13 @@ export default defineConfig({
 	// which reads this task from every workspace package. `paths` default to this
 	// package plus its `workspace:*` dependencies (the packages inlined into
 	// `dist/`).
-	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
+	// delivery.previewCheck (holocron#1010): runs the two monitoring checks
+	// below against each PR's own Vercel preview deployment, not just
+	// production — catching a breaking change before merge. Opted in here
+	// (not every repo with a monitoring provider wants this) since it only
+	// makes sense for a package with both monitoring checks AND a Vercel
+	// preview deployment per PR, both true for Sentinel.
+	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }, "delivery.previewCheck"],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",

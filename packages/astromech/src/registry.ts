@@ -184,6 +184,11 @@ export const TASKS: Record<string, TaskDef> = {
 	"delivery.publish": { local: null, preview: true },
 	"delivery.deploy": { local: null, preview: true },
 	"delivery.bundleSize": { local: null },
+	// No local runner — needs a live preview deployment URL that only
+	// exists once Vercel has actually deployed it (holocron#1010). Never
+	// part of `holocron run ci`'s push/PR gate; runs only from its own
+	// `deployment_status`-triggered workflow.
+	"delivery.previewCheck": { local: null },
 
 	// ── platform.* — operating the repo itself ────────────────────────────
 	"platform.repoSync": { local: { command: "sync" } },

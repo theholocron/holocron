@@ -1,0 +1,29 @@
+name: Preview Check
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      preview-url:
+        description: The PR's Vercel preview deployment URL, extracted from the triggering `deployment_status` event.
+        required: true
+        type: string
+
+jobs:
+  preview-check:
+    name: Run monitoring checks against the preview deployment
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run monitoring checks against the preview deployment
+        with:
+          command: monitoring check
+          args: ${{ inputs.preview-url }}

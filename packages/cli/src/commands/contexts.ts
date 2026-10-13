@@ -67,6 +67,7 @@ export const COMMAND_CONTEXTS = {
 	"secrets sync": "workspace",
 	deploy: "workspace",
 	"deploy cleanup-preview": "workspace",
+	"monitoring check": "workspace",
 	"repo sync": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron
 	// monorepo checkout (not plugins), so only ever run with `pnpm exec`.

@@ -285,6 +285,17 @@ describe("createAstromech().thinCallers", () => {
 		expect(deploy).toContain("- docs/**");
 	});
 
+	it("emits the delivery.previewCheck caller, triggered by deployment_status (not push/pull_request)", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["delivery.previewCheck"] },
+		});
+		const previewCheck = astromech.thinCallers().get("delivery.previewCheck.yml")!;
+		expect(previewCheck).toContain("deployment_status:");
+		expect(previewCheck).not.toContain("pull_request:");
+		expect(previewCheck).toContain("environment_url");
+	});
+
 	it("knowledge.docs implies the docs: true shorthand — a repo never has to spell it out", () => {
 		const astromech = createAstromech({
 			cwd: "/repo",

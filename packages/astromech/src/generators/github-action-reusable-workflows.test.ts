@@ -169,6 +169,14 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("secrets.VERCEL_TOKEN");
 	});
 
+	it("delivery.previewCheck runs `holocron monitoring check` with the preview URL input", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toContain("workflow_call:");
+		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
+		expect(previewCheck).toContain("command: monitoring check");
+		expect(previewCheck).toContain("args: ${{ inputs.preview-url }}");
+	});
+
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
 		expect(build).toMatch(/task: delivery\.build/);
