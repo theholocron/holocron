@@ -21,11 +21,16 @@ const checkly = createChecklyClient({
 // Find an existing check by name (case-insensitive partial match)
 const existing = await checkly.checks.list({ search: "sentinel webhook" });
 
-// Create an API check
+// Create an API check. shouldFail: true is required whenever the
+// "healthy" response is itself an HTTP error status (here, a 405) --
+// without it, Checkly's platform-level retry/failure classification
+// treats any 4xx/5xx as a failure before your assertions are even
+// evaluated, regardless of whether they match.
 const check = await checkly.checks.create({
   name: "Sentinel webhook uptime",
   frequency: 5,
   locations: ["us-east-1"],
+  shouldFail: true,
   request: {
     url: "https://sentinel.theholocron.dev/api/webhook",
     method: "GET",

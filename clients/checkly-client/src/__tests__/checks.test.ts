@@ -18,6 +18,7 @@ const check = {
 	frequency: 5,
 	locations: ["us-east-1"],
 	tags: ["sentinel"],
+	shouldFail: false,
 	request: { url: "https://sentinel.theholocron.dev/api/webhook", method: "GET" as const },
 	created_at: "2026-01-01T00:00:00.000Z",
 	updated_at: null,
@@ -71,6 +72,20 @@ describe("checks.create", () => {
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain(`${BASE}/checks/api`);
 		expect(calls[0]?.body).toMatchObject({ name: "Sentinel webhook uptime", frequency: 5 });
+	});
+
+	it("passes shouldFail through for a check whose healthy response is an HTTP error status", async () => {
+		const { checks, calls } = client([{ body: { ...check, shouldFail: true } }]);
+		await checks.create({
+			name: "Sentinel webhook uptime",
+			shouldFail: true,
+			request: {
+				url: "https://sentinel.theholocron.dev/api/webhook",
+				method: "GET",
+				assertions: [{ source: "STATUS_CODE", comparison: "EQUALS", target: "405" }],
+			},
+		});
+		expect(calls[0]?.body).toMatchObject({ shouldFail: true });
 	});
 });
 

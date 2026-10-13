@@ -43,6 +43,17 @@ export interface ApiCheckInput {
 	locations?: string[];
 	activated?: boolean;
 	tags?: string[];
+	/**
+	 * Inverts pass/fail: when `true`, a response status >= 400 counts as
+	 * passing (and a < 400 status fails) *before* assertions are even
+	 * evaluated. Required for any check whose "healthy" response is
+	 * itself an HTTP error status (e.g. asserting a 404/405 on an
+	 * endpoint that should reject certain requests) — without it,
+	 * Checkly's platform-level retry/failure classification treats any
+	 * 4xx/5xx as a failure regardless of matching assertions. Defaults
+	 * to `false`.
+	 */
+	shouldFail?: boolean;
 	request: ApiCheckRequest;
 }
 
@@ -54,6 +65,7 @@ export interface ApiCheck {
 	frequency: number;
 	locations: string[] | null;
 	tags: string[];
+	shouldFail: boolean;
 	request: ApiCheckRequest;
 	created_at: string;
 	updated_at: string | null;

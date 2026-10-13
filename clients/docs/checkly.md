@@ -22,10 +22,14 @@ const client = createChecklyClient({
 });
 
 const existing = await client.checks.list({ search: "sentinel webhook" });
+// shouldFail: true is required whenever the "healthy" response is
+// itself an HTTP error status -- without it, Checkly treats any
+// 4xx/5xx as a failure before your assertions are evaluated.
 const check = await client.checks.create({
   name: "Sentinel webhook uptime",
   frequency: 5,
   locations: ["us-east-1"],
+  shouldFail: true,
   request: {
     url: "https://sentinel.theholocron.dev/api/webhook",
     method: "GET",
