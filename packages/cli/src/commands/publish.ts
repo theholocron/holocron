@@ -83,8 +83,9 @@ export interface RunPublishInput {
 	env?: NodeJS.ProcessEnv;
 	/**
 	 * Override the list of package names shown in the Trusted Publisher
-	 * next-steps output. Auto-discovered from packages/*\/package.json
-	 * (or the root package.json for a single-package repo) when omitted.
+	 * next-steps output. Auto-discovered from packages/*\/package.json and
+	 * plugins/*\/package.json (or the root package.json for a
+	 * single-package repo) when omitted.
 	 */
 	packages?: readonly string[];
 	/**
@@ -181,7 +182,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 	logger.info({ oldFile: input.oldFile, newFile: input.newFile, packages: packageNames.length }, "sync-trust: start");
 
 	if (packageNames.length === 0) {
-		const message = "nothing to sync (no packages/* and root package.json is private or unnamed)";
+		const message = "nothing to sync (no packages/*, plugins/*, or root package.json is private or unnamed)";
 		print(`  ✗ ${message}`);
 		return { status: "fail", message, packages: [] };
 	}
@@ -299,15 +300,15 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	const exec = input.exec ?? defaultExec;
 	const login = input.login ?? defaultLogin;
 
-	// Two repo layouts: a monorepo (`packages/*`, this repo's own shape) and a
-	// single package at the root (most `node-template` scaffolds — no
-	// `packages/` dir). `pnpm -r --filter=./packages/*` silently matches zero
-	// workspaces in the latter and exits 0 — build the right invocation for
-	// whichever layout is on disk. Shared between dry-run preview and the
-	// real call so what we print is exactly what we'd run.
-	const isMonorepo = hasPackagesDir(cwd);
+	// Two repo layouts: a monorepo (`packages/*` and/or `plugins/*`, this
+	// repo's own shape) and a single package at the root (most
+	// `node-template` scaffolds — neither dir). `pnpm -r --filter=./packages/*`
+	// silently matches zero workspaces in the latter and exits 0 — build the
+	// right invocation for whichever layout is on disk. Shared between
+	// dry-run preview and the real call so what we print is exactly what
+	// we'd run.
 	const publishArgs = [
-		...(isMonorepo ? ["-r", "--filter=./packages/*"] : []),
+		...workspaceFilterArgs(cwd),
 		"publish",
 		"--access",
 		"public",
@@ -359,7 +360,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// success. Applies to dry-run too: the point is to diagnose the
 	// misconfiguration, not just the real publish.
 	if (packageNames.length === 0) {
-		const message = "nothing to publish (no packages/* and root package.json is private or unnamed)";
+		const message = "nothing to publish (no packages/*, plugins/*, or root package.json is private or unnamed)";
 		print(`  ✗ ${message}`);
 		logger.warn({ reason: message }, "publish --initial: done");
 		return { status: "fail", message, packageNames };
@@ -437,7 +438,7 @@ export interface RunSteadyPublishInput {
  * Deliberately does not do the `--initial` bootstrap dance (npm
  * login-if-needed, Trusted Publisher next-steps printout) — a steady-state
  * publish runs in CI, authenticated via OIDC automatically, no interactive
- * step involved. Reuses `hasPackagesDir()`'s monorepo-vs-single-package
+ * step involved. Reuses `workspaceFilterArgs()`'s monorepo-vs-single-package
  * detection rather than duplicating it.
  */
 export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promise<PublishReport> {
@@ -463,7 +464,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 	print("");
 
 	if (entries.length === 0) {
-		const message = "nothing to publish (no packages/* and root package.json is private or unnamed)";
+		const message = "nothing to publish (no packages/*, plugins/*, or root package.json is private or unnamed)";
 		print(`  ✗ ${message}`);
 		logger.warn({ reason: message }, "publish: done");
 		return { status: "fail", message, packageNames };
@@ -479,8 +480,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 				print(`  … would check ${entry.name}@${entry.version}, publish if not already on npm`);
 			}
 		} else {
-			const isMonorepo = hasPackagesDir(cwd);
-			const args = [...(isMonorepo ? ["-r", "--filter=./packages/*"] : []), "publish", ...baseFlags, ...otpFlags];
+			const args = [...workspaceFilterArgs(cwd), "publish", ...baseFlags, ...otpFlags];
 			print(`  … (dry-run) skipping actual publish`);
 			print(`    would run: pnpm ${args.join(" ")}`);
 		}
@@ -510,8 +510,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 	}
 
 	print("  → publishing all public @theholocron/* packages…");
-	const isMonorepo = hasPackagesDir(cwd);
-	const args = [...(isMonorepo ? ["-r", "--filter=./packages/*"] : []), "publish", ...baseFlags, ...otpFlags];
+	const args = [...workspaceFilterArgs(cwd), "publish", ...baseFlags, ...otpFlags];
 	const publish = await exec("pnpm", args, { cwd });
 	if (publish.exitCode !== 0) {
 		const message = `publish failed (exit ${publish.exitCode}): ${publish.stderr.trim() || publish.stdout.trim() || "no output"}`;
@@ -533,6 +532,24 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 
 function hasPackagesDir(cwd: string): boolean {
 	return existsSync(join(cwd, "packages"));
+}
+
+/** `plugins/` — vendor capability providers, split from `packages/` as a sibling workspace root (#993). */
+function hasPluginsDir(cwd: string): boolean {
+	return existsSync(join(cwd, "plugins"));
+}
+
+/**
+ * `-r --filter=./packages/* --filter=./plugins/*` — whichever workspace
+ * roots exist. Empty (single-package repo, no `-r`) when neither does.
+ * Shared by every `pnpm publish` invocation below so a repo with only
+ * `plugins/*` (or both) is covered the same as `packages/*`-only.
+ */
+function workspaceFilterArgs(cwd: string): string[] {
+	const filters: string[] = [];
+	if (hasPackagesDir(cwd)) filters.push("--filter=./packages/*");
+	if (hasPluginsDir(cwd)) filters.push("--filter=./plugins/*");
+	return filters.length > 0 ? ["-r", ...filters] : [];
 }
 
 /** Read a `package.json`'s `name`, when it's public (`!private && name`). */
@@ -575,34 +592,45 @@ function publicPackageEntry(pkgPath: string, dir: string): PublicPackageEntry | 
  * and publish one workspace at a time.
  */
 function discoverPublicPackageEntries(cwd: string): readonly PublicPackageEntry[] {
-	if (!hasPackagesDir(cwd)) {
+	if (!hasPackagesDir(cwd) && !hasPluginsDir(cwd)) {
 		const entry = publicPackageEntry(join(cwd, "package.json"), ".");
 		return entry ? [entry] : [];
 	}
-	const packagesDir = join(cwd, "packages");
-	return readdirSync(packagesDir, { withFileTypes: true })
+	return [...entriesInWorkspaceDir(cwd, "packages"), ...entriesInWorkspaceDir(cwd, "plugins")];
+}
+
+function entriesInWorkspaceDir(cwd: string, dirName: "packages" | "plugins"): PublicPackageEntry[] {
+	const dirPath = join(cwd, dirName);
+	if (!existsSync(dirPath)) return [];
+	return readdirSync(dirPath, { withFileTypes: true })
 		.filter((e) => e.isDirectory())
 		.flatMap((e) => {
-			const entry = publicPackageEntry(join(packagesDir, e.name, "package.json"), `./packages/${e.name}`);
+			const entry = publicPackageEntry(join(dirPath, e.name, "package.json"), `./${dirName}/${e.name}`);
 			return entry ? [entry] : [];
 		});
 }
 
 /**
- * Monorepo (`packages/` present): every public `packages/*` workspace.
- * Single package (no `packages/`): the root `package.json`, if it's public —
- * most `node-template` scaffolds are one package at the repo root.
+ * Monorepo (`packages/` and/or `plugins/` present): every public workspace
+ * under either. Single package (neither dir present): the root
+ * `package.json`, if it's public — most `node-template` scaffolds are one
+ * package at the repo root.
  */
 function discoverPublicPackages(cwd: string): readonly string[] {
-	if (!hasPackagesDir(cwd)) {
+	if (!hasPackagesDir(cwd) && !hasPluginsDir(cwd)) {
 		const name = publicPackageName(join(cwd, "package.json"));
 		return name ? [name] : [];
 	}
-	const packagesDir = join(cwd, "packages");
-	return readdirSync(packagesDir, { withFileTypes: true })
+	return [...namesInWorkspaceDir(cwd, "packages"), ...namesInWorkspaceDir(cwd, "plugins")];
+}
+
+function namesInWorkspaceDir(cwd: string, dirName: "packages" | "plugins"): string[] {
+	const dirPath = join(cwd, dirName);
+	if (!existsSync(dirPath)) return [];
+	return readdirSync(dirPath, { withFileTypes: true })
 		.filter((e) => e.isDirectory())
 		.flatMap((e) => {
-			const name = publicPackageName(join(packagesDir, e.name, "package.json"));
+			const name = publicPackageName(join(dirPath, e.name, "package.json"));
 			return name ? [name] : [];
 		});
 }
