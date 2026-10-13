@@ -39,30 +39,46 @@
  * `sentinel.theholocron.dev` to the Vercel project, via
  * `Dns.upsertRecord()`.
  *
- * `monitoring`: Checkly (holocron#996) — one API check watching
+ * `monitoring`: Checkly (holocron#996) — two API checks watching
  * `sentinel.theholocron.dev/api/webhook` from outside Vercel's own
  * infra, since Sentry/Axiom are both reactive (they only see traffic
  * that reaches the function) and wouldn't notice if the deployment
- * stopped receiving traffic at all. Asserts a 405 on a plain GET:
- * confirmed live that `handleWebhookRequest` rejects non-POST before
- * touching any webhook-specific logic, so a clean 405 proves the
- * function is deployed and routing correctly, not crashed/cold/timed
- * out — full business-logic correctness stays with the existing test
- * suite. `accountId` is not a secret (same status as Vercel's
- * `teamId`); the API token is Doppler-sourced like every other secret
- * here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by `holocron secrets
- * sync` the same way `vault` already handles the other 5 keys.
- * `locations: ["us-east-1"]` is required — confirmed live via
- * `POST /checks/api` returning 400 "You have to set at least one
- * `location` or `privateLocation`" on this (trial) account, which has
- * no account-level default configured. `shouldFail: true` is also
- * required — confirmed live that the check still reported
+ * stopped receiving traffic at all. `accountId` is not a secret (same
+ * status as Vercel's `teamId`); the API token is Doppler-sourced like
+ * every other secret here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by
+ * `holocron secrets sync` the same way `vault` already handles the
+ * other 5 keys. `locations: ["us-east-1"]` is required on both —
+ * confirmed live via `POST /checks/api` returning 400 "You have to
+ * set at least one `location` or `privateLocation`" on this (trial)
+ * account, which has no account-level default configured.
+ *
+ * The uptime check asserts a 405 on a plain GET: confirmed live that
+ * `handleWebhookRequest` rejects non-POST before touching any
+ * webhook-specific logic, so a clean 405 with the exact expected body
+ * proves the function is deployed and routing correctly, not
+ * crashed/cold/timed out — full business-logic correctness stays
+ * with the existing test suite. `shouldFail: true` is required on
+ * both checks below — confirmed live that a check still reports
  * `hasFailures: true` with the assertion matching exactly (`actual:
  * 405` === `target: "405"`, no assertion-level error): Checkly
  * classifies any response >= 400 as a platform-level failure before
  * assertions are evaluated at all, and `shouldFail` is the documented
  * flag to invert that for a check whose healthy response is itself an
  * error status.
+ *
+ * The second check POSTs an empty body with no signature header at
+ * all and asserts a 401 — `handler.ts`'s `parseWebhookEvent()` throws
+ * `WebhookVerificationError` (mapped to 401) the moment
+ * `verifyGitHubWebhookSignature()` fails, which it always does given
+ * no `X-Hub-Signature-256` header. Unlike the uptime check, this one
+ * actually proves `SENTINEL_WEBHOOK_SECRET` made it into the deployed
+ * environment correctly: the uptime check's 405 fires before signature
+ * verification ever runs, so it can't catch a secret drifting out of
+ * sync between Doppler and Vercel — this one can. `body: "{}"`
+ * (holocron#996, via `@theholocron/checkly-client`'s request-body
+ * support, clients#396) is sent as Checkly's `bodyType: "RAW"`; its
+ * exact content doesn't matter — the handler checks the signature
+ * before ever parsing the body as JSON.
  */
 
 import { defineConfig } from "@theholocron/cli";
@@ -94,7 +110,27 @@ export default defineConfig({
 						// classifies any 4xx as a platform-level failure before
 						// assertions are even evaluated, regardless of a match.
 						shouldFail: true,
-						assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
+						assertions: [
+							{ source: "status_code", comparison: "equals", target: "405" },
+							// Catches a regression where the status stays 405 but the
+							// response body itself changes (e.g. a framework swap
+							// changing the error page).
+							{ source: "body", comparison: "equals", target: "Method Not Allowed" },
+						],
+					},
+					{
+						name: "Sentinel webhook signature verification",
+						url: "https://sentinel.theholocron.dev/api/webhook",
+						method: "POST",
+						locations: ["us-east-1"],
+						// A POST with no signature header always fails verification —
+						// 401 is the expected response, same shouldFail reasoning as
+						// the uptime check above.
+						shouldFail: true,
+						// Content is irrelevant — handler.ts checks the signature
+						// before ever parsing this as JSON.
+						body: "{}",
+						assertions: [{ source: "status_code", comparison: "equals", target: "401" }],
 					},
 				],
 			},
