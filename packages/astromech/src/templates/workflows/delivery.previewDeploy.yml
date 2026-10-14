@@ -5,7 +5,11 @@ on: # yamllint disable-line rule:truthy
 
 concurrency:
   group: preview-deploy-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  # Not true: a cancelled run could land between Vercel accepting the
+  # upload and the report job posting a status, leaving a real preview
+  # deployment with no corresponding GitHub check — worse than letting an
+  # overlapping run for the same PR simply queue.
+  cancel-in-progress: false
 
 permissions:
   contents: read

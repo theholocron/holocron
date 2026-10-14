@@ -225,27 +225,68 @@ Checks out the PR's exact head SHA (same checkout-ref reasoning as
 `delivery.previewCheck`'s `sha` input), and skips the deploy step
 cleanly on an empty `VERCEL_TOKEN` (a fork PR never receives it) via a
 plain shell check rather than a step `if:` — `secrets` isn't a valid
-context there (actionlint-enforced). Reports the deployment status
-using `secrets.GH_TOKEN`, a real PAT, **not** `secrets.GITHUB_TOKEN`:
-GitHub does not start a new workflow run for an event created using a
-run's own `GITHUB_TOKEN` — the same recursive-run guard this repo's
-own sync workflows (`platform.repoSync.yml`, `sync-github.yml`)
-already route around with `HOLOCRON_SYNC_TOKEN`/`GH_TOKEN`. Missed on
-a first pass at this exact feature — with `GITHUB_TOKEN`, the
-deployment and status both post successfully, look entirely correct
-on the PR, and `delivery.previewCheck`'s workflow would never
-start. The status POST retries up to 3 times before giving up, so a
-transient failure there doesn't leave the deployment permanently
-pending while a re-run creates a second one instead of completing the
-first.
+context there (actionlint-enforced).
+
+**Two jobs, not one** (review on #1022): `deploy` checks out and builds
+the PR's own code with `VERCEL_TOKEN` present, and `report` — on a
+separate, fresh runner, with `deployments: write` and `GH_TOKEN`, and
+**no checkout at all** — creates the GitHub Deployment and posts its
+status. Splitting them closes a real escalation the single-job version
+had: a malicious build/stage script in `deploy` could persist a `gh`
+shim onto `$GITHUB_PATH` (or similar runner-state tampering) that a
+later step in the _same_ job — the one holding `GH_TOKEN` — would
+then execute instead of the real `gh` CLI, stealing that token too.
+Two jobs on two runners share no state, closing that path entirely.
+`VERCEL_TOKEN` exposure to `deploy`'s own build step is unrelated and
+still open (#1020 below) — splitting the jobs narrows the blast radius
+to that one token, not both.
+
+The preview URL is extracted from the deploy step's log and
+**validated by parsing it as a URL**, not just regex-matched: the
+first pass anchored a hand-written character class after `.vercel.app`
+that happened to include `@`, so a crafted log line like
+`https://x.vercel.app@127.0.0.1/` would satisfy the regex while
+actually parsing to host `127.0.0.1` — a classic userinfo-redirect
+trick. Fixed by grabbing any `https://` candidate text and separately
+requiring `new URL(candidate).hostname` end in `.vercel.app`, which
+can't be fooled by any text-shape trick regex-tuning alone keeps
+missing.
+
+`report` posts using `secrets.GH_TOKEN`, a real PAT, **not**
+`secrets.GITHUB_TOKEN`: GitHub does not start a new workflow run for
+an event created using a run's own `GITHUB_TOKEN` — the same
+recursive-run guard this repo's own sync workflows
+(`platform.repoSync.yml`, `sync-github.yml`) already route around with
+`HOLOCRON_SYNC_TOKEN`/`GH_TOKEN`. Missed on a first pass at this exact
+feature — with `GITHUB_TOKEN`, the deployment and status both post
+successfully, look entirely correct on the PR, and
+`delivery.previewCheck`'s workflow would simply never start. The
+deployment's `ref` is the PR's head **branch**, not its SHA — GitHub's
+PR "Environments" widget associates a Deployment by matching `ref` to
+the PR's own branch, not by SHA; GitHub still resolves and records the
+exact commit as the deployment's own `.sha` field from that ref, so
+`delivery.previewCheck`'s `sha` input stays accurate either way.
+
+Both `gh api` calls retry up to 3 times: deployment **creation** too,
+not just the status POST — a transient failure creating the
+(cheap) GitHub Deployment object used to fail the whole step outright,
+forcing a full re-deploy (re-uploading to Vercel) on retry instead of
+just retrying the one API call. Before retrying a status POST, it
+checks whether GitHub already recorded success from a prior attempt
+whose _response_ got lost client-side (a dropped connection after
+GitHub processed the request) — without that check, retrying blindly
+risks posting success twice, firing `delivery.previewCheck` twice for
+the same preview. If every status-POST retry is exhausted, one last
+attempt posts `state: error` rather than leaving the Deployment
+permanently `pending` in GitHub's UI.
 
 Two known gaps, tracked rather than fixed here:
 
-- **#1020** — the deploy step still runs this monorepo's own,
-  PR-affectable CLI build, pre-review (`pull_request` has no review
-  gate the way `sentinel.deploy.yml`'s `push: main` does). A GitHub
-  `environment:` with required reviewers in front of the step is the
-  real fix.
+- **#1020** — the `deploy` job's build step still runs this monorepo's
+  own, PR-affectable CLI build, pre-review (`pull_request` has no
+  review gate the way `sentinel.deploy.yml`'s `push: main` does). A
+  GitHub `environment:` with required reviewers in front of that step
+  is the real fix.
 - **#1021** — no automated cleanup of the preview deployments this
   creates; `holocron deploy cleanup-preview` exists but is interactive
   and hardcodes Cloudflare's branch-alias naming, so it isn't CI-safe
