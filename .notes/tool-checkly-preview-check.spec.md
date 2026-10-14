@@ -212,7 +212,7 @@ defines its own `delivery.previewDeploy` script (build → stage →
 `holocron deploy --files <dir> --project-id <id>`, i.e. the same
 chain as its `delivery.deploy` script minus `--target production`, so
 it defaults to a preview deploy), same shape as `delivery.deploy`
-itself. The reusable workflow just runs `holocron run
+itself. The reusable workflow runs `holocron run
 delivery.previewDeploy` through the shared `holocron` composite
 action — `--cwd` is passed via `args`, which only works because the
 composite action's `command:` is set to the literal multi-word string
@@ -233,7 +233,7 @@ own sync workflows (`platform.repoSync.yml`, `sync-github.yml`)
 already route around with `HOLOCRON_SYNC_TOKEN`/`GH_TOKEN`. Missed on
 a first pass at this exact feature — with `GITHUB_TOKEN`, the
 deployment and status both post successfully, look entirely correct
-on the PR, and `delivery.previewCheck`'s workflow would simply never
+on the PR, and `delivery.previewCheck`'s workflow would never
 start. The status POST retries up to 3 times before giving up, so a
 transient failure there doesn't leave the deployment permanently
 pending while a re-run creates a second one instead of completing the
