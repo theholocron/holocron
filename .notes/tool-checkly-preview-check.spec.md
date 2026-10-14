@@ -290,15 +290,49 @@ and status both post successfully, look entirely correct on the PR,
 and `delivery.previewCheck`'s workflow would never start. The
 deployment's `ref` is the PR's head **branch**, not its SHA — GitHub's
 PR "Environments" widget associates a Deployment by matching `ref` to
-the PR's own branch, not by SHA; GitHub still resolves and records the
-exact commit as the deployment's own `.sha` field from that ref, so
-`delivery.previewCheck`'s `sha` input stays accurate either way.
+the PR's own branch, not by SHA. GitHub resolves `ref` to whatever
+commit the branch points to **at creation time**, though — a separate
+moment from the `deploy` job's own checkout, which happened up to 20
+minutes earlier. **Checked explicitly, not assumed** (review on
+#1028): if the PR branch received a new push while this job was still
+running, the created deployment's `.sha` would reflect that NEWER
+commit, not the one `deploy` actually built and uploaded — silently
+mismatching the preview URL (built from the OLD commit) against the
+reported commit. Fixed by comparing the created deployment's own
+`.sha` (read back via a second `gh api` call) against
+`github.event.pull_request.head.sha` — frozen for this run's entire
+lifetime regardless of what the branch does meanwhile — and failing
+loudly on a mismatch rather than posting a status for the wrong
+commit. Safe to fail: `cancel-in-progress: false` means a newer
+run for the new commit is already queued or running and will create
+its own, correctly-resolving deployment.
 
 Both `gh api` calls retry up to 3 times: deployment **creation** too,
 not only the status POST — a transient failure creating the
 (cheap) GitHub Deployment object used to fail the whole step outright,
 forcing a full re-deploy (re-uploading to Vercel) on retry instead of
-retrying the one API call. Before retrying a status POST, it
+retrying the one API call. **Idempotent now** (review on #1028): before
+each creation attempt, lists deployments for this `ref`+`environment`
+created in the last two minutes and reuses one if found, rather than
+creating a fresh one every retry — closes the same class of gap the
+status-POST retry already closed (a dropped connection after GitHub
+processed the request would otherwise leave the FIRST created
+deployment permanently `pending` forever, since nothing would ever
+post a status to it, while the retry's second deployment gets the
+status instead). The two-minute window is deliberately narrow — wide
+enough to cover this job's own ~15-second retry loop, narrow enough
+that an older, unrelated deployment for the same branch (a previous
+PR push) is never mistaken for this run's own.
+
+The deployment-creation payload is now built with `jq -n --arg`, not a
+hand-rolled `printf` string (review on #1028): a branch name
+containing a literal double quote — not forbidden by git's or GitHub's
+ref-naming rules — would have broken out of the `printf`-constructed
+JSON and produced a payload `gh api` couldn't send, silently
+losing the deployment report for that PR's preview. `jq --arg` escapes
+the value correctly regardless of its content.
+
+Before retrying a status POST, it
 checks whether GitHub already recorded success from a prior attempt
 whose _response_ got lost client-side (a dropped connection after
 GitHub processed the request) — without that check, retrying blindly
