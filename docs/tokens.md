@@ -125,7 +125,7 @@ task — currently Sentinel, holocron#1010/#1022) creates a GitHub
 Deployment and posts its status for each PR preview, so that
 `delivery.previewCheck` has a `deployment_status` event to trigger on.
 None of the 7 feature tokens above carry the `deployments` permission —
-`github.admin` is the closest repo-scoped token, but widening it just for
+`github.admin` is the closest repo-scoped token, but widening it only for
 this would hand deployment write access to every other command that
 resolves `github.admin`.
 
@@ -250,10 +250,10 @@ resolution:
 
 1. `github.com/settings/tokens?type=beta` → "Generate new token."
 2. **Resource owner**: `theholocron` (org) — repos opting into
-   `delivery.previewDeploy` aren't necessarily just `holocron` itself.
+   `delivery.previewDeploy` aren't necessarily only `holocron` itself.
 3. **Token name**: `HOLOCRON_DEPLOYMENTS_TOKEN`.
 4. **Description**: `CI-only — creates GitHub Deployments and posts their status for delivery.previewDeploy preview deploys (holocron#1010/#1022/#1024). Grants ONLY Deployments: read/write. Never used interactively — only referenced via secrets: inherit in the delivery.previewDeploy reusable workflow.`
-5. **Repository access**: the repos that opt into `delivery.previewDeploy` (currently just `holocron`, for Sentinel) — unlike `HOLOCRON_SECRETS_TOKEN`, this permission IS repo-scoped.
+5. **Repository access**: the repos that opt into `delivery.previewDeploy` (currently only `holocron`, for Sentinel) — unlike `HOLOCRON_SECRETS_TOKEN`, this permission IS repo-scoped.
 6. **Permissions → Repository permissions → Deployments**: **Read and write**. Leave every other permission at "No access."
 7. Generate, copy the value, then:
 

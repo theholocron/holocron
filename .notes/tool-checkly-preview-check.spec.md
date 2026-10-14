@@ -167,15 +167,15 @@ whoever created that deployment status — not necessarily this repo's
 own `delivery.previewDeploy` job, since anyone with `deployments:
 write` could create one directly via the API — so forwarding it
 unchecked to a step that fetches it (the monitoring check, below) is
-an SSRF primitive: a crafted `environment_url` could point this
-runner at an internal host instead of a real Vercel preview. Fixed the
+a fundamental technique used in an SSRF attack: a crafted `environment_url` could point this
+runner at an internal server instead of a real Vercel preview. Fixed the
 same way `delivery.previewDeploy`'s own URL-extraction step already
 is: `new URL(candidate).hostname` must end in `.vercel.app` and
 `.protocol` must be `https:`, checked via `node -e`, and the
 _re-serialized_ `url.href` — never the raw input — is what gets
 forwarded on. Re-serializing closes a second, smaller issue the same
 move: a string that fails to parse as a conforming URL can't carry
-embedded whitespace or shell metacharacters either, so there's nothing
+embedded spaces or shell metacharacters either, so there's nothing
 for argument injection to land in by the time it reaches `args:`.
 
 Only once that validation step passes does it check out `sha`
