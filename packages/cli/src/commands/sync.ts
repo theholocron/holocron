@@ -97,7 +97,15 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// would mark a real root invocation as a subpackage whenever --cwd's
 	// spelling differs at all from gitRoot's resolved form (e.g. `--cwd
 	// ./` at the actual root) — resolved once here for that comparison.
-	const resolvedRepoRoot = realpathSync(input.context.repoRoot);
+	// Falls back to the raw value on a nonexistent path (tests routinely
+	// use a synthetic `repoRoot` like `"/tmp/test"` that's never actually
+	// created) — same non-throwing contract `findGitRoot` itself keeps.
+	let resolvedRepoRoot: string;
+	try {
+		resolvedRepoRoot = realpathSync(input.context.repoRoot);
+	} catch {
+		resolvedRepoRoot = input.context.repoRoot;
+	}
 
 	logger.info({ config: config.name, steps: requestedSteps ?? "all", dryRun: dryRun || undefined }, "sync: start");
 

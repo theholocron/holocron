@@ -57,6 +57,13 @@ describe("findGitRoot", () => {
 		expect(findGitRoot(nested)).toBe(nested);
 	});
 
+	it("falls back to the raw path unchanged when startDir doesn't exist on disk at all", () => {
+		// realpathSync throws ENOENT here — tests elsewhere in this codebase
+		// routinely use a synthetic repoRoot like "/tmp/test" that's never
+		// actually created; findGitRoot must never throw for that.
+		expect(findGitRoot("/tmp/holocron-does-not-exist-anywhere")).toBe("/tmp/holocron-does-not-exist-anywhere");
+	});
+
 	it("resolves a relative start path before walking, instead of hitting dirname's '.' fixed point early", async () => {
 		await mkdir(join(root, ".git"));
 		const subpackage = join(root, "packages", "sentinel");

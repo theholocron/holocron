@@ -26,9 +26,20 @@ import { dirname } from "node:path";
  * symlink's own lexical ancestors instead of the physical directory
  * tree its target actually lives in — in both cases landing on the
  * wrong directory, not genuinely "no `.git` found anywhere."
+ *
+ * `realpathSync` itself throws when `startDir` doesn't exist on disk at
+ * all (a real possibility in tests, which often use a synthetic path
+ * like `"/tmp/test"` that's never actually created) — caught and treated
+ * the same as "no `.git` found," since this function's whole contract is
+ * soft-skip, never a hard failure.
  */
 export function findGitRoot(startDir: string): string {
-	const resolvedStart = realpathSync(startDir);
+	let resolvedStart: string;
+	try {
+		resolvedStart = realpathSync(startDir);
+	} catch {
+		return startDir;
+	}
 	let dir = resolvedStart;
 	for (;;) {
 		if (existsSync(`${dir}/.git`)) return dir;
