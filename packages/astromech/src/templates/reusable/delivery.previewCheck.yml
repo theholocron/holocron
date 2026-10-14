@@ -25,6 +25,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Validate the preview URL
+        id: validate
+        env:
+          CANDIDATE: ${{ inputs.preview-url }}
+        run: |
+          # `preview-url` comes from the triggering deployment_status
+          # event's environment_url -- set by whoever created that
+          # deployment status, not necessarily this repo's own
+          # delivery.previewDeploy job (anyone with `deployments: write`
+          # could create one directly via the API). Validated here,
+          # independently of the event's origin, before this runner
+          # ever issues an HTTP request to it (the monitoring check
+          # below): without this, a crafted environment_url could point
+          # the runner at an internal or attacker-controlled host
+          # (SSRF) instead of a real Vercel preview. Forwarding the
+          # re-serialized `url.href` rather than the raw input also
+          # closes off argument injection through embedded whitespace
+          # or shell metacharacters -- a string that parses can't carry
+          # either.
+          host=$(node -e 'try { process.stdout.write(new URL(process.argv[1]).hostname) } catch { process.exit(1) }' "$CANDIDATE") || host=""
+          if [[ "$host" != *.vercel.app ]]; then
+            echo "::error::preview-url '$CANDIDATE' does not parse to a *.vercel.app host (parsed host: '${host:-<unparseable>}')"
+            exit 1
+          fi
+          url=$(node -e 'const u = new URL(process.argv[1]); if (u.protocol !== "https:") process.exit(1); process.stdout.write(u.href)' "$CANDIDATE") || {
+            echo "::error::preview-url '$CANDIDATE' did not parse to an https:// URL"
+            exit 1
+          }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
         with:
@@ -42,4 +72,4 @@ jobs:
         name: Run monitoring checks against the preview deployment
         with:
           command: monitoring check
-          args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}
+          args: --cwd=${{ inputs.cwd }} ${{ steps.validate.outputs.url }}

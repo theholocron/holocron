@@ -11,12 +11,17 @@ on: # yamllint disable-line rule:truthy
     secrets:
       VERCEL_TOKEN:
         required: false
-      GH_TOKEN:
+      HOLOCRON_DEPLOYMENTS_TOKEN:
         description: >
-          Real PAT, not the default GITHUB_TOKEN — GitHub does not start a
-          new workflow run for a deployment_status event created using a
-          run's own GITHUB_TOKEN, which would make a deployment_status-
-          triggered check (e.g. delivery.previewCheck) silently never fire.
+          A dedicated fine-grained PAT (Deployments: read/write only — see
+          docs/tokens.md), not the default GITHUB_TOKEN — GitHub does not
+          start a new workflow run for a deployment_status event created
+          using a run's own GITHUB_TOKEN, which would make a
+          deployment_status-triggered check (e.g. delivery.previewCheck)
+          silently never fire. No existing HOLOCRON_<FEATURE>_TOKEN carries
+          the Deployments permission, so `secrets: inherit` on the thin
+          caller forwards nothing for this unless a repo/org secret
+          literally named HOLOCRON_DEPLOYMENTS_TOKEN has been provisioned.
         required: false
 
 jobs:
@@ -64,7 +69,11 @@ jobs:
           # `secrets` isn't valid in a step `if:` (actionlint-enforced) —
           # a fork PR never receives this secret, so the deploy step below
           # skips cleanly on an empty token instead of failing on a
-          # missing credential.
+          # missing credential. That skip is silent to the fork
+          # contributor -- no preview, no explanation why -- tracked
+          # as #1027 rather than fixed here (the real fix needs either
+          # a status comment or a maintainer-gated trusted-deploy path,
+          # not a quick addition to this step).
           echo "available=$([ -n "$VERCEL_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Deploy preview
@@ -117,7 +126,11 @@ jobs:
     steps:
       - name: Create GitHub deployment and report status
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # gh reads GH_TOKEN as its auto-auth env var by its own
+          # convention -- the secret feeding it is named
+          # HOLOCRON_DEPLOYMENTS_TOKEN, matching this org's
+          # HOLOCRON_<FEATURE>_TOKEN naming (docs/tokens.md).
+          GH_TOKEN: ${{ secrets.HOLOCRON_DEPLOYMENTS_TOKEN }}
           # The PR's head BRANCH, not its SHA — GitHub's PR "Environments"
           # widget associates a Deployment with a PR by matching `ref` to
           # the PR's own branch name, not by SHA. GitHub still resolves
@@ -128,7 +141,7 @@ jobs:
           URL: ${{ needs.deploy.outputs.url }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
+            echo "::error::HOLOCRON_DEPLOYMENTS_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
             exit 1
           fi
 

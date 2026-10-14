@@ -174,7 +174,22 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(previewCheck).toContain("workflow_call:");
 		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
 		expect(previewCheck).toContain("command: monitoring check");
-		expect(previewCheck).toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
+		expect(previewCheck).toContain("args: --cwd=${{ inputs.cwd }} ${{ steps.validate.outputs.url }}");
+	});
+
+	it("delivery.previewCheck validates the preview URL before forwarding it anywhere", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Review on #1024: the triggering deployment_status event's
+		// environment_url is attacker-influenceable (anyone with
+		// `deployments: write` can set it), so it must be validated as an
+		// https://*.vercel.app URL -- closing both an SSRF vector (fetching
+		// an internal host) and argument injection (a string that fails to
+		// parse can't carry embedded whitespace or shell metacharacters) --
+		// before the monitoring-check step (which forwards
+		// steps.validate.outputs.url, never the raw input) ever runs.
+		expect(previewCheck).toMatch(/id: validate[\s\S]*hostname[\s\S]*\.vercel\.app/);
+		expect(previewCheck.indexOf("id: validate")).toBeLessThan(previewCheck.indexOf("command: monitoring check"));
+		expect(previewCheck).not.toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
 	});
 
 	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {

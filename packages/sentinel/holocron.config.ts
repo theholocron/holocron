@@ -14,22 +14,27 @@
  *     verification CNAME to the `dns` provider — `source` being
  *     unconfigured means every repo-settings step is skipped
  *     (each gated on `loader.has("source")`), not that setup fails.
- *   - `.github/workflows/sentinel.previewCheck.yml` (holocron#1010, per
- *     PR): triggered by Vercel's own `deployment_status` event on a
- *     successful Preview deploy, runs `holocron monitoring check`
- *     against that PR's own preview URL instead of production — see
- *     the `monitoring` provider comment below for why this exists.
- *     Hand-maintained there, same reason as `sentinel.deploy.yml`/
- *     `sentinel.secretsSync.yml`: this repo owns Sentinel directly, and
- *     astromech's generic per-repo thin-caller sync writes relative to
- *     `--cwd`, not this repo's actual root `.github/workflows/` — a
- *     `delivery.previewCheck` task entry here would be inert (nothing
- *     consumes it correctly for a monorepo sub-package), so it's
- *     deliberately not in `tasks` below. The hand-written workflow
- *     calls the same reusable `delivery.previewCheck.yml` astromech's
- *     generic task pushes to `theholocron/.github` for every other,
- *     non-monorepo consuming repo — nothing Sentinel-specific lives in
- *     that reusable workflow itself.
+ *   - `delivery.previewCheck` + `delivery.previewDeploy` tasks
+ *     (holocron#1010/#1016; only `delivery.previewCheck` is listed in
+ *     `tasks` below for now — `delivery.previewDeploy` is deliberately
+ *     deferred, see the comment at its own, commented-out line): on
+ *     every PR to this repo
+ *     (no path filter yet — #1023 — so this also fires on PRs touching
+ *     unrelated packages, not only Sentinel or its bundled deps),
+ *     deploys a Vercel preview
+ *     (Sentinel has no git-linked Vercel project — it deploys via
+ *     `deployFunction()`, a bare file upload — so this creates the
+ *     GitHub Deployment + `deployment_status` itself, same move
+ *     `theholocron/.github`'s Cloudflare-Pages preview workflow already
+ *     makes), then runs `holocron monitoring check` against that PR's
+ *     own preview URL instead of production — see the `monitoring`
+ *     provider comment below for why this exists. Both tasks flow
+ *     through the normal `holocron repo sync`-generated workflow path
+ *     (holocron#1014's monorepo-subpackage write-location bug, fixed) —
+ *     no hand-maintained workflow file for either, unlike
+ *     `sentinel.deploy.yml`/`sentinel.secretsSync.yml`, which stay
+ *     hand-maintained because they're genuinely Sentinel-specific in a
+ *     way these two generic, any-package tasks are not.
  *
  * `deployment`: Vercel, a Team separate from any other Vercel project
  * in this org (ADR-0011's deploy-target decision). `teamId` is not a
@@ -105,12 +110,32 @@ export default defineConfig({
 	// which reads this task from every workspace package. `paths` default to this
 	// package plus its `workspace:*` dependencies (the packages inlined into
 	// `dist/`).
-	// No delivery.previewCheck task entry here — see the module doc
-	// comment above for why: astromech's generic per-repo sync can't
-	// write it anywhere GitHub Actions would see it for a monorepo
-	// sub-package, so it would be inert. The actual trigger is the
-	// hand-maintained `.github/workflows/sentinel.previewCheck.yml`.
-	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
+	tasks: [
+		{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } },
+		// cwd tells the generated workflow which package directory to run
+		// from — the repo root is checked out, and this is a monorepo, so
+		// without it the CLI would load this repo's own root
+		// holocron.config.ts (no monitoring/deployment provider there)
+		// instead of this file. Fixed properly (holocron#1014) — both tasks
+		// now flow through the normal `holocron repo sync` path, no
+		// hand-maintained workflow file needed for either.
+		{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } },
+		// delivery.previewDeploy NOT listed here yet, deliberately: it was
+		// only just registered in astromech's own registry.ts (#1022,
+		// unreleased at the time of this commit). Sentinel's config-
+		// compatibility check validates task names against its OWN
+		// deployed, bundled @theholocron/astromech — never a PR's own
+		// registry.ts changes (D6's security boundary) — so a brand-new
+		// task name can't appear in ANY repo's config until a real release
+		// has shipped it and Sentinel has redeployed with the updated
+		// bundle (confirmed live: this exact failure on holocron#1019's
+		// platform.syncTemplates, same root cause). The generated
+		// .github/workflows/delivery.previewDeploy.yml stays committed and
+		// functional regardless — `repo sync` only ever writes files for
+		// tasks that ARE listed, it never removes one for a task that
+		// isn't. Add this line back in a follow-up PR once #1022 has
+		// merged and released.
+	],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
