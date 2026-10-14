@@ -1,0 +1,101 @@
+name: Preview Deploy
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      cwd:
+        description: Directory to run the delivery.previewDeploy task from — the opted-in package's own directory in a monorepo. Defaults to the repo root.
+        required: false
+        type: string
+        default: "."
+    secrets:
+      VERCEL_TOKEN:
+        required: false
+      GH_TOKEN:
+        description: >
+          Real PAT, not the default GITHUB_TOKEN — GitHub does not start a
+          new workflow run for a deployment_status event created using a
+          run's own GITHUB_TOKEN, which would make a deployment_status-
+          triggered check (e.g. delivery.previewCheck) silently never fire.
+        required: false
+
+jobs:
+  preview-deploy:
+    name: Deploy preview and report status
+    runs-on: ubuntu-latest
+    # Setup/build/stage, plus the deploy capability's own
+    # wait-for-ready polling (up to 10 minutes by itself) — 10 would kill
+    # this before that polling could even finish.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          # The PR's exact head SHA, not the default pull_request
+          # merge-commit ref — the deployed commit must match what's
+          # reported in the synthetic deployment's `ref` below.
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Check deploy credentials are available
+        id: creds
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # `secrets` isn't valid in a step `if:` (actionlint-enforced) —
+          # a fork PR never receives this secret, so the deploy step below
+          # skips cleanly on an empty token instead of failing on a
+          # missing credential.
+          echo "available=$([ -n "$VERCEL_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview
+        id: deploy
+        if: ${{ steps.creds.outputs.available == 'true' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: run delivery.previewDeploy
+          args: --cwd=${{ inputs.cwd }}
+
+      - name: Extract preview URL and report deployment status
+        # Only after a real deploy — false both when the step above
+        # failed and when it skipped cleanly (fork PR, no credential).
+        if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          LOG_FILE: ${{ steps.deploy.outputs.log-file }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
+            exit 1
+          fi
+          # Anchored to a *.vercel.app host and a URL-safe character class,
+          # not a bare https://\S+ grab — stops at the first stray quote/
+          # space instead of swallowing trailing log content, and can
+          # never be redirected to an attacker-chosen host by anything
+          # else this log file happens to contain.
+          url=$(grep -oE 'https://[A-Za-z0-9-]+\.vercel\.app[A-Za-z0-9._~:/?#@!$&()*+,;=%-]*' "$LOG_FILE" | tail -1)
+          if [ -z "$url" ]; then
+            echo "::error::deploy succeeded but no *.vercel.app preview URL was found in its output"
+            exit 1
+          fi
+          payload=$(printf '{"ref":"%s","environment":"Preview","description":"Vercel Preview (file deploy)","production_environment":false,"auto_merge":false,"required_contexts":[]}' "$SHA")
+          deploy_id=$(echo "$payload" | gh api "repos/${GITHUB_REPOSITORY}/deployments" --method POST --input - | jq -r '.id')
+          for attempt in 1 2 3; do
+            if gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+              --method POST --field state=success --field environment_url="${url}"; then
+              exit 0
+            fi
+            echo "status POST failed (attempt ${attempt}/3) for deployment ${deploy_id} -- retrying..." >&2
+            sleep 5
+          done
+          echo "::error::failed to post a success status for deployment ${deploy_id} after 3 attempts -- it is left pending; re-running this job creates a new deployment rather than completing this one"
+          exit 1

@@ -11,6 +11,7 @@ import buildYml from "../templates/workflows/delivery.build.yml";
 import bundleSizeYml from "../templates/workflows/delivery.bundleSize.yml";
 import deployYml from "../templates/workflows/delivery.deploy.yml";
 import previewCheckYml from "../templates/workflows/delivery.previewCheck.yml";
+import previewDeployYml from "../templates/workflows/delivery.previewDeploy.yml";
 import publishYml from "../templates/workflows/delivery.publish.yml";
 import dependenciesYml from "../templates/workflows/dependencies.yml";
 import greetingsYml from "../templates/workflows/greetings.yml";
@@ -47,6 +48,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"delivery.deploy": deployYml,
 	"delivery.bundleSize": bundleSizeYml,
 	"delivery.previewCheck": previewCheckYml,
+	"delivery.previewDeploy": previewDeployYml,
 	"platform.repoSync": repoSyncYml,
 	"platform.commitStandards": commitStandardsYml,
 	"platform.repoValidation": repoValidationYml,
