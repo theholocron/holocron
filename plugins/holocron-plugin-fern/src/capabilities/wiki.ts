@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { DnsRecordRequest, Wiki, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
+import { stringifyJson } from "@theholocron/json-utils";
 
 export const FERN_VERSION = "5.114.1";
 
@@ -94,7 +95,7 @@ async function writeFernConfig({ repoRoot, fernOrg }: { repoRoot: string; fernOr
 	const fernDir = join(repoRoot, "fern");
 	await mkdir(fernDir, { recursive: true });
 	const org = fernOrg ?? "holocron";
-	const content = JSON.stringify({ organization: org, version: FERN_VERSION }, null, 2) + "\n";
+	const content = stringifyJson({ organization: org, version: FERN_VERSION });
 	await writeFile(join(fernDir, "fern.config.json"), content, "utf8");
 	return `fern.config.json: org=${org}, version=${FERN_VERSION}`;
 }

@@ -16,6 +16,8 @@
  * build needs `SENTRY_AUTH_TOKEN` in its cache key; most repos don't).
  */
 
+import { stringifyJson } from "@theholocron/json-utils";
+
 import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
 import { TASKS } from "../registry.js";
 
@@ -201,5 +203,5 @@ export function ensureTurboDependency(packageJson: string, workspaceYaml: string
 		turbo: hasTurboCatalogEntry ? "catalog:" : DEFAULT_TURBO_VERSION,
 	};
 	const updated = { ...pkg, devDependencies };
-	return { content: `${JSON.stringify(updated, null, 2)}\n`, changed: true };
+	return { content: stringifyJson(updated, { like: packageJson }), changed: true };
 }

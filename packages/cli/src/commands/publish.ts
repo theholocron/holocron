@@ -33,6 +33,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { readGitRemote } from "@theholocron/git-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { type CliEnv, makeEnv } from "../env.js";
@@ -636,12 +637,14 @@ function namesInWorkspaceDir(cwd: string, dirName: "packages" | "plugins"): stri
 }
 
 async function resolveRepoName(cwd: string, exec: NonNullable<RunPublishInput["exec"]>): Promise<string> {
-	const result = await exec("git", ["remote", "get-url", "origin"], { cwd });
-	if (result.exitCode !== 0) return "unknown";
-	// Matches both HTTPS (https://github.com/org/repo.git) and
-	// SSH (git@github.com:org/repo.git) remote URL formats.
-	const match = /[/:]([^/:]+?)(?:\.git)?$/.exec(result.stdout.trim());
-	return match?.[1] ?? "unknown";
+	const remote = await readGitRemote(cwd, {
+		exec: async (args, options) => {
+			const result = await exec("git", args, options);
+			if (result.exitCode !== 0) throw new Error(`git ${args.join(" ")} exited ${result.exitCode}`);
+			return result.stdout;
+		},
+	});
+	return remote?.repo ?? "unknown";
 }
 
 function printNextSteps(print: PublishPrint, env: CliEnv, packageNames: readonly string[], repoName: string): void {

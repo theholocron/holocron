@@ -51,6 +51,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { stringifyJson } from "@theholocron/json-utils";
+
 import { undeclaredExternals } from "./bundle-externals.mjs";
 import { vercelEngines } from "./vercel-engines.mjs";
 
@@ -117,7 +119,7 @@ function main() {
 		engines: vercelEngines(pkg.engines),
 		dependencies,
 	};
-	writeFileSync(join(outDir, "package.json"), JSON.stringify(deployPkg, null, 2) + "\n");
+	writeFileSync(join(outDir, "package.json"), stringifyJson(deployPkg));
 
 	console.log(`Staged deploy payload at ${outDir}`);
 	console.log(

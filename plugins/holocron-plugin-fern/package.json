@@ -36,6 +36,9 @@
     "verification.typeSafety": "holocron run verification.typeSafety --",
     "verification.unitTests": "holocron run verification.unitTests --"
   },
+  "dependencies": {
+    "@theholocron/json-utils": "catalog:utils"
+  },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",

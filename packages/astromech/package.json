@@ -44,7 +44,8 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "@theholocron/datapad": "workspace:*"
+    "@theholocron/datapad": "workspace:*",
+    "@theholocron/json-utils": "catalog:utils"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",

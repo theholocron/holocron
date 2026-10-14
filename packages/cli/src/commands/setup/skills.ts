@@ -5,6 +5,8 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { updateGitignore } from "@theholocron/git-utils";
+
 interface SkillLockEntry {
 	source: string;
 	sourceType: "github";
@@ -153,12 +155,7 @@ export async function installSkills({
 	}
 
 	if (installed.length > 0 || stale.length > 0 || missing.length > 0 || externalFailed.length > 0) {
-		await updateSkillsGitignore(
-			gitignorePath,
-			existingContent,
-			[...installed, ...missing, ...externalFailed],
-			symlinkFn
-		);
+		await updateSkillsGitignore(gitignorePath, [...installed, ...missing, ...externalFailed], symlinkFn);
 	}
 
 	const parts: string[] = [`installed ${installed.length}`];
@@ -199,22 +196,12 @@ async function copyDirRecursive(src: string, dest: string): Promise<void> {
 
 async function updateSkillsGitignore(
 	gitignorePath: string,
-	existingContent: string,
 	skills: string[],
 	symlinkFn: (name: string) => string
 ): Promise<void> {
-	const entries = [`/${AGENTS_SKILLS_ROOT}/`, ...skills.map((n) => `/${symlinkFn(n)}`)];
-	const block = [GITIGNORE_BLOCK_START, ...entries, GITIGNORE_BLOCK_END].join("\n");
-
-	let content: string;
-	if (existingContent.includes(GITIGNORE_BLOCK_START)) {
-		const start = existingContent.indexOf(GITIGNORE_BLOCK_START);
-		const end = existingContent.indexOf(GITIGNORE_BLOCK_END, start);
-		const afterBlock = end !== -1 ? existingContent.slice(end + GITIGNORE_BLOCK_END.length) : "\n";
-		content = existingContent.slice(0, start) + block + afterBlock;
-	} else {
-		content = (existingContent.trimEnd() ? existingContent.trimEnd() + "\n\n" : "") + block + "\n";
-	}
-
-	await writeFile(gitignorePath, content, "utf8");
+	await updateGitignore(gitignorePath, {
+		start: GITIGNORE_BLOCK_START,
+		end: GITIGNORE_BLOCK_END,
+		lines: [`/${AGENTS_SKILLS_ROOT}/`, ...skills.map((n) => `/${symlinkFn(n)}`)],
+	});
 }

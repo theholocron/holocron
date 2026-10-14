@@ -55,6 +55,7 @@
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/holocron-config": "catalog:configs",
     "@theholocron/http-client": "catalog:clients",
+    "@theholocron/json-utils": "catalog:utils",
     "@theholocron/markdownlint-config": "catalog:configs",
     "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/object-utils": "catalog:utils",
