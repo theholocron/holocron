@@ -303,7 +303,7 @@ reported commit. Fixed by comparing the created deployment's own
 `github.event.pull_request.head.sha` — frozen for this run's entire
 lifetime regardless of what the branch does meanwhile — and failing
 loudly on a mismatch rather than posting a status for the wrong
-commit. Safe to just fail: `cancel-in-progress: false` means a newer
+commit. Safe to fail: `cancel-in-progress: false` means a newer
 run for the new commit is already queued or running and will create
 its own, correctly-resolving deployment.
 
@@ -328,7 +328,7 @@ The deployment-creation payload is now built with `jq -n --arg`, not a
 hand-rolled `printf` string (review on #1028): a branch name
 containing a literal double quote — not forbidden by git's or GitHub's
 ref-naming rules — would have broken out of the `printf`-constructed
-JSON and produced an invalid payload `gh api` couldn't send, silently
+JSON and produced a payload `gh api` couldn't send, silently
 losing the deployment report for that PR's preview. `jq --arg` escapes
 the value correctly regardless of its content.
 
