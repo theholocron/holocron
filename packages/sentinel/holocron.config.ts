@@ -116,7 +116,19 @@ export default defineConfig({
 		// instead of this file. Fixed properly (holocron#1014) — both tasks
 		// now flow through the normal `holocron repo sync` path, no
 		// hand-maintained workflow file needed for either.
-		{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } },
+		{
+			name: "delivery.previewCheck",
+			with: {
+				cwd: "packages/sentinel",
+				// Verified live via Vercel's API before
+				// VERCEL_PROTECTION_BYPASS_SECRET is ever attached to a
+				// request (holocron#1032 review) — the project's real id,
+				// not its name (`projects.get("sentinel")`'s own `.id`
+				// field), since that's what a deployment's `projectId`
+				// actually resolves to.
+				"vercel-project": "prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV",
+			},
+		},
 		// Un-deferred (#1022 released as @theholocron/astromech@5.0.0-alpha.145,
 		// and Sentinel redeployed with that bundle in the same release's
 		// deploy-on-release job) — was deliberately left out until both of
