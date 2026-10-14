@@ -15,7 +15,10 @@
  *     unconfigured means every repo-settings step is skipped
  *     (each gated on `loader.has("source")`), not that setup fails.
  *   - `delivery.previewCheck` + `delivery.previewDeploy` tasks
- *     (holocron#1010/#1016, `tasks` below): on every PR to this repo
+ *     (holocron#1010/#1016; only `delivery.previewCheck` is listed in
+ *     `tasks` below for now — `delivery.previewDeploy` is deliberately
+ *     deferred, see the comment at its own, commented-out line): on
+ *     every PR to this repo
  *     (no path filter yet — #1023 — so this also fires on PRs touching
  *     unrelated packages, not only Sentinel or its bundled deps),
  *     deploys a Vercel preview
@@ -117,7 +120,21 @@ export default defineConfig({
 		// now flow through the normal `holocron repo sync` path, no
 		// hand-maintained workflow file needed for either.
 		{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } },
-		{ name: "delivery.previewDeploy", with: { cwd: "packages/sentinel" } },
+		// delivery.previewDeploy NOT listed here yet, deliberately: it was
+		// only just registered in astromech's own registry.ts (#1022,
+		// unreleased at the time of this commit). Sentinel's config-
+		// compatibility check validates task names against its OWN
+		// deployed, bundled @theholocron/astromech — never a PR's own
+		// registry.ts changes (D6's security boundary) — so a brand-new
+		// task name can't appear in ANY repo's config until a real release
+		// has shipped it and Sentinel has redeployed with the updated
+		// bundle (confirmed live: this exact failure on holocron#1019's
+		// platform.syncTemplates, same root cause). The generated
+		// .github/workflows/delivery.previewDeploy.yml stays committed and
+		// functional regardless — `repo sync` only ever writes files for
+		// tasks that ARE listed, it never removes one for a task that
+		// isn't. Add this line back in a follow-up PR once #1022 has
+		// merged and released.
 	],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
