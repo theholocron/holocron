@@ -189,6 +189,15 @@ export const TASKS: Record<string, TaskDef> = {
 	// part of `holocron run ci`'s push/PR gate; runs only from its own
 	// `deployment_status`-triggered workflow.
 	"delivery.previewCheck": { local: null },
+	// No generic local runner — each consuming package defines its own
+	// build-stage-deploy script under this exact task name, same shape as
+	// `delivery.deploy`; the reusable workflow just runs it via `holocron
+	// run delivery.previewDeploy`. Triggered by `pull_request` and reports
+	// a synthetic deployment_status with the resulting URL (holocron#1010
+	// follow-up, #1016, #1017's review) — Vercel's own GitHub integration
+	// never sees a file-uploaded (deployFunction) deploy, so there is
+	// nothing to synthesize this from on Vercel's side.
+	"delivery.previewDeploy": { local: null },
 
 	// ── platform.* — operating the repo itself ────────────────────────────
 	"platform.repoSync": { local: { command: "sync" } },

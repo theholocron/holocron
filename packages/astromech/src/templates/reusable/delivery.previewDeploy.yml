@@ -1,0 +1,178 @@
+name: Preview Deploy
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      cwd:
+        description: Directory to run the delivery.previewDeploy task from — the opted-in package's own directory in a monorepo. Defaults to the repo root.
+        required: false
+        type: string
+        default: "."
+    secrets:
+      VERCEL_TOKEN:
+        required: false
+      GH_TOKEN:
+        description: >
+          Real PAT, not the default GITHUB_TOKEN — GitHub does not start a
+          new workflow run for a deployment_status event created using a
+          run's own GITHUB_TOKEN, which would make a deployment_status-
+          triggered check (e.g. delivery.previewCheck) silently never fire.
+        required: false
+
+jobs:
+  # Two jobs, deliberately not one: "report" never checks out the repo at
+  # all, so it never runs a single line of this PR's own code. "deploy"
+  # does — it has to, to build and stage the preview — and runs with
+  # VERCEL_TOKEN present for that (tracked as a residual risk, #1020: the
+  # build step still runs this monorepo's own PR-affectable CLI build,
+  # pre-review). Without the split, a malicious build/stage script could
+  # persist a `gh` shim onto $GITHUB_PATH (or similar runner-state
+  # tampering) that a LATER step in the SAME job — the one that finally
+  # gets GH_TOKEN — would then execute instead of the real `gh` CLI,
+  # stealing that token too. Separate jobs run on separate, fresh
+  # runners; "report" has nothing of the first job's runner state to
+  # inherit.
+  deploy:
+    name: Deploy preview
+    runs-on: ubuntu-latest
+    # Setup/build/stage, plus the deploy capability's own
+    # wait-for-ready polling (up to 10 minutes by itself) — 10 would kill
+    # this before that polling could even finish.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      url: ${{ steps.extract.outputs.url }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          # The PR's exact head SHA, not the default pull_request
+          # merge-commit ref — what gets built and deployed must be the
+          # exact commit the PR actually points at.
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Check deploy credentials are available
+        id: creds
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # `secrets` isn't valid in a step `if:` (actionlint-enforced) —
+          # a fork PR never receives this secret, so the deploy step below
+          # skips cleanly on an empty token instead of failing on a
+          # missing credential.
+          echo "available=$([ -n "$VERCEL_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview
+        id: deploy
+        if: ${{ steps.creds.outputs.available == 'true' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: run delivery.previewDeploy
+          args: --cwd=${{ inputs.cwd }}
+
+      - name: Extract and validate the preview URL
+        id: extract
+        # Only after a real deploy — false both when the step above
+        # failed and when it skipped cleanly (fork PR, no credential).
+        if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          LOG_FILE: ${{ steps.deploy.outputs.log-file }}
+        run: |
+          # A loose https://\S+ grab would match whatever text follows an
+          # attacker-chosen URL this log happens to contain; grabbing
+          # candidate text here and separately requiring the PARSED
+          # hostname end in .vercel.app (below) closes that regardless of
+          # how the candidate text is shaped — e.g. a userinfo trick like
+          # "https://x.vercel.app@127.0.0.1/" would satisfy almost any
+          # hand-written regex character class while actually parsing to
+          # host 127.0.0.1, which a naive regex-only check already missed
+          # once.
+          candidate=$(grep -oE 'https://[^[:space:]"]+' "$LOG_FILE" | tail -1)
+          if [ -z "$candidate" ]; then
+            echo "::error::deploy succeeded but no https:// URL was found in its output"
+            exit 1
+          fi
+          host=$(node -e 'try { process.stdout.write(new URL(process.argv[1]).hostname) } catch { process.exit(1) }' "$candidate") || host=""
+          if [[ "$host" != *.vercel.app ]]; then
+            echo "::error::extracted URL '$candidate' does not parse to a *.vercel.app host (parsed host: '${host:-<unparseable>}')"
+            exit 1
+          fi
+          echo "url=$candidate" >> "$GITHUB_OUTPUT"
+
+  report:
+    name: Report deployment status
+    needs: deploy
+    if: ${{ needs.deploy.outputs.url != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      deployments: write
+    steps:
+      - name: Create GitHub deployment and report status
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # The PR's head BRANCH, not its SHA — GitHub's PR "Environments"
+          # widget associates a Deployment with a PR by matching `ref` to
+          # the PR's own branch name, not by SHA. GitHub still resolves
+          # and records the exact commit as the deployment's own `.sha`
+          # field from this ref, so delivery.previewCheck's `sha` input
+          # (read from `github.event.deployment.sha`) stays accurate.
+          REF: ${{ github.event.pull_request.head.ref }}
+          URL: ${{ needs.deploy.outputs.url }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
+            exit 1
+          fi
+
+          post_status() {
+            gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+              --method POST --field state="$1" --field environment_url="$URL" >/dev/null
+          }
+          latest_status() {
+            gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" --jq '.[0].state // empty' 2>/dev/null
+          }
+
+          payload=$(printf '{"ref":"%s","environment":"Preview","description":"Vercel Preview (file deploy)","production_environment":false,"auto_merge":false,"required_contexts":[]}' "$REF")
+          deploy_id=""
+          for attempt in 1 2 3; do
+            deploy_id=$(echo "$payload" | gh api "repos/${GITHUB_REPOSITORY}/deployments" --method POST --input - | jq -r '.id // empty')
+            if [ -n "$deploy_id" ]; then break; fi
+            echo "deployment creation failed (attempt ${attempt}/3) -- retrying..." >&2
+            sleep 5
+          done
+          if [ -z "$deploy_id" ]; then
+            echo "::error::failed to create a GitHub deployment after 3 attempts -- Vercel already has the preview, but nothing will report or check it"
+            exit 1
+          fi
+
+          for attempt in 1 2 3; do
+            if post_status success; then
+              exit 0
+            fi
+            # The POST may have actually succeeded server-side even though
+            # this client call reported failure (e.g. a dropped connection
+            # after GitHub processed it) — checked before retrying, so a
+            # transient client-side error never posts a second success and
+            # fires delivery.previewCheck twice for the same preview.
+            if [ "$(latest_status)" = "success" ]; then
+              exit 0
+            fi
+            echo "status POST failed (attempt ${attempt}/3) for deployment ${deploy_id} -- retrying..." >&2
+            sleep 5
+          done
+
+          # Exhausted retries — one last attempt to mark the deployment
+          # failed rather than leaving it permanently "pending" in GitHub's
+          # UI; best-effort, its own failure doesn't change this step's
+          # already-failed outcome.
+          post_status error || true
+          echo "::error::failed to post a success status for deployment ${deploy_id} after 3 attempts -- marked it failed instead of leaving it pending"
+          exit 1
