@@ -16,6 +16,17 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: "."
+    secrets:
+      VERCEL_PROTECTION_BYPASS_SECRET:
+        description: >
+          Vercel's "Protection Bypass for Automation" secret for the
+          target project (holocron#1030) — sent as the
+          x-vercel-protection-bypass header so this check's request
+          isn't redirected to Vercel's own SSO login by Deployment
+          Protection, which is on by default for Preview deployments.
+          Optional: a check against a URL with protection disabled (or
+          a provider other than Vercel) needs nothing here.
+        required: false
 
 jobs:
   preview-check:
@@ -70,6 +81,19 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run monitoring checks against the preview deployment
+        env:
+          # Read directly by `monitoring check` (packages/cli/src/cli.ts)
+          # and sent as a request header -- not part of the CLI's own
+          # `--token`-resolution chain, since it's not a vendor API
+          # credential this command calls anything with, just a header
+          # forwarded as-is to whatever URL the caller names. Present
+          # while this command loads and runs a PR's own, potentially
+          # modified holocron.config.ts to resolve the monitoring
+          # provider -- tracked as #1031 (same class of exposure #1020
+          # already tracks for VERCEL_TOKEN in delivery.previewDeploy,
+          # smaller blast radius: project-scoped read-only bypass, no
+          # deploy/write/secrets access).
+          VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}
         with:
           command: monitoring check
           args: --cwd=${{ inputs.cwd }} ${{ steps.validate.outputs.url }}

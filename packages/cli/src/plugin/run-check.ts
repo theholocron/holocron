@@ -17,6 +17,15 @@
  * status >= 400 is an automatic failure unless the check's own healthy
  * response is itself an error status.
  *
+ * `opts.headers` (holocron#1030): merged into every request — the one
+ * caller that needs it, `delivery.previewCheck`, uses it to send
+ * Vercel's `x-vercel-protection-bypass` header so Deployment
+ * Protection (on by default for Preview deployments) doesn't redirect
+ * the check to Vercel's own SSO login before it ever reaches the
+ * app. Vendor-neutral by design — this module has no Vercel-specific
+ * knowledge; the header name and value are the CLI command's concern
+ * (`cli.ts`), not this evaluator's.
+ *
  * Hardening, all driven by this running against a URL the triggering
  * event controls (a PR's preview deployment), not a trusted static
  * config value (sourcery review on holocron#1011):
@@ -59,6 +68,8 @@ export interface RunCheckOptions {
 	timeoutMs?: number;
 	/** Max response body bytes read when an assertion needs the body. Default 1MB. */
 	maxBodyBytes?: number;
+	/** Extra headers merged into the request — e.g. a Deployment Protection bypass header. */
+	headers?: Record<string, string>;
 }
 
 export async function runCheckAgainstUrl(
@@ -81,6 +92,7 @@ export async function runCheckAgainstUrl(
 		response = await doFetch(url, {
 			method,
 			...(hasBody ? { body: input.body } : {}),
+			...(opts.headers ? { headers: opts.headers } : {}),
 			redirect: "manual",
 			signal: AbortSignal.timeout(opts.timeoutMs ?? 10_000),
 		});

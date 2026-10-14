@@ -1679,6 +1679,16 @@ try {
 							);
 							const loaded = await loadConfig(argv.cwd);
 							applyResolvedConfig(argv, loaded.resolved);
+							// Deployment Protection (on by default for Vercel Preview
+							// deployments, holocron#1030) redirects an unauthenticated
+							// request to Vercel's own SSO login before it ever reaches
+							// the app being checked — this header is Vercel's documented
+							// way for an automated caller to skip that wall. Read
+							// directly from the env rather than added to the CLI's own
+							// `--token`-resolution chain: it's not an API credential this
+							// command calls a vendor with, just a header forwarded
+							// as-is to whatever URL the caller names.
+							const bypassSecret = process.env["VERCEL_PROTECTION_BYPASS_SECRET"];
 							const report = await runMonitoringCheck({
 								loaded,
 								context: {
@@ -1688,6 +1698,7 @@ try {
 									org: resolveOrg(argv, loaded.resolved),
 								},
 								url: url!,
+								...(bypassSecret ? { headers: { "x-vercel-protection-bypass": bypassSecret } } : {}),
 							});
 							if (report.status === "fail") {
 								process.exitCode = 1;

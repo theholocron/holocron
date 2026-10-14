@@ -192,6 +192,26 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(previewCheck).not.toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
 	});
 
+	it("delivery.previewCheck forwards VERCEL_PROTECTION_BYPASS_SECRET to the monitoring-check step only", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Review on #1030: Vercel's Deployment Protection (on by default for
+		// Preview deployments) redirects an unauthenticated request to its
+		// own SSO login before this job's own fetch ever reaches the app --
+		// confirmed live. This secret is optional (required: false) since a
+		// check against a non-Vercel URL, or one with protection disabled,
+		// needs nothing here.
+		expect(previewCheck).toMatch(/VERCEL_PROTECTION_BYPASS_SECRET:\s*\n\s*description:/);
+		expect(previewCheck).toMatch(/VERCEL_PROTECTION_BYPASS_SECRET:\s*\n\s*description:[\s\S]*required: false/);
+		expect(previewCheck).toContain(
+			"VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}"
+		);
+		// Set on the holocron-action step itself (env:), not job-wide --
+		// only the one step that actually makes the request needs it.
+		expect(previewCheck).toMatch(
+			/env:[\s\S]*VERCEL_PROTECTION_BYPASS_SECRET: \$\{\{ secrets\.VERCEL_PROTECTION_BYPASS_SECRET \}\}\s*\n\s*with:\s*\n\s*command: monitoring check/
+		);
+	});
+
 	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
 		expect(previewCheck).toMatch(/sha:\s*\n\s*description:/);
