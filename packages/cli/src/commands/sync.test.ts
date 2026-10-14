@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +9,7 @@ import { AuthError } from "../auth/auth-resolver.js";
 import { runSync } from "./sync.js";
 import type { RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.js";
 import { runSyncReadme } from "./sync-readme.js";
+import * as syncWikiModule from "./sync-wiki.js";
 
 vi.mock("../commands/sync-readme.js", () => ({
 	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> => {
@@ -1942,6 +1943,49 @@ describe("runSync", () => {
 	});
 
 	describe("sync wiki step", () => {
+		it("passes the real git root, not --cwd, to runSyncWiki for a monorepo subpackage (holocron#1014)", async () => {
+			// Resolved immediately — on macOS, tmpdir() lives under /var, a
+			// symlink to /private/var, and findGitRoot now resolves symlinks.
+			const root = realpathSync(await mkdtemp(join(tmpdir(), "holocron-test-")));
+			try {
+				await mkdir(join(root, ".git"));
+				const subpackage = join(root, "packages", "sentinel");
+				await mkdir(subpackage, { recursive: true });
+
+				// fern/docs.yml is repo-wide, same category as turbo.json —
+				// runSyncWiki itself already has direct coverage (sync-wiki.
+				// test.ts) for reading it; this spy only proves `runSync`
+				// hands it the resolved git root instead of raw --cwd.
+				const spy = vi
+					.spyOn(syncWikiModule, "runSyncWiki")
+					.mockResolvedValue({ capability: "local", step: "sync wiki", status: "ok" });
+				try {
+					const loaded = loadedFrom({
+						name: "demo",
+						org: "org",
+						providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+					});
+					const loader = makeLoaderWith(loaded, {});
+
+					await runSync({
+						loaded,
+						context: { repoRoot: subpackage, repo: "org/myrepo" },
+						loader,
+						steps: ["wiki"],
+						print: () => {},
+					});
+
+					expect(spy).toHaveBeenCalledWith(
+						expect.objectContaining({ context: expect.objectContaining({ repoRoot: root }) })
+					);
+				} finally {
+					spy.mockRestore();
+				}
+			} finally {
+				await rm(root, { recursive: true, force: true });
+			}
+		});
+
 		it("skips when no wiki provider is configured", async () => {
 			const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
 			const loader = makeLoaderWith(loaded, {

@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
 
 /**
@@ -14,19 +14,31 @@ import { dirname } from "node:path";
  * root, not `--cwd`, or it silently writes into a GitHub-invisible nested
  * `.github/` instead (holocron#1014).
  *
- * Falls back to `startDir` unchanged when no `.git` is found walking all
+ * Falls back to the resolved start dir when no `.git` is found walking all
  * the way to the filesystem root — soft-skip, not a hard failure; every
  * caller already treats `--cwd` itself as the root today, so an
  * unexpected non-git checkout just keeps today's behavior.
+ *
+ * Resolves `startDir` to an absolute, symlink-free path before walking:
+ * a relative `--cwd` (e.g. `"packages/sentinel"`) would otherwise hit
+ * `dirname`'s fixed point at `"."` after only two steps, far short of the
+ * real root, and a `--cwd` reached through a symlink would walk the
+ * symlink's own lexical ancestors instead of the physical directory
+ * tree its target actually lives in — in both cases landing on the
+ * wrong directory, not genuinely "no `.git` found anywhere."
  */
 export function findGitRoot(startDir: string): string {
-	let dir = startDir;
+	const resolvedStart = realpathSync(startDir);
+	let dir = resolvedStart;
 	for (;;) {
 		if (existsSync(`${dir}/.git`)) return dir;
 		const parent = dirname(dir);
 		// `dirname` of the filesystem root returns itself — the one
-		// fixed point that means "nowhere left to climb."
-		if (parent === dir) return startDir;
+		// fixed point that means "nowhere left to climb." Falls back to
+		// the resolved START dir, not wherever the climb ended up (the
+		// filesystem root) — the soft-skip contract this function
+		// documents above.
+		if (parent === dir) return resolvedStart;
 		dir = parent;
 	}
 }

@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { realpathSync } from "node:fs";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -10,7 +11,10 @@ describe("findGitRoot", () => {
 	let root: string;
 
 	beforeEach(async () => {
-		root = await mkdtemp(join(tmpdir(), "holocron-gitroot-"));
+		// Resolved immediately — on macOS, tmpdir() lives under /var, itself
+		// a symlink to /private/var, so a raw mkdtemp() path never equals
+		// what findGitRoot (which now resolves symlinks) returns.
+		root = realpathSync(await mkdtemp(join(tmpdir(), "holocron-gitroot-")));
 	});
 	afterEach(async () => {
 		await rm(root, { recursive: true, force: true });
@@ -44,12 +48,47 @@ describe("findGitRoot", () => {
 		expect(findGitRoot(subpackage)).toBe(root);
 	});
 
-	it("falls back to the start dir when no .git is found anywhere above it", async () => {
+	it("falls back to the resolved start dir when no .git is found anywhere above it", async () => {
 		// No .git created anywhere under `root` — root itself has none,
 		// and mkdtemp's parent (the real OS tmp dir) has none either in
 		// any sane environment, so this exercises the climb-to-fs-root path.
 		const nested = join(root, "no-git-here");
 		await mkdir(nested);
 		expect(findGitRoot(nested)).toBe(nested);
+	});
+
+	it("resolves a relative start path before walking, instead of hitting dirname's '.' fixed point early", async () => {
+		await mkdir(join(root, ".git"));
+		const subpackage = join(root, "packages", "sentinel");
+		await mkdir(subpackage, { recursive: true });
+		const cwdBefore = process.cwd();
+		process.chdir(root);
+		try {
+			// A relative --cwd like "packages/sentinel" previously hit
+			// dirname("packages") === "." after only two climbs — nowhere
+			// near the real root — and returned that relative string
+			// unchanged, not `root`.
+			expect(findGitRoot("packages/sentinel")).toBe(root);
+			expect(findGitRoot(".")).toBe(root);
+		} finally {
+			process.chdir(cwdBefore);
+		}
+	});
+
+	it("resolves a symlinked start path to its physical directory before walking", async () => {
+		await mkdir(join(root, ".git"));
+		const subpackage = join(root, "packages", "sentinel");
+		await mkdir(subpackage, { recursive: true });
+		// A symlink living OUTSIDE root's own lexical ancestor chain —
+		// walking the symlink's own lexical parents would never reach
+		// root's .git at all.
+		const linkParent = await mkdtemp(join(tmpdir(), "holocron-gitroot-link-"));
+		const link = join(linkParent, "sentinel-link");
+		await symlink(subpackage, link);
+		try {
+			expect(findGitRoot(link)).toBe(root);
+		} finally {
+			await rm(linkParent, { recursive: true, force: true });
+		}
 	});
 });

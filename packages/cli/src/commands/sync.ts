@@ -1,4 +1,6 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
+import { access, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
@@ -90,6 +92,12 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// package.json scripts/keywords/description, its own README) stay
 	// keyed to `input.context.repoRoot` (= --cwd) unchanged below.
 	const gitRoot = findGitRoot(input.context.repoRoot);
+	// `findGitRoot` resolves symlinks and relative segments internally; a
+	// plain `===` against the raw, unresolved `input.context.repoRoot`
+	// would mark a real root invocation as a subpackage whenever --cwd's
+	// spelling differs at all from gitRoot's resolved form (e.g. `--cwd
+	// ./` at the actual root) — resolved once here for that comparison.
+	const resolvedRepoRoot = realpathSync(input.context.repoRoot);
 
 	logger.info({ config: config.name, steps: requestedSteps ?? "all", dryRun: dryRun || undefined }, "sync: start");
 
@@ -431,6 +439,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					// The combined-content family (delivery.deploy, knowledge.docs,
 					// knowledge.components) all key their generated file by task
 					// name already — no special-casing needed.
+					// Keyed by task name alone, regardless of which package's
+					// --cwd generated it — two different subpackages opting
+					// into the same generic task name would overwrite each
+					// other's file here, and package-relative paths baked
+					// into a template wouldn't get rebased for a non-root
+					// --cwd. Tracked as #1026; not yet a real collision since
+					// Sentinel's two --cwd-scoped tasks are both task-name-
+					// unique and carry no repo-root-relative content.
 					const filename = `${name}.yml`;
 					const content = files.get(filename);
 					if (content === undefined) continue; // ci: false — nothing to write
@@ -497,7 +513,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			// this entire step rather than guessing at a merge semantic; the
 			// repo's own root-level sync run (where --cwd IS gitRoot) is the
 			// one place these get written.
-			if (input.context.repoRoot !== gitRoot) {
+			if (resolvedRepoRoot !== gitRoot) {
 				steps.push({
 					capability: "local",
 					step: "sync turbo.json",
@@ -572,7 +588,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "wiki") {
-			const result = await runSyncWiki({ loaded: input.loaded, context: input.context });
+			// fern/docs.yml is repo-wide, same category as turbo.json —
+			// runSyncWiki resolves it via context.repoRoot, so a monorepo
+			// subpackage sync needs gitRoot there instead, or it looks for
+			// (and fails to find) packages/<pkg>/fern/docs.yml.
+			const result = await runSyncWiki({
+				loaded: input.loaded,
+				context: { ...input.context, repoRoot: gitRoot },
+			});
 			steps.push(result);
 			print(formatSyncStep(result));
 		}
@@ -742,8 +765,20 @@ async function updateReadmeDescription(repoRoot: string, description: string): P
 	return true;
 }
 
+/**
+ * Writes via a temp file + rename in the same directory, not a direct
+ * `writeFile` — a monorepo subpackage sync can target the same root-level
+ * file a root sync (or another subpackage's sync) also writes, and a
+ * process killed mid-write would otherwise leave the live GitHub Actions
+ * workflow truncated until some later sync happens to restore it. A same-
+ * directory rename is atomic on POSIX filesystems, so readers only ever
+ * see the old complete content or the new complete content, never a
+ * partial write.
+ */
 async function writeWorkflowFile(repoRoot: string, filename: string, content: string): Promise<void> {
 	const dir = join(repoRoot, ".github", "workflows");
 	await mkdir(dir, { recursive: true });
-	await writeFile(join(dir, filename), content, "utf8");
+	const tmpPath = join(dir, `.${filename}.${randomUUID()}.tmp`);
+	await writeFile(tmpPath, content, "utf8");
+	await rename(tmpPath, join(dir, filename));
 }
