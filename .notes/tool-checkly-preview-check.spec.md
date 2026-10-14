@@ -283,7 +283,7 @@ Two known gaps, tracked rather than fixed here:
   output.** `delivery.previewDeploy`'s reusable workflow greps the
   holocron composite action's own `log-file` output for the last
   `*.vercel.app` match — there's no `--json` flag on `holocron deploy`
-  to parse instead. Anchored to the Vercel host and a URL-safe
+  to parse instead. Anchored to the Vercel service and a URL-safe
   character class specifically so it can't be redirected to an
   attacker-chosen origin by anything else that log happens to contain;
   fails loudly (`::error::`) rather than posting an empty
