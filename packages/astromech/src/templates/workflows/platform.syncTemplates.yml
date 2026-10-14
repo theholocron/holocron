@@ -1,0 +1,22 @@
+name: Platform
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+    paths:
+      - packages/astromech/src/templates/**
+      - packages/cli/src/templates/**
+  workflow_dispatch: {}
+
+concurrency:
+  group: sync-templates
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-templates:
+    name: Sync Templates
+    uses: theholocron/.github/.github/workflows/platform.syncTemplates.yml@main
+    secrets: inherit

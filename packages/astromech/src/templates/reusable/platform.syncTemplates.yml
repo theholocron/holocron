@@ -1,0 +1,38 @@
+name: Sync Templates
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_SYNC_TOKEN:
+        description: Fine-grained PAT (resource owner org, contents:write on theholocron/.github) used to push generated files there.
+        required: false
+      GH_TOKEN:
+        description: >
+          Generic GitHub token fallback for gh CLI calls. Used when
+          HOLOCRON_SYNC_TOKEN is not set.
+        required: false
+
+jobs:
+  sync-templates:
+    name: Run holocron sync github
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Run holocron sync github
+        # Pushes the reusable workflows + composite actions astromech
+        # generates to theholocron/.github's own default branch directly —
+        # no local commit, no branch, no PR. HOLOCRON_SYNC_TOKEN (set above)
+        # is read by the CLI's own token resolver; no --token flag needed.
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: sync github

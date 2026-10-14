@@ -192,6 +192,12 @@ export const TASKS: Record<string, TaskDef> = {
 
 	// ── platform.* — operating the repo itself ────────────────────────────
 	"platform.repoSync": { local: { command: "sync" } },
+	// No local equivalent runner distinct from `sync github` itself —
+	// invokes the CLI subcommand directly, same shape as repoSync's `sync`.
+	// Holocron-repo-specific: pushes astromech's own generated reusable
+	// workflows/composite actions to theholocron/.github, so only this
+	// repo's thin caller is ever meaningfully triggered (holocron#1013).
+	"platform.syncTemplates": { local: { command: "sync github" } },
 	"platform.commitStandards": {
 		local: null,
 		linterGroup: ["commitlint"],

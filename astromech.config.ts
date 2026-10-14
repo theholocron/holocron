@@ -38,6 +38,11 @@ export default defineConfig({
 		{ name: "delivery.publish", with: { "sentry-project": "holocron-cli", "deploy-on-release": true } },
 		// Sync: keep generated files (workflows, labels, …) current on push to main.
 		"platform.repoSync",
+		// Sync Templates: push astromech's own generated reusable workflows +
+		// composite actions to theholocron/.github whenever their source
+		// templates change here, on main or alpha (holocron#1012/#1013/#1014).
+		// Holocron-repo-specific — no other repo owns these templates to push.
+		"platform.syncTemplates",
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.
 		"knowledge.wiki",
 	],
