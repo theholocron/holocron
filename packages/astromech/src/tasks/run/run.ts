@@ -157,8 +157,11 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	// ── 3. registry local runner ───────────────────────────────────────
 	if (def?.local) {
 		if (def.local.command) {
-			// A holocron subcommand (sync, sync-wiki) — invoke this CLI.
-			return run(process.execPath, [process.argv[1]!, def.local.command, ...passthrough]);
+			// A holocron subcommand (sync, sync-wiki, sync github) — invoke
+			// this CLI. Split on whitespace: each word is its own argv
+			// entry (a nested yargs command path like "sync github" needs
+			// two separate tokens, not one string containing a space).
+			return run(process.execPath, [process.argv[1]!, ...def.local.command.split(" "), ...passthrough]);
 		}
 		const runner = resolveRunner(def.local, cwd, listDir, readFile);
 		if (runner) {

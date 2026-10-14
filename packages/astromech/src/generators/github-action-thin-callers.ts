@@ -18,6 +18,7 @@ import wikiYml from "../templates/workflows/knowledge.wiki.yml";
 import commitStandardsYml from "../templates/workflows/platform.commitStandards.yml";
 import repoSyncYml from "../templates/workflows/platform.repoSync.yml";
 import repoValidationYml from "../templates/workflows/platform.repoValidation.yml";
+import syncTemplatesYml from "../templates/workflows/platform.syncTemplates.yml";
 import previewYml from "../templates/workflows/preview.yml";
 import reviewYml from "../templates/workflows/review.yml";
 import codeScanningYml from "../templates/workflows/security.codeScanning.yml";
@@ -49,6 +50,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"platform.repoSync": repoSyncYml,
 	"platform.commitStandards": commitStandardsYml,
 	"platform.repoValidation": repoValidationYml,
+	"platform.syncTemplates": syncTemplatesYml,
 	"knowledge.wiki": wikiYml,
 	preview: previewYml,
 	review: reviewYml,

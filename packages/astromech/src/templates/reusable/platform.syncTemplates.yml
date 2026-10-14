@@ -1,0 +1,52 @@
+name: Sync Templates
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_SYNC_TOKEN:
+        description: >
+          Fine-grained PAT (resource owner org) with BOTH contents:write and
+          workflows:write on theholocron/.github — contents:write alone is
+          rejected for anything under .github/workflows/, a GitHub
+          fine-grained-PAT restriction independent of repo permissions.
+        required: false
+      GH_TOKEN:
+        description: >
+          Fallback PAT with the same two permissions, used only when
+          HOLOCRON_SYNC_TOKEN is not set. The default GITHUB_TOKEN is never
+          an acceptable fallback here — it cannot write to a different repo
+          no matter what this job's own `permissions:` block grants, so it
+          is deliberately not offered as a third fallback; the CLI's own
+          token resolver already fails with a clear, actionable message
+          when both secrets above are unset.
+        required: false
+
+jobs:
+  sync-templates:
+    name: Run holocron sync github
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Run holocron sync github
+        # No local commit, no branch, no PR — pushes directly to
+        # theholocron/.github's own default branch.
+        #
+        # HOLOCRON_SYNC_TOKEN is scoped to ONLY this step, not the job —
+        # "Setup" (above) runs this ref's own pnpm install, and the
+        # "Build the workspace" step this composite action may run (an
+        # unbuilt workspace checkout — the holocron repo itself) runs this
+        # ref's own build, including any postinstall/build-time script a
+        # malicious push could carry. Neither sees a write credential.
+        uses: theholocron/.github/.github/actions/holocron@main
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+        with:
+          command: sync github

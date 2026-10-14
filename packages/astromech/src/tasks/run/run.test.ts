@@ -336,6 +336,14 @@ describe("runTask", () => {
 		});
 	});
 
+	it("splits a multi-word holocron subcommand into separate argv entries, not one string with a space", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		call("platform.syncTemplates");
+		// "sync github" is a nested yargs command path — must be two tokens,
+		// not one string containing a space, or yargs can't resolve it.
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "sync", "github"], { cwd: CWD });
+	});
+
 	it("reports a task with no local equivalent as skipped — even when --required", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() });
 		const report = call("security.codeScanning", { required: true });
