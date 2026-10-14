@@ -1,0 +1,24 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  pull_request: {}
+
+concurrency:
+  group: preview-deploy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  preview-deploy:
+    name: Preview Deploy
+    uses: theholocron/.github/.github/workflows/delivery.previewDeploy.yml@main
+    with:
+      cwd: packages/sentinel
+    secrets: inherit
