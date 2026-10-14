@@ -160,14 +160,32 @@ jobs:
 
 The reusable `workflow_call` implementation
 (`templates/reusable/delivery.previewCheck.yml`) takes `preview-url`
-and `sha` as required inputs (plus an optional `cwd`, default `.`),
-checks out `sha` explicitly with `persist-credentials: false` (this
-job runs a PR's own, untrusted `holocron.config.ts` — nothing should
-be left in `.git/config` for it to read), then runs `holocron
-monitoring check <preview-url>` through the shared `holocron`
-composite action, same as every other reusable workflow's core step.
-No `secrets: inherit` on either caller — this job makes no vendor API
-call, so there's nothing it needs to inherit.
+and `sha` as required inputs (plus an optional `cwd`, default `.`).
+**Before anything else** (review on #1024), it validates `preview-url`:
+the triggering `deployment_status` event's `environment_url` is set by
+whoever created that deployment status — not necessarily this repo's
+own `delivery.previewDeploy` job, since anyone with `deployments:
+write` could create one directly via the API — so forwarding it
+unchecked to a step that fetches it (the monitoring check, below) is
+an SSRF primitive: a crafted `environment_url` could point this
+runner at an internal host instead of a real Vercel preview. Fixed the
+same way `delivery.previewDeploy`'s own URL-extraction step already
+is: `new URL(candidate).hostname` must end in `.vercel.app` and
+`.protocol` must be `https:`, checked via `node -e`, and the
+_re-serialized_ `url.href` — never the raw input — is what gets
+forwarded on. Re-serializing closes a second, smaller issue the same
+move: a string that fails to parse as a conforming URL can't carry
+embedded whitespace or shell metacharacters either, so there's nothing
+for argument injection to land in by the time it reaches `args:`.
+
+Only once that validation step passes does it check out `sha`
+explicitly with `persist-credentials: false` (this job runs a PR's own,
+untrusted `holocron.config.ts` — nothing should be left in
+`.git/config` for it to read), then runs `holocron monitoring check
+<validated-url>` through the shared `holocron` composite action, same
+as every other reusable workflow's core step. No `secrets: inherit` on
+either caller — this job makes no vendor API call, so there's nothing
+it needs to inherit.
 
 No live precedent exists in this org for a thin caller triggered by a
 true external webhook event rather than `push`/`pull_request`/
@@ -225,21 +243,24 @@ Checks out the PR's exact head SHA (same checkout-ref reasoning as
 `delivery.previewCheck`'s `sha` input), and skips the deploy step
 cleanly on an empty `VERCEL_TOKEN` (a fork PR never receives it) via a
 plain shell check rather than a step `if:` — `secrets` isn't a valid
-context there (actionlint-enforced).
+context there (actionlint-enforced). That skip is silent to the fork
+contributor — no preview, no explanation — tracked as **#1027**, not
+fixed here.
 
 **Two jobs, not one** (review on #1022): `deploy` checks out and builds
 the PR's own code with `VERCEL_TOKEN` present, and `report` — on a
-separate, fresh runner, with `deployments: write` and `GH_TOKEN`, and
-**no checkout at all** — creates the GitHub Deployment and posts its
-status. Splitting them closes a real escalation the single-job version
-had: a malicious build/stage script in `deploy` could persist a `gh`
-shim onto `$GITHUB_PATH` (or similar runner-state tampering) that a
-later step in the _same_ job — the one holding `GH_TOKEN` — would
-then execute instead of the real `gh` CLI, stealing that token too.
-Two jobs on two runners share no state, closing that path entirely.
-`VERCEL_TOKEN` exposure to `deploy`'s own build step is unrelated and
-still open (#1020 below) — splitting the jobs narrows the blast radius
-to that one token, not both.
+separate, fresh runner, with `deployments: write` and
+`HOLOCRON_DEPLOYMENTS_TOKEN`, and **no checkout at all** — creates the GitHub
+Deployment and posts its status. Splitting them closes a real
+escalation the single-job version had: a malicious build/stage script
+in `deploy` could persist a `gh` shim onto `$GITHUB_PATH` (or similar
+runner-state tampering) that a later step in the _same_ job — the one
+holding the deployments credential — would then execute instead of the
+real `gh` CLI, stealing that credential too. Two jobs on two runners
+share no state, closing that path entirely. `VERCEL_TOKEN` exposure to
+`deploy`'s own build step is unrelated and still open (#1020 below) —
+splitting the jobs narrows the blast radius to that one token, not
+both.
 
 The preview URL is extracted from the deploy step's log and
 **validated by parsing it as a URL**, not only regex-matched: the
@@ -252,15 +273,21 @@ requiring `new URL(candidate).hostname` end in `.vercel.app`, which
 can't be fooled by any text-shape trick regex-tuning alone keeps
 missing.
 
-`report` posts using `secrets.GH_TOKEN`, a real PAT, **not**
-`secrets.GITHUB_TOKEN`: GitHub does not start a new workflow run for
-an event created using a run's own `GITHUB_TOKEN` — the same
-recursive-run guard this repo's own sync workflows
-(`platform.repoSync.yml`, `sync-github.yml`) already route around with
-`HOLOCRON_SYNC_TOKEN`/`GH_TOKEN`. Missed on a first pass at this exact
-feature — with `GITHUB_TOKEN`, the deployment and status both post
-successfully, look entirely correct on the PR, and
-`delivery.previewCheck`'s workflow would never start. The
+`report` posts using `secrets.HOLOCRON_DEPLOYMENTS_TOKEN` (review on
+#1024 — renamed from a first-pass `GH_TOKEN` secret that no repo/org
+secret of that exact name ever actually provisioned, so `secrets:
+inherit` on the thin caller silently forwarded nothing and `report`
+failed its own `-z` check every run; `HOLOCRON_DEPLOYMENTS_TOKEN`
+matches this org's `HOLOCRON_<FEATURE>_TOKEN` naming and is documented,
+with provisioning steps, in `docs/tokens.md`'s "CI-only exception:
+GitHub Deployments"), a real PAT, **not** `secrets.GITHUB_TOKEN`:
+GitHub does not start a new workflow run for an event created using a
+run's own `GITHUB_TOKEN` — the same recursive-run guard this repo's
+own sync workflows (`platform.repoSync.yml`, `sync-github.yml`)
+already route around with dedicated PATs of their own. Missed on a
+first pass at this exact feature — with `GITHUB_TOKEN`, the deployment
+and status both post successfully, look entirely correct on the PR,
+and `delivery.previewCheck`'s workflow would never start. The
 deployment's `ref` is the PR's head **branch**, not its SHA — GitHub's
 PR "Environments" widget associates a Deployment by matching `ref` to
 the PR's own branch, not by SHA; GitHub still resolves and records the
@@ -280,7 +307,7 @@ the same preview. If every status-POST retry is exhausted, one last
 attempt posts `state: error` rather than leaving the Deployment
 permanently `pending` in GitHub's UI.
 
-Two known gaps, tracked rather than fixed here:
+Four known gaps, tracked rather than fixed here:
 
 - **#1020** — the `deploy` job's build step still runs this monorepo's
   own, PR-affectable CLI build, pre-review (`pull_request` has no
@@ -291,6 +318,13 @@ Two known gaps, tracked rather than fixed here:
   creates; `holocron deploy cleanup-preview` exists but is interactive
   and hardcodes Cloudflare's branch-alias naming, so it isn't CI-safe
   or Vercel-aware yet.
+- **#1023** — the thin-caller templates trigger on `pull_request: {}`
+  with no `paths:` filter, so a monorepo subpackage consumer (Sentinel)
+  gets a real preview deploy + check on every PR in the repo, not only
+  ones touching its own files.
+- **#1027** — a fork PR's missing `VERCEL_TOKEN` is handled correctly
+  (the deploy step skips rather than fails), but silently: no preview,
+  no explanation why, despite every same-repo PR getting one.
 
 ## Open risks
 

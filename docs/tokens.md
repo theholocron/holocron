@@ -118,6 +118,25 @@ was set in the first place), so no dedicated token is needed for a one-off
 manual run outside CI. See "Provisioning `HOLOCRON_SECRETS_TOKEN`" below
 for the exact one-time setup steps.
 
+### CI-only exception: GitHub Deployments
+
+`delivery.previewDeploy`'s reusable workflow (any package opting into the
+task — currently Sentinel, holocron#1010/#1022) creates a GitHub
+Deployment and posts its status for each PR preview, so that
+`delivery.previewCheck` has a `deployment_status` event to trigger on.
+None of the 7 feature tokens above carry the `deployments` permission —
+`github.admin` is the closest repo-scoped token, but widening it just for
+this would hand deployment write access to every other command that
+resolves `github.admin`.
+
+A dedicated `HOLOCRON_DEPLOYMENTS_TOKEN` carries **only** `deployments:
+read/write`, following the same reasoning as `HOLOCRON_SECRETS_TOKEN`
+above: a repo secret on `holocron`, consumed solely via the reusable
+workflow's `secrets: inherit` (not a `HOLOCRON_<FEATURE>_TOKEN` env var in
+the CLI's own resolution chain — nothing in `packages/cli` reads it; it
+only ever reaches `gh api` inside the workflow). See "Provisioning
+`HOLOCRON_DEPLOYMENTS_TOKEN`" below.
+
 ---
 
 ## Third-party provider tokens
@@ -222,9 +241,29 @@ never by env-var auto-detection:
 gh secret set HOLOCRON_SECRETS_TOKEN --repo theholocron/holocron
 ```
 
-#### None of these three belong in the local keyring
+#### Provisioning `HOLOCRON_DEPLOYMENTS_TOKEN`
 
-All three are CI-only by design — deliberately kept out of
+Another brand-new, single-purpose fine-grained PAT — reaches `gh` inside
+the `delivery.previewDeploy` reusable workflow only, via `secrets:
+inherit` on the thin caller, never through the CLI's own token
+resolution:
+
+1. `github.com/settings/tokens?type=beta` → "Generate new token."
+2. **Resource owner**: `theholocron` (org) — repos opting into
+   `delivery.previewDeploy` aren't necessarily just `holocron` itself.
+3. **Token name**: `HOLOCRON_DEPLOYMENTS_TOKEN`.
+4. **Description**: `CI-only — creates GitHub Deployments and posts their status for delivery.previewDeploy preview deploys (holocron#1010/#1022/#1024). Grants ONLY Deployments: read/write. Never used interactively — only referenced via secrets: inherit in the delivery.previewDeploy reusable workflow.`
+5. **Repository access**: the repos that opt into `delivery.previewDeploy` (currently just `holocron`, for Sentinel) — unlike `HOLOCRON_SECRETS_TOKEN`, this permission IS repo-scoped.
+6. **Permissions → Repository permissions → Deployments**: **Read and write**. Leave every other permission at "No access."
+7. Generate, copy the value, then:
+
+```sh
+gh secret set HOLOCRON_DEPLOYMENTS_TOKEN --repo theholocron/holocron
+```
+
+#### None of these four belong in the local keyring
+
+All four are CI-only by design — deliberately kept out of
 `holocron auth set`'s local resolution chain:
 
 - **`HOLOCRON_SECRETS_TOKEN`** has no keyring key to land in at all — no
@@ -234,6 +273,12 @@ All three are CI-only by design — deliberately kept out of
   already-authenticated `gh` session already has org-secrets permission —
   it's almost certainly how `SENTINEL_AXIOM_INGEST_TOKEN` was set as an
   org secret in the first place), so there's no local credential to store.
+- **`HOLOCRON_DEPLOYMENTS_TOKEN`** likewise has no keyring key or CLI
+  resolver — nothing in `packages/cli` ever calls the GitHub Deployments
+  API directly; only the reusable workflow's own `gh api` calls use it.
+  The local equivalent, for a one-off manual test, is `GH_TOKEN=$(gh auth
+token) gh api repos/<owner>/<repo>/deployments ...` with your own
+  already-authenticated session, same as above.
 - **`SENTINEL_DOPPLER_TOKEN`** _could_ technically go under keyring key
   `doppler`, but shouldn't — that key already holds your personal Doppler
   login (full account access). Overwriting it with a config-scoped,
