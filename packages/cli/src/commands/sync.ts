@@ -1,4 +1,6 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
+import { access, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
@@ -11,6 +13,7 @@ import { getLogger } from "../logger.js";
 import type { Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { createHeader } from "../utils/create-header.js";
+import { findGitRoot } from "../utils/find-git-root.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import {
 	CANONICAL_LABELS,
@@ -79,6 +82,30 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const dryRun = input.context.dryRun ?? false;
 	const requestedSteps = input.steps;
 	const steps: SetupStepResult[] = [];
+	// `--cwd` picks which holocron.config.ts to load — for a monorepo
+	// subpackage (e.g. packages/sentinel) that's NOT the git repo root.
+	// Anything inherently repo-wide (.github/workflows, turbo.json,
+	// pnpm-workspace.yaml, the root package.json's own devDependencies,
+	// "is this repo a monorepo") must resolve against the real root or it
+	// silently writes into a GitHub-invisible nested .github/ instead
+	// (holocron#1014) — package-local writes (this package's own
+	// package.json scripts/keywords/description, its own README) stay
+	// keyed to `input.context.repoRoot` (= --cwd) unchanged below.
+	const gitRoot = findGitRoot(input.context.repoRoot);
+	// `findGitRoot` resolves symlinks and relative segments internally; a
+	// plain `===` against the raw, unresolved `input.context.repoRoot`
+	// would mark a real root invocation as a subpackage whenever --cwd's
+	// spelling differs at all from gitRoot's resolved form (e.g. `--cwd
+	// ./` at the actual root) — resolved once here for that comparison.
+	// Falls back to the raw value on a nonexistent path (tests routinely
+	// use a synthetic `repoRoot` like `"/tmp/test"` that's never actually
+	// created) — same non-throwing contract `findGitRoot` itself keeps.
+	let resolvedRepoRoot: string;
+	try {
+		resolvedRepoRoot = realpathSync(input.context.repoRoot);
+	} catch {
+		resolvedRepoRoot = input.context.repoRoot;
+	}
 
 	logger.info({ config: config.name, steps: requestedSteps ?? "all", dryRun: dryRun || undefined }, "sync: start");
 
@@ -135,7 +162,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const effectivePreset = repo?.protection;
 					if (effectivePreset && effectivePreset !== "none")
 						properties["holocron_branch_protection_level"] = effectivePreset;
-					const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
+					const isMonorepo = await access(join(gitRoot, "pnpm-workspace.yaml"))
 						.then(() => true)
 						.catch(() => false);
 					properties["monorepo"] = String(isMonorepo);
@@ -150,17 +177,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					// that isn't an explicit holocron.config.ts field today (framework
 					// choice, repo archetype, capability drift).
 					{
-						const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+						const rootPackageJson = await readFile(join(gitRoot, "package.json"), "utf8")
 							.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
 							.catch(() => null);
-						const workspacePackages = readWorkspacePackages(input.context.repoRoot);
-						const workspacePackageJsons = await readWorkspacePackageJsons(
-							input.context.repoRoot,
-							workspacePackages
-						);
+						const workspacePackages = readWorkspacePackages(gitRoot);
+						const workspacePackageJsons = await readWorkspacePackageJsons(gitRoot, workspacePackages);
 						properties["holocron_profile"] = deriveProfile({
 							rootPackageJson,
-							repoName: basename(input.context.repoRoot),
+							repoName: basename(gitRoot),
 							isMonorepo,
 							workspacePackageJsons,
 						});
@@ -423,6 +447,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					// The combined-content family (delivery.deploy, knowledge.docs,
 					// knowledge.components) all key their generated file by task
 					// name already — no special-casing needed.
+					// Keyed by task name alone, regardless of which package's
+					// --cwd generated it — two different subpackages opting
+					// into the same generic task name would overwrite each
+					// other's file here, and package-relative paths baked
+					// into a template wouldn't get rebased for a non-root
+					// --cwd. Tracked as #1026; not yet a real collision since
+					// Sentinel's two --cwd-scoped tasks are both task-name-
+					// unique and carry no repo-root-relative content.
 					const filename = `${name}.yml`;
 					const content = files.get(filename);
 					if (content === undefined) continue; // ci: false — nothing to write
@@ -431,7 +463,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
 					steps.push(
 						await runSyncStep("local", step, dryRun, async () => {
-							await writeWorkflowFile(input.context.repoRoot, filename, `${workflowHeader()}${content}`);
+							await writeWorkflowFile(gitRoot, filename, `${workflowHeader()}${content}`);
 						})
 					);
 					print(formatSyncStep(steps[steps.length - 1]!));
@@ -480,6 +512,26 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "turbo") {
+			// turbo.json, pnpm-workspace.yaml, and the root package.json's own
+			// devDependencies are each a single, whole-workspace file — one
+			// subpackage's holocron.config.ts can't correctly own writing
+			// them (which other subpackage's tasks would it be allowed to
+			// clobber?). A monorepo subpackage sync (holocron#1014's exact
+			// shape — --cwd resolves to a package, not the git root) skips
+			// this entire step rather than guessing at a merge semantic; the
+			// repo's own root-level sync run (where --cwd IS gitRoot) is the
+			// one place these get written.
+			if (resolvedRepoRoot !== gitRoot) {
+				steps.push({
+					capability: "local",
+					step: "sync turbo.json",
+					status: "skip",
+					message: "--cwd is a monorepo subpackage, not the git root — run from the root to sync turbo.json",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+				continue;
+			}
+
 			const astromechTurbo = createAstromech({
 				cwd: input.context.repoRoot,
 				config: { tasks: config.tasks as TasksConfig["tasks"] },
@@ -498,7 +550,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			} else {
 				steps.push(
 					await runSyncStep("local", "sync turbo.json", dryRun, async () => {
-						await writeFile(join(input.context.repoRoot, "turbo.json"), content, "utf8");
+						await writeFile(join(gitRoot, "turbo.json"), content, "utf8");
 					})
 				);
 				print(formatSyncStep(steps[steps.length - 1]!));
@@ -506,13 +558,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				// #692: fix pnpm-workspace.yaml in the same step that introduces
 				// the risk — see run-setup.ts's identical wiring for the full
 				// explanation.
-				const rootPkgRaw = await readFile(join(input.context.repoRoot, "package.json"), "utf8").catch(
-					() => null
-				);
+				const rootPkgRaw = await readFile(join(gitRoot, "package.json"), "utf8").catch(() => null);
 				const rootPkg = rootPkgRaw ? (JSON.parse(rootPkgRaw) as { scripts?: Record<string, string> }) : null;
-				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
-					() => ""
-				);
+				const workspaceYaml = await readFile(join(gitRoot, "pnpm-workspace.yaml"), "utf8").catch(() => "");
 				const rootScripts = rootPkg?.scripts ?? {};
 				const workspaceFix = astromechTurbo.ensureRootWorkspaceMember(workspaceYaml, rootScripts);
 				if (workspaceFix.changed) {
@@ -522,11 +570,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							"fix pnpm-workspace.yaml (root workspace member, #692)",
 							dryRun,
 							async () => {
-								await writeFile(
-									join(input.context.repoRoot, "pnpm-workspace.yaml"),
-									workspaceFix.content,
-									"utf8"
-								);
+								await writeFile(join(gitRoot, "pnpm-workspace.yaml"), workspaceFix.content, "utf8");
 							}
 						)
 					);
@@ -542,7 +586,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					if (depFix.changed) {
 						steps.push(
 							await runSyncStep("local", "add turbo devDependency", dryRun, async () => {
-								await writeFile(join(input.context.repoRoot, "package.json"), depFix.content, "utf8");
+								await writeFile(join(gitRoot, "package.json"), depFix.content, "utf8");
 							})
 						);
 						print(formatSyncStep(steps[steps.length - 1]!));
@@ -552,7 +596,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "wiki") {
-			const result = await runSyncWiki({ loaded: input.loaded, context: input.context });
+			// fern/docs.yml is repo-wide, same category as turbo.json —
+			// runSyncWiki resolves it via context.repoRoot, so a monorepo
+			// subpackage sync needs gitRoot there instead, or it looks for
+			// (and fails to find) packages/<pkg>/fern/docs.yml.
+			const result = await runSyncWiki({
+				loaded: input.loaded,
+				context: { ...input.context, repoRoot: gitRoot },
+			});
 			steps.push(result);
 			print(formatSyncStep(result));
 		}
@@ -722,8 +773,20 @@ async function updateReadmeDescription(repoRoot: string, description: string): P
 	return true;
 }
 
+/**
+ * Writes via a temp file + rename in the same directory, not a direct
+ * `writeFile` — a monorepo subpackage sync can target the same root-level
+ * file a root sync (or another subpackage's sync) also writes, and a
+ * process killed mid-write would otherwise leave the live GitHub Actions
+ * workflow truncated until some later sync happens to restore it. A same-
+ * directory rename is atomic on POSIX filesystems, so readers only ever
+ * see the old complete content or the new complete content, never a
+ * partial write.
+ */
 async function writeWorkflowFile(repoRoot: string, filename: string, content: string): Promise<void> {
 	const dir = join(repoRoot, ".github", "workflows");
 	await mkdir(dir, { recursive: true });
-	await writeFile(join(dir, filename), content, "utf8");
+	const tmpPath = join(dir, `.${filename}.${randomUUID()}.tmp`);
+	await writeFile(tmpPath, content, "utf8");
+	await rename(tmpPath, join(dir, filename));
 }
