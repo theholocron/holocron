@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -888,6 +888,36 @@ describe("runSync", () => {
 			expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
 		});
 
+		it("skips entirely when --cwd is a monorepo subpackage, not the git root (holocron#1014)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			// Present at the real root — if the step incorrectly fell back to
+			// writing there via --cwd, this content would get overwritten;
+			// the assertion below confirms it's untouched.
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+
+			const loaded = loadedFrom({ name: "demo", tasks: ["delivery.build"], providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: subpackage },
+				loader,
+				steps: ["turbo"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync turbo.json");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+			expect(existsSync(join(tmpDir, "turbo.json"))).toBe(false);
+			expect(existsSync(join(subpackage, "turbo.json"))).toBe(false);
+			const rootPkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies?: Record<string, string>;
+			};
+			expect(rootPkg.devDependencies).toBeUndefined();
+		});
+
 		it("fixes pnpm-workspace.yaml when root has a fan-out-eligible script it isn't a workspace member for (#692)", async () => {
 			await writeFile(
 				join(tmpDir, "package.json"),
@@ -1418,6 +1448,49 @@ describe("runSync", () => {
 		}
 	});
 
+	it("derives monorepo/profile from the real git root, not --cwd, for a monorepo subpackage (holocron#1014)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ devDependencies: { tsdown: "^0.22.0" } }));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			// No pnpm-workspace.yaml/package.json here — only the real root's,
+			// above, should ever be read.
+
+			let captured: Record<string, string | string[]> | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string | string[]>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({
+				loaded,
+				context: { repoRoot: subpackage },
+				loader,
+				steps: ["properties"],
+				print: () => {},
+			});
+
+			expect(captured!["monorepo"]).toBe("true");
+			expect(captured!["holocron_stack"]).toEqual(["tsdown"]);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
 	it("includes holocron_branch_protection_level when repo.protection is set", async () => {
 		let captured: Record<string, string | string[]> | null = null;
 		const loaded = loadedFrom({
@@ -1665,6 +1738,37 @@ describe("runSync", () => {
 			);
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("sourceQuality.staticAnalysis.yml@main");
+		});
+
+		it("writes to the real git root's .github/workflows/, not --cwd, for a monorepo subpackage (holocron#1014)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["sourceQuality.staticAnalysis"],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: subpackage },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(
+				join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
+			expect(content).toContain("AUTO-GENERATED");
+			// Not written into the subpackage's own, GitHub-invisible .github/.
+			expect(existsSync(join(subpackage, ".github"))).toBe(false);
 		});
 
 		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {
