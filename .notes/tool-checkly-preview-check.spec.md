@@ -242,11 +242,11 @@ still open (#1020 below) — splitting the jobs narrows the blast radius
 to that one token, not both.
 
 The preview URL is extracted from the deploy step's log and
-**validated by parsing it as a URL**, not just regex-matched: the
+**validated by parsing it as a URL**, not only regex-matched: the
 first pass anchored a hand-written character class after `.vercel.app`
 that happened to include `@`, so a crafted log line like
 `https://x.vercel.app@127.0.0.1/` would satisfy the regex while
-actually parsing to host `127.0.0.1` — a classic userinfo-redirect
+actually parsing to localhost `127.0.0.1` — a classic userinfo-redirect
 trick. Fixed by grabbing any `https://` candidate text and separately
 requiring `new URL(candidate).hostname` end in `.vercel.app`, which
 can't be fooled by any text-shape trick regex-tuning alone keeps
@@ -260,7 +260,7 @@ recursive-run guard this repo's own sync workflows
 `HOLOCRON_SYNC_TOKEN`/`GH_TOKEN`. Missed on a first pass at this exact
 feature — with `GITHUB_TOKEN`, the deployment and status both post
 successfully, look entirely correct on the PR, and
-`delivery.previewCheck`'s workflow would simply never start. The
+`delivery.previewCheck`'s workflow would never start. The
 deployment's `ref` is the PR's head **branch**, not its SHA — GitHub's
 PR "Environments" widget associates a Deployment by matching `ref` to
 the PR's own branch, not by SHA; GitHub still resolves and records the
@@ -268,10 +268,10 @@ exact commit as the deployment's own `.sha` field from that ref, so
 `delivery.previewCheck`'s `sha` input stays accurate either way.
 
 Both `gh api` calls retry up to 3 times: deployment **creation** too,
-not just the status POST — a transient failure creating the
+not only the status POST — a transient failure creating the
 (cheap) GitHub Deployment object used to fail the whole step outright,
 forcing a full re-deploy (re-uploading to Vercel) on retry instead of
-just retrying the one API call. Before retrying a status POST, it
+retrying the one API call. Before retrying a status POST, it
 checks whether GitHub already recorded success from a prior attempt
 whose _response_ got lost client-side (a dropped connection after
 GitHub processed the request) — without that check, retrying blindly
