@@ -40,9 +40,25 @@ export default defineConfig({
 		"platform.repoSync",
 		// Sync Templates: push astromech's own generated reusable workflows +
 		// composite actions to theholocron/.github whenever their source
-		// templates change here, on main or alpha (holocron#1012/#1013/#1014).
-		// Holocron-repo-specific — no other repo owns these templates to push.
-		"platform.syncTemplates",
+		// templates change on main (holocron#1012/#1013/#1014). Holocron-
+		// repo-specific — no other repo owns these templates to push.
+		//
+		// NOT listed here yet, deliberately: Sentinel's config-compatibility
+		// check validates task names against ITS OWN deployed, bundled
+		// @theholocron/astromech — never a PR's own registry.ts changes (D6,
+		// the same security boundary that keeps it from running any other
+		// PR-supplied code). A brand-new task name can't appear in any
+		// config until a real release has shipped it and Sentinel has
+		// redeployed with the updated bundle — confirmed live, this exact
+		// PR failed "Platform / Compliance / Run Holocron config
+		// compatibility" the first time this line was added. The generated
+		// .github/workflows/platform.syncTemplates.yml (committed alongside
+		// the registry entry in this same PR) runs and does its job
+		// regardless — `repo sync` only ever writes files for tasks that
+		// ARE listed here, it never removes one for a task that isn't, so
+		// the file stays correct and functional with this line absent.
+		// Add "platform.syncTemplates" back here in a follow-up PR once
+		// this one has merged and released.
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.
 		"knowledge.wiki",
 	],
