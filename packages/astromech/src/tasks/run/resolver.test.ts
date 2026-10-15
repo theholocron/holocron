@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { RESOLVABLE_TOOLS, resolveToolConfig } from "./resolver.js";
+import { resolveToolConfig } from "./resolver.js";
 
 const CWD = "/repo";
 
@@ -220,11 +220,5 @@ describe("resolveToolConfig — local config file wins (#749)", () => {
 			"vitest.config.ts": "export default mergeConfig(base, { test: { coverage: { exclude: [] } } });",
 		};
 		expect(resolveToolConfig("vitest", CWD, makeFs(vitestInstalled))).toEqual([]);
-	});
-});
-
-describe("RESOLVABLE_TOOLS", () => {
-	it("lists exactly the tools with a resolver mapping", () => {
-		expect([...RESOLVABLE_TOOLS].sort()).toEqual(["commitlint", "eslint", "prettier", "tsdown", "vitest"]);
 	});
 });

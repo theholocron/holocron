@@ -1,4 +1,9 @@
-import type { ResolverDeps, ToolConfigSpec } from "./resolver.type.js";
+import { join } from "node:path";
+
+import { resolveExportEntry } from "./resolve-export-entry.js";
+import type { ResolverDeps } from "./resolver.type.js";
+import { LOCAL_CONFIG_FILES, TOOL_CONFIGS } from "./tool-configs.js";
+
 /**
  * Resolves the absolute path to a Bucket A tool's shared `@theholocron/*-config`
  * entry point, installed in the consuming repo's own `node_modules` — and the
@@ -35,43 +40,6 @@ import type { ResolverDeps, ToolConfigSpec } from "./resolver.type.js";
  */
 
 /**
- * `library` is every mapped tool's org-wide default variant today — every
- * currently-migrated repo (`holocron`, `clients`, `utils`, `configs`,
- * `themes`, `observability`, `skills`) is a publishable library package, and
- * `eslint-config`/`vitest-config`/`tsdown-config` all name their
- * general-purpose preset exactly that. Picking a different variant per repo
- * (an app-type template, say) needs new `holocron.config.ts` surface this
- * doesn't add yet — deliberately out of scope until a real consumer needs it.
- */
-const TOOL_CONFIGS: Readonly<Record<string, ToolConfigSpec>> = {
-	eslint: { package: "@theholocron/eslint-config", exportPath: "./bundles/library", flag: ["--config"] },
-	prettier: { package: "@theholocron/prettier-config", exportPath: ".", flag: ["--config"] },
-	vitest: { package: "@theholocron/vitest-config", exportPath: "./bundles/library", flag: ["--config"] },
-	tsdown: { package: "@theholocron/tsdown-config", exportPath: "./presets/library", flag: ["--config"] },
-	commitlint: { package: "@theholocron/commitlint-config", exportPath: ".", flag: ["--config"] },
-};
-
-/**
- * Every filename a tool's own auto-discovery would pick up from `cwd` —
- * same extension set `registry.ts`'s `turbo.inputs`/`local.detect` entries
- * already use for these tools, kept in sync by hand (no shared source of
- * truth between the two today). Presence of any one of these means the
- * package has its own local config — customized or not, `resolveToolConfig`
- * can't tell the difference from the filename alone, so it defers to it
- * either way (#749).
- */
-const LOCAL_CONFIG_FILES: Readonly<Record<string, readonly string[]>> = {
-	eslint: ["eslint.config.ts", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"],
-	prettier: ["prettier.config.ts", "prettier.config.js", "prettier.config.mjs", "prettier.config.cjs"],
-	vitest: ["vitest.config.ts", "vitest.config.js", "vitest.config.mjs"],
-	tsdown: ["tsdown.config.ts", "tsdown.config.js", "tsdown.config.mjs", "tsdown.config.cjs"],
-	commitlint: ["commitlint.config.ts", "commitlint.config.js", "commitlint.config.mjs", "commitlint.config.cjs"],
-};
-
-/** Every tool name the resolver knows how to point at a shared config. */
-export const RESOLVABLE_TOOLS: ReadonlySet<string> = new Set(Object.keys(TOOL_CONFIGS));
-
-/**
  * `<flag> <absolute path>` for `tool`, resolved against `cwd`'s
  * `node_modules` — or `[]` when the tool isn't mapped, `cwd` already has its
  * own local config file for it (#749 — local always wins, customized or
@@ -89,10 +57,10 @@ export function resolveToolConfig(tool: string, cwd: string, deps: ResolverDeps)
 	// returns for any tool absent from TOOL_CONFIGS.
 	/* istanbul ignore next -- see comment above */
 	const localFiles = LOCAL_CONFIG_FILES[tool] ?? [];
-	if (localFiles.some((name) => deps.fileExists(joinPath(cwd, name)))) return [];
+	if (localFiles.some((name) => deps.fileExists(join(cwd, name)))) return [];
 
-	const pkgDir = joinPath(cwd, "node_modules", ...spec.package.split("/"));
-	const pkgJsonPath = joinPath(pkgDir, "package.json");
+	const pkgDir = join(cwd, "node_modules", ...spec.package.split("/"));
+	const pkgJsonPath = join(pkgDir, "package.json");
 	if (!deps.fileExists(pkgJsonPath)) return [];
 
 	let pkg: { exports?: Record<string, unknown> };
@@ -105,47 +73,9 @@ export function resolveToolConfig(tool: string, cwd: string, deps: ResolverDeps)
 	const relative = resolveExportEntry(pkg.exports?.[spec.exportPath]);
 	if (!relative) return [];
 
-	// package.json#exports values are always "./"-prefixed relative paths —
-	// strip it before joining, or the segment survives untouched (joinPath
-	// only trims leading/trailing "/", not a leading ".") and produces an
-	// inert "/pkg/./dist/…" that a plain fileExists()-by-string-match never
-	// resolves against, even though Node's own resolver would tolerate it.
-	const absolute = joinPath(pkgDir, relative.replace(/^\.\//, ""));
+	// `join` normalizes the "./" prefix every package.json#exports value carries.
+	const absolute = join(pkgDir, relative);
 	if (!deps.fileExists(absolute)) return [];
 
 	return [...spec.flag, absolute];
-}
-
-/**
- * Unwrap a `package.json#exports` subpath entry down to its file path —
- * either a bare string, or an object with condition keys (`import`,
- * `default`, `require`, …) that may themselves nest one level (`{ import: {
- * types, default } }`, the shape every `@theholocron/*-config` package
- * actually uses). Prefers `import` (this org ships ESM), then `default`,
- * then `require` as a last resort.
- */
-function resolveExportEntry(entry: unknown): string | undefined {
-	if (typeof entry === "string") return entry;
-	if (entry === null || typeof entry !== "object") return undefined;
-
-	const conditions = entry as Record<string, unknown>;
-	const value = conditions.import ?? conditions.default ?? conditions.require;
-	if (typeof value === "string") return value;
-	if (typeof value === "object" && value !== null) return resolveExportEntry(value);
-	return undefined;
-}
-
-/**
- * A minimal, POSIX-safe `path.join` — avoids importing `node:path` just for
- * this. Every path in play here is either already POSIX (a `package.json`
- * `exports` value, always forward-slashed regardless of platform) or built
- * from platform-neutral segments (`cwd`, `"node_modules"`, a scoped package
- * name split on `/`), so a manual join is safe and keeps this module
- * dependency-free like the rest of `run.ts`'s helpers.
- */
-function joinPath(...segments: string[]): string {
-	return segments
-		.map((s, i) => (i === 0 ? s.replace(/\/+$/, "") : s.replace(/^\/+|\/+$/g, "")))
-		.filter(Boolean)
-		.join("/");
 }
