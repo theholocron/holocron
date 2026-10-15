@@ -111,6 +111,21 @@ describe("package.json", () => {
 		expect(JSON.parse(written["package.json"]!).engines.node).toBe(">=22.0.0");
 	});
 
+	it("keeps the file's own indent when it rewrites package.json (tabs)", async () => {
+		const tabbed = '{\n\t"name": "@acme/root",\n\t"engines": {\n\t\t"node": ">=20.0.0"\n\t}\n}\n';
+		const { readFile, writeFile, walkFiles, written } = makeFs({ "package.json": tabbed });
+		await runUpgradeNode({ to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles });
+		expect(written["package.json"]).toBe(tabbed.replace(">=20.0.0", ">=22.0.0"));
+	});
+
+	it("keeps CRLF line endings when it rewrites package.json", async () => {
+		const crlf =
+			'{\r\n    "name": "@acme/root",\r\n    "engines": {\r\n        "node": ">=20.0.0"\r\n    }\r\n}\r\n';
+		const { readFile, writeFile, walkFiles, written } = makeFs({ "package.json": crlf });
+		await runUpgradeNode({ to: 22, from: 20, cwd: CWD, print: () => {}, readFile, writeFile, walkFiles });
+		expect(written["package.json"]).toBe(crlf.replace(">=20.0.0", ">=22.0.0"));
+	});
+
 	it("updates engines.node when written without .0.0 suffix (>=20)", async () => {
 		const { readFile, writeFile, walkFiles, written } = makeFs({
 			"package.json": pkg({ engines: { node: ">=20" } }),

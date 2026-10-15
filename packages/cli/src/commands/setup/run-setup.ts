@@ -23,6 +23,7 @@ import { basename, join } from "node:path";
 
 import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
@@ -1045,6 +1046,6 @@ async function ensurePrepareScript(repoRoot: string): Promise<boolean> {
 	if (/(^|[\s&|;])husky($|[\s&|;])/.test(current)) return false;
 	scripts.prepare = current ? `${current} && husky` : "husky";
 	pkg.scripts = scripts;
-	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	await writeFile(pkgPath, stringifyJson(pkg, { like: content }), "utf8");
 	return true;
 }

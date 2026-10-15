@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
+import { stringifyJson } from "@theholocron/json-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
@@ -40,7 +41,7 @@ function patchPackageJson(content: string, from: number, to: number): string | n
 		}
 	}
 
-	return changed ? JSON.stringify(pkg, null, 2) + "\n" : null;
+	return changed ? stringifyJson(pkg, { like: content }) : null;
 }
 
 function patchYaml(content: string, from: number, to: number): string | null {

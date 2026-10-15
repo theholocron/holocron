@@ -5,6 +5,8 @@ import { basename, join } from "node:path";
 
 import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { findRootSync } from "@theholocron/fs-utils";
+import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -13,7 +15,6 @@ import { getLogger } from "../logger.js";
 import type { Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { createHeader } from "../utils/create-header.js";
-import { findGitRoot } from "../utils/find-git-root.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import {
 	CANONICAL_LABELS,
@@ -91,15 +92,17 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// (holocron#1014) — package-local writes (this package's own
 	// package.json scripts/keywords/description, its own README) stay
 	// keyed to `input.context.repoRoot` (= --cwd) unchanged below.
-	const gitRoot = findGitRoot(input.context.repoRoot);
-	// `findGitRoot` resolves symlinks and relative segments internally; a
+	// `fallback: "start"` means this always resolves to a string (the start dir when
+	// there is no `.git` above it); the declared `string | undefined` is the no-fallback case.
+	const gitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
+	// `findRootSync` (with `realpath`) resolves symlinks and relative segments internally; a
 	// plain `===` against the raw, unresolved `input.context.repoRoot`
 	// would mark a real root invocation as a subpackage whenever --cwd's
 	// spelling differs at all from gitRoot's resolved form (e.g. `--cwd
 	// ./` at the actual root) — resolved once here for that comparison.
 	// Falls back to the raw value on a nonexistent path (tests routinely
 	// use a synthetic `repoRoot` like `"/tmp/test"` that's never actually
-	// created) — same non-throwing contract `findGitRoot` itself keeps.
+	// created) — same soft-skip `fallback: "start"` keeps.
 	let resolvedRepoRoot: string;
 	try {
 		resolvedRepoRoot = realpathSync(input.context.repoRoot);
@@ -679,7 +682,7 @@ async function writePackageJsonField(repoRoot: string, field: string, value: unk
 	}
 	const pkg = JSON.parse(content) as Record<string, unknown>;
 	pkg[field] = value;
-	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	await writeFile(pkgPath, stringifyJson(pkg, { like: content }), "utf8");
 	return true;
 }
 
@@ -726,7 +729,7 @@ async function mergePackageJsonScripts(
 	}
 	if (changed.length === 0) return [];
 	pkg.scripts = scripts;
-	await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	await writeFile(pkgPath, stringifyJson(pkg, { like: content }), "utf8");
 	return changed.sort();
 }
 

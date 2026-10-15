@@ -618,14 +618,18 @@ describe("the real defaults", () => {
 
 	it("runs end to end on a real repo and manifest: diffs with git and reads the package's holocron.config", async () => {
 		const repo = tmp();
-		const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, stdio: "pipe" }).toString().trim();
+		// Hermetic: a developer's global git config (hooks, templates, rerere) otherwise
+		// spawns background writers into `.git`, which race the cleanup below (ENOTEMPTY).
+		const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+		const git = (...args: string[]) =>
+			execFileSync("git", args, { cwd: repo, stdio: "pipe", env }).toString().trim();
 		mkdirSync(join(repo, "packages", "app", "src"), { recursive: true });
 		writeFileSync(join(repo, "packages", "app", "package.json"), '{"name":"@x/app","version":"1.0.0"}');
 		writeFileSync(
 			join(repo, "packages", "app", "holocron.config.json"),
 			JSON.stringify({ tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }] })
 		);
-		git("init", "-q");
+		git("init", "-q", "--template=");
 		git("config", "user.email", "t@example.com");
 		git("config", "user.name", "t");
 		git("config", "commit.gpgsign", "false");

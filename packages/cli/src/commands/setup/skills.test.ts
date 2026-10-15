@@ -46,6 +46,39 @@ describe("parsePreviousSkills", () => {
 		expect(parsePreviousSkills(gitignore, symlinkFn)).toEqual(["foo"]);
 	});
 
+	it("stops an unterminated block at the next blank line, so user rules below aren't treated as skills", () => {
+		const gitignore = [
+			"# managed by holocron setup — skills",
+			"/.agents/skills/",
+			"/.claude/skills/foo",
+			"",
+			"# my own rules",
+			"/.claude/skills/user-owned",
+		].join("\n");
+		expect(parsePreviousSkills(gitignore, symlinkFn)).toEqual(["foo"]);
+	});
+
+	it("doesn't let an end marker past a blank line close the block", () => {
+		const gitignore = [
+			"# managed by holocron setup — skills",
+			"/.claude/skills/foo",
+			"",
+			"/.claude/skills/user-owned",
+			"# end managed by holocron setup — skills",
+		].join("\n");
+		expect(parsePreviousSkills(gitignore, symlinkFn)).toEqual(["foo"]);
+	});
+
+	it("reads a CRLF block without carrying \\r into the names", () => {
+		const gitignore = [
+			"# managed by holocron setup — skills",
+			"/.claude/skills/foo",
+			"# end managed by holocron setup — skills",
+			"",
+		].join("\r\n");
+		expect(parsePreviousSkills(gitignore, symlinkFn)).toEqual(["foo"]);
+	});
+
 	it("ignores content outside the managed block", () => {
 		const gitignore = [
 			"/.claude/skills/not-managed",

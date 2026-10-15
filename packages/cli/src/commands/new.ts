@@ -22,6 +22,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -482,10 +483,11 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	// regardless of whether the template used placeholders or real values.
 	if (input.description !== undefined || input.homepage !== undefined) {
 		try {
-			const pkg = JSON.parse(readFn(pkgJsonPath)) as Record<string, unknown>;
+			const raw = readFn(pkgJsonPath);
+			const pkg = JSON.parse(raw) as Record<string, unknown>;
 			if (input.description !== undefined) pkg["description"] = input.description;
 			if (input.homepage !== undefined) pkg["homepage"] = input.homepage;
-			writeFn(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n");
+			writeFn(pkgJsonPath, stringifyJson(pkg, { like: raw }));
 			print(`  ✓ package.json (description/homepage)`);
 		} catch {
 			// non-fatal — placeholder replacement already covered it
@@ -499,10 +501,11 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	const displayName = input.name.split("-").map(cap).join(" ");
 	const rootTsconfigPath = path.join(repoDir, "tsconfig.json");
 	try {
-		const tsconfig = JSON.parse(readFn(rootTsconfigPath)) as Record<string, unknown>;
+		const rawTsconfig = readFn(rootTsconfigPath);
+		const tsconfig = JSON.parse(rawTsconfig) as Record<string, unknown>;
 		if (typeof tsconfig["display"] === "string") {
 			tsconfig["display"] = displayName;
-			writeFn(rootTsconfigPath, JSON.stringify(tsconfig, null, 2) + "\n");
+			writeFn(rootTsconfigPath, stringifyJson(tsconfig, { like: rawTsconfig }));
 			print(`  ✓ tsconfig.json (display)`);
 		}
 	} catch {

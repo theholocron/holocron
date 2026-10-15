@@ -68,6 +68,45 @@ describe("runNpmBumpVersions", () => {
 		expect(JSON.parse(written[join(CWD, "packages/pkg-b/package.json")]!).version).toBe("4.2.0");
 	});
 
+	it("keeps each package.json's own indent when bumping (tabs, 4 spaces, CRLF)", async () => {
+		const raw: Record<string, string> = {
+			"package.json": '{\n\t"name": "root",\n\t"version": "0.0.0",\n\t"private": true\n}\n',
+			"packages/pkg-a/package.json": '{\n    "name": "@acme/pkg-a",\n    "version": "4.1.0"\n}\n',
+			"packages/pkg-b/package.json": '{\r\n  "name": "@acme/pkg-b",\r\n  "version": "4.1.0"\r\n}\r\n',
+		};
+		const { listDir, isDir, written } = makeFs({
+			"package.json": {},
+			"packages/pkg-a/package.json": {},
+			"packages/pkg-b/package.json": {},
+		});
+		const readFile = (p: string): string => {
+			const text = raw[p.startsWith(CWD + "/") ? p.slice(CWD.length + 1) : p];
+			if (text === undefined) throw new Error(`ENOENT: ${p}`);
+			return text;
+		};
+		await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile: (p, c) => {
+				written[p] = c;
+			},
+			listDir,
+			isDir,
+			logger: fakeLogger(),
+		});
+		expect(written[join(CWD, "package.json")]).toBe(
+			'{\n\t"name": "root",\n\t"version": "4.2.0",\n\t"private": true\n}\n'
+		);
+		expect(written[join(CWD, "packages/pkg-a/package.json")]).toBe(
+			'{\n    "name": "@acme/pkg-a",\n    "version": "4.2.0"\n}\n'
+		);
+		expect(written[join(CWD, "packages/pkg-b/package.json")]).toBe(
+			'{\r\n  "name": "@acme/pkg-b",\r\n  "version": "4.2.0"\r\n}\r\n'
+		);
+	});
+
 	it("bumps non-private packages under plugins/ alongside packages/ (holocron#993 regression)", async () => {
 		const { readFile, writeFile, listDir, isDir, written } = makeFs({
 			"package.json": { name: "root", version: "0.0.0", private: true },

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { stringifyJson } from "@theholocron/json-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
@@ -49,8 +50,10 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 
 	function bumpFile(absPath: string, label: string): void {
 		let pkg: Record<string, unknown>;
+		let raw: string;
 		try {
-			pkg = JSON.parse(readFile(absPath)) as Record<string, unknown>;
+			raw = readFile(absPath);
+			pkg = JSON.parse(raw) as Record<string, unknown>;
 		} catch {
 			print(`  ✗ could not parse ${label}`);
 			return;
@@ -58,7 +61,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		const old = pkg.version as string;
 		if (!dryRun) {
 			pkg.version = version;
-			writeFile(absPath, JSON.stringify(pkg, null, 2) + "\n");
+			writeFile(absPath, stringifyJson(pkg, { like: raw }));
 		}
 		print(`  ${dryRun ? "~" : "✓"} ${label}: ${old} → ${version}`);
 		bumped.push(label);

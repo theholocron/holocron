@@ -1945,7 +1945,7 @@ describe("runSync", () => {
 	describe("sync wiki step", () => {
 		it("passes the real git root, not --cwd, to runSyncWiki for a monorepo subpackage (holocron#1014)", async () => {
 			// Resolved immediately — on macOS, tmpdir() lives under /var, a
-			// symlink to /private/var, and findGitRoot now resolves symlinks.
+			// symlink to /private/var, and findRootSync (realpath) resolves symlinks.
 			const root = realpathSync(await mkdtemp(join(tmpdir(), "holocron-test-")));
 			try {
 				await mkdir(join(root, ".git"));

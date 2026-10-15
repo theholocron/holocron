@@ -1,5 +1,7 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
+import { updateGitignore } from "@theholocron/git-utils";
 
 import { AGENT_PROMPTS } from "./agent-prompts-data.js";
 
@@ -15,19 +17,11 @@ export async function installAgentPrompts({ repoRoot }: { repoRoot: string }): P
 		await writeFile(join(promptsDir, filename), content, "utf8");
 	}
 
-	const gitignorePath = join(repoRoot, ".gitignore");
-	const existing = await readFile(gitignorePath, "utf8").catch(() => "");
-	const block = [PROMPTS_GITIGNORE_START, `/${AGENTS_PROMPTS_ROOT}/`, PROMPTS_GITIGNORE_END].join("\n");
-	let updated: string;
-	if (existing.includes(PROMPTS_GITIGNORE_START)) {
-		const start = existing.indexOf(PROMPTS_GITIGNORE_START);
-		const end = existing.indexOf(PROMPTS_GITIGNORE_END, start);
-		const afterBlock = end !== -1 ? existing.slice(end + PROMPTS_GITIGNORE_END.length) : "\n";
-		updated = existing.slice(0, start) + block + afterBlock;
-	} else {
-		updated = (existing.trimEnd() ? existing.trimEnd() + "\n\n" : "") + block + "\n";
-	}
-	await writeFile(gitignorePath, updated, "utf8");
+	await updateGitignore(join(repoRoot, ".gitignore"), {
+		start: PROMPTS_GITIGNORE_START,
+		end: PROMPTS_GITIGNORE_END,
+		lines: [`/${AGENTS_PROMPTS_ROOT}/`],
+	});
 
 	return `wrote ${Object.keys(AGENT_PROMPTS).length} prompt files to ${AGENTS_PROMPTS_ROOT}/`;
 }

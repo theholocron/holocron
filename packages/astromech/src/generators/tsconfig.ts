@@ -40,6 +40,8 @@
  * the generator itself, ready for it to call.
  */
 
+import { stringifyJson } from "@theholocron/json-utils";
+
 export interface TsconfigOptions {
 	/** Human-readable name for the `display` field — the package's own name is the usual choice. */
 	display: string;
@@ -83,5 +85,5 @@ export function createTsconfig(options: TsconfigOptions): string {
 		include: ["src/**/*.ts"],
 		exclude: ["node_modules", "dist"],
 	};
-	return JSON.stringify(config, null, 2) + "\n";
+	return stringifyJson(config);
 }

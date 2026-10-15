@@ -10,15 +10,12 @@
  * see ADR-0010 / issue #75 / #81.
  */
 
-import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { promisify } from "node:util";
 
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import { ConfigFileError, loadConfigFile } from "@theholocron/datapad";
-
-const execFileAsync = promisify(execFile);
+import { readGitRemote } from "@theholocron/git-utils";
 
 import type { HolocronConfig, ResolvedHolocronConfig } from "./config.js";
 import { resolveConfig } from "./config.js";
@@ -57,8 +54,9 @@ async function deriveDefaults(configDir: string, raw: HolocronConfig): Promise<H
 		result.name = (await readPackageJsonName(configDir)) ?? basename(configDir);
 	}
 	if (result.repo && !result.repo.name) {
-		const repoName = await readGitRemote(configDir);
-		if (repoName) result.repo = { ...result.repo, name: repoName };
+		const remote = await readGitRemote(configDir);
+		// `repo.name` holds GitHub coordinates (owner/repo); a remote on any other host leaves it unset.
+		if (remote?.host === "github.com") result.repo = { ...result.repo, name: remote.slug };
 	}
 
 	// Layer in the task manifest. `holocron.config`'s `tasks` key is one input;
@@ -86,21 +84,4 @@ async function readPackageJsonName(dir: string): Promise<string | undefined> {
 	} catch {
 		return undefined;
 	}
-}
-
-async function readGitRemote(dir: string): Promise<string | undefined> {
-	try {
-		const { stdout } = await execFileAsync("git", ["remote", "get-url", "origin"], { cwd: dir });
-		return parseGitRemoteUrl(stdout.trim());
-	} catch {
-		return undefined;
-	}
-}
-
-function parseGitRemoteUrl(url: string): string | undefined {
-	const httpsMatch = url.match(/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/);
-	if (httpsMatch) return httpsMatch[1]!;
-	const sshMatch = url.match(/github\.com:([^/]+\/[^/]+?)(?:\.git)?$/);
-	if (sshMatch) return sshMatch[1]!;
-	return undefined;
 }

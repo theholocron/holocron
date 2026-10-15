@@ -1,3 +1,5 @@
+import { stringifyJson } from "@theholocron/json-utils";
+
 import { createHeader } from "../../../utils/create-header.js";
 import alexignore from "./alexignore";
 import alexrc from "./alexrc.json";
@@ -7,7 +9,7 @@ const { workflowHeader } = createHeader({
 });
 
 export function createRcConfig(): string {
-	return JSON.stringify(alexrc, null, 2) + "\n";
+	return stringifyJson(alexrc);
 }
 
 export function createIgnoreConfig(): string {
