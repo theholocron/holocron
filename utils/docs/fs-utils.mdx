@@ -45,6 +45,22 @@ const workspaceRoot = await findRoot(process.cwd(), ["pnpm-workspace.yaml", "tur
 const root = findRootSync(cwd, ".git", { fallback: "start", realpath: true });
 ```
 
+### `findExecutable(bin, options?)` / `findExecutableSync(...)`
+
+The first runnable file named `bin` on `options.path` (default `process.env.PATH`), or `undefined` — a `which`. Directories and files without the exec bit don't count. `bin` must be a bare command name (a `TypeError` otherwise); filesystem errors other than "not there" / "not permitted" throw.
+
+| Option                | Effect                                                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `path`                | Directories to search, delimited like `PATH` on the target platform. Empty entries are skipped; relative ones resolve against the working directory when the call starts.                     |
+| `pathExt`, `platform` | Windows has no exec bit: `bin` is tried with each `PATHEXT` extension (default `.COM;.EXE;.BAT;.CMD`) unless it already ends in one. An extension with a path separator throws a `TypeError`. |
+
+```ts
+import { findExecutableSync } from "@theholocron/fs-utils";
+
+// a project-local binary first, then the real PATH
+const tsc = findExecutableSync("tsc", { path: join(cwd, "node_modules", ".bin") }) ?? findExecutableSync("tsc");
+```
+
 ### `hasGitEntry(dir)`
 
 Returns `true` when `dir` has a `.git` entry — a directory in a normal checkout, a file in a worktree/submodule. A common `stop` boundary for `findUpward`.
