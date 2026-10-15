@@ -5,7 +5,6 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import type { Astromech, AstromechOptions } from "./astromech.type.js";
 import { normalizeTaskEntry } from "./config/schema.js";
@@ -29,20 +28,12 @@ import {
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { runCi } from "./tasks/ci.js";
 import { matchNamespace, runGroup } from "./tasks/group.js";
-import { type RunDeps, type RunLogger, runTask } from "./tasks/run/index.js";
+import { runTask } from "./tasks/run/index.js";
+import type { RunDeps, RunLogger } from "./tasks/run/type.js";
 import { realExec } from "./utils/exec.js";
+import { realLookPath } from "./utils/look-path.js";
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
-
-/** `node_modules/.bin/<bin>`, else the first `PATH` entry that has it, else `null`. */
-const realLookPath = (cwd: string, bin: string): string | null => {
-	const local = join(cwd, "node_modules", ".bin", bin);
-	if (existsSync(local)) return local;
-	for (const dir of (process.env["PATH"] ?? "").split(":")) {
-		if (dir && existsSync(join(dir, bin))) return join(dir, bin);
-	}
-	return null;
-};
 
 export function createAstromech(options: AstromechOptions): Astromech {
 	const deps: RunDeps = {

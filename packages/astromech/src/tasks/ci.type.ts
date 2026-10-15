@@ -1,5 +1,5 @@
 import type { TasksConfig } from "../config/schema.type.js";
-import type { RunDeps } from "./run/index.js";
+import type { RunDeps } from "./run/type.js";
 
 export interface CiOptions {
 	/** Print the plan without running anything. */

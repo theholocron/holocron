@@ -1,4 +1,4 @@
-import type { ResolverDeps, ToolConfigSpec } from "./resolver.type.js";
+import type { ResolverDeps, ToolConfigSpec } from "./type.js";
 /**
  * Resolves the absolute path to a Bucket A tool's shared `@theholocron/*-config`
  * entry point, installed in the consuming repo's own `node_modules` — and the

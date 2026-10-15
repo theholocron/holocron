@@ -174,8 +174,8 @@ describe("createAstromech().run", () => {
 		const binDir = await mkdtemp(join(tmpdir(), "astromech-bin-"));
 		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
 		await mkdir(join(dir, "node_modules", ".bin"), { recursive: true });
-		await writeFile(join(dir, "node_modules", ".bin", "prettier"), "#!/bin/sh\nexit 0\n"); // node_modules/.bin hit
-		await writeFile(join(binDir, "editorconfig-checker"), "#!/bin/sh\nexit 0\n"); // PATH hit
+		await writeFile(join(dir, "node_modules", ".bin", "prettier"), "#!/bin/sh\nexit 0\n", { mode: 0o755 }); // node_modules/.bin hit
+		await writeFile(join(binDir, "editorconfig-checker"), "#!/bin/sh\nexit 0\n", { mode: 0o755 }); // PATH hit
 		// markdownlint-cli2 not installed anywhere → skipped
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		const savedPath = process.env["PATH"];

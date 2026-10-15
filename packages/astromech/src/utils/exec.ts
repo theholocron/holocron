@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-import type { ExecFn } from "../tasks/run/index.js";
+import type { ExecFn } from "../tasks/run/type.js";
 
 /** Runs `cmd` with the parent's stdio; a signal-killed or unspawnable process reports `-1`. */
 export const realExec: ExecFn = (cmd, args, opts) => {

@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@theholocron/datapad": "workspace:*",
+    "@theholocron/fs-utils": "catalog:utils",
     "@theholocron/json-utils": "catalog:utils"
   },
   "devDependencies": {
