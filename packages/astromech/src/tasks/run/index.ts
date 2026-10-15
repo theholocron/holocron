@@ -4,4 +4,4 @@
  * imports them) and are deliberately not re-exported here.
  */
 export { runTask } from "./run.js";
-export type { ExecFn, RunDeps, RunLogger, RunTaskInput, RunTaskReport } from "./type.js";
+export type { ExecFn, RunLogger, RunTaskInput, RunTaskReport } from "./type.js";

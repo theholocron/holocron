@@ -29,11 +29,10 @@ import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { runCi } from "./tasks/ci.js";
 import { matchNamespace, runGroup } from "./tasks/group.js";
 import { runTask } from "./tasks/run/index.js";
-import type { RunDeps, RunLogger } from "./tasks/run/type.js";
+import type { RunDeps } from "./tasks/run/type.js";
 import { realExec } from "./utils/exec.js";
 import { realLookPath } from "./utils/look-path.js";
-
-const noopLogger: RunLogger = { debug() {}, warn() {} };
+import { noopLogger } from "./utils/noop-logger.js";
 
 export function createAstromech(options: AstromechOptions): Astromech {
 	const deps: RunDeps = {
