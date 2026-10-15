@@ -4,7 +4,6 @@
  * `ci` / workflow-generation commands to it (like `@theholocron/observability`).
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -32,6 +31,7 @@ import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { type CiOptions, type CiReport, runCi } from "./tasks/ci.js";
 import { type GroupReport, matchNamespace, runGroup } from "./tasks/group.js";
 import { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskReport } from "./tasks/run/index.js";
+import { realExec } from "./utils/exec.js";
 
 export interface AstromechOptions {
 	/** Repo root. */
@@ -175,11 +175,6 @@ export interface Astromech {
 }
 
 const noopLogger: RunLogger = { debug() {}, warn() {} };
-
-const realExec: ExecFn = (cmd, args, opts) => {
-	const result = spawnSync(cmd, args, { cwd: opts.cwd, stdio: "inherit" });
-	return { exitCode: result.status ?? -1 };
-};
 
 /** `node_modules/.bin/<bin>`, else the first `PATH` entry that has it, else `null`. */
 const realLookPath = (cwd: string, bin: string): string | null => {

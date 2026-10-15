@@ -1,0 +1,24 @@
+import { describe, expect, it } from "vitest";
+
+import { realExec } from "./exec.js";
+
+describe("realExec", () => {
+	it("returns the child's exit code", () => {
+		expect(realExec(process.execPath, ["-e", "process.exit(3)"], { cwd: process.cwd() })).toEqual({ exitCode: 3 });
+	});
+
+	it("runs in the given cwd", () => {
+		const code = realExec(
+			process.execPath,
+			["-e", `process.exit(process.cwd() === ${JSON.stringify(process.cwd())} ? 0 : 1)`],
+			{
+				cwd: process.cwd(),
+			}
+		);
+		expect(code).toEqual({ exitCode: 0 });
+	});
+
+	it("reports -1 when the command cannot be spawned", () => {
+		expect(realExec("holocron-no-such-binary", [], { cwd: process.cwd() })).toEqual({ exitCode: -1 });
+	});
+});
