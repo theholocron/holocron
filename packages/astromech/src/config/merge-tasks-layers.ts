@@ -1,4 +1,4 @@
-import { mergeConfig } from "@theholocron/datapad";
+import { mergeLayers } from "@theholocron/datapad";
 
 import { coerceTasks } from "./coerce-tasks.js";
 import type { TasksInput } from "./load.type.js";
@@ -12,7 +12,5 @@ import type { TasksConfig } from "./schema.type.js";
  * Either may be `undefined` (source absent); returns `{}` when both are.
  */
 export function mergeTasksLayers(parentTasks: TasksInput | undefined, dedicated: TasksInput | undefined): TasksConfig {
-	return [coerceTasks(parentTasks), coerceTasks(dedicated)]
-		.filter((layer): layer is TasksConfig => layer !== undefined)
-		.reduce<TasksConfig>((acc, layer) => mergeConfig(acc, layer), {});
+	return mergeLayers([coerceTasks(parentTasks), coerceTasks(dedicated)]) ?? {};
 }

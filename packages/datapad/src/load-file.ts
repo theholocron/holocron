@@ -8,7 +8,7 @@
  * extension, load it," always throwing {@link ConfigFileError} on failure.
  */
 
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import { errorMessage } from "@theholocron/misc-utils";
@@ -77,12 +77,4 @@ function extractDefault<T>(filepath: string, mod: unknown): T {
 		);
 	}
 	return raw as T;
-}
-
-export async function isFile(path: string): Promise<boolean> {
-	try {
-		return (await stat(path)).isFile();
-	} catch {
-		return false;
-	}
 }

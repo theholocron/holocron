@@ -5,9 +5,14 @@
  * Discover `<name>.config.{ts,js,mjs,cjs,json}`, load it (typed configs
  * via `tsx`, no build step), layer a dedicated file over a key of a
  * parent file, deep-merge, and hand back a plain object. No schema, no
- * validation, no defaults — the consumer owns those. `loadConfigFromContent`
- * covers the same loading for content that didn't come from a file
- * already on disk (a network fetch, a git blob, …).
+ * validation, no defaults — the consumer owns those. `readConfigSource` +
+ * `loadConfigFromContent` cover the same loading for content that didn't come
+ * from a file on disk (a network fetch, a git blob, …), and
+ * `withConfigSandbox` prepares the directory that needs.
+ *
+ * Probe order is **TS-first**: `.ts` → `.js` → `.mjs` → `.cjs` → `.json`
+ * (ADR-0010). `walkUp` adds the "nearest config" search (see
+ * `loadConfigFile`).
  *
  * ```ts
  * import { loadConfigFile, loadLayered, mergeConfig, createDefineConfig } from "@theholocron/datapad";
@@ -21,18 +26,18 @@
  * ```
  */
 
-export { type ConfigSandboxOptions, withConfigSandbox } from "./config-sandbox.js";
+export { DEFAULT_EXTENSIONS } from "./default-extensions.js";
 export { createDefineConfig } from "./define.js";
 export { ConfigFileError } from "./errors.js";
-export {
-	DEFAULT_EXTENSIONS,
-	type LayeredResult,
-	loadConfigFile,
-	type LoadConfigFileOptions,
-	loadConfigFromContent,
-	type LoadConfigFromContentOptions,
-	type Loaded,
-	loadLayered,
-	type LoadLayeredOptions,
-} from "./load.js";
+export { loadConfigFile } from "./load-config-file.js";
+export type { LoadConfigFileOptions, Loaded } from "./load-config-file.type.js";
+export { loadConfigFromContent } from "./load-config-from-content.js";
+export type { LoadConfigFromContentOptions } from "./load-config-from-content.type.js";
+export { loadLayered } from "./load-layered.js";
+export type { LayeredResult, LoadLayeredOptions } from "./load-layered.type.js";
+export { mergeLayers } from "./merge-layers.js";
+export { readConfigSource } from "./read-config-source.js";
+export type { ConfigSource, ReadConfigSourceOptions } from "./read-config-source.type.js";
+export { withConfigSandbox } from "./with-config-sandbox.js";
+export type { ConfigSandboxOptions } from "./with-config-sandbox.type.js";
 export { deepMerge as mergeConfig } from "@theholocron/object-utils";
