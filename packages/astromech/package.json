@@ -46,7 +46,8 @@
   "dependencies": {
     "@theholocron/datapad": "workspace:*",
     "@theholocron/fs-utils": "catalog:utils",
-    "@theholocron/json-utils": "catalog:utils"
+    "@theholocron/json-utils": "catalog:utils",
+    "@theholocron/pkg-utils": "catalog:utils"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
