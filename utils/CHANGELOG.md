@@ -1,3 +1,9 @@
+## [1.11.0](https://github.com/theholocron/utils/compare/v1.10.0...v1.11.0) (2026-10-15)
+
+### Features
+
+* **fs-utils:** ✨ add findExecutable, a PATH lookup ([#314](https://github.com/theholocron/utils/issues/314)) ([ef8bb75](https://github.com/theholocron/utils/commit/ef8bb75e870e1526e979fb7ed0f8524e8b06670b))
+
 ## [1.10.0](https://github.com/theholocron/utils/compare/v1.9.2...v1.10.0) (2026-10-15)
 
 ### Features
