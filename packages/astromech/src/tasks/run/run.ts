@@ -28,12 +28,11 @@
  * task is a normal turbo-delegatable task like any other.
  */
 
-import { detectPackageManager } from "@theholocron/pkg-utils";
+import { detectPackageManager, readPackageJsonSync } from "@theholocron/pkg-utils";
 
 import { KNOWN_TASKS, TASKS } from "../../registry.js";
 import type { JobDef, LocalRunner } from "../../registry.type.js";
 import { resolveLinters } from "./linters.js";
-import { packageJsonScript } from "./package-json-script.js";
 import { resolveBin } from "./resolve-bin.js";
 import { resolveRunner } from "./resolve-runner.js";
 import { resolveToolConfig } from "./resolve-tool-config.js";
@@ -101,7 +100,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 	// ── 2. an explicit package.json script wins ────────────────────────
 	// (unless it's the `holocron run <task>` thin caller — that would recurse)
-	const script = packageJsonScript(cwd, task, readFile, fileExists);
+	const script = readPackageJsonSync(cwd, { readFile })?.scripts?.[task];
 	if (script && !/^holocron run\b/.test(script.trim())) {
 		const pm = detectPackageManager(cwd, { readFile, fileExists });
 		const args = ["run", task, ...(passthrough.length ? ["--", ...passthrough] : [])];
