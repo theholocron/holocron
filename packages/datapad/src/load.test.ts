@@ -362,23 +362,32 @@ describe("loadLayered", () => {
 	});
 
 	describe("fallback.preloaded", () => {
-		const fallback = (preloaded: Loaded<Record<string, unknown>> | null | undefined) => ({
+		const fallback = (preloaded: Loaded<object> | null | undefined) => ({
 			cwd,
 			name: "astromech",
 			fallback: { file: "holocron", key: "tasks", preloaded },
 		});
+		// Malformed on purpose: reading it at all throws a ConfigFileError, so a loadLayered
+		// that loads the fallback despite `preloaded` being set fails these tests.
+		const unreadableHolocron = () => writeFile(join(cwd, "holocron.config.json"), "{ not json");
 
-		it("uses a parent the caller already loaded instead of reading holocron.config again", async () => {
-			// The file on disk says something else: if it were read, the result would show it.
-			await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: { list: ["from-disk"] } }));
-			const preloaded = { config: { tasks: { list: ["preloaded"] } }, filepath: "/elsewhere/holocron.config.ts" };
+		it("uses a parent the caller already loaded, without reading holocron.config again", async () => {
+			await unreadableHolocron();
+			// An interface-typed config (no index signature) is accepted without a cast.
+			interface Parent {
+				tasks: { list: string[] };
+			}
+			const preloaded: Loaded<Parent> = {
+				config: { tasks: { list: ["preloaded"] } },
+				filepath: "/elsewhere/holocron.config.ts",
+			};
 			const result = await loadLayered<{ list: string[] }>(fallback(preloaded));
 			expect(result?.config).toEqual({ list: ["preloaded"] });
 			expect(result?.filepath).toBe("/elsewhere/holocron.config.ts");
 		});
 
-		it("null means the parent was looked for and is absent — it isn't searched for again", async () => {
-			await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: { list: ["from-disk"] } }));
+		it("null means the parent was looked for and is absent — it isn't read", async () => {
+			await unreadableHolocron();
 			expect(await loadLayered(fallback(null))).toBeNull();
 		});
 
@@ -386,6 +395,11 @@ describe("loadLayered", () => {
 			await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: { list: ["from-disk"] } }));
 			const result = await loadLayered<{ list: string[] }>(fallback(undefined));
 			expect(result?.config).toEqual({ list: ["from-disk"] });
+		});
+
+		it("undefined with an unreadable parent surfaces the load error (the control for the tests above)", async () => {
+			await unreadableHolocron();
+			await expect(loadLayered(fallback(undefined))).rejects.toBeInstanceOf(ConfigFileError);
 		});
 	});
 });

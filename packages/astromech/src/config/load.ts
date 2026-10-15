@@ -1,4 +1,4 @@
-import { type Loaded, loadLayered } from "@theholocron/datapad";
+import { loadLayered } from "@theholocron/datapad";
 
 import { coerceTasks } from "./coerce-tasks.js";
 import type { LoadTasksConfigOptions, TasksInput } from "./load.type.js";
@@ -25,7 +25,7 @@ export async function loadTasksConfig(cwd: string, options: LoadTasksConfigOptio
 		fallback: {
 			file: "holocron",
 			key: "tasks",
-			preloaded: options.holocron as Loaded<Record<string, unknown>> | null | undefined,
+			preloaded: options.holocron,
 		},
 		coerce: (raw) => coerceTasks(raw as TasksInput | undefined),
 	});

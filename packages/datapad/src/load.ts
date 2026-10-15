@@ -103,7 +103,7 @@ export interface LoadLayeredOptions<T = unknown> extends LoadConfigFileOptions {
 		 * looked for and isn't there). Used as is instead of loading it again;
 		 * leave it `undefined` to have `loadLayered` find and load it.
 		 */
-		preloaded?: Loaded<Record<string, unknown>> | null;
+		preloaded?: Loaded<object> | null;
 	};
 	/**
 	 * Turns each layer's raw value — the dedicated file's default export, and
@@ -151,7 +151,7 @@ export async function loadLayered<T>(opts: LoadLayeredOptions<T>): Promise<Layer
 						extensions: opts.extensions,
 						walkUp: opts.walkUp,
 					});
-		const raw = parent?.config[opts.fallback.key];
+		const raw = (parent?.config as Record<string, unknown> | undefined)?.[opts.fallback.key];
 		if (parent && raw !== undefined) {
 			base = coerce(raw);
 			if (base !== undefined) baseFile = parent.filepath;

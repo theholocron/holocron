@@ -47,16 +47,21 @@ describe("loadTasksConfig", () => {
 		expect(await loadTasksConfig(cwd)).toEqual({ tasks: ["a", "b"], syncScripts: false });
 	});
 
-	it("uses an already-loaded holocron.config instead of loading it again", async () => {
-		// What's on disk differs from what the caller passes: the passed one must win.
-		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: ["from-disk"] }));
+	it("uses an already-loaded holocron.config without reading it again", async () => {
+		// Malformed on purpose: loading it would throw, so a read can't go unnoticed.
+		await writeFile(join(cwd, "holocron.config.json"), "{ not json");
 		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ tasks: ["dedicated"] }));
 		const holocron = { config: { tasks: ["preloaded"] }, filepath: join(cwd, "holocron.config.json") };
 		expect(await loadTasksConfig(cwd, { holocron })).toEqual({ tasks: ["preloaded", "dedicated"] });
 	});
 
-	it("treats holocron: null as no holocron.config, without looking for one", async () => {
-		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: ["from-disk"] }));
+	it("treats holocron: null as no holocron.config, without reading one", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), "{ not json");
 		expect(await loadTasksConfig(cwd, { holocron: null })).toEqual({});
+	});
+
+	it("reads holocron.config itself when none is passed (the control for the tests above)", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), "{ not json");
+		await expect(loadTasksConfig(cwd)).rejects.toThrow(/not valid JSON/);
 	});
 });
