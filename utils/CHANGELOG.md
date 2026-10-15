@@ -1,3 +1,21 @@
+## [1.10.0](https://github.com/theholocron/utils/compare/v1.9.2...v1.10.0) (2026-10-15)
+
+### Features
+
+* ✨ add @theholocron/git-utils ([#303](https://github.com/theholocron/utils/issues/303)) ([5fdcab6](https://github.com/theholocron/utils/commit/5fdcab6189cf609838e2962074abdc965bf7a023)), closes [#298](https://github.com/theholocron/utils/issues/298) [#298](https://github.com/theholocron/utils/issues/298)
+* ✨ add @theholocron/json-utils ([#302](https://github.com/theholocron/utils/issues/302)) ([6ddb21e](https://github.com/theholocron/utils/commit/6ddb21edba64e52d8fcae130d93281843792f54a)), closes [#299](https://github.com/theholocron/utils/issues/299) [#299](https://github.com/theholocron/utils/issues/299)
+* **fs-utils:** ✨ add findRoot and findRootSync ([#301](https://github.com/theholocron/utils/issues/301)) ([1a9707d](https://github.com/theholocron/utils/commit/1a9707dbf9549be31409bce64c08df1942fb3ad0)), closes [#297](https://github.com/theholocron/utils/issues/297) [#297](https://github.com/theholocron/utils/issues/297)
+
+### Bug Fixes
+
+* **release:** 🐛 🚀 call bump-versions as the pinned CLI knows it ([#313](https://github.com/theholocron/utils/issues/313)) ([5bbfb78](https://github.com/theholocron/utils/commit/5bbfb7820e01e7c1c8d1ded38ff0e4c273e29e6f)), closes [#310](https://github.com/theholocron/utils/issues/310)
+* **release:** 🐛 🚀 call package bump-versions ([#310](https://github.com/theholocron/utils/issues/310)) ([752f1b3](https://github.com/theholocron/utils/commit/752f1b3b2515ca6f2bf3ad8293bbd56a4bbf434e))
+
+### Chores
+
+* 🔧 ignore the generated CHANGELOG.md in prettier ([#300](https://github.com/theholocron/utils/issues/300)) ([21e42f6](https://github.com/theholocron/utils/commit/21e42f69889ceb2dd37b8bd4b8988b87f3a2ea4f))
+* **deps:** Bump @theholocron/astromech ([#308](https://github.com/theholocron/utils/issues/308)) ([49d784b](https://github.com/theholocron/utils/commit/49d784bc4e4f27edd4991164c941d47d06336f13))
+
 ## [1.9.2](https://github.com/theholocron/utils/compare/v1.9.1...v1.9.2) (2026-10-07)
 
 ### Bug Fixes
