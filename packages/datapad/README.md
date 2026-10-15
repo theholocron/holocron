@@ -69,7 +69,8 @@ the exact same internals `loadConfigFile` uses for a file it discovered
 itself. `dir` matters: it's what upward `node_modules` resolution sees, so
 content that does `import { defineConfig } from "@theholocron/cli"` only
 resolves if `dir` sits under a tree where that package is a real
-dependency. Callers own creating and cleaning up `dir`. Returns
+dependency — [`withConfigSandbox`](#withconfigsandbox-nodemodules-root-prefix--run) prepares
+one. Callers own creating and cleaning up `dir`. Returns
 `{ config, filepath }`; throws `ConfigFileError` the same way
 `loadConfigFile` does on a parse/load failure.
 
@@ -77,13 +78,45 @@ Built for `@theholocron/sentinel`'s `validateConfig()` — it fetches a
 repo's `holocron.config.*` from GitHub's API, not a local checkout, but
 still needs the fetched content to execute as a real module.
 
-### `loadLayered<T>({ cwd, name, fallback?, extensions?, walkUp? })`
+### `readConfigSource({ name, fetch, extensions? })`
+
+`loadConfigFile`'s extension probe for a config that lives somewhere other
+than the local disk. Asks `fetch(path)` for `<name>.config.<ext>` in
+extension-priority order (`fetch` returns the content, or `undefined` when
+the file isn't there, and throws for any other failure) and returns the first
+hit as `{ path, extension, content }`, or `undefined`. Hand the result to
+`loadConfigFromContent`.
+
+### `withConfigSandbox({ nodeModules, root?, prefix? }, run)`
+
+Runs `run(dir)` with a throwaway directory ready to be
+`loadConfigFromContent`'s `dir`: `node_modules` symlinked to
+`options.nodeModules` (so the config's package imports resolve) and a
+`{"type":"module"}` `package.json` (so `tsx` doesn't default the files to
+CommonJS and `require()` a pure-ESM dependency). Created under the OS temp dir
+by default — read-only deployments can't write inside a package — and removed
+afterwards, also when `run` throws.
+
+### `loadLayered<T>({ cwd, name, fallback?, extensions?, walkUp?, coerce? })`
 
 `<name>.config.*` layered over the `[fallback.key]` of
 `<fallback.file>.config.*`. Either, both, or neither may be present; the
 dedicated file wins on conflict (`vitest`-over-`vite`). Returns
 `{ config, filepath, sources } | null` — `sources` lists the absolute
 paths actually merged, lowest priority first.
+
+- `fallback.preloaded` — the `<fallback.file>.config.*` the caller has
+  already loaded (`null`: looked for, not there), used as is instead of loading
+  it again.
+- `coerce(raw)` — turns each layer's raw value into the shape being merged
+  before the merge (a bare array standing for `{ tasks: [...] }`, say);
+  returning `undefined` treats the layer as absent.
+
+### `mergeLayers<T>(layers)`
+
+The merge `loadLayered` uses, for layers loaded some other way: deep-merges
+`layers` lowest priority first, skipping `undefined`, and returns a copy — or
+`undefined` when there is nothing to merge.
 
 ### `mergeConfig<T>(base, override)`
 

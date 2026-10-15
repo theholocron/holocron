@@ -27,38 +27,19 @@
  * `loadFile` internals `holocron repo setup`/`sync` use locally via
  * `loadConfigFile()`, not a bespoke server-side parser.
  *
- * The temp directory itself lives under the OS tmp dir (`os.tmpdir()`) —
- * Vercel's Node.js Functions ship the deployed bundle read-only (`/var/task`),
- * so a directory *inside this package* can never be created at runtime there
- * (`mkdir ENOENT`, found the hard way — crashed every `pull_request`/`push`
- * delivery). Real `holocron.config.ts` files commonly `import { defineConfig }
- * from "@theholocron/cli"` (the README's own documented pattern), and Node's
- * module resolution walks upward from the importing file looking for
- * `node_modules` — a bare file under `/tmp/...` would never find it. Fixed by
- * symlinking `<tmpDir>/node_modules` to this package's own real
- * `node_modules` (guaranteed present and *readable*, even though the
- * directory it lives in isn't writable) right after creating the temp dir —
- * the config file resolves `@theholocron/cli` through that symlink exactly as
- * if it were sitting inside `packages/sentinel/` itself.
- *
- * That alone isn't enough, though: Node determines whether a `.ts`/`.js` file
- * is ESM or CommonJS from the nearest ancestor `package.json`'s `"type"`
- * field, defaulting to CommonJS when none exists — and `tmpDir` starts out
- * with none. Without an explicit `{"type":"module"}` written into `tmpDir`
- * itself, `tsx`'s loader (correctly honoring that CJS default) tries to
- * `require()` `@theholocron/cli`'s pure-ESM `dist/index.mjs`, which Node
- * rejects outright ("require() of ES Module ... not supported"). Found live
- * against a real theholocron/clients delivery once #753's logging made the
- * previously-invisible load-error message visible at all.
+ * The config is executed in a throwaway directory prepared by datapad's
+ * `withConfigSandbox()` — under the OS tmp dir (Vercel ships the bundle
+ * read-only), with this package's own `node_modules` symlinked in so
+ * `import { defineConfig } from "@theholocron/cli"` resolves, and an ESM
+ * `package.json` so `tsx` doesn't default the files to CommonJS. See that
+ * function for why each piece is needed.
  */
 
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { KNOWN_TASKS, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import { mergeTasksLayers, normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
-import { DEFAULT_EXTENSIONS, loadConfigFromContent } from "@theholocron/datapad";
+import { loadConfigFromContent, readConfigSource, withConfigSandbox } from "@theholocron/datapad";
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -83,80 +64,59 @@ export interface ValidateConfigInput {
 export async function validateConfig(input: ValidateConfigInput): Promise<ValidateConfigResult> {
 	const { client, repo, ref } = input;
 
-	for (const ext of DEFAULT_EXTENSIONS) {
-		const path = `holocron.config.${ext}`;
-		let raw: string;
+	const fetch = fetchRepoFile(client, repo, ref);
+	const source = await readConfigSource({ name: "holocron", fetch });
+	if (!source) return { status: "no-config" };
+
+	const { path, extension: ext, content: raw } = source;
+
+	const nodeModules = join(await getPackageRoot(), "node_modules");
+	return withConfigSandbox({ nodeModules, prefix: "sentinel-validate-" }, async (tmpDir) => {
+		let loaded;
 		try {
-			const contents = await client.git.getContents(repo, path, ref);
-			raw = decodeContents(contents.content);
+			loaded = await loadConfigFromContent<TasksConfig>({
+				dir: tmpDir,
+				content: raw,
+				name: "holocron",
+				extension: ext,
+			});
 		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 404) continue;
-			throw err;
-		}
-
-		const tmpRoot = tmpdir();
-		await mkdir(tmpRoot, { recursive: true });
-		const tmpDir = await mkdtemp(join(tmpRoot, "sentinel-validate-"));
-		// Symlink, not a copy — this package's node_modules already exists and
-		// is readable (just not writable, per the module docstring); a symlink
-		// makes Node's upward module-resolution walk find it at <tmpDir>/node_modules
-		// without duplicating anything.
-		await symlink(join(await getPackageRoot(), "node_modules"), join(tmpDir, "node_modules"), "dir");
-		// See the module docstring: without this, Node defaults tmpDir's
-		// .ts/.js files to CommonJS, and tsx's loader correctly honors that --
-		// require()-ing @theholocron/cli's pure-ESM dist/index.mjs fails outright.
-		await writeFile(join(tmpDir, "package.json"), JSON.stringify({ type: "module" }), "utf8");
-		try {
-			let loaded;
-			try {
-				loaded = await loadConfigFromContent<TasksConfig>({
-					dir: tmpDir,
-					content: raw,
-					name: "holocron",
-					extension: ext,
-				});
-			} catch (err) {
-				return {
-					status: "load-error",
-					filepath: path,
-					message: errorMessage(err),
-				};
-			}
-			// The dedicated astromech.config.* layer (holocron#916): merged on
-			// top of holocron.config's own tasks exactly as astromech's
-			// loadTasksConfig() does for `holocron run` / `ci` / `sync`, so a
-			// task declared only there (this repo's platform.repoValidation)
-			// is visible to every Sentinel gate, not just the CLI.
-			const dedicated = await loadDedicatedTasks(client, repo, ref, tmpDir);
-			if (dedicated.status === "load-error") return dedicated;
-			const config: TasksConfig = {
-				...loaded.config,
-				...mergeTasksLayers(loaded.config.tasks, dedicated.config),
+			return {
+				status: "load-error",
+				filepath: path,
+				message: errorMessage(err),
 			};
-
-			// A task-array entry is legitimate if it resolves to either a real
-			// runnable task (KNOWN_TASKS, e.g. "verification.unitTests") or a
-			// workflow-only community-health automation with no local runner at
-			// all (KNOWN_WORKFLOWS, e.g. "stale"/"greetings"/"bookkeeping") --
-			// thinCallers() itself accepts either shape when generating CI, so
-			// validation here needs to match. Checking KNOWN_TASKS alone flagged
-			// every repo using these bare workflow-only names as "unknown-tasks",
-			// discovered live against theholocron/clients's real config.
-			const unknownTasks = (config.tasks ?? [])
-				.map(normalizeTaskEntry)
-				.map((t) => t.name)
-				.filter((name) => !KNOWN_TASKS.has(name) && !KNOWN_WORKFLOWS.has(name));
-
-			if (unknownTasks.length > 0) {
-				return { status: "unknown-tasks", filepath: path, unknownTasks };
-			}
-			return { status: "valid", filepath: path, config };
-		} finally {
-			await rm(tmpDir, { recursive: true, force: true });
 		}
-	}
+		// The dedicated astromech.config.* layer (holocron#916): merged on
+		// top of holocron.config's own tasks exactly as astromech's
+		// loadTasksConfig() does for `holocron run` / `ci` / `sync`, so a
+		// task declared only there (this repo's platform.repoValidation)
+		// is visible to every Sentinel gate, not just the CLI.
+		const dedicated = await loadDedicatedTasks(fetch, tmpDir);
+		if (dedicated.status === "load-error") return dedicated;
+		const config: TasksConfig = {
+			...loaded.config,
+			...mergeTasksLayers(loaded.config.tasks, dedicated.config),
+		};
 
-	return { status: "no-config" };
+		// A task-array entry is legitimate if it resolves to either a real
+		// runnable task (KNOWN_TASKS, e.g. "verification.unitTests") or a
+		// workflow-only community-health automation with no local runner at
+		// all (KNOWN_WORKFLOWS, e.g. "stale"/"greetings"/"bookkeeping") --
+		// thinCallers() itself accepts either shape when generating CI, so
+		// validation here needs to match. Checking KNOWN_TASKS alone flagged
+		// every repo using these bare workflow-only names as "unknown-tasks",
+		// discovered live against theholocron/clients's real config.
+		const unknownTasks = (config.tasks ?? [])
+			.map(normalizeTaskEntry)
+			.map((t) => t.name)
+			.filter((name) => !KNOWN_TASKS.has(name) && !KNOWN_WORKFLOWS.has(name));
+
+		if (unknownTasks.length > 0) {
+			return { status: "unknown-tasks", filepath: path, unknownTasks };
+		}
+		return { status: "valid", filepath: path, config };
+	});
 }
 
 type DedicatedTasksResult =
@@ -170,33 +130,38 @@ type DedicatedTasksResult =
  * extension means the repo has no dedicated layer.
  */
 async function loadDedicatedTasks(
-	client: Pick<GitHubClient, "git">,
-	repo: string,
-	ref: string | undefined,
+	fetch: (path: string) => Promise<string | undefined>,
 	tmpDir: string
 ): Promise<DedicatedTasksResult> {
-	for (const ext of DEFAULT_EXTENSIONS) {
-		const path = `astromech.config.${ext}`;
-		let raw: string;
+	const source = await readConfigSource({ name: "astromech", fetch });
+	if (!source) return { status: "absent" };
+
+	try {
+		const loaded = await loadConfigFromContent<TasksConfig>({
+			dir: tmpDir,
+			content: source.content,
+			name: "astromech",
+			extension: source.extension,
+		});
+		return { status: "found", config: loaded.config };
+	} catch (err) {
+		return { status: "load-error", filepath: source.path, message: errorMessage(err) };
+	}
+}
+
+/**
+ * Fetches one file from the repo at `ref` through the Contents API, for
+ * datapad's `readConfigSource`: its decoded content, or `undefined` on a 404
+ * (the file isn't there). Any other failure propagates.
+ */
+function fetchRepoFile(client: Pick<GitHubClient, "git">, repo: string, ref: string | undefined) {
+	return async (path: string): Promise<string | undefined> => {
 		try {
 			const contents = await client.git.getContents(repo, path, ref);
-			raw = decodeContents(contents.content);
+			return decodeContents(contents.content);
 		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 404) continue;
+			if (err instanceof ProviderApiError && err.status === 404) return undefined;
 			throw err;
 		}
-
-		try {
-			const loaded = await loadConfigFromContent<TasksConfig>({
-				dir: tmpDir,
-				content: raw,
-				name: "astromech",
-				extension: ext,
-			});
-			return { status: "found", config: loaded.config };
-		} catch (err) {
-			return { status: "load-error", filepath: path, message: errorMessage(err) };
-		}
-	}
-	return { status: "absent" };
+	};
 }

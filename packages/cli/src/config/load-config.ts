@@ -13,7 +13,7 @@
 import { basename, dirname } from "node:path";
 
 import { loadTasksConfig } from "@theholocron/astromech/config";
-import { ConfigFileError, loadConfigFile } from "@theholocron/datapad";
+import { ConfigFileError, loadConfigFile, type Loaded } from "@theholocron/datapad";
 import { readGitRemote } from "@theholocron/git-utils";
 import { readPackageJson } from "@theholocron/pkg-utils";
 
@@ -44,12 +44,13 @@ export async function loadConfig(cwd: string): Promise<LoadedConfig> {
 			`no holocron.config.{ts,js,mjs,cjs,json} found in ${cwd}. Create one — see the README for the schema.`
 		);
 	}
-	const withDefaults = await deriveDefaults(dirname(found.filepath), found.config);
+	const withDefaults = await deriveDefaults(found);
 	return { resolved: resolveConfig(withDefaults), filepath: found.filepath };
 }
 
-async function deriveDefaults(configDir: string, raw: HolocronConfig): Promise<HolocronConfig> {
-	const result = { ...raw };
+async function deriveDefaults(found: Loaded<HolocronConfig>): Promise<HolocronConfig> {
+	const configDir = dirname(found.filepath);
+	const result = { ...found.config };
 	if (!result.name) {
 		result.name = (await readPackageJsonName(configDir)) ?? basename(configDir);
 	}
@@ -63,8 +64,9 @@ async function deriveDefaults(configDir: string, raw: HolocronConfig): Promise<H
 	// a dedicated `astromech.config.{ts,js,mjs,json}` is merged on top (it wins
 	// on scalars, task arrays concatenate). Doing it here keeps `holocron repo setup`
 	// / `sync` / `doctor` on the same manifest that `holocron run` / `holocron
-	// ci` resolve directly via `loadTasksConfig`.
-	const manifest = await loadTasksConfig(configDir);
+	// ci` resolve directly via `loadTasksConfig` — handed the file already loaded
+	// above so it isn't found and loaded a second time.
+	const manifest = await loadTasksConfig(configDir, { holocron: found });
 	if (manifest.tasks) result.tasks = manifest.tasks;
 	if (manifest.syncScripts !== undefined) result.syncScripts = manifest.syncScripts;
 	if (manifest.holocronScript !== undefined) result.holocronScript = manifest.holocronScript;
