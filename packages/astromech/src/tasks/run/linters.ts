@@ -1,4 +1,4 @@
-import type { LinterDef } from "./type.js";
+import type { LinterDef } from "./linters.type.js";
 /**
  * The linter registry — one list of linter names (from `config.tasks`'
  * `{ name: "lint", linters: [...] }`, or auto-detected) maps to both the

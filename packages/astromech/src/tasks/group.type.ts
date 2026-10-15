@@ -1,5 +1,5 @@
 import type { TasksConfig } from "../config/schema.type.js";
-import type { RunDeps } from "./run/type.js";
+import type { RunDeps } from "./run/run.type.js";
 
 export interface GroupOptions {
 	/** Print the resolved commands without running anything. */

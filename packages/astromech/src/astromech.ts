@@ -30,7 +30,7 @@ import { runCi } from "./tasks/ci.js";
 import { runGroup } from "./tasks/group.js";
 import { matchNamespace } from "./tasks/match-namespace.js";
 import { runTask } from "./tasks/run/index.js";
-import type { RunDeps } from "./tasks/run/type.js";
+import type { RunDeps } from "./tasks/run/run.type.js";
 import { noopLogger, realExec, realLookPath } from "./utils/index.js";
 
 export function createAstromech(options: AstromechOptions): Astromech {

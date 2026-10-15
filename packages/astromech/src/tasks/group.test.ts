@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { runGroup } from "./group.js";
 import type { GroupInput } from "./group.type.js";
-import type { RunLogger } from "./run/type.js";
+import type { RunLogger } from "./run/run.type.js";
 
 const CWD = "/repo";
 const noopLogger: RunLogger = { debug() {}, warn() {} };
