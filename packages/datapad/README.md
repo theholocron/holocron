@@ -69,7 +69,7 @@ the exact same internals `loadConfigFile` uses for a file it discovered
 itself. `dir` matters: it's what upward `node_modules` resolution sees, so
 content that does `import { defineConfig } from "@theholocron/cli"` only
 resolves if `dir` sits under a tree where that package is a real
-dependency — [`withConfigSandbox`](#withconfigsandboxoptions-run) prepares
+dependency — [`withConfigSandbox`](#withconfigsandbox-nodemodules-root-prefix--run) prepares
 one. Callers own creating and cleaning up `dir`. Returns
 `{ config, filepath }`; throws `ConfigFileError` the same way
 `loadConfigFile` does on a parse/load failure.
