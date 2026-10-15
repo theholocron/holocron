@@ -1,4 +1,4 @@
-import type { TasksConfig } from "../config/schema.type.js";
+import type { TasksConfig } from "../../config/schema.type.js";
 
 export interface SpawnResult {
 	status: number | null;

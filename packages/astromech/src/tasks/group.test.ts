@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { matchNamespace, runGroup } from "./group.js";
+import { runGroup } from "./group.js";
 import type { GroupInput } from "./group.type.js";
 import type { RunLogger } from "./run/type.js";
 
@@ -50,32 +50,6 @@ function makeGroup(files: Record<string, string>, overrides: Partial<GroupInput>
 
 const PKG = JSON.stringify({ name: "@scope/x" });
 const TURBO = (tasks: string[]) => JSON.stringify({ tasks: Object.fromEntries(tasks.map((t) => [t, {}])) });
-
-describe("matchNamespace", () => {
-	it("returns every configured task prefixed by `<namespace>.`, in declaration order, deduped", () => {
-		const names = matchNamespace(
-			{
-				tasks: [
-					"sourceQuality.staticAnalysis",
-					"verification.unitTests",
-					"sourceQuality.formatting",
-					"sourceQuality.staticAnalysis", // duplicate entry — kept once
-				],
-			},
-			"sourceQuality"
-		);
-		expect(names).toEqual(["sourceQuality.staticAnalysis", "sourceQuality.formatting"]);
-	});
-
-	it("returns [] for a namespace with no matching tasks, and for no config at all", () => {
-		expect(matchNamespace({ tasks: ["verification.unitTests"] }, "sourceQuality")).toEqual([]);
-		expect(matchNamespace({}, "sourceQuality")).toEqual([]);
-	});
-
-	it("doesn't match an exact task name as its own namespace (no trailing dot in the task name itself)", () => {
-		expect(matchNamespace({ tasks: ["sourceQuality"] }, "sourceQuality")).toEqual([]);
-	});
-});
 
 describe("runGroup", () => {
 	it("runs every matching task in declaration order, aggregating ok when all succeed", () => {

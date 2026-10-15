@@ -5,6 +5,7 @@
  */
 
 export { defineConfig } from "./define.js";
-export { loadTasksConfig, mergeTasksLayers } from "./load.js";
+export { loadTasksConfig } from "./load.js";
+export { mergeTasksLayers } from "./merge-tasks-layers.js";
 export { normalizeTaskEntry } from "./schema.js";
 export type { TaskConfigItem, TaskEntry, TasksConfig } from "./schema.type.js";

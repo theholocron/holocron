@@ -56,12 +56,13 @@ export { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry.js";
 export type { JobDef, LocalRunner, TaskDef } from "./registry.type.js";
 export { runCi } from "./tasks/ci.js";
 export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci.type.js";
-export { deployOnRelease } from "./tasks/deploy-on-release.js";
 export type {
 	DeployOnReleaseOptions,
 	DeployOnReleaseReport,
 	DeployOnReleaseResult,
-} from "./tasks/deploy-on-release.type.js";
-export { matchNamespace, runGroup } from "./tasks/group.js";
+} from "./tasks/deploy-on-release/index.js";
+export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
+export { runGroup } from "./tasks/group.js";
 export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group.type.js";
+export { matchNamespace } from "./tasks/match-namespace.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";

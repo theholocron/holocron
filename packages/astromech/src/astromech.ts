@@ -27,7 +27,8 @@ import {
 } from "./generators/turbo.js";
 import { KNOWN_TASKS, TASKS } from "./registry.js";
 import { runCi } from "./tasks/ci.js";
-import { matchNamespace, runGroup } from "./tasks/group.js";
+import { runGroup } from "./tasks/group.js";
+import { matchNamespace } from "./tasks/match-namespace.js";
 import { runTask } from "./tasks/run/index.js";
 import type { RunDeps } from "./tasks/run/type.js";
 import { noopLogger, realExec, realLookPath } from "./utils/index.js";

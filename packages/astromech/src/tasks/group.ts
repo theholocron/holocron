@@ -11,19 +11,9 @@
  * every problem in the namespace at once instead of stopping at the first.
  */
 
-import { normalizeTaskEntry } from "../config/schema.js";
-import type { TasksConfig } from "../config/schema.type.js";
 import type { GroupInput, GroupJobReport, GroupReport } from "./group.type.js";
+import { matchNamespace } from "./match-namespace.js";
 import { runTask } from "./run/index.js";
-
-/** Every configured task whose name starts with `"<namespace>."`, in manifest declaration order. */
-export function matchNamespace(config: TasksConfig, namespace: string): string[] {
-	const prefix = `${namespace}.`;
-	return (config.tasks ?? []).map(normalizeTaskEntry).reduce<string[]>((names, entry) => {
-		if (entry.name.startsWith(prefix) && !names.includes(entry.name)) names.push(entry.name);
-		return names;
-	}, []);
-}
 
 export function runGroup(input: GroupInput): GroupReport {
 	const { print, namespace } = input;
