@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { Run } from "./deploy-on-release.type.js";
+import type { Run } from "../../utils/default-run.type.js";
 import { fakeClock, fakeRun, VERSION } from "./test-fixtures.js";
 import { waitForPublished } from "./wait-for-published.js";
 

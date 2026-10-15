@@ -1,5 +1,5 @@
+import type { Run } from "../../utils/default-run.type.js";
 import { WAIT_INTERVAL_MS, WAIT_TIMEOUT_MS } from "./constants.js";
-import type { Run } from "./deploy-on-release.type.js";
 
 /**
  * Waits until npm serves every `name@version` in `packages`, asking with

@@ -1,33 +1,6 @@
 import type { TasksConfig } from "../../config/schema.type.js";
-
-export interface SpawnResult {
-	status: number | null;
-	stdout: string;
-	stderr: string;
-}
-
-export type Run = (command: string, args: string[], options: Record<string, unknown>) => SpawnResult;
-
-/** A workspace package: absolute folder, and what its `package.json` says. */
-export interface WorkspacePackage {
-	name: string;
-	dir: string;
-	version: string | undefined;
-	dependencies: Record<string, string>;
-}
-
-/** One package's release-time deploy, resolved from its manifest. */
-export interface DeployTarget {
-	pkg: WorkspacePackage;
-	channel: string;
-	/** Explicit `with.paths`, when the manifest sets them. */
-	paths: string[] | undefined;
-}
-
-export interface Tree {
-	readJson: (path: string) => unknown;
-	listDirs: (path: string) => string[];
-}
+import type { Run } from "../../utils/default-run.type.js";
+import type { Tree } from "./workspace-packages.type.js";
 
 export interface DeployOnReleaseOptions {
 	cwd: string;

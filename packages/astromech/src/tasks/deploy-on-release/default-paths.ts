@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 
-import type { WorkspacePackage } from "./deploy-on-release.type.js";
 import { workspaceDependencies } from "./workspace-dependencies.js";
+import type { WorkspacePackage } from "./workspace-packages.type.js";
 
 /**
  * The paths a release must touch to redeploy `pkg` when its manifest doesn't

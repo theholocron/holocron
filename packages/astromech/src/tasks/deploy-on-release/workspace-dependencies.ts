@@ -1,4 +1,4 @@
-import type { WorkspacePackage } from "./deploy-on-release.type.js";
+import type { WorkspacePackage } from "./workspace-packages.type.js";
 
 /** The `workspace:*` dependencies of `pkg`, as workspace packages (with their current version). */
 export function workspaceDependencies(pkg: WorkspacePackage, all: WorkspacePackage[]): WorkspacePackage[] {

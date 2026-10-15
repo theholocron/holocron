@@ -1,7 +1,8 @@
 import { normalizeTaskEntry } from "../../config/schema.js";
 import type { TasksConfig } from "../../config/schema.type.js";
 import { DEPLOY_TASK, MAIN_CHANNEL } from "./constants.js";
-import type { DeployTarget, WorkspacePackage } from "./deploy-on-release.type.js";
+import type { DeployTarget } from "./deploy-targets.type.js";
+import type { WorkspacePackage } from "./workspace-packages.type.js";
 
 /**
  * The packages whose manifest declares a release-time `delivery.deploy`

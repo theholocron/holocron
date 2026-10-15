@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import type { Tree, WorkspacePackage } from "./deploy-on-release.type.js";
+import type { Tree, WorkspacePackage } from "./workspace-packages.type.js";
 
 function scanWorkspaceDir(dirPath: string, { readJson, listDirs }: Tree): WorkspacePackage[] {
 	let folders: string[];
