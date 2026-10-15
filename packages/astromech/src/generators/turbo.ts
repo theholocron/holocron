@@ -47,15 +47,11 @@ export function turboConfig(config: TasksConfig): string | null {
 
 	if (Object.keys(tasks).length === 0) return null;
 
-	return `${JSON.stringify(
-		{
-			$schema: "https://turborepo.org/schema.json",
-			globalDependencies: GLOBAL_DEPENDENCIES,
-			tasks,
-		},
-		null,
-		2
-	)}\n`;
+	return stringifyJson({
+		$schema: "https://turborepo.org/schema.json",
+		globalDependencies: GLOBAL_DEPENDENCIES,
+		tasks,
+	});
 }
 
 export interface EnsureRootWorkspaceMemberResult {

@@ -167,15 +167,27 @@ export async function installSkills({
 	return parts.join("; ");
 }
 
+/**
+ * The skill names a previous `holocron setup` recorded in the `.gitignore`
+ * managed block. A block missing its end marker (hand-edited, truncated) runs
+ * only to the next blank line — the same rule `updateGitignore` uses to
+ * replace it — so user-written ignore rules further down are never mistaken
+ * for installed skills and pruned.
+ */
 export function parsePreviousSkills(gitignoreContent: string, symlinkFn: (n: string) => string): string[] {
-	if (!gitignoreContent.includes(GITIGNORE_BLOCK_START)) return [];
 	const startIdx = gitignoreContent.indexOf(GITIGNORE_BLOCK_START);
+	if (startIdx === -1) return [];
 	const endIdx = gitignoreContent.indexOf(GITIGNORE_BLOCK_END, startIdx);
-	const block = endIdx !== -1 ? gitignoreContent.slice(startIdx, endIdx) : gitignoreContent.slice(startIdx);
+	const blankAt = /\r?\n[ \t]*\r?\n/.exec(gitignoreContent.slice(startIdx));
+	const blankIdx = blankAt ? startIdx + blankAt.index : -1;
+	// Complete only if the end marker comes before any blank line.
+	const complete = endIdx !== -1 && (blankIdx === -1 || endIdx < blankIdx);
+	const blockEnd = complete ? endIdx : blankIdx === -1 ? gitignoreContent.length : blankIdx;
+	const block = gitignoreContent.slice(startIdx, blockEnd);
 	const placeholder = "__placeholder__";
 	const symlinkPrefix = `/${symlinkFn(placeholder)}`.replace(placeholder, "");
 	return block
-		.split("\n")
+		.split(/\r?\n/)
 		.filter((line) => line.startsWith(symlinkPrefix))
 		.map((line) => line.slice(symlinkPrefix.length));
 }
