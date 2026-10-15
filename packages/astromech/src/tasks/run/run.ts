@@ -28,13 +28,17 @@
  * task is a normal turbo-delegatable task like any other.
  */
 
-import { join } from "node:path";
+import { detectPackageManager } from "@theholocron/pkg-utils";
 
 import { KNOWN_TASKS, TASKS } from "../../registry.js";
 import type { JobDef, LocalRunner } from "../../registry.type.js";
 import { resolveLinters } from "./linters.js";
+import { packageJsonScript } from "./package-json-script.js";
+import { resolveBin } from "./resolve-bin.js";
+import { resolveRunner } from "./resolve-runner.js";
 import { resolveToolConfig } from "./resolve-tool-config.js";
 import type { RunTaskInput, RunTaskReport } from "./run.type.js";
+import { turboDefinesTask } from "./turbo-defines-task.js";
 
 /** The per-command runner — `runTask` and `runLintAggregate` share it. */
 function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTaskReport {
@@ -99,7 +103,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	// (unless it's the `holocron run <task>` thin caller — that would recurse)
 	const script = packageJsonScript(cwd, task, readFile, fileExists);
 	if (script && !/^holocron run\b/.test(script.trim())) {
-		const pm = packageManager(cwd, readFile, fileExists);
+		const pm = detectPackageManager(cwd, { readFile, fileExists });
 		const args = ["run", task, ...(passthrough.length ? ["--", ...passthrough] : [])];
 		return run(pm, args);
 	}
@@ -322,126 +326,4 @@ function runLinterGroup(input: RunTaskInput, names: string[], passthrough: strin
 	return reports.some((r) => r.status === "fail")
 		? { status: "fail", command, message: "one or more linters failed" }
 		: { status: "ok", command };
-}
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-const mkRunner = (tool: string, args: string[] = []): { tool: string; args: string[] } => ({ tool, args });
-
-/**
- * Resolve `{ tool, args }` for a runner, applying `detect[]` against repo
- * files, falling back (#750) to each candidate's `tool` name against
- * `package.json`'s own declared dependencies when neither matches by
- * filename. Only called for `tool` / `detect` runners — the caller handles
- * `command` runners itself, so `local.detect` is present whenever
- * `local.tool` is not.
- *
- * The dependency fallback matters once a Bucket A migration (#680) deletes
- * a build tool's own config file (`tsdown.config.ts`, `vite.config.ts`, …):
- * that file was the *only* signal `detect[]` had to offer, so removing it
- * used to make `delivery.build` report "no task for this repo" and silently
- * skip the build, even though the tool is still very much in use — a
- * package can't actually build with `tsdown` without it in
- * `dependencies`/`devDependencies`, so that's a signal at least as reliable
- * as the config file, and one deleting the file doesn't remove.
- *
- * **Per-candidate, not two full passes** (#750 follow-up — the first
- * shipped version got this wrong): `delivery.build`'s own `detect[]` ends
- * with `{ when: /^tsconfig\.json$/, tool: "tsc" }` as its last-resort
- * fallback, and `tsconfig.json` exists in essentially every package
- * regardless of build tool. A "check every candidate's filename, *then*
- * check every candidate's dependency" two-pass design would let that
- * always-present fallback file win over a real `tsdown`/`vite`/`rollup`
- * dependency match, the moment the earlier candidates' own config files are
- * gone — exactly backwards. Checking `(file match) || (dependency match)`
- * together for each candidate before moving to the next preserves the
- * intended precedence: a real signal for an *earlier* candidate, by either
- * means, still wins over a later candidate's mere filename presence.
- */
-function resolveRunner(
-	local: LocalRunner,
-	cwd: string,
-	listDir: (p: string) => string[],
-	readFile: (p: string) => string
-): { tool: string; args: string[] } | undefined {
-	if (local.tool) return mkRunner(local.tool, local.args);
-
-	let files: string[];
-	try {
-		files = listDir(cwd);
-	} catch {
-		files = [];
-	}
-	const deps = packageJsonDependencies(cwd, readFile);
-	for (const candidate of local.detect!) {
-		if (files.some((f) => candidate.when.test(f)) || deps.has(candidate.tool)) {
-			return mkRunner(candidate.tool, candidate.args);
-		}
-	}
-	return undefined;
-}
-
-/** Every key from `package.json`'s `dependencies` + `devDependencies`, or an empty set on any read/parse failure. */
-function packageJsonDependencies(cwd: string, readFile: (p: string) => string): ReadonlySet<string> {
-	try {
-		const pkg = JSON.parse(readFile(join(cwd, "package.json"))) as {
-			dependencies?: Record<string, string>;
-			devDependencies?: Record<string, string>;
-		};
-		return new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]);
-	} catch {
-		return new Set();
-	}
-}
-
-function resolveBin(cwd: string, tool: string, fileExists: (p: string) => boolean): string {
-	const local = join(cwd, "node_modules", ".bin", tool);
-	return fileExists(local) ? local : tool;
-}
-
-function packageManager(cwd: string, readFile: (p: string) => string, fileExists: (p: string) => boolean): string {
-	try {
-		const pkg = JSON.parse(readFile(join(cwd, "package.json"))) as { packageManager?: string };
-		if (typeof pkg.packageManager === "string") return pkg.packageManager.split("@")[0]!;
-	} catch {
-		/* no package.json */
-	}
-	if (fileExists(join(cwd, "pnpm-lock.yaml"))) return "pnpm";
-	if (fileExists(join(cwd, "bun.lockb"))) return "bun";
-	if (fileExists(join(cwd, "yarn.lock"))) return "yarn";
-	if (fileExists(join(cwd, "package-lock.json"))) return "npm";
-	return "pnpm";
-}
-
-function turboDefinesTask(
-	cwd: string,
-	task: string,
-	readFile: (p: string) => string,
-	fileExists: (p: string) => boolean
-): boolean {
-	if (!fileExists(join(cwd, "turbo.json"))) return false;
-	try {
-		const turbo = JSON.parse(readFile(join(cwd, "turbo.json"))) as {
-			tasks?: Record<string, unknown>;
-			pipeline?: Record<string, unknown>;
-		};
-		return Boolean(turbo.tasks?.[task] ?? turbo.pipeline?.[task]);
-	} catch {
-		return false;
-	}
-}
-
-function packageJsonScript(
-	cwd: string,
-	task: string,
-	readFile: (p: string) => string,
-	fileExists: (p: string) => boolean
-): string | undefined {
-	if (!fileExists(join(cwd, "package.json"))) return undefined;
-	try {
-		const pkg = JSON.parse(readFile(join(cwd, "package.json"))) as { scripts?: Record<string, string> };
-		return pkg.scripts?.[task];
-	} catch {
-		return undefined;
-	}
 }
