@@ -1,14 +1,7 @@
 import { loadConfigFile, mergeConfig } from "@theholocron/datapad";
 
-import type { TaskConfigItem, TasksConfig } from "./schema.js";
-
-/**
- * The `tasks` value in each source. A dedicated `astromech.config.*`
- * default-exports the full {@link TasksConfig} object; the `tasks` key of
- * `holocron.config.*` is the bare item array (it mirrors the old
- * `workflows` key). Either form is accepted from either source.
- */
-type TasksInput = TasksConfig | TaskConfigItem[];
+import type { TasksInput } from "./load.type.js";
+import type { TasksConfig } from "./schema.type.js";
 
 /**
  * Resolve the task manifest for a repo: the `tasks` key of

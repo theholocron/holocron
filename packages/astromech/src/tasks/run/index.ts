@@ -3,4 +3,5 @@
  * private to `run.ts`'s own execution (nothing outside this directory
  * imports them) and are deliberately not re-exported here.
  */
-export { type ExecFn, type RunDeps, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./run.js";
+export { runTask } from "./run.js";
+export type { ExecFn, RunDeps, RunLogger, RunTaskInput, RunTaskReport } from "./run.type.js";

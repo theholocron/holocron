@@ -1,3 +1,4 @@
+import type { ResolverDeps, ToolConfigSpec } from "./resolver.type.js";
 /**
  * Resolves the absolute path to a Bucket A tool's shared `@theholocron/*-config`
  * entry point, installed in the consuming repo's own `node_modules` — and the
@@ -32,20 +33,6 @@
  * repo-specific by nature, never a shared-config candidate. See
  * `.notes/tech-config-resolution.spec.md` (#676).
  */
-
-export interface ResolverDeps {
-	readFile: (path: string) => string;
-	fileExists: (path: string) => boolean;
-}
-
-interface ToolConfigSpec {
-	/** `@theholocron/*-config` package name. */
-	package: string;
-	/** `package.json#exports` subpath key — `"."` or `"./bundles/library"`. */
-	exportPath: string;
-	/** Flag(s) to prepend before the resolved path, e.g. `["--config"]`. */
-	flag: string[];
-}
 
 /**
  * `library` is every mapped tool's org-wide default variant today — every

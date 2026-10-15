@@ -2,7 +2,8 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { type RunLogger, runTask, type RunTaskInput } from "./run.js";
+import { runTask } from "./run.js";
+import type { RunLogger, RunTaskInput } from "./run.type.js";
 
 const CWD = "/repo";
 

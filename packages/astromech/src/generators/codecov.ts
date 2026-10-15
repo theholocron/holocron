@@ -11,13 +11,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import codecovTemplate from "../templates/codecov/codecov.yml";
-
-export interface WorkspacePackage {
-	slug: string;
-	name: string;
-	/** Which workspace root the package was discovered under. Defaults to `"packages"`. */
-	dir?: "packages" | "apps" | "plugins";
-}
+import type { WorkspacePackage } from "./codecov.type.js";
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
 

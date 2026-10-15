@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { TasksConfig } from "../config/schema.js";
+import type { TasksConfig } from "../config/schema.type.js";
 import {
 	defaultListDirs,
 	defaultPaths,
@@ -13,14 +13,13 @@ import {
 	defaultRun,
 	defaultSleep,
 	deployOnRelease,
-	type DeployOnReleaseOptions,
 	deployTargets,
-	type Run,
 	shouldDeploy,
 	waitForPublished,
 	workspaceDependencies,
 	workspacePackages,
 } from "./deploy-on-release.js";
+import type { DeployOnReleaseOptions, Run } from "./deploy-on-release.type.js";
 
 const VERSION = "5.0.0-alpha.105";
 const PATHS = ["packages/app/", "packages/cli/"];
