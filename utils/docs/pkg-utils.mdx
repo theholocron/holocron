@@ -1,0 +1,37 @@
+---
+title: Package Utils
+description: Read package.json, list its dependencies and detect the package manager.
+---
+
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getUtils } from "@theholocron/registry-doc";
+
+<PackageHeader entry={getUtils()["pkg-utils"]} />
+
+<Installation package={getUtils()["pkg-utils"].package} />
+
+## API
+
+### `readPackageJson(dir)` / `readPackageJsonSync(dir, options?)`
+
+The parsed `<dir>/package.json`, or `undefined` when it is missing, unreadable or not a JSON object. `options.readFile` (sync only) replaces the file read.
+
+### `parsePackageJson(text)`
+
+Parses `package.json` text, ignoring a leading byte-order mark. `undefined` for broken JSON or JSON that isn't an object. A recognized field of the wrong type is left out, and the string-map fields keep only their string-valued entries.
+
+### `dependencyNames(pkg, fields?)`
+
+Every package name declared in `dependencies` and `devDependencies` (or the `fields` you pass), as a `Set`.
+
+### `detectPackageManager(dir, options?)`
+
+The name in `package.json#packageManager` when it is pnpm, npm, yarn or bun, else the first lockfile found (including `npm-shrinkwrap.json`), else `options.fallback` (default `"pnpm"`).
+
+```ts
+import { dependencyNames, detectPackageManager, readPackageJson } from "@theholocron/pkg-utils";
+
+const pkg = await readPackageJson(process.cwd());
+dependencyNames(pkg).has("tsdown");
+detectPackageManager(process.cwd()); // "pnpm" | "npm" | "yarn" | "bun"
+```
