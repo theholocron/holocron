@@ -61,6 +61,7 @@
     "@theholocron/misc-utils": "catalog:utils",
     "@theholocron/object-utils": "catalog:utils",
     "@theholocron/observability": "catalog:",
+    "@theholocron/pkg-utils": "catalog:utils",
     "@theholocron/prettier-config": "catalog:configs",
     "@tktco/node-actionlint": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
