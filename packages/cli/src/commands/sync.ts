@@ -92,8 +92,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	// (holocron#1014) — package-local writes (this package's own
 	// package.json scripts/keywords/description, its own README) stay
 	// keyed to `input.context.repoRoot` (= --cwd) unchanged below.
-	const gitRoot =
-		findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) ?? input.context.repoRoot;
+	// `fallback: "start"` means this always resolves to a string (the start dir when
+	// there is no `.git` above it); the declared `string | undefined` is the no-fallback case.
+	const gitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
 	// `findRootSync` (with `realpath`) resolves symlinks and relative segments internally; a
 	// plain `===` against the raw, unresolved `input.context.repoRoot`
 	// would mark a real root invocation as a subpackage whenever --cwd's
