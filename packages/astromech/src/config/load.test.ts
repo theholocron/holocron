@@ -46,4 +46,17 @@ describe("loadTasksConfig", () => {
 		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ tasks: ["b"], syncScripts: false }));
 		expect(await loadTasksConfig(cwd)).toEqual({ tasks: ["a", "b"], syncScripts: false });
 	});
+
+	it("uses an already-loaded holocron.config instead of loading it again", async () => {
+		// What's on disk differs from what the caller passes: the passed one must win.
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: ["from-disk"] }));
+		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ tasks: ["dedicated"] }));
+		const holocron = { config: { tasks: ["preloaded"] }, filepath: join(cwd, "holocron.config.json") };
+		expect(await loadTasksConfig(cwd, { holocron })).toEqual({ tasks: ["preloaded", "dedicated"] });
+	});
+
+	it("treats holocron: null as no holocron.config, without looking for one", async () => {
+		await writeFile(join(cwd, "holocron.config.json"), JSON.stringify({ tasks: ["from-disk"] }));
+		expect(await loadTasksConfig(cwd, { holocron: null })).toEqual({});
+	});
 });

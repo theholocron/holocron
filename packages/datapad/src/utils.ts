@@ -17,7 +17,7 @@ import { ConfigFileError } from "./errors.js";
 
 export async function loadFile<T>(filepath: string, ext: string): Promise<T> {
 	if (ext === "json") return loadJson<T>(filepath);
-	const mod = ext === "ts" ? await importTs(filepath) : await importModule(filepath);
+	const mod = await importModule(filepath, ext);
 	return extractDefault<T>(filepath, mod);
 }
 
@@ -32,14 +32,6 @@ async function loadJson<T>(filepath: string): Promise<T> {
 	}
 }
 
-async function importModule(filepath: string): Promise<unknown> {
-	try {
-		return (await import(pathToFileURL(filepath).href)) as unknown;
-	} catch (err) {
-		throw new ConfigFileError(`could not load ${filepath}: ${errorMessage(err)}`, filepath);
-	}
-}
-
 let tsRegistered: Promise<void> | undefined;
 
 async function registerTsx(): Promise<void> {
@@ -48,15 +40,17 @@ async function registerTsx(): Promise<void> {
 }
 
 /**
- * Load a `.ts` file. `tsx`'s ESM loader is registered once per process
- * (lazily — only when a `.ts` file is actually loaded). `register()` is
- * used over `tsImport()` because a single run may load several TS files
- * (`loadLayered` reads a dedicated file *and* a parent file) and
- * `tsImport`'s one-off register/unregister cycle is not reentrant.
+ * Import `filepath`. For `.ts`, `tsx`'s ESM loader is registered first, once
+ * per process (lazily — only when a `.ts` file is actually loaded).
+ * `register()` is used over `tsImport()` because a single run may load
+ * several TS files (`loadLayered` reads a dedicated file *and* a parent
+ * file) and `tsImport`'s one-off register/unregister cycle is not reentrant.
  */
-async function importTs(filepath: string): Promise<unknown> {
-	tsRegistered ??= registerTsx();
-	await tsRegistered;
+async function importModule(filepath: string, ext: string): Promise<unknown> {
+	if (ext === "ts") {
+		tsRegistered ??= registerTsx();
+		await tsRegistered;
+	}
 	try {
 		return (await import(pathToFileURL(filepath).href)) as unknown;
 	} catch (err) {

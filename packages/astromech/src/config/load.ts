@@ -1,7 +1,7 @@
-import { loadConfigFile } from "@theholocron/datapad";
+import { type Loaded, loadLayered } from "@theholocron/datapad";
 
-import type { TasksInput } from "./load.type.js";
-import { mergeTasksLayers } from "./merge-tasks-layers.js";
+import { coerceTasks } from "./coerce-tasks.js";
+import type { LoadTasksConfigOptions, TasksInput } from "./load.type.js";
 import type { TasksConfig } from "./schema.type.js";
 
 /**
@@ -13,10 +13,21 @@ import type { TasksConfig } from "./schema.type.js";
  * `walkUp: true` — `holocron run`/`ci` are usable from any subdirectory of
  * a repo, not only its exact root (datapad walks up to the nearest `.git`
  * boundary; see `@theholocron/datapad`'s own doc comment).
+ *
+ * A caller that has already loaded `holocron.config.*` passes it as
+ * `options.holocron` so it is not found and loaded again.
  */
-export async function loadTasksConfig(cwd: string): Promise<TasksConfig> {
-	const dedicated = await loadConfigFile<TasksInput>({ cwd, name: "astromech", walkUp: true });
-	const parent = await loadConfigFile<{ tasks?: TasksInput }>({ cwd, name: "holocron", walkUp: true });
-
-	return mergeTasksLayers(parent?.config.tasks, dedicated?.config);
+export async function loadTasksConfig(cwd: string, options: LoadTasksConfigOptions = {}): Promise<TasksConfig> {
+	const layered = await loadLayered<TasksConfig>({
+		cwd,
+		name: "astromech",
+		walkUp: true,
+		fallback: {
+			file: "holocron",
+			key: "tasks",
+			preloaded: options.holocron as Loaded<Record<string, unknown>> | null | undefined,
+		},
+		coerce: (raw) => coerceTasks(raw as TasksInput | undefined),
+	});
+	return layered?.config ?? {};
 }

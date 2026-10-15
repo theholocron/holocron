@@ -89,13 +89,29 @@ export async function loadConfigFile<T>(opts: LoadConfigFileOptions): Promise<Lo
 	return (await findUpward(opts.cwd, checkDir, hasGitEntry)) ?? null;
 }
 
-export interface LoadLayeredOptions extends LoadConfigFileOptions {
+export interface LoadLayeredOptions<T = unknown> extends LoadConfigFileOptions {
 	/**
 	 * When no dedicated `<name>.config.*` exists — or in addition to it —
 	 * read `<file>.config.*` and take its `[key]`. The dedicated file (if
 	 * any) is merged on top.
 	 */
-	fallback?: { file: string; key: string };
+	fallback?: {
+		file: string;
+		key: string;
+		/**
+		 * The `<file>.config.*` already loaded by the caller (`null`: it was
+		 * looked for and isn't there). Used as is instead of loading it again;
+		 * leave it `undefined` to have `loadLayered` find and load it.
+		 */
+		preloaded?: Loaded<Record<string, unknown>> | null;
+	};
+	/**
+	 * Turns each layer's raw value — the dedicated file's default export, and
+	 * the fallback's `[key]` — into the shape being merged, before the merge.
+	 * Return `undefined` to treat the layer as absent. For configs that accept
+	 * shorthand (a bare array standing for `{ tasks: [...] }`).
+	 */
+	coerce?: (raw: unknown) => T | undefined;
 }
 
 export interface LayeredResult<T> {
@@ -112,29 +128,41 @@ export interface LayeredResult<T> {
  * the dedicated file wins on conflict (vitest-over-vite). Returns `null`
  * when neither source resolves.
  */
-export async function loadLayered<T>(opts: LoadLayeredOptions): Promise<LayeredResult<T> | null> {
-	const dedicated = await loadConfigFile<T>(opts);
+export async function loadLayered<T>(opts: LoadLayeredOptions<T>): Promise<LayeredResult<T> | null> {
+	const coerce = opts.coerce ?? ((raw: unknown) => raw as T | undefined);
 
-	let base: unknown;
+	const dedicated = await loadConfigFile<unknown>(opts);
+	let top: T | undefined;
+	let topFile: string | null = null;
+	if (dedicated) {
+		top = coerce(dedicated.config);
+		if (top !== undefined) topFile = dedicated.filepath;
+	}
+
+	let base: T | undefined;
 	let baseFile: string | null = null;
 	if (opts.fallback) {
-		const parent = await loadConfigFile<Record<string, unknown>>({
-			cwd: opts.cwd,
-			name: opts.fallback.file,
-			extensions: opts.extensions,
-			walkUp: opts.walkUp,
-		});
-		if (parent && parent.config[opts.fallback.key] !== undefined) {
-			base = parent.config[opts.fallback.key];
-			baseFile = parent.filepath;
+		const parent =
+			opts.fallback.preloaded !== undefined
+				? opts.fallback.preloaded
+				: await loadConfigFile<Record<string, unknown>>({
+						cwd: opts.cwd,
+						name: opts.fallback.file,
+						extensions: opts.extensions,
+						walkUp: opts.walkUp,
+					});
+		const raw = parent?.config[opts.fallback.key];
+		if (parent && raw !== undefined) {
+			base = coerce(raw);
+			if (base !== undefined) baseFile = parent.filepath;
 		}
 	}
 
-	if (!dedicated && base === undefined) return null;
+	if (top === undefined && base === undefined) return null;
 
-	const config = mergeConfig(base as T, dedicated?.config);
-	const sources = [baseFile, dedicated?.filepath ?? null].filter((s): s is string => s !== null);
-	return { config, filepath: dedicated?.filepath ?? baseFile, sources };
+	const config = mergeConfig(base as T, top);
+	const sources = [baseFile, topFile].filter((s): s is string => s !== null);
+	return { config, filepath: topFile ?? baseFile, sources };
 }
 
 export interface LoadConfigFromContentOptions {

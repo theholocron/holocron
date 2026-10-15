@@ -5,7 +5,7 @@ import type { TasksInput } from "./load.type.js";
 import type { TasksConfig } from "./schema.type.js";
 
 /**
- * The merge step of {@link loadTasksConfig}, for callers that load the two
+ * The same layering as {@link loadTasksConfig}, for callers that load the two
  * sources some other way (Sentinel reads them from the GitHub API, not
  * from disk, holocron#916): `holocron.config.*`'s `tasks` value first,
  * then a dedicated `astromech.config.*`'s default export merged on top.

@@ -21,6 +21,7 @@
  * ```
  */
 
+export { type ConfigSandboxOptions, withConfigSandbox } from "./config-sandbox.js";
 export { createDefineConfig } from "./define.js";
 export { ConfigFileError } from "./errors.js";
 export {
