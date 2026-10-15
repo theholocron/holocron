@@ -44,10 +44,16 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 			// Imported only by inlined workspace code in dist/ (@theholocron/cli:
-			// @commitlint/lint, @napi-rs/keyring; @theholocron/datapad:
-			// object-utils), never by sentinel's own src/ (holocron#922);
+			// @commitlint/lint, @napi-rs/keyring, @theholocron/git-utils;
+			// @theholocron/datapad: object-utils), never by sentinel's own src/
+			// (holocron#922);
 			// declared so the trimmed deploy package.json installs them on Vercel.
-			ignoreDependencies: ["@commitlint/lint", "@napi-rs/keyring", "@theholocron/object-utils"],
+			ignoreDependencies: [
+				"@commitlint/lint",
+				"@napi-rs/keyring",
+				"@theholocron/git-utils",
+				"@theholocron/object-utils",
+			],
 		},
 	},
 	ignoreDependencies: [
