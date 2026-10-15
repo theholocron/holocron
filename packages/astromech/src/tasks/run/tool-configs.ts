@@ -1,4 +1,4 @@
-import type { ToolConfigSpec } from "./resolve-tool-config.type.js";
+import type { ToolConfigSpec } from "./tool-configs.type.js";
 
 /**
  * `library` is every mapped tool's org-wide default variant today — every
