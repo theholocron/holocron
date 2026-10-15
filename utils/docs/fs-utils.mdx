@@ -26,6 +26,25 @@ const configDir = await findUpward(
 );
 ```
 
+### `findRoot(startDir, marker, options?)` / `findRootSync(...)`
+
+The nearest ancestor of `startDir` — itself first — that contains `marker`: a file or directory name, or a list of names where any one counts. Resolves to `undefined` when nothing is found; `findRootSync` is the synchronous twin.
+
+| Option              | Effect                                                                                                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fallback: "start"` | Return the start directory instead of `undefined` when nothing is found.                                                                                                      |
+| `realpath: true`    | Resolve symlinks of `startDir` before walking. A start path that doesn't exist counts as not found; other errors throw. Markers must be bare names (a `TypeError` otherwise). |
+
+```ts
+import { findRoot, findRootSync } from "@theholocron/fs-utils";
+
+const repoRoot = await findRoot(process.cwd(), ".git");
+const workspaceRoot = await findRoot(process.cwd(), ["pnpm-workspace.yaml", "turbo.json"]);
+
+// never throws, never undefined: the git root, or the start dir when there is none
+const root = findRootSync(cwd, ".git", { fallback: "start", realpath: true });
+```
+
 ### `hasGitEntry(dir)`
 
 Returns `true` when `dir` has a `.git` entry — a directory in a normal checkout, a file in a worktree/submodule. A common `stop` boundary for `findUpward`.
