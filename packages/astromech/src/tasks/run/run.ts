@@ -33,7 +33,7 @@ import { join } from "node:path";
 import { KNOWN_TASKS, TASKS } from "../../registry.js";
 import type { JobDef, LocalRunner } from "../../registry.type.js";
 import { resolveLinters } from "./linters.js";
-import { resolveToolConfig } from "./resolver.js";
+import { resolveToolConfig } from "./resolve-tool-config.js";
 import type { RunTaskInput, RunTaskReport } from "./run.type.js";
 
 /** The per-command runner — `runTask` and `runLintAggregate` share it. */

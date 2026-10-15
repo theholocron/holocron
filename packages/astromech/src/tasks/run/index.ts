@@ -1,5 +1,5 @@
 /**
- * `holocron run <task>` — barrel. `linters.ts` and `resolver.ts` are
+ * `holocron run <task>` — barrel. `linters.ts` and `resolve-tool-config.ts` are
  * private to `run.ts`'s own execution (nothing outside this directory
  * imports them) and are deliberately not re-exported here.
  */

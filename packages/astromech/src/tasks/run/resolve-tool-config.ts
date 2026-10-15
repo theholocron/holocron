@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 import { resolveExportEntry } from "./resolve-export-entry.js";
-import type { ResolverDeps } from "./resolver.type.js";
+import type { ResolverDeps } from "./resolve-tool-config.type.js";
 import { LOCAL_CONFIG_FILES, TOOL_CONFIGS } from "./tool-configs.js";
 
 /**

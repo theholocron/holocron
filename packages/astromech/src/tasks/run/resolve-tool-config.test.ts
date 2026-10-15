@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveToolConfig } from "./resolver.js";
+import { resolveToolConfig } from "./resolve-tool-config.js";
 
 const CWD = "/repo";
 
