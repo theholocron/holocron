@@ -199,23 +199,26 @@ catalogs:
       version: 18.2.0
   utils:
     '@theholocron/env-utils':
-      specifier: ^1.10.0
-      version: 1.10.0
+      specifier: ^1.12.0
+      version: 1.12.0
     '@theholocron/fs-utils':
-      specifier: ^1.10.0
-      version: 1.10.0
+      specifier: ^1.12.0
+      version: 1.12.0
     '@theholocron/git-utils':
-      specifier: ^1.10.0
-      version: 1.10.0
+      specifier: ^1.12.0
+      version: 1.12.0
     '@theholocron/json-utils':
-      specifier: ^1.10.0
-      version: 1.10.0
+      specifier: ^1.12.0
+      version: 1.12.0
     '@theholocron/misc-utils':
-      specifier: ^1.10.0
-      version: 1.10.0
+      specifier: ^1.12.0
+      version: 1.12.0
     '@theholocron/object-utils':
-      specifier: ^1.10.0
-      version: 1.10.0
+      specifier: ^1.12.0
+      version: 1.12.0
+    '@theholocron/pkg-utils':
+      specifier: ^1.12.0
+      version: 1.12.0
 
 overrides:
   cookie: ^2.0.1
@@ -401,9 +404,15 @@ importers:
       '@theholocron/datapad':
         specifier: workspace:*
         version: link:../datapad
+      '@theholocron/fs-utils':
+        specifier: catalog:utils
+        version: 1.12.0
       '@theholocron/json-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
+      '@theholocron/pkg-utils':
+        specifier: catalog:utils
+        version: 1.12.0
     devDependencies:
       '@theholocron/eslint-config':
         specifier: catalog:configs
@@ -485,13 +494,13 @@ importers:
         version: link:../datapad
       '@theholocron/env-utils':
         specifier: catalog:utils
-        version: 1.10.0(dotenv@17.4.2)
+        version: 1.12.0(dotenv@17.4.2)
       '@theholocron/fs-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/git-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/github-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -500,13 +509,16 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/json-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/observability':
         specifier: 'catalog:'
         version: 0.5.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/pkg-utils':
+        specifier: catalog:utils
+        version: 1.12.0
       '@theholocron/registry-doc':
         specifier: ^1.12.0
         version: 1.15.0
@@ -585,13 +597,13 @@ importers:
     dependencies:
       '@theholocron/fs-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/object-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       tsx:
         specifier: 4.22.4
         version: 4.22.4
@@ -688,16 +700,16 @@ importers:
         version: link:../datapad
       '@theholocron/env-utils':
         specifier: catalog:utils
-        version: 1.10.0(dotenv@17.4.2)
+        version: 1.12.0(dotenv@17.4.2)
       '@theholocron/eslint-config':
         specifier: catalog:configs
         version: 8.7.1(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.11.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/fs-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/git-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/github-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -709,19 +721,22 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/json-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/markdownlint-config':
         specifier: catalog:configs
         version: 8.7.1(markdownlint@0.41.1)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/object-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/observability':
         specifier: 'catalog:'
         version: 0.5.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/pkg-utils':
+        specifier: catalog:utils
+        version: 1.12.0
       '@theholocron/prettier-config':
         specifier: catalog:configs
         version: 8.7.1(prettier@3.9.6)
@@ -851,7 +866,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -905,7 +920,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -950,7 +965,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1007,7 +1022,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1067,7 +1082,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1127,7 +1142,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1172,7 +1187,7 @@ importers:
     dependencies:
       '@theholocron/json-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
     devDependencies:
       '@theholocron/cli':
         specifier: workspace:*
@@ -1240,7 +1255,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1297,7 +1312,7 @@ importers:
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1351,7 +1366,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/neon-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1405,7 +1420,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/netlify-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1454,7 +1469,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -1511,7 +1526,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/postman-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1568,7 +1583,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/sentry-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1628,7 +1643,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/slack-client':
         specifier: catalog:clients
         version: 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -1688,7 +1703,7 @@ importers:
         version: 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/misc-utils':
         specifier: catalog:utils
-        version: 1.10.0
+        version: 1.12.0
       '@theholocron/tsconfig':
         specifier: catalog:configs
         version: 8.7.1(typescript@5.9.3)
@@ -3671,8 +3686,8 @@ packages:
     resolution: {integrity: sha512-j4peNLW1MMkAr8TmVPVh3/klcg1c8nI0XeNMuiSIrOk+DvXs0xNGGqo0h04QbW7Hmc6+qLdEKxTj/qCx5oFs2Q==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/env-utils@1.10.0':
-    resolution: {integrity: sha512-CsbGc1LdqL9bXwGeYK6VUykTy4Uj3ljYNa2pD/nFOcWQslEPAUYnl30e+BVk1qJYiybugUz1J3Cq+fybf3o7Sg==}
+  '@theholocron/env-utils@1.12.0':
+    resolution: {integrity: sha512-Xi3kBt/8zME3iozmJ+uqjOFYckGiMPSiChey9cy0vvyeiQ1HtfjqOheTALQ4qumj+1bFGdg8O5H9QcAc3IaP5Q==}
     engines: {node: '>=22'}
     peerDependencies:
       dotenv: '>=16'
@@ -3705,12 +3720,12 @@ packages:
       eslint-plugin-storybook:
         optional: true
 
-  '@theholocron/fs-utils@1.10.0':
-    resolution: {integrity: sha512-ffsVKjtmsCngcijUMJ/v3nt8/MKYRVuyhNbnZJYzDVcTg8e2PvsFoOs29o0bMtvNJWqgEmwAwuYwHDVjz1nZ8Q==}
+  '@theholocron/fs-utils@1.12.0':
+    resolution: {integrity: sha512-nUpJzh4M+FYVzPf6hXTvSCtcpEV+uP4bZpQPr3twpea+Q9M5GtT83l2lHBb+dStkFKOVIxqrObxb4PtJIvS2vA==}
     engines: {node: '>=22'}
 
-  '@theholocron/git-utils@1.10.0':
-    resolution: {integrity: sha512-SOdFZno3UAlbC9tdlqQ40kQ10iSQsbCGZrJ3ffuT+xLl4D7Kjrj1ozlD/trTo7TEQu9JcNc265lkAHGZsQIB6Q==}
+  '@theholocron/git-utils@1.12.0':
+    resolution: {integrity: sha512-rkA6TfOaHLVelwmwkZiugkOap0avMOsnirtI/ysqCs0nuoyEHvcOsAMp4r73+D8eJaqQSN50YooXCApBm2wnXg==}
     engines: {node: '>=22'}
 
   '@theholocron/github-client@1.41.0':
@@ -3734,8 +3749,8 @@ packages:
     resolution: {integrity: sha512-3oeE3FIw5OokxqobWSOk7P6FQauB990xdRnbVxGUxwZhgVNlnVzgRaMGWCdNYTypw2hO6LcNs3yQSMFH6ui1Ng==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/json-utils@1.10.0':
-    resolution: {integrity: sha512-AyVaRs7WVEwLwoGfYcCCSKGVs66RNh5aTlRmNNtUzcl3p/o5ArixXDJ6sDU25tmk6AFtkeM85IskCsNcrWqT+g==}
+  '@theholocron/json-utils@1.12.0':
+    resolution: {integrity: sha512-tCYNdl2hkpH5ijO5vSMPEL74dbF3t/FcQFsk2qy/wjgg9PYglQvPhlmFy5ec0HM8JRec7ZIiT+w57yLVuSYiRQ==}
     engines: {node: '>=22'}
 
   '@theholocron/lint-staged-config@8.7.1':
@@ -3755,8 +3770,8 @@ packages:
     peerDependencies:
       markdownlint: ^0.41
 
-  '@theholocron/misc-utils@1.10.0':
-    resolution: {integrity: sha512-U5DE2jjurVDTnMhmPcvMMw17L0CMTx/riPOaXWM3NU1ZzeDQc/rgP4u58w9Daqld1G+BEeNteyMYW8tFuqKBgA==}
+  '@theholocron/misc-utils@1.12.0':
+    resolution: {integrity: sha512-DI4gk/uIGbFM4o6hbYv/3wcgR/Bv4pZ7R3vVWXFnYHp89icBYmJxmHcBDyxppumrA2+T4xeVqJEcYSLuYTGVQA==}
     engines: {node: '>=22'}
 
   '@theholocron/neon-client@1.41.0':
@@ -3767,8 +3782,8 @@ packages:
     resolution: {integrity: sha512-V6h67NTYFy9ZsOGwxwZpqzlwMhMnYZLJnERNHfhPzeg5XSms7qC8zF+sb/Flg8pa1wVn0GgfjLskt4a4pAHZtA==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/object-utils@1.10.0':
-    resolution: {integrity: sha512-Zh4v2KC2HZjkiG85uG3LMBwqnOP2Tg3iYedqhAxoPNZPe3+Qg3uaRFnahF2QzvMCppiTJ6Zw1+ORNOX+SVyzag==}
+  '@theholocron/object-utils@1.12.0':
+    resolution: {integrity: sha512-KZNNn2z+RSYFk9lD72jDaCmb0Rt32+OfQHey94NDdCZKxYCIf5Gr122DeAV4+LrOxlUi6wpWKwWQAPArzkgu3Q==}
     engines: {node: '>=22'}
 
   '@theholocron/observability@0.3.2':
@@ -3818,6 +3833,10 @@ packages:
         optional: true
       vitest:
         optional: true
+
+  '@theholocron/pkg-utils@1.12.0':
+    resolution: {integrity: sha512-60wW3s6SqUs8hlq82lt2Ikculk4b9njhxqFvP5rKDvU7GiBKCvoiTquJOXVtIrmHgdpzztbur6EHIL8EeKUTQA==}
+    engines: {node: '>=22'}
 
   '@theholocron/posthog-client@1.41.0':
     resolution: {integrity: sha512-GVLZKI7iiOF1UrXjL9W6RyPoFVSs/4sdLCrkXk17bEeWEHWGzOnjcmHNxPxrAwlk6oe1TWSUVESZiu/cWvk2dQ==}
@@ -11016,7 +11035,7 @@ snapshots:
       '@theholocron/astromech': 5.0.0-alpha.3
       '@theholocron/components-doc': 1.14.0(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.0))(@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.4.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(typescript@5.9.3))(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.4.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@theholocron/datapad': 5.0.0-alpha.3
-      '@theholocron/env-utils': 1.10.0(dotenv@17.4.2)
+      '@theholocron/env-utils': 1.12.0(dotenv@17.4.2)
       '@theholocron/github-client': 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/http-client': 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -11051,7 +11070,7 @@ snapshots:
       '@theholocron/astromech': 5.0.0-alpha.3
       '@theholocron/components-doc': 1.14.0(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.22.4)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.4.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))(typescript@5.9.3))(astro@7.2.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@26.4.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@theholocron/datapad': 5.0.0-alpha.3
-      '@theholocron/env-utils': 1.10.0(dotenv@17.4.2)
+      '@theholocron/env-utils': 1.12.0(dotenv@17.4.2)
       '@theholocron/github-client': 1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/http-client': 1.42.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
@@ -11156,7 +11175,7 @@ snapshots:
       - posthog-node
       - vitest
 
-  '@theholocron/env-utils@1.10.0(dotenv@17.4.2)':
+  '@theholocron/env-utils@1.12.0(dotenv@17.4.2)':
     dependencies:
       dotenv: 17.4.2
 
@@ -11174,9 +11193,9 @@ snapshots:
     optionalDependencies:
       eslint-plugin-react: 7.37.5(eslint@10.8.1(jiti@2.7.0))
 
-  '@theholocron/fs-utils@1.10.0': {}
+  '@theholocron/fs-utils@1.12.0': {}
 
-  '@theholocron/git-utils@1.10.0': {}
+  '@theholocron/git-utils@1.12.0': {}
 
   '@theholocron/github-client@1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
     dependencies:
@@ -11248,7 +11267,7 @@ snapshots:
       - posthog-node
       - vitest
 
-  '@theholocron/json-utils@1.10.0': {}
+  '@theholocron/json-utils@1.12.0': {}
 
   '@theholocron/lint-staged-config@8.7.1(husky@9.1.7)(lint-staged@16.4.0)(sort-package-json@4.0.0)':
     dependencies:
@@ -11261,7 +11280,7 @@ snapshots:
     dependencies:
       markdownlint: 0.41.1
 
-  '@theholocron/misc-utils@1.10.0': {}
+  '@theholocron/misc-utils@1.12.0': {}
 
   '@theholocron/neon-client@1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
     dependencies:
@@ -11287,7 +11306,7 @@ snapshots:
       - posthog-node
       - vitest
 
-  '@theholocron/object-utils@1.10.0': {}
+  '@theholocron/object-utils@1.12.0': {}
 
   '@theholocron/observability@0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
     optionalDependencies:
@@ -11306,6 +11325,8 @@ snapshots:
       pino-pretty: 13.1.3
       posthog-node: 5.52.5
       vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.1(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))
+
+  '@theholocron/pkg-utils@1.12.0': {}
 
   '@theholocron/posthog-client@1.41.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
     dependencies:

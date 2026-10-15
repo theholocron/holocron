@@ -10,12 +10,12 @@
  * see ADR-0010 / issue #75 / #81.
  */
 
-import { readFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname } from "node:path";
 
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import { ConfigFileError, loadConfigFile } from "@theholocron/datapad";
 import { readGitRemote } from "@theholocron/git-utils";
+import { readPackageJson } from "@theholocron/pkg-utils";
 
 import type { HolocronConfig, ResolvedHolocronConfig } from "./config.js";
 import { resolveConfig } from "./config.js";
@@ -77,11 +77,6 @@ async function deriveDefaults(configDir: string, raw: HolocronConfig): Promise<H
 }
 
 async function readPackageJsonName(dir: string): Promise<string | undefined> {
-	try {
-		const content = await readFile(join(dir, "package.json"), "utf8");
-		const pkg = JSON.parse(content) as { name?: string };
-		return typeof pkg.name === "string" ? pkg.name.replace(/^@[^/]+\//, "") : undefined;
-	} catch {
-		return undefined;
-	}
+	const name = (await readPackageJson(dir))?.name;
+	return name === undefined ? undefined : name.replace(/^@[^/]+\//, "");
 }

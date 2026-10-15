@@ -2,7 +2,8 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { type RunLogger, runTask, type RunTaskInput } from "./run.js";
+import { runTask } from "./run.js";
+import type { RunLogger, RunTaskInput } from "./run.type.js";
 
 const CWD = "/repo";
 
@@ -560,7 +561,7 @@ describe("runTask — linterGroup aggregate", () => {
 
 	it("adds --config <resolved shared path> for a legacy .eslintrc.json repo with no flat eslint.config.* yet", () => {
 		// .eslintrc.json satisfies linters.ts's own detect[] gate (so eslint
-		// still runs in the group) but isn't one of resolver.ts's flat-config
+		// still runs in the group) but isn't one of resolve-tool-config.ts's flat-config
 		// filenames, so resolveToolConfig still splices the shared bundle --
 		// unchanged pre-#749 behavior for a repo that hasn't migrated to flat
 		// config at all yet.

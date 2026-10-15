@@ -1,6 +1,6 @@
 import { createDefineConfig } from "@theholocron/datapad";
 
-import type { TasksConfig } from "./schema.js";
+import type { TasksConfig } from "./schema.type.js";
 
 /**
  * Typed identity helper for `astromech.config.ts`:

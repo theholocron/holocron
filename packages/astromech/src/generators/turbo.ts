@@ -18,8 +18,10 @@
 
 import { stringifyJson } from "@theholocron/json-utils";
 
-import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
+import { normalizeTaskEntry } from "../config/schema.js";
+import type { TasksConfig } from "../config/schema.type.js";
 import { TASKS } from "../registry.js";
+import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } from "./turbo.type.js";
 
 /** Filed once per repo, unconditionally — every generated turbo.json's root. */
 const GLOBAL_DEPENDENCIES = ["pnpm-workspace.yaml", "tsconfig.json"];
@@ -52,11 +54,6 @@ export function turboConfig(config: TasksConfig): string | null {
 		globalDependencies: GLOBAL_DEPENDENCIES,
 		tasks,
 	});
-}
-
-export interface EnsureRootWorkspaceMemberResult {
-	content: string;
-	changed: boolean;
 }
 
 /**
@@ -161,11 +158,6 @@ function isGeneratedRunWrapper(command: string, taskName: string): boolean {
  * canonical source-of-truth repo for the whole org's tooling).
  */
 const DEFAULT_TURBO_VERSION = "^2.10.12";
-
-export interface EnsureTurboDependencyResult {
-	content: string;
-	changed: boolean;
-}
 
 /**
  * Ensures `turbo` is declared in `package.json#devDependencies` — found

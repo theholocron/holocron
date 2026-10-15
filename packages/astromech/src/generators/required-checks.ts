@@ -9,7 +9,8 @@
  * manifest.
  */
 
-import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
+import { normalizeTaskEntry } from "../config/schema.js";
+import type { TasksConfig } from "../config/schema.type.js";
 import { CI_ORDER } from "../registry.js";
 import { WORKFLOW_CHECK_CONTEXTS } from "./github-action-thin-callers.js";
 

@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { WorkspacePackage } from "@theholocron/astromech";
+import { type PackageJson, readPackageJson } from "@theholocron/pkg-utils";
 
 import type { ResolvedProvidersConfig } from "../../config/config.js";
 
@@ -23,13 +23,8 @@ import type { ResolvedProvidersConfig } from "../../config/config.js";
 // future cross-org (`rando`, D10) repo that's nothing but one plugin.
 export type HolocronProfile = "library" | "cli" | "plugin" | "template" | "app" | "docs" | "platform";
 
-export interface PackageJsonLike {
-	name?: string;
-	private?: boolean;
-	bin?: unknown;
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-}
+/** The `package.json` shape profile derivation reads — `@theholocron/pkg-utils`'s `PackageJson`, under the name Sentinel already imports. */
+export type PackageJsonLike = PackageJson;
 
 export interface DeriveProfileInput {
 	rootPackageJson: PackageJsonLike | null;
@@ -150,12 +145,9 @@ export async function readWorkspacePackageJsons(
 ): Promise<PackageJsonLike[]> {
 	const results: PackageJsonLike[] = [];
 	for (const { slug, dir = "packages" } of workspacePackages) {
-		try {
-			const raw = await readFile(join(repoRoot, dir, slug, "package.json"), "utf8");
-			results.push(JSON.parse(raw) as PackageJsonLike);
-		} catch {
-			// no package.json or invalid JSON — skip, same as readWorkspacePackages().
-		}
+		// no package.json or invalid JSON — skipped, same as readWorkspacePackages().
+		const pkg = await readPackageJson(join(repoRoot, dir, slug));
+		if (pkg) results.push(pkg);
 	}
 	return results;
 }

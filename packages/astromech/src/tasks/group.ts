@@ -11,44 +11,9 @@
  * every problem in the namespace at once instead of stopping at the first.
  */
 
-import { normalizeTaskEntry, type TasksConfig } from "../config/schema.js";
-import { type RunDeps, runTask } from "./run/index.js";
-
-export interface GroupOptions {
-	/** Print the resolved commands without running anything. */
-	dryRun?: boolean;
-	/** `turbo --filter=<pkg>` passthrough (monorepo). */
-	filter?: string;
-}
-
-export interface GroupJobReport {
-	task: string;
-	status: "ok" | "fail" | "skip" | "dry-run";
-	command?: string;
-	message?: string;
-}
-
-export interface GroupReport {
-	/** `"unknown"` when the namespace matches zero configured tasks. */
-	status: "ok" | "fail" | "dry-run" | "unknown";
-	jobs: GroupJobReport[];
-}
-
-export interface GroupInput extends RunDeps, GroupOptions {
-	cwd: string;
-	config: TasksConfig;
-	/** The bare namespace, e.g. `"sourceQuality"` — matched against `"sourceQuality."`-prefixed task names. */
-	namespace: string;
-}
-
-/** Every configured task whose name starts with `"<namespace>."`, in manifest declaration order. */
-export function matchNamespace(config: TasksConfig, namespace: string): string[] {
-	const prefix = `${namespace}.`;
-	return (config.tasks ?? []).map(normalizeTaskEntry).reduce<string[]>((names, entry) => {
-		if (entry.name.startsWith(prefix) && !names.includes(entry.name)) names.push(entry.name);
-		return names;
-	}, []);
-}
+import type { GroupInput, GroupJobReport, GroupReport } from "./group.type.js";
+import { matchNamespace } from "./match-namespace.js";
+import { runTask } from "./run/index.js";
 
 export function runGroup(input: GroupInput): GroupReport {
 	const { print, namespace } = input;

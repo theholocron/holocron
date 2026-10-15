@@ -3,87 +3,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import type { TasksConfig } from "../config/schema.js";
-import {
-	defaultListDirs,
-	defaultPaths,
-	defaultReadJson,
-	defaultRun,
-	defaultSleep,
-	deployOnRelease,
-	type DeployOnReleaseOptions,
-	deployTargets,
-	type Run,
-	shouldDeploy,
-	waitForPublished,
-	workspaceDependencies,
-	workspacePackages,
-} from "./deploy-on-release.js";
-
-const VERSION = "5.0.0-alpha.105";
-const PATHS = ["packages/app/", "packages/cli/"];
-
-/**
- * A fake runner: `git diff` returns `changed`, `npm view name@version` returns
- * that version once `served` (or fails, like an unpublished package), and the
- * deploy exits `deployStatus`.
- */
-function fakeRun({ changed = ["packages/app/src/handler.ts"], diffStatus = 0, deployStatus = 0, served = true } = {}) {
-	return vi.fn<Run>((command, args) => {
-		if (command === "git") {
-			return {
-				status: diffStatus,
-				stdout: changed.map((f) => `${f}\n`).join(""),
-				stderr: diffStatus ? "bad revision" : "",
-			};
-		}
-		if (command === "npm") {
-			const spec = args[1] ?? "";
-			const version = spec.slice(spec.lastIndexOf("@") + 1);
-			return served
-				? { status: 0, stdout: `${version}\n`, stderr: "" }
-				: { status: 1, stdout: "", stderr: "E404 not found" };
-		}
-		return { status: deployStatus, stdout: "", stderr: "" };
-	});
-}
-
-const FILES: Record<string, unknown> = {
-	"/repo/packages/app/package.json": {
-		name: "@theholocron/app",
-		version: "1.0.0",
-		dependencies: { "@theholocron/cli": "workspace:*", "@theholocron/datapad": "workspace:^", yaml: "2.9.0" },
-	},
-	"/repo/packages/cli/package.json": { name: "@theholocron/cli", version: VERSION },
-	"/repo/packages/datapad/package.json": { name: "@theholocron/datapad", version: VERSION },
-	"/repo/packages/astromech/package.json": { name: "@theholocron/astromech", version: VERSION },
-};
-const DIRS = ["app", "cli", "datapad", "astromech", "no-manifest"];
-const TREE = {
-	readJson: (path: string) => {
-		if (!(path in FILES)) throw new Error(`ENOENT: ${path}`);
-		return FILES[path];
-	},
-	listDirs: () => DIRS,
-};
+import type { TasksConfig } from "../../config/schema.type.js";
+import { deployOnRelease } from "./deploy-on-release.js";
+import type { DeployOnReleaseOptions } from "./deploy-on-release.type.js";
+import { fakeClock, fakeRun, FILES, TREE, VERSION } from "./test-fixtures.js";
 
 const APP_DEPLOY: TasksConfig = {
 	tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }],
 };
-
-/** A clock the test drives: `sleep` advances `now` instead of waiting. */
-function fakeClock() {
-	let t = 0;
-	return {
-		now: () => t,
-		sleep: vi.fn((ms: number) => {
-			t += ms;
-			return Promise.resolve();
-		}),
-	};
-}
 
 const OPTIONS = { cwd: "/repo", channel: "alpha", from: "old", to: "new" };
 
@@ -101,145 +30,6 @@ function deploy(
 	);
 	return report.then((r) => ({ report: r, lines }));
 }
-
-describe("shouldDeploy", () => {
-	it("deploys a release on the configured channel that touches a configured path", () => {
-		expect(
-			shouldDeploy({
-				channel: "alpha",
-				configuredChannel: "alpha",
-				changedFiles: ["packages/cli/src/x.ts"],
-				paths: PATHS,
-			})
-		).toEqual({ deploy: true, reason: "the release changes packages/cli/src/x.ts" });
-	});
-
-	it("skips another channel, including the stable one (`main`)", () => {
-		expect(shouldDeploy({ channel: "main", configuredChannel: "alpha", changedFiles: [], paths: [] })).toEqual({
-			deploy: false,
-			reason: 'channel "main" isn\'t "alpha"',
-		});
-		expect(shouldDeploy({ channel: "beta", configuredChannel: "alpha", changedFiles: [], paths: [] }).deploy).toBe(
-			false
-		);
-	});
-
-	it("skips a release that touches none of the paths", () => {
-		expect(
-			shouldDeploy({ channel: "alpha", configuredChannel: "alpha", changedFiles: ["docs/x.md"], paths: PATHS })
-		).toEqual({ deploy: false, reason: "the release changes nothing under packages/app/, packages/cli/" });
-	});
-
-	it("deploys when there's no previous release to diff against", () => {
-		expect(
-			shouldDeploy({ channel: "alpha", configuredChannel: "alpha", changedFiles: undefined, paths: PATHS }).deploy
-		).toBe(true);
-	});
-});
-
-describe("workspace discovery", () => {
-	const all = workspacePackages("/repo", TREE);
-
-	it("lists the packages with a readable named package.json, skipping folders without one", () => {
-		expect(all.map((p) => p.name)).toEqual([
-			"@theholocron/app",
-			"@theholocron/cli",
-			"@theholocron/datapad",
-			"@theholocron/astromech",
-		]);
-	});
-
-	it("skips a package.json with no name", () => {
-		const tree = { readJson: () => ({ version: "1" }), listDirs: () => ["x"] };
-		expect(workspacePackages("/repo", tree)).toEqual([]);
-	});
-
-	it("also discovers plugins/* packages, sibling to packages/* (holocron's own layout)", () => {
-		const files: Record<string, unknown> = {
-			"/repo/packages/cli/package.json": { name: "@theholocron/cli" },
-			"/repo/plugins/holocron-plugin-github/package.json": { name: "@theholocron/holocron-plugin-github" },
-		};
-		const tree = {
-			readJson: (path: string) => {
-				if (!(path in files)) throw new Error(`ENOENT: ${path}`);
-				return files[path];
-			},
-			listDirs: (dirPath: string) =>
-				dirPath.endsWith("plugins") ? ["holocron-plugin-github"] : dirPath.endsWith("packages") ? ["cli"] : [],
-		};
-		expect(workspacePackages("/repo", tree).map((p) => p.name)).toEqual([
-			"@theholocron/cli",
-			"@theholocron/holocron-plugin-github",
-		]);
-	});
-
-	it("treats a missing plugins/ directory as empty rather than throwing", () => {
-		const tree = {
-			readJson: (path: string) => {
-				throw new Error(`should not be called: ${path}`);
-			},
-			listDirs: (dirPath: string) => {
-				if (dirPath.endsWith("plugins")) throw new Error(`ENOENT: ${dirPath}`);
-				return [];
-			},
-		};
-		expect(workspacePackages("/repo", tree)).toEqual([]);
-	});
-
-	it("finds each workspace:* dependency, skipping npm dependencies and unrelated packages", () => {
-		const [app] = all as [(typeof all)[number]];
-		expect(workspaceDependencies(app, all).map((d) => [d.name, d.version])).toEqual([
-			["@theholocron/cli", VERSION],
-			["@theholocron/datapad", VERSION],
-		]);
-	});
-
-	it("derives paths: the package plus each workspace dependency's folder", () => {
-		const [app] = all as [(typeof all)[number]];
-		expect(defaultPaths("/repo", app, all)).toEqual(["packages/app/", "packages/cli/", "packages/datapad/"]);
-	});
-
-	it("derives just the package's folder when it has no workspace dependencies", () => {
-		const cli = all[1] as (typeof all)[number];
-		expect(defaultPaths("/repo", cli, all)).toEqual(["packages/cli/"]);
-	});
-});
-
-describe("deployTargets", () => {
-	const all = workspacePackages("/repo", TREE);
-	const manifest = (tasks: TasksConfig["tasks"]) => new Map([["/repo/packages/app", { tasks }]]);
-
-	it("picks only delivery.deploy tasks with on: release, resolving their options", () => {
-		const targets = deployTargets(
-			all,
-			manifest([
-				"verification.unitTests",
-				{ name: "delivery.deploy", with: { on: "push" } },
-				{
-					name: "delivery.deploy",
-					with: { on: "release", channel: "beta", paths: ["docs/"] },
-				},
-			])
-		);
-		expect(targets).toEqual([
-			{
-				pkg: expect.objectContaining({ name: "@theholocron/app" }),
-				channel: "beta",
-				paths: ["docs/"],
-			},
-		]);
-	});
-
-	it("defaults the channel to main (stable), with no explicit paths or requirements", () => {
-		const [target] = deployTargets(all, manifest([{ name: "delivery.deploy", with: { on: "release" } }]));
-		expect(target).toMatchObject({ channel: "main", paths: undefined });
-	});
-
-	it("ignores a bare delivery.deploy and packages with no manifest", () => {
-		expect(deployTargets(all, manifest(["delivery.deploy"]))).toEqual([]);
-		expect(deployTargets(all, new Map())).toEqual([]);
-	});
-});
 
 describe("deployOnRelease", () => {
 	it("diffs the release, waits for npm, then runs the package's own deploy", async () => {
@@ -508,71 +298,7 @@ describe("deployOnRelease", () => {
 	});
 });
 
-describe("waitForPublished", () => {
-	const PACKAGES = [
-		{ name: "@theholocron/cli", version: VERSION },
-		{ name: "@theholocron/datapad", version: VERSION },
-	];
-
-	it("returns at once, without sleeping, when npm already serves every version", async () => {
-		const clock = fakeClock();
-
-		const pending = await waitForPublished({ packages: PACKAGES, run: fakeRun(), ...clock });
-
-		expect(pending).toEqual([]);
-		expect(clock.sleep).not.toHaveBeenCalled();
-	});
-
-	it("polls until a version npm didn't serve at first shows up, asking only about what's still missing", async () => {
-		const clock = fakeClock();
-		let cliAsked = 0;
-		const run = vi.fn<Run>((_command, args) => {
-			const spec = args[1] ?? "";
-			const served = !spec.includes("/cli@") || ++cliAsked >= 3;
-			return served
-				? { status: 0, stdout: `${VERSION}\n`, stderr: "" }
-				: { status: 1, stdout: "", stderr: "E404" };
-		});
-
-		const pending = await waitForPublished({ packages: PACKAGES, run, ...clock, intervalMs: 10_000 });
-
-		expect(pending).toEqual([]);
-		expect(clock.sleep).toHaveBeenCalledTimes(2);
-		// datapad was served on the first round, so only cli is asked about after it.
-		expect(run.mock.calls.filter(([, args]) => args[1]?.includes("/datapad@"))).toHaveLength(1);
-	});
-
-	it("treats a different version from npm as not yet served", async () => {
-		const run = vi.fn<Run>(() => ({ status: 0, stdout: "5.0.0-alpha.104\n", stderr: "" }));
-
-		const pending = await waitForPublished({
-			packages: [{ name: "@theholocron/cli", version: VERSION }],
-			run,
-			...fakeClock(),
-			timeoutMs: 20_000,
-			intervalMs: 10_000,
-		});
-
-		expect(pending).toEqual([`@theholocron/cli@${VERSION}`]);
-	});
-
-	it("gives up after the timeout, returning what's still missing", async () => {
-		const clock = fakeClock();
-
-		const pending = await waitForPublished({
-			packages: PACKAGES,
-			run: fakeRun({ served: false }),
-			...clock,
-			timeoutMs: 30_000,
-			intervalMs: 10_000,
-		});
-
-		expect(pending).toEqual([`@theholocron/cli@${VERSION}`, `@theholocron/datapad@${VERSION}`]);
-		expect(clock.sleep).toHaveBeenCalledTimes(3);
-	});
-});
-
-describe("the real defaults", () => {
+describe("deployOnRelease on a real repo", () => {
 	const dirs: string[] = [];
 	const tmp = () => {
 		const dir = mkdtempSync(join(tmpdir(), "deploy-on-release-"));
@@ -580,40 +306,7 @@ describe("the real defaults", () => {
 		return dir;
 	};
 	afterEach(() => {
-		vi.useRealTimers();
 		for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
-	});
-
-	it("defaultRun runs a command and captures its output and status", () => {
-		const ok = defaultRun("node", ["-e", "process.stdout.write('hi')"], {});
-		expect(ok).toMatchObject({ status: 0, stdout: "hi" });
-		expect(defaultRun("node", ["-e", "process.exit(3)"], {}).status).toBe(3);
-	});
-
-	it("defaultReadJson parses a file, and throws for a missing one", () => {
-		const dir = tmp();
-		writeFileSync(join(dir, "a.json"), '{"name":"x"}');
-		expect(defaultReadJson(join(dir, "a.json"))).toEqual({ name: "x" });
-		expect(() => defaultReadJson(join(dir, "missing.json"))).toThrow();
-	});
-
-	it("defaultListDirs lists only the folders", () => {
-		const dir = tmp();
-		mkdirSync(join(dir, "a"));
-		mkdirSync(join(dir, "b"));
-		writeFileSync(join(dir, "file.txt"), "");
-		expect(defaultListDirs(dir).sort()).toEqual(["a", "b"]);
-	});
-
-	it("defaultSleep resolves after the delay", async () => {
-		vi.useFakeTimers();
-		let done = false;
-		const sleeping = defaultSleep(1000).then(() => (done = true));
-		await vi.advanceTimersByTimeAsync(999);
-		expect(done).toBe(false);
-		await vi.advanceTimersByTimeAsync(1);
-		await sleeping;
-		expect(done).toBe(true);
 	});
 
 	it("runs end to end on a real repo and manifest: diffs with git and reads the package's holocron.config", async () => {

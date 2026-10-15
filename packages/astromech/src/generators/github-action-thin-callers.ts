@@ -32,6 +32,7 @@ import staleYml from "../templates/workflows/stale.yml";
 import performanceYml from "../templates/workflows/verification.performance.yml";
 import typeSafetyYml from "../templates/workflows/verification.typeSafety.yml";
 import unitTestsYml from "../templates/workflows/verification.unitTests.yml";
+import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"verification.unitTests": unitTestsYml,
@@ -192,30 +193,6 @@ export function generateThinCallerContent(
 		logger?.warn({ template: name }, "generateThinCallerContent: could not inject `with:` overrides");
 	}
 	return injected;
-}
-
-export interface PreviewConfig {
-	/** Cloudflare Pages project name shared across all repos for previews. */
-	project: string;
-	/**
-	 * Base domain for preview URLs (e.g. `"preview.theholocron.dev"`).
-	 * When set, `holocron repo setup` automatically provisions:
-	 * - Cloudflare Pages custom domain `*.<domain>` on the project
-	 * - DNS wildcard CNAME `*.<domain>` → `<project>.pages.dev`
-	 *
-	 * Preview URLs resolve as `<repo>-pr-<n>.<domain>`.
-	 */
-	domain?: string;
-}
-
-/** Org-level context used to derive preview defaults from `preview: true`. */
-export interface OrgContext {
-	/** GitHub org name — becomes the prefix of the default project: `<org>-preview`. */
-	org?: string;
-	/** Org canonical domain — becomes `preview.<domain>` for the default preview domain. */
-	domain?: string;
-	/** Project name — injected as the `name` input to the deploy reusable when `docs: true`. */
-	repoName?: string;
 }
 
 /**

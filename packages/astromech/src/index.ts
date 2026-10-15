@@ -21,7 +21,8 @@
  * lives in the zero-runtime-dep `@theholocron/astromech/config` subpath.
  */
 
-export { type Astromech, type AstromechOptions, createAstromech, type RunOptions } from "./astromech.js";
+export { createAstromech } from "./astromech.js";
+export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export {
 	codecovComponentBlock,
 	codecovConfig,
@@ -29,8 +30,8 @@ export {
 	ensureIfNotFound,
 	mergeCodecovComponents,
 	readWorkspacePackages,
-	type WorkspacePackage,
 } from "./generators/codecov.js";
+export type { WorkspacePackage } from "./generators/codecov.type.js";
 export {
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
@@ -44,20 +45,24 @@ export {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
-	type OrgContext,
-	type PreviewConfig,
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
 } from "./generators/github-action-thin-callers.js";
+export type { OrgContext, PreviewConfig } from "./generators/github-action-thin-callers.type.js";
 export { requiredChecks } from "./generators/required-checks.js";
-export { createTsconfig, type TsconfigOptions } from "./generators/tsconfig.js";
-export { CI_ORDER, type JobDef, KNOWN_TASKS, type LocalRunner, type TaskDef, TASKS } from "./registry.js";
-export { type CiJobReport, type CiOptions, type CiReport, runCi } from "./tasks/ci.js";
-export {
-	deployOnRelease,
-	type DeployOnReleaseOptions,
-	type DeployOnReleaseReport,
-	type DeployOnReleaseResult,
-} from "./tasks/deploy-on-release.js";
-export { type GroupJobReport, type GroupOptions, type GroupReport, matchNamespace, runGroup } from "./tasks/group.js";
+export { createTsconfig } from "./generators/tsconfig.js";
+export type { TsconfigOptions } from "./generators/tsconfig.type.js";
+export { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry.js";
+export type { JobDef, LocalRunner, TaskDef } from "./registry.type.js";
+export { runCi } from "./tasks/ci.js";
+export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci.type.js";
+export type {
+	DeployOnReleaseOptions,
+	DeployOnReleaseReport,
+	DeployOnReleaseResult,
+} from "./tasks/deploy-on-release/index.js";
+export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
+export { runGroup } from "./tasks/group.js";
+export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group.type.js";
+export { matchNamespace } from "./tasks/match-namespace.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";
