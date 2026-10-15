@@ -1,10 +1,18 @@
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { turboDefinesTask } from "./turbo-defines-task.js";
 
+const TURBO = join("/r", "turbo.json");
+
+/** Answers only for `/r/turbo.json`; `turbo` is the file's text, or `undefined` for no file. */
 const fs = (turbo: string | undefined) => ({
-	readFile: () => turbo ?? "",
-	fileExists: () => turbo !== undefined,
+	readFile: (path: string) => {
+		if (path !== TURBO) throw new Error(`unexpected read of ${path}`);
+		return turbo ?? "";
+	},
+	fileExists: (path: string) => path === TURBO && turbo !== undefined,
 });
 
 describe("turboDefinesTask", () => {
