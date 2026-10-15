@@ -1,3 +1,9 @@
+## [1.12.0](https://github.com/theholocron/utils/compare/v1.11.0...v1.12.0) (2026-10-15)
+
+### Features
+
+* **pkg-utils:** ✨ add pkg-utils, package.json readers and package-manager detection ([#315](https://github.com/theholocron/utils/issues/315)) ([6c2f6c3](https://github.com/theholocron/utils/commit/6c2f6c3890269253645d181197116249ce69c99c))
+
 ## [1.11.0](https://github.com/theholocron/utils/compare/v1.10.0...v1.11.0) (2026-10-15)
 
 ### Features

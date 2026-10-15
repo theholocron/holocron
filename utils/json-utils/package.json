@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/json-utils",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Stringify JSON with a trailing newline, preserving a file's own indent and line endings.",
   "keywords": [
     "json",
