@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
 	deriveCapabilities,
@@ -6,6 +10,7 @@ import {
 	deriveProfile,
 	deriveStack,
 	missingCapabilities,
+	readWorkspacePackageJsons,
 } from "./derived-properties.js";
 
 describe("deriveProfile", () => {
@@ -212,5 +217,32 @@ describe("missingCapabilities", () => {
 
 	it("lists both when capabilities is empty", () => {
 		expect(missingCapabilities([])).toEqual(["source", "ci"]);
+	});
+});
+
+describe("readWorkspacePackageJsons", () => {
+	let root: string;
+	beforeEach(async () => {
+		root = await mkdtemp(join(tmpdir(), "derived-properties-"));
+	});
+	afterEach(async () => {
+		await rm(root, { recursive: true, force: true });
+	});
+
+	it("reads each workspace package's package.json, skipping missing or invalid ones", async () => {
+		for (const slug of ["ok", "broken", "empty"]) await mkdir(join(root, "packages", slug), { recursive: true });
+		await mkdir(join(root, "plugins", "p"), { recursive: true });
+		await writeFile(join(root, "packages", "ok", "package.json"), '{"name":"@x/ok","bin":"cli"}');
+		await writeFile(join(root, "packages", "broken", "package.json"), "{ nope");
+		await writeFile(join(root, "plugins", "p", "package.json"), '{"name":"@x/p"}');
+
+		const result = await readWorkspacePackageJsons(root, [
+			{ slug: "ok", name: "@x/ok" },
+			{ slug: "broken", name: "@x/broken" },
+			{ slug: "empty", name: "@x/empty" },
+			{ slug: "p", name: "@x/p", dir: "plugins" },
+		]);
+
+		expect(result).toEqual([{ name: "@x/ok", bin: "cli" }, { name: "@x/p" }]);
 	});
 });
