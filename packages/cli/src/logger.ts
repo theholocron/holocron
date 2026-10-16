@@ -6,14 +6,13 @@
  * parallel to `print` (user-facing UX output) and does not replace it.
  */
 
-import { firstEnv } from "@theholocron/env-utils";
 import type { Logger, LogLevel } from "@theholocron/observability/core";
 import type { AxiomTransportConfig } from "@theholocron/observability/logger";
 import { createLogger, isCI, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
 import { getToken } from "./auth/keyring.js";
 import { contextForCommand } from "./commands/contexts.js";
-import { env } from "./env.js";
+import { env, holocronEnv } from "./env.js";
 import { style } from "./ui/style.js";
 
 /**
@@ -114,16 +113,11 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts): AxiomTransportConfig | undef
 		if (fromEnv) return fromEnv;
 	}
 
-	const dataset = isGlobal
-		? GLOBAL_AXIOM_DATASET
-		: (firstEnv(env, ["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]) ?? opts.configAxiomDataset);
+	const dataset = isGlobal ? GLOBAL_AXIOM_DATASET : (holocronEnv.get("AXIOM_DATASET") ?? opts.configAxiomDataset);
 	if (!dataset) return undefined;
 
 	const org = opts.org ?? env.get("HOLOCRON_ORG");
-	const token =
-		firstEnv(env, ["HOLOCRON_AXIOM_TOKEN", "AXIOM_TOKEN"]) ||
-		(org ? getToken(`axiom.${org}`) : null) ||
-		getToken("axiom");
+	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? getToken(`axiom.${org}`) : null) || getToken("axiom");
 	return token ? { dataset, token } : undefined;
 }
 
