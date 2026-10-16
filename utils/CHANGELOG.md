@@ -1,3 +1,9 @@
+## [1.15.1](https://github.com/theholocron/utils/compare/v1.15.0...v1.15.1) (2026-10-16)
+
+### Bug Fixes
+
+* 🐛 mark dotenv as an optional peer dependency of env-utils ([#320](https://github.com/theholocron/utils/issues/320)) ([201aa69](https://github.com/theholocron/utils/commit/201aa6971f8d77d9fb1e7a8aedd8bc3c0f6bccb7))
+
 ## [1.15.0](https://github.com/theholocron/utils/compare/v1.14.0...v1.15.0) (2026-10-16)
 
 ### Features

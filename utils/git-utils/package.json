@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/git-utils",
-  "version": "1.15.0",
+  "version": "1.15.1",
   "description": "Parse git remote URLs, read a repo's remote, and maintain managed blocks in .gitignore.",
   "keywords": [
     "git",
