@@ -67,6 +67,7 @@
     "@vitest/eslint-plugin": "catalog:",
     "@vscode-shellcheck/shellcheck-wasm": "catalog:",
     "alex": "catalog:",
+    "dotenv": "catalog:",
     "editorconfig": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",

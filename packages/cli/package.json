@@ -67,6 +67,7 @@
     "@theholocron/pkg-utils": "catalog:utils",
     "@theholocron/registry-doc": "^1.12.0",
     "chalk": "catalog:",
+    "dotenv": "catalog:",
     "ora": "catalog:",
     "pino": "catalog:",
     "pino-pretty": "catalog:",
