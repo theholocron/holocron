@@ -1,3 +1,9 @@
+## [1.14.0](https://github.com/theholocron/utils/compare/v1.13.0...v1.14.0) (2026-10-16)
+
+### Features
+
+* ✨ add firstEnv to env-utils for env-var precedence chains ([#318](https://github.com/theholocron/utils/issues/318)) ([8235ded](https://github.com/theholocron/utils/commit/8235dedf075559c571d500a865958d6f5b61179b))
+
 ## [1.13.0](https://github.com/theholocron/utils/compare/v1.12.0...v1.13.0) (2026-10-16)
 
 ### Features
