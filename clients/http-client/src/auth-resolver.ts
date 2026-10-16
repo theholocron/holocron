@@ -1,3 +1,5 @@
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+
 export class AuthError extends Error {
 	override name = "AuthError";
 }
@@ -43,14 +45,12 @@ export interface ResolveTokenConfig {
 export function createResolveToken(config: ResolveTokenConfig): (input?: ResolveTokenInput) => string {
 	const defaultKeyring = config.getKeyringToken ?? (() => null);
 	return function resolveToken(input: ResolveTokenInput = {}): string {
-		const env = input.env ?? process.env;
+		const env = createEnvLookup(input.env ?? process.env);
 		const keyring = input.keyring ?? defaultKeyring;
-		const org = input.org ?? env["HOLOCRON_ORG"];
-		// Bracket access so numeric-prefixed env var names remain syntactically valid.
+		const org = input.org ?? env.get("HOLOCRON_ORG");
 		const token =
 			input.cliToken ||
-			env[config.envName] ||
-			env[config.vendorEnvName] ||
+			firstEnv(env, [config.envName, config.vendorEnvName]) ||
 			(org ? keyring(`${config.keyringService}.${org}`) : null) ||
 			keyring(config.keyringService);
 		if (!token) {

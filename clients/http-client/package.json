@@ -43,6 +43,7 @@
     "verification.unitTests": "holocron run verification.unitTests --"
   },
   "dependencies": {
+    "@theholocron/env-utils": "catalog:",
     "@theholocron/observability": "catalog:"
   },
   "devDependencies": {

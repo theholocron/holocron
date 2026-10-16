@@ -35,6 +35,15 @@ describe("createResolveToken", () => {
 		expect(resolveToken({ env: { TEST_TOKEN: "vendor" }, keyring: noKeyring })).toBe("vendor");
 	});
 
+	it("skips an empty envName value and uses vendorEnvName", () => {
+		expect(
+			resolveToken({
+				env: { HOLOCRON_TEST_TOKEN: "", TEST_TOKEN: "vendor" },
+				keyring: noKeyring,
+			})
+		).toBe("vendor");
+	});
+
 	it("falls back to keyring", () => {
 		expect(
 			resolveToken({
