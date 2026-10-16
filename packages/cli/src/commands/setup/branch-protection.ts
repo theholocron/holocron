@@ -1,8 +1,8 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
-import type { Source } from "../../plugin/capabilities.js";
-import { ProviderApiError } from "../../plugin/capabilities.js";
-import type { SetupStepResult } from "./run-step.js";
+import { ProviderApiError } from "../../plugin/capabilities/capabilities.js";
+import type { Source } from "../../plugin/capabilities/capabilities.type.js";
+import type { SetupStepResult } from "./run-step/run-step.type.js";
 
 export const RULESET_NAME = "holocron-default-branch";
 

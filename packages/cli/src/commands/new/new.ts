@@ -1,0 +1,521 @@
+/**
+ * `holocron new repo <type> <name>` — create a GitHub repo from a template and
+ * bootstrap it by replacing all template-slug casing variants with the new
+ * project name, then generate a `holocron.config.ts` from the answers given
+ * during the interactive wizard.
+ *
+ * Flow:
+ *   1. Preflight — verify `gh` CLI is available.
+ *   2. Resolve type, name, description, homepage, vault/deployment/agent options.
+ *   3. `gh repo create <org>/<name> --template <org>/<type>-template --private --clone`
+ *      → clones to `<cwd>/<name>/`
+ *   4. Detect template slug from cloned package.json.
+ *   5. Replace all casing variants of the slug across every text file.
+ *   6. Replace `<description>` and `<homepage>` placeholders.
+ *   7. Generate and write `holocron.config.ts` based on wizard answers.
+ *   8. Commit the patched files (-s for DCO).
+ *   9. Unless --no-verify: `pnpm install` in the new repo.
+ *  10. Print next steps.
+ */
+
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+import { walkFilesSync } from "@theholocron/fs-utils";
+import { stringifyJson } from "@theholocron/json-utils";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { env } from "../../env.js";
+import { getLogger } from "../../observability/logger/logger.js";
+import type { HolocronConfigOptions, NewReport, RunNewInput } from "./new.type.js";
+
+export class NewError extends Error {
+	override name = "NewError";
+}
+
+// ── Case derivation ───────────────────────────────────────────────────
+
+function cap(word: string): string {
+	return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+/**
+ * Derive all common casing variants of a kebab-case slug (e.g.
+ * "cli-template") and map each to the corresponding form of a
+ * kebab-case name (e.g. "my-tool").
+ *
+ * Returns search→replacement pairs, deduplicating single-word slugs
+ * that would otherwise produce identical entries.
+ */
+export function deriveVariants(slug: string, name: string): Array<[string, string]> {
+	const sw = slug.split("-");
+	const nw = name.split("-");
+
+	const pairs: Array<[string, string]> = [
+		[slug, name],
+		[sw.join("_"), nw.join("_")],
+		[sw.join("_").toUpperCase(), nw.join("_").toUpperCase()],
+		[sw.map(cap).join(""), nw.map(cap).join("")],
+		[sw[0]!.toLowerCase() + sw.slice(1).map(cap).join(""), nw[0]!.toLowerCase() + nw.slice(1).map(cap).join("")],
+		[sw.map(cap).join(" "), nw.map(cap).join(" ")],
+	];
+
+	const seen = new Set<string>();
+	return pairs.filter(([s]) => {
+		if (seen.has(s)) return false;
+		seen.add(s);
+		return true;
+	});
+}
+
+// ── Input helpers ─────────────────────────────────────────────────────
+
+/** Validate a repo name: must be lowercase kebab-case. Returns `true` on success or an error string. */
+export function validateRepoName(v: string): true | string {
+	return /^[a-z][a-z0-9-]*$/.test(v.trim()) ? true : "Must be lowercase kebab-case (e.g. my-tool)";
+}
+
+/** Parse a comma-separated topics string into a trimmed, non-empty array. */
+export function parseTopics(raw: string | undefined): string[] {
+	return raw
+		? String(raw)
+				.split(",")
+				.map((t) => t.trim())
+				.filter(Boolean)
+		: [];
+}
+
+/**
+ * Generate the content of `holocron.config.ts` for a newly-scaffolded repo.
+ * Uses the `node()` preset from `@theholocron/holocron-config` as the baseline
+ * and layers in the provider/agent choices made during the wizard.
+ */
+export function generateHolocronConfig(opts: HolocronConfigOptions): string {
+	const lines: string[] = [
+		`import { defineConfig } from "@theholocron/cli";`,
+		`import { compose, node, typecheck } from "@theholocron/holocron-config";`,
+		``,
+		// `compose(node(), typecheck())` is the org baseline preset — the full
+		// task manifest (lint/test/typecheck required, security/review/… ) rides
+		// in via `...preset`, so `holocron repo setup` can derive CodeQL mode and the
+		// required-check contexts. See theholocron/holocron#642.
+		`const preset = compose(node(), typecheck());`,
+		`export default defineConfig({`,
+		`\t...preset,`,
+	];
+
+	if (opts.description) lines.push(`\tdescription: ${JSON.stringify(opts.description)},`);
+	if (opts.homepage) lines.push(`\thomepage: ${JSON.stringify(opts.homepage)},`);
+
+	const topics = opts.topics?.length ? opts.topics : [];
+	const hasRuntimeOverride = opts.runtimeEnvironment != null && opts.runtimeEnvironment !== "node";
+	const hasFullRepo = opts.org != null;
+
+	if (hasFullRepo) {
+		// Full explicit repo block when org is known (always the case from the CLI).
+		const repoName = `${opts.org}/${opts.name}`;
+		lines.push(`\trepo: {`);
+		lines.push(`\t\t...preset.repo,`);
+		lines.push(`\t\tname: ${JSON.stringify(repoName)},`);
+		lines.push(`\t\tteams: [{ slug: "gatekeepers", permission: "maintain" }],`);
+		lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		if (opts.protection && opts.protection !== "strict") {
+			lines.push(`\t\tprotection: ${JSON.stringify(opts.protection)},`);
+		}
+		const propParts: string[] = [];
+		if (hasRuntimeOverride) propParts.push(`runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)}`);
+		if (opts.openSource === false) propParts.push(`open_source: false`);
+		if (opts.usesExternalPackages === false) propParts.push(`uses_external_packages: false`);
+		if (propParts.length > 0) {
+			lines.push(`\t\tproperties: { ...preset.repo?.properties, ${propParts.join(", ")} },`);
+		}
+		lines.push(`\t},`);
+	} else if (topics.length > 0 || hasRuntimeOverride) {
+		lines.push(`\trepo: {`);
+		lines.push(`\t\t...preset.repo,`);
+		if (topics.length > 0) lines.push(`\t\ttopics: ${JSON.stringify(topics)},`);
+		if (hasRuntimeOverride) {
+			lines.push(
+				`\t\tproperties: { ...preset.repo?.properties, runtime_environment: ${JSON.stringify(opts.runtimeEnvironment)} },`
+			);
+		}
+		lines.push(`\t},`);
+	}
+	// else: `...preset` already carries `repo` — no explicit block needed.
+
+	const hasVault = opts.vaultProvider && opts.vaultProvider !== "none";
+	const hasDeployment = opts.deploymentProvider && opts.deploymentProvider !== "none";
+
+	if (hasVault || hasDeployment) {
+		lines.push(`\tproviders: {`);
+		lines.push(`\t\t...preset.providers,`);
+		if (opts.vaultProvider === "doppler") {
+			const proj = JSON.stringify(opts.vaultProject ?? opts.name);
+			const cfg = JSON.stringify(opts.vaultConfig ?? "dev");
+			lines.push(`\t\tvault: ["doppler", { project: ${proj}, config: ${cfg} }],`);
+		} else if (opts.vaultProvider === "1password") {
+			const vault = JSON.stringify(opts.vaultProject ?? opts.name);
+			lines.push(`\t\tvault: ["1password", { vault: ${vault} }],`);
+		} else if (opts.vaultProvider === "infisical") {
+			const proj = JSON.stringify(opts.vaultProject ?? opts.name);
+			lines.push(`\t\tvault: ["infisical", { project: ${proj} }],`);
+		}
+		if (opts.deploymentProvider === "vercel") {
+			lines.push(`\t\tdeployment: "vercel",`);
+		}
+		lines.push(`\t},`);
+	}
+	// else: `...preset` already carries `providers`.
+
+	if (opts.agent && opts.agent !== "none") {
+		lines.push(`\tagent: ${JSON.stringify(opts.agent)},`);
+	}
+
+	if (opts.skills?.length) {
+		lines.push(`\tskills: ${JSON.stringify(opts.skills)},`);
+	}
+
+	lines.push(`});`);
+	lines.push(``);
+
+	return lines.join("\n");
+}
+
+// ── File discovery ────────────────────────────────────────────────────
+
+const SKIP_DIRS = [".git", "node_modules", "dist", ".turbo"];
+
+const defaultWalkFiles = (dir: string): string[] => walkFilesSync(dir, { skip: SKIP_DIRS });
+
+function isBinary(content: string): boolean {
+	for (let i = 0; i < Math.min(content.length, 8000); i++) {
+		if (content.charCodeAt(i) === 0) return true;
+	}
+	return false;
+}
+
+// ── Patching ──────────────────────────────────────────────────────────
+
+function patchFiles(
+	dir: string,
+	variants: Array<[string, string]>,
+	description: string | undefined,
+	homepage: string | undefined,
+	runtimeEnvironment: string | undefined,
+	print: (line: string) => void,
+	readFn: (p: string) => string,
+	writeFn: (p: string, c: string) => void,
+	walkFn: (d: string) => string[]
+): string[] {
+	const patched: string[] = [];
+	for (const filepath of walkFn(dir)) {
+		let content: string;
+		try {
+			content = readFn(filepath);
+		} catch {
+			continue;
+		}
+		if (isBinary(content)) continue;
+
+		const original = content;
+		for (const [search, replacement] of variants) {
+			content = content.split(search).join(replacement);
+		}
+		if (description !== undefined) {
+			content = content.split("<description>").join(description);
+			// Also replace the content of <!-- holocron:description --> blocks so
+			// the README description marker is updated even when the template has
+			// real prose rather than a bare <description> placeholder.
+			content = content.replace(
+				/(<!-- holocron:description -->)[\s\S]*?(<!-- \/holocron:description -->)/g,
+				`$1\n${description}\n$2`
+			);
+		}
+		if (homepage !== undefined) {
+			content = content.split("<homepage>").join(homepage);
+		}
+		if (runtimeEnvironment !== undefined) {
+			content = content.split("<runtime_environment>").join(runtimeEnvironment);
+		}
+		// Strip template-only blocks — sections relevant only to the template
+		// repo itself (e.g. "Getting Started" scaffolding instructions) that
+		// should not appear in projects generated from the template.
+		content = content.replace(
+			/\n?<!-- holocron:template-only -->[\s\S]*?<!-- \/holocron:template-only -->\n?/g,
+			""
+		);
+
+		if (content !== original) {
+			writeFn(filepath, content);
+			print(`  ✓ ${path.relative(dir, filepath)}`);
+			patched.push(filepath);
+		}
+	}
+	return patched;
+}
+
+// ── Preflight ─────────────────────────────────────────────────────────
+
+function preflight(): void {
+	const result = spawnSync("gh", ["--version"], { encoding: "utf8" });
+	if (result.error != null || result.status !== 0) {
+		throw new NewError("`gh` CLI is not installed or not on PATH. Install it from https://cli.github.com");
+	}
+}
+
+// ── Defaults ──────────────────────────────────────────────────────────
+
+function defaultExec(
+	cmd: string,
+	args: string[],
+	opts: { cwd: string; stdio: "inherit"; env?: Record<string, string> }
+): void {
+	execFileSync(cmd, args, {
+		cwd: opts.cwd,
+		stdio: opts.stdio,
+		...(opts.env && Object.keys(opts.env).length > 0 ? { env: { ...process.env, ...opts.env } } : {}),
+	});
+}
+
+function keychainLookup(key: string): string | undefined {
+	const result = spawnSync("security", ["find-generic-password", "-s", "com.theholocron.cli", "-a", key, "-w"], {
+		encoding: "utf8",
+	});
+	return result.status === 0 ? result.stdout?.trim() || undefined : undefined;
+}
+
+function defaultReadFile(filepath: string): string {
+	return readFileSync(filepath, "utf-8");
+}
+
+function defaultWriteFile(filepath: string, content: string): void {
+	mkdirSync(path.dirname(filepath), { recursive: true });
+	writeFileSync(filepath, content, "utf-8");
+}
+
+// ── Orchestrator ──────────────────────────────────────────────────────
+
+export async function runNew(input: RunNewInput): Promise<NewReport> {
+	const cwd = input.cwd ?? process.cwd();
+	const org = input.org ?? "theholocron";
+	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
+	const execFn = input.exec ?? defaultExec;
+	const readFn = input.readFile ?? defaultReadFile;
+	const writeFn = input.writeFile ?? defaultWriteFile;
+	const walkFn = input.walkFiles ?? defaultWalkFiles;
+
+	preflight();
+
+	const templateRepo = `${org}/${input.type}-template`;
+	const newRepo = `${org}/${input.name}`;
+	const repoDir = path.join(cwd, input.name);
+	logger.info({ repo: newRepo, template: templateRepo, dryRun: input.dryRun || undefined }, "new: start");
+
+	if (input.dryRun) {
+		print(`  Would create ${newRepo} from template ${templateRepo}`);
+		print(`  Would clone to ${repoDir}`);
+		print(`  Would patch all casing variants of "${input.type}-template" → "${input.name}"`);
+		if (input.description) print(`  Would replace <description> → "${input.description}"`);
+		if (input.homepage) print(`  Would replace <homepage> → "${input.homepage}"`);
+		if (input.runtimeEnvironment) print(`  Would replace <runtime_environment> → "${input.runtimeEnvironment}"`);
+		print(`  Would generate holocron.config.ts`);
+		logger.info({ repo: newRepo, status: "dry-run" }, "new: done");
+		return { status: "dry-run" };
+	}
+
+	if (existsSync(repoDir)) {
+		throw new NewError(`\`${repoDir}\` already exists — delete it or pick a different name.`);
+	}
+
+	print(`  Creating ${newRepo} from template ${templateRepo}…`);
+	const visibility = input.openSource ? "--public" : "--private";
+	try {
+		execFn("gh", ["repo", "create", newRepo, `--template=${templateRepo}`, visibility, "--clone"], {
+			cwd,
+			stdio: "inherit",
+		});
+	} catch (err) {
+		throw new NewError(`gh repo create failed: ${errorMessage(err)}`);
+	}
+
+	if (input.isTemplate) {
+		try {
+			execFn("gh", ["repo", "edit", newRepo, "--template=true"], { cwd, stdio: "inherit" });
+		} catch {
+			// non-fatal — template flag can be set manually in repo settings
+		}
+	}
+
+	// gh repo create --template does not reliably honor --public/--private on all
+	// plan/org combinations, so set visibility explicitly after creation.
+	try {
+		execFn("gh", ["repo", "edit", newRepo, `--visibility=${input.openSource ? "public" : "private"}`], {
+			cwd,
+			stdio: "inherit",
+		});
+	} catch {
+		// non-fatal — visibility can be changed manually in repo settings
+	}
+
+	// Detect template slug from cloned package.json
+	let templateSlug = `${input.type}-template`;
+	const pkgJsonPath = path.join(repoDir, "package.json");
+	if (existsSync(pkgJsonPath)) {
+		try {
+			const pkg = JSON.parse(readFn(pkgJsonPath)) as { name?: string };
+			if (typeof pkg.name === "string") {
+				templateSlug = pkg.name.split("/").at(-1) || templateSlug;
+			}
+		} catch {
+			// fall back to derived slug
+		}
+	}
+
+	print(`  Detected template slug: ${templateSlug}`);
+	print(`  Patching files…`);
+
+	const variants = deriveVariants(templateSlug, input.name);
+	// Prepend the full org/slug pair so GitHub URLs and scoped package names
+	// use the correct org. Must come before the slug-only pairs so it takes
+	// priority — e.g. "@theholocron/node-template" becomes "@<org>/<name>"
+	// rather than "@theholocron/<name>".
+	variants.unshift([`theholocron/${templateSlug}`, `${org}/${input.name}`]);
+	const filesPatched = patchFiles(
+		repoDir,
+		variants,
+		input.description,
+		input.homepage,
+		input.runtimeEnvironment,
+		print,
+		readFn,
+		writeFn,
+		walkFn
+	);
+
+	print(`  ${filesPatched.length} file${filesPatched.length === 1 ? "" : "s"} patched`);
+
+	// Always overwrite description and homepage in package.json directly,
+	// regardless of whether the template used placeholders or real values.
+	if (input.description !== undefined || input.homepage !== undefined) {
+		try {
+			const raw = readFn(pkgJsonPath);
+			const pkg = JSON.parse(raw) as Record<string, unknown>;
+			if (input.description !== undefined) pkg["description"] = input.description;
+			if (input.homepage !== undefined) pkg["homepage"] = input.homepage;
+			writeFn(pkgJsonPath, stringifyJson(pkg, { like: raw }));
+			print(`  ✓ package.json (description/homepage)`);
+		} catch {
+			// non-fatal — placeholder replacement already covered it
+		}
+	}
+
+	// Update the root tsconfig.json "display" field by parsing the JSON directly
+	// rather than relying on a <display_name> placeholder. Templates can use their
+	// real human-readable display name; we always overwrite it with the title-case
+	// of the new repo name on scaffolding.
+	const displayName = input.name.split("-").map(cap).join(" ");
+	const rootTsconfigPath = path.join(repoDir, "tsconfig.json");
+	try {
+		const rawTsconfig = readFn(rootTsconfigPath);
+		const tsconfig = JSON.parse(rawTsconfig) as Record<string, unknown>;
+		if (typeof tsconfig["display"] === "string") {
+			tsconfig["display"] = displayName;
+			writeFn(rootTsconfigPath, stringifyJson(tsconfig, { like: rawTsconfig }));
+			print(`  ✓ tsconfig.json (display)`);
+		}
+	} catch {
+		// non-fatal — no tsconfig or no display field
+	}
+
+	// Generate and write holocron.config.ts
+	const configContent = generateHolocronConfig({
+		name: input.name,
+		type: input.type,
+		org,
+		description: input.description,
+		homepage: input.homepage,
+		vaultProvider: input.vaultProvider,
+		vaultProject: input.vaultProject,
+		vaultConfig: input.vaultConfig,
+		deploymentProvider: input.deploymentProvider,
+		agent: input.agent,
+		runtimeEnvironment: input.runtimeEnvironment,
+		protection: input.protection,
+		openSource: input.openSource,
+		usesExternalPackages: input.usesExternalPackages,
+		topics: input.topics,
+		skills: input.skills,
+	});
+	const configPath = path.join(repoDir, "holocron.config.ts");
+	writeFn(configPath, configContent);
+	print(`  Generated holocron.config.ts`);
+
+	execFn("git", ["add", "-A"], { cwd: repoDir, stdio: "inherit" });
+	execFn("git", ["commit", "-s", "-m", `chore: bootstrap from ${templateSlug}`], {
+		cwd: repoDir,
+		stdio: "inherit",
+	});
+
+	if (!input.noVerify) {
+		print("");
+		print("  Installing dependencies…");
+		try {
+			execFn("pnpm", ["install"], { cwd: repoDir, stdio: "inherit" });
+		} catch (err) {
+			print(`  ✗ pnpm install failed — ${errorMessage(err)}`);
+			return {
+				status: "fail",
+				repoDir,
+				filesPatched,
+				message: "pnpm install failed; inspect output above",
+			};
+		}
+
+		print("");
+		print("  Running holocron repo setup…");
+		try {
+			const setupArgs: string[] = ["setup"];
+			const setupEnv: Record<string, string> = {};
+
+			// Admin token: drives rulesets, repo settings, workflows, Pages.
+			// Prefer the value forwarded via --token; fall back to keychain.
+			const adminToken = input.token ?? keychainLookup("github.admin");
+			if (adminToken) setupArgs.push("--token", adminToken);
+
+			// Org token: drives team assignments and custom properties.
+			// Skip keychain if already in env (subprocess inherits it anyway).
+			if (!env.get("HOLOCRON_ORG_TOKEN")) {
+				const orgToken = keychainLookup("github.org");
+				if (orgToken) setupEnv["HOLOCRON_ORG_TOKEN"] = orgToken;
+			}
+
+			// Deploy token: drives GitHub Pages configuration.
+			if (!env.get("HOLOCRON_DEPLOY_TOKEN")) {
+				const deployToken = keychainLookup("github.deploy");
+				if (deployToken) setupEnv["HOLOCRON_DEPLOY_TOKEN"] = deployToken;
+			}
+
+			execFn("holocron", setupArgs, { cwd: repoDir, stdio: "inherit", env: setupEnv });
+		} catch {
+			print("  ✗ holocron repo setup failed — run it manually after checking your config");
+		}
+	}
+
+	print("");
+	print(`  Scaffolded ${newRepo} (${filesPatched.length} file${filesPatched.length === 1 ? "" : "s"} patched).`);
+	print("");
+	print("  Next:");
+	print(`    1. cd ${repoDir}`);
+	if (input.noVerify) {
+		print(`    2. pnpm install`);
+		print(`    3. holocron repo setup  # wire up secrets, teams, labels, etc.`);
+		print(`    4. git push -u origin HEAD`);
+	} else {
+		print(`    2. git push -u origin HEAD`);
+	}
+
+	logger.info({ repo: newRepo, repoDir, filesPatched, status: "ok" }, "new: done");
+	return { status: "ok", repoDir, filesPatched };
+}

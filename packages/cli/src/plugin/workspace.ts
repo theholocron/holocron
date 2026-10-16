@@ -19,7 +19,7 @@
  * (theholocron/holocron#576).
  */
 
-import { LoaderError, type PluginLoader } from "./loader.js";
+import { LoaderError, type PluginLoader } from "./loader/loader.js";
 
 /**
  * Raised when a `workspace` command runs somewhere its provider plugins

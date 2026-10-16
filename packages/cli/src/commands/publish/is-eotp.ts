@@ -1,4 +1,4 @@
-import type { NpmTrustError } from "./sync-trust.type.js";
+import type { NpmTrustError } from "./run-sync-trust/run-sync-trust.type.js";
 
 export function isEotp(parsed: unknown): boolean {
 	return (

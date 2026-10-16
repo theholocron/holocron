@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
-import { runPublish } from "./run-publish.js";
+import { runPublish } from "./run-publish/run-publish.js";
 
 // ── defaultExec ───────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { TemplateInputs } from "../template-inputs.js";
+import type { TemplateInputs } from "../template-inputs/template-inputs.type.js";
 
 export function render(inputs: TemplateInputs): string {
 	const keywords = [inputs.capability, "holocron", "plugin", inputs.slug].sort((a, b) => a.localeCompare(b));

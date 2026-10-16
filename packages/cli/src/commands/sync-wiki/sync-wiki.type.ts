@@ -1,0 +1,31 @@
+import type { LoadedConfig } from "../../config/load-config/load-config.type.js";
+import type { RuntimeContext } from "../../plugin/loader/loader.type.js";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface WikiRepo {
+	displayName: string;
+	basepath: string;
+	/** Full custom domain with basepath, e.g. "wiki.theholocron.dev/skills". */
+	domain?: string;
+}
+
+export interface RunSyncWikiInput {
+	loaded: LoadedConfig;
+	context: RuntimeContext;
+	token?: string;
+	fetch?: typeof globalThis.fetch;
+}
+
+export interface OrgRepo {
+	name: string;
+	full_name: string;
+	archived: boolean;
+}
+
+export interface FileContents {
+	content: string;
+	encoding: string;
+}

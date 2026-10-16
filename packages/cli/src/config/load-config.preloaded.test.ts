@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadConfig } from "./load-config.js";
+import { loadConfig } from "./load-config/load-config.js";
 
 vi.mock("@theholocron/astromech/config", () => ({ loadTasksConfig: vi.fn().mockResolvedValue({}) }));
 

@@ -1,4 +1,4 @@
-import type { TemplateInputs } from "../template-inputs.js";
+import type { TemplateInputs } from "../template-inputs/template-inputs.type.js";
 
 export function render(inputs: TemplateInputs): string {
 	return `<!-- editorconfig-checker-disable-file -->

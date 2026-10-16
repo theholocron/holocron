@@ -20,7 +20,7 @@ Three repos, one rule per concern:
 ## Architecture
 
 - **Capability/provider model.** 18 capabilities defined in
-  `packages/cli/src/plugin/capabilities.ts`. Vendors implement N
+  `packages/cli/src/plugin/capabilities/capabilities.type.ts`. Vendors implement N
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
   typed autocomplete. `vault` is no longer required (removed constraint).
@@ -62,7 +62,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     core + plugin-exported `parseWebhook(input): AuthEvent` utility
     (NOT a capability method). Swap auth providers without rewriting
     handlers.
-  - **Execution context** (`packages/cli/src/commands/contexts.ts`,
+  - **Execution context** (`packages/cli/src/commands/contexts/contexts.ts`,
     spec `tech-cli-execution-contexts`, #576). Every command is tagged
     `global` (binary only), `repo-aware` (`./holocron.config`, no
     plugins) or `workspace` (plugin packages resolvable). New commands
@@ -72,7 +72,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
     `USER_FACING_ERRORS` catch) only when every provider errored with a
     missing-package error — the global-install case.
-  - **Interactive fallback** (`packages/cli/src/interactive-menu.ts`, spec
+  - **Interactive fallback** (`packages/cli/src/interactive-menu/interactive-menu.ts`, spec
     `tool-interactive-cli-menu`, #438). A command with a required positional
     gets a `COMMAND_REGISTRY` entry so a missing arg prompts instead of
     hard-failing; interactive prompting itself stays inline in `cli.ts`'s
@@ -115,6 +115,14 @@ not object destructuring.
 
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
+- **One function per file, types in `*.type.ts`.** In `packages/cli`, exported
+  `interface` / `type` declarations live in `<name>.type.ts`, not in the
+  implementation file. When a function has an implementation, a type file and
+  a test, the three sit together in a folder named after it
+  (`commands/auth/auth.ts`, `auth.type.ts`, `auth.test.ts`). Types shared by
+  several functions in one folder stay in that folder's own `*.type.ts`
+  (`commands/publish/publish.type.ts`). A folder's `index.ts` is only for a
+  public entry (`plugin/capabilities/index.ts`).
 - **No third-party observability / telemetry SDK is imported in this repo.**
   `pino`, `@sentry/node`, `posthog-node` live behind
   `@theholocron/observability` — the `Logger` / `ErrorSink` / `AnalyticsSink`
@@ -223,7 +231,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   new file type that pins the Node.js version (e.g., a new CI platform's
   config, an `.engines` file, a custom script), add a `Pattern` entry to
   the `PATTERNS` array in
-  `packages/cli/src/commands/upgrade-node.ts` — a `matches` predicate
+  `packages/cli/src/commands/upgrade-node/upgrade-node.ts` — a `matches` predicate
   on the filename and a `patch` function that replaces the old major with
   the new one. The `upgrade.node.extra` field in `holocron.config.json`
   is only for non-conventional _file paths_ (unusual locations for known

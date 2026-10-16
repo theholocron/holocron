@@ -45,8 +45,8 @@ import type { TasksConfig } from "@theholocron/astromech/config";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
-import { getLogger } from "../../observability/logger.js";
+import { AuthError, createFeatureResolver } from "../../auth/auth-resolver/auth-resolver.js";
+import { getLogger } from "../../observability/logger/logger.js";
 import type {
 	Auth,
 	Deployment,
@@ -62,8 +62,8 @@ import type {
 	Vault,
 	Wiki,
 	Workers,
-} from "../../plugin/capabilities.js";
-import { PluginLoader } from "../../plugin/loader.js";
+} from "../../plugin/capabilities/capabilities.type.js";
+import { PluginLoader } from "../../plugin/loader/loader.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import dcoConfig from "../../templates/dco.yml";
 import { withSpinner } from "../../ui/progress.js";
@@ -76,13 +76,13 @@ import {
 	deriveProfile,
 	deriveStack,
 	readWorkspacePackageJsons,
-} from "./derived-properties.js";
+} from "./derived-properties/derived-properties.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
-import type { RunSetupInput, SetupReport, SetupStepResult } from "./run-step.js";
-import { formatStep, runStep } from "./run-step.js";
-import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
+import { formatStep, runStep } from "./run-step/run-step.js";
+import type { RunSetupInput, SetupReport, SetupStepResult } from "./run-step/run-step.type.js";
+import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/skills.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/setup/run-setup.ts",

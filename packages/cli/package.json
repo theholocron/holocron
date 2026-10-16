@@ -28,7 +28,7 @@
       "default": "./dist/index.mjs"
     },
     "./capabilities": {
-      "types": "./src/plugin/capabilities.ts",
+      "types": "./src/plugin/capabilities/index.ts",
       "import": "./dist/plugin/capabilities.mjs",
       "default": "./dist/plugin/capabilities.mjs"
     }

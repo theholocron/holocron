@@ -1,6 +1,6 @@
 import { readGitRemote } from "@theholocron/git-utils";
 
-import type { RunPublishInput } from "./publish.type.js";
+import type { RunPublishInput } from "./run-publish/run-publish.type.js";
 
 export async function resolveRepoName(cwd: string, exec: NonNullable<RunPublishInput["exec"]>): Promise<string> {
 	const remote = await readGitRemote(cwd, {

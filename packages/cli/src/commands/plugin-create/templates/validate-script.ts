@@ -1,4 +1,4 @@
-import type { TemplateInputs } from "../template-inputs.js";
+import type { TemplateInputs } from "../template-inputs/template-inputs.type.js";
 
 /**
  * Scaffolds `scripts/validate.mjs` — a smoke-test the operator runs

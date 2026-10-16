@@ -10,30 +10,32 @@ import { LOG_LEVELS, type LogLevel } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { AuthError, createFeatureResolver } from "./auth/auth-resolver.js";
-import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args.js";
-import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth.js";
-import { runCleanupPreview } from "./commands/cleanup-preview.js";
-import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone.js";
-import { commandsInContext } from "./commands/contexts.js";
-import { runDeploy, runDeployFromFiles } from "./commands/deploy.js";
-import { runDoctor } from "./commands/doctor.js";
-import { runMonitoringCheck } from "./commands/monitoring-check.js";
-import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
-import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
+import { AuthError, createFeatureResolver } from "./auth/auth-resolver/auth-resolver.js";
+import { parseTokenArgs, TokenParseError } from "./auth/token-args/token-args.js";
+import type { ParsedTokenArgs } from "./auth/token-args/token-args.type.js";
+import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth/auth.js";
+import { runCleanupPreview } from "./commands/cleanup-preview/cleanup-preview.js";
+import { parseCloneTarget, runClone } from "./commands/clone/clone.js";
+import type { WholeOrgScope } from "./commands/clone/clone.type.js";
+import { commandsInContext } from "./commands/contexts/contexts.js";
+import { runDeploy, runDeployFromFiles } from "./commands/deploy/deploy.js";
+import { runDoctor } from "./commands/doctor/doctor.js";
+import { runMonitoringCheck } from "./commands/monitoring-check/monitoring-check.js";
+import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/new.js";
+import { runNpmBumpVersions } from "./commands/npm-bump-versions/npm-bump-versions.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
-import { runSecretSet } from "./commands/secret-set.js";
-import { runSecretsSync } from "./commands/secrets-sync.js";
+import { runSecretSet } from "./commands/secret-set/secret-set.js";
+import { runSecretsSync } from "./commands/secrets-sync/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";
-import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills.js";
-import { runSync } from "./commands/sync.js";
-import { runSyncGithub } from "./commands/sync-github.js";
-import { runSyncReadme } from "./commands/sync-readme.js";
-import { runUpgradeDeps } from "./commands/upgrade-deps.js";
-import { runUpgradeNode } from "./commands/upgrade-node.js";
-import type { TelemetryConfig } from "./config/config.js";
-import { loadConfig } from "./config/load-config.js";
+import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills/skills.js";
+import { runSync } from "./commands/sync/sync.js";
+import { runSyncGithub } from "./commands/sync-github/sync-github.js";
+import { runSyncReadme } from "./commands/sync-readme/sync-readme.js";
+import { runUpgradeDeps } from "./commands/upgrade-deps/upgrade-deps.js";
+import { runUpgradeNode } from "./commands/upgrade-node/upgrade-node.js";
+import type { TelemetryConfig } from "./config/config/config.type.js";
+import { loadConfig } from "./config/load-config/load-config.js";
 import { env } from "./env.js";
 import {
 	buildRunMenuEntries,
@@ -45,14 +47,15 @@ import {
 	listRunnableTasks,
 	NonInteractiveError,
 	promptForPositionals,
-} from "./interactive-menu.js";
-import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./observability/logger.js";
+} from "./interactive-menu/interactive-menu.js";
+import { buildCliLogger, getRunId, reportError } from "./observability/logger/logger.js";
+import type { BuildCliLoggerOpts } from "./observability/logger/logger.type.js";
 import { applyConfig, captureException, endSession, flush, init, startCommand } from "./observability/telemetry.js";
-import { CARDINALITY } from "./plugin/capabilities.js";
-import { viewJson } from "./ui/json-view.js";
+import { CARDINALITY } from "./plugin/capabilities/capabilities.js";
+import { viewJson } from "./ui/json-view/json-view.js";
 import { openPath } from "./ui/open-path.js";
 import { style } from "./ui/style.js";
-import { checkForUpdates } from "./update-notifier.js";
+import { checkForUpdates } from "./update-notifier/update-notifier.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
 const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" });

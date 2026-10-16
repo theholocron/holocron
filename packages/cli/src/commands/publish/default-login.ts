@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-import type { RunPublishInput } from "./publish.type.js";
+import type { RunPublishInput } from "./run-publish/run-publish.type.js";
 
 /**
  * Fully interactive — `npm login --auth-type=web` prints a URL and waits for

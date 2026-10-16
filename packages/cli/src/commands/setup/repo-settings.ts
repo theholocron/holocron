@@ -1,4 +1,4 @@
-import type { RepoSettings } from "../../plugin/capabilities.js";
+import type { RepoSettings } from "../../plugin/capabilities/capabilities.type.js";
 
 export const BALANCED_REPO_SETTINGS: RepoSettings = {
 	allow_squash_merge: true,
