@@ -164,6 +164,17 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 	const _writeFile = input.writeFile ?? ((p: string, c: string) => writeFileSync(p, c));
 	const _walkFiles = input.walkFiles ?? defaultWalkFiles;
 
+	// Read the tree first: an unreadable directory is its own failure, not
+	// "couldn't detect the version" or "already up to date".
+	let walked: string[];
+	try {
+		walked = _walkFiles(cwd);
+	} catch (error) {
+		const message = `could not read ${cwd}: ${errorMessage(error)}`;
+		logger.warn({ to, reason: message }, "upgrade node: done");
+		return { status: "fail", updated: [], message };
+	}
+
 	const from = input.from ?? detectFrom(cwd, _readFile);
 	if (from === null) {
 		const message = "could not detect current Node version — pass --from <major>";
@@ -183,14 +194,6 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 
 	const updated: string[] = [];
 	const root = resolve(cwd);
-	let walked: string[];
-	try {
-		walked = _walkFiles(cwd);
-	} catch (error) {
-		const message = `could not read ${cwd}: ${errorMessage(error)}`;
-		logger.warn({ to, reason: message }, "upgrade node: done");
-		return { status: "fail", updated: [], message };
-	}
 	const scanned = [...walked, ...extra.map((p) => join(cwd, p))];
 
 	for (const abs of scanned) {
@@ -208,7 +211,8 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 		const patched = pattern.patch(content, from, to);
 		if (patched === null) continue;
 
-		const rel = abs.startsWith(root + sep) ? abs.slice(root.length + 1) : abs;
+		const absolute = resolve(abs);
+		const rel = absolute.startsWith(root + sep) ? absolute.slice(root.length + 1) : abs;
 		if (!dryRun) _writeFile(abs, patched);
 		print(`  ${dryRun ? "~" : "✓"} ${rel}`);
 		logger.debug({ file: rel, from, to }, "upgrade node: patched");

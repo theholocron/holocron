@@ -428,6 +428,32 @@ describe("defaultWalkFiles (real filesystem)", () => {
 		expect(report.message).toMatch(/could not read \/nonexistent-path-for-test: .*ENOENT/);
 	});
 
+	it("reports an unreadable directory even when --from is omitted or equals --to", async () => {
+		for (const input of [{ to: 22 }, { to: 22, from: 22 }]) {
+			const report = await runUpgradeNode({ ...input, cwd: "/nonexistent-path-for-test", print: () => {} });
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/could not read/);
+		}
+	});
+
+	it("reports extra paths relative to a relative cwd", async () => {
+		await writeFile(join(tmpDir, "Dockerfile.custom"), "FROM node:20\n");
+		const previous = process.cwd();
+		process.chdir(tmpDir);
+		try {
+			const report = await runUpgradeNode({
+				to: 22,
+				from: 20,
+				cwd: ".",
+				extra: ["Dockerfile.custom"],
+				print: () => {},
+			});
+			expect(report.updated).toEqual(["Dockerfile.custom"]);
+		} finally {
+			process.chdir(previous);
+		}
+	});
+
 	it("reports paths relative to a relative cwd", async () => {
 		await writeFile(join(tmpDir, ".nvmrc"), "20");
 		const previous = process.cwd();
