@@ -21,7 +21,24 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
+import {
+	createAlexignore,
+	createAlexrc,
+	createAstromech,
+	createCommitMsg,
+	createDevmoji,
+	createEditorconfig,
+	createEditorconfigChecker,
+	createHeader,
+	createPreCommit,
+	createPrepareCommitMsg,
+	createPrePush,
+	createYamlignore,
+	createYamllint,
+	extractPreviewConfig,
+	KNOWN_WORKFLOWS,
+	readWorkspacePackages,
+} from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -47,27 +64,11 @@ import type {
 import { PluginLoader } from "../../plugin/loader.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import sentimentBotConfig from "../../templates/config.yml";
-import {
-	createIgnoreConfig as createAlexignore,
-	createRcConfig as createAlexrc,
-} from "../../templates/configs/alexjs/index.js";
-import { createConfig as createCommitMsg } from "../../templates/configs/commit-msg/index.js";
-import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
-import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
-import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
-import { createConfig as createPreCommit } from "../../templates/configs/pre-commit/index.js";
-import { createConfig as createPrePush } from "../../templates/configs/pre-push/index.js";
-import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
-import {
-	createConfig as createYamllint,
-	createIgnoreConfig as createYamlignore,
-} from "../../templates/configs/yamllint/index.js";
 import dcoConfig from "../../templates/dco.yml";
 import dependabotConfig from "../../templates/dependabot.yml";
 import labelerConfig from "../../templates/labeler.yml";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
-import { createHeader } from "../../utils/create-header.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import {

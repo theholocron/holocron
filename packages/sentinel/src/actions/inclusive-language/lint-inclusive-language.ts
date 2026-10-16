@@ -25,7 +25,7 @@
  * contributors).
  */
 
-import { ALEX_CONFIG, ALEX_IGNORE_PATTERNS } from "@theholocron/cli";
+import { ALEX_CONFIG, ALEX_IGNORE_PATTERNS } from "@theholocron/astromech/lint";
 import type { GitHubClient } from "@theholocron/github-client";
 import { markdown, mdx } from "alex";
 

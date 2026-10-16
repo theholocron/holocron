@@ -67,7 +67,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import load from "@commitlint/load";
-import { lintCommitMessage } from "@theholocron/cli";
+import { lintCommitMessage } from "@theholocron/astromech/lint";
 import type { GitHubClient } from "@theholocron/github-client";
 
 import { getPackageRoot } from "../../utils/package-root.js";

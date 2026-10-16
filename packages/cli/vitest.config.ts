@@ -6,7 +6,7 @@ const base = library();
 
 export default defineConfig({
 	...base,
-	plugins: [...(base.plugins ?? []), transformTemplate({ dirs: ["/src/templates/configs/"] })],
+	plugins: [...(base.plugins ?? []), transformTemplate()],
 	test: {
 		...base.test,
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
@@ -31,8 +31,6 @@ export default defineConfig({
 				"src/commands/setup/index.ts",
 				// yml/md template files — string content only, no executable logic.
 				"src/templates/**",
-				// setup template files — raw text content only, no executable logic.
-				"src/templates/configs/**",
 			],
 		},
 	},

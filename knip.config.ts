@@ -44,8 +44,8 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 			// Imported only by inlined workspace code in dist/ (@theholocron/cli:
-			// @commitlint/lint, @napi-rs/keyring, @theholocron/git-utils,
-			// @theholocron/pkg-utils;
+			// @napi-rs/keyring, @theholocron/git-utils, @theholocron/pkg-utils;
+			// @theholocron/astromech/lint: @commitlint/lint;
 			// @theholocron/datapad: object-utils), never by sentinel's own src/
 			// (holocron#922);
 			// declared so the trimmed deploy package.json installs them on Vercel.
@@ -120,8 +120,8 @@ const config: KnipConfig = {
 	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's
 	// glob doesn't traverse dotfiles so it can't trace these as reachable from imports
 	ignoreFiles: [
-		"packages/cli/src/templates/configs/yamllint/.yamllint.yml.d.ts",
-		"packages/cli/src/templates/configs/yamllint/.yamlignore.d.ts",
+		"packages/astromech/src/templates/configs/yamllint/.yamllint.yml.d.ts",
+		"packages/astromech/src/templates/configs/yamllint/.yamlignore.d.ts",
 	],
 };
 

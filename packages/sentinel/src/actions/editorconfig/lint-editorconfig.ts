@@ -71,7 +71,7 @@
  * ref)` — a same-repo PR branch, not a fork's.
  */
 
-import { isEditorConfigExcluded } from "@theholocron/cli";
+import { isEditorConfigExcluded } from "@theholocron/astromech/lint";
 import type { GitHubClient } from "@theholocron/github-client";
 import { matcher, type Props } from "editorconfig";
 

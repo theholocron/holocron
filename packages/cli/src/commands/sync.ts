@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { access, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
+import { createAstromech, createHeader, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -14,7 +14,6 @@ import type { LoadedConfig } from "../config/load-config.js";
 import { getLogger } from "../logger.js";
 import type { Source } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
-import { createHeader } from "../utils/create-header.js";
 import type { SetupPrintLine, SetupReport, SetupStepResult } from "./setup/index.js";
 import {
 	CANONICAL_LABELS,
