@@ -19,9 +19,10 @@
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { walkFilesSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
@@ -257,19 +258,9 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 
 // ── File discovery ────────────────────────────────────────────────────
 
-const SKIP_DIRS = new Set([".git", "node_modules", "dist", ".turbo"]);
+const SKIP_DIRS = [".git", "node_modules", "dist", ".turbo"];
 
-function defaultWalkFiles(dir: string): string[] {
-	const results: string[] = [];
-	for (const entry of readdirSync(dir)) {
-		if (SKIP_DIRS.has(entry)) continue;
-		const full = path.join(dir, entry);
-		const stat = statSync(full);
-		if (stat.isDirectory()) results.push(...defaultWalkFiles(full));
-		else if (stat.isFile()) results.push(full);
-	}
-	return results;
-}
+const defaultWalkFiles = (dir: string): string[] => walkFilesSync(dir, { skip: SKIP_DIRS });
 
 function isBinary(content: string): boolean {
 	for (let i = 0; i < Math.min(content.length, 8000); i++) {

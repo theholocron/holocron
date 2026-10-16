@@ -1,44 +1,25 @@
-import { join } from "node:path";
+import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 
 import type { Tree, WorkspacePackage } from "./workspace-packages.type.js";
-
-function scanWorkspaceDir(dirPath: string, { readJson, listDirs }: Tree): WorkspacePackage[] {
-	let folders: string[];
-	try {
-		folders = listDirs(dirPath);
-	} catch {
-		return []; // directory doesn't exist — fine, it's optional (e.g. plugins/)
-	}
-	return folders.flatMap((folder) => {
-		try {
-			const manifest = readJson(join(dirPath, folder, "package.json")) as {
-				name?: string;
-				version?: string;
-				dependencies?: Record<string, string>;
-			};
-			if (!manifest.name) return [];
-			return [
-				{
-					name: manifest.name,
-					dir: join(dirPath, folder),
-					version: manifest.version,
-					dependencies: manifest.dependencies ?? {},
-				},
-			];
-		} catch {
-			return [];
-		}
-	});
-}
 
 /**
  * Every package under `<repoRoot>/packages/*` and `<repoRoot>/plugins/*`
  * with a readable, named `package.json` — `holocron`'s own layout splits
  * vendor plugin packages into `plugins/*`, sibling to `packages/*`.
  */
-export function workspacePackages(repoRoot: string, tree: Tree): WorkspacePackage[] {
-	return [
-		...scanWorkspaceDir(join(repoRoot, "packages"), tree),
-		...scanWorkspaceDir(join(repoRoot, "plugins"), tree),
-	];
+export function workspacePackages(repoRoot: string, { readJson, listDirs }: Tree): WorkspacePackage[] {
+	return listWorkspacePackagesSync(repoRoot, {
+		roots: ["packages", "plugins"],
+		readFile: (path) => JSON.stringify(readJson(path)),
+		// A directory that can't be listed is a directory that isn't there (e.g. no plugins/).
+		listDirs: (path) => {
+			try {
+				return listDirs(path);
+			} catch {
+				throw Object.assign(new Error(`ENOENT: ${path}`), { code: "ENOENT" });
+			}
+		},
+	}).flatMap(({ name, dir, manifest }) =>
+		name ? [{ name, dir, version: manifest.version, dependencies: manifest.dependencies ?? {} }] : []
+	);
 }

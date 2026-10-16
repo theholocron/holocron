@@ -34,9 +34,10 @@
  * via `cli.ts`).
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative, sep } from "node:path";
 
+import { walkFilesSync } from "@theholocron/fs-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -239,20 +240,9 @@ export interface DeployFilesReport {
 // was modeled on: --files exists specifically to deploy build output, so
 // a directory literally named "dist" is exactly what a caller usually
 // means to include, not exclude.
-const SKIP_DIRS = new Set([".git", "node_modules", ".turbo"]);
+const SKIP_DIRS = [".git", "node_modules", ".turbo"];
 
-/** Recursively lists absolute file paths under `dir`, skipping VCS/tooling noise. */
-function defaultWalkFiles(dir: string): string[] {
-	const results: string[] = [];
-	for (const entry of readdirSync(dir)) {
-		if (SKIP_DIRS.has(entry)) continue;
-		const full = join(dir, entry);
-		const stat = statSync(full);
-		if (stat.isDirectory()) results.push(...defaultWalkFiles(full));
-		else if (stat.isFile()) results.push(full);
-	}
-	return results;
-}
+const defaultWalkFiles = (dir: string): string[] => walkFilesSync(dir, { skip: SKIP_DIRS });
 
 /** `holocron deploy --files <dir>` — the non-git counterpart to `runDeploy`. */
 export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promise<DeployFilesReport> {

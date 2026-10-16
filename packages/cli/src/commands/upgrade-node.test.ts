@@ -421,11 +421,23 @@ describe("defaultWalkFiles (real filesystem)", () => {
 		await rm(tmpDir, { recursive: true });
 	});
 
-	it("gracefully skips an unreadable directory entry", async () => {
-		// A non-existent cwd causes readdirSync to throw inside the walker's
-		// catch block (line 122), which returns early with an empty result.
+	it("fails, saying why, when the directory to scan can't be read", async () => {
 		const report = await runUpgradeNode({ to: 22, from: 20, cwd: "/nonexistent-path-for-test", print: () => {} });
+		expect(report.status).toBe("fail");
 		expect(report.updated).toHaveLength(0);
+		expect(report.message).toMatch(/could not read \/nonexistent-path-for-test: .*ENOENT/);
+	});
+
+	it("reports paths relative to a relative cwd", async () => {
+		await writeFile(join(tmpDir, ".nvmrc"), "20");
+		const previous = process.cwd();
+		process.chdir(tmpDir);
+		try {
+			const report = await runUpgradeNode({ to: 22, from: 20, cwd: ".", print: () => {} });
+			expect(report.updated).toEqual([".nvmrc"]);
+		} finally {
+			process.chdir(previous);
+		}
 	});
 
 	it("finds files recursively and skips node_modules and .git", async () => {
