@@ -4286,7 +4286,7 @@ describe("setup: engineering step", () => {
 		const step = report.steps.find((s) => s.capability === "engineering");
 		expect(step).toBeDefined();
 		expect(step?.status).toBe("ok");
-		await expect(stat(join(tmpDir, "docs/wiki/decisions/template.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/README.md"))).resolves.toBeDefined();
 	});
 
 	it("skips engineering step when docs is absent", async () => {

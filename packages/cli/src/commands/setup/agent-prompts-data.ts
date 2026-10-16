@@ -8,10 +8,6 @@
  * Source: docs/wiki/specifications/ai-engineering-workflow.spec.md
  */
 
-import decisionsTemplate from "../../templates/decisions-template.md";
-
-export const DECISIONS_TEMPLATE = decisionsTemplate;
-
 export const AGENT_PROMPTS: Record<string, string> = {
 	"discovery.md": `# Discovery Agent
 
@@ -143,10 +139,11 @@ confidently, identify the missing information instead of inventing it.
 
 ## Format
 
-Use MADR format. Copy the template and number sequentially:
+Use MADR format. Start from the \`adr\` skill's template (\`assets/template.md\`,
+in the skill's own directory) and number the record sequentially:
 
 \`\`\`sh
-cp docs/wiki/decisions/template.md docs/wiki/decisions/000N-short-title.md
+cp <path-to-adr-skill>/assets/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
 Save to \`docs/wiki/decisions/NNNN-<slug>.md\`.
@@ -359,10 +356,12 @@ decision, the options that were considered, and the rationale for the choice mad
 
 ## Creating a new decision
 
-Copy the template and number it sequentially:
+Start from the template that ships with the \`adr\` skill
+(\`assets/template.md\`, in the skill's own directory) and number the record
+sequentially:
 
 \`\`\`sh
-cp docs/wiki/decisions/template.md docs/wiki/decisions/000N-short-title.md
+cp <path-to-adr-skill>/assets/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
 \`madr\` has no CLI — creation is manual. Frontmatter is validated in CI

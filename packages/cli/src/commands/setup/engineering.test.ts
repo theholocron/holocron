@@ -18,7 +18,6 @@ describe("installEngineeringStructure", () => {
 	it("creates docs/wiki/{decisions,standards,specifications}/ files", async () => {
 		await installEngineeringStructure({ repoRoot: tmpDir });
 
-		await expect(stat(join(tmpDir, "docs/wiki/decisions/template.md"))).resolves.toBeDefined();
 		await expect(stat(join(tmpDir, "docs/wiki/decisions/README.md"))).resolves.toBeDefined();
 		await expect(stat(join(tmpDir, "docs/wiki/standards/README.md"))).resolves.toBeDefined();
 		await expect(stat(join(tmpDir, "docs/wiki/specifications/README.md"))).resolves.toBeDefined();
@@ -26,17 +25,21 @@ describe("installEngineeringStructure", () => {
 
 	it("skips files that already exist", async () => {
 		await mkdir(join(tmpDir, "docs/wiki/decisions"), { recursive: true });
-		await writeFile(join(tmpDir, "docs/wiki/decisions/template.md"), "custom content");
+		await writeFile(join(tmpDir, "docs/wiki/decisions/README.md"), "custom content");
 
 		await installEngineeringStructure({ repoRoot: tmpDir });
 
-		const content = await readFile(join(tmpDir, "docs/wiki/decisions/template.md"), "utf8");
+		const content = await readFile(join(tmpDir, "docs/wiki/decisions/README.md"), "utf8");
 		expect(content).toBe("custom content");
+	});
+
+	it("does not scaffold the ADR template (the adr skill owns it)", async () => {
+		await installEngineeringStructure({ repoRoot: tmpDir });
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/template.md"))).rejects.toThrow();
 	});
 
 	it("reports created files in the summary", async () => {
 		const result = await installEngineeringStructure({ repoRoot: tmpDir });
-		expect(result).toContain("docs/wiki/decisions/template.md");
 		expect(result).toContain("docs/wiki/decisions/README.md");
 		expect(result).toContain("docs/wiki/standards/README.md");
 		expect(result).toContain("docs/wiki/specifications/README.md");
