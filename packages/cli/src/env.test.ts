@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { makeEnv } from "./env.js";
+import { holocronEnv, makeEnv } from "./env.js";
 
 describe("makeEnv", () => {
 	it("returns a string value for a present key", () => {
@@ -38,5 +38,16 @@ describe("makeEnv", () => {
 		} finally {
 			delete process.env[sentinel];
 		}
+	});
+});
+
+describe("holocronEnv", () => {
+	it("reads HOLOCRON_<KEY> first, then <KEY>, from process.env", () => {
+		vi.stubEnv("HOLOCRON_PREFIX_PROBE", "prefixed");
+		vi.stubEnv("PREFIX_PROBE", "bare");
+		expect(holocronEnv.get("PREFIX_PROBE")).toBe("prefixed");
+		vi.stubEnv("HOLOCRON_PREFIX_PROBE", "");
+		expect(holocronEnv.get("PREFIX_PROBE")).toBe("bare");
+		vi.unstubAllEnvs();
 	});
 });

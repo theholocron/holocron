@@ -1,9 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { firstEnv } from "@theholocron/env-utils";
 import { createRestClient } from "@theholocron/http-client";
 
 import type { LoadedConfig } from "../config/load-config.js";
+import { env } from "../env.js";
 import type { RuntimeContext } from "../plugin/loader.js";
 import type { SetupStepResult } from "./setup/index.js";
 
@@ -30,13 +32,7 @@ export interface RunSyncWikiInput {
 // ---------------------------------------------------------------------------
 
 function resolveToken(input: RunSyncWikiInput): string | undefined {
-	return (
-		input.token ??
-		input.context.cliToken ??
-		process.env.HOLOCRON_READ_TOKEN ??
-		process.env.GH_TOKEN ??
-		process.env.GITHUB_TOKEN
-	);
+	return input.token ?? input.context.cliToken ?? firstEnv(env, ["HOLOCRON_READ_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"]);
 }
 
 // ---------------------------------------------------------------------------
