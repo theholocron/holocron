@@ -74,6 +74,7 @@ export { createConfig as createCommitMsg } from "./templates/configs/commit-msg/
 export { createConfig as createDevmoji } from "./templates/configs/devmoji/index.js";
 export { createConfig as createEditorconfig } from "./templates/configs/editorconfig/index.js";
 export { createConfig as createEditorconfigChecker } from "./templates/configs/editorconfig-checker/index.js";
+export { createConfig as createLabeler } from "./templates/configs/labeler/index.js";
 export { createConfig as createPreCommit } from "./templates/configs/pre-commit/index.js";
 export { createConfig as createPrePush } from "./templates/configs/pre-push/index.js";
 export { createConfig as createPrepareCommitMsg } from "./templates/configs/prepare-commit-msg/index.js";

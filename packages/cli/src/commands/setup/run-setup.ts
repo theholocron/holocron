@@ -30,6 +30,7 @@ import {
 	createEditorconfig,
 	createEditorconfigChecker,
 	createHeader,
+	createLabeler,
 	createPreCommit,
 	createPrepareCommitMsg,
 	createPrePush,
@@ -66,7 +67,6 @@ import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import sentimentBotConfig from "../../templates/config.yml";
 import dcoConfig from "../../templates/dco.yml";
 import dependabotConfig from "../../templates/dependabot.yml";
-import labelerConfig from "../../templates/labeler.yml";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
 import { installAgentPrompts } from "./agent-prompts.js";
@@ -93,7 +93,7 @@ const { workflowHeader } = createHeader({
 // file — a separate binding so its header points contributors at the actual
 // template/generation logic (packages/astromech/src/thin-callers.ts), same as
 // the workflowHeader() calls further down that write genuinely cli-owned
-// templates (labeler.yml, dependabot.yml, dco.yml, config.yml).
+// templates (dependabot.yml, dco.yml, config.yml).
 const { workflowHeader: thinCallerHeader } = createHeader({
 	source: "packages/astromech/src/thin-callers.ts",
 	tool: "holocron repo setup",
@@ -266,7 +266,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/labeler.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/labeler.yml", `${workflowHeader()}${labelerConfig}`);
+				await source.writeRepoFile(".github/labeler.yml", createLabeler());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
