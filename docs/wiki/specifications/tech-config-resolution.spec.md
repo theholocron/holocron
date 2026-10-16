@@ -20,7 +20,7 @@ Today `astromech`'s `TASKS` registry runs `eslint .`, `vitest run`, `tsdown`
 with no `--config` flag — each tool auto-discovers a same-named file the
 repo commits, which is exactly the residual duplication the epic exists to
 close (every repo needs _some_ local file, even a thin one, for the tool to
-find). Not just cross-repo duplication either — `theholocron/clients` alone
+find). Not only cross-repo duplication either — `theholocron/clients` alone
 has 13 vendor packages, each carrying its own `eslint.config.ts` /
 `tsconfig.json` / `tsdown.config.ts` / `vitest.config.ts`: 52 files in one
 repo.
