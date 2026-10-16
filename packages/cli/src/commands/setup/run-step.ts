@@ -1,7 +1,7 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import type { LoadedConfig } from "../../config/load-config.js";
-import { getLogger } from "../../logger.js";
+import { getLogger } from "../../observability/logger.js";
 import { ProviderApiError } from "../../plugin/capabilities.js";
 import type { RuntimeContext } from "../../plugin/loader.js";
 import { PluginLoader } from "../../plugin/loader.js";

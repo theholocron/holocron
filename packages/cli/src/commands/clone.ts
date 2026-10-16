@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 import { statusRow } from "../ui/status-row.js";
 import { style } from "../ui/style.js";
 

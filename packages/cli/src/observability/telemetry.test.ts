@@ -33,7 +33,7 @@ const { errorSink, analyticsSink, SentrySinkMock, PostHogSinkMock, resolveDsnMoc
 
 vi.mock("@theholocron/observability/errors", () => ({ SentrySink: SentrySinkMock }));
 vi.mock("@theholocron/observability/analytics", () => ({ PostHogSink: PostHogSinkMock }));
-vi.mock("./telemetry/resolve.js", () => ({
+vi.mock("./resolve-telemetry.js", () => ({
 	resolveDsn: resolveDsnMock,
 	resolvePostHogKey: resolveKeyMock,
 	resolvePostHogHost: vi.fn(() => "https://us.i.posthog.com"),

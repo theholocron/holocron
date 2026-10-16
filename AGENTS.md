@@ -123,8 +123,9 @@ not object destructuring.
   `PostHogSink` adapters — the sole vendor call sites — from
   `/logger`, `/errors`, `/analytics`. `git grep -nE "@sentry/node|posthog-node|
 from \"pino\"" packages/` must return **nothing** (source). The CLI's
-  `telemetry.ts` holds only orchestration + `telemetry/resolve.ts` (the
-  Holocron-specific DSN / key resolution, which stays here). A vendor swap or a
+  `observability/telemetry.ts` holds only orchestration +
+  `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key
+  resolution, which stays here). A vendor swap or a
   test fake is one file — in `theholocron/observability`.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The

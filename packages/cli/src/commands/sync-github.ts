@@ -8,8 +8,8 @@ import { ProviderApiError } from "@theholocron/http-client";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
-import { getLogger } from "../logger.js";
-import { event as telemetryEvent } from "../telemetry.js";
+import { getLogger } from "../observability/logger.js";
+import { event as telemetryEvent } from "../observability/telemetry.js";
 
 const DEFAULT_REPO = "theholocron/.github";
 

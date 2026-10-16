@@ -35,7 +35,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 import type { Deployment, DeploymentTarget, Secrets, SecretScope, Vault } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { assertPluginsResolvable } from "../plugin/workspace.js";

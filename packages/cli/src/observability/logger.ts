@@ -10,10 +10,10 @@ import type { Logger, LogLevel } from "@theholocron/observability/core";
 import type { AxiomTransportConfig } from "@theholocron/observability/logger";
 import { createLogger, isCI, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
-import { getToken } from "./auth/keyring.js";
-import { contextForCommand } from "./commands/contexts.js";
-import { env, holocronEnv } from "./env.js";
-import { style } from "./ui/style.js";
+import { getToken } from "../auth/keyring.js";
+import { contextForCommand } from "../commands/contexts.js";
+import { env, holocronEnv } from "../env.js";
+import { style } from "../ui/style.js";
 
 /**
  * Dataset for `global`-context commands (`clone`, `auth set`, `upgrade
@@ -21,7 +21,7 @@ import { style } from "./ui/style.js";
  * logs must never depend on `$PWD` or which repo's `.envrc` happens to be
  * active; they always ship to holocron's own dataset instead of whatever
  * `HOLOCRON_AXIOM_DATASET` resolves to locally. Mirrors
- * `telemetry/resolve.ts`'s `FALLBACK_DSN` — a holocron-owned default, not a
+ * `resolve-telemetry.ts`'s `FALLBACK_DSN` — a holocron-owned default, not a
  * per-repo override.
  */
 export const GLOBAL_AXIOM_DATASET = "holocron-global";

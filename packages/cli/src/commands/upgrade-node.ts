@@ -6,7 +6,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 
 // Directories to skip when walking the repo tree
 const SKIP_DIRS = ["node_modules", ".git", "dist", "coverage", "build", ".turbo", ".next", "out"];

@@ -27,7 +27,7 @@ import type { Logger } from "@theholocron/observability/core";
 import { deleteToken, getToken, listStoredProviders, setToken } from "../auth/keyring.js";
 import { resolvePluginPackage } from "../config/config.js";
 import { makeEnv } from "../env.js";
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 import { isModuleNotFound } from "../plugin/workspace.js";
 import { withSpinner } from "../ui/progress.js";
 import { style } from "../ui/style.js";

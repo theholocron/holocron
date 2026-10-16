@@ -46,7 +46,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
-import { getLogger } from "../../logger.js";
+import { getLogger } from "../../observability/logger.js";
 import type {
 	Auth,
 	Deployment,

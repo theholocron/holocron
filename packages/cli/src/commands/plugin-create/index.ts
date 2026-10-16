@@ -24,7 +24,7 @@ import path from "node:path";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
-import { getLogger } from "../../logger.js";
+import { getLogger } from "../../observability/logger.js";
 import type { CapabilityKey } from "../../plugin/capabilities.js";
 import { CARDINALITY } from "../../plugin/capabilities.js";
 import { deriveDefaults, type TemplateInputs } from "./template-inputs.js";

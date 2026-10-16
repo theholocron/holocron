@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./resolve.js";
+import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./resolve-telemetry.js";
 
 const originalEnv = process.env;
 

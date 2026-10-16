@@ -12,7 +12,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../config/load-config.js";
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 import type { Monitoring } from "../plugin/capabilities.js";
 import { PluginLoader, type RuntimeContext } from "../plugin/loader.js";
 import { runCheckAgainstUrl } from "../plugin/run-check.js";

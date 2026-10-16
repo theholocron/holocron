@@ -28,7 +28,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { env } from "../env.js";
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 
 // ── Public API ────────────────────────────────────────────────────────
 

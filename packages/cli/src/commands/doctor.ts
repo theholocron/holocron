@@ -18,7 +18,7 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import type { LoadedConfig } from "../config/load-config.js";
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 import type {
 	Auth,
 	Ci,

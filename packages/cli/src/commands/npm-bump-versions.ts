@@ -5,7 +5,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import type { Logger } from "@theholocron/observability/core";
 import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 
 export interface RunNpmBumpVersionsInput {
 	/** Next version string (e.g., "4.2.0" or "2.0.0-alpha.1"). */

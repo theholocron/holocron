@@ -46,9 +46,9 @@ import {
 	NonInteractiveError,
 	promptForPositionals,
 } from "./interactive-menu.js";
-import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./logger.js";
+import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./observability/logger.js";
+import { applyConfig, captureException, endSession, flush, init, startCommand } from "./observability/telemetry.js";
 import { CARDINALITY } from "./plugin/capabilities.js";
-import { applyConfig, captureException, endSession, flush, init, startCommand } from "./telemetry.js";
 import { viewJson } from "./ui/json-view.js";
 import { openPath } from "./ui/open-path.js";
 import { style } from "./ui/style.js";

@@ -7,7 +7,7 @@ import type { Logger } from "@theholocron/observability/core";
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
 import type { LoadedConfig } from "../config/load-config.js";
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 import type { RuntimeContext } from "../plugin/loader.js";
 import { style } from "../ui/style.js";
 

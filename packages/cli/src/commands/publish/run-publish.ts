@@ -30,7 +30,7 @@
  */
 
 import { makeEnv } from "../../env.js";
-import { getLogger } from "../../logger.js";
+import { getLogger } from "../../observability/logger.js";
 import { defaultExec } from "./default-exec.js";
 import { defaultLogin } from "./default-login.js";
 import { discoverPublicPackages } from "./discover-public-packages.js";

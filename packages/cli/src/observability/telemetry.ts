@@ -8,7 +8,7 @@
  * installed when telemetry is off. Same seam the package's `Logger` uses for
  * Pino.
  *
- * Activation is env-var + shipped-fallback, resolved here (`telemetry/resolve.ts`)
+ * Activation is env-var + shipped-fallback, resolved here (`resolve-telemetry.ts`)
  * and passed to the sink — the adapters read no environment. The single kill
  * switch is `HOLOCRON_TELEMETRY=false` (legacy alias `NO_HOLOCRON_TELEMETRY`);
  * see ADR-0007 / ADR-0008.
@@ -28,10 +28,10 @@ import {
 } from "@theholocron/observability/core";
 import { SentrySink } from "@theholocron/observability/errors";
 
-import type { TelemetryConfig } from "./config/config.js";
-import { env } from "./env.js";
+import type { TelemetryConfig } from "../config/config.js";
+import { env } from "../env.js";
 import { getRunId } from "./logger.js";
-import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./telemetry/resolve.js";
+import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "./resolve-telemetry.js";
 
 // ── sinks ────────────────────────────────────────────────────────────────────
 

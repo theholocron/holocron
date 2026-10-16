@@ -11,7 +11,7 @@ import type { RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.js";
 import { runSyncReadme } from "./sync-readme.js";
 import * as syncWikiModule from "./sync-wiki.js";
 
-vi.mock("../commands/sync-readme.js", () => ({
+vi.mock("./sync-readme.js", () => ({
 	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> => {
 		if (input.context.dryRun) return { status: "dry-run", updated: false };
 		return { status: "ok", updated: true };

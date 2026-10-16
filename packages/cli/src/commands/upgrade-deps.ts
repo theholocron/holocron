@@ -22,7 +22,7 @@ import { join } from "node:path";
 
 import type { Logger } from "@theholocron/observability/core";
 
-import { getLogger } from "../logger.js";
+import { getLogger } from "../observability/logger.js";
 
 // ── npm registry ─────────────────────────────────────────────────────────────
 
