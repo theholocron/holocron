@@ -48,7 +48,7 @@ turbo vs pnpm vs npm, or which runner:
 
 Tasks are named by **intent**, not by tool — a repo declares
 `verification.unitTests`, not `vitest`. The table below is the full
-registry (`TASKS` in `src/registry.ts`): every task name astromech knows,
+registry (`TASKS` in `src/registry/registry.ts`): every task name astromech knows,
 what it actually runs, and why. Tool names never appear in
 `holocron.config.ts` — they're an implementation detail this table
 documents, not a naming convention repos need to follow.
@@ -89,7 +89,7 @@ required check. Each tool is still gated by its own detection rule — e.g.
 package has no local file but `@theholocron/eslint-config` resolves
 (the same shared-config splice the `tool`/`detect` runner path uses) — the
 `tool name → detection rule → local binary` mapping lives in one place,
-`src/linters.ts`. A repo's choice of which of these run is based on which
+`src/tasks/run/linters/linters.ts`. A repo's choice of which of these run is based on which
 tasks it includes in `tasks: [...]`, same as any other task.
 
 **No super-linter.** Each task above runs its own tool directly, through
