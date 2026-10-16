@@ -38,6 +38,19 @@ DEPLOYED_ENVIRONMENTS; // Set { "qa", "prod" }
 
 Default loader strategy that reads `process.env`. Pass a custom loader to `createEnvParser` to swap it out.
 
+## Env lookup
+
+### `firstEnv(env, names, fallback?)`
+
+Returns the first variable in `names` that is set and non-empty, or `fallback` when none is. `env` is any `EnvLookup`, such as the result of `createEnvLookup()`. Without a `fallback` the return type includes `undefined`.
+
+```ts
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils";
+
+const env = createEnvLookup();
+const dsn = firstEnv(env, ["MYAPP_SENTRY_DSN", "SENTRY_DSN"], DEFAULT_DSN);
+```
+
 ## Typed env parsing
 
 ### `createEnvParser(options)`

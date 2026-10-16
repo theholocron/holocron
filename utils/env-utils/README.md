@@ -38,6 +38,17 @@ export const config = map((get) => ({
 }));
 ```
 
+### Precedence chains
+
+`firstEnv(env, names, fallback?)` returns the first variable in `names` that is set and non-empty, else `fallback`:
+
+```typescript
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils";
+
+const env = createEnvLookup();
+const dsn = firstEnv(env, ["MYAPP_SENTRY_DSN", "SENTRY_DSN"], DEFAULT_DSN);
+```
+
 ### Logging
 
 Debug output (key-loaded counts, missing-key warnings, deprecation notices) goes to `console.info`/`console.warn` by default. Pass an `EnvLogger` (any object shaped `{ info(message, meta?), warn(message, meta?) }`) to route it elsewhere:
