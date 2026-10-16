@@ -78,7 +78,7 @@ Bucket A immediately, no shared-package changes needed:
 
 Two tools' local files carry real, load-bearing per-repo content today —
 pointing `--config` straight at the raw shared-package file would silently
-**drop** that content, not just remove duplication:
+**drop** that content, not only remove duplication:
 
 - **`eslint.config.ts`** — every repo has repo-specific `ignores:` (dist/
   coverage paths vary by monorepo layout), and most have repo-specific rule
@@ -121,7 +121,7 @@ built-in behavior or as a preset parameter fed from data `holocron.config.ts`
      (`typescript-eslint` already defaults `tsconfigRootDir` to
      `process.cwd()`; `eslint-plugin-n`'s `node()` already reads
      `engines.node` from the consuming repo's `package.json`) — no new
-     parameter needed for either; worth just dropping both overrides at
+     parameter needed for either; worth dropping both overrides at
      #680's migration pass.
 
      `browserPackages` is real per-repo _data_, though, which a bare
@@ -134,7 +134,7 @@ library({ browserPackages: [...] })`) rather than reaching zero
      resolves straight to `library()`'s built dist file with no local
      file needed at all.
 - **`release.config.ts`'s `exec.publishCmd`**: the `prepareCmd` half of
-  this already goes through the CLI (`holocron bump-versions` — just fixed
+  this already goes through the CLI (`holocron bump-versions` — which fixed
   a live bug where 4 repos called a stale `holocron npm bump-versions` that
   no longer exists, theholocron/holocron#696). `publishCmd` should get the
   same treatment rather than adding monorepo-awareness to
@@ -172,7 +172,7 @@ library({ browserPackages: [...] })`) rather than reaching zero
 
 - **`commitlint-config`**: already the closest to done — the shared
   package's `index.ts` already carries real logic (a dependabot-commit
-  `ignores` regex, `body-max-line-length` disabled) that every repo
+  `ignores` regex, `body-max-line-length` turned off) that every repo
   currently gets via a pure `{ extends: [...] }` pointer, **except**
   `holocron` itself, which adds `footer-max-line-length: [0]` locally. Given
   every repo's commits carry a `Signed-off-by:` trailer (`-s` is the
@@ -185,7 +185,7 @@ library({ browserPackages: [...] })`) rather than reaching zero
 
 Once `eslint-config`/`commitlint-config` (both in `configs`) and the
 `holocron publish` extension (in `holocron` itself) land, all seven tools
-are uniformly Bucket A — no per-repo delta, no runtime merge step, just
+are uniformly Bucket A — no per-repo delta, no runtime merge step, only
 `--config <resolved shared path>` (or, for `release.config.ts`, a uniform
 `pnpm exec holocron publish` invocation).
 
@@ -280,7 +280,7 @@ away here; not a gap this workstream closes.
 - [x] `holocron`: resolver logic wired into `holocron run <task>` — done for
       four tools (`eslint`, `prettier`, `vitest`, `tsdown`), each verified
       end-to-end against a real fixture through the actually compiled CLI
-      binary, not just source-level unit tests. (`commitlint`'s mapping
+      binary, not only source-level unit tests. (`commitlint`'s mapping
       also exists in `resolver.ts`, but turned out to be unreachable
       through this path — see its own bullet below.) `configs`#462/
       #463 gave `eslint`/`devmoji` the ready-to-use default export
@@ -308,8 +308,8 @@ away here; not a gap this workstream closes.
       `devmoji-config` package installed, both branches (config present
       and absent), confirming the custom `config` → gear-emoji mapping
       from `configs`#463's fixture applies through the resolved path.
-- [x] `holocron`: `commitlint` — the entry already sitting in `resolver.ts`'s `TOOL_CONFIGS` turned out to be dead code: `linters.ts` has no `localBin` for `commitlint` (it's a commit-message check, not a file linter), so `run.ts`'s `runLinterGroup` bails out before ever reaching the resolver — caught by re-checking each tool's _actual_ invocation path rather than trusting the mapping table existed. commitlint really runs in two places, neither wired: the `.husky/commit-msg` hook (no generator at all — unlike `prepare-commit-msg`, never migrated to the `holocron setup` template system) and CI's own `platform.commitStandards.yml` step. Fixed both with the same guarded `--config` pattern as the devmoji hook, plus a new `commit-msg` generator (mirroring `prepare-commit-msg`'s exact structure) wired into `holocron setup`. Verified end-to-end against the real built `commitlint-config` package: the identical commit message (a long `Signed-off-by:` trailer) passes with our config (`footer-max-line-length` disabled) and fails with plain `@commitlint/config-conventional` on the same rule — proving the resolved config's rules genuinely apply, not just that _some_ config loaded. Also validated the CI workflow change by running the real `sync-github` generation + `actionlint` locally (the same check CI's own "Validate generated workflows" step runs) against all 55 generated files, zero problems.
-- [x] `semantic-release` — re-examined after landing the other four. `--extends <path>` was never actually the right mechanism: checked every repo's `release.config.ts` (7 checked, post-#697) and `branches` genuinely varies (4 of 7 add an `alpha` prerelease channel, 3 don't — a real per-repo choice, no majority default), so `defineConfig({...})` can't collapse to a zero-arg call the way `library()` did. But that's fine — `defineConfig()` is _already_ the correct shape for this: a parameterized factory the repo calls with its own real data, same category as `utils`' `eslint.config.ts` (`export default library({ browserPackages: [...] })`) — a tiny, legitimately-parameterized committed file, not a gap. The actual remaining duplication is `publishCmd`'s shell — the old bulk-publish invocation, hand-typed slightly differently in every repo (`configs`' own hand-rolled skip-already-published loop is the most divergent). #697 already built the fix (`pnpm exec holocron publish`), it just hasn't been rolled out to any repo's actual `release.config.ts` yet. That rollout is `#680`'s migration-pass job, not new design work.
+- [x] `holocron`: `commitlint` — the entry already sitting in `resolver.ts`'s `TOOL_CONFIGS` turned out to be dead code: `linters.ts` has no `localBin` for `commitlint` (it's a commit-message check, not a file linter), so `run.ts`'s `runLinterGroup` bails out before ever reaching the resolver — caught by re-checking each tool's _actual_ invocation path rather than trusting the mapping table existed. commitlint really runs in two places, neither wired: the `.husky/commit-msg` hook (no generator at all — unlike `prepare-commit-msg`, never migrated to the `holocron setup` template system) and CI's own `platform.commitStandards.yml` step. Fixed both with the same guarded `--config` pattern as the devmoji hook, plus a new `commit-msg` generator (mirroring `prepare-commit-msg`'s exact structure) wired into `holocron setup`. Verified end-to-end against the real built `commitlint-config` package: the identical commit message (a long `Signed-off-by:` trailer) passes with our config (`footer-max-line-length` turned off) and fails with plain `@commitlint/config-conventional` on the same rule — proving the resolved config's rules genuinely apply, not only that _some_ config loaded. Also validated the CI workflow change by running the real `sync-github` generation + `actionlint` locally (the same check CI's own "Validate generated workflows" step runs) against all 55 generated files, zero problems.
+- [x] `semantic-release` — re-examined after landing the other four. `--extends <path>` was never actually the right mechanism: checked every repo's `release.config.ts` (7 checked, post-#697) and `branches` genuinely varies (4 of 7 add an `alpha` prerelease channel, 3 don't — a real per-repo choice, no majority default), so `defineConfig({...})` can't collapse to a zero-arg call the way `library()` did. But that's fine — `defineConfig()` is _already_ the correct shape for this: a parameterized factory the repo calls with its own real data, same category as `utils`' `eslint.config.ts` (`export default library({ browserPackages: [...] })`) — a tiny, legitimately-parameterized committed file, not a gap. The actual remaining duplication is `publishCmd`'s shell — the old bulk-publish invocation, hand-typed slightly differently in every repo (`configs`' own hand-rolled skip-already-published loop is the most divergent). #697 already built the fix (`pnpm exec holocron publish`), it hasn't been rolled out to any repo's actual `release.config.ts` yet. That rollout is `#680`'s migration-pass job, not new design work.
 - [x] `holocron`: Bucket B generators — `.editorconfig` already had one
       (`packages/astromech/src/templates/configs/editorconfig/`, pre-dating this
       workstream); added `tsconfig.json`'s (`astromech.createTsconfig()`).
@@ -353,7 +353,7 @@ check for whether the package's own local config file still existed
 alongside it. Once `clients` bumped its `@theholocron/cli` catalog pin,
 `http-client`'s local file went from "authoritative" to "silently ignored
 in favor of the shared bundle" with no visible warning — `testing.ts`
-started counting at 0% coverage and failed the 80% threshold, despite the
+started counting at 0% coverage and missed the 80% threshold, despite the
 file on disk being completely untouched.
 
 Fixed (not a new design, a correction to this one): `resolveToolConfig()`

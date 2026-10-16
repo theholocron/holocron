@@ -4,7 +4,7 @@
  * linting (holocron#789) — *obtaining* a `QualifiedConfig` differs by
  * caller (Sentinel isolates itself from any ambient config since it runs
  * standalone, away from a real repo checkout; `lintCommitMsgFile` below
- * just lets cosmiconfig discover the invoking repo's own
+ * lets cosmiconfig discover the invoking repo's own
  * `commitlint.config.*`, matching `commitlint --edit`'s own contract) —
  * but linting one message against a loaded config is identical either way.
  *

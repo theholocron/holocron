@@ -14,7 +14,7 @@
  * excluded them from alex), plus `pnpm-lock.yaml` — prettier-specific
  * (alex never reads a lockfile, but prettier would try to reformat it):
  * machine-written by pnpm's own writer, and not gitignored (lockfiles are
- * tracked), so prettier picks it up by default. Reformatting it just
+ * tracked), so prettier picks it up by default. Reformatting it
  * fights every subsequent `pnpm install` (this repo's own `.prettierignore`
  * already excludes it for that exact reason).
  */
