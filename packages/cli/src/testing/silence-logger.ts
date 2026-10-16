@@ -12,5 +12,5 @@ import { vi } from "vitest";
 
 vi.mock("@theholocron/observability/logger", async (importOriginal) => {
 	const { silenceLogger } = await import("@theholocron/observability/testing");
-	return silenceLogger(await importOriginal());
+	return silenceLogger(await importOriginal<typeof import("@theholocron/observability/logger")>());
 });
