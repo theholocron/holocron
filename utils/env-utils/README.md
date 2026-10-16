@@ -49,6 +49,23 @@ const env = createEnvLookup();
 const dsn = firstEnv(env, ["MYAPP_SENTRY_DSN", "SENTRY_DSN"], DEFAULT_DSN);
 ```
 
+`withEnvPrefix(env, prefix)` wraps an `EnvLookup` so `get("KEY")` tries `<prefix>_KEY` first, then `KEY`. The prefix is matched with exact case, so pass it in upper case. Name the variable once and let the namespaced override win:
+
+```typescript
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils";
+
+const env = withEnvPrefix(createEnvLookup(), "MYAPP");
+env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
+```
+
+### Importing without side effects
+
+The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"` and so loads `.env` into `process.env` the moment the package is imported. Libraries that only read variables should import from the `/lookup` subpath, which has `createEnvLookup`, `firstEnv` and `withEnvPrefix` and never touches dotenv:
+
+```typescript
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+```
+
 ### Logging
 
 Debug output (key-loaded counts, missing-key warnings, deprecation notices) goes to `console.info`/`console.warn` by default. Pass an `EnvLogger` (any object shaped `{ info(message, meta?), warn(message, meta?) }`) to route it elsewhere:

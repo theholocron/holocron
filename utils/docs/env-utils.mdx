@@ -51,6 +51,25 @@ const env = createEnvLookup();
 const dsn = firstEnv(env, ["MYAPP_SENTRY_DSN", "SENTRY_DSN"], DEFAULT_DSN);
 ```
 
+### `withEnvPrefix(env, prefix)`
+
+Wraps an `EnvLookup` so `get("KEY")` tries `<prefix>_KEY` first and falls back to `KEY`. Pass the prefix without a trailing underscore, in upper case: it is matched with exact case, because an `EnvLookup` only answers exact-name `get` calls (unlike `filterByNamespace`, which scans a whole env record). The result is itself an `EnvLookup`, so it works anywhere one is expected, including with `firstEnv`.
+
+```ts
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils";
+
+const env = withEnvPrefix(createEnvLookup(), "MYAPP");
+env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
+```
+
+### Importing without side effects
+
+The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"`, so importing the entry loads `.env` into `process.env`. Import from `@theholocron/env-utils/lookup` when you only need to read variables, for example in a library that must not touch its consumers' environment. It exports `createEnvLookup`, `EnvLookup`, `firstEnv` and `withEnvPrefix`, and never loads dotenv.
+
+```ts
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+```
+
 ## Typed env parsing
 
 ### `createEnvParser(options)`

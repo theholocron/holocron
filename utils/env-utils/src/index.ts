@@ -7,3 +7,4 @@ export { firstEnv } from "./first-env.js";
 export { DotenvLoader } from "./loader.js";
 export type { EnvLoader, EnvLogger, EnvObject, EnvParser, EnvParserOptions, Primitive } from "./types.js";
 export { filterByNamespace, mergeNamespaces } from "./utils/filter-by-namespace.js";
+export { withEnvPrefix } from "./with-env-prefix.js";

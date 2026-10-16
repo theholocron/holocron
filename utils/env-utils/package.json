@@ -24,6 +24,11 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
+    },
+    "./lookup": {
+      "types": "./dist/lookup.d.mts",
+      "import": "./dist/lookup.mjs",
+      "default": "./dist/lookup.mjs"
     }
   },
   "files": [
