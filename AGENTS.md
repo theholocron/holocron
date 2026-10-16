@@ -117,8 +117,8 @@ not object destructuring.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
 - **One function per file, types in `*.type.ts`.** In `packages/cli`, exported
   `interface` / `type` declarations live in `<name>.type.ts`, not in the
-  implementation file. When a function has an implementation, a type file and
-  a test, the three sit together in a folder named after it
+  implementation file. A module sits in a folder named after it, holding the
+  implementation, its test and, when it declares types, the type file
   (`commands/auth/auth.ts`, `auth.type.ts`, `auth.test.ts`). Types shared by
   several functions in one folder stay in that folder's own `*.type.ts`
   (`commands/publish/publish.type.ts`). Each such folder has an `index.ts`

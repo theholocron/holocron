@@ -33,7 +33,7 @@ vi.mock("@theholocron/observability/logger", async (importActual) => {
 	};
 });
 
-vi.mock("../../auth/keyring.js", () => ({ getToken: getTokenMock }));
+vi.mock("../../auth/keyring/keyring.js", () => ({ getToken: getTokenMock }));
 
 let seq = 0;
 function fakeResult(level?: string) {

@@ -33,7 +33,7 @@ const { errorSink, analyticsSink, SentrySinkMock, PostHogSinkMock, resolveDsnMoc
 
 vi.mock("@theholocron/observability/errors", () => ({ SentrySink: SentrySinkMock }));
 vi.mock("@theholocron/observability/analytics", () => ({ PostHogSink: PostHogSinkMock }));
-vi.mock("./resolve-telemetry.js", () => ({
+vi.mock("../resolve-telemetry/resolve-telemetry.js", () => ({
 	resolveDsn: resolveDsnMock,
 	resolvePostHogKey: resolveKeyMock,
 	resolvePostHogHost: vi.fn(() => "https://us.i.posthog.com"),
@@ -46,7 +46,7 @@ vi.mock("node:os", async (importOriginal) => {
 
 import { userInfo } from "node:os";
 
-import * as loggerMod from "./logger/index.js";
+import * as loggerMod from "../logger/index.js";
 import {
 	applyConfig,
 	captureException,

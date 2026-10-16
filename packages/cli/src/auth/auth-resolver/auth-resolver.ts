@@ -4,7 +4,7 @@
 import { AuthError, createResolveToken as _createResolveToken, type ResolveTokenInput } from "@theholocron/http-client";
 
 import { makeEnv } from "../../env.js";
-import { getToken as getKeyringToken } from "../keyring.js";
+import { getToken as getKeyringToken } from "../keyring/index.js";
 import type { FeatureResolverConfig, ResolveTokenConfig } from "./auth-resolver.type.js";
 
 export { AuthError, type ResolveTokenInput };

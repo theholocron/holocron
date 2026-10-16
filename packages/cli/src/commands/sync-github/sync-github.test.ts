@@ -13,7 +13,7 @@ import {
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import * as telemetry from "../../observability/telemetry.js";
+import * as telemetry from "../../observability/telemetry/index.js";
 import { gitBlobSha as _gitBlobSha, runSyncGithub } from "./sync-github.js";
 
 // Actions, reusable workflow definitions, and workflow-templates are only pushed

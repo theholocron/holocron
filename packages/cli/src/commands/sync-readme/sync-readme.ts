@@ -5,7 +5,7 @@ import { generateReadme, type PackagesRegistry } from "@theholocron/components-d
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { style } from "../../ui/style.js";
+import { style } from "../../ui/style/index.js";
 import type { PackageJson, RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.type.js";
 
 const MARKER_INSTALL_START = "<!-- holocron:installation -->";

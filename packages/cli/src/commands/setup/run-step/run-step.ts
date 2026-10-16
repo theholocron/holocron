@@ -74,7 +74,7 @@ export function classify403(err: ProviderApiError): FailReason {
 	return "permissions";
 }
 
-import { style } from "../../../ui/style.js";
+import { style } from "../../../ui/style/index.js";
 import type { FailReason, SetupStepResult } from "./run-step.type.js";
 
 export function formatStep(step: SetupStepResult): string {

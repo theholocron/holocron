@@ -1,4 +1,4 @@
-import { style } from "../style.js";
+import { style } from "../style/index.js";
 import type { RowStatus } from "./status-row.type.js";
 
 /** Right-pads `s` to `width` with spaces — never truncates. */

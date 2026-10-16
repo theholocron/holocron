@@ -15,10 +15,10 @@ import {
 	resolveAxiomFromEnv,
 } from "@theholocron/observability/logger";
 
-import { getToken } from "../../auth/keyring.js";
+import { getToken } from "../../auth/keyring/index.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 import { env, holocronEnv } from "../../env.js";
-import { style } from "../../ui/style.js";
+import { style } from "../../ui/style/index.js";
 import type { BuildCliLoggerOpts } from "./logger.type.js";
 
 /**

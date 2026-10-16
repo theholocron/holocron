@@ -23,13 +23,13 @@ import { pathToFileURL } from "node:url";
 import { withEnvPrefix } from "@theholocron/env-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { deleteToken, getToken, listStoredProviders, setToken } from "../../auth/keyring.js";
+import { deleteToken, getToken, listStoredProviders, setToken } from "../../auth/keyring/index.js";
 import { resolvePluginPackage } from "../../config/config/index.js";
 import { makeEnv } from "../../env.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { isModuleNotFound } from "../../plugin/workspace.js";
-import { withSpinner } from "../../ui/progress.js";
-import { style } from "../../ui/style.js";
+import { withSpinner } from "../../ui/progress/index.js";
+import { style } from "../../ui/style/index.js";
 import type {
 	AuthCommandStatus,
 	AuthImporter,

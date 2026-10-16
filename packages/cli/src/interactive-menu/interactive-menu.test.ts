@@ -20,7 +20,7 @@ const spawnMock = vi.fn();
 vi.mock("node:child_process", () => ({ spawn: (...args: unknown[]) => spawnMock(...args) }));
 
 const listStoredProvidersMock = vi.fn();
-vi.mock("../auth/keyring.js", () => ({ listStoredProviders: () => listStoredProvidersMock() }));
+vi.mock("../auth/keyring/keyring.js", () => ({ listStoredProviders: () => listStoredProvidersMock() }));
 
 const loadTasksConfigMock = vi.fn();
 vi.mock("@theholocron/astromech/config", () => ({

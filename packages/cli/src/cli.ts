@@ -47,11 +47,18 @@ import {
 	promptForPositionals,
 } from "./interactive-menu/index.js";
 import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./observability/logger/index.js";
-import { applyConfig, captureException, endSession, flush, init, startCommand } from "./observability/telemetry.js";
+import {
+	applyConfig,
+	captureException,
+	endSession,
+	flush,
+	init,
+	startCommand,
+} from "./observability/telemetry/index.js";
 import { CARDINALITY } from "./plugin/capabilities/index.js";
 import { viewJson } from "./ui/json-view/index.js";
-import { openPath } from "./ui/open-path.js";
-import { style } from "./ui/style.js";
+import { openPath } from "./ui/open-path/index.js";
+import { style } from "./ui/style/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

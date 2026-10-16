@@ -36,9 +36,9 @@ import {
 } from "../../plugin/capabilities/index.js";
 import { PluginLoader } from "../../plugin/loader/index.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
-import { withSpinner } from "../../ui/progress.js";
+import { withSpinner } from "../../ui/progress/index.js";
 import { pad, statusRow } from "../../ui/status-row/index.js";
-import { style } from "../../ui/style.js";
+import { style } from "../../ui/style/index.js";
 import type { DoctorReport, DoctorRow, DoctorStatus, RunDoctorInput } from "./doctor.type.js";
 
 export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {

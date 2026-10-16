@@ -66,8 +66,8 @@ import type {
 import { PluginLoader } from "../../plugin/loader/index.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import dcoConfig from "../../templates/dco.yml";
-import { withSpinner } from "../../ui/progress.js";
-import { style } from "../../ui/style.js";
+import { withSpinner } from "../../ui/progress/index.js";
+import { style } from "../../ui/style/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import {

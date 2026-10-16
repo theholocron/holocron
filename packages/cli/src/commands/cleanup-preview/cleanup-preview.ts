@@ -5,7 +5,7 @@ import { getLogger } from "../../observability/logger/index.js";
 import type { Deployment, DeploymentRecord, PullRequest, Source } from "../../plugin/capabilities/index.js";
 import { PluginLoader } from "../../plugin/loader/index.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
-import { style } from "../../ui/style.js";
+import { style } from "../../ui/style/index.js";
 import type { CleanupPreviewReport, RunCleanupPreviewInput } from "./cleanup-preview.type.js";
 
 function prStateLabel(pr: PullRequest): string {

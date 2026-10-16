@@ -1,10 +1,10 @@
 export * from "./auth/auth-resolver/index.js";
-export * from "./auth/keyring.js";
+export * from "./auth/keyring/index.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth/index.js";
 export * from "./commands/setup/derived-properties/index.js";
 export * from "./config/compose/index.js";
 export * from "./config/config/index.js";
-export * from "./config/define-config.js";
+export * from "./config/define-config/index.js";
 export * from "./config/load-config/index.js";
 export * from "./plugin/capabilities/index.js";
 export * from "./plugin/rest-client.js";
