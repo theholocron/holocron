@@ -45,22 +45,22 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/axiom-client": ^1.41.0
+    "@theholocron/axiom-client": ^1.42.0
     "@theholocron/checkly-client": ^1.42.0
-    "@theholocron/clerk-client": ^1.41.0
-    "@theholocron/cloudflare-client": ^1.41.0
-    "@theholocron/discord-client": ^1.41.0
-    "@theholocron/doppler-client": ^1.41.0
-    "@theholocron/github-client": ^1.41.0
+    "@theholocron/clerk-client": ^1.42.0
+    "@theholocron/cloudflare-client": ^1.42.0
+    "@theholocron/discord-client": ^1.42.0
+    "@theholocron/doppler-client": ^1.42.0
+    "@theholocron/github-client": ^1.42.0
     "@theholocron/http-client": ^1.42.0
-    "@theholocron/infisical-client": ^1.41.0
-    "@theholocron/neon-client": ^1.41.0
-    "@theholocron/netlify-client": ^1.41.0
-    "@theholocron/posthog-client": ^1.41.0
-    "@theholocron/postman-client": ^1.41.0
-    "@theholocron/sentry-client": ^1.41.0
-    "@theholocron/slack-client": ^1.41.0
-    "@theholocron/vercel-client": ^1.41.0
+    "@theholocron/infisical-client": ^1.42.0
+    "@theholocron/neon-client": ^1.42.0
+    "@theholocron/netlify-client": ^1.42.0
+    "@theholocron/posthog-client": ^1.42.0
+    "@theholocron/postman-client": ^1.42.0
+    "@theholocron/sentry-client": ^1.42.0
+    "@theholocron/slack-client": ^1.42.0
+    "@theholocron/vercel-client": ^1.42.0
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:
@@ -80,13 +80,13 @@ catalogs:
 
   # Shared utils — release in lockstep; bump all entries together.
   utils:
-    "@theholocron/env-utils": ^1.13.0
-    "@theholocron/fs-utils": ^1.13.0
-    "@theholocron/git-utils": ^1.12.0
-    "@theholocron/json-utils": ^1.13.0
-    "@theholocron/misc-utils": ^1.13.0
-    "@theholocron/object-utils": ^1.13.0
-    "@theholocron/pkg-utils": ^1.13.0
+    "@theholocron/env-utils": ^1.14.0
+    "@theholocron/fs-utils": ^1.14.0
+    "@theholocron/git-utils": ^1.14.0
+    "@theholocron/json-utils": ^1.14.0
+    "@theholocron/misc-utils": ^1.14.0
+    "@theholocron/object-utils": ^1.14.0
+    "@theholocron/pkg-utils": ^1.14.0
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError
