@@ -210,6 +210,22 @@ describe("runNew — happy path", () => {
 		}
 	});
 
+	it("reads and writes files through the default fs helpers when none are injected", async () => {
+		const { mkdirSync, writeFileSync } = await import("node:fs");
+		const root = await mkdtemp(join(tmpdir(), "holocron-new-default-fs-"));
+		try {
+			const repo = join(root, BASE.name);
+			await mkdir(join(repo, "src"), { recursive: true });
+			await writeRealFile(join(repo, "src", "file.txt"), "cli-template");
+			const { exec } = makeExec();
+			await runNew({ ...BASE, cwd: root, exec, print: () => {} });
+			expect(mkdirSync).toHaveBeenCalledWith(join(repo, "src"), { recursive: true });
+			expect(writeFileSync).toHaveBeenCalledWith(join(repo, "src", "file.txt"), "my-tool", "utf-8");
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it("calls gh repo create with correct args", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({

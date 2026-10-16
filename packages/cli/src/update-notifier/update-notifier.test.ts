@@ -9,6 +9,10 @@ describe("isUpdateAvailable", () => {
 		expect(isUpdateAvailable("1.0.0", "1.0.0")).toBe(false);
 	});
 
+	it("returns false when both prereleases compare equal segment by segment (alpha.1 vs alpha.01)", () => {
+		expect(isUpdateAvailable("2.0.0-alpha.1", "2.0.0-alpha.01")).toBe(false);
+	});
+
 	it("returns true when latest patch is higher", () => {
 		expect(isUpdateAvailable("1.0.0", "1.0.1")).toBe(true);
 	});

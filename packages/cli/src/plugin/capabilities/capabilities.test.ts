@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CARDINALITY, isMulti, REQUIRED_CAPABILITIES } from "./capabilities.js";
+import { CARDINALITY, isMulti, REQUIRED_CAPABILITIES, WebhookVerificationError } from "./capabilities.js";
 
 describe("CARDINALITY", () => {
 	it("marks single-provider capabilities as single", () => {
@@ -56,5 +56,14 @@ describe("isMulti", () => {
 		expect(isMulti("tooling")).toBe(true);
 		expect(isMulti("notifications")).toBe(true);
 		expect(isMulti("analytics")).toBe(true);
+	});
+});
+
+describe("WebhookVerificationError", () => {
+	it("is an Error that names itself, so callers can tell it apart from other failures", () => {
+		const err = new WebhookVerificationError("bad signature");
+		expect(err).toBeInstanceOf(Error);
+		expect(err.name).toBe("WebhookVerificationError");
+		expect(err.message).toBe("bad signature");
 	});
 });

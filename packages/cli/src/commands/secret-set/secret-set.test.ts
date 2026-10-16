@@ -289,3 +289,79 @@ describe("runSecretSet — scope + capability wiring", () => {
 		expect(report.message).toContain("403 forbidden");
 	});
 });
+
+describe("runSecretSet — default stdin reader and organization scope", () => {
+	function secretsLoader(calls: Array<{ scope: unknown; value: string }>) {
+		const loaded = loadedDemo();
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (scope: unknown, _n: string, value: string) => {
+						calls.push({ scope, value });
+					},
+				},
+			}),
+		});
+		return { loaded, loader };
+	}
+
+	afterEach(() => vi.restoreAllMocks());
+
+	it("reads the value from process.stdin when --from-stdin is set and no reader is injected", async () => {
+		vi.spyOn(process.stdin, "on").mockImplementation(((event: string, cb: (chunk?: Buffer) => void) => {
+			if (event === "data") cb(Buffer.from("npm_piped_xxx\n"));
+			if (event === "end") cb();
+			return process.stdin;
+		}) as never);
+		const calls: Array<{ scope: unknown; value: string }> = [];
+		const { loaded, loader } = secretsLoader(calls);
+
+		await runSecretSet({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			name: "NPM_TOKEN",
+			fromStdin: true,
+			loader,
+			print: () => {},
+		});
+		expect(calls[0]?.value).toBe("npm_piped_xxx");
+	});
+
+	it("rejects when reading process.stdin errors", async () => {
+		vi.spyOn(process.stdin, "on").mockImplementation(((event: string, cb: (err?: Error) => void) => {
+			if (event === "error") cb(new Error("stdin closed"));
+			return process.stdin;
+		}) as never);
+		const { loaded, loader } = secretsLoader([]);
+
+		const err = await runSecretSet({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			name: "NPM_TOKEN",
+			fromStdin: true,
+			loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).message).toBe("stdin closed");
+	});
+
+	it("describes an organization scope in its output", async () => {
+		const lines: string[] = [];
+		const calls: Array<{ scope: unknown; value: string }> = [];
+		const { loaded, loader } = secretsLoader(calls);
+
+		await runSecretSet({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			name: "NPM_TOKEN",
+			value: "npm_org_xxx",
+			scope: { kind: "organization", name: "acme" },
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(lines.some((l) => l.includes("scope=organization:acme"))).toBe(true);
+		expect(calls[0]?.scope).toEqual({ kind: "organization", name: "acme" });
+	});
+});
