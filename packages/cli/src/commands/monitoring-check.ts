@@ -38,6 +38,8 @@ export interface RunMonitoringCheckInput {
 	context: RuntimeContext;
 	/** URL to test every configured check against, instead of each check's own configured `url`. */
 	url: string;
+	/** Extra headers merged into every check's request — e.g. a Deployment Protection bypass header (holocron#1030). */
+	headers?: Record<string, string>;
 	loader?: PluginLoader;
 	print?: MonitoringCheckPrint;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
@@ -71,7 +73,7 @@ export async function runMonitoringCheck(input: RunMonitoringCheckInput): Promis
 
 	const checks: MonitoringCheckSummary[] = [];
 	for (const checkInput of monitoring.checks) {
-		const result = await run(checkInput, { url: input.url });
+		const result = await run(checkInput, { url: input.url, ...(input.headers ? { headers: input.headers } : {}) });
 		if (result.requestError) {
 			print(`  ✗ ${checkInput.name}  (request failed: ${result.requestError})`);
 			checks.push({ name: checkInput.name, passed: false, failures: [], requestError: result.requestError });
