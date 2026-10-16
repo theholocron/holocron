@@ -1,6 +1,6 @@
-import type { TasksConfig } from "../../config/schema.type.js";
-import type { Run } from "../../utils/default-run.type.js";
-import type { Tree } from "./workspace-packages.type.js";
+import type { TasksConfig } from "../../config/schema/index.js";
+import type { Run } from "../../utils/index.js";
+import type { Tree } from "./workspace-packages/index.js";
 
 export interface DeployOnReleaseOptions {
 	cwd: string;

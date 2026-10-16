@@ -30,14 +30,13 @@
 
 import { detectPackageManager, readPackageJsonSync } from "@theholocron/pkg-utils";
 
-import { KNOWN_TASKS, TASKS } from "../../registry.js";
-import type { JobDef, LocalRunner } from "../../registry.type.js";
-import { resolveLinters } from "./linters.js";
-import { resolveBin } from "./resolve-bin.js";
-import { resolveRunner } from "./resolve-runner.js";
-import { resolveToolConfig } from "./resolve-tool-config.js";
+import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "../../registry/index.js";
+import { resolveLinters } from "./linters/index.js";
+import { resolveBin } from "./resolve-bin/index.js";
+import { resolveRunner } from "./resolve-runner/index.js";
+import { resolveToolConfig } from "./resolve-tool-config/index.js";
 import type { RunTaskInput, RunTaskReport } from "./run.type.js";
-import { turboDefinesTask } from "./turbo-defines-task.js";
+import { turboDefinesTask } from "./turbo-defines-task/index.js";
 
 /** The per-command runner — `runTask` and `runLintAggregate` share it. */
 function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTaskReport {

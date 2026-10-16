@@ -4,8 +4,8 @@
  * can import it without pulling the task runner.
  */
 
-export { defineConfig } from "./define.js";
-export { loadTasksConfig } from "./load.js";
-export { mergeTasksLayers } from "./merge-tasks-layers.js";
-export { normalizeTaskEntry } from "./schema.js";
-export type { TaskConfigItem, TaskEntry, TasksConfig } from "./schema.type.js";
+export { defineConfig } from "./define/index.js";
+export { loadTasksConfig } from "./load/index.js";
+export { mergeTasksLayers } from "./merge-tasks-layers/index.js";
+export type { TaskConfigItem, TaskEntry, TasksConfig } from "./schema/index.js";
+export { normalizeTaskEntry } from "./schema/index.js";

@@ -29,22 +29,22 @@
  * A `delivery.deploy` task with `on: "release"` generates no CI workflow.
  */
 
-import { loadTasksConfig } from "../../config/load.js";
-import type { TasksConfig } from "../../config/schema.type.js";
+import { loadTasksConfig } from "../../config/load/index.js";
+import type { TasksConfig } from "../../config/schema/index.js";
 import { defaultListDirs, defaultReadJson, defaultRun, defaultSleep } from "../../utils/index.js";
 import { DEPLOY_TASK, MAIN_CHANNEL, WAIT_TIMEOUT_MS } from "./constants.js";
-import { defaultPaths } from "./default-paths.js";
+import { defaultPaths } from "./default-paths/index.js";
 import type {
 	DeployOnReleaseDeps,
 	DeployOnReleaseOptions,
 	DeployOnReleaseReport,
 	DeployOnReleaseResult,
 } from "./deploy-on-release.type.js";
-import { deployTargets } from "./deploy-targets.js";
-import { shouldDeploy } from "./should-deploy.js";
-import { waitForPublished } from "./wait-for-published.js";
-import { workspaceDependencies } from "./workspace-dependencies.js";
-import { workspacePackages } from "./workspace-packages.js";
+import { deployTargets } from "./deploy-targets/index.js";
+import { shouldDeploy } from "./should-deploy/index.js";
+import { waitForPublished } from "./wait-for-published/index.js";
+import { workspaceDependencies } from "./workspace-dependencies/index.js";
+import { workspacePackages } from "./workspace-packages/index.js";
 
 /**
  * Deploys every package whose manifest declares a release-time deploy that

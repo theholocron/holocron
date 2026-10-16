@@ -1,6 +1,6 @@
 import { stringifyJson } from "@theholocron/json-utils";
 
-import { createHeader } from "../../../utils/create-header.js";
+import { createHeader } from "../../../utils/index.js";
 import alexignore from "./alexignore";
 import alexrc from "./alexrc.json";
 
