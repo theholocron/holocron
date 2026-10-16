@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+
+import { CARDINALITY, isMulti, REQUIRED_CAPABILITIES, WebhookVerificationError } from "./capabilities.js";
+
+describe("CARDINALITY", () => {
+	it("marks single-provider capabilities as single", () => {
+		const singles = [
+			"source",
+			"ci",
+			"secrets",
+			"environments",
+			"issues",
+			"deployment",
+			"storage",
+			"auth",
+			"vault",
+			"dns",
+			"errors",
+			"logs",
+			"wiki",
+			"workers",
+		] as const;
+		for (const key of singles) {
+			expect(CARDINALITY[key]).toBe("single");
+		}
+	});
+
+	it("marks multi-provider capabilities as many", () => {
+		const multis = ["tooling", "notifications", "analytics"] as const;
+		for (const key of multis) {
+			expect(CARDINALITY[key]).toBe("many");
+		}
+	});
+
+	it("covers every capability key", () => {
+		expect(Object.keys(CARDINALITY)).toHaveLength(18);
+	});
+});
+
+describe("REQUIRED_CAPABILITIES", () => {
+	it("is empty — no capability is strictly required", () => {
+		expect(REQUIRED_CAPABILITIES).toHaveLength(0);
+	});
+});
+
+describe("isMulti", () => {
+	it("returns false for single-cardinality capabilities", () => {
+		expect(isMulti("source")).toBe(false);
+		expect(isMulti("vault")).toBe(false);
+		expect(isMulti("wiki")).toBe(false);
+		expect(isMulti("errors")).toBe(false);
+		expect(isMulti("logs")).toBe(false);
+	});
+
+	it("returns true for many-cardinality capabilities", () => {
+		expect(isMulti("tooling")).toBe(true);
+		expect(isMulti("notifications")).toBe(true);
+		expect(isMulti("analytics")).toBe(true);
+	});
+});
+
+describe("WebhookVerificationError", () => {
+	it("is an Error that names itself, so callers can tell it apart from other failures", () => {
+		const err = new WebhookVerificationError("bad signature");
+		expect(err).toBeInstanceOf(Error);
+		expect(err.name).toBe("WebhookVerificationError");
+		expect(err.message).toBe("bad signature");
+	});
+});

@@ -44,7 +44,7 @@
  * way `prettier.check()`/`alex.markdown()` do.
  */
 
-import { ALEX_IGNORE_PATTERNS } from "@theholocron/cli";
+import { ALEX_IGNORE_PATTERNS } from "@theholocron/astromech/lint";
 import type { GitHubClient } from "@theholocron/github-client";
 import MARKDOWNLINT_CONFIG from "@theholocron/markdownlint-config";
 import { applyFixes } from "markdownlint";

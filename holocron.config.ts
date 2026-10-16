@@ -103,7 +103,7 @@ export default defineConfig({
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
 		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
-		// DSN to repo secrets. Runtime error reporting (telemetry.ts) is independent
+		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: ["sentry", { org: "theholocron" }],
 		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets

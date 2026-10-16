@@ -31,6 +31,11 @@
       "types": "./dist/config/index.d.mts",
       "import": "./dist/config/index.mjs",
       "default": "./dist/config/index.mjs"
+    },
+    "./lint": {
+      "types": "./dist/lint/index.d.mts",
+      "import": "./dist/lint/index.mjs",
+      "default": "./dist/lint/index.mjs"
     }
   },
   "files": [
@@ -44,12 +49,17 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
+    "@commitlint/lint": "catalog:",
+    "@commitlint/load": "catalog:",
+    "@commitlint/types": "catalog:",
     "@theholocron/datapad": "workspace:*",
     "@theholocron/fs-utils": "catalog:utils",
     "@theholocron/json-utils": "catalog:utils",
     "@theholocron/pkg-utils": "catalog:utils"
   },
   "devDependencies": {
+    "@commitlint/config-conventional": "catalog:",
+    "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/rollup-plugin-transform-template": "workspace:*",
     "@theholocron/tsconfig": "catalog:configs",

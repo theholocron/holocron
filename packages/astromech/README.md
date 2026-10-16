@@ -230,3 +230,19 @@ Automated via semantic-release. See [CHANGELOG.md](../../CHANGELOG.md).
 ## Documentation
 
 <https://theholocron.github.io/holocron/>
+
+## Lint — `@theholocron/astromech/lint`
+
+The lint tools' own data and checks, in a subpath so the runner and the
+config surface don't pull `@commitlint/*` in:
+
+- `lintCommitMsgFile(file, cwd)` / `lintCommitMessage(message, config)` —
+  what `holocron run lint commit-msg <file>` (the `commit-msg` hook) runs.
+- `ALEX_CONFIG`, `ALEX_IGNORE_PATTERNS`, `PRETTIER_IGNORE_PATTERNS`,
+  `EDITORCONFIG_CHECKER_EXCLUDE` and `isEditorConfigExcluded(path)` — read
+  from the same templates `holocron repo setup` writes, so Sentinel's central
+  checks skip exactly what each repo's own CI skips.
+
+The root entry also exports the config-file generators `holocron repo setup`
+writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
+`createHeader`.

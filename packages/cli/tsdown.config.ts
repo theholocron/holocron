@@ -2,12 +2,13 @@ import { transformTemplate } from "@theholocron/rollup-plugin-transform-template
 import { defineConfig } from "tsdown";
 
 const sharedDeps = { neverBundle: [/^@theholocron\//] };
-const sharedPlugins = [transformTemplate({ dirs: ["/src/templates/configs/"] })];
+const sharedPlugins = [transformTemplate()];
 
 export default defineConfig([
 	{
 		// Library + capabilities: types generated here; dist is cleaned first.
-		entry: ["src/index.ts", "src/plugin/capabilities.ts"],
+		// Object form pins the output names: dist/index.mjs and dist/plugin/capabilities.mjs.
+		entry: { index: "src/index.ts", "plugin/capabilities": "src/plugin/capabilities/index.ts" },
 		format: "esm",
 		dts: true,
 		clean: true,

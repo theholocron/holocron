@@ -22,12 +22,17 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
-import type { Logger } from "@theholocron/observability/core";
 
-import { getLogger } from "../../logger.js";
-import type { CapabilityKey } from "../../plugin/capabilities.js";
-import { CARDINALITY } from "../../plugin/capabilities.js";
-import { deriveDefaults, type TemplateInputs } from "./template-inputs.js";
+import { getLogger } from "../../observability/logger/index.js";
+import { type CapabilityKey, CARDINALITY } from "../../plugin/index.js";
+import type {
+	PluginCreateReport,
+	PluginCreateWizardArgs,
+	PluginCreateWizardPrompts,
+	RunPluginCreateInput,
+	TemplateEntry,
+} from "./index.type.js";
+import { deriveDefaults, type TemplateInputs } from "./template-inputs/index.js";
 import { render as renderAuth } from "./templates/auth.js";
 import { render as renderAuthTest } from "./templates/auth-test.js";
 import { render as renderCapability } from "./templates/capability.js";
@@ -47,22 +52,6 @@ import { render as renderVerifyToken } from "./templates/verify-token.js";
 import { render as renderVerifyTokenTest } from "./templates/verify-token-test.js";
 import { render as renderVitestConfig } from "./templates/vitest-config.js";
 
-// ── Public API ──────────────────────────────────────────────────────
-
-// ── Wizard resolver ───────────────────────────────────────────────────
-
-export interface PluginCreateWizardArgs {
-	capability?: string;
-	vendorEnv?: string;
-	baseUrl?: string;
-}
-
-export interface PluginCreateWizardPrompts {
-	selectCapability: () => Promise<string>;
-	inputVendorEnv: () => Promise<string>;
-	inputBaseUrl: () => Promise<string>;
-}
-
 /**
  * Resolve `capability`, `vendorEnv`, and `baseUrl` from argv or by calling
  * the supplied prompt functions for any that are absent. Extracted from
@@ -78,54 +67,8 @@ export async function resolvePluginCreateInputs(
 	return { capability, vendorEnv, baseUrl };
 }
 
-// ── Run input / report ────────────────────────────────────────────────
-
-export interface RunPluginCreateInput {
-	/** Package slug, e.g., "clerk". Kebab-case. */
-	slug: string;
-	/** Vendor display name, e.g., "Clerk". PascalCase. */
-	vendorName: string;
-	/** Capability the plugin implements — one of the 14 known keys. */
-	capability: CapabilityKey;
-	/** Vendor-native env var, e.g., "CLERK_SECRET_KEY". */
-	vendorEnv: string;
-	/** REST base URL, e.g., "https://api.clerk.com/v1". */
-	baseUrl: string;
-	/** Optional token env override. Defaults to `HOLOCRON_<VENDOR>_TOKEN`. */
-	tokenEnv?: string;
-	/** Print steps without writing files. */
-	dryRun?: boolean;
-	/** Skip the post-scaffold pnpm install/typecheck/lint/test. */
-	noVerify?: boolean;
-	/** Working directory (workspace root). Defaults to `process.cwd()`. */
-	cwd?: string;
-	/** Injection point for tests / dry-run wiring. Defaults to fs write. */
-	writeFile?: (filepath: string, content: string) => void;
-	/** Print fn — captures orchestrator output. Defaults to console.log. */
-	print?: (line: string) => void;
-	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
-	logger?: Logger;
-	/** Injectable subprocess runner for testing. Defaults to execFileSync. */
-	exec?: (cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }) => void;
-}
-
-export interface PluginCreateReport {
-	status: "ok" | "fail";
-	packagePath: string;
-	filesWritten: string[];
-	message?: string;
-}
-
 export class PluginCreateError extends Error {
 	override name = "PluginCreateError";
-}
-
-// ── Templates registry ──────────────────────────────────────────────
-
-interface TemplateEntry {
-	/** Path relative to the plugin package root. */
-	path: string;
-	render: (inputs: TemplateInputs) => string;
 }
 
 const TEMPLATES: TemplateEntry[] = [

@@ -21,53 +21,52 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, extractPreviewConfig, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
+import {
+	createAlexignore,
+	createAlexrc,
+	createAstromech,
+	createCommitMsg,
+	createDependabot,
+	createDevmoji,
+	createEditorconfig,
+	createEditorconfigChecker,
+	createHeader,
+	createLabeler,
+	createPreCommit,
+	createPrepareCommitMsg,
+	createPrePush,
+	createYamlignore,
+	createYamllint,
+	extractPreviewConfig,
+	KNOWN_WORKFLOWS,
+	readWorkspacePackages,
+} from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { AuthError, createFeatureResolver } from "../../auth/auth-resolver.js";
-import { getLogger } from "../../logger.js";
-import type {
-	Auth,
-	Deployment,
-	Dns,
-	DnsRecordRequest,
-	Environments,
-	Errors,
-	Logs,
-	Monitoring,
-	Secrets,
-	Source,
-	Tooling,
-	Vault,
-	Wiki,
-	Workers,
-} from "../../plugin/capabilities.js";
-import { PluginLoader } from "../../plugin/loader.js";
-import { assertPluginsResolvable } from "../../plugin/workspace.js";
-import sentimentBotConfig from "../../templates/config.yml";
+import { AuthError, createFeatureResolver } from "../../auth/index.js";
+import { getLogger } from "../../observability/logger/index.js";
 import {
-	createIgnoreConfig as createAlexignore,
-	createRcConfig as createAlexrc,
-} from "../../templates/configs/alexjs/index.js";
-import { createConfig as createCommitMsg } from "../../templates/configs/commit-msg/index.js";
-import { createConfig as createDevmoji } from "../../templates/configs/devmoji/index.js";
-import { createConfig as createEditorconfig } from "../../templates/configs/editorconfig/index.js";
-import { createConfig as createEditorconfigChecker } from "../../templates/configs/editorconfig-checker/index.js";
-import { createConfig as createPreCommit } from "../../templates/configs/pre-commit/index.js";
-import { createConfig as createPrePush } from "../../templates/configs/pre-push/index.js";
-import { createConfig as createPrepareCommitMsg } from "../../templates/configs/prepare-commit-msg/index.js";
-import {
-	createConfig as createYamllint,
-	createIgnoreConfig as createYamlignore,
-} from "../../templates/configs/yamllint/index.js";
+	assertPluginsResolvable,
+	type Auth,
+	type Deployment,
+	type Dns,
+	type DnsRecordRequest,
+	type Environments,
+	type Errors,
+	type Logs,
+	type Monitoring,
+	PluginLoader,
+	type Secrets,
+	type Source,
+	type Tooling,
+	type Vault,
+	type Wiki,
+	type Workers,
+} from "../../plugin/index.js";
 import dcoConfig from "../../templates/dco.yml";
-import dependabotConfig from "../../templates/dependabot.yml";
-import labelerConfig from "../../templates/labeler.yml";
-import { withSpinner } from "../../ui/progress.js";
-import { style } from "../../ui/style.js";
-import { createHeader } from "../../utils/create-header.js";
+import { style, withSpinner } from "../../ui/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import {
@@ -76,13 +75,12 @@ import {
 	deriveProfile,
 	deriveStack,
 	readWorkspacePackageJsons,
-} from "./derived-properties.js";
+} from "./derived-properties/index.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
-import type { RunSetupInput, SetupReport, SetupStepResult } from "./run-step.js";
-import { formatStep, runStep } from "./run-step.js";
-import { AGENT_SYMLINK_PATHS, installSkills } from "./skills.js";
+import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
+import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/cli/src/commands/setup/run-setup.ts",
@@ -92,7 +90,7 @@ const { workflowHeader } = createHeader({
 // file — a separate binding so its header points contributors at the actual
 // template/generation logic (packages/astromech/src/thin-callers.ts), same as
 // the workflowHeader() calls further down that write genuinely cli-owned
-// templates (labeler.yml, dependabot.yml, dco.yml, config.yml).
+// templates (dco.yml).
 const { workflowHeader: thinCallerHeader } = createHeader({
 	source: "packages/astromech/src/thin-callers.ts",
 	tool: "holocron repo setup",
@@ -265,7 +263,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/labeler.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/labeler.yml", `${workflowHeader()}${labelerConfig}`);
+				await source.writeRepoFile(".github/labeler.yml", createLabeler());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
@@ -276,7 +274,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/dependabot.yml", `${workflowHeader()}${dependabotConfig}`);
+				await source.writeRepoFile(".github/dependabot.yml", createDependabot());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
@@ -291,12 +289,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: static config files ──────────────────────────────────────
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
-		steps.push(
-			await runStep("source", "write .github/config.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/config.yml", `${workflowHeader()}${sentimentBotConfig}`);
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .alexrc.json", dryRun, async () => {
 				await source.writeRepoFile(".alexrc.json", createAlexrc());

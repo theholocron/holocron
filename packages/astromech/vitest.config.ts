@@ -6,7 +6,7 @@ const base = library();
 
 export default defineConfig({
 	...base,
-	plugins: [...(base.plugins ?? []), transformTemplate()],
+	plugins: [...(base.plugins ?? []), transformTemplate({ dirs: ["/src/templates/configs/"] })],
 	test: {
 		...base.test,
 		coverage: {
@@ -16,6 +16,7 @@ export default defineConfig({
 				// Barrel re-exports — no executable logic; v8 tracks them at 0%.
 				"src/index.ts",
 				"src/config/index.ts",
+				"src/lint/index.ts",
 				// Raw workflow YAML strings — no executable logic.
 				"src/templates/**",
 			],

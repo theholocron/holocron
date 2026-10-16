@@ -4,11 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config.js";
-import type { LoadedConfig } from "../../config/load-config.js";
-import { ProviderApiError } from "../../plugin/capabilities.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/loader.js";
-import { WorkspaceContextError } from "../../plugin/workspace.js";
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader, ProviderApiError, WorkspaceContextError } from "../../plugin/index.js";
 import { runSetup } from "./run-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -4286,7 +4283,7 @@ describe("setup: engineering step", () => {
 		const step = report.steps.find((s) => s.capability === "engineering");
 		expect(step).toBeDefined();
 		expect(step?.status).toBe("ok");
-		await expect(stat(join(tmpDir, "docs/wiki/decisions/template.md"))).resolves.toBeDefined();
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/README.md"))).resolves.toBeDefined();
 	});
 
 	it("skips engineering step when docs is absent", async () => {

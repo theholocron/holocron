@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TemplateInputs } from "../template-inputs.js";
+import type { TemplateInputs } from "../template-inputs/index.js";
 import { render as renderAuth } from "./auth.js";
 import { render as renderAuthTest } from "./auth-test.js";
 import { render as renderCapability } from "./capability.js";

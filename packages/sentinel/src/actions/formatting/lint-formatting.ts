@@ -43,7 +43,7 @@
  * override before calling `check()`/`format()`.
  */
 
-import { PRETTIER_IGNORE_PATTERNS } from "@theholocron/cli";
+import { PRETTIER_IGNORE_PATTERNS } from "@theholocron/astromech/lint";
 import type { GitHubClient } from "@theholocron/github-client";
 import PRETTIER_CONFIG from "@theholocron/prettier-config";
 import { check, format, getFileInfo, type Options } from "prettier";

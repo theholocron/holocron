@@ -597,9 +597,9 @@ export default defineConfig({
 
 Each SDK sits behind an interface from `@theholocron/observability` —
 `ErrorSink` (Sentry) / `AnalyticsSink` (PostHog); the adapters, and the only
-`@sentry/node` / `posthog-node` imports, live in that package. `telemetry.ts`
+`@sentry/node` / `posthog-node` imports, live in that package. `observability/telemetry.ts`
 holds the orchestration + the Holocron-specific credential resolution
-(`telemetry/resolve.ts`). See the
+(`observability/resolve-telemetry.ts`). See the
 [telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
 
 ### ESLint bundle options
@@ -636,7 +636,7 @@ the local override exists to exempt.
 - `src/config/load-config.ts` — `loadConfig` — reads `holocron.config.*`
   (file discovery via [`@theholocron/datapad`](../datapad))
 - `src/define-config.ts` — `defineConfig` typed pass-through
-- `src/logger.ts` — CLI-side `@theholocron/observability/logger` wiring
+- `src/observability/logger.ts` — CLI-side `@theholocron/observability/logger` wiring
   (`buildCliLogger`, `resolveLogLevel`)
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
   capability config packages, builds the capability registry
