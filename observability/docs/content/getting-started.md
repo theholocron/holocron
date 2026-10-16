@@ -93,10 +93,23 @@ expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ target: "prod
 expect(errors.captureException).not.toHaveBeenCalled();
 ```
 
-`fakeAnalyticsSink()` mirrors the same shape for `AnalyticsSink`. Every fake's
+`fakeAnalyticsSink()` mirrors the same shape for `AnalyticsSink`. To stop code
+that builds a real Pino logger from flooding test output, mock `/logger` from a
+vitest setup file with `silenceLogger`:
+
+```ts
+import { vi } from "vitest";
+
+vi.mock("@theholocron/observability/logger", async (importOriginal) => {
+  const { silenceLogger } = await import("@theholocron/observability/testing");
+  return silenceLogger(await importOriginal());
+});
+```
+
+Every fake's
 methods are `vitest` spies; `fakeLogger().child(...)` returns the same fake so
 bindings applied via a child logger are still assertable on the parent. For a
-non-vitest context that just needs a working `Logger` with no output (an
+non-vitest context that needs a working `Logger` with no output (an
 example, a docs snippet, a non-test opt-out path), use `NoopLogger` from
 `/core` instead — it discards everything and needs no `vitest` peer.
 

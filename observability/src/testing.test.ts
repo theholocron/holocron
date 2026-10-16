@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { fakeAnalyticsSink, fakeErrorSink, fakeLogger } from "./testing.js";
+import { NoopLogger } from "./core.js";
+import { fakeAnalyticsSink, fakeErrorSink, fakeLogger, silenceLogger } from "./testing.js";
 
 describe("fakeLogger", () => {
 	it("every level method is a spy and records its call", () => {
@@ -63,5 +64,31 @@ describe("fakeAnalyticsSink", () => {
 		expect(analytics.identify).toHaveBeenCalledWith("abc123", { ci: true });
 		expect(analytics.capture).toHaveBeenCalledWith("abc123", "command_started", { command: "setup" });
 		await expect(analytics.shutdown()).resolves.toBeUndefined();
+	});
+});
+
+describe("silenceLogger", () => {
+	it("replaces createLogger with one returning a NoopLogger and a fixed run id", () => {
+		const silenced = silenceLogger({ createLogger: () => "real", other: 1 });
+		const result = silenced.createLogger();
+		expect(result.logger).toBeInstanceOf(NoopLogger);
+		expect(result.runId).toBe("00000000-0000-4000-8000-000000000000");
+	});
+
+	it("passes every other export through untouched", () => {
+		const other = () => "kept";
+		const silenced = silenceLogger({ createLogger: () => "real", other });
+		expect(silenced.other).toBe(other);
+	});
+
+	it("keeps returning a silent logger after vitest resets mocks", () => {
+		const silenced = silenceLogger({ createLogger: () => "real" });
+		vi.resetAllMocks();
+		expect(silenced.createLogger().logger).toBeInstanceOf(NoopLogger);
+	});
+
+	it("accepts the same optional config as the real createLogger", () => {
+		const silenced = silenceLogger({ createLogger: () => "real" });
+		expect(silenced.createLogger({ level: "debug" }).runId).toBe("00000000-0000-4000-8000-000000000000");
 	});
 });

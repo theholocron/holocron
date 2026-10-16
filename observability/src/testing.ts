@@ -4,6 +4,8 @@
  * that tests code which logs or reports telemetry wants these — hand-rolling
  * the same spy shape per repo is what this subpath replaces.
  *
+ * `silenceLogger` swaps `createLogger` for a `NoopLogger` in a vitest setup file.
+ *
  * `vitest` is an optional peer dependency: install it alongside this
  * subpath (any repo with a vitest suite already has it as a devDependency).
  * For a non-vitest context that needs a `Logger` but no output, use
@@ -16,3 +18,4 @@ export type { FakeErrorSink, FakeSpan } from "./testing/fake-error-sink.js";
 export { fakeErrorSink } from "./testing/fake-error-sink.js";
 export type { FakeLogger } from "./testing/fake-logger.js";
 export { fakeLogger } from "./testing/fake-logger.js";
+export { silenceLogger } from "./testing/silence-logger.js";
