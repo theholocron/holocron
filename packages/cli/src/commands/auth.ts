@@ -20,6 +20,7 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
+import { firstEnv } from "@theholocron/env-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -89,7 +90,7 @@ export function resolveAuthSetToken(input: {
 	const e = makeEnv(input.env);
 	const upper = input.provider.toUpperCase();
 	const holocronKey = `HOLOCRON_${upper}_TOKEN`;
-	return input.positional || e.get(holocronKey) || e.get(`${upper}_TOKEN`) || null;
+	return input.positional || firstEnv(e, [holocronKey, `${upper}_TOKEN`]) || null;
 }
 
 // ── Subcommands ──────────────────────────────────────────────────────

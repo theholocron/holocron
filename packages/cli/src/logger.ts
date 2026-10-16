@@ -6,6 +6,7 @@
  * parallel to `print` (user-facing UX output) and does not replace it.
  */
 
+import { firstEnv } from "@theholocron/env-utils";
 import type { Logger, LogLevel } from "@theholocron/observability/core";
 import type { AxiomTransportConfig } from "@theholocron/observability/logger";
 import { createLogger, isCI, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
@@ -115,13 +116,12 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts): AxiomTransportConfig | undef
 
 	const dataset = isGlobal
 		? GLOBAL_AXIOM_DATASET
-		: env.get("HOLOCRON_AXIOM_DATASET") || env.get("AXIOM_DATASET") || opts.configAxiomDataset;
+		: (firstEnv(env, ["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]) ?? opts.configAxiomDataset);
 	if (!dataset) return undefined;
 
 	const org = opts.org ?? env.get("HOLOCRON_ORG");
 	const token =
-		env.get("HOLOCRON_AXIOM_TOKEN") ||
-		env.get("AXIOM_TOKEN") ||
+		firstEnv(env, ["HOLOCRON_AXIOM_TOKEN", "AXIOM_TOKEN"]) ||
 		(org ? getToken(`axiom.${org}`) : null) ||
 		getToken("axiom");
 	return token ? { dataset, token } : undefined;

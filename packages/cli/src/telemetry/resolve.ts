@@ -15,6 +15,8 @@
  * model as ADR-0007 / ADR-0008.
  */
 
+import { firstEnv } from "@theholocron/env-utils";
+
 import { env } from "../env.js";
 
 /** Holocron's own Sentry project — the fallback when no env var points elsewhere. */
@@ -27,17 +29,15 @@ const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 
 /** Resolve the Sentry DSN. `""` → error telemetry disabled. */
 export function resolveDsn(): string {
-	return env.get("HOLOCRON_SENTRY_DSN") ?? env.get("SENTRY_DSN") ?? FALLBACK_DSN;
+	return firstEnv(env, ["HOLOCRON_SENTRY_DSN", "SENTRY_DSN"], FALLBACK_DSN);
 }
 
 /** Resolve the PostHog project key. `""` → usage analytics disabled. */
 export function resolvePostHogKey(): string {
-	return (
-		env.get("HOLOCRON_POSTHOG_PROJECT_TOKEN") ?? env.get("POSTHOG_PROJECT_TOKEN") ?? FALLBACK_POSTHOG_PROJECT_TOKEN
-	);
+	return firstEnv(env, ["HOLOCRON_POSTHOG_PROJECT_TOKEN", "POSTHOG_PROJECT_TOKEN"], FALLBACK_POSTHOG_PROJECT_TOKEN);
 }
 
 /** Resolve the PostHog ingest host. */
 export function resolvePostHogHost(): string {
-	return env.get("HOLOCRON_POSTHOG_HOST") ?? env.get("POSTHOG_HOST") ?? DEFAULT_POSTHOG_HOST;
+	return firstEnv(env, ["HOLOCRON_POSTHOG_HOST", "POSTHOG_HOST"], DEFAULT_POSTHOG_HOST);
 }
