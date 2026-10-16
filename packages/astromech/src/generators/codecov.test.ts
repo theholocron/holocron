@@ -175,6 +175,13 @@ describe("readWorkspacePackages", () => {
 		return root;
 	}
 
+	it("skips a package.json that has no name", () => {
+		const root = makeTempMonorepo([{ name: "@theholocron/named" }]);
+		mkdirSync(join(root, "packages", "anon"));
+		writeFileSync(join(root, "packages", "anon", "package.json"), JSON.stringify({ version: "1.0.0" }));
+		expect(readWorkspacePackages(root).map((p) => p.slug)).toEqual(["@theholocron-named"]);
+	});
+
 	it("discovers packages and skips no-manifest / invalid-JSON entries, sorted by slug", () => {
 		const root = makeTempMonorepo([
 			{ name: "@theholocron/b-pkg" },

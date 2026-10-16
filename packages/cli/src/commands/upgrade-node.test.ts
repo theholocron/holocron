@@ -1,6 +1,6 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -433,6 +433,24 @@ describe("defaultWalkFiles (real filesystem)", () => {
 			const report = await runUpgradeNode({ ...input, cwd: "/nonexistent-path-for-test", print: () => {} });
 			expect(report.status).toBe("fail");
 			expect(report.message).toMatch(/could not read/);
+		}
+	});
+
+	it("reports an extra path outside the directory as given", async () => {
+		const outside = await mkdtemp(join(tmpdir(), "holocron-upgrade-outside-"));
+		try {
+			await writeFile(join(outside, "Dockerfile"), "FROM node:20\n");
+			const extra = join("..", basename(outside), "Dockerfile");
+			const report = await runUpgradeNode({
+				to: 22,
+				from: 20,
+				cwd: tmpDir,
+				extra: [extra],
+				print: () => {},
+			});
+			expect(report.updated).toEqual([join(tmpDir, extra)]);
+		} finally {
+			await rm(outside, { recursive: true });
 		}
 	});
 
