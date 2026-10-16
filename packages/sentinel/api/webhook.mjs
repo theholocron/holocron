@@ -1,6 +1,6 @@
 /**
  * Vercel Function entry point — the thin adapter `handleWebhookRequest`
- * itself deliberately doesn't have (see `src/handler.ts`'s own
+ * itself deliberately doesn't have (see `src/handler/handler.ts`'s own
  * docstring: "a thin per-platform adapter... is the still-open
  * PR-stack item"). Vercel's Functions convention: any file under
  * `/api` deploys as a function; the default export's `fetch(request)`

@@ -35,7 +35,7 @@ and dashboards.
 `decodeContents`/`findPackageRoot`/`SENTINEL_APP_NAME` helpers).
 `src/actions/` — writes: calls a GitHub API that changes repo state
 (`syncPropertiesFromConfig`, `postCheckRun`). `handleWebhookRequest`
-(`src/handler.ts`) is the orchestration sitting above both — utils to
+(`src/handler/handler.ts`) is the orchestration sitting above both — utils to
 decide, actions to report, never the other way around.
 
 ## `validateConfig({ client, repo, ref? })`
@@ -158,7 +158,7 @@ nearest precedent, externally-posted checks with no
 `platform.*`-style intent-vocabulary token: that vocabulary (epic #672,
 D3) names `tasks:` entries backed by a reusable CI workflow, and this
 check has no workflow behind it at all. Built from `SENTINEL_APP_NAME`
-(`"Sentinel"`, exported from `src/utils/constants.ts`) rather than its
+(`"Sentinel"`, exported from `src/utils/constants/constants.ts`) rather than its
 own literal — the brand prefix any future action reads from one source
 instead of retyping.
 
@@ -173,7 +173,7 @@ reimplementation of the one stable rule — every commit needs a
 `Signed-off-by` trailer matching its own author or committer identity,
 case-insensitively; merge commits and bot-authored commits are exempt;
 runs alongside the existing probot/dcoapp install for now, not instead
-of it — see `src/actions/dco/lint-dco.ts`'s own module docstring),
+of it — see `src/actions/dco/lint-dco/lint-dco.ts`'s own module docstring),
 inclusive language (alex), formatting (prettier,
 holocron#819, purely advisory — no severity axis, 100% mechanical),
 editorconfig (the `editorconfig` package's own `matcher()` API resolving
@@ -182,7 +182,7 @@ the generated `.editorconfig-checker.json` — markdown, `LICENSE`, `public/` �
 via `@theholocron/astromech/lint`'s `isEditorConfigExcluded()`, holocron#927; unlike formatting,
 `conclusion: "failure"` on any violation — but also 100% mechanical, so
 the failure is meant to be transient, auto-fix-commit (below) resolving
-it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig.ts`'s
+it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig/lint-editorconfig.ts`'s
 own module docstring for why the value-checking/fixing layer on top is a
 deliberate, narrow exception to "never reimplement a tool's rules"),
 markdown lint (markdownlint, holocron#821), and static analysis (eslint,
@@ -200,7 +200,7 @@ v1.7.7 (`@tktco/node-actionlint`) and real ShellCheck 0.11
 `.github/workflows/*.{yml,yaml}` file. The `run:`-script ShellCheck pass
 the actionlint binary gets from a `shellcheck` on PATH is ported by hand
 from actionlint's own `rule_shellcheck.go`, since WASM can't spawn
-processes — see `src/actions/actionlint/lint-actionlint.ts`'s own module
+processes — see `src/actions/actionlint/lint-actionlint/lint-actionlint.ts`'s own module
 docstring), and repo validation (holocron#913 — two checks, gated on the
 repo's `holocron.config` declaring `platform.repoValidation`:
 `Platform / Repo Validation / Validate ADRs and specs` ports
@@ -237,7 +237,7 @@ installation-scoped `GitHubClient` built via `@theholocron/github-client`'s
 `createInstallationClient()` — the installation id always comes from the
 webhook payload itself (D10), so one App registration handles
 installations across any number of orgs/accounts unchanged. See
-`src/handler.ts`'s own module docstring for the full, current pipeline
+`src/handler/handler.ts`'s own module docstring for the full, current pipeline
 list — kept there as the one source of truth rather than duplicated here,
 since this section had already drifted out of sync with it once.
 
@@ -248,7 +248,7 @@ SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Two more
 Doppler-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
 feed the module-level logger directly, via `@theholocron/env-utils`
 (never bare `process.env`, this org's own convention) — see
-`src/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
+`src/handler/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
 acknowledged only — no per-installation action is defined in v1.
 `push.default-branch` and `pull_request.opened`/`synchronize` run the
 identical pipeline (D8, same engine — only the commit SHA the check run
@@ -359,7 +359,7 @@ deployed URL.
 
 `handleWebhookRequest` itself is deliberately deploy-target-agnostic
 (no `req`/`res` translation, no platform-specific wrapper — see
-`src/handler.ts`'s own docstring). `api/webhook.mjs` is the thin
+`src/handler/handler.ts`'s own docstring). `api/webhook.mjs` is the thin
 Vercel-specific adapter: Vercel's Functions convention deploys any
 file under `/api` as a Function, and its "fetch Web Standard" handler
 shape (`export default { fetch(request) {...} }`) is already
@@ -451,7 +451,7 @@ permissions for the `theholocron` installation. Auto-fix-commit is
 default-on (holocron#864) — opt out via `with: { autoFix: false }` on
 `sourceQuality.formatting`, merged to the repo's default branch or added
 fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
-`src/handler.ts`, and `validate-config.ts`'s module docstring for the
+`src/handler/handler.ts`, and `validate-config.ts`'s module docstring for the
 read-only boundary that makes a PR-branch read safe).
 
 ### Subscribe to events
