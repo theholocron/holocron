@@ -23,9 +23,8 @@ import path from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
-import { CARDINALITY } from "../../plugin/capabilities/capabilities.js";
-import type { CapabilityKey } from "../../plugin/capabilities/capabilities.type.js";
+import { getLogger } from "../../observability/logger/index.js";
+import { type CapabilityKey, CARDINALITY } from "../../plugin/capabilities/index.js";
 import type {
 	PluginCreateReport,
 	PluginCreateWizardArgs,
@@ -33,8 +32,7 @@ import type {
 	RunPluginCreateInput,
 	TemplateEntry,
 } from "./index.type.js";
-import { deriveDefaults } from "./template-inputs/template-inputs.js";
-import type { TemplateInputs } from "./template-inputs/template-inputs.type.js";
+import { deriveDefaults, type TemplateInputs } from "./template-inputs/index.js";
 import { render as renderAuth } from "./templates/auth.js";
 import { render as renderAuthTest } from "./templates/auth-test.js";
 import { render as renderCapability } from "./templates/capability.js";

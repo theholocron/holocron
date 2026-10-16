@@ -1,4 +1,4 @@
-import type { ResolvedHolocronConfig } from "../config/config.type.js";
+import type { ResolvedHolocronConfig } from "../config/index.js";
 
 export interface LoadedConfig {
 	resolved: ResolvedHolocronConfig;

@@ -27,7 +27,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { env } from "../../env.js";
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import type { HolocronConfigOptions, NewReport, RunNewInput } from "./new.type.js";
 
 export class NewError extends Error {

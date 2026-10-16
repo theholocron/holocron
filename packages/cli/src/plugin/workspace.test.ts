@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveConfig } from "../config/config/config.js";
-import { PluginLoader } from "./loader/loader.js";
-import type { PluginImporter } from "./loader/loader.type.js";
+import { resolveConfig } from "../config/config/index.js";
+import { type PluginImporter, PluginLoader } from "./loader/index.js";
 import { assertPluginsResolvable, isModuleNotFound, WorkspaceContextError } from "./workspace.js";
 
 function loaderWith(rawConfig: Parameters<typeof resolveConfig>[0], modules: Record<string, unknown>) {

@@ -17,27 +17,27 @@
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
-import { CARDINALITY } from "../../plugin/capabilities/capabilities.js";
-import type {
-	Auth,
-	Ci,
-	Deployment,
-	Dns,
-	Environments,
-	Errors,
-	Issues,
-	Logs,
-	Monitoring,
-	Secrets,
-	Source,
-	Vault,
-	Workers,
-} from "../../plugin/capabilities/capabilities.type.js";
-import { PluginLoader } from "../../plugin/loader/loader.js";
+import { getLogger } from "../../observability/logger/index.js";
+import {
+	type Auth,
+	CARDINALITY,
+	type Ci,
+	type Deployment,
+	type Dns,
+	type Environments,
+	type Errors,
+	type Issues,
+	type Logs,
+	type Monitoring,
+	type Secrets,
+	type Source,
+	type Vault,
+	type Workers,
+} from "../../plugin/capabilities/index.js";
+import { PluginLoader } from "../../plugin/loader/index.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import { withSpinner } from "../../ui/progress.js";
-import { pad, statusRow } from "../../ui/status-row/status-row.js";
+import { pad, statusRow } from "../../ui/status-row/index.js";
 import { style } from "../../ui/style.js";
 import type { DoctorReport, DoctorRow, DoctorStatus, RunDoctorInput } from "./doctor.type.js";
 

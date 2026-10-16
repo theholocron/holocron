@@ -9,10 +9,9 @@ import { findRootSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
-import type { Source } from "../../plugin/capabilities/capabilities.type.js";
-import { PluginLoader } from "../../plugin/loader/loader.js";
-import type { SetupReport, SetupStepResult } from "../setup/index.js";
+import { getLogger } from "../../observability/logger/index.js";
+import type { Source } from "../../plugin/capabilities/index.js";
+import { PluginLoader } from "../../plugin/loader/index.js";
 import {
 	CANONICAL_LABELS,
 	deriveCapabilities,
@@ -20,6 +19,8 @@ import {
 	deriveProfile,
 	deriveStack,
 	readWorkspacePackageJsons,
+	type SetupReport,
+	type SetupStepResult,
 	STALE_LABELS,
 } from "../setup/index.js";
 
@@ -30,8 +31,8 @@ const { workflowHeader } = createHeader({
 	source: "packages/astromech/src/thin-callers.ts",
 	tool: "holocron repo sync",
 });
-import { runSyncReadme } from "../sync-readme/sync-readme.js";
-import { runSyncWiki } from "../sync-wiki/sync-wiki.js";
+import { runSyncReadme } from "../sync-readme/index.js";
+import { runSyncWiki } from "../sync-wiki/index.js";
 import type { RunSyncInput, SyncStep } from "./sync.type.js";
 
 export const SYNC_STEPS = [

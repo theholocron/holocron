@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ConfigError } from "../config/config.js";
+import { ConfigError } from "../config/index.js";
 import { compose } from "./compose.js";
 import type { Capability } from "./compose.type.js";
 

@@ -33,15 +33,9 @@
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
-import type {
-	Deployment,
-	DeploymentTarget,
-	Secrets,
-	SecretScope,
-	Vault,
-} from "../../plugin/capabilities/capabilities.type.js";
-import { PluginLoader } from "../../plugin/loader/loader.js";
+import { getLogger } from "../../observability/logger/index.js";
+import type { Deployment, DeploymentTarget, Secrets, SecretScope, Vault } from "../../plugin/capabilities/index.js";
+import { PluginLoader } from "../../plugin/loader/index.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";

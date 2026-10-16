@@ -1,4 +1,4 @@
-import type { DocsConfig, HolocronConfig, RawProvidersConfig, RepoConfig } from "../config/config.type.js";
+import type { DocsConfig, HolocronConfig, RawProvidersConfig, RepoConfig } from "../config/index.js";
 
 export type TaskEntry = NonNullable<HolocronConfig["tasks"]>[number];
 

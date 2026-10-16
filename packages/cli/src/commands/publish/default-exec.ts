@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-import type { RunPublishInput } from "./run-publish/run-publish.type.js";
+import type { RunPublishInput } from "./run-publish/index.js";
 
 export const defaultExec: NonNullable<RunPublishInput["exec"]> = async (cmd, args, opts) => {
 	const result = spawnSync(cmd, args, {

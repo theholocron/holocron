@@ -36,7 +36,7 @@ import type {
 	MonitoringAssertion,
 	MonitoringAssertionComparison,
 	MonitoringCheckInput,
-} from "../capabilities/capabilities.type.js";
+} from "../capabilities/index.js";
 import type { CheckRunResult, RunCheckOptions } from "./run-check.type.js";
 
 export async function runCheckAgainstUrl(

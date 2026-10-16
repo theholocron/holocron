@@ -1,6 +1,6 @@
 import type { LogLevel } from "@theholocron/observability/core";
 
-import type { CapabilityKey, PagesConfig, TeamEntry } from "../../plugin/capabilities/capabilities.type.js";
+import type { CapabilityKey, PagesConfig, TeamEntry } from "../../plugin/capabilities/index.js";
 
 /** Structured-logging config. The Axiom **token** never lives here — only in
  *  env vars or the OS keyring — but the non-secret dataset name may. */

@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import { installSkills } from "../setup/index.js";
 import type {
 	ExecFn,

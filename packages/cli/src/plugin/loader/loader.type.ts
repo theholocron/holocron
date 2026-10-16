@@ -1,4 +1,4 @@
-import type { CapabilityKey } from "../capabilities/capabilities.type.js";
+import type { CapabilityKey } from "../capabilities/index.js";
 
 /**
  * Per-invocation context every plugin receives, on top of its own

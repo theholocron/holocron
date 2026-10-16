@@ -1,5 +1,4 @@
-import { ConfigError } from "../config/config.js";
-import type { DocsConfig, RawProvidersConfig, RepoConfig } from "../config/config.type.js";
+import { ConfigError, type DocsConfig, type RawProvidersConfig, type RepoConfig } from "../config/index.js";
 import type { Capability, ComposedPreset, TaskEntry } from "./compose.type.js";
 
 function taskName(e: TaskEntry): string {

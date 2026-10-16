@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { MonitoringCheckInput } from "../capabilities/capabilities.type.js";
+import type { MonitoringCheckInput } from "../capabilities/index.js";
 import { runCheckAgainstUrl } from "./run-check.js";
 
 function fakeFetch(status: number, body = "", headers: Record<string, string> = {}): typeof fetch {

@@ -4,7 +4,7 @@ import { join, relative, resolve } from "node:path";
 import { stringifyJson } from "@theholocron/json-utils";
 import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import type { NpmBumpVersionsReport, RunNpmBumpVersionsInput } from "./npm-bump-versions.type.js";
 
 export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promise<NpmBumpVersionsReport> {

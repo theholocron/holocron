@@ -46,7 +46,7 @@ vi.mock("node:os", async (importOriginal) => {
 
 import { userInfo } from "node:os";
 
-import * as loggerMod from "./logger/logger.js";
+import * as loggerMod from "./logger/index.js";
 import {
 	applyConfig,
 	captureException,

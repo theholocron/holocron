@@ -5,8 +5,8 @@ import { join, resolve } from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
-import { statusRow } from "../../ui/status-row/status-row.js";
+import { getLogger } from "../../observability/logger/index.js";
+import { statusRow } from "../../ui/status-row/index.js";
 import { style } from "../../ui/style.js";
 import type { CloneReport, CloneTarget, ExecFn, GitHubRepo, RunCloneInput, WholeOrgScope } from "./clone.type.js";
 

@@ -7,11 +7,16 @@
  */
 
 import type { Logger, LogLevel } from "@theholocron/observability/core";
-import type { AxiomTransportConfig } from "@theholocron/observability/logger";
-import { createLogger, isCI, parseLogLevel, resolveAxiomFromEnv } from "@theholocron/observability/logger";
+import {
+	type AxiomTransportConfig,
+	createLogger,
+	isCI,
+	parseLogLevel,
+	resolveAxiomFromEnv,
+} from "@theholocron/observability/logger";
 
 import { getToken } from "../../auth/keyring.js";
-import { contextForCommand } from "../../commands/contexts/contexts.js";
+import { contextForCommand } from "../../commands/contexts/index.js";
 import { env, holocronEnv } from "../../env.js";
 import { style } from "../../ui/style.js";
 import type { BuildCliLoggerOpts } from "./logger.type.js";

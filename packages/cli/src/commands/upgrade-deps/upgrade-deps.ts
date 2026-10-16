@@ -20,7 +20,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import type {
 	CatalogBump,
 	ConfigMigration,

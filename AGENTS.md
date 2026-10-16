@@ -121,8 +121,11 @@ not object destructuring.
   a test, the three sit together in a folder named after it
   (`commands/auth/auth.ts`, `auth.type.ts`, `auth.test.ts`). Types shared by
   several functions in one folder stay in that folder's own `*.type.ts`
-  (`commands/publish/publish.type.ts`). A folder's `index.ts` is only for a
-  public entry (`plugin/capabilities/index.ts`).
+  (`commands/publish/publish.type.ts`). Each such folder has an `index.ts`
+  barrel that re-exports the implementation and the types
+  (`export * from "./auth.js"; export type * from "./auth.type.js";`), and code
+  outside the folder imports through it (`../commands/auth/index.js`); files
+  inside the folder import their siblings directly.
 - **No third-party observability / telemetry SDK is imported in this repo.**
   `pino`, `@sentry/node`, `posthog-node` live behind
   `@theholocron/observability` — the `Logger` / `ErrorSink` / `AnalyticsSink`

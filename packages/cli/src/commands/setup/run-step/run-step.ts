@@ -1,7 +1,7 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../../observability/logger/logger.js";
-import { ProviderApiError } from "../../../plugin/capabilities/capabilities.js";
+import { getLogger } from "../../../observability/logger/index.js";
+import { ProviderApiError } from "../../../plugin/capabilities/index.js";
 
 export async function runStep(
 	capability: string,

@@ -20,9 +20,9 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { env } from "../../env.js";
-import { getLogger } from "../../observability/logger/logger.js";
-import type { Secrets, SecretScope } from "../../plugin/capabilities/capabilities.type.js";
-import { PluginLoader } from "../../plugin/loader/loader.js";
+import { getLogger } from "../../observability/logger/index.js";
+import type { Secrets, SecretScope } from "../../plugin/capabilities/index.js";
+import { PluginLoader } from "../../plugin/loader/index.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
 import type { RunSecretSetInput, SecretSetReport } from "./secret-set.type.js";
 

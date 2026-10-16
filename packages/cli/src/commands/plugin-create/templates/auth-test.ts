@@ -1,4 +1,4 @@
-import type { TemplateInputs } from "../template-inputs/template-inputs.type.js";
+import type { TemplateInputs } from "../template-inputs/index.js";
 
 export function render(inputs: TemplateInputs): string {
 	return `import { describe, expect, it } from "vitest";

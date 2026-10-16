@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { WorkspacePackage } from "@theholocron/astromech";
 import { readPackageJson } from "@theholocron/pkg-utils";
 
-import type { ResolvedProvidersConfig } from "../../../config/config/config.type.js";
+import type { ResolvedProvidersConfig } from "../../../config/config/index.js";
 import type { DeriveProfileInput, HolocronProfile, PackageJsonLike } from "./derived-properties.type.js";
 
 /**

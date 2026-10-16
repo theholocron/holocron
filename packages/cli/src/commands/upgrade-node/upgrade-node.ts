@@ -5,7 +5,7 @@ import { walkFilesSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import type { Pattern, RunUpgradeNodeInput, UpgradeNodeReport } from "./upgrade-node.type.js";
 
 // Directories to skip when walking the repo tree

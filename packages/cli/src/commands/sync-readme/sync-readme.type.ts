@@ -1,7 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/load-config/load-config.type.js";
-import type { RuntimeContext } from "../../plugin/loader/loader.type.js";
+import type { LoadedConfig } from "../../config/load-config/index.js";
+import type { RuntimeContext } from "../../plugin/loader/index.js";
 
 export interface PackageJson {
 	name?: string;

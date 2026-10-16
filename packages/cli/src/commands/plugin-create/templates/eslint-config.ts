@@ -1,4 +1,4 @@
-import type { TemplateInputs } from "../template-inputs/template-inputs.type.js";
+import type { TemplateInputs } from "../template-inputs/index.js";
 
 export function render(_inputs: TemplateInputs): string {
 	return `import type { Linter } from "eslint";

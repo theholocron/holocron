@@ -9,7 +9,7 @@ import {
 	makeTempMonorepoWithPlugins,
 	TEST_REPO,
 } from "../../testing/publish-fixtures.js";
-import { runPublish } from "./run-publish/run-publish.js";
+import { runPublish } from "./run-publish/index.js";
 
 // ── discoverPublicPackages ────────────────────────────────────────────────────
 

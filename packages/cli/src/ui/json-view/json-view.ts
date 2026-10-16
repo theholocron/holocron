@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-import { NonInteractiveError } from "../../interactive-menu/interactive-menu.js";
+import { NonInteractiveError } from "../../interactive-menu/index.js";
 import type { Container, Key, Line, Path, RenderOptions, ViewJsonOptions, ViewState } from "./json-view.type.js";
 
 function isContainer(value: unknown): value is Container {

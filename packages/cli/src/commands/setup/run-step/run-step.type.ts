@@ -1,6 +1,5 @@
-import type { LoadedConfig } from "../../../config/load-config/load-config.type.js";
-import { PluginLoader } from "../../../plugin/loader/loader.js";
-import type { RuntimeContext } from "../../../plugin/loader/loader.type.js";
+import type { LoadedConfig } from "../../../config/load-config/index.js";
+import { PluginLoader, type RuntimeContext } from "../../../plugin/loader/index.js";
 
 export type SetupPrintLine = (line: string) => void;
 

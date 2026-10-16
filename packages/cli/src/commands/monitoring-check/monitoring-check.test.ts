@@ -1,11 +1,10 @@
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config/config.js";
-import type { LoadedConfig } from "../../config/load-config/load-config.type.js";
-import type { MonitoringCheckInput } from "../../plugin/capabilities/capabilities.type.js";
-import { PluginLoader } from "../../plugin/loader/loader.js";
-import type { PluginImporter } from "../../plugin/loader/loader.type.js";
+import { resolveConfig } from "../../config/config/index.js";
+import type { LoadedConfig } from "../../config/load-config/index.js";
+import type { MonitoringCheckInput } from "../../plugin/capabilities/index.js";
+import { type PluginImporter, PluginLoader } from "../../plugin/loader/index.js";
 import { runMonitoringCheck } from "./monitoring-check.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {

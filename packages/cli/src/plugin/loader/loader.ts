@@ -32,14 +32,18 @@ import { pathToFileURL } from "node:url";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { resolvePluginPackage } from "../../config/config/config.js";
-import type {
-	CapabilityConfigPackage,
-	ResolvedHolocronConfig,
-	ResolvedTuple,
-} from "../../config/config/config.type.js";
-import { CARDINALITY } from "../capabilities/capabilities.js";
-import type { CapabilityKey, CardinalityFor, ResolvedCapability } from "../capabilities/capabilities.type.js";
+import {
+	type CapabilityConfigPackage,
+	type ResolvedHolocronConfig,
+	type ResolvedTuple,
+	resolvePluginPackage,
+} from "../../config/config/index.js";
+import {
+	type CapabilityKey,
+	CARDINALITY,
+	type CardinalityFor,
+	type ResolvedCapability,
+} from "../capabilities/index.js";
 import type { PluginImporter, PluginLoadFailure, PluginModule, RuntimeContext } from "./loader.type.js";
 
 export class LoaderError extends Error {

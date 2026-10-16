@@ -7,7 +7,7 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import { event as telemetryEvent } from "../../observability/telemetry.js";
 import type { FileBatch, RunSyncGithubInput, SyncGithubReport } from "./sync-github.type.js";
 

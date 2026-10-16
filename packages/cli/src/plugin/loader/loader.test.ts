@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config/config.js";
+import { resolveConfig } from "../../config/config/index.js";
 import { cardinalityOf, LoaderError, PluginLoader } from "./loader.js";
 import type { PluginImporter } from "./loader.type.js";
 

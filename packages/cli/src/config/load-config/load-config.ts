@@ -17,8 +17,7 @@ import { ConfigFileError, loadConfigFile, type Loaded } from "@theholocron/datap
 import { readGitRemote } from "@theholocron/git-utils";
 import { readPackageJson } from "@theholocron/pkg-utils";
 
-import { resolveConfig } from "../config/config.js";
-import type { HolocronConfig } from "../config/config.type.js";
+import { type HolocronConfig, resolveConfig } from "../config/index.js";
 import type { LoadedConfig } from "./load-config.type.js";
 
 export { ConfigFileError } from "@theholocron/datapad";

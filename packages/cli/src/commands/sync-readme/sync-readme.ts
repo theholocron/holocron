@@ -1,11 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { PackagesRegistry } from "@theholocron/components-doc/markdown";
-import { generateReadme } from "@theholocron/components-doc/markdown";
+import { generateReadme, type PackagesRegistry } from "@theholocron/components-doc/markdown";
 import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
 
-import { getLogger } from "../../observability/logger/logger.js";
+import { getLogger } from "../../observability/logger/index.js";
 import { style } from "../../ui/style.js";
 import type { PackageJson, RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.type.js";
 

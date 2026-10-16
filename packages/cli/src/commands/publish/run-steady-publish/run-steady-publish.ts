@@ -1,4 +1,4 @@
-import { getLogger } from "../../../observability/logger/logger.js";
+import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
 import type { PublishReport } from "../publish.type.js";

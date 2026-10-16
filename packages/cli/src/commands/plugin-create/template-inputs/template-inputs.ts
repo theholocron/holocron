@@ -7,7 +7,7 @@
  * normalization + defaulting from user input.
  */
 
-import type { CapabilityKey } from "../../../plugin/capabilities/capabilities.type.js";
+import type { CapabilityKey } from "../../../plugin/capabilities/index.js";
 import type { TemplateInputs } from "./template-inputs.type.js";
 
 /** Derive the standard defaults from a slug + vendor name. */

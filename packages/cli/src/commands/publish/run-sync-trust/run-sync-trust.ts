@@ -1,4 +1,4 @@
-import { getLogger } from "../../../observability/logger/logger.js";
+import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackages } from "../discover-public-packages.js";
 import { isEotp } from "../is-eotp.js";

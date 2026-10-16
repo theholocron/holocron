@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { COMMAND_CONTEXTS } from "../commands/contexts/contexts.js";
+import { COMMAND_CONTEXTS } from "../commands/contexts/index.js";
 
 const inputMock = vi.fn();
 const selectMock = vi.fn();

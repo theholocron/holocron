@@ -5,10 +5,9 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthError } from "../../auth/auth-resolver/auth-resolver.js";
-import { runSyncReadme } from "../sync-readme/sync-readme.js";
-import type { RunSyncReadmeInput, SyncReadmeReport } from "../sync-readme/sync-readme.type.js";
-import * as syncWikiModule from "../sync-wiki/sync-wiki.js";
+import { AuthError } from "../../auth/auth-resolver/index.js";
+import { runSyncReadme, type RunSyncReadmeInput, type SyncReadmeReport } from "../sync-readme/index.js";
+import * as syncWikiModule from "../sync-wiki/index.js";
 import { runSync } from "./sync.js";
 
 vi.mock("../sync-readme/sync-readme.js", () => ({
@@ -19,10 +18,9 @@ vi.mock("../sync-readme/sync-readme.js", () => ({
 }));
 import { fakeLogger } from "@theholocron/observability/testing";
 
-import { resolveConfig } from "../../config/config/config.js";
-import type { LoadedConfig } from "../../config/load-config/load-config.type.js";
-import { PluginLoader } from "../../plugin/loader/loader.js";
-import type { PluginImporter } from "../../plugin/loader/loader.type.js";
+import { resolveConfig } from "../../config/config/index.js";
+import type { LoadedConfig } from "../../config/load-config/index.js";
+import { type PluginImporter, PluginLoader } from "../../plugin/loader/index.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {

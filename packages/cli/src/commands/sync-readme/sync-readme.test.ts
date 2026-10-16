@@ -1,8 +1,8 @@
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config/config.js";
-import type { LoadedConfig } from "../../config/load-config/load-config.type.js";
+import { resolveConfig } from "../../config/config/index.js";
+import type { LoadedConfig } from "../../config/load-config/index.js";
 import { runSyncReadme } from "./sync-readme.js";
 
 function makeLoaded(overrides: Partial<Parameters<typeof resolveConfig>[0]> = {}): LoadedConfig {

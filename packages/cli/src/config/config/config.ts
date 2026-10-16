@@ -1,10 +1,11 @@
-import { CARDINALITY, REQUIRED_CAPABILITIES } from "../../plugin/capabilities/capabilities.js";
-import type {
-	CapabilityKey,
-	PagesConfig,
-	TeamEntry,
-	TeamPermission,
-} from "../../plugin/capabilities/capabilities.type.js";
+import {
+	type CapabilityKey,
+	CARDINALITY,
+	type PagesConfig,
+	REQUIRED_CAPABILITIES,
+	type TeamEntry,
+	type TeamPermission,
+} from "../../plugin/capabilities/index.js";
 import type {
 	HolocronConfig,
 	ProviderOptions,

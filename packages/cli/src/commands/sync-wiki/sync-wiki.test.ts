@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { resolveConfig } from "../../config/config/config.js";
-import type { LoadedConfig } from "../../config/load-config/load-config.type.js";
+import { resolveConfig } from "../../config/config/index.js";
+import type { LoadedConfig } from "../../config/load-config/index.js";
 import { buildNavbarLinks, discoverWikiRepos, mergeWikiConfig, runSyncWiki, validateWikiConfig } from "./sync-wiki.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
