@@ -47,8 +47,6 @@ import {
 	getEntry,
 	launchMenu,
 	listRunnableTasks,
-	NonInteractiveError,
-	promptForPositionals,
 } from "./interactive-menu/index.js";
 import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./observability/logger/index.js";
 import {
@@ -60,7 +58,7 @@ import {
 	startCommand,
 } from "./observability/telemetry/index.js";
 import { CARDINALITY } from "./plugin/index.js";
-import { openPath, style, viewJson } from "./ui/index.js";
+import { NonInteractiveError, openPath, promptForPositionals, style, viewJson } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

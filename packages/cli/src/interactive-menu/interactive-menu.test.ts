@@ -45,12 +45,9 @@ const {
 	launchMenu,
 	listRunnableTasks,
 	menuItems,
-	NonInteractiveError,
-	pickMenuItem,
-	promptForPositionals,
-	searchChoices,
 	shouldPreviewDryRun,
 } = await import("./interactive-menu.js");
+const { NonInteractiveError, promptForPositionals } = await import("../ui/index.js");
 
 function setTTY(value: boolean): void {
 	Object.defineProperty(process.stdin, "isTTY", { value, configurable: true });
@@ -175,75 +172,7 @@ describe("getEntry", () => {
 	});
 });
 
-describe("pickMenuItem", () => {
-	beforeEach(() => searchMock.mockReset());
-	const items = menuItems(COMMAND_REGISTRY);
-
-	it("resolves to the picked item's value", async () => {
-		searchMock.mockResolvedValue("group:repo");
-		expect(await pickMenuItem(items)).toBe("group:repo");
-	});
-
-	it("passes the message through to search()", async () => {
-		searchMock.mockResolvedValue("auth set");
-		await pickMenuItem(menuItems(COMMAND_REGISTRY, ["auth"]), "auth — choose a subcommand:");
-		expect(searchMock).toHaveBeenCalledWith(expect.objectContaining({ message: "auth — choose a subcommand:" }));
-	});
-
-	it("wires its `source` callback straight to searchChoices", async () => {
-		searchMock.mockResolvedValue("doctor");
-		await pickMenuItem(items);
-		const { source } = searchMock.mock.calls[0]![0] as {
-			source: (term: string | undefined) => ReturnType<typeof searchChoices>;
-		};
-		expect(source("doctor")).toEqual(searchChoices(items, "doctor"));
-	});
-});
-
-describe("searchChoices — the `source` callback pickMenuItem hands to search()", () => {
-	const items = menuItems(COMMAND_REGISTRY);
-
-	it("returns every item when the term is empty or undefined", () => {
-		expect(searchChoices(items, undefined)).toHaveLength(items.length);
-		expect(searchChoices(items, "")).toHaveLength(items.length);
-	});
-
-	it("filters out items that match neither the name nor the description", () => {
-		expect(searchChoices(items, "zzz-no-such-command")).toEqual([]);
-	});
-
-	it("matches the name case-insensitively", () => {
-		expect(searchChoices(items, "DOCTOR").map((c) => c.value)).toEqual(["doctor"]);
-	});
-
-	it("also matches on the description, not just the name", () => {
-		// "secrets sync"'s description mentions "deployment env vars"; it sits inside the `secrets` group.
-		expect(searchChoices(items, "deployment env vars").map((c) => c.value)).toContain("group:secrets");
-	});
-
-	it("finds a nested command from the top by name: `upgrade` surfaces the repo group", () => {
-		expect(searchChoices(items, "upgrade").map((c) => c.value)).toContain("group:repo");
-	});
-
-	it("ranks name matches above description-only matches (typing `repo` lands on the repo group, not clone)", () => {
-		const values = searchChoices(items, "repo").map((c) => c.value);
-		expect(values[0]).toBe("group:repo");
-		expect(values).toContain("clone");
-		expect(values.indexOf("group:repo")).toBeLessThan(values.indexOf("clone"));
-	});
-
-	it("ranks a name prefix above a name substring (`up` → upgrade before setup)", () => {
-		const values = searchChoices(menuItems(COMMAND_REGISTRY, ["repo"]), "up").map((c) => c.value);
-		expect(values).toEqual(["group:repo upgrade", "repo setup"]);
-	});
-
-	it("each choice carries name, value, and description", () => {
-		const [choice] = searchChoices(items, "doctor");
-		expect(choice).toEqual({ name: "doctor", value: "doctor", description: getEntry("doctor").description });
-	});
-});
-
-describe("promptForPositionals", () => {
+describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)", () => {
 	beforeEach(() => {
 		inputMock.mockReset();
 		selectMock.mockReset();
@@ -251,19 +180,6 @@ describe("promptForPositionals", () => {
 		setTTY(true);
 	});
 	afterEach(() => setTTY(false));
-
-	it("skips prompting when the value is already present in argv", async () => {
-		const values = await promptForPositionals(getEntry("deploy"), { branch: "main" });
-		expect(values).toEqual(["main"]);
-		expect(inputMock).not.toHaveBeenCalled();
-	});
-
-	it("prompts via input() for a missing input-type positional", async () => {
-		inputMock.mockResolvedValue("my-secret");
-		const values = await promptForPositionals(getEntry("secrets set"), {});
-		expect(values).toEqual(["my-secret"]);
-		expect(inputMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Secret name:" }));
-	});
 
 	it("forwards a positional's validate function to input()", async () => {
 		inputMock.mockResolvedValue("22");
@@ -282,24 +198,7 @@ describe("promptForPositionals", () => {
 		expect(call.validate("   ")).toMatch(/required/);
 	});
 
-	it("prompts via select() for a static-choices select-type positional", async () => {
-		selectMock.mockResolvedValue("github");
-		const entry = {
-			name: "x",
-			description: "d",
-			positionals: [
-				{ key: "provider", message: "Provider:", type: "select" as const, choices: ["github", "vercel"] },
-			],
-		};
-		const values = await promptForPositionals(entry, {});
-		expect(values).toEqual(["github"]);
-		expect(selectMock).toHaveBeenCalledWith({
-			message: "Provider:",
-			choices: [{ value: "github" }, { value: "vercel" }],
-		});
-	});
-
-	it("resolves a thunk `choices` at prompt time (auth unset/check — stored providers, no fixed set)", async () => {
+	it("resolves auth unset's thunk choices from the stored providers (no fixed provider set)", async () => {
 		listStoredProvidersMock.mockReturnValue(["cloudflare", "github"]);
 		selectMock.mockResolvedValue("cloudflare");
 		const values = await promptForPositionals(getEntry("auth unset"), {});
@@ -309,7 +208,7 @@ describe("promptForPositionals", () => {
 		);
 	});
 
-	it("throws NonInteractiveError instead of prompting when there are no stored providers to choose from", async () => {
+	it("throws NonInteractiveError for auth unset when there are no stored providers to choose from", async () => {
 		listStoredProvidersMock.mockReturnValue([]);
 		const err = await promptForPositionals(getEntry("auth unset"), {}).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(NonInteractiveError);
@@ -317,39 +216,12 @@ describe("promptForPositionals", () => {
 		expect(selectMock).not.toHaveBeenCalled();
 	});
 
-	it("falls back to an empty list for a select-type positional with no choices at all", async () => {
-		const entry = {
-			name: "x",
-			description: "d",
-			positionals: [{ key: "thing", message: "Thing:", type: "select" as const }],
-		};
-		const err = await promptForPositionals(entry, {}).catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(NonInteractiveError);
-		expect(selectMock).not.toHaveBeenCalled();
-	});
-
-	it("resolves multiple positionals in order", async () => {
+	it("resolves a multi-positional entry in order (new plugin)", async () => {
 		inputMock.mockResolvedValueOnce("my-slug").mockResolvedValueOnce("MyVendor");
-		const values = await promptForPositionals(getEntry("new plugin"), {});
-		expect(values).toEqual(["my-slug", "MyVendor"]);
+		expect(await promptForPositionals(getEntry("new plugin"), {})).toEqual(["my-slug", "MyVendor"]);
 	});
 
-	it("mixes present-in-argv and prompted positionals", async () => {
-		inputMock.mockResolvedValue("MyVendor");
-		const values = await promptForPositionals(getEntry("new plugin"), { slug: "my-slug" });
-		expect(values).toEqual(["my-slug", "MyVendor"]);
-		expect(inputMock).toHaveBeenCalledTimes(1);
-	});
-
-	it("throws NonInteractiveError on non-TTY stdin instead of prompting", async () => {
-		setTTY(false);
-		const err = await promptForPositionals(getEntry("deploy"), {}).catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(NonInteractiveError);
-		expect((err as Error).message).toMatch(/holocron deploy <branch>/);
-		expect(inputMock).not.toHaveBeenCalled();
-	});
-
-	it("uses `cliArg` (the kebab-case positional) in the non-TTY hint when it differs from the argv key", async () => {
+	it("uses `cliArg` in the non-TTY hint for package bump-versions", async () => {
 		setTTY(false);
 		const err = await promptForPositionals(getEntry("package bump-versions"), {}).catch((e: unknown) => e);
 		expect((err as Error).message).toMatch(/holocron package bump-versions <new-version>/);

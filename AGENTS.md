@@ -80,7 +80,11 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     not in the `commands/*.ts` modules. Every prompt path checks
     `process.stdin.isTTY` first and throws `NonInteractiveError` (also in
     `USER_FACING_ERRORS`) instead of relying on `@inquirer/prompts`'
-    `ExitPromptError` on a closed stdin.
+    `ExitPromptError` on a closed stdin. The generic prompting pieces
+    (`NonInteractiveError`, `pickMenuItem` / `searchChoices`,
+    `promptForPositionals`) live in `packages/cli/src/ui/`, which has no
+    knowledge of commands; the registry, argv building and the child-process
+    launch stay in `interactive-menu/`.
 
 ## Consuming packages from `theholocron/clients`
 

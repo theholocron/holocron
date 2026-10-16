@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NonInteractiveError } from "../../interactive-menu/index.js";
+import { NonInteractiveError } from "../non-interactive-error/index.js";
 import { expandToDepth, reduceKey, renderTree, viewJson } from "./json-view.js";
 import type { ViewState } from "./json-view.type.js";
 

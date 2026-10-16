@@ -35,18 +35,13 @@
 
 import { spawn } from "node:child_process";
 
-import { confirm, input, select } from "@inquirer/prompts";
-import search from "@inquirer/search";
+import { confirm } from "@inquirer/prompts";
 import { createAstromech } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 
 import { listStoredProviders } from "../auth/index.js";
-import type { CommandEntry, MenuItem } from "./interactive-menu.type.js";
-
-/** Raised when a prompt is needed but stdin isn't a TTY — see the module doc. */
-export class NonInteractiveError extends Error {
-	override name = "NonInteractiveError";
-}
+import { type MenuItem, NonInteractiveError, pickMenuItem, promptForPositionals } from "../ui/index.js";
+import type { CommandEntry } from "./interactive-menu.type.js";
 
 const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true : "enter a number");
 
@@ -388,86 +383,6 @@ export function menuItems(entries: CommandEntry[], path: string[] = []): MenuIte
 		}
 	}
 	return items;
-}
-
-/**
- * Searchable autocomplete over one menu level's `items`. `select()` would work too
- * at these list sizes, but `search()` degrades gracefully as the surface grows and
- * costs nothing when it doesn't. Resolves to the picked item's `value`.
- */
-export async function pickMenuItem(items: MenuItem[], message = "What would you like to do?"): Promise<string> {
-	return search<string>({
-		message,
-		source: (term) => searchChoices(items, term),
-	});
-}
-
-/**
- * `@inquirer/search`'s `source` callback, factored out as a plain function —
- * unit-testable directly instead of only through a mocked `search()` call.
- * Empty/undefined `term` (nothing typed yet) returns every item.
- */
-export function searchChoices(
-	items: MenuItem[],
-	term: string | undefined
-): Array<{ name: string; value: string; description: string }> {
-	const needle = term?.toLowerCase();
-	const pool = !needle ? items : items.filter((i) => i.haystack.includes(needle));
-	// Name-prefix hits, then other name hits, then description-only hits (stable, so
-	// registry order holds within each bucket): typing `repo` should land on the `repo`
-	// group, not on `clone` whose description says "repo", and `up` on `upgrade`, not `setup`.
-	const rank = (i: MenuItem): number => {
-		if (!needle) return 0;
-		const name = i.name.toLowerCase();
-		return name.startsWith(needle) ? 0 : name.includes(needle) ? 1 : 2;
-	};
-	return [...pool]
-		.sort((a, b) => rank(a) - rank(b))
-		.map((i) => ({ name: i.name, value: i.value, description: i.description }));
-}
-
-/**
- * For each of `entry.positionals` not already present in `argv`, prompts for
- * it (`input()` or `select()`, per the positional's `type`) and returns the
- * resolved values in positional order — ready to append to a spawned child's
- * argv, or to use directly in the current handler (Layer 3).
- *
- * Throws {@link NonInteractiveError} the first time it would need to prompt
- * on a non-TTY stdin, and again if a `select` positional's choices resolve
- * empty (nothing to pick from — e.g. `auth unset` with no stored tokens).
- */
-export async function promptForPositionals(entry: CommandEntry, argv: Record<string, unknown>): Promise<string[]> {
-	const out: string[] = [];
-	for (const positional of entry.positionals) {
-		const existing = argv[positional.key];
-		if (existing !== undefined && existing !== "") {
-			out.push(String(existing));
-			continue;
-		}
-		if (!process.stdin.isTTY) {
-			throw new NonInteractiveError(
-				`\`${entry.name}\` needs "${positional.key}" — pass it directly: holocron ${entry.name} <${positional.cliArg ?? positional.key}>`
-			);
-		}
-		if (positional.type === "select") {
-			const choices =
-				typeof positional.choices === "function" ? positional.choices() : (positional.choices ?? []);
-			if (choices.length === 0) {
-				throw new NonInteractiveError(
-					`\`${entry.name}\`: no ${positional.key} to choose from — nothing stored yet`
-				);
-			}
-			out.push(await select({ message: positional.message, choices: choices.map((c) => ({ value: c })) }));
-		} else {
-			out.push(
-				await input({
-					message: positional.message,
-					...(positional.validate ? { validate: positional.validate } : {}),
-				})
-			);
-		}
-	}
-	return out;
 }
 
 /**
