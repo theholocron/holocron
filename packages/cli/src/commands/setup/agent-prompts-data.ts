@@ -139,11 +139,14 @@ confidently, identify the missing information instead of inventing it.
 
 ## Format
 
-Use MADR format. Start from the \`adr\` skill's template (\`assets/template.md\`,
-in the skill's own directory) and number the record sequentially:
+Use MADR format. Start from the \`adr\` skill's template,
+\`.agents/skills/adr/assets/template.md\`, and number the record sequentially.
+\`holocron repo setup\` installs that skill when \`adr\` is listed under
+\`skills\` in \`holocron.config\` — if the file is missing, add it there and
+re-run setup.
 
 \`\`\`sh
-cp <path-to-adr-skill>/assets/template.md docs/wiki/decisions/000N-short-title.md
+cp .agents/skills/adr/assets/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
 Save to \`docs/wiki/decisions/NNNN-<slug>.md\`.
@@ -356,12 +359,13 @@ decision, the options that were considered, and the rationale for the choice mad
 
 ## Creating a new decision
 
-Start from the template that ships with the \`adr\` skill
-(\`assets/template.md\`, in the skill's own directory) and number the record
-sequentially:
+Start from the template that ships with the \`adr\` skill,
+\`.agents/skills/adr/assets/template.md\` (installed by \`holocron repo setup\`
+when \`adr\` is listed under \`skills\` in \`holocron.config\`), and number the
+record sequentially:
 
 \`\`\`sh
-cp <path-to-adr-skill>/assets/template.md docs/wiki/decisions/000N-short-title.md
+cp .agents/skills/adr/assets/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
 \`madr\` has no CLI — creation is manual. Frontmatter is validated in CI

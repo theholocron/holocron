@@ -1,4 +1,4 @@
-import type { PositionalPrompt } from "../ui/index.js";
+import type { PositionalPrompt } from "../../ui/index.js";
 
 export interface CommandEntry {
 	/** Full command name as typed at the CLI, e.g. `"auth set"`. */

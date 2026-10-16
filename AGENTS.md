@@ -72,7 +72,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
     `USER_FACING_ERRORS` catch) only when every provider errored with a
     missing-package error — the global-install case.
-  - **Interactive fallback** (`packages/cli/src/interactive-menu/interactive-menu.ts`, spec
+  - **Interactive fallback** (`packages/cli/src/interactive-menu/`, spec
     `tool-interactive-cli-menu`, #438). A command with a required positional
     gets a `COMMAND_REGISTRY` entry so a missing arg prompts instead of
     hard-failing; interactive prompting itself stays inline in `cli.ts`'s
@@ -83,8 +83,9 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `ExitPromptError` on a closed stdin. The generic prompting pieces
     (`NonInteractiveError`, `pickMenuItem` / `searchChoices`,
     `promptForPositionals`) live in `packages/cli/src/ui/`, which has no
-    knowledge of commands; the registry, argv building and the child-process
-    launch stay in `interactive-menu/`.
+    knowledge of commands; `interactive-menu/` holds the rest, one folder per
+    piece: `command-registry`, `menu-items`, `run-menu-entries`, `child-argv`
+    and `launch-menu`.
 
 ## Consuming packages from `theholocron/clients`
 
