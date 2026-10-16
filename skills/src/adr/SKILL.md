@@ -23,7 +23,7 @@ Include:
 - Consequences
 - Related issue, Discussion, and specifications
 
-Clearly distinguish between the final decision, supporting rationale, and
+Succinctly distinguish between the final decision, supporting rationale, and
 alternatives that were rejected.
 
 Do not introduce new architectural decisions.
@@ -33,10 +33,21 @@ confidently, identify the missing information instead of inventing it.
 
 ## Format
 
-Use MADR format. Copy the template and number sequentially:
+Use MADR format. Start from this skill's template, `assets/template.md`
+(next to this file). Number the record with the next unused number: list
+`docs/wiki/decisions/` first, and never reuse or overwrite an existing file.
 
 ```sh
-cp docs/decisions/template.md docs/decisions/000N-short-title.md
+mkdir -p docs/wiki/decisions
+dest=docs/wiki/decisions/000N-short-title.md
+test ! -e "$dest" && cp <path-to-this-skill>/assets/template.md "$dest" \
+  || echo "$dest already exists — pick the next unused number"
 ```
 
-`madr` has no CLI — creation is manual. Save to `docs/decisions/NNNN-<slug>.md`.
+The template starts as `status: proposed`. This skill records decisions that
+were already accepted, so set `status: accepted` in the frontmatter and in the
+`Status` line, and set `date` to the acceptance date from the Discussion. Use a
+different status only when the Discussion says the decision was rejected,
+deprecated or superseded.
+
+`madr` has no CLI — creation is manual. Save to `docs/wiki/decisions/NNNN-<slug>.md`.
