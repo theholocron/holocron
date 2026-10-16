@@ -1,3 +1,9 @@
+## [1.15.0](https://github.com/theholocron/utils/compare/v1.14.0...v1.15.0) (2026-10-16)
+
+### Features
+
+* ✨ add withEnvPrefix to env-utils for prefix-first lookups ([#319](https://github.com/theholocron/utils/issues/319)) ([0ed0322](https://github.com/theholocron/utils/commit/0ed03225f465b709bc077736ae944d479f7a7bde))
+
 ## [1.14.0](https://github.com/theholocron/utils/compare/v1.13.0...v1.14.0) (2026-10-16)
 
 ### Features
