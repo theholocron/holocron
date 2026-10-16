@@ -22,7 +22,7 @@ import { runMonitoringCheck } from "./commands/monitoring-check.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish.js";
+import { runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
 import { runSecretSet } from "./commands/secret-set.js";
 import { runSecretsSync } from "./commands/secrets-sync.js";
 import { runSetup } from "./commands/setup/index.js";

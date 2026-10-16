@@ -142,7 +142,7 @@ library({ browserPackages: [...] })`) rather than reaching zero
   the logic in one place (the CLI) instead of splitting it across `configs`
   and `holocron`.
 
-  `packages/cli/src/commands/publish.ts`'s `runPublish()` (today:
+  `packages/cli/src/commands/publish/run-publish.ts`'s `runPublish()` (today:
   `holocron publish --initial`, the one-shot Trusted Publisher bootstrap)
   already has exactly the monorepo-detection + `pnpm publish` invocation
   logic a steady-state `publishCmd` needs — `hasPackagesDir()` picks
@@ -247,7 +247,7 @@ away here; not a gap this workstream closes.
   - `commitlint-config`: fold `footer-max-line-length: [0]` in (universal
     need, not `holocron`-specific); normalize the `extends:` string form.
 - **`holocron` changes**:
-  - Extend `packages/cli/src/commands/publish.ts`'s `runPublish()` to a
+  - Extend `packages/cli/src/commands/publish/run-publish.ts`'s `runPublish()` to a
     non-`--initial`, steady-state mode: skip the bootstrap login/next-steps
     flow, default `--provenance` on, add `skipAlreadyPublished`. Reuses the
     existing `hasPackagesDir()`/`publishArgs` monorepo-detection logic
