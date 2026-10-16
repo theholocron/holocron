@@ -1,3 +1,9 @@
+## [1.12.0](https://github.com/theholocron/skills/compare/v1.11.0...v1.12.0) (2026-10-16)
+
+### Features
+
+* ✨ ship the ADR template as an asset of the adr skill ([#106](https://github.com/theholocron/skills/issues/106)) ([eaf4248](https://github.com/theholocron/skills/commit/eaf4248a10b0d401aa89545f9e8c19e23836d011))
+
 ## [1.11.0](https://github.com/theholocron/skills/compare/v1.10.1...v1.11.0) (2026-10-12)
 
 ### Features
