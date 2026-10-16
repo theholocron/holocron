@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/theholocron/observability/compare/v0.5.0...v0.6.0) (2026-10-16)
+
+### Features
+
+* ✨ add silenceLogger to /testing for muting createLogger in vitest setup files ([#23](https://github.com/theholocron/observability/issues/23)) ([97bff4b](https://github.com/theholocron/observability/commit/97bff4b8dbf0cb90d5e762b8ff657ad4c6f7d1aa))
+
 ## [0.5.0](https://github.com/theholocron/observability/compare/v0.4.0...v0.5.0) (2026-10-07)
 
 ### Features
