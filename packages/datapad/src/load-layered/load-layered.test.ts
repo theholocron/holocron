@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ConfigFileError } from "./errors.js";
-import type { Loaded } from "./load-config-file.type.js";
+import { ConfigFileError } from "../errors/index.js";
+import type { Loaded } from "../load-config-file/index.js";
 import { loadLayered } from "./load-layered.js";
 
 describe("loadLayered", () => {

@@ -1,8 +1,8 @@
 import { join } from "node:path";
 
-import { isFile } from "./is-file.js";
-import type { Loaded } from "./load-config-file.type.js";
-import { loadFile } from "./load-file.js";
+import { isFile } from "../is-file/index.js";
+import type { Loaded } from "../load-config-file/index.js";
+import { loadFile } from "../load-file/index.js";
 
 /**
  * Probe `dir` for `<name>.config.<ext>` in extension-priority order,
