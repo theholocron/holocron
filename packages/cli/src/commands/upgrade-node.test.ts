@@ -1,6 +1,6 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -421,11 +421,67 @@ describe("defaultWalkFiles (real filesystem)", () => {
 		await rm(tmpDir, { recursive: true });
 	});
 
-	it("gracefully skips an unreadable directory entry", async () => {
-		// A non-existent cwd causes readdirSync to throw inside the walker's
-		// catch block (line 122), which returns early with an empty result.
+	it("fails, saying why, when the directory to scan can't be read", async () => {
 		const report = await runUpgradeNode({ to: 22, from: 20, cwd: "/nonexistent-path-for-test", print: () => {} });
+		expect(report.status).toBe("fail");
 		expect(report.updated).toHaveLength(0);
+		expect(report.message).toMatch(/could not read \/nonexistent-path-for-test: .*ENOENT/);
+	});
+
+	it("reports an unreadable directory even when --from is omitted or equals --to", async () => {
+		for (const input of [{ to: 22 }, { to: 22, from: 22 }]) {
+			const report = await runUpgradeNode({ ...input, cwd: "/nonexistent-path-for-test", print: () => {} });
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/could not read/);
+		}
+	});
+
+	it("reports an extra path outside the directory as given", async () => {
+		const outside = await mkdtemp(join(tmpdir(), "holocron-upgrade-outside-"));
+		try {
+			await writeFile(join(outside, "Dockerfile"), "FROM node:20\n");
+			const extra = join("..", basename(outside), "Dockerfile");
+			const report = await runUpgradeNode({
+				to: 22,
+				from: 20,
+				cwd: tmpDir,
+				extra: [extra],
+				print: () => {},
+			});
+			expect(report.updated).toEqual([join(tmpDir, extra)]);
+		} finally {
+			await rm(outside, { recursive: true });
+		}
+	});
+
+	it("reports extra paths relative to a relative cwd", async () => {
+		await writeFile(join(tmpDir, "Dockerfile.custom"), "FROM node:20\n");
+		const previous = process.cwd();
+		process.chdir(tmpDir);
+		try {
+			const report = await runUpgradeNode({
+				to: 22,
+				from: 20,
+				cwd: ".",
+				extra: ["Dockerfile.custom"],
+				print: () => {},
+			});
+			expect(report.updated).toEqual(["Dockerfile.custom"]);
+		} finally {
+			process.chdir(previous);
+		}
+	});
+
+	it("reports paths relative to a relative cwd", async () => {
+		await writeFile(join(tmpDir, ".nvmrc"), "20");
+		const previous = process.cwd();
+		process.chdir(tmpDir);
+		try {
+			const report = await runUpgradeNode({ to: 22, from: 20, cwd: ".", print: () => {} });
+			expect(report.updated).toEqual([".nvmrc"]);
+		} finally {
+			process.chdir(previous);
+		}
 	});
 
 	it("finds files recursively and skips node_modules and .git", async () => {

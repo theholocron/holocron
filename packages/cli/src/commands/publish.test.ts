@@ -682,6 +682,32 @@ describe("runSteadyPublish", () => {
 	});
 
 	describe("skipAlreadyPublished", () => {
+		it("discovers public packages from disk, leaving out private ones", async () => {
+			const root = makeTempMonorepo([
+				{ name: "@theholocron/pub", version: "2.0.0" },
+				{ name: "@theholocron/hidden", private: true },
+			]);
+			const calls: Array<{ cmd: string; args: string[] }> = [];
+			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+				calls.push({ cmd, args: [...args] });
+				return cmd === "npm"
+					? { exitCode: 1, stdout: "", stderr: "404" }
+					: { exitCode: 0, stdout: "", stderr: "" };
+			};
+			const report = await runSteadyPublish({
+				cwd: root,
+				env: baseEnv,
+				skipAlreadyPublished: true,
+				print: () => {},
+				exec,
+			});
+			expect(report.status).toBe("ok");
+			expect(calls.filter((c) => c.cmd === "npm").map((c) => c.args[1])).toEqual(["@theholocron/pub@2.0.0"]);
+			expect(calls.find((c) => c.cmd === "pnpm")?.args).toEqual(
+				expect.arrayContaining(["./packages/@theholocron-pub"])
+			);
+		});
+
 		it("skips a package whose exact version is already on npm, publishes the rest", async () => {
 			const calls: Array<{ cmd: string; args: string[] }> = [];
 			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {

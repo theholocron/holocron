@@ -1,8 +1,9 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 import { stringifyJson } from "@theholocron/json-utils";
 import type { Logger } from "@theholocron/observability/core";
+import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 
 import { getLogger } from "../logger.js";
 
@@ -70,42 +71,41 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	// Root is always bumped — private means "don't publish", not "don't version".
 	bumpFile(join(cwd, "package.json"), "root");
 
-	function bumpWorkspaceDir(dirName: "packages" | "plugins"): void {
-		const dirPath = join(cwd, dirName);
-		let entries: string[];
-		try {
-			entries = listDir(dirPath);
-		} catch {
-			return;
-		}
-		for (const entry of entries) {
-			const pkgDir = join(dirPath, entry);
+	// Each root no-ops safely when its dir doesn't exist — a single-package
+	// repo with neither just gets the root bump.
+	const listed = new Set<string>();
+	const workspace = listWorkspacePackagesSync(cwd, {
+		readFile,
+		listDirs: (dir) => {
+			let names: string[];
 			try {
-				if (!isDir(pkgDir)) continue;
+				names = listDir(dir);
 			} catch {
-				continue;
+				throw Object.assign(new Error(`ENOENT: ${dir}`), { code: "ENOENT" });
 			}
-			const pkgFile = join(pkgDir, "package.json");
-			let pkg: Record<string, unknown>;
-			try {
-				pkg = JSON.parse(readFile(pkgFile)) as Record<string, unknown>;
-			} catch {
-				print(`  ! skipping ${dirName}/${entry}: no package.json or malformed JSON`);
-				continue;
-			}
-			if (pkg.private) {
-				print(`  · skipping private package ${dirName}/${entry}`);
-				skipped.push(`${dirName}/${entry}`);
-				continue;
-			}
-			bumpFile(pkgFile, `${dirName}/${entry}`);
-		}
+			return names.filter((name) => {
+				try {
+					if (!isDir(join(dir, name))) return false;
+				} catch {
+					return false;
+				}
+				listed.add(join(dir, name));
+				return true;
+			});
+		},
+	});
+	const found = new Set(workspace.map((entry) => entry.dir));
+	for (const dir of listed) {
+		if (!found.has(dir)) print(`  ! skipping ${relative(resolve(cwd), dir)}: no package.json or malformed JSON`);
 	}
-
-	// Each no-ops safely (via the listDir catch above) when its dir doesn't
-	// exist — a single-package repo with neither just gets the root bump.
-	bumpWorkspaceDir("packages");
-	bumpWorkspaceDir("plugins");
+	for (const { dir, relativeDir, manifest } of workspace) {
+		if (manifest.private) {
+			print(`  · skipping private package ${relativeDir}`);
+			skipped.push(relativeDir);
+			continue;
+		}
+		bumpFile(join(dir, "package.json"), relativeDir);
+	}
 
 	const status = dryRun ? "dry-run" : "ok";
 	logger.info({ version, status, bumped: bumped.length, skipped: skipped.length }, "npm bump-versions: done");

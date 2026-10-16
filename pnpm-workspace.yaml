@@ -80,13 +80,13 @@ catalogs:
 
   # Shared utils — release in lockstep; bump all entries together.
   utils:
-    "@theholocron/env-utils": ^1.12.0
-    "@theholocron/fs-utils": ^1.12.0
+    "@theholocron/env-utils": ^1.13.0
+    "@theholocron/fs-utils": ^1.13.0
     "@theholocron/git-utils": ^1.12.0
-    "@theholocron/json-utils": ^1.12.0
-    "@theholocron/misc-utils": ^1.12.0
-    "@theholocron/object-utils": ^1.12.0
-    "@theholocron/pkg-utils": ^1.12.0
+    "@theholocron/json-utils": ^1.13.0
+    "@theholocron/misc-utils": ^1.13.0
+    "@theholocron/object-utils": ^1.13.0
+    "@theholocron/pkg-utils": ^1.13.0
 
 # Force all packages (including external transitive deps) to use the
 # same http-client instance — prevents instanceof ProviderApiError

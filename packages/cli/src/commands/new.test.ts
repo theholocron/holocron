@@ -1,3 +1,7 @@
+import { mkdir, mkdtemp, rm, writeFile as writeRealFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({
@@ -188,6 +192,31 @@ describe("runNew — dry-run", () => {
 // ── runNew — happy path ───────────────────────────────────────────────
 
 describe("runNew — happy path", () => {
+	it("walks the cloned repo with the real file walker, skipping .git, node_modules, dist and .turbo", async () => {
+		const { readFileSync } = await import("node:fs");
+		const root = await mkdtemp(join(tmpdir(), "holocron-new-walk-"));
+		try {
+			const repo = join(root, BASE.name);
+			for (const dir of ["src", ".git", "node_modules/x", "dist", ".turbo"]) {
+				await mkdir(join(repo, dir), { recursive: true });
+				await writeRealFile(join(repo, dir, "file.txt"), "cli-template");
+			}
+			const { exec } = makeExec();
+			const { writeFile, written } = makeFs();
+			await runNew({
+				...BASE,
+				cwd: root,
+				exec,
+				readFile: (p) => readFileSync(p, "utf8"),
+				writeFile,
+				print: () => {},
+			});
+			expect(Object.keys(written).filter((p) => p.endsWith("file.txt"))).toEqual([join(repo, "src", "file.txt")]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it("calls gh repo create with correct args", async () => {
 		const { exec, calls } = makeExec();
 		const { readFile, writeFile, walkFiles } = makeFs({

@@ -30,11 +30,12 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { readGitRemote } from "@theholocron/git-utils";
 import type { Logger } from "@theholocron/observability/core";
+import { listWorkspacePackagesSync, type PackageJson, readPackageJsonSync } from "@theholocron/pkg-utils";
 
 import { type CliEnv, makeEnv } from "../env.js";
 import { getLogger } from "../logger.js";
@@ -553,17 +554,6 @@ function workspaceFilterArgs(cwd: string): string[] {
 	return filters.length > 0 ? ["-r", ...filters] : [];
 }
 
-/** Read a `package.json`'s `name`, when it's public (`!private && name`). */
-function publicPackageName(pkgPath: string): string | undefined {
-	if (!existsSync(pkgPath)) return undefined;
-	try {
-		const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { name?: string; private?: boolean };
-		return !pkg.private && pkg.name ? pkg.name : undefined;
-	} catch {
-		return undefined;
-	}
-}
-
 export interface PublicPackageEntry {
 	name: string;
 	version: string;
@@ -571,69 +561,38 @@ export interface PublicPackageEntry {
 	dir: string;
 }
 
-/** Read a `package.json`'s `name` + `version`, when it's public (`!private && name`). */
-function publicPackageEntry(pkgPath: string, dir: string): PublicPackageEntry | undefined {
-	if (!existsSync(pkgPath)) return undefined;
-	try {
-		const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
-			name?: string;
-			version?: string;
-			private?: boolean;
-		};
-		return !pkg.private && pkg.name && pkg.version ? { name: pkg.name, version: pkg.version, dir } : undefined;
-	} catch {
-		return undefined;
+/**
+ * Monorepo (`packages/` and/or `plugins/` present): every workspace under
+ * either. Single package (neither dir present): the root `package.json`.
+ * Callers keep the public ones.
+ */
+function discoverManifests(cwd: string): { manifest: PackageJson; dir: string }[] {
+	if (!hasPackagesDir(cwd) && !hasPluginsDir(cwd)) {
+		const manifest = readPackageJsonSync(cwd);
+		return manifest ? [{ manifest, dir: "." }] : [];
 	}
+	return listWorkspacePackagesSync(cwd).map(({ manifest, relativeDir }) => ({ manifest, dir: `./${relativeDir}` }));
 }
 
 /**
- * Same repo-layout detection as {@link discoverPublicPackages}, but carrying
- * version + a `pnpm --filter`-ready path — {@link runSteadyPublish}'s
- * `skipAlreadyPublished` mode needs both to check `npm view <pkg>@<version>`
- * and publish one workspace at a time.
+ * Every public package (`!private && name`) with its version and a
+ * `pnpm --filter`-ready path — {@link runSteadyPublish}'s `skipAlreadyPublished`
+ * mode needs both to check `npm view <pkg>@<version>` and publish one
+ * workspace at a time.
  */
 function discoverPublicPackageEntries(cwd: string): readonly PublicPackageEntry[] {
-	if (!hasPackagesDir(cwd) && !hasPluginsDir(cwd)) {
-		const entry = publicPackageEntry(join(cwd, "package.json"), ".");
-		return entry ? [entry] : [];
-	}
-	return [...entriesInWorkspaceDir(cwd, "packages"), ...entriesInWorkspaceDir(cwd, "plugins")];
+	return discoverManifests(cwd).flatMap(({ manifest, dir }) =>
+		!manifest.private && manifest.name && manifest.version
+			? [{ name: manifest.name, version: manifest.version, dir }]
+			: []
+	);
 }
 
-function entriesInWorkspaceDir(cwd: string, dirName: "packages" | "plugins"): PublicPackageEntry[] {
-	const dirPath = join(cwd, dirName);
-	if (!existsSync(dirPath)) return [];
-	return readdirSync(dirPath, { withFileTypes: true })
-		.filter((e) => e.isDirectory())
-		.flatMap((e) => {
-			const entry = publicPackageEntry(join(dirPath, e.name, "package.json"), `./${dirName}/${e.name}`);
-			return entry ? [entry] : [];
-		});
-}
-
-/**
- * Monorepo (`packages/` and/or `plugins/` present): every public workspace
- * under either. Single package (neither dir present): the root
- * `package.json`, if it's public — most `node-template` scaffolds are one
- * package at the repo root.
- */
+/** The names of {@link discoverPublicPackageEntries}' packages, without requiring a version. */
 function discoverPublicPackages(cwd: string): readonly string[] {
-	if (!hasPackagesDir(cwd) && !hasPluginsDir(cwd)) {
-		const name = publicPackageName(join(cwd, "package.json"));
-		return name ? [name] : [];
-	}
-	return [...namesInWorkspaceDir(cwd, "packages"), ...namesInWorkspaceDir(cwd, "plugins")];
-}
-
-function namesInWorkspaceDir(cwd: string, dirName: "packages" | "plugins"): string[] {
-	const dirPath = join(cwd, dirName);
-	if (!existsSync(dirPath)) return [];
-	return readdirSync(dirPath, { withFileTypes: true })
-		.filter((e) => e.isDirectory())
-		.flatMap((e) => {
-			const name = publicPackageName(join(dirPath, e.name, "package.json"));
-			return name ? [name] : [];
-		});
+	return discoverManifests(cwd).flatMap(({ manifest }) =>
+		!manifest.private && manifest.name ? [manifest.name] : []
+	);
 }
 
 async function resolveRepoName(cwd: string, exec: NonNullable<RunPublishInput["exec"]>): Promise<string> {
