@@ -1,4 +1,4 @@
-import type { CapabilityKey } from "../../../plugin/capabilities/index.js";
+import type { CapabilityKey } from "../../../plugin/index.js";
 
 export interface TemplateInputs {
 	/** Package slug — e.g., "clerk". Lowercase, kebab-case. */

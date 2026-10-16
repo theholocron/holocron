@@ -1,8 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import type { SecretScope } from "../../plugin/capabilities/index.js";
-import { PluginLoader, type RuntimeContext } from "../../plugin/loader/index.js";
+import type { LoadedConfig } from "../../config/index.js";
+import { PluginLoader, type RuntimeContext, type SecretScope } from "../../plugin/index.js";
 
 export type SecretSetPrint = (line: string) => void;
 

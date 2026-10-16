@@ -41,11 +41,8 @@ import { walkFilesSync } from "@theholocron/fs-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import type { Deployment, DeploymentRecord } from "../../plugin/capabilities/index.js";
-import { PluginLoader } from "../../plugin/loader/index.js";
-import { assertPluginsResolvable } from "../../plugin/workspace.js";
-import { withSpinner } from "../../ui/progress/index.js";
-import { style } from "../../ui/style/index.js";
+import { assertPluginsResolvable, type Deployment, type DeploymentRecord, PluginLoader } from "../../plugin/index.js";
+import { style, withSpinner } from "../../ui/index.js";
 import type {
 	DeployFilesReport,
 	DeployReport,

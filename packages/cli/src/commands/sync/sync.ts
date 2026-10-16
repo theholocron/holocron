@@ -10,8 +10,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import type { Source } from "../../plugin/capabilities/index.js";
-import { PluginLoader } from "../../plugin/loader/index.js";
+import { PluginLoader, type Source } from "../../plugin/index.js";
 import {
 	CANONICAL_LABELS,
 	deriveCapabilities,

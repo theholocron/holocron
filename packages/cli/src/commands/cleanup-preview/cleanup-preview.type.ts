@@ -1,8 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import type { PullRequest } from "../../plugin/capabilities/index.js";
-import { PluginLoader, type RuntimeContext } from "../../plugin/loader/index.js";
+import type { LoadedConfig } from "../../config/index.js";
+import { PluginLoader, type PullRequest, type RuntimeContext } from "../../plugin/index.js";
 
 export interface RunCleanupPreviewInput {
 	loaded: LoadedConfig;

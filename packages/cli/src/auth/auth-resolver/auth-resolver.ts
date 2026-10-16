@@ -3,7 +3,7 @@
 // don't need to pass it explicitly.
 import { AuthError, createResolveToken as _createResolveToken, type ResolveTokenInput } from "@theholocron/http-client";
 
-import { makeEnv } from "../../env.js";
+import { makeEnv } from "../../env/index.js";
 import { getToken as getKeyringToken } from "../keyring/index.js";
 import type { FeatureResolverConfig, ResolveTokenConfig } from "./auth-resolver.type.js";
 

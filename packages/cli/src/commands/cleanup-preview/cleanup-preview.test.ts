@@ -2,10 +2,8 @@ import { checkbox } from "@inquirer/prompts";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config/index.js";
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import type { DeploymentRecord, PullRequest } from "../../plugin/capabilities/index.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/loader/index.js";
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type DeploymentRecord, type PluginImporter, PluginLoader, type PullRequest } from "../../plugin/index.js";
 import { runCleanupPreview } from "./cleanup-preview.js";
 
 vi.mock("@inquirer/prompts", () => ({

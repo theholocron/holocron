@@ -1,8 +1,5 @@
 import { getLogger } from "../../observability/logger/index.js";
-import type { Monitoring } from "../../plugin/capabilities/index.js";
-import { PluginLoader } from "../../plugin/loader/index.js";
-import { runCheckAgainstUrl } from "../../plugin/run-check/index.js";
-import { assertPluginsResolvable } from "../../plugin/workspace.js";
+import { assertPluginsResolvable, type Monitoring, PluginLoader, runCheckAgainstUrl } from "../../plugin/index.js";
 import type {
 	MonitoringCheckReport,
 	MonitoringCheckSummary,

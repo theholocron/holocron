@@ -125,7 +125,13 @@ not object destructuring.
   barrel that re-exports the implementation and the types
   (`export * from "./auth.js"; export type * from "./auth.type.js";`), and code
   outside the folder imports through it (`../commands/auth/index.js`); files
-  inside the folder import their siblings directly.
+  inside the folder import their siblings directly. The `auth/`, `config/`,
+  `plugin/` and `ui/` directories also have a root `index.ts` that re-exports
+  their folders, and code outside the directory imports through it
+  (`../ui/index.js`). `config/` and `plugin/` import each other, so between
+  those two the specific folder barrels are used; going through both root
+  barrels would create a runtime import cycle. `src/index.ts` keeps its own
+  curated exports and does not use the root barrels.
 - **No third-party observability / telemetry SDK is imported in this repo.**
   `pino`, `@sentry/node`, `posthog-node` live behind
   `@theholocron/observability` — the `Logger` / `ErrorSink` / `AnalyticsSink`

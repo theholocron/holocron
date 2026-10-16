@@ -24,7 +24,7 @@ import path from "node:path";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { type CapabilityKey, CARDINALITY } from "../../plugin/capabilities/index.js";
+import { type CapabilityKey, CARDINALITY } from "../../plugin/index.js";
 import type {
 	PluginCreateReport,
 	PluginCreateWizardArgs,

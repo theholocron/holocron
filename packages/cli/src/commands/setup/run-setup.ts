@@ -45,29 +45,28 @@ import type { TasksConfig } from "@theholocron/astromech/config";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { AuthError, createFeatureResolver } from "../../auth/auth-resolver/index.js";
+import { AuthError, createFeatureResolver } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
-import type {
-	Auth,
-	Deployment,
-	Dns,
-	DnsRecordRequest,
-	Environments,
-	Errors,
-	Logs,
-	Monitoring,
-	Secrets,
-	Source,
-	Tooling,
-	Vault,
-	Wiki,
-	Workers,
-} from "../../plugin/capabilities/index.js";
-import { PluginLoader } from "../../plugin/loader/index.js";
-import { assertPluginsResolvable } from "../../plugin/workspace.js";
+import {
+	assertPluginsResolvable,
+	type Auth,
+	type Deployment,
+	type Dns,
+	type DnsRecordRequest,
+	type Environments,
+	type Errors,
+	type Logs,
+	type Monitoring,
+	PluginLoader,
+	type Secrets,
+	type Source,
+	type Tooling,
+	type Vault,
+	type Wiki,
+	type Workers,
+} from "../../plugin/index.js";
 import dcoConfig from "../../templates/dco.yml";
-import { withSpinner } from "../../ui/progress/index.js";
-import { style } from "../../ui/style/index.js";
+import { style, withSpinner } from "../../ui/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import {

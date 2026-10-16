@@ -28,8 +28,8 @@ import {
 } from "@theholocron/observability/core";
 import { SentrySink } from "@theholocron/observability/errors";
 
-import type { TelemetryConfig } from "../../config/config/index.js";
-import { env } from "../../env.js";
+import type { TelemetryConfig } from "../../config/index.js";
+import { env } from "../../env/index.js";
 import { getRunId } from "../logger/index.js";
 import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "../resolve-telemetry/index.js";
 

@@ -1,6 +1,6 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { CapabilityKey } from "../../plugin/capabilities/index.js";
+import type { CapabilityKey } from "../../plugin/index.js";
 import type { TemplateInputs } from "./template-inputs/index.js";
 
 // ── Public API ──────────────────────────────────────────────────────

@@ -5,9 +5,8 @@ import { join } from "node:path";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config/index.js";
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/loader/index.js";
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
 import { runDeploy, runDeployFromFiles, waitForDeployment } from "./deploy.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {

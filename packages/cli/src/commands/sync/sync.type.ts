@@ -1,7 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import { PluginLoader, type RuntimeContext } from "../../plugin/loader/index.js";
+import type { LoadedConfig } from "../../config/index.js";
+import { PluginLoader, type RuntimeContext } from "../../plugin/index.js";
 import type { SetupPrintLine } from "../setup/index.js";
 import type { SYNC_STEPS } from "./sync.js";
 

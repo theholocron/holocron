@@ -1,8 +1,13 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import type { DeployFunctionResult, DeploymentRecord, DeploymentTrigger } from "../../plugin/capabilities/index.js";
-import { PluginLoader, type RuntimeContext } from "../../plugin/loader/index.js";
+import type { LoadedConfig } from "../../config/index.js";
+import {
+	type DeployFunctionResult,
+	type DeploymentRecord,
+	type DeploymentTrigger,
+	PluginLoader,
+	type RuntimeContext,
+} from "../../plugin/index.js";
 
 export type DeployPrintLine = (line: string) => void;
 

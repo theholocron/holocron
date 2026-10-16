@@ -40,7 +40,7 @@ import search from "@inquirer/search";
 import { createAstromech } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 
-import { listStoredProviders } from "../auth/keyring/index.js";
+import { listStoredProviders } from "../auth/index.js";
 import type { CommandEntry, MenuItem } from "./interactive-menu.type.js";
 
 /** Raised when a prompt is needed but stdin isn't a TTY — see the module doc. */

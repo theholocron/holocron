@@ -19,6 +19,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import {
+	assertPluginsResolvable,
 	type Auth,
 	CARDINALITY,
 	type Ci,
@@ -29,16 +30,13 @@ import {
 	type Issues,
 	type Logs,
 	type Monitoring,
+	PluginLoader,
 	type Secrets,
 	type Source,
 	type Vault,
 	type Workers,
-} from "../../plugin/capabilities/index.js";
-import { PluginLoader } from "../../plugin/loader/index.js";
-import { assertPluginsResolvable } from "../../plugin/workspace.js";
-import { withSpinner } from "../../ui/progress/index.js";
-import { pad, statusRow } from "../../ui/status-row/index.js";
-import { style } from "../../ui/style/index.js";
+} from "../../plugin/index.js";
+import { pad, statusRow, style, withSpinner } from "../../ui/index.js";
 import type { DoctorReport, DoctorRow, DoctorStatus, RunDoctorInput } from "./doctor.type.js";
 
 export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {

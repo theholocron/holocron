@@ -10,8 +10,13 @@ import { LOG_LEVELS, type LogLevel } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { AuthError, createFeatureResolver } from "./auth/auth-resolver/index.js";
-import { type ParsedTokenArgs, parseTokenArgs, TokenParseError } from "./auth/token-args/index.js";
+import {
+	AuthError,
+	createFeatureResolver,
+	type ParsedTokenArgs,
+	parseTokenArgs,
+	TokenParseError,
+} from "./auth/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth/index.js";
 import { runCleanupPreview } from "./commands/cleanup-preview/index.js";
 import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone/index.js";
@@ -32,9 +37,8 @@ import { runSyncGithub } from "./commands/sync-github/index.js";
 import { runSyncReadme } from "./commands/sync-readme/index.js";
 import { runUpgradeDeps } from "./commands/upgrade-deps/index.js";
 import { runUpgradeNode } from "./commands/upgrade-node/index.js";
-import type { TelemetryConfig } from "./config/config/index.js";
-import { loadConfig } from "./config/load-config/index.js";
-import { env } from "./env.js";
+import { loadConfig, type TelemetryConfig } from "./config/index.js";
+import { env } from "./env/index.js";
 import {
 	buildRunMenuEntries,
 	COMMAND_REGISTRY,
@@ -55,10 +59,8 @@ import {
 	init,
 	startCommand,
 } from "./observability/telemetry/index.js";
-import { CARDINALITY } from "./plugin/capabilities/index.js";
-import { viewJson } from "./ui/json-view/index.js";
-import { openPath } from "./ui/open-path/index.js";
-import { style } from "./ui/style/index.js";
+import { CARDINALITY } from "./plugin/index.js";
+import { openPath, style, viewJson } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });

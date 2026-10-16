@@ -4,11 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveConfig } from "../../config/config/index.js";
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import { ProviderApiError } from "../../plugin/capabilities/index.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/loader/index.js";
-import { WorkspaceContextError } from "../../plugin/workspace.js";
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader, ProviderApiError, WorkspaceContextError } from "../../plugin/index.js";
 import { runSetup } from "./run-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {

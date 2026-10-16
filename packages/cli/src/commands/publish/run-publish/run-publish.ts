@@ -29,7 +29,7 @@
  * setup` for the ephemeral GH admin PAT.
  */
 
-import { makeEnv } from "../../../env.js";
+import { makeEnv } from "../../../env/index.js";
 import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { defaultLogin } from "../default-login.js";

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { firstEnv } from "@theholocron/env-utils";
 import { createRestClient } from "@theholocron/http-client";
 
-import { env } from "../../env.js";
+import { env } from "../../env/index.js";
 import type { SetupStepResult } from "../setup/index.js";
 import type { FileContents, OrgRepo, RunSyncWikiInput, WikiRepo } from "./sync-wiki.type.js";
 

@@ -15,7 +15,7 @@
  * model as ADR-0007 / ADR-0008.
  */
 
-import { holocronEnv } from "../../env.js";
+import { holocronEnv } from "../../env/index.js";
 
 /** Holocron's own Sentry project — the fallback when no env var points elsewhere. */
 const FALLBACK_DSN = "https://95cbb72ad5636c94e119a5405ee8f55f@o4508238154104832.ingest.us.sentry.io/4511810950791168";

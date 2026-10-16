@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import chalk from "chalk";
 
-import { env } from "../env.js";
+import { env } from "../env/index.js";
 import type { CacheEntry } from "./update-notifier.type.js";
 
 const PACKAGE_NAME = "@theholocron/cli";

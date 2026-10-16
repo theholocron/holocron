@@ -1,7 +1,7 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
-import { ProviderApiError } from "../../../plugin/capabilities/index.js";
+import { ProviderApiError } from "../../../plugin/index.js";
 
 export async function runStep(
 	capability: string,
@@ -74,7 +74,7 @@ export function classify403(err: ProviderApiError): FailReason {
 	return "permissions";
 }
 
-import { style } from "../../../ui/style/index.js";
+import { style } from "../../../ui/index.js";
 import type { FailReason, SetupStepResult } from "./run-step.type.js";
 
 export function formatStep(step: SetupStepResult): string {

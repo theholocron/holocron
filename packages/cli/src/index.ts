@@ -7,4 +7,4 @@ export * from "./config/config/index.js";
 export * from "./config/define-config/index.js";
 export * from "./config/load-config/index.js";
 export * from "./plugin/capabilities/index.js";
-export * from "./plugin/rest-client.js";
+export * from "./plugin/rest-client/index.js";

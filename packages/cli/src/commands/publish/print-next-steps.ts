@@ -1,4 +1,4 @@
-import type { CliEnv } from "../../env.js";
+import type { CliEnv } from "../../env/index.js";
 import type { PublishPrint } from "./publish.type.js";
 
 export function printNextSteps(

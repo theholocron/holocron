@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthError } from "../../auth/auth-resolver/index.js";
+import { AuthError } from "../../auth/index.js";
 import { runSyncReadme, type RunSyncReadmeInput, type SyncReadmeReport } from "../sync-readme/index.js";
 import * as syncWikiModule from "../sync-wiki/index.js";
 import { runSync } from "./sync.js";
@@ -18,9 +18,8 @@ vi.mock("../sync-readme/sync-readme.js", () => ({
 }));
 import { fakeLogger } from "@theholocron/observability/testing";
 
-import { resolveConfig } from "../../config/config/index.js";
-import type { LoadedConfig } from "../../config/load-config/index.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/loader/index.js";
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
