@@ -6,7 +6,7 @@ Runtime environment detection and typed env-var parsing.
 
 ```bash
 pnpm add @theholocron/env-utils
-pnpm add -D dotenv  # peer dependency, optional
+pnpm add dotenv  # optional peer: install it if you import the package entry; `/lookup` does not need it
 ```
 
 ## Usage
@@ -60,7 +60,7 @@ env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
 
 ### Importing without side effects
 
-The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"` and so loads `.env` into `process.env` the moment the package is imported. Libraries that only read variables should import from the `/lookup` subpath, which has `createEnvLookup`, `firstEnv` and `withEnvPrefix` and never touches dotenv:
+The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"` and so loads `.env` into `process.env` the moment the package is imported. Libraries that only read variables should import from the `/lookup` subpath, which has `createEnvLookup`, `firstEnv` and `withEnvPrefix` and never touches dotenv, so `dotenv` stays an optional peer dependency that you only install when you import the package entry:
 
 ```typescript
 import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
