@@ -1,3 +1,9 @@
+## [1.13.0](https://github.com/theholocron/utils/compare/v1.12.0...v1.13.0) (2026-10-16)
+
+### Features
+
+* ✨ add walkFilesSync to fs-utils and listWorkspacePackagesSync to pkg-utils ([#316](https://github.com/theholocron/utils/issues/316)) ([6b8ab89](https://github.com/theholocron/utils/commit/6b8ab895b4f31a69ae8706bd48b15a4ba3aade8b))
+
 ## [1.12.0](https://github.com/theholocron/utils/compare/v1.11.0...v1.12.0) (2026-10-15)
 
 ### Features
