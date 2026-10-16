@@ -26,6 +26,7 @@ import {
 	createAlexrc,
 	createAstromech,
 	createCommitMsg,
+	createDependabot,
 	createDevmoji,
 	createEditorconfig,
 	createEditorconfigChecker,
@@ -64,9 +65,7 @@ import type {
 } from "../../plugin/capabilities.js";
 import { PluginLoader } from "../../plugin/loader.js";
 import { assertPluginsResolvable } from "../../plugin/workspace.js";
-import sentimentBotConfig from "../../templates/config.yml";
 import dcoConfig from "../../templates/dco.yml";
-import dependabotConfig from "../../templates/dependabot.yml";
 import { withSpinner } from "../../ui/progress.js";
 import { style } from "../../ui/style.js";
 import { installAgentPrompts } from "./agent-prompts.js";
@@ -93,7 +92,7 @@ const { workflowHeader } = createHeader({
 // file — a separate binding so its header points contributors at the actual
 // template/generation logic (packages/astromech/src/thin-callers.ts), same as
 // the workflowHeader() calls further down that write genuinely cli-owned
-// templates (dependabot.yml, dco.yml, config.yml).
+// templates (dco.yml).
 const { workflowHeader: thinCallerHeader } = createHeader({
 	source: "packages/astromech/src/thin-callers.ts",
 	tool: "holocron repo setup",
@@ -277,7 +276,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/dependabot.yml", `${workflowHeader()}${dependabotConfig}`);
+				await source.writeRepoFile(".github/dependabot.yml", createDependabot());
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
@@ -292,12 +291,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// ── source: static config files ──────────────────────────────────────
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
-		steps.push(
-			await runStep("source", "write .github/config.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/config.yml", `${workflowHeader()}${sentimentBotConfig}`);
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
 		steps.push(
 			await runStep("source", "write .alexrc.json", dryRun, async () => {
 				await source.writeRepoFile(".alexrc.json", createAlexrc());
