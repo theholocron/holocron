@@ -7,8 +7,7 @@
  * of importing this logic directly.
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 
 import codecovTemplate from "../templates/codecov/codecov.yml";
 import type { WorkspacePackage } from "./codecov.type.js";
@@ -90,25 +89,6 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	);
 }
 
-function readWorkspaceDir(repoRoot: string, dir: "packages" | "apps" | "plugins"): WorkspacePackage[] {
-	const dirPath = join(repoRoot, dir);
-	if (!existsSync(dirPath)) return [];
-	const packages: WorkspacePackage[] = [];
-	for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
-		if (!entry.isDirectory()) continue;
-		try {
-			const raw = readFileSync(join(dirPath, entry.name, "package.json"), "utf8");
-			const pkg = JSON.parse(raw) as { name?: string };
-			if (typeof pkg.name === "string") {
-				packages.push({ slug: entry.name, name: pkg.name, dir });
-			}
-		} catch {
-			// no package.json or invalid JSON — skip
-		}
-	}
-	return packages;
-}
-
 /**
  * Every public `packages/*`, `apps/*`, and `plugins/*` workspace, sorted by
  * slug. `[]` when none of the three directories exist. Monorepo templates
@@ -118,11 +98,12 @@ function readWorkspaceDir(repoRoot: string, dir: "packages" | "apps" | "plugins"
  * component so `codecov/patch/<slug>` actually posts for each.
  */
 export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
-	const packages = [
-		...readWorkspaceDir(repoRoot, "packages"),
-		...readWorkspaceDir(repoRoot, "apps"),
-		...readWorkspaceDir(repoRoot, "plugins"),
-	];
+	const packages = listWorkspacePackagesSync(repoRoot, { roots: ["packages", "apps", "plugins"] }).flatMap(
+		({ name, relativeDir }) => {
+			const [dir, slug] = relativeDir.split("/") as [NonNullable<WorkspacePackage["dir"]>, string];
+			return name ? [{ slug, name, dir }] : [];
+		}
+	);
 	return packages.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 

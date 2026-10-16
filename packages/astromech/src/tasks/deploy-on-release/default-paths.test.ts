@@ -13,7 +13,7 @@ describe("defaultPaths", () => {
 	});
 
 	it("derives just the package's folder when it has no workspace dependencies", () => {
-		const cli = all[1] as (typeof all)[number];
+		const cli = all.find((p) => p.name === "@theholocron/cli") as (typeof all)[number];
 		expect(defaultPaths("/repo", cli, all)).toEqual(["packages/cli/"]);
 	});
 });

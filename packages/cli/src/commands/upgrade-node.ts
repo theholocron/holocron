@@ -1,13 +1,15 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { basename, join, resolve, sep } from "node:path";
 
+import { walkFilesSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
+import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../logger.js";
 
 // Directories to skip when walking the repo tree
-const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "coverage", "build", ".turbo", ".next", "out"]);
+const SKIP_DIRS = ["node_modules", ".git", "dist", "coverage", "build", ".turbo", ".next", "out"];
 
 // ── per-file-type patch functions ─────────────────────────────────────────────
 // Each returns the new file content, or null if nothing in that file changed.
@@ -116,31 +118,7 @@ function detectFrom(cwd: string, _readFile: (p: string) => string): number | nul
 
 // ── default file walker ───────────────────────────────────────────────────────
 
-function defaultWalkFiles(dir: string): string[] {
-	const results: string[] = [];
-
-	function walk(current: string): void {
-		let entries: string[];
-		try {
-			entries = readdirSync(current);
-		} catch {
-			return;
-		}
-		for (const entry of entries) {
-			if (SKIP_DIRS.has(entry)) continue;
-			const abs = join(current, entry);
-			try {
-				if (statSync(abs).isDirectory()) walk(abs);
-				else results.push(abs);
-			} catch {
-				/* skip unreadable */
-			}
-		}
-	}
-
-	walk(dir);
-	return results;
-}
+const defaultWalkFiles = (dir: string): string[] => walkFilesSync(dir, { skip: SKIP_DIRS });
 
 // ── public API ────────────────────────────────────────────────────────────────
 
@@ -186,6 +164,17 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 	const _writeFile = input.writeFile ?? ((p: string, c: string) => writeFileSync(p, c));
 	const _walkFiles = input.walkFiles ?? defaultWalkFiles;
 
+	// Read the tree first: an unreadable directory is its own failure, not
+	// "couldn't detect the version" or "already up to date".
+	let walked: string[];
+	try {
+		walked = _walkFiles(cwd);
+	} catch (error) {
+		const message = `could not read ${cwd}: ${errorMessage(error)}`;
+		logger.warn({ to, reason: message }, "upgrade node: done");
+		return { status: "fail", updated: [], message };
+	}
+
 	const from = input.from ?? detectFrom(cwd, _readFile);
 	if (from === null) {
 		const message = "could not detect current Node version — pass --from <major>";
@@ -204,7 +193,8 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 	print(`Upgrading Node.js ${from} → ${to}${dryRun ? " (dry-run)" : ""}…`);
 
 	const updated: string[] = [];
-	const scanned = [..._walkFiles(cwd), ...extra.map((p) => join(cwd, p))];
+	const root = resolve(cwd);
+	const scanned = [...walked, ...extra.map((p) => join(cwd, p))];
 
 	for (const abs of scanned) {
 		const name = basename(abs);
@@ -221,7 +211,8 @@ export async function runUpgradeNode(input: RunUpgradeNodeInput): Promise<Upgrad
 		const patched = pattern.patch(content, from, to);
 		if (patched === null) continue;
 
-		const rel = abs.startsWith(cwd + "/") ? abs.slice(cwd.length + 1) : abs;
+		const absolute = resolve(abs);
+		const rel = absolute.startsWith(root + sep) ? absolute.slice(root.length + 1) : abs;
 		if (!dryRun) _writeFile(abs, patched);
 		print(`  ${dryRun ? "~" : "✓"} ${rel}`);
 		logger.debug({ file: rel, from, to }, "upgrade node: patched");

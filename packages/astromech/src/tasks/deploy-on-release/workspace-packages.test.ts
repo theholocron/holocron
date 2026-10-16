@@ -6,12 +6,12 @@ import { workspacePackages } from "./workspace-packages.js";
 describe("workspacePackages", () => {
 	const all = workspacePackages("/repo", TREE);
 
-	it("lists the packages with a readable named package.json, skipping folders without one", () => {
+	it("lists the packages with a readable named package.json, skipping folders without one, sorted by folder", () => {
 		expect(all.map((p) => p.name)).toEqual([
 			"@theholocron/app",
+			"@theholocron/astromech",
 			"@theholocron/cli",
 			"@theholocron/datapad",
-			"@theholocron/astromech",
 		]);
 	});
 
