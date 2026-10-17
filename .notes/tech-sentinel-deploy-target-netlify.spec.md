@@ -21,7 +21,7 @@ exact `teamId` in `packages/sentinel/holocron.config.ts`'s
 `providers.deployment`) hit 75% of the Hobby plan's included Fluid Active
 CPU (4 hours/month). The driver: Sentinel's webhook handler runs real,
 in-process linting — `ESLint.Linter.verify()`
-(`packages/sentinel/src/actions/static-analysis/lint-static-analysis.ts`),
+(`packages/sentinel/src/actions/static-analysis/lint-static-analysis/lint-static-analysis.ts`),
 plus markdown-lint, formatting, actionlint, DCO, and the other check
 actions — on every PR/push across every repo in the org. That's genuine
 CPU-bound work (unlike a pure I/O-bound webhook relay), and it scales with

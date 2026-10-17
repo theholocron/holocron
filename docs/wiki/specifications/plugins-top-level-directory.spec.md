@@ -90,14 +90,14 @@ itself. Update its doc comment (line ~21) referencing the old path.
 
 mirrors of the same checks, independently hardcoded
 
-- `src/actions/repo-validation/validate-docs-presence.ts` —
+- `src/actions/repo-validation/validate-docs-presence/validate-docs-presence.ts` —
   `NEW_PACKAGE_ENTRY = /^packages\/([^/]+)\/src\/index\.ts$/` needs a
   `plugins` alternation, or it silently stops flagging missing docs for
   _new_ plugin packages (advisory-only check, so not a hard failure, but a
   real regression in what it catches).
-- `src/actions/repo-validation/validate-registry.ts` — same shape,
+- `src/actions/repo-validation/validate-registry/validate-registry.ts` — same shape,
   `PACKAGE_MANIFEST = /^packages\/[^/]+\/package\.json$/`.
-- `src/actions/capability-compliance/sync-properties.ts` —
+- `src/actions/capability-compliance/sync-properties/sync-properties.ts` —
   `WORKSPACE_PACKAGE_JSON = /^(?:packages|apps)\/[^/]+\/package\.json$/`
   needs `plugins` added to the alternation.
 - Each has test coverage to extend alongside the regex change.
