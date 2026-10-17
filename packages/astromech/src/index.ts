@@ -21,8 +21,8 @@
  * lives in the zero-runtime-dep `@theholocron/astromech/config` subpath.
  */
 
-export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export { createAstromech } from "./astromech.js";
+export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export type { WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
