@@ -22,7 +22,7 @@ on: # yamllint disable-line rule:truthy
     paths:
       - packages/astromech/src/templates/**
       - packages/astromech/src/generators/**
-      - packages/astromech/src/registry.ts
+      - packages/astromech/src/registry/**
       - packages/cli/src/templates/**
   workflow_dispatch: {}
 

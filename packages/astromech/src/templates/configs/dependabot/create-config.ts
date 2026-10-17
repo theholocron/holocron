@@ -1,4 +1,4 @@
-import { createHeader } from "../../../utils/create-header.js";
+import { createHeader } from "../../../utils/index.js";
 import dependabotBody from "./dependabot.yml";
 
 const { workflowHeader } = createHeader({

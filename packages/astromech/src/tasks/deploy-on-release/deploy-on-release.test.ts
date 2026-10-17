@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { TasksConfig } from "../../config/schema.type.js";
+import type { TasksConfig } from "../../config/schema/index.js";
 import { deployOnRelease } from "./deploy-on-release.js";
 import type { DeployOnReleaseOptions } from "./deploy-on-release.type.js";
 import { fakeClock, fakeRun, FILES, TREE, VERSION } from "./test-fixtures.js";
