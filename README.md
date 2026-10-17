@@ -171,7 +171,6 @@ packages/                            — core infrastructure                    
   datapad/                           — @theholocron/datapad                           (config-file loader — <name>.config.*)
   cli/                               — @theholocron/cli                               (binary + capability runtime)
   sentinel/                          — @theholocron/sentinel                          (minimal GitHub App — scaffolding only)
-  rollup-plugin-transform-template/  — @theholocron/rollup-plugin-transform-template  (template files → default-exported strings)
 plugins/                             — vendor capability providers                    (one package per provider)
   holocron-plugin-github/            — @theholocron/holocron-plugin-github            (source, ci, secrets, environments, issues)
   holocron-plugin-vercel/            — @theholocron/holocron-plugin-vercel            (deployment)

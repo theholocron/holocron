@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/cli",
-  "version": "5.0.0-alpha.153",
+  "version": "5.0.0-alpha.156",
   "description": "The Holocron CLI - a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "keywords": [
     "cli",
@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/rollup-plugin-transform-template": "workspace:*",
+    "@theholocron/rollup-plugin-transform-template": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",

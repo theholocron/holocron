@@ -7,30 +7,23 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 import type { Astromech, AstromechOptions } from "./astromech.type.js";
-import { normalizeTaskEntry } from "./config/schema.js";
-import type { TaskEntry } from "./config/schema.type.js";
-import { codecovConfig as resolveCodecovConfig } from "./generators/codecov.js";
-import { reusableTemplates as resolveReusableTemplates } from "./generators/github-action-reusable-workflows.js";
+import { normalizeTaskEntry, type TaskEntry } from "./config/schema/index.js";
 import {
+	codecovConfig as resolveCodecovConfig,
 	deriveDeployPaths,
+	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
+	ensureTurboDependency as resolveEnsureTurboDependency,
 	extractPreviewConfig,
 	generateCombinedDeployContent,
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
-} from "./generators/github-action-thin-callers.js";
-import { requiredChecks as resolveRequiredChecks } from "./generators/required-checks.js";
-import {
-	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
-	ensureTurboDependency as resolveEnsureTurboDependency,
+	requiredChecks as resolveRequiredChecks,
+	reusableTemplates as resolveReusableTemplates,
 	turboConfig as resolveTurboConfig,
-} from "./generators/turbo.js";
-import { KNOWN_TASKS, TASKS } from "./registry.js";
-import { runCi } from "./tasks/ci.js";
-import { runGroup } from "./tasks/group.js";
-import { matchNamespace } from "./tasks/match-namespace.js";
-import { runTask } from "./tasks/run/index.js";
-import type { RunDeps } from "./tasks/run/run.type.js";
+} from "./generators/index.js";
+import { KNOWN_TASKS, TASKS } from "./registry/index.js";
+import { matchNamespace, runCi, type RunDeps, runGroup, runTask } from "./tasks/index.js";
 import { noopLogger, realExec, realLookPath } from "./utils/index.js";
 
 export function createAstromech(options: AstromechOptions): Astromech {

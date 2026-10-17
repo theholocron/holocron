@@ -1,0 +1,356 @@
+import { describe, expect, it } from "vitest";
+
+import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
+import {
+	REUSABLE_ACTIONS,
+	REUSABLE_WORKFLOWS,
+	reusableTemplates,
+	WORKFLOW_TEMPLATE_PROPERTIES,
+} from "./github-action-reusable-workflows.js";
+
+describe("reusableTemplates()", () => {
+	const batch = reusableTemplates();
+
+	it("emits actions, reusable workflows, workflow-templates and their properties", () => {
+		const expected =
+			Object.keys(REUSABLE_ACTIONS).length +
+			Object.keys(REUSABLE_WORKFLOWS).length +
+			Object.keys(WORKFLOW_TEMPLATES).length +
+			Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
+		expect(batch.size).toBe(expected);
+
+		for (const name of Object.keys(REUSABLE_ACTIONS)) {
+			expect(batch.has(`.github/actions/${name}.yml`)).toBe(true);
+		}
+		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
+			expect(batch.has(`.github/workflows/${name}.yml`)).toBe(true);
+		}
+		for (const name of Object.keys(WORKFLOW_TEMPLATES)) {
+			expect(batch.has(`workflow-templates/${name}.yml`)).toBe(true);
+		}
+	});
+
+	it("ships the holocron composite action that CI jobs use to run a task", () => {
+		expect(REUSABLE_ACTIONS).toHaveProperty("holocron/action");
+		const action = batch.get(".github/actions/holocron/action.yml")!;
+		expect(action).toBeDefined();
+		expect(action).toContain("name: Holocron");
+		expect(action).toContain("using: composite");
+		// inputs reach `run:` only through env — no `${{ }}` inside a shell script
+		expect(action).toContain("HOLOCRON_TASK: ${{ inputs.task }}");
+		expect(action).not.toMatch(/run:[^\n]*\$\{\{\s*inputs\./);
+		// invokes the built entry directly — a .bin shim pnpm doesn't create for
+		// an unbuilt workspace package
+		expect(action).toContain('require.resolve("@theholocron/cli")');
+		expect(action).toContain('node "$cli" "$@"');
+		expect(action).not.toMatch(/^\s+run: pnpm exec holocron/m);
+		// generalised beyond `run` — any subcommand via `command:` (holocron#655)
+		expect(action).toContain("HOLOCRON_COMMAND: ${{ inputs.command }}");
+		expect(action).toMatch(/if \[ "\$HOLOCRON_COMMAND" = "run" \]/);
+	});
+
+	it("captures the holocron invocation's full output to a file, exposed as log-file (holocron#769/#794)", () => {
+		const action = batch.get(".github/actions/holocron/action.yml")!;
+		expect(action).toContain("outputs:");
+		expect(action).toContain("log-file:");
+		expect(action).toContain("value: ${{ steps.run.outputs.log-file }}");
+		// tee, not just redirect — the live Actions log still streams normally
+		expect(action).toContain('node "$cli" "$@" 2>&1 | tee "$log_file"');
+		// PIPESTATUS[0], not $? -- $? after a pipe is tee's exit code (always 0),
+		// which would silently mask a real task failure.
+		expect(action).toContain("exit_code=${PIPESTATUS[0]}");
+		expect(action).toContain('exit "$exit_code"');
+	});
+
+	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
+		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toMatch(/command: repo sync/);
+		expect(wf).not.toContain("node packages/cli/dist/cli.mjs");
+		// the standalone `pnpm build` step is gone — the action handles it
+		expect(wf).not.toMatch(/^\s+- run: pnpm build\n\s+name: Build CLI/m);
+	});
+
+	it("applies the do-not-edit header to YAML — no timestamp", () => {
+		const typecheck = batch.get(".github/workflows/verification.typeSafety.yml")!;
+		expect(typecheck.startsWith("# AUTO-GENERATED — do not edit in theholocron/.github directly.\n")).toBe(true);
+		expect(typecheck).toContain(
+			"# Source:  theholocron/holocron · packages/astromech/src/generators/github-action-reusable-workflows/github-action-reusable-workflows.ts"
+		);
+		expect(typecheck).toContain("# Tool:    holocron sync github");
+		// A live `Synced:` timestamp would defeat sync-github's unchanged-file skip.
+		expect(typecheck).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+		expect(typecheck).not.toContain("Synced:");
+		// header, then the real workflow
+		expect(typecheck).toContain("\nname: Typecheck\n");
+	});
+
+	it("leaves the starter-workflow .properties.json bare (native JSON, no header)", () => {
+		const props = batch.get("workflow-templates/bookkeeping.properties.json")!;
+		expect(props.startsWith("#")).toBe(false);
+		expect(JSON.parse(props)).toMatchObject({ name: "Bookkeeping", iconName: "octicon tag" });
+	});
+
+	it("adds a .properties.json only for templates that have properties", () => {
+		const propsKeys = [...batch.keys()].filter((k) => k.endsWith(".properties.json"));
+		expect(propsKeys).toEqual(["workflow-templates/bookkeeping.properties.json"]);
+	});
+});
+
+describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
+	it("verification.typeSafety.yml runs the task through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["verification.typeSafety"]!;
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toMatch(/task: verification\.typeSafety/);
+		expect(wf).not.toContain("run: pnpm typecheck");
+	});
+
+	it("verification.unitTests.yml unit job runs the task through the holocron action", () => {
+		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toMatch(/task: verification\.unitTests/);
+		expect(wf).not.toContain("run: pnpm test:coverage");
+	});
+
+	it("every Codecov upload fails its step when it fails, instead of passing silently (holocron#934)", () => {
+		for (const name of ["verification.unitTests", "delivery.publish"] as const) {
+			const uploads = REUSABLE_WORKFLOWS[name]!.split("- uses: codecov/codecov-action@").slice(1);
+			expect(uploads.length).toBeGreaterThan(0);
+			for (const step of uploads) {
+				expect(step.split("\n\n")[0]!).toContain("fail_ci_if_error: true");
+			}
+		}
+		// coverage + test results in the unit and Storybook jobs, plus the release-commit upload
+		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@")).toHaveLength(5);
+		expect(REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")).toHaveLength(2);
+	});
+
+	it("a failed Codecov upload fails the unit-test job, leaving 'required' to decide what blocks a merge (holocron#934)", () => {
+		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!).not.toContain("continue-on-error");
+	});
+
+	it("but a failed release-commit upload doesn't fail an already-published release or skip the Sentry steps (holocron#934)", () => {
+		const step = REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")[1]!.split(
+			"\n\n"
+		)[0]!;
+		expect(step).toContain("continue-on-error: true");
+	});
+
+	it("delivery.publish.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
+		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+		// detect the release commit semantic-release just pushed
+		expect(wf).toMatch(/BEFORE=\$\(git rev-parse HEAD\)/);
+		expect(wf).toMatch(/echo "commit=\$AFTER" >> "\$GITHUB_OUTPUT"/);
+		// run tests + upload, keyed to that SHA so the next PR compares cleanly
+		expect(wf).toMatch(/if: \$\{\{ steps\.release\.outputs\.commit != '' \}\}/);
+		expect(wf).toContain("override_commit: ${{ steps.release.outputs.commit }}");
+		expect(wf).toContain("codecov/codecov-action@");
+	});
+
+	it("delivery.publish.yml deploys from its own job, so VERCEL_TOKEN never reaches the release job (holocron#930)", () => {
+		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+		const [releaseJob, rest] = wf.split("\n  deploy:\n") as [string, string];
+		const deployJob = rest.split("\n  sync-readme:")[0]!;
+
+		// A separate job after the release, only when opted in and something published.
+		expect(deployJob).toContain("needs: release");
+		expect(deployJob).toContain("inputs.deploy-on-release == true");
+		expect(deployJob).toContain("needs.release.outputs.commit != ''");
+		expect(deployJob).toContain("inputs.dry-run != true");
+		// It deploys the release commit, from the release job's outputs.
+		expect(deployJob).toContain("ref: ${{ needs.release.outputs.commit }}");
+		expect(deployJob).toContain("command: deploy on-release");
+		for (const output of ["channel", "previous", "commit"]) {
+			expect(deployJob).toContain(`needs.release.outputs.${output}`);
+			expect(releaseJob).toContain(`${output}: \${{ steps.release.outputs.${output} }}`);
+		}
+		// Only the deploy job gets the token.
+		expect(deployJob).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
+		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("secrets.VERCEL_TOKEN");
+	});
+
+	it("delivery.previewCheck runs `holocron monitoring check` with the preview URL input", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toContain("workflow_call:");
+		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
+		expect(previewCheck).toContain("command: monitoring check");
+		expect(previewCheck).toContain("args: --cwd=${{ inputs.cwd }} ${{ steps.validate.outputs.url }}");
+	});
+
+	it("delivery.previewCheck validates the preview URL before forwarding it anywhere", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Review on #1024: the triggering deployment_status event's
+		// environment_url is attacker-influenceable (anyone with
+		// `deployments: write` can set it), so it must be validated as an
+		// https://*.vercel.app URL -- closing both an SSRF vector (fetching
+		// an internal host) and argument injection (a string that fails to
+		// parse can't carry embedded whitespace or shell metacharacters) --
+		// before the monitoring-check step (which forwards
+		// steps.validate.outputs.url, never the raw input) ever runs.
+		expect(previewCheck).toMatch(/id: validate[\s\S]*hostname[\s\S]*\.vercel\.app/);
+		expect(previewCheck.indexOf("id: validate")).toBeLessThan(previewCheck.indexOf("command: monitoring check"));
+		expect(previewCheck).not.toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
+	});
+
+	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toMatch(/sha:\s*\n\s*description:/);
+		expect(previewCheck).toMatch(
+			/actions\/checkout@[^\n]+\n\s+name: Checkout repository\n\s+with:\n\s+ref: \$\{\{ inputs\.sha \}\}/
+		);
+	});
+
+	it("delivery.previewCheck's cwd input defaults to the repo root for a single-package repo", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		expect(previewCheck).toMatch(
+			/cwd:\s*\n\s*description:[^\n]*\n\s*required: false\n\s*type: string\n\s*default: "\."/
+		);
+	});
+
+	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
+		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
+		expect(build).toMatch(/task: delivery\.build/);
+
+		const knip = REUSABLE_WORKFLOWS["sourceQuality.deadCodeAnalysis"]!;
+		expect(knip).toMatch(/task: sourceQuality\.deadCodeAnalysis/);
+
+		const performance = REUSABLE_WORKFLOWS["verification.performance"]!;
+		expect(performance).toMatch(/task: verification\.performance\n\s+args: --config=/);
+		expect(performance).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
+	});
+
+	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
+		expect(REUSABLE_WORKFLOWS["sourceQuality.staticAnalysis"]).toMatch(/task: sourceQuality\.staticAnalysis/);
+		expect(REUSABLE_WORKFLOWS["sourceQuality.formatting"]).toMatch(/task: sourceQuality\.formatting/);
+		expect(REUSABLE_WORKFLOWS["sourceQuality.structuredDataValidation"]).toMatch(
+			/task: sourceQuality\.structuredDataValidation/
+		);
+		expect(REUSABLE_WORKFLOWS["security.secretDetection"]).toMatch(/task: security\.secretDetection/);
+		// commitlint and the repo-validation scripts have no local runner — they
+		// don't go through the holocron composite action at all.
+		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain("commitlint --from");
+		// --config <resolved shared path> (config-resolution workstream, #676),
+		// guarded so it falls back to auto-discovery when the shared package
+		// isn't installed.
+		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain(
+			'COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"'
+		);
+		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
+			/task: platform\.repoValidation\n\s+job: registry/
+		);
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
+			/task: platform\.repoValidation\n\s+job: docsPresence/
+		);
+	});
+
+	it("no reusable workflow invokes the super-linter action anymore (D12)", () => {
+		for (const wf of Object.values(REUSABLE_WORKFLOWS)) {
+			expect(wf).not.toContain("super-linter/super-linter");
+		}
+	});
+});
+
+describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2 dispatch target (holocron#794)", () => {
+	const wf = REUSABLE_WORKFLOWS["platform.dispatchedCheck"]!;
+
+	it("is workflow_dispatch-triggered, not workflow_call — Sentinel invokes it directly via the Actions API", () => {
+		expect(wf).toContain("workflow_dispatch:");
+		expect(wf).not.toContain("workflow_call:");
+	});
+
+	it("has no WORKFLOW_TEMPLATES/thin-caller entry — no repo invokes this itself", () => {
+		expect(WORKFLOW_TEMPLATES).not.toHaveProperty("platform.dispatchedCheck");
+	});
+
+	it("checks out the target repo/ref from the dispatch inputs, not the calling repo", () => {
+		expect(wf).toMatch(/repository: \$\{\{ inputs\.repo \}\}/);
+		expect(wf).toMatch(/ref: \$\{\{ inputs\.ref \}\}/);
+	});
+
+	it("mints its own installation token from stored App credentials — never a token passed through an input", () => {
+		expect(wf).toContain("actions/create-github-app-token@");
+		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_APP_ID }}");
+		expect(wf).toContain("private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}");
+		expect(wf).not.toMatch(/token:\s*\$\{\{\s*inputs\./);
+	});
+
+	it("scopes the minted token to the parsed target repo, not the default current-repo scope (holocron#794 live test finding)", () => {
+		expect(wf).toContain('echo "owner=${INPUT_REPO%%/*}" >> "$GITHUB_OUTPUT"');
+		expect(wf).toContain('echo "name=${INPUT_REPO##*/}" >> "$GITHUB_OUTPUT"');
+		expect(wf).toContain("owner: ${{ steps.target.outputs.owner }}");
+		expect(wf).toContain("repositories: ${{ steps.target.outputs.name }}");
+	});
+
+	it("runs the dispatched task through the holocron action, not a hard-coded command", () => {
+		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("task: ${{ inputs.task }}");
+	});
+
+	it("patches the check run back on the target repo regardless of task outcome", () => {
+		expect(wf).toContain("continue-on-error: true");
+		expect(wf).toMatch(/if: always\(\)/);
+		expect(wf).toContain('gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}" --input -');
+		expect(wf).toContain("CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}");
+	});
+
+	it("points details_url at the specific job's log view, not just the run summary", () => {
+		expect(wf).toContain("id: job-info");
+		expect(wf).toContain(".jobs[0].id");
+		expect(wf).toContain(
+			"RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.job-info.outputs.job_id }}"
+		);
+	});
+
+	it("ships the task's real captured output to Axiom, tagged with this check run's own id", () => {
+		expect(wf).toContain("id: axiom");
+		expect(wf).toContain("LOG_FILE: ${{ steps.run-task.outputs.log-file }}");
+		expect(wf).toContain("https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest");
+		expect(wf).toContain("check_run_id: $check_run_id");
+		expect(wf).toContain("AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}");
+		// ingest failing must never break the actual check-run report
+		expect(wf).toMatch(/curl[\s\S]*\|\|\s*echo "::warning::Axiom ingest failed/);
+	});
+
+	it("builds an Axiom permalink filtered to this run's own logs, not a bare dataset view", () => {
+		expect(wf).toContain("query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}");
+		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
+	});
+
+	it("tags the shipped event with a level field so Axiom's severity highlighting applies", () => {
+		expect(wf).toContain('level=$([ "$CONCLUSION" = "success" ] && echo "info" || echo "error")');
+		expect(wf).toContain("level: $level");
+	});
+
+	it("embeds the real log excerpt and the Axiom link directly in output.text, not just a bare link", () => {
+		expect(wf).toContain("QUERY_URL: ${{ steps.axiom.outputs.query-url }}");
+		expect(wf).toContain("[Full logs on Axiom](%s)");
+		expect(wf).toContain('tail -c 3000 "$LOG_FILE"');
+		expect(wf).toContain("output: {title: $title, summary: $summary, text: $text}");
+	});
+});
+
+describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", () => {
+	const wiki = REUSABLE_WORKFLOWS["knowledge.wiki"]!;
+
+	it("reads the preview URL from Fern's output, not a constructed string", () => {
+		expect(wiki).toContain("id: preview");
+		expect(wiki).toMatch(/grep -o\w*E ["']https:\/\/\[a-z0-9\.-\]\+\\\.docs\\\.buildwithfern\\\.com/);
+		expect(wiki).toContain('echo "url=$url" >> "$GITHUB_OUTPUT"');
+	});
+
+	it("no longer gates the deployment step on fern-org, and keeps it as a fallback only", () => {
+		// the step runs for every preview now …
+		expect(wiki).toMatch(/Report preview URL\n\s+if: \$\{\{ inputs\.preview && inputs\.preview-id != '' \}\}/);
+		// … using the captured URL, falling back to the fern-org construction
+		expect(wiki).toContain('PREVIEW_URL="$CAPTURED_URL"');
+		expect(wiki).toContain('if [ -z "$PREVIEW_URL" ] && [ -n "$FERN_ORG" ]; then');
+	});
+
+	it("keeps the fern-org / base-path inputs (callers still pass them) but marks them deprecated", () => {
+		expect(wiki).toMatch(/^\s+fern-org:/m);
+		expect(wiki).toMatch(/^\s+base-path:/m);
+		expect(wiki).toMatch(/fern-org:\n\s+description: >\n\s+DEPRECATED/);
+	});
+});

@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { Run } from "../../utils/default-run.type.js";
+import type { Run } from "../../utils/index.js";
 
 export const VERSION = "5.0.0-alpha.105";
 

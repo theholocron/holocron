@@ -1,9 +1,6 @@
-import type { TasksConfig } from "./config/schema.type.js";
-import type { OrgContext } from "./generators/github-action-thin-callers.type.js";
-import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } from "./generators/turbo.type.js";
-import type { CiOptions, CiReport } from "./tasks/ci.type.js";
-import type { GroupReport } from "./tasks/group.type.js";
-import type { ExecFn, RunLogger, RunTaskReport } from "./tasks/run/run.type.js";
+import type { TasksConfig } from "./config/schema/index.js";
+import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult, OrgContext } from "./generators/index.js";
+import type { CiOptions, CiReport, ExecFn, GroupReport, RunLogger, RunTaskReport } from "./tasks/index.js";
 
 export interface AstromechOptions {
 	/** Repo root. */

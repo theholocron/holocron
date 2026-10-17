@@ -1,4 +1,4 @@
-import { createHeader } from "../../../utils/create-header.js";
+import { createHeader } from "../../../utils/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "packages/astromech/src/templates/configs/devmoji/create-config.ts",

@@ -120,7 +120,8 @@ not object destructuring.
 
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
-- **One function per file, types in `*.type.ts`.** In `packages/cli`, exported
+- **One function per file, types in `*.type.ts`.** In `packages/*` (`cli`,
+  `astromech`, `datapad`, `sentinel`), exported
   `interface` / `type` declarations live in `<name>.type.ts`, not in the
   implementation file. A module sits in a folder named after it, holding the
   implementation, its test and, when it declares types, the type file
@@ -136,7 +137,13 @@ not object destructuring.
   (`../ui/index.js`). `config/` and `plugin/` import each other, so between
   those two the specific folder barrels are used; going through both root
   barrels would create a runtime import cycle. `src/index.ts` keeps its own
-  curated exports and does not use the root barrels.
+  curated exports and does not use the root barrels. Modules with no types
+  still get their own folder (implementation, test, `index.ts`) so a directory is
+  consistently folders; no empty `*.type.ts`. In `astromech`, `config/` and
+  `lint/` keep their curated public `index.ts` (the `./config` and `./lint`
+  subpath exports), `tasks/run/index.ts` stays curated too, and
+  `templates/` keeps its one-folder-per-generator layout beside the template
+  data files that the build turns into strings.
 - **No third-party observability / telemetry SDK is imported in this repo.**
   `pino`, `@sentry/node`, `posthog-node` live behind
   `@theholocron/observability` — the `Logger` / `ErrorSink` / `AnalyticsSink`
@@ -290,7 +297,6 @@ packages/                         — core infrastructure (the CLI and its runti
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
-  rollup-plugin-transform-template/ — @theholocron/rollup-plugin-transform-template (Rollup/Vite/Rolldown plugin: template files → default-exported strings)
 plugins/                          — vendor capability providers, one package per provider (split from packages/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment

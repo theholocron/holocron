@@ -23,6 +23,7 @@
 
 export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
+export type { WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
 	codecovConfig,
@@ -30,14 +31,14 @@ export {
 	ensureIfNotFound,
 	mergeCodecovComponents,
 	readWorkspacePackages,
-} from "./generators/codecov.js";
-export type { WorkspacePackage } from "./generators/codecov.type.js";
+} from "./generators/codecov/index.js";
 export {
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
 	WORKFLOW_TEMPLATE_PROPERTIES,
-} from "./generators/github-action-reusable-workflows.js";
+} from "./generators/github-action-reusable-workflows/index.js";
+export type { OrgContext, PreviewConfig } from "./generators/github-action-thin-callers/index.js";
 export {
 	deriveDeployPaths,
 	extractPreviewConfig,
@@ -47,24 +48,23 @@ export {
 	normalizeWorkflowWith,
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
-} from "./generators/github-action-thin-callers.js";
-export type { OrgContext, PreviewConfig } from "./generators/github-action-thin-callers.type.js";
-export { requiredChecks } from "./generators/required-checks.js";
-export { createTsconfig } from "./generators/tsconfig.js";
-export type { TsconfigOptions } from "./generators/tsconfig.type.js";
-export { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry.js";
-export type { JobDef, LocalRunner, TaskDef } from "./registry.type.js";
-export { runCi } from "./tasks/ci.js";
-export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci.type.js";
+} from "./generators/github-action-thin-callers/index.js";
+export { requiredChecks } from "./generators/required-checks/index.js";
+export type { TsconfigOptions } from "./generators/tsconfig/index.js";
+export { createTsconfig } from "./generators/tsconfig/index.js";
+export type { JobDef, LocalRunner, TaskDef } from "./registry/index.js";
+export { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry/index.js";
+export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci/index.js";
+export { runCi } from "./tasks/ci/index.js";
 export type {
 	DeployOnReleaseOptions,
 	DeployOnReleaseReport,
 	DeployOnReleaseResult,
 } from "./tasks/deploy-on-release/index.js";
 export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
-export { runGroup } from "./tasks/group.js";
-export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group.type.js";
-export { matchNamespace } from "./tasks/match-namespace.js";
+export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group/index.js";
+export { runGroup } from "./tasks/group/index.js";
+export { matchNamespace } from "./tasks/match-namespace/index.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";
 export {
 	createIgnoreConfig as createAlexignore,
@@ -83,5 +83,5 @@ export {
 	createIgnoreConfig as createYamlignore,
 	createConfig as createYamllint,
 } from "./templates/configs/yamllint/index.js";
-export { createHeader } from "./utils/create-header.js";
-export type { CreateHeaderOptions, HeaderFunctions, WorkflowHeaderFormat } from "./utils/create-header.type.js";
+export type { CreateHeaderOptions, HeaderFunctions, WorkflowHeaderFormat } from "./utils/create-header/index.js";
+export { createHeader } from "./utils/create-header/index.js";
