@@ -61,7 +61,7 @@
     "@commitlint/config-conventional": "catalog:",
     "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/rollup-plugin-transform-template": "workspace:*",
+    "@theholocron/rollup-plugin-transform-template": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",

@@ -290,7 +290,6 @@ packages/                         — core infrastructure (the CLI and its runti
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
-  rollup-plugin-transform-template/ — @theholocron/rollup-plugin-transform-template (Rollup/Vite/Rolldown plugin: template files → default-exported strings)
 plugins/                          — vendor capability providers, one package per provider (split from packages/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment

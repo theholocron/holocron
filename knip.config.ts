@@ -19,11 +19,6 @@ const config: KnipConfig = {
 			// audit time — disable auto-loading so Knip uses our explicit entry
 			vitest: { config: [] },
 		},
-		"packages/rollup-plugin-transform-template": {
-			// src/index.ts auto-detected from package.json exports
-			entry: ["src/**/*.test.ts"],
-			project: ["src/**/*.ts"],
-		},
 		"plugins/holocron-plugin-*": {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],

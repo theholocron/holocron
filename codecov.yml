@@ -129,11 +129,6 @@ component_management:
       paths:
         - plugins/holocron-plugin-vercel/**
 
-    - component_id: rollup-plugin-transform-template
-      name: "rollup-plugin-transform-template"
-      paths:
-        - packages/rollup-plugin-transform-template/**
-
     - component_id: sentinel
       name: "sentinel"
       paths:
