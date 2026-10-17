@@ -1,6 +1,6 @@
-import type { TasksConfig } from "../config/schema/index.js";
-import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult, OrgContext } from "../generators/index.js";
-import type { CiOptions, CiReport, ExecFn, GroupReport, RunLogger, RunTaskReport } from "../tasks/index.js";
+import type { TasksConfig } from "./config/schema/index.js";
+import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult, OrgContext } from "./generators/index.js";
+import type { CiOptions, CiReport, ExecFn, GroupReport, RunLogger, RunTaskReport } from "./tasks/index.js";
 
 export interface AstromechOptions {
 	/** Repo root. */

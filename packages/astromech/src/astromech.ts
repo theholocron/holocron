@@ -6,7 +6,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 
-import { normalizeTaskEntry, type TaskEntry } from "../config/schema/index.js";
+import { normalizeTaskEntry, type TaskEntry } from "./config/schema/index.js";
 import {
 	codecovConfig as resolveCodecovConfig,
 	deriveDeployPaths,
@@ -20,10 +20,10 @@ import {
 	requiredChecks as resolveRequiredChecks,
 	reusableTemplates as resolveReusableTemplates,
 	turboConfig as resolveTurboConfig,
-} from "../generators/index.js";
-import { KNOWN_TASKS, TASKS } from "../registry/index.js";
-import { matchNamespace, runCi, type RunDeps, runGroup, runTask } from "../tasks/index.js";
-import { noopLogger, realExec, realLookPath } from "../utils/index.js";
+} from "./generators/index.js";
+import { KNOWN_TASKS, TASKS } from "./registry/index.js";
+import { matchNamespace, runCi, type RunDeps, runGroup, runTask } from "./tasks/index.js";
+import { noopLogger, realExec, realLookPath } from "./utils/index.js";
 import type { Astromech, AstromechOptions } from "./astromech.type.js";
 
 export function createAstromech(options: AstromechOptions): Astromech {
