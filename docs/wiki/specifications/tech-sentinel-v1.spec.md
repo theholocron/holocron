@@ -100,7 +100,7 @@ Workers or Node either way), and a `Workers.deployScript()` capability
 extension (`packages/cli` + `holocron-plugin-cloudflare`, #729) for
 deploying an arbitrary script, not only the existing wiki reverse-proxy.
 
-**Reversed once `packages/sentinel/src/handler.ts` actually got built**,
+**Reversed once `packages/sentinel/src/handler/handler.ts` actually got built**,
 targeting the real blocker: `validateConfig()` fetches a repo's
 `holocron.config.*` and executes it as a real module — including
 `import { defineConfig } from "@theholocron/cli"`, its own documented
@@ -271,7 +271,7 @@ shipped, in what order.
       see "Resolved — deploy target" above for why. The Cloudflare
       `deployScript()` work above stands regardless — general
       infrastructure, only not what Sentinel itself deploys through.
-- [x] Sentinel's webhook-handling core (`src/handler.ts`,
+- [x] Sentinel's webhook-handling core (`src/handler/handler.ts`,
       `handleWebhookRequest(request, env)`): wires `parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       single, deliberately platform-agnostic Fetch-API function — a

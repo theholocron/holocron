@@ -1,0 +1,92 @@
+/**
+ * Posts one check run reflecting capability-compliance status — the App's
+ * v1 report: "this repo declares X, Y, Z — all present" or "missing:
+ * dependencyReview" (the exact examples the epic spec's Scope section
+ * gives). Calls `@theholocron/github-client`'s `checks.createCheckRun()`
+ * directly — Sentinel isn't a plugin, and this is a single REST call with
+ * nothing else to wrap.
+ *
+ * D8: "compliant" reduces to `missingCapabilities(capabilities).length === 0`
+ * — the same `REQUIRED_BASELINE` table `@theholocron/cli`'s
+ * `deriveCompliance()` (called by `syncPropertiesFromConfig()`) already
+ * checks against, imported rather than duplicated, so *why* a repo is
+ * non-compliant can never drift from *whether* it is.
+ *
+ * `SENTINEL_CHECK_RUN_NAME` folds under the `platform` namespace
+ * (`SENTINEL_NAMESPACES`) even though this check has no `platform.*` task or
+ * workflow behind it at all — Sentinel posts it directly via the Checks API
+ * from a webhook. No "Sentinel /" prefix: GitHub's own check-run detail
+ * page already shows the posting App's display name ahead of whatever name
+ * is set here, so a hand-added prefix just duplicated it. Exported so a
+ * caller checking for this check run by name (a future re-run guard, a
+ * test, a dashboard) never hand-copies the string.
+ *
+ * Folds under the `Compliance` grouping alongside the DCO check
+ * (`post-dco-check.ts`) — no longer the deliberate 2-tier exception
+ * `tech-sentinel-enforcement.spec.md`'s D5 originally called out
+ * ("Platform / Capability Compliance", no label to carry through).
+ * DCO's arrival gave the grouping a second member, so "Compliance"
+ * now plays the label role every other check's existing-CI-job name
+ * plays, and "Run Holocron config compatibility" plays the command
+ * role — renamed from "Capability Compliance" since what this check
+ * actually verifies is a repo's declared capabilities against
+ * `REQUIRED_BASELINE`, i.e. the repo's `holocron.config` being
+ * baseline-compatible. **Renaming this string changes a live required
+ * status check** — `holocron.config.ts`'s own `extraRequiredChecks`
+ * entry must be updated in the same change, and `holocron repo setup` (or
+ * the ruleset-PATCH mechanism it wraps) re-run against this repo
+ * before merge, or the old name stays required forever with nothing
+ * left posting it.
+ */
+
+import { missingCapabilities } from "@theholocron/cli";
+import type { CheckRunConclusion } from "@theholocron/github-client";
+
+import {
+	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
+	SENTINEL_NAMESPACES,
+	sentinelAxiomLogUrl,
+} from "../../../utils/index.js";
+import type { PostCheckRunInput, PostCheckRunResult } from "./post-check-run.type.js";
+
+export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Holocron config compatibility`;
+
+export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckRunResult> {
+	const { client, repo, headSha, capabilities, runId } = input;
+	const missing = missingCapabilities(capabilities);
+	const conclusion: CheckRunConclusion = missing.length === 0 ? "success" : "failure";
+
+	const title =
+		missing.length === 0 ? "Capability compliance: OK" : "Capability compliance: missing required capabilities";
+	const summary =
+		missing.length === 0
+			? // The "no" fallback is defensive, not reachable today: compliant
+				// means every REQUIRED_BASELINE entry is present, and that baseline
+				// is non-empty, so capabilities can't be empty here — kept in case
+				// REQUIRED_BASELINE itself is ever emptied.
+				/* istanbul ignore next -- see comment above */
+				`This repo declares ${capabilities.length > 0 ? capabilities.join(", ") : "no"} capabilities — all required capabilities present.`
+			: `Missing: ${missing.join(", ")}.`;
+
+	// `text` renders as a collapsible "Show more" section on the check
+	// run's own GitHub page — real native detail beyond the one-line
+	// `summary`, no external click required. `details_url` still points
+	// at Axiom for the underlying structured log line (timings, raw
+	// error, etc.) that's overkill to reproduce here.
+	const text = [
+		`**Declared capabilities (${capabilities.length}):** ${capabilities.length > 0 ? capabilities.join(", ") : "(none)"}`,
+		missing.length === 0 ? "**Required baseline:** all present." : `**Missing required:** ${missing.join(", ")}`,
+		`Run ID: \`${runId}\``,
+	].join("\n\n");
+
+	const checkRun = await client.checks.createCheckRun(repo, {
+		name: SENTINEL_CHECK_RUN_NAME,
+		head_sha: headSha,
+		status: "completed",
+		conclusion,
+		output: { title, summary, text },
+		details_url: sentinelAxiomLogUrl(runId, SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG),
+	});
+
+	return { checkRunId: checkRun.id, conclusion, htmlUrl: checkRun.html_url };
+}
