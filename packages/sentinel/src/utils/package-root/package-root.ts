@@ -1,8 +1,7 @@
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { findUpward } from "@theholocron/fs-utils";
+import { findRoot } from "@theholocron/fs-utils";
 
 /**
  * Walks upward from `startDir` to the nearest ancestor holding a
@@ -25,13 +24,12 @@ import { findUpward } from "@theholocron/fs-utils";
  * package into one flat `dist/index.mjs` (one level under root), while
  * vitest runs directly against nested source files (`src/utils/…`, two
  * levels under root) — a walk-up resolves both without hardcoding either
- * depth. Built on `@theholocron/fs-utils`'s `findUpward` — the same
- * upward-walk shape `@theholocron/datapad`'s own config search needs,
- * only with a different predicate (and no `.git`-boundary stop here:
- * `node_modules` is expected to exist well before the filesystem root).
+ * depth. Built on `@theholocron/fs-utils`'s `findRoot` with `node_modules`
+ * as the marker (no `.git`-boundary stop here: `node_modules` is expected
+ * to exist well before the filesystem root).
  */
 export async function findPackageRoot(startDir: string): Promise<string> {
-	const found = await findUpward(startDir, (dir) => (existsSync(join(dir, "node_modules")) ? dir : undefined));
+	const found = await findRoot(startDir, "node_modules");
 	/* istanbul ignore next -- every real caller here sits under packages/sentinel, which always has node_modules before hitting the filesystem root */
 	if (found === undefined) throw new Error(`findPackageRoot: no node_modules found above "${startDir}"`);
 	return found;
