@@ -71,7 +71,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	const requestedSteps = input.steps;
 	const steps: SetupStepResult[] = [];
 	// `--cwd` picks which holocron.config.ts to load — for a monorepo
-	// subpackage (e.g. packages/sentinel) that's NOT the git repo root.
+	// subpackage (e.g. apps/sentinel) that's NOT the git repo root.
 	// Anything inherently repo-wide (.github/workflows, turbo.json,
 	// pnpm-workspace.yaml, the root package.json's own devDependencies,
 	// "is this repo a monorepo") must resolve against the real root or it

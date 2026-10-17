@@ -170,6 +170,7 @@ packages/                            — core infrastructure                    
   astromech/                         — @theholocron/astromech                         (task runner — holocron run / ci)
   datapad/                           — @theholocron/datapad                           (config-file loader — <name>.config.*)
   cli/                               — @theholocron/cli                               (binary + capability runtime)
+apps/                                — deployable applications (not published to npm)
   sentinel/                          — @theholocron/sentinel                          (minimal GitHub App — scaffolding only)
 plugins/                             — vendor capability providers                    (one package per provider)
   holocron-plugin-github/            — @theholocron/holocron-plugin-github            (source, ci, secrets, environments, issues)

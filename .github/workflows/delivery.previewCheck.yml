@@ -29,4 +29,4 @@ jobs:
     with:
       preview-url: ${{ github.event.deployment_status.environment_url }}
       sha: ${{ github.event.deployment.sha }}
-      cwd: packages/sentinel
+      cwd: apps/sentinel

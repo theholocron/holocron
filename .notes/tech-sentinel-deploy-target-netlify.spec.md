@@ -17,11 +17,11 @@ weigh.
 ## Context
 
 Sentinel's Vercel team (`iamnewton`, `team_YrFqXg1QceAu0CdYdBmrDpop` — the
-exact `teamId` in `packages/sentinel/holocron.config.ts`'s
+exact `teamId` in `apps/sentinel/holocron.config.ts`'s
 `providers.deployment`) hit 75% of the Hobby plan's included Fluid Active
 CPU (4 hours/month). The driver: Sentinel's webhook handler runs real,
 in-process linting — `ESLint.Linter.verify()`
-(`packages/sentinel/src/actions/static-analysis/lint-static-analysis/lint-static-analysis.ts`),
+(`apps/sentinel/src/actions/static-analysis/lint-static-analysis/lint-static-analysis.ts`),
 plus markdown-lint, formatting, actionlint, DCO, and the other check
 actions — on every PR/push across every repo in the org. That's genuine
 CPU-bound work (unlike a pure I/O-bound webhook relay), and it scales with
@@ -195,7 +195,7 @@ keyring `netlify`) — no new auth mechanism.
 
 ### 2. Sentinel's stage script
 
-`packages/sentinel/scripts/stage-deploy.mjs` currently builds
+`apps/sentinel/scripts/stage-deploy.mjs` currently builds
 `.vercel-deploy/`: copies `api/webhook.mjs` + built `dist/index.mjs`,
 copies `vercel.json` (whose `functions["api/webhook.mjs"].includeFiles:
 "node_modules/**"` forces Vercel to skip `@vercel/nft`'s tracer — needed
@@ -211,7 +211,7 @@ node_modules, don't let the bundler trace it" need, and the same
 trimmed/pinned `package.json`. `bundle-externals.mjs`'s dependency-declared
 check is deploy-target-agnostic and carries over unchanged.
 
-### 3. `packages/sentinel/holocron.config.ts`
+### 3. `apps/sentinel/holocron.config.ts`
 
 ```diff
  providers: {
@@ -314,7 +314,7 @@ That line item is the one that matters for Sentinel, because of
 `@theholocron/astromech`'s `deploy-on-release.ts`: Sentinel's
 `holocron.config.ts` declares `{ name: "delivery.deploy", with: { on:
 "release", channel: "alpha" } }`, which redeploys on every `alpha`-channel
-release that touches `packages/sentinel/**` or any of its three
+release that touches `apps/sentinel/**` or any of its three
 `workspace:*` dependencies — `@theholocron/cli`, `@theholocron/astromech`,
 `@theholocron/datapad`. Those three are among the most frequently-changed
 packages in this repo. A check of the 15 most recent alpha releases

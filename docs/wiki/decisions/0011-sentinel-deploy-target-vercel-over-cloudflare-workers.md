@@ -49,7 +49,7 @@ one. That evaluation weighed cold start and which crypto API to use
 (Web Crypto only, so the GitHub App JWT-signing code — clients #343 — would
 run unchanged on either target). It did not weigh whether `validateConfig()`'s
 _execution model_ works on the target at all — a real gap, not visible until
-`packages/sentinel/src/handler/handler.ts` actually got built against it.
+`apps/sentinel/src/handler/handler.ts` actually got built against it.
 
 Built out for Workers before the gap surfaced: Cloudflare Workers
 secret-binding support (`clients` repo, #342), GitHub App authentication

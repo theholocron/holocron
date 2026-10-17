@@ -277,7 +277,7 @@ pnpm run delivery.deploy
 **CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.deploy.yml`
 runs this same command on every merge to `main` (not `alpha` — this repo's
 stable channel only, matching the release-branch split in the repo root's
-`CLAUDE.md`), scoped to `packages/sentinel/**` changes, or on demand via
+`CLAUDE.md`), scoped to `apps/sentinel/**` changes, or on demand via
 `gh workflow run sentinel.deploy.yml`. Hand-maintained directly in this
 repo, not astromech-templated — Sentinel is owned here, not synced to
 `theholocron/.github` for other repos to use. See `docs/tokens.md` (repo
@@ -330,7 +330,7 @@ one.
 setup step, not something to redo on every deploy:
 
 ```bash
-holocron repo setup --cwd packages/sentinel
+holocron repo setup --cwd apps/sentinel
 ```
 
 Attaches `sentinel.theholocron.dev` (declared in `holocron.config.ts`)
@@ -408,7 +408,7 @@ registering under the org from the start avoids the detour.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
 set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
 ["Custom domain"](#custom-domain-one-time) step — `holocron repo setup
---cwd packages/sentinel` attaches `sentinel.theholocron.dev` and hands
+--cwd apps/sentinel` attaches `sentinel.theholocron.dev` and hands
 Cloudflare the verification CNAME automatically. That domain, not a
 per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
@@ -418,7 +418,7 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GitHub App name                                        | `Holocron Sentinel` — App names are unique **across all of GitHub**, not just this org; a bare `Sentinel` is almost certainly taken. Pick something distinctive if this is too.                    |
 | Description                                            | `Holocron's minimal GitHub App — validates holocron.config.ts, syncs capability status to repo properties, and posts a compliance check run on every push to the default branch and pull request.` |
-| Homepage URL                                           | `https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme` (this package's own `package.json` `homepage`)                                                                        |
+| Homepage URL                                           | `https://github.com/theholocron/holocron/tree/main/apps/sentinel#readme` (this package's own `package.json` `homepage`)                                                                            |
 | Callback URL                                           | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |
 | Identifying and authorizing users                      | Leave blank — no user-facing OAuth login flow (v1 never authenticates as a user)                                                                                                                   |
 | Setup URL (optional)                                   | Leave blank                                                                                                                                                                                        |
@@ -493,7 +493,7 @@ credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
 way for one source of truth).
 
 ```sh
-holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production \
+holocron secrets sync prd --cwd apps/sentinel --project-id sentinel --target production \
   --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
   --org theholocron --token github=$(gh auth token)
 ```

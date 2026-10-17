@@ -241,7 +241,7 @@ next glance.
   confirmed directly against the real installation
   (`gh api orgs/theholocron/installations --jq '.installations[] |
 select(.app_slug == "the-holocron-sentinel") | .permissions'`), not
-  assumed from docs. **`packages/sentinel/README.md`'s permissions table
+  assumed from docs. **`apps/sentinel/README.md`'s permissions table
   was stale** (documented `Pull requests: Read`, didn't mention `actions:
 write` at all) — corrected in `#864`.
 - **No documented cap on the Reviews API's `comments` array** — checked
@@ -294,7 +294,7 @@ comments is invalid` with no clear threshold GitHub has ever confirmed,
   should be configured `severity: "warning"` rather than the library's own
   default of `"error"` — an org-judgment call, same shape as `ALEX_CONFIG`'s
   existing allow-list, not yet made.
-- **Docs**: `packages/sentinel/README.md`'s description of the
+- **Docs**: `apps/sentinel/README.md`'s description of the
   static-analysis and markdownlint checks' behavior (permissions table
   itself already corrected in `#864`).
 

@@ -132,4 +132,4 @@ component_management:
     - component_id: sentinel
       name: "sentinel"
       paths:
-        - packages/sentinel/**
+        - apps/sentinel/**

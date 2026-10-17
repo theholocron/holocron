@@ -30,7 +30,7 @@ import { findRoot } from "@theholocron/fs-utils";
  */
 export async function findPackageRoot(startDir: string): Promise<string> {
 	const found = await findRoot(startDir, "node_modules");
-	/* istanbul ignore next -- every real caller here sits under packages/sentinel, which always has node_modules before hitting the filesystem root */
+	/* istanbul ignore next -- every real caller here sits under apps/sentinel, which always has node_modules before hitting the filesystem root */
 	if (found === undefined) throw new Error(`findPackageRoot: no node_modules found above "${startDir}"`);
 	return found;
 }

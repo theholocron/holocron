@@ -102,7 +102,7 @@ again.
 - `packages/astromech`: generated thin callers, reusable workflow templates,
   the `holocron` composite action, `tasks/ci.ts`, and any registry text that
   names an old command; regenerate and let `holocron sync-github` push.
-- `packages/sentinel`, `packages/cli/src/{commands,config,utils}` strings that
+- `apps/sentinel`, `packages/cli/src/{commands,config,utils}` strings that
   print old command names in messages/hints.
 - Docs: `packages/cli/README.md`, `AGENTS.md`, root `README.md`,
   `docs/src/content/docs/**` (commands pages, config, tokens), ADR-0009

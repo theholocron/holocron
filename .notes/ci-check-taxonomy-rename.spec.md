@@ -188,7 +188,7 @@ config.ts` `tasks: [...]` array that names `sourceQuality.staticAnalysis` /
   same window the templates sync — otherwise that repo's required check
   becomes permanently unsatisfiable until resynced. Needs an inventory of
   which repos currently require which of the renamed checks.
-- **Sentinel namespace map.** `SENTINEL_NAMESPACES` (`packages/sentinel/src/
+- **Sentinel namespace map.** `SENTINEL_NAMESPACES` (`apps/sentinel/src/
 utils/constants.ts`) only has three keys today (`platform`, `verification`,
   `sourceQuality`) — the new taxonomy needs `Build & Package`,
   `Repository Health`, `Contributor Experience`, `Code Quality`,

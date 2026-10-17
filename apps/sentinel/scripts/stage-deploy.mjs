@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Assembles `.vercel-deploy/` — exactly what `holocron deploy --files`
- * should upload for Sentinel, nothing more. `packages/sentinel/` itself
+ * should upload for Sentinel, nothing more. `apps/sentinel/` itself
  * also holds source, tests, coverage output, and this package's own
  * dev tooling config — none of which belongs in the deploy payload.
  *
@@ -81,7 +81,7 @@ function assertExternalsDeclared(distIndex, pkg) {
 				"refusing to stage: dist/index.mjs imports packages that aren't in this package's `dependencies`,",
 				"so Vercel wouldn't install them —",
 				...missing.map((name) => `  - ${name}`),
-				"Add each to packages/sentinel/package.json (usually a new dependency of an inlined workspace package).",
+				"Add each to apps/sentinel/package.json (usually a new dependency of an inlined workspace package).",
 			].join("\n")
 		);
 	}
