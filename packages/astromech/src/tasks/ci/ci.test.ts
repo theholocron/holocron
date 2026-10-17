@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { RunLogger } from "../run/index.js";
+import { noopLogger } from "../../utils/index.js";
 import { runCi } from "./ci.js";
 import type { CiInput } from "./ci.type.js";
 
 const CWD = "/repo";
-const noopLogger: RunLogger = { debug() {}, warn() {} };
 
 function makeFs(files: Record<string, string>) {
 	const rel = (p: string) => (p === CWD ? "" : p.startsWith(CWD + "/") ? p.slice(CWD.length + 1) : p);

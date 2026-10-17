@@ -2,12 +2,11 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { noopLogger } from "../../utils/index.js";
 import { runTask } from "./run.js";
-import type { RunLogger, RunTaskInput } from "./run.type.js";
+import type { RunTaskInput } from "./run.type.js";
 
 const CWD = "/repo";
-
-const noopLogger: RunLogger = { debug() {}, warn() {} };
 
 /** Build injectable fs helpers from a flat file map (paths relative to CWD). */
 function makeFs(files: Record<string, string>) {
