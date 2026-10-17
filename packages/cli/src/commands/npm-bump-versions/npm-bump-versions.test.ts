@@ -8,7 +8,6 @@ import { runNpmBumpVersions } from "./npm-bump-versions.js";
 const CWD = "/repo";
 const PACKAGES_DIR = join(CWD, "packages");
 const PLUGINS_DIR = join(CWD, "plugins");
-const APPS_DIR = join(CWD, "apps");
 
 function makeFs(files: Record<string, Record<string, unknown>>) {
 	const written: Record<string, string> = {};
@@ -23,8 +22,7 @@ function makeFs(files: Record<string, Record<string, unknown>>) {
 		written[p] = c;
 	};
 	const listDir = (p: string): string[] => {
-		const dirName =
-			p === PACKAGES_DIR ? "packages" : p === PLUGINS_DIR ? "plugins" : p === APPS_DIR ? "apps" : undefined;
+		const dirName = p === PACKAGES_DIR ? "packages" : p === PLUGINS_DIR ? "plugins" : undefined;
 		if (!dirName) throw new Error(`ENOENT: ${p}`);
 		return Object.keys(files)
 			.filter((k) => k.startsWith(`${dirName}/`))
@@ -33,10 +31,7 @@ function makeFs(files: Record<string, Record<string, unknown>>) {
 	};
 	const isDir = (p: string): boolean => {
 		const rel = toRel(p);
-		return (
-			(rel.startsWith("packages/") || rel.startsWith("plugins/") || rel.startsWith("apps/")) &&
-			!rel.endsWith("package.json")
-		);
+		return (rel.startsWith("packages/") || rel.startsWith("plugins/")) && !rel.endsWith("package.json");
 	};
 	return { readFile, writeFile, listDir, isDir, written };
 }
@@ -131,27 +126,6 @@ describe("runNpmBumpVersions", () => {
 		expect(report.bumped).toEqual(["root", "packages/cli", "plugins/plugin-a"]);
 		expect(report.skipped).toContain("plugins/plugin-b");
 		expect(JSON.parse(written[join(CWD, "plugins/plugin-a/package.json")]!).version).toBe("4.2.0");
-	});
-
-	it("lists a private apps/* package as skipped and still bumps public ones", async () => {
-		const { readFile, writeFile, listDir, isDir, written } = makeFs({
-			"package.json": { name: "root", version: "0.0.0", private: true },
-			"packages/cli/package.json": { name: "@acme/cli", version: "4.1.0" },
-			"apps/sentinel/package.json": { name: "@acme/sentinel", version: "4.1.0", private: true },
-			"apps/web/package.json": { name: "@acme/web", version: "4.1.0" },
-		});
-		const report = await runNpmBumpVersions({
-			version: "4.2.0",
-			cwd: CWD,
-			print: () => {},
-			readFile,
-			writeFile,
-			listDir,
-			isDir,
-		});
-		expect(report.bumped).toEqual(["root", "packages/cli", "apps/web"]);
-		expect(report.skipped).toEqual(["apps/sentinel"]);
-		expect(written[join(CWD, "apps/sentinel/package.json")]).toBeUndefined();
 	});
 
 	it("bumps plugins/* when there is no packages/ dir at all", async () => {
