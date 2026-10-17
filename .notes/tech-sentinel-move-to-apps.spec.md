@@ -47,18 +47,19 @@ The tooling already anticipates `apps/`:
 | `pnpm-lock.yaml`                   | regenerate and commit it in the same PR: the importer key and the workspace links are relative to `packages/sentinel`, so `pnpm install --frozen-lockfile` fails otherwise                                                                                            |
 | `apps/sentinel/holocron.config.ts` | the `delivery.previewCheck` and `delivery.previewDeploy` tasks carry `with: { cwd: "packages/sentinel" }` (and the header comments mention `--cwd packages/sentinel`); change them to `apps/sentinel` or the generated preview workflows run from a missing directory |
 | `package-root.ts`                  | no logic change (walks up to `node_modules`), docstring only                                                                                                                                                                                                          |
-| **Vercel project**                 | change the project's _Root Directory_ setting to `apps/sentinel`                                                                                                                                                                                                      |
+| **Vercel project**                 | no change: Sentinel deploys by bare file upload (`deployFunction()`), and the project's Root Directory is `./` (checked in the dashboard), so the repo path is never seen by Vercel                                                                                   |
 
 ## Risk and sequencing
 
-The Vercel root-directory setting is the only step that can break a live
-deploy, and it is outside the repo. Order:
+Sentinel deploys by uploading a staged directory (`deployFunction()`), not
+through a git-linked Vercel build, and the project's Root Directory is `./`,
+so nothing outside the repo needs to change for the move. The risk is a
+workflow or config still pointing at the old path. Order:
 
 1. PR 1 (no behaviour change): teach `deploy-on-release`, the
    workspace globs and the generators about `apps/` while Sentinel still lives
    in `packages/`. Ships and releases on its own.
-2. PR 2: the `git mv`, path updates and doc updates. Merge when the Vercel
-   Root Directory can be flipped at the same time; verify with a preview
+2. PR 2: the `git mv`, path updates and doc updates. Verify with a preview
    deploy and `holocron monitoring check` before merging to `main`.
 3. Update the `docs` repo registry entry if it lists Sentinel's path.
 
@@ -68,8 +69,8 @@ deploy, and it is outside the repo. Order:
   with a GitHub code search across the `theholocron` org: every match is in
   `theholocron/holocron` itself (none in `.github`, `docs`, `configs`,
   `clients`, `utils`, `observability` or `skills`). GitHub's code index can
-  lag, and it does not see Vercel, Checkly or secret-store settings, so the
-  Vercel Root Directory remains the one external setting to change by hand.
+  lag, and it does not see Vercel, Checkly or secret-store settings. The
+  Vercel Root Directory was checked by hand and is `./`.
 - Do we want `apps/` to also be where future deployables (docs site, `docs/`)
   go? `docs` is a workspace entry at the root today; out of scope here.
 
