@@ -362,23 +362,39 @@ Four known gaps, tracked rather than fixed here:
 
 ## Open risks
 
-- **Unverified: does a `deployment_status`-triggered workflow run
-  actually post as a GitHub check on the PR's commit?** A code
-  review on #1015 claimed `deployment_status` runs are associated
-  with the default-branch SHA, not the deployed commit — checked
-  against GitHub's own docs directly: `GITHUB_SHA` for this event is
-  documented as "Commit to be deployed," not the default branch,
-  contradicting that specific claim. What IS real and already handled
-  (the reason `sha`/`ref` are explicit inputs at all): GitHub evaluates
-  _which version of the workflow file itself_ to run from the default
-  branch for this event type (same as `schedule`/`workflow_dispatch`),
-  and `actions/checkout` defaults to that same ref absent an explicit
-  override — a different concern from what the run's own `GITHUB_SHA`
-  resolves to. Whether the resulting check genuinely surfaces on the
-  PR's own Checks tab (the part that would matter for a future
-  `required` check) is still unconfirmed either way — needs a real
-  preview deploy to settle. Deliberately not `required` yet for
-  exactly this reason (see the `delivery.previewCheck` section above).
+- **Resolved live, #1029: the full chain works end to end.** A real PR
+  touching `packages/sentinel/**` (#1029, after
+  `HOLOCRON_DEPLOYMENTS_TOKEN` was provisioned and a one-time `holocron
+sync github`
+  bootstrapped the brand-new `delivery.previewDeploy` reusable
+  workflow onto `theholocron/.github` — necessary for ANY new reusable
+  workflow's first introduction, documented in its own thin-caller
+  comment) confirmed: `deploy` builds and uploads to Vercel,
+  `report` creates a GitHub Deployment with the correct `.sha` and
+  posts `state: success`, that fires a REAL `deployment_status` event,
+  and `delivery.previewCheck` runs behind it — checkout, URL
+  validation, and the `holocron monitoring check` invocation all
+  executed. Settles the question a code review on #1015 raised
+  (whether a `deployment_status`-triggered run genuinely associates
+  with the PR at all) — it does, confirmed live rather than by reading
+  docs alone.
+- **New, found by that same live run: Vercel's Deployment Protection
+  blocks the check from ever reaching the app.** Both assertions
+  failed with `status_code` `302`, not the expected `405`/`401` —
+  `curl -I` against the preview URL directly confirmed why:
+  `location: https://vercel.com/sso-api?...`. Vercel's "Standard
+  Protection" (on by default for Preview deployments) redirects any
+  unauthenticated request to its own SSO login, so `monitoring
+check`'s plain HTTP client never reaches Sentinel's actual webhook
+  handler — the check "passing" or "failing" never reflected real
+  application behavior for a single run yet. Not a bug in this
+  stack's own code: everything upstream of the HTTP request (deploy,
+  deployment creation, `deployment_status`, URL validation, checkout)
+  worked correctly. The real fix is Vercel's "Protection Bypass for
+  Automation" feature — an `x-vercel-protection-bypass` header with a
+  per-project secret skips the SSO wall for exactly this kind of
+  automated caller while leaving human/browser access still protected
+  — not yet implemented; tracked as **#1030**.
 - **`environment_url` presence (resolved for Sentinel)**: no longer
   depends on Vercel's own GitHub integration setting it —
   `delivery.previewDeploy` sets it itself from the real deploy URL, so

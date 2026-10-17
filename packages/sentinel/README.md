@@ -493,7 +493,8 @@ credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
 way for one source of truth).
 
 ```sh
-holocron secrets sync prd --cwd packages/sentinel --project-id sentinel --target production \
+holocron secrets sync prd --cwd packages/sentinel --project-id sentinel \
+  --target production --target preview \
   --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
   --org theholocron --token github=$(gh auth token)
 ```
@@ -508,10 +509,18 @@ has no equivalent of a human's already-authenticated session — see
 root) for why a new, narrowly-scoped token rather than widening an existing
 one.
 
-- **`--target production` only.** Sentinel has no branch-based preview
-  deployments (`deployFunction()` ships inline files, no Git-linked
-  preview flow) — the command's `production`+`preview` default would
-  create a `preview`-target env var here that nothing ever reads.
+- **`--target production --target preview`, both explicitly.** Was
+  `--target production` only, before `delivery.previewDeploy`
+  (holocron#1010/#1022/#1024/#1028) existed — Sentinel's deploy had no
+  per-PR preview concept yet, so a `preview`-target env var here would
+  have gone unread. That's no longer true: `delivery.previewDeploy`
+  deploys a file-upload preview on PRs touching this package (no
+  Git-linked preview flow — still `deployFunction()`, just invoked
+  against the preview target instead of production), and that preview
+  reads the same 5 env vars production does. Both targets are repeated
+  explicitly here even though `secrets sync`'s own default is already
+  `["production", "preview"]`, so a future reader doesn't need to check
+  the CLI source to know preview is covered.
 - **`--github-secret`/`--github-secret-scope`.** Of the 5 Doppler keys,
   only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
   (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
