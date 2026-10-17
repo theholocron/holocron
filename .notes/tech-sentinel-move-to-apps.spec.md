@@ -42,7 +42,7 @@ The tooling already anticipates `apps/`:
 | Workflows                          | `sentinel.deploy.yml`, `sentinel.secretsSync.yml`, `delivery.previewCheck.yml`, `delivery.previewDeploy.yml` — path filters and `working-directory`; the thin-caller ones come from the generator, so fix at the source first                                         |
 | `sync` / `repo setup`              | `packages/cli/src/commands/sync/sync.ts` and its comment on monorepo subpackage write locations; confirm `--cwd apps/sentinel` still resolves the git root                                                                                                            |
 | `deploy-on-release`                | `workspace-packages.ts` scans `packages` and `plugins` only; add `apps` or Sentinel's release-time deploy silently stops                                                                                                                                              |
-| `bump-versions`                    | scans `packages` and `plugins`; Sentinel is private so it is skipped either way, but confirm and add a test                                                                                                                                                           |
+| `bump-versions` / `publish`        | no change: they scan `packages` and `plugins`, which is deliberate. `apps/` holds deployables that are not published to npm, and Sentinel is private (skipped either way). Scanning `apps` in bump-versions only would bump a public app that publish never ships     |
 | Docs / specs                       | README, ADR 0011, `tech-sentinel-*.spec.md`, `AGENTS.md` layout block, `packages/sentinel/scripts/stage-deploy.mjs` comments                                                                                                                                          |
 | `pnpm-lock.yaml`                   | regenerate and commit it in the same PR: the importer key and the workspace links are relative to `packages/sentinel`, so `pnpm install --frozen-lockfile` fails otherwise                                                                                            |
 | `apps/sentinel/holocron.config.ts` | the `delivery.previewCheck` and `delivery.previewDeploy` tasks carry `with: { cwd: "packages/sentinel" }` (and the header comments mention `--cwd packages/sentinel`); change them to `apps/sentinel` or the generated preview workflows run from a missing directory |
@@ -54,7 +54,7 @@ The tooling already anticipates `apps/`:
 The Vercel root-directory setting is the only step that can break a live
 deploy, and it is outside the repo. Order:
 
-1. PR 1 (no behaviour change): teach `deploy-on-release`, `bump-versions`,
+1. PR 1 (no behaviour change): teach `deploy-on-release`, the
    workspace globs and the generators about `apps/` while Sentinel still lives
    in `packages/`. Ships and releases on its own.
 2. PR 2: the `git mv`, path updates and doc updates. Merge when the Vercel

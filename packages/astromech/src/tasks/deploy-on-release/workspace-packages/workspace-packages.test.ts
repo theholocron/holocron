@@ -39,6 +39,25 @@ describe("workspacePackages", () => {
 		]);
 	});
 
+	it("also discovers apps/* packages, so a deployable app can declare an on-release deploy", () => {
+		const files: Record<string, unknown> = {
+			"/repo/packages/cli/package.json": { name: "@theholocron/cli" },
+			"/repo/apps/sentinel/package.json": { name: "@theholocron/sentinel" },
+		};
+		const tree = {
+			readJson: (path: string) => {
+				if (!(path in files)) throw new Error(`ENOENT: ${path}`);
+				return files[path];
+			},
+			listDirs: (dirPath: string) =>
+				dirPath.endsWith("apps") ? ["sentinel"] : dirPath.endsWith("packages") ? ["cli"] : [],
+		};
+		expect(workspacePackages("/repo", tree).map((p) => p.name)).toEqual([
+			"@theholocron/cli",
+			"@theholocron/sentinel",
+		]);
+	});
+
 	it("treats a missing plugins/ directory as empty rather than throwing", () => {
 		const tree = {
 			readJson: (path: string) => {
