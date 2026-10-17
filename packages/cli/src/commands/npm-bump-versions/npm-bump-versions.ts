@@ -49,6 +49,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	// repo with neither just gets the root bump.
 	const listed = new Set<string>();
 	const workspace = listWorkspacePackagesSync(cwd, {
+		roots: ["packages", "apps", "plugins"],
 		readFile,
 		listDirs: (dir) => {
 			let names: string[];
