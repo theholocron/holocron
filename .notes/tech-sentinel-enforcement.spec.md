@@ -265,7 +265,7 @@ than filed as its own issue.
 
 ## Scope
 
-- New Sentinel action (`packages/sentinel/src/actions/commit-standards/lint-commits/lint-commits.ts`,
+- New Sentinel action (`apps/sentinel/src/actions/commit-standards/lint-commits/lint-commits.ts`,
   parallel shape to `sync-properties.ts`/`post-check-run.ts`): fetch PR
   commits, lint each message, aggregate pass/fail + which commit(s)
   violated which rule(s).
@@ -275,7 +275,7 @@ than filed as its own issue.
   structurally PR-scoped, unlike capability compliance which also runs on
   `push.default-branch`.
 - `@theholocron/commitlint-config` + `commitlint` become real Sentinel
-  dependencies (`packages/sentinel/package.json`).
+  dependencies (`apps/sentinel/package.json`).
 - No `holocron.config.ts` schema change for this slice — commit-message
   rules have no genuine per-repo variance to declare (see "Design
   principle," above). Not a constraint on future checks that might.

@@ -9,7 +9,7 @@
  * Three separate invocations, different frequency:
  *   - `pnpm run delivery.deploy` (recurring, every real deploy):
  *     build → stage → `holocron deploy --target production`.
- *   - `holocron repo setup --cwd packages/sentinel` (one-time, manual):
+ *   - `holocron repo setup --cwd apps/sentinel` (one-time, manual):
  *     attaches the custom domain to the Vercel project and hands any
  *     verification CNAME to the `dns` provider — `source` being
  *     unconfigured means every repo-settings step is skipped
@@ -116,7 +116,7 @@ export default defineConfig({
 		// instead of this file. Fixed properly (holocron#1014) — both tasks
 		// now flow through the normal `holocron repo sync` path, no
 		// hand-maintained workflow file needed for either.
-		{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } },
+		{ name: "delivery.previewCheck", with: { cwd: "apps/sentinel" } },
 		// Un-deferred (#1022 released as @theholocron/astromech@5.0.0-alpha.145,
 		// and Sentinel redeployed with that bundle in the same release's
 		// deploy-on-release job) — was deliberately left out until both of
@@ -128,7 +128,7 @@ export default defineConfig({
 		// Sentinel has redeployed with the updated bundle (confirmed live:
 		// this exact failure on holocron#1019's platform.syncTemplates,
 		// same root cause).
-		{ name: "delivery.previewDeploy", with: { cwd: "packages/sentinel" } },
+		{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel" } },
 	],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],

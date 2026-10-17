@@ -10,12 +10,12 @@
     "theholocron",
     "webhook"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/packages/sentinel#readme",
+  "homepage": "https://github.com/theholocron/holocron/tree/main/apps/sentinel#readme",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "packages/sentinel"
+    "directory": "apps/sentinel"
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",

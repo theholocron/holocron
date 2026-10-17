@@ -246,7 +246,7 @@ describe("validateConfig", () => {
 		// holocron#780 shipped was theholocron/react-template's Capability
 		// Compliance check failing with "Cannot find package
 		// '@theholocron/holocron-config'" -- this package was never a
-		// dependency of packages/sentinel itself, so it was never installed
+		// dependency of apps/sentinel itself, so it was never installed
 		// into the symlinked node_modules validateConfig() resolves through.
 		// react-template's own config (compose/react/wiki, mirrored below) was
 		// always valid; the gap was entirely on this side (holocron#782).

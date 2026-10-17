@@ -66,7 +66,7 @@ capability. Full list, kept as one running backlog: #674.
 
 ## Resolved
 
-- **Package location: `packages/sentinel`, published as
+- **Package location: `apps/sentinel`, published as
   `@theholocron/sentinel`.** Matches the naming precedent for
   core-platform packages — `astromech`, `datapad`, `cli`, `logger` all
   publish as `@theholocron/<name>`, no prefix (unlike vendor plugins,
@@ -100,7 +100,7 @@ Workers or Node either way), and a `Workers.deployScript()` capability
 extension (`packages/cli` + `holocron-plugin-cloudflare`, #729) for
 deploying an arbitrary script, not only the existing wiki reverse-proxy.
 
-**Reversed once `packages/sentinel/src/handler/handler.ts` actually got built**,
+**Reversed once `apps/sentinel/src/handler/handler.ts` actually got built**,
 targeting the real blocker: `validateConfig()` fetches a repo's
 `holocron.config.*` and executes it as a real module — including
 `import { defineConfig } from "@theholocron/cli"`, its own documented
@@ -156,7 +156,7 @@ shipped, in what order.
 
 ## PR-stack
 
-- [x] Scaffold `packages/sentinel` (`@theholocron/sentinel`): package.json,
+- [x] Scaffold `apps/sentinel` (`@theholocron/sentinel`): package.json,
       tsconfig, empty webhook-receiver entry point — no deploy target wired
       yet, only the package existing and typechecking/building in the
       workspace (#718). Its own `holocron.config.ts` deferred to the deploy
@@ -238,7 +238,7 @@ shipped, in what order.
       (D3) names `tasks:` entries backed by a reusable CI workflow and
       this check has no workflow at all; exported as
       `SENTINEL_CHECK_RUN_NAME` so nothing hand-copies the string.
-      Also reorganized `packages/sentinel/src/` into `utils/` (read-only:
+      Also reorganized `apps/sentinel/src/` into `utils/` (read-only:
       `validateConfig`, `parseWebhookEvent`, `decodeContents`,
       `findPackageRoot`) and `actions/` (writes: `syncPropertiesFromConfig`,
       `postCheckRun`) — the read/write split a future webhook handler
@@ -309,7 +309,7 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       positional. Errors plainly when the configured provider has no
       `deployFunction` (optional capability method).
 - [x] Sentinel's own `holocron.config.ts`
-      (`packages/sentinel/holocron.config.ts`) — wires `deployment`
+      (`apps/sentinel/holocron.config.ts`) — wires `deployment`
       (Vercel, `teamId: "team_YrFqXg1QceAu0CdYdBmrDpop"`) + `vault`
       (Doppler — chosen over Infisical/1Password; the latter is
       CLI-shell-out only, unusable in CI per ADR-0001).
@@ -317,7 +317,7 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       Doppler project nor the GitHub App exist yet; nothing to
       populate until the still-pending items below build the App and
       the actual sync. Verified end-to-end with a
-      dry-run invocation (`packages/sentinel/README.md`'s "Deploying"
+      dry-run invocation (`apps/sentinel/README.md`'s "Deploying"
       section has the exact command) — the config resolves and reports
       `would: vercel.deployFunction(...)` correctly. A
       package-root `holocron.config.ts` inside a monorepo package
@@ -355,8 +355,8 @@ validateConfig → syncPropertiesFromConfig → postCheckRun` into a
       from the real registry and the build succeeded.
 - [ ] GitHub App registration (manual) — full instructions (permissions,
       events, webhook URL/secret, private key) documented in
-      `packages/sentinel/README.md`'s "GitHub App registration" section.
+      `apps/sentinel/README.md`'s "GitHub App registration" section.
       Blocked on knowing the right webhook URL, which the custom-domain
       automation above resolves — `sentinel.theholocron.dev` once
-      `holocron setup --cwd packages/sentinel` runs.
+      `holocron setup --cwd apps/sentinel` runs.
 - [ ] Secrets flow: `holocron secrets sync` → Vercel env vars.

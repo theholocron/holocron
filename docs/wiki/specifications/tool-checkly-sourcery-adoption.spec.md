@@ -142,7 +142,7 @@ Sentinel secret lives in — no new vault. `holocron secrets sync` fans
 ### Config
 
 ```ts
-// packages/sentinel/holocron.config.ts
+// apps/sentinel/holocron.config.ts
 providers: {
 	monitoring: [
 		"checkly",
@@ -190,7 +190,7 @@ secrets sync`), the Checkly key is a provisioning-time credential
    the deployed function. OS keychain is the right (and final) home
    for it — same pattern as the Vercel and Cloudflare tokens, neither
    of which live in Doppler either.
-5. ~~`holocron repo setup --cwd packages/sentinel` to provision the
+5. ~~`holocron repo setup --cwd apps/sentinel` to provision the
    check.~~ Done, after two real-world fixes (see ADR-0013):
    - First attempt failed — `POST /checks/api → 400` (missing
      `locations`) — fixed by adding `locations: ["us-east-1"]`.

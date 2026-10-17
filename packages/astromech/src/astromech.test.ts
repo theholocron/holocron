@@ -308,10 +308,10 @@ describe("createAstromech().thinCallers", () => {
 	it("merges a monorepo package's cwd into the delivery.previewCheck caller's existing with: block", () => {
 		const astromech = createAstromech({
 			cwd: "/repo",
-			config: { tasks: [{ name: "delivery.previewCheck", with: { cwd: "packages/sentinel" } }] },
+			config: { tasks: [{ name: "delivery.previewCheck", with: { cwd: "apps/sentinel" } }] },
 		});
 		const previewCheck = astromech.thinCallers().get("delivery.previewCheck.yml")!;
-		expect(previewCheck).toContain("cwd: packages/sentinel");
+		expect(previewCheck).toContain("cwd: apps/sentinel");
 		// The static, event-derived values still carry over alongside it.
 		expect(previewCheck).toContain("preview-url: ${{ github.event.deployment_status.environment_url }}");
 	});

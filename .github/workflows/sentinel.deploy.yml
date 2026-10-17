@@ -1,14 +1,14 @@
 # Sentinel's own CI-based deploy (holocron#800). NOT astromech-templated —
-# this repo owns Sentinel directly (packages/sentinel/), so this workflow is
+# this repo owns Sentinel directly (apps/sentinel/), so this workflow is
 # hand-maintained here rather than generated + synced to theholocron/.github
 # for other repos to use.
 #
 # Two triggers, not a replacement of the local `pnpm run delivery.deploy`
-# path (packages/sentinel/README.md's own "Deploying" section still applies
+# path (apps/sentinel/README.md's own "Deploying" section still applies
 # for a from-source-checkout deploy):
 #   - `workflow_dispatch` — manual, on demand, no local Vercel credentials
 #     or local build needed.
-#   - `push` to `main` (not `alpha`) touching `packages/sentinel/**` — this
+#   - `push` to `main` (not `alpha`) touching `apps/sentinel/**` — this
 #     repo's stable/prerelease split (CLAUDE.md's Releases section) means
 #     Sentinel only redeploys once work is promoted to the stable channel,
 #     not on every alpha merge. `main`'s branch protection only allows
@@ -30,7 +30,7 @@ on: # yamllint disable-line rule:truthy
     branches:
       - main
     paths:
-      - "packages/sentinel/**"
+      - "apps/sentinel/**"
   workflow_dispatch: {}
 
 concurrency:
@@ -55,5 +55,5 @@ jobs:
         name: Setup
 
       - name: Build, stage, and deploy
-        working-directory: packages/sentinel
+        working-directory: apps/sentinel
         run: pnpm run delivery.deploy

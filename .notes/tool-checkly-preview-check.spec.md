@@ -113,8 +113,8 @@ repo whose own root `holocron.config.ts` carries the task —
 `holocron repo sync`'s thin-caller write was relative to `--cwd`, not
 the actual git repo root, so it silently broke for a _monorepo
 sub-package_ (confirmed live: a real `repo sync --cwd
-packages/sentinel` wrote a whole parallel, GitHub-invisible `.github/`
-tree inside `packages/sentinel/` instead of this repo's real root
+apps/sentinel` wrote a whole parallel, GitHub-invisible `.github/`
+tree inside `apps/sentinel/` instead of this repo's real root
 `.github/workflows/`). Fixed at the root — `findGitRoot()`
 (`packages/cli/src/utils/find-git-root.ts`) resolves the real git root
 independently of `--cwd`, and every repo-wide write in `sync.ts`

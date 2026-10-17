@@ -398,7 +398,7 @@ underlying capability. Full list, kept as one running backlog: #674.
 
 **Open, not yet decided:** superseded by the dedicated workstream spec,
 `docs/wiki/specifications/tech-sentinel-v1.spec.md` — package location and secrets storage are
-resolved there (`packages/sentinel`, `@theholocron/sentinel`, the existing
+resolved there (`apps/sentinel`, `@theholocron/sentinel`, the existing
 `vault` capability); deploy target (Vercel vs. Cloudflare Workers) stays
 open.
 
