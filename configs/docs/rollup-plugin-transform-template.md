@@ -1,0 +1,48 @@
+---
+title: Rollup Plugin Transform Template
+description: Rollup, Vite and Rolldown plugin that imports template files as strings.
+---
+
+`@theholocron/rollup-plugin-transform-template` turns template files into default-exported strings, so a build or a test run can import them directly. It works with tsdown, Vite, Vitest and Rolldown.
+
+## Install
+
+```bash
+pnpm add -D @theholocron/rollup-plugin-transform-template
+```
+
+## Usage
+
+```ts
+// tsdown.config.ts / vite.config.ts / vitest.config.ts
+import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
+
+export default defineConfig({
+  plugins: [transformTemplate({ dirs: ["/src/templates/"] })],
+});
+```
+
+Then import a template file like any module; the default export is its text:
+
+```ts
+import labelerBody from "./labeler.yml";
+```
+
+## What gets transformed
+
+| File type              | Condition                          | Result                                         |
+| ---------------------- | ---------------------------------- | ---------------------------------------------- |
+| `.yml`, `.md`          | Always                             | Default-exported string                        |
+| Any non-JSON extension | Path contains a string from `dirs` | Default-exported string                        |
+| `.json`                | Even inside `dirs`                 | Not transformed: bundlers import JSON natively |
+| `.ts`, `.tsx`          | Even inside `dirs`                 | Not transformed: source files, not templates   |
+
+## Options
+
+| Option | Type       | Default | Description                                                                                    |
+| ------ | ---------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `dirs` | `string[]` | `[]`    | Path substrings; a matching file that is not `.json`, `.ts` or `.tsx` is turned into a string. |
+
+## TypeScript
+
+Add `@theholocron/rollup-plugin-transform-template/client` to `types` in your `tsconfig.json` so `*.yml` and `*.md` imports are typed as strings.
