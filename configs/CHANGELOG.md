@@ -1,3 +1,9 @@
+## [8.8.0](https://github.com/theholocron/configs/compare/v8.7.1...v8.8.0) (2026-10-17)
+
+### Features
+
+* ✨ move rollup-plugin-transform-template here under a new plugins directory ([#500](https://github.com/theholocron/configs/issues/500)) ([8d2528e](https://github.com/theholocron/configs/commit/8d2528e3f5aab63bca0eaca5833b30190d6a8f18))
+
 ## [8.7.1](https://github.com/theholocron/configs/compare/v8.7.0...v8.7.1) (2026-10-08)
 
 ### Bug Fixes
