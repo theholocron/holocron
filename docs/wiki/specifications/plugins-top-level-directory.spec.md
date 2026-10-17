@@ -36,7 +36,8 @@ redesigning.
 All 16: `holocron-plugin-{1password,axiom,clerk,cloudflare,discord,doppler,
 fern,github,infisical,neon,netlify,posthog,postman,sentry,slack,vercel}`
 → `plugins/holocron-plugin-<name>`. `cli`, `astromech`, `datapad`,
-`sentinel`, `rollup-plugin-transform-template` stay in `packages/`.
+`sentinel` stay in `packages/`. (`rollup-plugin-transform-template` has since moved
+out of this repo to `theholocron/configs` under `plugins/`.)
 
 ### B. Workspace / tooling config
 

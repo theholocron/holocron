@@ -27,7 +27,7 @@ runs:
     # mirrored here so it also covers *nested* `holocron run <task> --`
     # calls from inside package.json scripts, which that action's own guard
     # doesn't reach. `pnpm build` (not a scoped `--filter`) so the CLI's own
-    # workspace dependencies (e.g. rollup-plugin-transform-template) build
+    # workspace dependencies (e.g. astromech) build
     # in topological order too — a scoped build skips them and fails.
     # No-op in every consumer repo, where the published tarball already
     # ships `dist/`.

@@ -22,9 +22,9 @@
 
 import { findUpward, hasGitEntry } from "@theholocron/fs-utils";
 
-import { DEFAULT_EXTENSIONS } from "./default-extensions.js";
+import { DEFAULT_EXTENSIONS } from "../default-extensions/index.js";
+import { probeExtensions } from "../probe-extensions/index.js";
 import type { LoadConfigFileOptions, Loaded } from "./load-config-file.type.js";
-import { probeExtensions } from "./probe-extensions.js";
 
 /**
  * Load the first `<name>.config.<ext>` found starting at `cwd` — just

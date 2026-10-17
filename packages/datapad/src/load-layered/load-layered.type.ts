@@ -1,4 +1,4 @@
-import type { LoadConfigFileOptions, Loaded } from "./load-config-file.type.js";
+import type { LoadConfigFileOptions, Loaded } from "../load-config-file/index.js";
 
 export interface LoadLayeredOptions<T = unknown> extends LoadConfigFileOptions {
 	/**

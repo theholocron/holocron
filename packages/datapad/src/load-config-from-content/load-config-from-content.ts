@@ -1,9 +1,9 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { Loaded } from "./load-config-file.type.js";
+import type { Loaded } from "../load-config-file/index.js";
+import { loadFile } from "../load-file/index.js";
 import type { LoadConfigFromContentOptions } from "./load-config-from-content.type.js";
-import { loadFile } from "./load-file.js";
 
 /**
  * Load config from content that didn't come from a file already on disk —

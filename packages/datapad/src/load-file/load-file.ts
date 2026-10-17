@@ -13,7 +13,7 @@ import { pathToFileURL } from "node:url";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { ConfigFileError } from "./errors.js";
+import { ConfigFileError } from "../errors/index.js";
 
 export async function loadFile<T>(filepath: string, ext: string): Promise<T> {
 	if (ext === "json") return loadJson<T>(filepath);

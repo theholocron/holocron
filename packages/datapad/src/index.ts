@@ -26,18 +26,18 @@
  * ```
  */
 
-export { DEFAULT_EXTENSIONS } from "./default-extensions.js";
-export { createDefineConfig } from "./define.js";
-export { ConfigFileError } from "./errors.js";
-export { loadConfigFile } from "./load-config-file.js";
-export type { LoadConfigFileOptions, Loaded } from "./load-config-file.type.js";
-export { loadConfigFromContent } from "./load-config-from-content.js";
-export type { LoadConfigFromContentOptions } from "./load-config-from-content.type.js";
-export { loadLayered } from "./load-layered.js";
-export type { LayeredResult, LoadLayeredOptions } from "./load-layered.type.js";
-export { mergeLayers } from "./merge-layers.js";
-export { readConfigSource } from "./read-config-source.js";
-export type { ConfigSource, ReadConfigSourceOptions } from "./read-config-source.type.js";
-export { withConfigSandbox } from "./with-config-sandbox.js";
-export type { ConfigSandboxOptions } from "./with-config-sandbox.type.js";
+export { DEFAULT_EXTENSIONS } from "./default-extensions/index.js";
+export { createDefineConfig } from "./define/index.js";
+export { ConfigFileError } from "./errors/index.js";
+export type { LoadConfigFileOptions, Loaded } from "./load-config-file/index.js";
+export { loadConfigFile } from "./load-config-file/index.js";
+export type { LoadConfigFromContentOptions } from "./load-config-from-content/index.js";
+export { loadConfigFromContent } from "./load-config-from-content/index.js";
+export type { LayeredResult, LoadLayeredOptions } from "./load-layered/index.js";
+export { loadLayered } from "./load-layered/index.js";
+export { mergeLayers } from "./merge-layers/index.js";
+export type { ConfigSource, ReadConfigSourceOptions } from "./read-config-source/index.js";
+export { readConfigSource } from "./read-config-source/index.js";
+export type { ConfigSandboxOptions } from "./with-config-sandbox/index.js";
+export { withConfigSandbox } from "./with-config-sandbox/index.js";
 export { deepMerge as mergeConfig } from "@theholocron/object-utils";

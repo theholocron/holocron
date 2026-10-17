@@ -1,4 +1,4 @@
-import { DEFAULT_EXTENSIONS } from "./default-extensions.js";
+import { DEFAULT_EXTENSIONS } from "../default-extensions/index.js";
 import type { ConfigSource, ReadConfigSourceOptions } from "./read-config-source.type.js";
 
 /**
