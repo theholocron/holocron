@@ -1,6 +1,6 @@
-import { loadConfigFile } from "./load-config-file.js";
+import { loadConfigFile } from "../load-config-file/index.js";
+import { mergeLayers } from "../merge-layers/index.js";
 import type { LayeredResult, LoadLayeredOptions } from "./load-layered.type.js";
-import { mergeLayers } from "./merge-layers.js";
 
 /**
  * `<name>.config.*` layered over the `[fallback.key]` of

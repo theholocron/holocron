@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ConfigFileError } from "./errors.js";
+import { ConfigFileError } from "../errors/index.js";
 import { loadConfigFromContent } from "./load-config-from-content.js";
 
 describe("loadConfigFromContent", () => {

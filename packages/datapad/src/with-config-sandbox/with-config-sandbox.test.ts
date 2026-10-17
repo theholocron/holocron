@@ -4,7 +4,7 @@ import { basename, dirname, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { loadConfigFromContent } from "./load-config-from-content.js";
+import { loadConfigFromContent } from "../load-config-from-content/index.js";
 import { withConfigSandbox } from "./with-config-sandbox.js";
 
 const exists = (path: string) =>
