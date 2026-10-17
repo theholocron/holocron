@@ -62,8 +62,12 @@ deploy, and it is outside the repo. Order:
 
 ## Open questions
 
-- Does anything outside this repo hard-code `packages/sentinel` (the `.github`
-  sync targets, Checkly, Doppler/secrets-sync config)?
+- ~~Does anything outside this repo hard-code `packages/sentinel`?~~ Checked
+  with a GitHub code search across the `theholocron` org: every match is in
+  `theholocron/holocron` itself (none in `.github`, `docs`, `configs`,
+  `clients`, `utils`, `observability` or `skills`). GitHub's code index can
+  lag, and it does not see Vercel, Checkly or secret-store settings, so the
+  Vercel Root Directory remains the one external setting to change by hand.
 - Do we want `apps/` to also be where future deployables (docs site, `docs/`)
   go? `docs` is a workspace entry at the root today; out of scope here.
 

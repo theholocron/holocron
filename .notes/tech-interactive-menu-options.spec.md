@@ -95,13 +95,29 @@ repeat, secrets are omitted from argv and set in the child's env by
 3. Update `AGENTS.md` (interactive-fallback bullet) and
    `packages/cli/README.md`.
 
+## Findings from surveying `cli.ts`
+
+- **Required options exist.** `deploy cleanup-preview` declares `--project`
+  with `demandOption: true`. `deploy` needs `--project-id` but enforces it in
+  the handler, not in yargs (a comment explains that `demandOption` would be
+  inherited by nested subcommands). Both behave like positionals: the menu
+  must always prompt for them, so `OptionPrompt` needs `required?: boolean`
+  and the drift test must treat handler-enforced options as required too.
+- **Dependent options are not only `--otp` after `--initial`.** `deploy` has
+  `.conflicts("files", "branch")`: choosing `--files` should skip the
+  `branch` question and vice versa. So `when` has to be a general predicate
+  over earlier answers, not a one-off. No `.implies()` or `.check()` calls
+  exist today.
+- Everything else is an independent optional flag, which the multi-select
+  covers.
+
 ## Open questions
 
-- Should `when` support dependencies between options generally, or is
-  `--otp` after `--initial` the only case? Start with a plain predicate.
-- Required-ness: yargs `demandOption` options behave like positionals (always
-  prompted). Does any command use that today?
-- Persisting last-used answers per command (opt-in) — out of scope here.
+- Handler-enforced requirements are invisible to yargs. Either move them into
+  yargs (`demandOption` on the leaf command only) or list them explicitly as
+  `required: true` in the registry. Prefer the registry; changing yargs
+  behaviour is out of scope.
+- Persisting last-used answers per command (opt-in) is out of scope here.
 
 ## Verification
 
