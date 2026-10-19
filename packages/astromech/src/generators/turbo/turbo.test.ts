@@ -112,6 +112,74 @@ describe("turboConfig", () => {
 		// ineligible task suddenly fan out.
 		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { passThroughEnv: ["FOO"] } }] })).toBeNull();
 	});
+
+	it("appends a per-repo turbo.inputs override to the registry default, not replacing it (holocron#845)", () => {
+		// theholocron/configs is entirely flat-layout (index.ts, presets/*.ts,
+		// … directly under the package root, no src/ directory anywhere) —
+		// the registry's "src/**" default matches nothing there, so turbo's
+		// content hash never changes when real source changes.
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toEqual([
+			"src/**",
+			"package.json",
+			"tsdown.config.ts",
+			"vite.config.ts",
+			"rollup.config.ts",
+			"tsconfig.json",
+			"**/*.ts",
+		]);
+	});
+
+	it("omits the inputs override entirely when none is given — the registry default is used as-is", () => {
+		const content = turboConfig({ tasks: ["delivery.build"] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toEqual([
+			"src/**",
+			"package.json",
+			"tsdown.config.ts",
+			"vite.config.ts",
+			"rollup.config.ts",
+			"tsconfig.json",
+		]);
+	});
+
+	it("ignores an empty inputs override the same as no override", () => {
+		const content = turboConfig({ tasks: [{ name: "delivery.build", turbo: { inputs: [] } }] });
+		const withoutOverride = turboConfig({ tasks: ["delivery.build"] });
+		expect(content).toEqual(withoutOverride);
+	});
+
+	it("leaves outputs/dependsOn untouched when only inputs is overridden", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }],
+		});
+		const withOverride = JSON.parse(content!) as {
+			tasks: Record<string, { outputs: string[]; dependsOn: string[] }>;
+		};
+		const withoutOverride = JSON.parse(turboConfig({ tasks: ["delivery.build"] })!) as typeof withOverride;
+		expect(withOverride.tasks["delivery.build"]?.outputs).toEqual(withoutOverride.tasks["delivery.build"]?.outputs);
+		expect(withOverride.tasks["delivery.build"]?.dependsOn).toEqual(
+			withoutOverride.tasks["delivery.build"]?.dependsOn
+		);
+	});
+
+	it("an inputs override on a task with no turbo entry stays a no-op", () => {
+		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { inputs: ["**/*.ts"] } }] })).toBeNull();
+	});
+
+	it("combines a passThroughEnv override and an inputs override on the same task", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"], inputs: ["**/*.ts"] } }],
+		});
+		const parsed = JSON.parse(content!) as {
+			tasks: Record<string, { inputs: string[]; passThroughEnv?: string[] }>;
+		};
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["SENTRY_AUTH_TOKEN"]);
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+	});
 });
 
 // theholocron/observability's real pnpm-workspace.yaml (#692's actual repro)

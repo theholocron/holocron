@@ -31,6 +31,15 @@ export interface TaskEntry {
 	turbo?: {
 		/** Extra env vars turbo hashes into this task's cache key, appended to the registry default (empty when the task has none). */
 		passThroughEnv?: string[];
+		/**
+		 * Extra input globs appended to the registry default's `inputs`
+		 * (holocron#845) — for a package whose layout the registry's
+		 * `"src/**"` default doesn't cover (e.g. a flat-layout package with
+		 * no `src/` directory at all). Appended, not replaced: the
+		 * registry's other inputs (`package.json`, `tsdown.config.ts`, …)
+		 * stay tracked without needing to be repeated here.
+		 */
+		inputs?: string[];
 	};
 }
 

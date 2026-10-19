@@ -43,7 +43,14 @@ export function turboConfig(config: TasksConfig): string | null {
 		const turbo = TASKS[entry.name]?.turbo;
 		if (!turbo) continue;
 		const extraEnv = entry.turbo?.passThroughEnv;
-		tasks[entry.name] = extraEnv && extraEnv.length > 0 ? { ...turbo, passThroughEnv: extraEnv } : turbo;
+		const extraInputs = entry.turbo?.inputs;
+		const overrides: { passThroughEnv?: string[]; inputs?: string[] } = {};
+		if (extraEnv && extraEnv.length > 0) overrides.passThroughEnv = extraEnv;
+		// Appended, not replaced (holocron#845) -- a flat-layout package adds
+		// its own glob (e.g. "**/*.ts") without losing the registry's other
+		// tracked inputs (package.json, tsdown.config.ts, …).
+		if (extraInputs && extraInputs.length > 0) overrides.inputs = [...turbo.inputs, ...extraInputs];
+		tasks[entry.name] = Object.keys(overrides).length > 0 ? { ...turbo, ...overrides } : turbo;
 	}
 
 	if (Object.keys(tasks).length === 0) return null;
