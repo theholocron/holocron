@@ -470,15 +470,28 @@ sync github`
   `#1057`'s own investigation) that Vercel forwards
   `x-vercel-protection-bypass` straight through to the deployed
   function; nothing stops that code reading and exfiltrating it.
-  Fixed by carrying `github.event.pull_request.author_association`
-  (only available in `delivery.previewDeploy`'s own `pull_request`
-  trigger) into the GitHub deployment's `payload` field, read back by
-  `delivery.previewCheck` — triggered by `deployment_status`, which
-  has no `pull_request` context of its own. Neither secret is ever put
-  in a step's `env:` unless that association is `OWNER`/`MEMBER`/
-  `COLLABORATOR` — fail-closed, so a deployment created some other way
-  (anyone with `deployments: write` can create one directly via the
-  API) or missing the payload entirely gets no credential. An
+  Fixed by carrying the PR author's real push-access level — `GET
+/repos/{owner}/{repo}/collaborators/{login}/permission`, resolved in
+  `delivery.previewDeploy`'s own `pull_request`-triggered job, where
+  `github.event.pull_request.user.login` is available — into the
+  GitHub deployment's `payload` field, read back by
+  `delivery.previewCheck`, which is triggered by `deployment_status`
+  and has no `pull_request` context of its own. **First attempt used
+  `github.event.pull_request.author_association` instead and shipped
+  live before catching a real bug in it**: that field only reports
+  `MEMBER` for a _publicly visible_ org membership — confirmed live on
+  this exact repo that a maintainer with private `theholocron`
+  membership reads as `CONTRIBUTOR`, which would have fail-closed on
+  every PR they open, not just untrusted ones. The collaborator
+  permission lookup reflects actual access (direct collaborator, team
+  membership, or org default) independent of any profile visibility
+  setting, and needs only the baseline "Metadata: read" permission
+  every token already has — no new token scope required. Neither
+  secret is ever put in a step's `env:` unless that permission is
+  `admin`/`maintain`/`write` — fail-closed, so a deployment created
+  some other way (anyone with `deployments: write` can create one
+  directly via the API) or missing the payload entirely gets no
+  credential. An
   untrusted deployment's check still runs, just without the bypass
   header — failing loudly against Deployment Protection (the pre-#1032
   symptom, for that population only) rather than silently skipping the

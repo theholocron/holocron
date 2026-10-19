@@ -279,11 +279,13 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// verification alone doesn't help, since the deployment
 		// legitimately belongs to the protected project.
 		expect(previewCheck).toMatch(
-			/id: trust[\s\S]*AUTHOR_ASSOCIATION: \$\{\{ github\.event\.deployment\.payload\.author_association \}\}/
+			/id: trust[\s\S]*PERMISSION: \$\{\{ github\.event\.deployment\.payload\.collaborator_permission \}\}/
 		);
-		// Fail-closed: anything other than OWNER/MEMBER/COLLABORATOR sets
-		// trusted=false, including a missing/unrecognized association.
-		expect(previewCheck).toMatch(/OWNER \| MEMBER \| COLLABORATOR\) trusted=true ;;/);
+		// Fail-closed: anything other than admin/maintain/write sets
+		// trusted=false, including a missing/unrecognized permission.
+		// Deliberately not author_association -- see the dedicated test
+		// below for why.
+		expect(previewCheck).toMatch(/admin \| maintain \| write\) trusted=true ;;/);
 		expect(previewCheck).toContain(
 			"VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}"
 		);
@@ -309,15 +311,26 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		);
 	});
 
-	it("delivery.previewDeploy carries the PR author's association into the deployment payload (holocron#1057)", () => {
+	it("delivery.previewDeploy carries the PR author's real collaborator permission into the deployment payload (holocron#1057)", () => {
 		const previewDeploy = REUSABLE_WORKFLOWS["delivery.previewDeploy"]!;
 		// deployment_status (what delivery.previewCheck is triggered by) has
 		// no pull_request context of its own -- this is the only way that
 		// workflow can later tell a trusted author's own PR apart from
 		// anyone else's without a second API call.
-		expect(previewDeploy).toContain("AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}");
-		expect(previewDeploy).toMatch(/--arg assoc "\$AUTHOR_ASSOCIATION"/);
-		expect(previewDeploy).toMatch(/payload:\s*\{\s*author_association:\s*\$assoc\s*\}/);
+		expect(previewDeploy).toContain("AUTHOR: ${{ github.event.pull_request.user.login }}");
+		// Deliberately the real GET .../collaborators/{login}/permission
+		// lookup, not github.event.pull_request.author_association --
+		// confirmed live that author_association only reports MEMBER for
+		// a *publicly visible* org membership, so a maintainer with
+		// private org membership reads as CONTRIBUTOR instead and would
+		// wrongly fail-closed on their own PRs. This lookup needs only
+		// the "Metadata: read" permission every token already has -- no
+		// new scope required.
+		expect(previewDeploy).toMatch(
+			/permission=\$\(gh api "repos\/\$\{GITHUB_REPOSITORY\}\/collaborators\/\$\{AUTHOR\}\/permission" --jq '\.permission \/\/ "none"'/
+		);
+		expect(previewDeploy).toMatch(/--arg permission "\$permission"/);
+		expect(previewDeploy).toMatch(/payload:\s*\{\s*collaborator_permission:\s*\$permission\s*\}/);
 	});
 
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {

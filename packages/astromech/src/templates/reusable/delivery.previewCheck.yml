@@ -100,23 +100,30 @@ jobs:
       - name: Resolve author trust from the deployment payload
         id: trust
         env:
-          AUTHOR_ASSOCIATION: ${{ github.event.deployment.payload.author_association }}
+          PERMISSION: ${{ github.event.deployment.payload.collaborator_permission }}
         run: |
           # Carried forward from delivery.previewDeploy's own
-          # github.event.pull_request.author_association, via the
+          # GET .../collaborators/{login}/permission lookup, via the
           # deployment's `payload` field -- deployment_status has no
-          # pull_request context of its own to read this from directly
-          # (holocron#1057: the bypass header reaches this PR's own
-          # deployed code over the wire, so nothing stops that code
-          # reading and exfiltrating it; project-ownership verification
-          # alone doesn't help, since the deployment legitimately
-          # belongs to the protected project). Missing or unrecognized
-          # -> untrusted (fail-closed): a deployment created some other
-          # way (anyone with `deployments: write` can create one
-          # directly via the API) carries no such payload at all, and
-          # an absent credential is safer than a wrongly granted one.
-          case "$AUTHOR_ASSOCIATION" in
-            OWNER | MEMBER | COLLABORATOR) trusted=true ;;
+          # pull_request context of its own to re-run that lookup from
+          # directly (holocron#1057: the bypass header reaches this
+          # PR's own deployed code over the wire, so nothing stops
+          # that code reading and exfiltrating it; project-ownership
+          # verification alone doesn't help, since the deployment
+          # legitimately belongs to the protected project).
+          # Deliberately not author_association -- that field only
+          # reports MEMBER for a *publicly visible* org membership, so
+          # a maintainer with private org membership reads as
+          # CONTRIBUTOR instead and would wrongly fail-closed on their
+          # own PRs (confirmed live on this exact repo). admin/
+          # maintain/write are the three roles GitHub itself treats as
+          # push-capable. Missing or unrecognized -> untrusted
+          # (fail-closed): a deployment created some other way (anyone
+          # with `deployments: write` can create one directly via the
+          # API) carries no such payload at all, and an absent
+          # credential is safer than a wrongly granted one.
+          case "$PERMISSION" in
+            admin | maintain | write) trusted=true ;;
             *) trusted=false ;;
           esac
           echo "trusted=$trusted" >> "$GITHUB_OUTPUT"

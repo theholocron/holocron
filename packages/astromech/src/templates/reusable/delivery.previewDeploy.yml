@@ -145,19 +145,34 @@ jobs:
           # even if the PR branch itself moves while this job is running.
           SHA: ${{ github.event.pull_request.head.sha }}
           URL: ${{ needs.deploy.outputs.url }}
-          # Carried into the deployment's `payload` so
-          # delivery.previewCheck — triggered by `deployment_status`,
-          # which has no `pull_request` context of its own — can read
-          # it back without a second API call (holocron#1057). GitHub's
-          # own enum: OWNER/MEMBER/COLLABORATOR for someone with write
-          # access or org membership, CONTRIBUTOR/FIRST_TIME_CONTRIBUTOR/
-          # FIRST_TIMER/NONE otherwise.
-          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          # The PR author's login, resolved below into their actual
+          # current push-access level and carried into the
+          # deployment's `payload` so delivery.previewCheck --
+          # triggered by `deployment_status`, which has no
+          # `pull_request` context of its own -- can read it back
+          # without a second API call (holocron#1057).
+          AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::HOLOCRON_DEPLOYMENTS_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
             exit 1
           fi
+
+          # The real, current push-access level -- GET
+          # .../collaborators/{username}/permission needs only the
+          # "Metadata: read" permission every token already has
+          # (GitHub's own fine-grained PAT permissions table), so this
+          # needs no new scope beyond what GH_TOKEN already has.
+          # Deliberately NOT github.event.pull_request.author_association:
+          # that field only reports MEMBER for a *publicly visible* org
+          # membership, so a maintainer with private org membership
+          # reads as CONTRIBUTOR instead -- confirmed live on this
+          # exact repo (holocron#1057 follow-up) -- while this lookup
+          # reflects actual access (direct collaborator, team
+          # membership, or org default), independent of any profile
+          # visibility setting. Empty/unparseable -> "none",
+          # fail-closed same as before.
+          permission=$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${AUTHOR}/permission" --jq '.permission // "none"' 2>/dev/null) || permission="none"
 
           post_status() {
             gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
@@ -184,14 +199,14 @@ jobs:
           # rules don't forbid it either) would otherwise break out of a
           # printf-constructed JSON string and produce an invalid payload
           # gh api can't send.
-          payload=$(jq -n --arg ref "$REF" --arg assoc "$AUTHOR_ASSOCIATION" '{
+          payload=$(jq -n --arg ref "$REF" --arg permission "$permission" '{
             ref: $ref,
             environment: "Preview",
             description: "Vercel Preview (file deploy)",
             production_environment: false,
             auto_merge: false,
             required_contexts: [],
-            payload: { author_association: $assoc }
+            payload: { collaborator_permission: $permission }
           }')
           deploy_id=""
           for attempt in 1 2 3; do
