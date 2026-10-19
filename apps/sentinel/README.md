@@ -508,7 +508,7 @@ has no equivalent of a human's already-authenticated session — see
 root) for why a new, narrowly-scoped token rather than widening an existing
 one.
 
-- **`--target production` only, deliberately still just one target.**
+- **`--target production` only, deliberately still one target.**
   `delivery.previewDeploy` (holocron#1010/#1022/#1024/#1028) now gives
   every PR to this whole repo — not only ones touching Sentinel, since
   the thin caller's `pull_request: {}` trigger carries no path filter
