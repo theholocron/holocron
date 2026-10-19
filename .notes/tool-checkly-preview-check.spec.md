@@ -469,3 +469,10 @@ sync github`
   that the updated reusable workflow is live on
   `theholocron/.github@main`. Safe to revert/close once the check run
   is confirmed green.
+- **Live end-to-end verification of the #1057 author-trust gate
+  (pending)**: a second edit, same PR, re-triggering the chain now
+  that `theholocron/.github@main` carries #1057's fix. Confirming the
+  trust step resolves `trusted=true` for this PR's own author
+  (`OWNER`) and the check still passes with the bypass header
+  attached — i.e. the gate doesn't accidentally fail-closed for a
+  legitimately trusted author.
