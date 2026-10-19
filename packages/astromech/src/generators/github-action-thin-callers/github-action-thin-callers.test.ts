@@ -310,8 +310,43 @@ describe("generateCombinedDeployContent", () => {
 	});
 });
 
+/**
+ * `none` < `read` < `write` -- GitHub's own ordering. A caller
+ * granting a *stronger* level than a job requests is valid (sourcery
+ * review: an exact-text match would wrongly reject that), so
+ * permissions are compared by rank, not by string equality.
+ */
+const PERMISSION_RANK: Record<string, number> = { none: 0, read: 1, write: 2 };
+
+/**
+ * Finds every `permissions:` block in a workflow YAML string --
+ * across any number of jobs, not just the first one (sourcery
+ * review: a later job's own block would otherwise go unchecked) --
+ * and returns the highest rank requested per key. A trailing `#
+ * comment` on a real `key: level` line is stripped before matching
+ * (sourcery review: a line like `pull-requests: read # why` was
+ * silently skipped entirely by a `$`-anchored regex); a line that's
+ * only a comment, even one that happens to contain `key: level` text,
+ * is excluded by the same strip-then-match pass (sourcery review:
+ * raw substring search over the whole block previously let a comment
+ * masquerade as a real grant).
+ */
+function extractPermissionRanks(yaml: string): Map<string, number> {
+	const ranks = new Map<string, number>();
+	for (const block of yaml.matchAll(/^(?<indent>[ \t]*)permissions:\r?\n((?:\k<indent>[ \t]{2}.*\r?\n?)+)/gm)) {
+		for (const line of block[2]!.split(/\r?\n/)) {
+			const stripped = line.replace(/#.*$/, "").trim();
+			const kv = /^([a-z][a-z-]*):\s*(none|read|write)$/.exec(stripped);
+			if (!kv) continue;
+			const rank = PERMISSION_RANK[kv[2]!]!;
+			if (rank > (ranks.get(kv[1]!) ?? 0)) ranks.set(kv[1]!, rank);
+		}
+	}
+	return ranks;
+}
+
 describe("thin caller permissions must be a superset of the reusable workflow's own job permissions", () => {
-	it("delivery.previewCheck's thin caller grants pull-requests: read, matching the reusable workflow's trust step (holocron#1059 follow-up)", () => {
+	it("delivery.previewCheck's thin caller grants at least as much as the reusable workflow requests (holocron#1059 follow-up)", () => {
 		// GitHub hard-fails the whole run at startup -- zero jobs
 		// dispatched, no annotation anywhere but the run's own error
 		// banner -- if a `uses:` job requests more than its caller
@@ -320,13 +355,11 @@ describe("thin caller permissions must be a superset of the reusable workflow's 
 		// author-trust step (holocron#1058) without the thin caller
 		// template being updated to match, and a real PR's
 		// deployment_status run hit exactly that failure.
-		const reusable = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
-		const thinCaller = WORKFLOW_TEMPLATES["delivery.previewCheck"]!;
-		const reusableJobPermissions = reusable.slice(reusable.indexOf("jobs:"), reusable.indexOf("    steps:"));
-		const thinCallerPermissions = thinCaller.slice(0, thinCaller.indexOf("jobs:"));
-		for (const line of reusableJobPermissions.matchAll(/^\s+(\S+):\s*(read|write)$/gm)) {
-			const [, key, level] = line;
-			expect(thinCallerPermissions).toContain(`${key}: ${level}`);
+		const required = extractPermissionRanks(REUSABLE_WORKFLOWS["delivery.previewCheck"]!);
+		const granted = extractPermissionRanks(WORKFLOW_TEMPLATES["delivery.previewCheck"]!);
+		expect(required.size).toBeGreaterThan(0);
+		for (const [key, requiredRank] of required) {
+			expect(granted.get(key) ?? 0, `thin caller's grant for "${key}"`).toBeGreaterThanOrEqual(requiredRank);
 		}
 	});
 });
