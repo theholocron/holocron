@@ -470,32 +470,62 @@ sync github`
   `#1057`'s own investigation) that Vercel forwards
   `x-vercel-protection-bypass` straight through to the deployed
   function; nothing stops that code reading and exfiltrating it.
-  Fixed by carrying the PR author's real push-access level — `GET
-/repos/{owner}/{repo}/collaborators/{login}/permission`, resolved in
-  `delivery.previewDeploy`'s own `pull_request`-triggered job, where
-  `github.event.pull_request.user.login` is available — into the
-  GitHub deployment's `payload` field, read back by
-  `delivery.previewCheck`, which is triggered by `deployment_status`
-  and has no `pull_request` context of its own. **First attempt used
-  `github.event.pull_request.author_association` instead and shipped
-  live before catching a real bug in it**: that field only reports
-  `MEMBER` for a _publicly visible_ org membership — confirmed live on
-  this exact repo that a maintainer with private `theholocron`
-  membership reads as `CONTRIBUTOR`, which would have fail-closed on
-  every PR they open, not only untrusted ones. The collaborator
-  permission lookup reflects actual access (direct collaborator, team
-  membership, or org default) independent of any profile visibility
-  setting, and needs only the baseline "Metadata: read" permission
-  every token already has — no new token scope required. Neither
-  secret is ever put in a step's `env:` unless that permission is
-  `admin`/`maintain`/`write` — fail-closed, so a deployment created
-  some other way (anyone with `deployments: write` can create one
-  directly via the API) or missing the payload entirely gets no
-  credential. An
-  untrusted deployment's check still runs, without the bypass
-  header — failing loudly against Deployment Protection (the pre-#1032
-  symptom, for that population only) rather than silently skipping the
-  check. Mitigating factor that doesn't make this moot: these
+  Fixed by gating both secrets in `delivery.previewCheck` on the real
+  PR author's current push-access level — `admin`/`maintain`/`write`
+  only; an absent credential for anyone else, fail-closed.
+  **Two earlier attempts shipped live and were each caught by a real
+  bug before landing on the final design**:
+  1. `github.event.pull_request.author_association`, carried through
+     the GitHub deployment's `payload` field (deployment_status has
+     no `pull_request` context of its own to read this from
+     directly). Caught live on this exact repo: that field only
+     reports `MEMBER` for a _publicly visible_ org membership, so a
+     maintainer with private `theholocron` membership read as
+     `CONTRIBUTOR` and would have fail-closed on every PR they open,
+     not only untrusted ones.
+  2. Replaced the association with a real `GET
+/repos/{owner}/{repo}/collaborators/{login}/permission` lookup
+     (reflects actual access — direct collaborator, team membership,
+     or org default — independent of any profile visibility setting)
+     — but still carried through the same deployment `payload` field.
+     Sourcery review caught the deeper problem with that mechanism
+     itself: a deployment's `payload` is attacker-controllable by
+     anyone with `deployments: write` — the same precondition already
+     needed to create a deployment_status event at all — so whoever
+     creates a crafted deployment can set `payload.collaborator_permission
+= "admin"` directly, forging trust regardless of who actually
+     authored the code. Carrying a trust decision through
+     caller-supplied data defeats the gate entirely.
+
+  **Final design**: `delivery.previewCheck` derives trust itself, from
+  data it verifies independently, instead of trusting anything the
+  deployment's own creator supplied. `GET
+/repos/{owner}/{repo}/commits/{sha}/pulls` (using `inputs.sha`, the
+  exact commit this check already explicitly checks out) finds the
+  real PR for that commit; its author's login feeds the same
+  collaborator-permission lookup. An attacker can't forge either
+  value without already having genuine write access to this repo —
+  the entire basis of trust comes from GitHub's own records, not from
+  anything passed through the event. Needs only "Pull requests: read"
+  plus the baseline "Metadata: read" every token already has, using
+  the always-available `secrets.GITHUB_TOKEN` — no dedicated token,
+  no payload field, no cross-job data at all.
+
+  A second review finding on the same PR: the untrusted path cleared
+  `--vercel-project` itself (not only the two secrets), which made
+  `resolveVercelBypassHeaders` treat "no project given" as trivially
+  verified — its own early-return for an _omitted_ project — and still
+  issue the real request with no bypass header. A check with no
+  status-code assertion could pass on Vercel's own 3xx protection
+  redirect, reporting green without the request ever reaching the
+  app. Fixed by never gating `vercel-project` on trust at all (it
+  isn't a secret) — only the two real secrets are. An untrusted
+  deployment with a configured `vercel-project` now hits
+  `resolveVercelBypassHeaders`'s "project given but no token" branch
+  instead, which fails the check outright before any request is
+  issued.
+
+  Mitigating factor that doesn't make any of this moot: these
   workflows trigger on plain `pull_request`, not `pull_request_target`,
   so GitHub never exposes `VERCEL_TOKEN`/`VERCEL_PROTECTION_BYPASS_SECRET`
   to a fork PR's run in the first place — exploiting this needed push

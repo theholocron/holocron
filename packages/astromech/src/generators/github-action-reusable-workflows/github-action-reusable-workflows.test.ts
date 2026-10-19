@@ -176,7 +176,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(previewCheck).toContain("command: monitoring resolve-checks");
 		expect(previewCheck).toContain("command: monitoring run-resolved");
 		expect(previewCheck).toContain(
-			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ steps.trust.outputs.trusted == 'true' && inputs.vercel-project || '' }} ${{ steps.validate.outputs.url }}"
+			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}"
 		);
 	});
 
@@ -265,12 +265,15 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// packages/cli/src/commands/monitoring-run-resolved.ts); forwarding
 		// it is what makes that gate reachable at all from this workflow.
 		expect(previewCheck).toMatch(/vercel-project:\s*\n\s*description:/);
-		expect(previewCheck).toContain(
-			"--vercel-project=${{ steps.trust.outputs.trusted == 'true' && inputs.vercel-project || '' }}"
-		);
+		// Not gated on author trust (sourcery review on #1058's first
+		// attempt) -- it's the project id, not a secret. Clearing it for
+		// an untrusted deployment would make resolveVercelBypassHeaders
+		// treat "no project given" as trivially verified instead of
+		// failing -- see the dedicated untrusted-path test below.
+		expect(previewCheck).toContain("--vercel-project=${{ inputs.vercel-project }}");
 	});
 
-	it("delivery.previewCheck only attaches the bypass secrets for a trusted PR author (holocron#1057)", () => {
+	it("delivery.previewCheck derives author trust itself, not from the attacker-controllable deployment payload (holocron#1057/#1058)", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
 		// Sourcery review on #1056: confirmed live (runtime logs) that
 		// Vercel forwards x-vercel-protection-bypass straight through to
@@ -278,14 +281,27 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// and exfiltrate it off its own incoming request. Project-ownership
 		// verification alone doesn't help, since the deployment
 		// legitimately belongs to the protected project.
+		//
+		// First attempt (#1058) carried a value through the deployment's
+		// `payload` field instead -- sourcery review caught that anyone
+		// with `deployments: write` (the same precondition already needed
+		// to create a deployment_status event at all) can set that field
+		// to whatever they like on their own crafted deployment, forging
+		// trust regardless of who actually authored the code. Fixed by
+		// deriving trust here, from data this step verifies itself: which
+		// real PR `inputs.sha` belongs to, then that PR's real author's
+		// current push-access level.
+		expect(previewCheck).not.toContain("github.event.deployment.payload");
 		expect(previewCheck).toMatch(
-			/id: trust[\s\S]*PERMISSION: \$\{\{ github\.event\.deployment\.payload\.collaborator_permission \}\}/
+			/id: trust[\s\S]*repos\/\$\{GITHUB_REPOSITORY\}\/commits\/\$\{SHA\}\/pulls[\s\S]*repos\/\$\{GITHUB_REPOSITORY\}\/collaborators\/\$\{author\}\/permission/
 		);
 		// Fail-closed: anything other than admin/maintain/write sets
-		// trusted=false, including a missing/unrecognized permission.
-		// Deliberately not author_association -- see the dedicated test
-		// below for why.
+		// trusted=false, including a missing/unrecognized permission --
+		// and the wildcard arm itself is asserted explicitly, not just
+		// the allowlisted one, so a mutation flipping it to `true` would
+		// fail this test (sourcery review on #1058's first attempt).
 		expect(previewCheck).toMatch(/admin \| maintain \| write\) trusted=true ;;/);
+		expect(previewCheck).toMatch(/\*\) trusted=false ;;/);
 		expect(previewCheck).toContain(
 			"VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}"
 		);
@@ -294,6 +310,31 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		);
 		// The trust step must run before the step it gates.
 		expect(previewCheck.indexOf("id: trust")).toBeLessThan(previewCheck.indexOf("id: resolve"));
+	});
+
+	it("delivery.previewCheck fails an untrusted deployment outright, rather than letting an unverified response report green (holocron#1058)", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Sourcery review: the first attempt cleared --vercel-project
+		// itself for an untrusted deployment, which made
+		// resolveVercelBypassHeaders treat "no project given" as
+		// trivially verified (its own early-return for an omitted
+		// project) and still issue the real request with no bypass
+		// header -- a check with no status-code assertion could pass on
+		// Vercel's own 3xx protection redirect, reporting green without
+		// ever reaching the app. vercel-project is never gated on trust
+		// (it isn't a secret); only the two real secrets are, asserted in
+		// the test above. Untrusted + a configured vercel-project then
+		// means VERCEL_TOKEN is empty while vercel-project is not --
+		// resolveVercelBypassHeaders's "project given but no token"
+		// branch, which fails the check before any request is issued at
+		// all (covered at the unit level by
+		// monitoring-run-resolved.test.ts's "no Vercel token is
+		// available" case) -- rather than a trust-gated project id that
+		// would skip verification outright for an untrusted deployment.
+		const runResolvedStep = previewCheck
+			.split(/\n(?= {6}- )/)
+			.find((s) => s.includes("command: monitoring run-resolved"))!;
+		expect(runResolvedStep).not.toMatch(/vercel-project=\$\{\{[^}]*trust[^}]*\}\}/);
 	});
 
 	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {
@@ -311,26 +352,21 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		);
 	});
 
-	it("delivery.previewDeploy carries the PR author's real collaborator permission into the deployment payload (holocron#1057)", () => {
+	it("delivery.previewDeploy never carries trust data through the deployment payload (holocron#1058 follow-up)", () => {
 		const previewDeploy = REUSABLE_WORKFLOWS["delivery.previewDeploy"]!;
-		// deployment_status (what delivery.previewCheck is triggered by) has
-		// no pull_request context of its own -- this is the only way that
-		// workflow can later tell a trusted author's own PR apart from
-		// anyone else's without a second API call.
-		expect(previewDeploy).toContain("AUTHOR: ${{ github.event.pull_request.user.login }}");
-		// Deliberately the real GET .../collaborators/{login}/permission
-		// lookup, not github.event.pull_request.author_association --
-		// confirmed live that author_association only reports MEMBER for
-		// a *publicly visible* org membership, so a maintainer with
-		// private org membership reads as CONTRIBUTOR instead and would
-		// wrongly fail-closed on their own PRs. This lookup needs only
-		// the "Metadata: read" permission every token already has -- no
-		// new scope required.
-		expect(previewDeploy).toMatch(
-			/permission=\$\(gh api "repos\/\$\{GITHUB_REPOSITORY\}\/collaborators\/\$\{AUTHOR\}\/permission" --jq '\.permission \/\/ "none"'/
-		);
-		expect(previewDeploy).toMatch(/--arg permission "\$permission"/);
-		expect(previewDeploy).toMatch(/payload:\s*\{\s*collaborator_permission:\s*\$permission\s*\}/);
+		// A deployment's `payload` field is attacker-controllable by
+		// anyone with `deployments: write` -- the same precondition
+		// already needed to create a deployment_status event at all --
+		// so a value carried through it (sourcery review on #1058's
+		// first attempt: payload.author_association, later
+		// payload.collaborator_permission) could be forged on a crafted
+		// deployment regardless of who actually authored the code.
+		// delivery.previewCheck now derives trust itself instead (see
+		// its own dedicated test) -- this deployment's payload carries
+		// nothing for it to trust.
+		expect(previewDeploy).not.toContain("payload:");
+		expect(previewDeploy).not.toContain("author_association");
+		expect(previewDeploy).not.toContain("collaborator_permission");
 	});
 
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {

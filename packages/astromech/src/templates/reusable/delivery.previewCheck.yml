@@ -51,6 +51,12 @@ jobs:
     name: Run monitoring checks against the preview deployment
     permissions:
       contents: read
+      # Both read-only, needed by the "Resolve author trust" step
+      # below: pull-requests to find which PR `inputs.sha` belongs to,
+      # and the collaborators/permission lookup (Metadata: read on a
+      # PAT, already covered by contents) that step makes against the
+      # real PR author.
+      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -97,32 +103,54 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - name: Resolve author trust from the deployment payload
+      - name: Resolve author trust
         id: trust
         env:
-          PERMISSION: ${{ github.event.deployment.payload.collaborator_permission }}
+          # Ambient, always-available -- no new secret. Only used for
+          # two read-only lookups, both within what this token already
+          # has by default.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.sha }}
         run: |
-          # Carried forward from delivery.previewDeploy's own
-          # GET .../collaborators/{login}/permission lookup, via the
-          # deployment's `payload` field -- deployment_status has no
-          # pull_request context of its own to re-run that lookup from
-          # directly (holocron#1057: the bypass header reaches this
-          # PR's own deployed code over the wire, so nothing stops
-          # that code reading and exfiltrating it; project-ownership
-          # verification alone doesn't help, since the deployment
-          # legitimately belongs to the protected project).
-          # Deliberately not author_association -- that field only
-          # reports MEMBER for a *publicly visible* org membership, so
-          # a maintainer with private org membership reads as
-          # CONTRIBUTOR instead and would wrongly fail-closed on their
-          # own PRs (confirmed live on this exact repo). admin/
-          # maintain/write are the three roles GitHub itself treats as
-          # push-capable. Missing or unrecognized -> untrusted
-          # (fail-closed): a deployment created some other way (anyone
-          # with `deployments: write` can create one directly via the
-          # API) carries no such payload at all, and an absent
-          # credential is safer than a wrongly granted one.
-          case "$PERMISSION" in
+          # Deliberately NOT a value carried in through the
+          # deployment's own `payload` field (sourcery review on
+          # #1058's first attempt): that field is attacker-controlled
+          # by anyone with `deployments: write` -- same precondition
+          # already needed to create a deployment_status event at all
+          # -- so trusting whatever it claims would let that same
+          # attacker forge payload.collaborator_permission = "admin"
+          # on their own crafted deployment and unlock the bypass
+          # secret regardless of who actually authored the code. This
+          # step derives trust itself, from data it verifies
+          # independently: which real PR `inputs.sha` belongs to, and
+          # that PR's real author's current push-access level -- an
+          # attacker can't forge either without already having
+          # genuine write access to this repo.
+          #
+          # First attempt used
+          # github.event.pull_request.author_association instead, and
+          # separately turned out to be wrong for a different reason:
+          # that field only reports MEMBER for a *publicly visible* org
+          # membership, so a maintainer with private org membership
+          # reads as CONTRIBUTOR and would wrongly fail-closed on their
+          # own PRs (confirmed live on this exact repo, holocron#1057
+          # follow-up). This lookup has neither problem: it reflects
+          # real access -- direct collaborator, team membership, or
+          # org default -- independent of any profile visibility
+          # setting, and needs only "Pull requests: read" plus the
+          # baseline "Metadata: read" every token already has.
+          #
+          # No PR found for this SHA, or no login on it -> "none" ->
+          # untrusted. admin/maintain/write are the three roles GitHub
+          # itself treats as push-capable. Missing or unrecognized ->
+          # untrusted (fail-closed): an absent credential is safer
+          # than a wrongly granted one.
+          author=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/pulls" --jq '(.[0] // {}) | .user.login // empty' 2>/dev/null) || author=""
+          permission="none"
+          if [ -n "$author" ]; then
+            permission=$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${author}/permission" --jq '.permission // "none"' 2>/dev/null) || permission="none"
+          fi
+          case "$permission" in
             admin | maintain | write) trusted=true ;;
             *) trusted=false ;;
           esac
@@ -158,14 +186,23 @@ jobs:
           # confirmed live that Vercel forwards this header straight
           # through to the deployed function, so an untrusted PR's own
           # code could read and exfiltrate it off its own incoming
-          # request. An untrusted deployment gets neither secret at
-          # all -- the request below still runs, just without the
-          # bypass header, so it fails loudly against Deployment
-          # Protection (the pre-#1032 symptom, for that population
-          # only) rather than silently skipping the check.
+          # request. An untrusted deployment gets neither secret.
           VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
           VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
           command: monitoring run-resolved
-          args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ steps.trust.outputs.trusted == 'true' && inputs.vercel-project || '' }} ${{ steps.validate.outputs.url }}
+          # vercel-project is NOT gated on trust (sourcery review on
+          # #1058's first attempt) -- it isn't a secret, and clearing
+          # it for an untrusted deployment would make
+          # resolveVercelBypassHeaders treat "no project given" as
+          # trivially verified (its early-return for an omitted
+          # project), skipping ownership verification entirely rather
+          # than failing. Always passing the real project here means
+          # an untrusted deployment instead hits the "project given
+          # but no token" branch -- VERCEL_TOKEN is empty above --
+          # which fails the check outright, before ever issuing the
+          # request, rather than letting an unverified host's response
+          # (e.g. a 3xx redirect a status-less assertion wouldn't
+          # catch) report green.
+          args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}
