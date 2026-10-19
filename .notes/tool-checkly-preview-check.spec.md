@@ -461,3 +461,11 @@ sync github`
   that code to read and exfiltrate — and the thin callers no longer
   carry `secrets: inherit`, since nothing in this job needs any
   secret in the first place.
+- **Live end-to-end verification (#1032, pending)**: this edit exists
+  to trigger a real `deployment_status` event against this PR's own
+  Vercel preview, confirming `monitoring resolve-checks` →
+  `monitoring run-resolved` → `verifyVercelDeploymentProject` → the
+  bypass header all actually fire together outside of unit tests, now
+  that the updated reusable workflow is live on
+  `theholocron/.github@main`. Safe to revert/close once the check run
+  is confirmed green.
