@@ -5,6 +5,12 @@ on: # yamllint disable-line rule:truthy
 
 permissions:
   contents: read
+  # Must be a superset of what the reusable workflow's own job
+  # requests (holocron#1058) -- GitHub hard-fails the whole run at
+  # startup, zero jobs dispatched, if the callee asks for more than
+  # the caller grants. Needed for the author-trust step's
+  # commits/{sha}/pulls lookup.
+  pull-requests: read
 
 jobs:
   preview-check:
