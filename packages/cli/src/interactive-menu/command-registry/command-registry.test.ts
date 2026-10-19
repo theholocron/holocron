@@ -33,8 +33,19 @@ describe("COMMAND_REGISTRY", () => {
 		expect(selectPositionals.every((p) => p.choices !== undefined)).toBe(true);
 	});
 
-	it("covers every command on the documented surface, except run (dynamically merged in) and the hook-only one", () => {
-		const excluded = new Set(["run", "run lint commit-msg"]);
+	it("covers every command on the documented surface, except run (dynamically merged in), the hook-only one, and the CI-only ones", () => {
+		// `monitoring resolve-checks`/`monitoring run-resolved`
+		// (holocron#1030/#1032) are the two halves of the
+		// delivery.previewCheck split -- meant for CI, not a human
+		// navigating `holocron monitoring` interactively. Neither calls
+		// `promptForPositionals`/`getEntry`, so omitting them here has no
+		// effect on their own long-form CLI invocation.
+		const excluded = new Set([
+			"run",
+			"run lint commit-msg",
+			"monitoring resolve-checks",
+			"monitoring run-resolved",
+		]);
 		const missing = Object.keys(COMMAND_CONTEXTS)
 			.filter((name) => !excluded.has(name))
 			.filter((name) => !COMMAND_REGISTRY.some((e) => e.name === name));

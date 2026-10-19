@@ -79,6 +79,11 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		positionals: [{ key: "url", message: "URL to test against:", type: "input" }],
 		supportsDryRun: false,
 	},
+	// `monitoring resolve-checks`/`monitoring run-resolved` (holocron#1030/
+	// #1032) are deliberately NOT registered here -- the two halves of the
+	// delivery.previewCheck split, meant for CI, not a human navigating
+	// `holocron monitoring` interactively. See
+	// command-registry.test.ts's exclusion list.
 	{
 		name: "package bump-versions",
 		description: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
