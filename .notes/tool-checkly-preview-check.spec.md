@@ -469,10 +469,12 @@ sync github`
   that the updated reusable workflow is live on
   `theholocron/.github@main`. Safe to revert/close once the check run
   is confirmed green.
-- **Live end-to-end verification of the #1057 author-trust gate
-  (pending)**: a second edit, same PR, re-triggering the chain now
-  that `theholocron/.github@main` carries #1057's fix. Confirming the
-  trust step resolves `trusted=true` for this PR's own author
-  (`OWNER`) and the check still passes with the bypass header
-  attached — i.e. the gate doesn't accidentally fail-closed for a
-  legitimately trusted author.
+- **Live end-to-end verification of the #1057 author-trust gate**: a
+  second edit, same PR, re-triggering the chain now that
+  `theholocron/.github@main` carries #1057's fix. The first attempt
+  (`author_association`) wrongly resolved `trusted=false` for this
+  PR's own author — a real bug, caught by this exact live round-trip
+  rather than merged blind — fixed by switching to a real
+  collaborator-permission lookup instead (see above). This third edit
+  re-verifies the corrected gate resolves `trusted=true` and the check
+  passes with the bypass header attached.
