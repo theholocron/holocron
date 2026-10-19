@@ -62,6 +62,28 @@ describe("runCheckAgainstUrl", () => {
 		});
 	});
 
+	it("merges opts.headers into the request", async () => {
+		let requestedHeaders: Record<string, string> | undefined;
+		const fetchSpy = (async (_url: string | URL, init?: { headers?: Record<string, string> }) => {
+			requestedHeaders = init?.headers;
+			return new Response("ok", { status: 200 });
+		}) as unknown as typeof fetch;
+
+		await runCheckAgainstUrl(BASE, { fetch: fetchSpy, headers: { "x-vercel-protection-bypass": "secret" } });
+		expect(requestedHeaders).toEqual({ "x-vercel-protection-bypass": "secret" });
+	});
+
+	it("omits the headers field entirely when opts.headers isn't given", async () => {
+		let sawHeadersKey = true;
+		const fetchSpy = (async (_url: string | URL, init?: RequestInit) => {
+			sawHeadersKey = init !== undefined && "headers" in init;
+			return new Response("ok", { status: 200 });
+		}) as unknown as typeof fetch;
+
+		await runCheckAgainstUrl(BASE, { fetch: fetchSpy });
+		expect(sawHeadersKey).toBe(false);
+	});
+
 	it("uses the real global fetch when none is injected", async () => {
 		// 127.0.0.1 refusing a connection is immediate and has no network/DNS
 		// dependency — enough to prove the default `?? fetch` branch is the

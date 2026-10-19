@@ -23,7 +23,9 @@ import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone
 import { commandsInContext } from "./commands/contexts/index.js";
 import { runDeploy, runDeployFromFiles } from "./commands/deploy/index.js";
 import { runDoctor } from "./commands/doctor/index.js";
-import { runMonitoringCheck } from "./commands/monitoring-check/index.js";
+import { resolveMonitoringChecks, runMonitoringCheck } from "./commands/monitoring-check/index.js";
+import { runMonitoringResolveChecks } from "./commands/monitoring-resolve-checks/index.js";
+import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands/monitoring-run-resolved/index.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
@@ -1673,10 +1675,17 @@ try {
 						"check <url>",
 						"Run every configured `monitoring` check against a given URL instead of its own configured url",
 						(y) =>
-							y.positional("url", {
-								type: "string",
-								describe: "URL to test every configured check against (e.g. a PR's preview deployment)",
-							}),
+							y
+								.positional("url", {
+									type: "string",
+									describe:
+										"URL to test every configured check against (e.g. a PR's preview deployment)",
+								})
+								.option("vercel-project", {
+									type: "string",
+									describe:
+										"Expected Vercel project id/name `url` must resolve to before the Deployment Protection bypass header (VERCEL_PROTECTION_BYPASS_SECRET) is attached. Omitted → the header is never attached, regardless of that env var.",
+								}),
 						async (argv) => {
 							const tokens = tokenContext(argv.token);
 							if (!tokens) return;
@@ -1686,6 +1695,32 @@ try {
 							);
 							const loaded = await loadConfig(argv.cwd);
 							applyResolvedConfig(argv, loaded.resolved);
+							// Deployment Protection (on by default for Vercel Preview
+							// deployments, holocron#1030) redirects an unauthenticated
+							// request to Vercel's own SSO login before it ever reaches
+							// the app being checked — this header is Vercel's documented
+							// way for an automated caller to skip that wall. Read
+							// directly from the env rather than added to the CLI's own
+							// `--token`-resolution chain: it's not an API credential this
+							// command calls a vendor with, just a header forwarded
+							// as-is to whatever URL the caller names. Never attached
+							// without first verifying (via --vercel-project) that `url`
+							// actually belongs to the expected project — sourcery review
+							// on holocron#1032: a bare *.vercel.app hostname check proves
+							// nothing, since anyone can register their own Vercel
+							// project. This is the exact same gate `monitoring
+							// run-resolved` uses for the CI split.
+							const { headers } = await resolveVercelBypassHeaders({
+								url: url!,
+								...(argv.vercelProject ? { vercelProject: argv.vercelProject as string } : {}),
+								...(process.env["VERCEL_TOKEN"] ? { vercelToken: process.env["VERCEL_TOKEN"] } : {}),
+								...(process.env["VERCEL_TEAM_ID"]
+									? { vercelTeamId: process.env["VERCEL_TEAM_ID"] }
+									: {}),
+								...(process.env["VERCEL_PROTECTION_BYPASS_SECRET"]
+									? { bypassSecret: process.env["VERCEL_PROTECTION_BYPASS_SECRET"] }
+									: {}),
+							});
 							const report = await runMonitoringCheck({
 								loaded,
 								context: {
@@ -1695,6 +1730,74 @@ try {
 									org: resolveOrg(argv, loaded.resolved),
 								},
 								url: url!,
+								...(headers ? { headers } : {}),
+							});
+							if (report.status === "fail") {
+								process.exitCode = 1;
+							}
+						}
+					)
+					.command(
+						"resolve-checks",
+						"Load config/plugins and write the configured `monitoring` checks to a file as JSON — the untrusted half of the delivery.previewCheck split (holocron#1030/#1032)",
+						(y) =>
+							y.option("out", {
+								type: "string",
+								demandOption: true,
+								describe: "File path to write the resolved checks to",
+							}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							await runMonitoringResolveChecks({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								outFile: argv.out as string,
+							});
+						}
+					)
+					.command(
+						"run-resolved <url>",
+						"Run an already-resolved check list (from `monitoring resolve-checks`) against a URL — no config/plugin loading at all, the trusted half of the delivery.previewCheck split (holocron#1030/#1032)",
+						(y) =>
+							y
+								.positional("url", {
+									type: "string",
+									describe: "URL to run every resolved check against",
+								})
+								.option("checks-file", {
+									type: "string",
+									demandOption: true,
+									describe:
+										"File path to read the resolved checks from (written by `monitoring resolve-checks`)",
+								})
+								.option("vercel-project", {
+									type: "string",
+									describe:
+										"Expected Vercel project id/name `url` must resolve to before the Deployment Protection bypass header (VERCEL_PROTECTION_BYPASS_SECRET) is attached. Omitted → the header is never attached.",
+								}),
+						async (argv) => {
+							const checks = JSON.parse(readFileSync(argv.checksFile as string, "utf8")) as Awaited<
+								ReturnType<typeof resolveMonitoringChecks>
+							>;
+							const report = await runMonitoringRunResolved({
+								checks,
+								url: argv.url as string,
+								...(argv.vercelProject ? { vercelProject: argv.vercelProject as string } : {}),
+								...(process.env["VERCEL_TOKEN"] ? { vercelToken: process.env["VERCEL_TOKEN"] } : {}),
+								...(process.env["VERCEL_TEAM_ID"]
+									? { vercelTeamId: process.env["VERCEL_TEAM_ID"] }
+									: {}),
+								...(process.env["VERCEL_PROTECTION_BYPASS_SECRET"]
+									? { bypassSecret: process.env["VERCEL_PROTECTION_BYPASS_SECRET"] }
+									: {}),
 							});
 							if (report.status === "fail") {
 								process.exitCode = 1;

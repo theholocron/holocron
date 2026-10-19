@@ -48,6 +48,11 @@ export const COMMAND_CONTEXTS = {
 	deploy: "workspace",
 	"deploy cleanup-preview": "workspace",
 	"monitoring check": "workspace",
+	"monitoring resolve-checks": "workspace",
+	// Reads an already-resolved checks file + a plain URL — no
+	// holocron.config.ts, no plugins at all (holocron#1030/#1032's
+	// delivery.previewCheck split).
+	"monitoring run-resolved": "global",
 	"repo sync": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron
 	// monorepo checkout (not plugins), so only ever run with `pnpm exec`.

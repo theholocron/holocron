@@ -169,12 +169,15 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("secrets.VERCEL_TOKEN");
 	});
 
-	it("delivery.previewCheck runs `holocron monitoring check` with the preview URL input", () => {
+	it("delivery.previewCheck runs `holocron monitoring resolve-checks` then `monitoring run-resolved` with the preview URL input", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
 		expect(previewCheck).toContain("workflow_call:");
 		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
-		expect(previewCheck).toContain("command: monitoring check");
-		expect(previewCheck).toContain("args: --cwd=${{ inputs.cwd }} ${{ steps.validate.outputs.url }}");
+		expect(previewCheck).toContain("command: monitoring resolve-checks");
+		expect(previewCheck).toContain("command: monitoring run-resolved");
+		expect(previewCheck).toContain(
+			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}"
+		);
 	});
 
 	it("delivery.previewCheck validates the preview URL before forwarding it anywhere", () => {
@@ -185,11 +188,83 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// https://*.vercel.app URL -- closing both an SSRF vector (fetching
 		// an internal host) and argument injection (a string that fails to
 		// parse can't carry embedded whitespace or shell metacharacters) --
-		// before the monitoring-check step (which forwards
-		// steps.validate.outputs.url, never the raw input) ever runs.
+		// before the monitoring-resolve-checks/run-resolved steps (which
+		// forward steps.validate.outputs.url, never the raw input) ever run.
 		expect(previewCheck).toMatch(/id: validate[\s\S]*hostname[\s\S]*\.vercel\.app/);
-		expect(previewCheck.indexOf("id: validate")).toBeLessThan(previewCheck.indexOf("command: monitoring check"));
+		expect(previewCheck.indexOf("id: validate")).toBeLessThan(
+			previewCheck.indexOf("command: monitoring resolve-checks")
+		);
 		expect(previewCheck).not.toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
+	});
+
+	it("delivery.previewCheck declares VERCEL_TOKEN and VERCEL_PROTECTION_BYPASS_SECRET as optional", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Review on #1030: Vercel's Deployment Protection (on by default for
+		// Preview deployments) redirects an unauthenticated request to its
+		// own SSO login before this job's own fetch ever reaches the app --
+		// confirmed live. Both secrets are optional (required: false) since
+		// a check against a non-Vercel URL, or one with protection
+		// disabled, needs neither.
+		expect(previewCheck).toMatch(/VERCEL_TOKEN:\s*\n\s*description:[\s\S]*?required: false/);
+		expect(previewCheck).toMatch(/VERCEL_PROTECTION_BYPASS_SECRET:\s*\n\s*description:[\s\S]*?required: false/);
+	});
+
+	it("delivery.previewCheck splits config-loading from the credentialed request into separate steps (review on #1032)", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// `resolve-checks` loads and runs a PR's own holocron.config.ts --
+		// untrusted. It must come first and must never see either secret,
+		// or a malicious config could read and exfiltrate them before the
+		// credentialed step ever runs.
+		expect(previewCheck).toContain("command: monitoring resolve-checks");
+		expect(previewCheck).toContain("command: monitoring run-resolved");
+		const resolveIndex = previewCheck.indexOf("command: monitoring resolve-checks");
+		const runResolvedIndex = previewCheck.indexOf("command: monitoring run-resolved");
+		expect(resolveIndex).toBeGreaterThan(-1);
+		expect(resolveIndex).toBeLessThan(runResolvedIndex);
+
+		// The two commands live in separate steps -- each one's own `- name:`
+		// block, sliced out independently, rather than trusting that
+		// `resolveIndex`'s containing step happens not to mention the
+		// secrets anywhere textually after it.
+		const steps = previewCheck.split(/\n(?= {6}- )/);
+		const resolveStep = steps.find((s) => s.includes("command: monitoring resolve-checks"));
+		const runResolvedStep = steps.find((s) => s.includes("command: monitoring run-resolved"));
+		expect(resolveStep).toBeDefined();
+		expect(runResolvedStep).toBeDefined();
+
+		// No `env:` key at all on the resolve step -- not just "doesn't
+		// mention these two secrets by name" (which the step's own
+		// explanatory comment legitimately does, to say why they're absent).
+		expect(resolveStep).not.toMatch(/^\s+env:/m);
+		expect(runResolvedStep).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
+		expect(runResolvedStep).toContain(
+			"VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}"
+		);
+	});
+
+	it("delivery.previewCheck never sets either secret job-wide — only within the run-resolved step's own env", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// A job-level `env:` block (immediately under runs-on/timeout-minutes,
+		// before `steps:`) would hand both secrets to every step, including
+		// the untrusted resolve-checks one -- the exact leak this split
+		// exists to close (review on #1032). Sliced out and asserted
+		// directly, rather than trusting step-level assertions elsewhere to
+		// rule it out.
+		const stepsIndex = previewCheck.indexOf("    steps:");
+		const jobHeader = previewCheck.slice(previewCheck.indexOf("jobs:"), stepsIndex);
+		expect(jobHeader).not.toContain("VERCEL_TOKEN");
+		expect(jobHeader).not.toContain("VERCEL_PROTECTION_BYPASS_SECRET");
+	});
+
+	it("delivery.previewCheck verifies deployment ownership against vercel-project before attaching the bypass header", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Review on #1032: a bare *.vercel.app hostname proves nothing on its
+		// own -- anyone can register their own Vercel project. --vercel-project
+		// is what `monitoring run-resolved` gates the bypass header on (see
+		// packages/cli/src/commands/monitoring-run-resolved.ts); forwarding
+		// it is what makes that gate reachable at all from this workflow.
+		expect(previewCheck).toMatch(/vercel-project:\s*\n\s*description:/);
+		expect(previewCheck).toContain("--vercel-project=${{ inputs.vercel-project }}");
 	});
 
 	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {

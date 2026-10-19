@@ -30,6 +30,15 @@
  *   - The body is only read when an assertion actually needs it, and
  *     even then capped at `maxBodyBytes` — an attacker-reachable
  *     endpoint can't use an unbounded response to exhaust the runner.
+ *
+ * `opts.headers` (holocron#1030): merged into every request — the one
+ * caller that needs it, `delivery.previewCheck`, uses it to send
+ * Vercel's `x-vercel-protection-bypass` header so Deployment
+ * Protection (on by default for Preview deployments) doesn't redirect
+ * the check to Vercel's own SSO login before it ever reaches the
+ * app. Vendor-neutral by design — this module has no Vercel-specific
+ * knowledge; the header name and value are the CLI command's concern
+ * (`cli.ts`), not this evaluator's.
  */
 
 import type {
@@ -59,6 +68,7 @@ export async function runCheckAgainstUrl(
 		response = await doFetch(url, {
 			method,
 			...(hasBody ? { body: input.body } : {}),
+			...(opts.headers ? { headers: opts.headers } : {}),
 			redirect: "manual",
 			signal: AbortSignal.timeout(opts.timeoutMs ?? 10_000),
 		});
