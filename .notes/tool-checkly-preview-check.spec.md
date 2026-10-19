@@ -482,7 +482,7 @@ sync github`
   `MEMBER` for a _publicly visible_ org membership — confirmed live on
   this exact repo that a maintainer with private `theholocron`
   membership reads as `CONTRIBUTOR`, which would have fail-closed on
-  every PR they open, not just untrusted ones. The collaborator
+  every PR they open, not only untrusted ones. The collaborator
   permission lookup reflects actual access (direct collaborator, team
   membership, or org default) independent of any profile visibility
   setting, and needs only the baseline "Metadata: read" permission
@@ -492,11 +492,11 @@ sync github`
   some other way (anyone with `deployments: write` can create one
   directly via the API) or missing the payload entirely gets no
   credential. An
-  untrusted deployment's check still runs, just without the bypass
+  untrusted deployment's check still runs, without the bypass
   header — failing loudly against Deployment Protection (the pre-#1032
   symptom, for that population only) rather than silently skipping the
   check. Mitigating factor that doesn't make this moot: these
   workflows trigger on plain `pull_request`, not `pull_request_target`,
   so GitHub never exposes `VERCEL_TOKEN`/`VERCEL_PROTECTION_BYPASS_SECRET`
   to a fork PR's run in the first place — exploiting this needed push
-  access to a branch in this repo, not just opening a PR from a fork.
+  access to a branch in this repo, not only opening a PR from a fork.
