@@ -508,10 +508,28 @@ has no equivalent of a human's already-authenticated session — see
 root) for why a new, narrowly-scoped token rather than widening an existing
 one.
 
-- **`--target production` only.** Sentinel has no branch-based preview
-  deployments (`deployFunction()` ships inline files, no Git-linked
-  preview flow) — the command's `production`+`preview` default would
-  create a `preview`-target env var here that nothing ever reads.
+- **`--target production` only, deliberately still one target.**
+  `delivery.previewDeploy` (holocron#1010/#1022/#1024/#1028) now gives
+  every PR to this whole repo — not only ones touching Sentinel, since
+  the thin caller's `pull_request: {}` trigger carries no path filter
+  — its own Vercel preview deployment, built from that PR's own,
+  not-yet-reviewed code. `secrets sync`'s `deployment` destination has
+  no per-key allowlist (unlike `secrets`/GH-Actions below, which does)
+  — passing `--target preview` would sync **all 5** Doppler keys to
+  Vercel's preview environment, `GITHUB_APP_PRIVATE_KEY` included. A PR
+  that adds one line reading and exfiltrating that env var would hand
+  an attacker the ability to fully impersonate this GitHub App across
+  every org/repo it's installed on — sourcery review caught this on
+  the PR that would have added `--target preview`, before it shipped.
+  `handleWebhookRequest` (`src/handler/handler.ts`) returns 405 on
+  anything but `POST` before it ever reads `env` at all, and the
+  preview-deployment monitoring check only ever sends a `GET` — so the
+  preview function has no actual use for any of these 5 secrets in the
+  first place. Same class of exposure #1057/#1058 closed for the
+  Vercel Deployment Protection bypass secret, applied here to
+  Doppler's production credentials instead: keep them out of a
+  PR-controlled deploy target entirely, rather than narrow what's
+  synced there.
 - **`--github-secret`/`--github-secret-scope`.** Of the 5 Doppler keys,
   only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
   (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
