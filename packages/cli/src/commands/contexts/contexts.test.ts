@@ -35,6 +35,8 @@ const EVERY_COMMAND = [
 	"deploy",
 	"deploy cleanup-preview",
 	"monitoring check",
+	"monitoring resolve-checks",
+	"monitoring run-resolved",
 	"repo sync",
 	"sync github",
 ];
@@ -70,6 +72,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"deploy cleanup-preview",
 			"secrets set",
 			"monitoring check",
+			"monitoring resolve-checks",
 		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");
 		}
@@ -85,6 +88,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"config show",
 			"auth set",
 			"auth check",
+			"monitoring run-resolved",
 		]) {
 			expect(contextForCommand(cmd)).not.toBe("workspace");
 		}

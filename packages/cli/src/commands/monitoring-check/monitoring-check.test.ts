@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type MonitoringCheckInput, type PluginImporter, PluginLoader } from "../../plugin/index.js";
-import { runMonitoringCheck } from "./monitoring-check.js";
+import { reportChecks, resolveMonitoringChecks, runMonitoringCheck } from "./monitoring-check.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -77,6 +77,47 @@ describe("runMonitoringCheck", () => {
 		expect(runCheck).toHaveBeenCalledWith(CHECK_A, { url: "https://pr-preview.example.com" });
 		expect(runCheck).toHaveBeenCalledWith(CHECK_B, { url: "https://pr-preview.example.com" });
 		expect(lines.some((l) => l.includes("2 passed, 0 failed"))).toBe(true);
+	});
+
+	it("forwards headers to every check's runCheck call when given", async () => {
+		const { loaded, loader } = loadedWithMonitoring([CHECK_A, CHECK_B]);
+		const runCheck = vi.fn().mockResolvedValue({ passed: true, status: 200, failures: [] });
+
+		await runMonitoringCheck({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			url: "https://pr-preview.example.com",
+			headers: { "x-vercel-protection-bypass": "secret" },
+			loader,
+			runCheck,
+		});
+
+		expect(runCheck).toHaveBeenCalledWith(CHECK_A, {
+			url: "https://pr-preview.example.com",
+			headers: { "x-vercel-protection-bypass": "secret" },
+		});
+		// CHECK_B too -- a loop-index or "first call only" bug upstream would
+		// still pass if only CHECK_A's call were asserted.
+		expect(runCheck).toHaveBeenCalledWith(CHECK_B, {
+			url: "https://pr-preview.example.com",
+			headers: { "x-vercel-protection-bypass": "secret" },
+		});
+		expect(runCheck).toHaveBeenCalledTimes(2);
+	});
+
+	it("omits headers from the runCheck call entirely when none are given", async () => {
+		const { loaded, loader } = loadedWithMonitoring([CHECK_A]);
+		const runCheck = vi.fn().mockResolvedValue({ passed: true, status: 200, failures: [] });
+
+		await runMonitoringCheck({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			url: "https://pr-preview.example.com",
+			loader,
+			runCheck,
+		});
+
+		expect(runCheck).toHaveBeenCalledWith(CHECK_A, { url: "https://pr-preview.example.com" });
 	});
 
 	it("reports fail and lists the failure reasons when a check doesn't pass", async () => {
@@ -231,5 +272,72 @@ describe("runMonitoringCheck", () => {
 			expect.objectContaining({ url: "https://pr-preview.example.com", total: 1, failed: 0, status: "ok" }),
 			"monitoring check: done"
 		);
+	});
+});
+
+describe("resolveMonitoringChecks", () => {
+	it("returns the configured checks without making any HTTP request", async () => {
+		const { loaded, loader } = loadedWithMonitoring([CHECK_A, CHECK_B]);
+		const checks = await resolveMonitoringChecks({ loaded, context: { repoRoot: "/tmp/test" }, loader });
+		expect(checks).toEqual([CHECK_A, CHECK_B]);
+	});
+
+	it("throws when the monitoring capability is not declared at all — same guard runMonitoringCheck relies on", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: {} });
+		const loader = makeLoaderWith(loaded, {});
+		const err = await resolveMonitoringChecks({ loaded, context: { repoRoot: "/tmp/test" }, loader }).catch(
+			(e: unknown) => e
+		);
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).toMatch(/monitoring.*is not loaded/);
+	});
+});
+
+describe("reportChecks", () => {
+	it("reports ok against an already-resolved check list, with no config/loader involved at all", async () => {
+		const runCheck = vi.fn().mockResolvedValue({ passed: true, status: 200, failures: [] });
+		const lines: string[] = [];
+
+		const report = await reportChecks({
+			checks: [CHECK_A, CHECK_B],
+			url: "https://pr-preview.example.com",
+			print: (l) => lines.push(l),
+			runCheck,
+		});
+
+		expect(report.status).toBe("ok");
+		expect(runCheck).toHaveBeenCalledTimes(2);
+		expect(lines.some((l) => l.includes("2 passed, 0 failed"))).toBe(true);
+	});
+
+	it("forwards headers to every resolved check's runCheck call", async () => {
+		const runCheck = vi.fn().mockResolvedValue({ passed: true, status: 200, failures: [] });
+
+		await reportChecks({
+			checks: [CHECK_A, CHECK_B],
+			url: "https://pr-preview.example.com",
+			headers: { "x-vercel-protection-bypass": "secret" },
+			runCheck,
+		});
+
+		expect(runCheck).toHaveBeenCalledWith(CHECK_A, {
+			url: "https://pr-preview.example.com",
+			headers: { "x-vercel-protection-bypass": "secret" },
+		});
+		expect(runCheck).toHaveBeenCalledWith(CHECK_B, {
+			url: "https://pr-preview.example.com",
+			headers: { "x-vercel-protection-bypass": "secret" },
+		});
+	});
+
+	it("fails (never silently ok) when given an empty check list", async () => {
+		const lines: string[] = [];
+		const report = await reportChecks({
+			checks: [],
+			url: "https://pr-preview.example.com",
+			print: (l) => lines.push(l),
+		});
+		expect(report.status).toBe("fail");
+		expect(lines.some((l) => l.includes("nothing to validate"))).toBe(true);
 	});
 });

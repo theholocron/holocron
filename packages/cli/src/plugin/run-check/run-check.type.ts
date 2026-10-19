@@ -23,4 +23,6 @@ export interface RunCheckOptions {
 	timeoutMs?: number;
 	/** Max response body bytes read when an assertion needs the body. Default 1MB. */
 	maxBodyBytes?: number;
+	/** Extra headers merged into the request — e.g. a Deployment Protection bypass header. */
+	headers?: Record<string, string>;
 }

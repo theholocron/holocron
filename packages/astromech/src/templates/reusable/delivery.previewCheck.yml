@@ -16,6 +16,35 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: "."
+      vercel-project:
+        description: >
+          Expected Vercel project id/name the preview URL must resolve
+          to (verified live via Vercel's API) before
+          VERCEL_PROTECTION_BYPASS_SECRET is ever attached to a request
+          (holocron#1032 review) — a bare *.vercel.app hostname proves
+          nothing on its own, since anyone can register their own
+          Vercel project. Omitted → the bypass secret is never
+          attached, regardless of whether it's configured.
+        required: false
+        type: string
+        default: ""
+    secrets:
+      VERCEL_TOKEN:
+        description: >
+          Required alongside vercel-project to verify deployment
+          ownership via Vercel's API (read-only use here). Not required
+          when vercel-project is omitted.
+        required: false
+      VERCEL_PROTECTION_BYPASS_SECRET:
+        description: >
+          Vercel's "Protection Bypass for Automation" secret for the
+          target project (holocron#1030) — sent as the
+          x-vercel-protection-bypass header so this check's request
+          isn't redirected to Vercel's own SSO login by Deployment
+          Protection, which is on by default for Preview deployments.
+          Optional: a check against a URL with protection disabled (or
+          a provider other than Vercel) needs nothing here.
+        required: false
 
 jobs:
   preview-check:
@@ -68,8 +97,34 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
-        name: Run monitoring checks against the preview deployment
+      - name: Resolve monitoring checks
+        id: resolve
+        # Untrusted: loads and runs a PR's own holocron.config.ts, same
+        # as the checkout above. No secrets in this step's env at all
+        # (holocron#1032 review) -- VERCEL_TOKEN and
+        # VERCEL_PROTECTION_BYPASS_SECRET live only on the step below,
+        # which never loads this repo's config and so never runs a
+        # single line of PR-authored code.
+        uses: theholocron/.github/.github/actions/holocron@main
         with:
-          command: monitoring check
-          args: --cwd=${{ inputs.cwd }} ${{ steps.validate.outputs.url }}
+          command: monitoring resolve-checks
+          args: --cwd=${{ inputs.cwd }} --out=${{ runner.temp }}/monitoring-checks.json
+
+      - name: Verify project and run monitoring checks
+        env:
+          # Read directly by `monitoring run-resolved`
+          # (packages/cli/src/cli.ts) -- not part of the CLI's own
+          # `--token`-resolution chain, since neither is a vendor API
+          # credential this command calls anything with: VERCEL_TOKEN
+          # only verifies, read-only, that the preview URL resolves to
+          # vercel-project before VERCEL_PROTECTION_BYPASS_SECRET (a
+          # plain header forwarded as-is) is ever attached. The command
+          # itself never attaches the bypass header when vercel-project
+          # is empty, regardless of whether these secrets are
+          # configured -- never attached to an unverified URL.
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: monitoring run-resolved
+          args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}

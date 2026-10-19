@@ -18,9 +18,6 @@ jobs:
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment == 'Preview' &&
       github.event.deployment_status.environment_url != ''
-    # No secret this job needs -- monitoring check makes no vendor API
-    # call, only a plain HTTP request to the preview URL. Nothing to
-    # inherit, so nothing is exposed to a PR's own (untrusted) code.
     uses: theholocron/.github/.github/workflows/delivery.previewCheck.yml@main
     with:
       preview-url: ${{ github.event.deployment_status.environment_url }}
@@ -30,3 +27,12 @@ jobs:
       # checkout would default to that same ref instead of the PR's
       # actual deployed commit.
       sha: ${{ github.event.deployment.sha }}
+    secrets:
+      # Named explicitly, not `secrets: inherit` -- this job needs only
+      # these two secrets (holocron#1030/#1032), not every secret this
+      # workflow's caller context has access to (e.g.
+      # HOLOCRON_DEPLOYMENTS_TOKEN). VERCEL_TOKEN here is read-only use
+      # (verifying deployment ownership), never a write/deploy
+      # credential.
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}
