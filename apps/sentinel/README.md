@@ -515,7 +515,7 @@ one.
   per-PR preview concept yet, so a `preview`-target env var here would
   have gone unread. That's no longer true: `delivery.previewDeploy`
   deploys a file-upload preview on PRs touching this package (no
-  Git-linked preview flow — still `deployFunction()`, just invoked
+  Git-linked preview flow — still `deployFunction()`, invoked
   against the preview target instead of production), and that preview
   reads the same 5 env vars production does. Both targets are repeated
   explicitly here even though `secrets sync`'s own default is already
