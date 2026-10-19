@@ -315,13 +315,6 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 
 /** Handles one inbound webhook request. Platform adapters call this directly — no `{ fetch }` wrapper required. */
 export async function handleWebhookRequest(request: Request, env: Env): Promise<Response> {
-	// TEMP (holocron#1057): diagnostic only, logs a boolean to this
-	// project's own Vercel runtime logs -- never the secret value, never
-	// sent anywhere external. Reverted immediately after confirming
-	// whether Vercel forwards the bypass header through to this
-	// function. Remove before merging.
-	console.log(`holocron#1057 probe: has-bypass-header=${request.headers.has("x-vercel-protection-bypass")}`);
-
 	if (request.method !== "POST") {
 		return new Response("Method Not Allowed", { status: 405 });
 	}
