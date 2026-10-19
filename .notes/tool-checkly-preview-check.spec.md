@@ -461,3 +461,29 @@ sync github`
   that code to read and exfiltrate — and the thin callers no longer
   carry `secrets: inherit`, since nothing in this job needs any
   secret in the first place.
+- **The bypass secret reaches the PR's own deployed code (#1057,
+  fixed)**: #1032's project-ownership verification stops the secret
+  going to an _attacker-owned, unrelated_ Vercel project, but does
+  nothing about the deployment that legitimately belongs to the
+  protected project — because that deployment is built from the PR's
+  own, not-yet-reviewed code. Confirmed live (Vercel runtime logs,
+  `#1057`'s own investigation) that Vercel forwards
+  `x-vercel-protection-bypass` straight through to the deployed
+  function; nothing stops that code reading and exfiltrating it.
+  Fixed by carrying `github.event.pull_request.author_association`
+  (only available in `delivery.previewDeploy`'s own `pull_request`
+  trigger) into the GitHub deployment's `payload` field, read back by
+  `delivery.previewCheck` — triggered by `deployment_status`, which
+  has no `pull_request` context of its own. Neither secret is ever put
+  in a step's `env:` unless that association is `OWNER`/`MEMBER`/
+  `COLLABORATOR` — fail-closed, so a deployment created some other way
+  (anyone with `deployments: write` can create one directly via the
+  API) or missing the payload entirely gets no credential. An
+  untrusted deployment's check still runs, just without the bypass
+  header — failing loudly against Deployment Protection (the pre-#1032
+  symptom, for that population only) rather than silently skipping the
+  check. Mitigating factor that doesn't make this moot: these
+  workflows trigger on plain `pull_request`, not `pull_request_target`,
+  so GitHub never exposes `VERCEL_TOKEN`/`VERCEL_PROTECTION_BYPASS_SECRET`
+  to a fork PR's run in the first place — exploiting this needed push
+  access to a branch in this repo, not just opening a PR from a fork.

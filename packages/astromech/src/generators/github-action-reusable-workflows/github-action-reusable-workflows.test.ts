@@ -176,7 +176,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(previewCheck).toContain("command: monitoring resolve-checks");
 		expect(previewCheck).toContain("command: monitoring run-resolved");
 		expect(previewCheck).toContain(
-			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}"
+			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ steps.trust.outputs.trusted == 'true' && inputs.vercel-project || '' }} ${{ steps.validate.outputs.url }}"
 		);
 	});
 
@@ -236,10 +236,11 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// mention these two secrets by name" (which the step's own
 		// explanatory comment legitimately does, to say why they're absent).
 		expect(resolveStep).not.toMatch(/^\s+env:/m);
-		expect(runResolvedStep).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
-		expect(runResolvedStep).toContain(
-			"VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}"
-		);
+		// Gated on author trust (holocron#1057) -- see the dedicated test
+		// for this below -- but still only ever read in this step, never
+		// the resolve-checks one.
+		expect(runResolvedStep).toContain("secrets.VERCEL_TOKEN");
+		expect(runResolvedStep).toContain("secrets.VERCEL_PROTECTION_BYPASS_SECRET");
 	});
 
 	it("delivery.previewCheck never sets either secret job-wide — only within the run-resolved step's own env", () => {
@@ -264,7 +265,33 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// packages/cli/src/commands/monitoring-run-resolved.ts); forwarding
 		// it is what makes that gate reachable at all from this workflow.
 		expect(previewCheck).toMatch(/vercel-project:\s*\n\s*description:/);
-		expect(previewCheck).toContain("--vercel-project=${{ inputs.vercel-project }}");
+		expect(previewCheck).toContain(
+			"--vercel-project=${{ steps.trust.outputs.trusted == 'true' && inputs.vercel-project || '' }}"
+		);
+	});
+
+	it("delivery.previewCheck only attaches the bypass secrets for a trusted PR author (holocron#1057)", () => {
+		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		// Sourcery review on #1056: confirmed live (runtime logs) that
+		// Vercel forwards x-vercel-protection-bypass straight through to
+		// the deployed function -- an untrusted PR's own code could read
+		// and exfiltrate it off its own incoming request. Project-ownership
+		// verification alone doesn't help, since the deployment
+		// legitimately belongs to the protected project.
+		expect(previewCheck).toMatch(
+			/id: trust[\s\S]*AUTHOR_ASSOCIATION: \$\{\{ github\.event\.deployment\.payload\.author_association \}\}/
+		);
+		// Fail-closed: anything other than OWNER/MEMBER/COLLABORATOR sets
+		// trusted=false, including a missing/unrecognized association.
+		expect(previewCheck).toMatch(/OWNER \| MEMBER \| COLLABORATOR\) trusted=true ;;/);
+		expect(previewCheck).toContain(
+			"VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}"
+		);
+		expect(previewCheck).toContain(
+			"VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}"
+		);
+		// The trust step must run before the step it gates.
+		expect(previewCheck.indexOf("id: trust")).toBeLessThan(previewCheck.indexOf("id: resolve"));
 	});
 
 	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {
@@ -280,6 +307,17 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(previewCheck).toMatch(
 			/cwd:\s*\n\s*description:[^\n]*\n\s*required: false\n\s*type: string\n\s*default: "\."/
 		);
+	});
+
+	it("delivery.previewDeploy carries the PR author's association into the deployment payload (holocron#1057)", () => {
+		const previewDeploy = REUSABLE_WORKFLOWS["delivery.previewDeploy"]!;
+		// deployment_status (what delivery.previewCheck is triggered by) has
+		// no pull_request context of its own -- this is the only way that
+		// workflow can later tell a trusted author's own PR apart from
+		// anyone else's without a second API call.
+		expect(previewDeploy).toContain("AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}");
+		expect(previewDeploy).toMatch(/--arg assoc "\$AUTHOR_ASSOCIATION"/);
+		expect(previewDeploy).toMatch(/payload:\s*\{\s*author_association:\s*\$assoc\s*\}/);
 	});
 
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {

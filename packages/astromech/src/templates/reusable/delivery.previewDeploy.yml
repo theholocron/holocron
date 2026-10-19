@@ -145,6 +145,14 @@ jobs:
           # even if the PR branch itself moves while this job is running.
           SHA: ${{ github.event.pull_request.head.sha }}
           URL: ${{ needs.deploy.outputs.url }}
+          # Carried into the deployment's `payload` so
+          # delivery.previewCheck — triggered by `deployment_status`,
+          # which has no `pull_request` context of its own — can read
+          # it back without a second API call (holocron#1057). GitHub's
+          # own enum: OWNER/MEMBER/COLLABORATOR for someone with write
+          # access or org membership, CONTRIBUTOR/FIRST_TIME_CONTRIBUTOR/
+          # FIRST_TIMER/NONE otherwise.
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::HOLOCRON_DEPLOYMENTS_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
@@ -176,13 +184,14 @@ jobs:
           # rules don't forbid it either) would otherwise break out of a
           # printf-constructed JSON string and produce an invalid payload
           # gh api can't send.
-          payload=$(jq -n --arg ref "$REF" '{
+          payload=$(jq -n --arg ref "$REF" --arg assoc "$AUTHOR_ASSOCIATION" '{
             ref: $ref,
             environment: "Preview",
             description: "Vercel Preview (file deploy)",
             production_environment: false,
             auto_merge: false,
-            required_contexts: []
+            required_contexts: [],
+            payload: { author_association: $assoc }
           }')
           deploy_id=""
           for attempt in 1 2 3; do
