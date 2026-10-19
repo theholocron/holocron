@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import {
 	deriveDeployPaths,
 	extractPreviewConfig,
@@ -306,5 +307,26 @@ describe("generateCombinedDeployContent", () => {
 		expect(content).toContain("run-unit: true");
 		expect(content).toContain("run-storybook: false");
 		expect(content).toContain('storybook-projects: \'["a","b"]\'');
+	});
+});
+
+describe("thin caller permissions must be a superset of the reusable workflow's own job permissions", () => {
+	it("delivery.previewCheck's thin caller grants pull-requests: read, matching the reusable workflow's trust step (holocron#1059 follow-up)", () => {
+		// GitHub hard-fails the whole run at startup -- zero jobs
+		// dispatched, no annotation anywhere but the run's own error
+		// banner -- if a `uses:` job requests more than its caller
+		// granted. Confirmed live: delivery.previewCheck's reusable
+		// workflow gained a job-level `pull-requests: read` for its
+		// author-trust step (holocron#1058) without the thin caller
+		// template being updated to match, and a real PR's
+		// deployment_status run hit exactly that failure.
+		const reusable = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const thinCaller = WORKFLOW_TEMPLATES["delivery.previewCheck"]!;
+		const reusableJobPermissions = reusable.slice(reusable.indexOf("jobs:"), reusable.indexOf("    steps:"));
+		const thinCallerPermissions = thinCaller.slice(0, thinCaller.indexOf("jobs:"));
+		for (const line of reusableJobPermissions.matchAll(/^\s+(\S+):\s*(read|write)$/gm)) {
+			const [, key, level] = line;
+			expect(thinCallerPermissions).toContain(`${key}: ${level}`);
+		}
 	});
 });
