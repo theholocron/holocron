@@ -115,8 +115,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// way to read the file it's about to overwrite (Source only exposes
 	// write methods, not a read), so it can't check for a collision the
 	// way sync does; it can at least mark its own output so a later sync
-	// run detects one. See holocron#1026's "Collision in setup, not just
-	// sync" follow-up for closing the other half (adding a read capability).
+	// run detects one. See holocron#1068 for closing the other half
+	// (adding a read capability so setup can check too).
 	const setupGitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
 	const setupPkgRelPath = resolvePkgRelPath(setupGitRoot, input.loaded.filepath);
 
