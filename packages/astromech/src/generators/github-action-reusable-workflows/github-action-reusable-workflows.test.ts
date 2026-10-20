@@ -112,18 +112,27 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
-	it("verification.unitTests.yml defaults chromatic-projects to an empty array, not a single project (holocron#394)", () => {
-		// A non-empty default matrix meant every repo that doesn't opt into
-		// Chromatic at all (run-chromatic: false, the common case) still got
-		// one unmatched "skipping" matrix entry in its PR checks -- the
-		// matrix is what creates job instances to skip in the first place,
-		// so an empty array is what actually suppresses it. A repo that
-		// *does* opt in (run-chromatic: true) must now pass chromatic-projects
-		// explicitly -- confirmed no test here relies on the old single-item
-		// default existing.
+	it("verification.unitTests.yml carries no Chromatic job or inputs (holocron#394/#1062)", () => {
+		// GitHub evaluates a job's `if:` before expanding its `strategy.matrix`,
+		// so no `chromatic-projects` default (empty or otherwise) can make a
+		// *disabled* Chromatic job disappear from PR checks -- only not
+		// generating the job at all does. Chromatic moved to its own task/
+		// reusable workflow (verification.visualRegression) that a repo only
+		// gets when it lists the task; verification.unitTests itself must
+		// never regain a run-chromatic/chromatic-projects input or a
+		// visual-and-composition job.
 		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
-		expect(wf).toMatch(/chromatic-projects:[\s\S]*?default: "\[\]"/);
-		expect(wf).not.toContain('"tokenName":"default"');
+		expect(wf).not.toContain("run-chromatic");
+		expect(wf).not.toContain("chromatic-projects");
+		expect(wf).not.toContain("visual-and-composition");
+		expect(wf).not.toContain("chromaui/action");
+	});
+
+	it("verification.visualRegression.yml runs one matrix job per chromatic-projects entry, with no if: gate (holocron#394/#1062)", () => {
+		const wf = REUSABLE_WORKFLOWS["verification.visualRegression"]!;
+		expect(wf).toContain("chromaui/action");
+		expect(wf).toMatch(/chromatic-projects:[\s\S]*?required: true/);
+		expect(wf).not.toMatch(/visual-and-composition:\s*\n\s*if:/);
 	});
 
 	it("every Codecov upload fails its step when it fails, instead of passing silently (holocron#934)", () => {

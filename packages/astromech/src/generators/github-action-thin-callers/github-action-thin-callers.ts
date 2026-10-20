@@ -32,10 +32,12 @@ import staleYml from "../../templates/workflows/stale.yml";
 import performanceYml from "../../templates/workflows/verification.performance.yml";
 import typeSafetyYml from "../../templates/workflows/verification.typeSafety.yml";
 import unitTestsYml from "../../templates/workflows/verification.unitTests.yml";
+import visualRegressionYml from "../../templates/workflows/verification.visualRegression.yml";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"verification.unitTests": unitTestsYml,
+	"verification.visualRegression": visualRegressionYml,
 	"verification.typeSafety": typeSafetyYml,
 	"verification.performance": performanceYml,
 	"sourceQuality.staticAnalysis": staticAnalysisYml,
@@ -311,7 +313,7 @@ export function generateCombinedDeployContent(
  * generating the thin caller. Handles:
  *   - deploy shorthand: docs/storybook → type + storybook-projects
  *   - preview: stripped (handled separately via extractPreviewConfig)
- *   - run-chromatic object → run-chromatic: true + chromatic-projects
+ *   - chromatic-projects entries' untraced array → newline-joined string
  *   - plain arrays → JSON-stringified for YAML scalar quoting
  *
  * Used by both `holocron repo setup` and `sync-workflow-templates`.
@@ -337,15 +339,17 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<stri
 		delete result["storybook"];
 	}
 
-	const runChromatic = raw["run-chromatic"];
-	if (runChromatic !== null && typeof runChromatic === "object" && "projects" in runChromatic) {
-		result["run-chromatic"] = true;
-		const projects = (runChromatic as { projects: Record<string, unknown>[] }).projects.map((p) => ({
+	// verification.visualRegression's `chromatic-projects` (holocron#394/#1062):
+	// each project entry's `untraced` glob list is authored as an array but the
+	// reusable workflow's chromaui/action step wants it newline-joined.
+	const chromaticProjects = raw["chromatic-projects"];
+	if (Array.isArray(chromaticProjects)) {
+		result["chromatic-projects"] = (chromaticProjects as Record<string, unknown>[]).map((p) => ({
 			...p,
 			...(Array.isArray(p.untraced) ? { untraced: (p.untraced as string[]).join("\n") } : {}),
 		}));
-		result["chromatic-projects"] = JSON.stringify(projects);
 	}
+
 	for (const [k, v] of Object.entries(result)) {
 		if (Array.isArray(v)) result[k] = JSON.stringify(v);
 	}

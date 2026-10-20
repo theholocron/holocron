@@ -190,16 +190,15 @@ describe("normalizeWorkflowWith", () => {
 		);
 	});
 
-	it("expands a run-chromatic object → run-chromatic: true + chromatic-projects", () => {
+	it("joins a chromatic-projects entry's untraced array to a newline-separated string", () => {
 		const out = normalizeWorkflowWith({
-			"run-chromatic": { projects: [{ tokenName: "WEB", untraced: ["a", "b"] }] },
+			"chromatic-projects": [{ tokenName: "WEB", untraced: ["a", "b"] }],
 		});
-		expect(out["run-chromatic"]).toBe(true);
 		expect(out["chromatic-projects"]).toBe(JSON.stringify([{ tokenName: "WEB", untraced: "a\nb" }]));
 	});
 
-	it("leaves a run-chromatic project without untraced untouched", () => {
-		const out = normalizeWorkflowWith({ "run-chromatic": { projects: [{ tokenName: "WEB" }] } });
+	it("leaves a chromatic-projects entry without untraced untouched", () => {
+		const out = normalizeWorkflowWith({ "chromatic-projects": [{ tokenName: "WEB" }] });
 		expect(out["chromatic-projects"]).toBe(JSON.stringify([{ tokenName: "WEB" }]));
 	});
 

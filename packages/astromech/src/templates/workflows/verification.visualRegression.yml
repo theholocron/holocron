@@ -1,0 +1,16 @@
+name: Visual Regression
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  visual-and-composition:
+    name: Visual Regression
+    uses: theholocron/.github/.github/workflows/verification.visualRegression.yml@main
+    secrets: inherit

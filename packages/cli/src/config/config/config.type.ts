@@ -174,7 +174,8 @@ export interface EnvConfig {
 }
 
 /**
- * A single Chromatic project entry in a monorepo `run-chromatic` config.
+ * A single Chromatic project entry in a `verification.visualRegression`
+ * task's `chromatic-projects` config.
  * Each entry produces one matrix job in CI, publishing to a separate Chromatic project.
  *
  * The `tokenName` maps to a repository secret named `CHROMATIC_PROJECT_TOKEN_<TOKENNAME>`.
@@ -238,8 +239,9 @@ export interface StorybookDeployProject {
 /**
  * Typed `with:` inputs for reusable workflows.
  *
- * `run-chromatic` accepts either a plain boolean (single-project) or a
- * `ChromaticProjectConfig[]` object (multi-project monorepo).
+ * `chromatic-projects` (on the `verification.visualRegression` task) takes a
+ * `ChromaticProjectConfig[]` directly; each entry's `untraced` glob list may
+ * be authored as an array and is newline-joined for you.
  *
  * `docs` / `storybook` are high-level deploy shorthand that `holocron repo setup`
  * translates to `type` / `storybook-projects` before writing the thin caller.
@@ -247,7 +249,7 @@ export interface StorybookDeployProject {
  * `paths:` manually for deploy entries.
  */
 export type WorkflowWithConfig = Record<string, unknown> & {
-	"run-chromatic"?: boolean | { projects: ChromaticProjectConfig[] };
+	"chromatic-projects"?: ChromaticProjectConfig[];
 	/**
 	 * Docs deployment shorthand. `true` uses the org-standard `docs/` directory;
 	 * `{ path: "custom" }` uses a custom directory. Both derive a `paths:` entry automatically.
@@ -327,7 +329,7 @@ export interface HolocronConfig {
 	 * workflows / `package.json` scripts.
 	 *
 	 * Supported values (intent-facing vocabulary — epic #672, D3):
-	 *   "verification.unitTests" | "verification.typeSafety" | "verification.performance" |
+	 *   "verification.unitTests" | "verification.visualRegression" | "verification.typeSafety" | "verification.performance" |
 	 *   "sourceQuality.staticAnalysis" | "sourceQuality.formatting" |
 	 *   "sourceQuality.structuredDataValidation" | "sourceQuality.deadCodeAnalysis" |
 	 *   "security.secretDetection" | "security.codeScanning" |
@@ -371,23 +373,37 @@ export interface HolocronConfig {
 	 * { name: "delivery.deploy", with: { docs: { path: "packages/site" } } }
 	 * ```
 	 *
-	 * ### run-chromatic
-	 * For a single-project repo, use `"run-chromatic": true` with a
-	 * `CHROMATIC_PROJECT_TOKEN` repository secret.
+	 * ### verification.visualRegression
+	 * Its own task, not a `verification.unitTests` sub-job (holocron#394/#1062)
+	 * — GitHub evaluates a job's `if:` before expanding its `strategy.matrix`,
+	 * so no `chromatic-projects` default can make a *disabled* Chromatic job
+	 * disappear from PR checks; only not generating the job at all does. Omit
+	 * this task entirely for a repo that doesn't use Chromatic — no workflow,
+	 * no job, no check, not even a skipped one.
 	 *
-	 * For monorepos with multiple Storybooks, use the object form:
+	 * For a single-project repo, use a `CHROMATIC_PROJECT_TOKEN` repository
+	 * secret with `tokenName: "default"`:
 	 * ```ts
-	 * "run-chromatic": {
-	 *   projects: [
-	 *     { tokenName: "WEB", workingDir: "apps/web" },
-	 *     { tokenName: "UI",  workingDir: "packages/ui" },
-	 *   ]
+	 * {
+	 *   name: "verification.visualRegression",
+	 *   with: { "chromatic-projects": [{ tokenName: "default", workingDir: "." }] },
+	 * }
+	 * ```
+	 *
+	 * For monorepos with multiple Storybooks, list one entry per project:
+	 * ```ts
+	 * {
+	 *   name: "verification.visualRegression",
+	 *   with: {
+	 *     "chromatic-projects": [
+	 *       { tokenName: "WEB", workingDir: "apps/web" },
+	 *       { tokenName: "UI",  workingDir: "packages/ui" },
+	 *     ],
+	 *   },
 	 * }
 	 * ```
 	 * Each `tokenName` maps to a repository secret named
-	 * `CHROMATIC_PROJECT_TOKEN_<TOKENNAME>`. `holocron repo setup` expands this
-	 * to the flat `run-chromatic: true` + `chromatic-projects: <json>` inputs
-	 * that the reusable workflow accepts.
+	 * `CHROMATIC_PROJECT_TOKEN_<TOKENNAME>`.
 	 *
 	 * @example
 	 * ["sourceQuality.staticAnalysis", { "name": "delivery.publish", "with": { "run-build": false } }]
