@@ -14,6 +14,9 @@
  * vars to the registry default's cache-key hashing — the one thing that's
  * genuinely per-repo (e.g. a package tagging Sentry releases during its own
  * build needs `SENTRY_AUTH_TOKEN` in its cache key; most repos don't).
+ * `turbo.inputs` (holocron#845) appends extra input globs the same way —
+ * for a package whose layout the registry default doesn't cover (e.g. a
+ * flat-layout package with no `src/` directory at all).
  */
 
 import { stringifyJson } from "@theholocron/json-utils";
@@ -24,6 +27,25 @@ import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } fro
 
 /** Filed once per repo, unconditionally — every generated turbo.json's root. */
 const GLOBAL_DEPENDENCIES = ["pnpm-workspace.yaml", "tsconfig.json"];
+
+/**
+ * Guards against a malformed `turbo.inputs`/`turbo.passThroughEnv` override
+ * (review on holocron#845): a bare string instead of an array would
+ * otherwise spread into individual characters
+ * (`[..."**\/*.ts"]` → `["*", "*", "/", "*", ".", "t", "s"]`), silently
+ * emitting garbage entries instead of the intended single glob/env-var —
+ * the generated `turbo.json` would still be valid JSON, just wrong, with
+ * nothing surfacing the mistake. Only a config loaded from JSON or plain JS
+ * reaches this unchecked; a typed `holocron.config.ts` via `defineConfig`
+ * already rejects the wrong shape at compile time.
+ */
+function validatedGlobList(value: unknown, taskName: string, field: "inputs" | "passThroughEnv"): string[] {
+	if (value === undefined) return [];
+	if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+		throw new Error(`task "${taskName}": turbo.${field} must be an array of strings, got ${JSON.stringify(value)}`);
+	}
+	return value;
+}
 
 /**
  * `turbo.json` content for this manifest, pretty-printed — write it
@@ -42,15 +64,30 @@ export function turboConfig(config: TasksConfig): string | null {
 		if (entry.local === false) continue;
 		const turbo = TASKS[entry.name]?.turbo;
 		if (!turbo) continue;
-		const extraEnv = entry.turbo?.passThroughEnv;
-		const extraInputs = entry.turbo?.inputs;
-		const overrides: { passThroughEnv?: string[]; inputs?: string[] } = {};
-		if (extraEnv && extraEnv.length > 0) overrides.passThroughEnv = extraEnv;
-		// Appended, not replaced (holocron#845) -- a flat-layout package adds
-		// its own glob (e.g. "**/*.ts") without losing the registry's other
-		// tracked inputs (package.json, tsdown.config.ts, …).
-		if (extraInputs && extraInputs.length > 0) overrides.inputs = [...turbo.inputs, ...extraInputs];
-		tasks[entry.name] = Object.keys(overrides).length > 0 ? { ...turbo, ...overrides } : turbo;
+
+		const extraEnv = validatedGlobList(entry.turbo?.passThroughEnv, entry.name, "passThroughEnv");
+		const extraInputs = validatedGlobList(entry.turbo?.inputs, entry.name, "inputs");
+
+		// A task declared in more than one config layer accumulates onto
+		// whatever an earlier entry for the same name already contributed,
+		// rather than a later, override-less entry silently overwriting it
+		// (review on holocron#845) — mergeLayers() concatenates `tasks`
+		// arrays rather than deduping by name, so the same task can
+		// legitimately appear twice (once from holocron.config.ts's own
+		// `tasks`, once from a dedicated astromech.config.ts merged on top).
+		const current = tasks[entry.name] ?? turbo;
+		const passThroughEnv =
+			extraEnv.length > 0 ? [...(current.passThroughEnv ?? []), ...extraEnv] : current.passThroughEnv;
+		// Appended, not replaced — a flat-layout package adds its own glob
+		// (e.g. "**/*.ts") without losing the registry's other tracked
+		// inputs (package.json, tsdown.config.ts, …).
+		const inputs = extraInputs.length > 0 ? [...current.inputs, ...extraInputs] : current.inputs;
+
+		tasks[entry.name] = {
+			...turbo,
+			inputs,
+			...(passThroughEnv && passThroughEnv.length > 0 ? { passThroughEnv } : {}),
+		};
 	}
 
 	if (Object.keys(tasks).length === 0) return null;

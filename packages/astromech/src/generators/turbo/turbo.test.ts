@@ -180,6 +180,66 @@ describe("turboConfig", () => {
 		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["SENTRY_AUTH_TOKEN"]);
 		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
 	});
+
+	it("accumulates an inputs override across two entries for the same task, instead of the later one overwriting the earlier (review on #845)", () => {
+		// mergeLayers() concatenates `tasks` arrays rather than deduping by
+		// name -- holocron.config.ts's own `tasks` plus a dedicated
+		// astromech.config.ts's merged on top can legitimately produce two
+		// entries for the same task name.
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }, { name: "delivery.build" }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+	});
+
+	it("accumulates a passThroughEnv override across two entries for the same task", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["FOO"] } }, { name: "delivery.build" }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["FOO"]);
+	});
+
+	it("merges two entries for the same task that each contribute their own inputs override", () => {
+		const content = turboConfig({
+			tasks: [
+				{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } },
+				{ name: "delivery.build", turbo: { inputs: ["**/*.tsx"] } },
+			],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.tsx");
+		// Not duplicated beyond the two distinct globs each entry added.
+		expect(parsed.tasks["delivery.build"]?.inputs).toHaveLength(8);
+	});
+
+	it("throws a clear error when turbo.inputs is a bare string instead of an array (review on #845)", () => {
+		// A bare string would otherwise spread into individual characters
+		// ([..."**/*.ts"] -> ["*", "*", "/", "*", ".", "t", "s"]) -- a config
+		// loaded from JSON or plain JS isn't type-checked, so this has to be
+		// a runtime check, not just a TypeScript type.
+		expect(() =>
+			turboConfig({ tasks: [{ name: "delivery.build", turbo: { inputs: "**/*.ts" as unknown as string[] } }] })
+		).toThrow(/turbo\.inputs must be an array of strings/);
+	});
+
+	it("throws a clear error when turbo.inputs contains a non-string entry", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { inputs: [42] as unknown as string[] } }],
+			})
+		).toThrow(/turbo\.inputs must be an array of strings/);
+	});
+
+	it("throws a clear error when turbo.passThroughEnv is a bare string instead of an array", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { passThroughEnv: "FOO" as unknown as string[] } }],
+			})
+		).toThrow(/turbo\.passThroughEnv must be an array of strings/);
+	});
 });
 
 // theholocron/observability's real pnpm-workspace.yaml (#692's actual repro)
