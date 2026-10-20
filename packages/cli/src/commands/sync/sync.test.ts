@@ -1744,11 +1744,14 @@ describe("runSync", () => {
 			const subpackage = join(tmpDir, "packages", "sentinel");
 			await mkdir(subpackage, { recursive: true });
 
-			const loaded = loadedFrom({
-				name: "demo",
-				tasks: ["sourceQuality.staticAnalysis"],
-				providers: {},
-			});
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: ["sourceQuality.staticAnalysis"],
+					providers: {},
+				}),
+				filepath: join(subpackage, "holocron.config.json"),
+			};
 			const loader = makeLoaderWith(loaded, {});
 
 			const report = await runSync({
@@ -1766,8 +1769,85 @@ describe("runSync", () => {
 				"utf8"
 			);
 			expect(content).toContain("AUTO-GENERATED");
+			expect(content).toContain("# Source package: packages/sentinel");
 			// Not written into the subpackage's own, GitHub-invisible .github/.
 			expect(existsSync(join(subpackage, ".github"))).toBe(false);
+		});
+
+		it("re-syncing the same package overwrites its own file without a collision (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const workflowPath = join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml");
+
+			const loaded = {
+				...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
+				filepath: join(subpackage, "holocron.config.json"),
+			};
+			const loader = makeLoaderWith(loaded, {});
+			const run = () =>
+				runSync({ loaded, context: { repoRoot: subpackage }, loader, steps: ["workflows"], print: () => {} });
+
+			await run();
+			// Corrupt the body while keeping this package's own real marker --
+			// a regression that treats "marker already matches" as "nothing to
+			// do" and skips the write (while still reporting "ok") would
+			// otherwise pass with the stale body left in place.
+			const firstContent = await readFile(workflowPath, "utf8");
+			const marker = firstContent.match(/^# Source package: .+$/m)![0];
+			await writeFile(workflowPath, `${marker}\n\nstale body from a previous run\n`);
+			const second = await run();
+
+			const step = second.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(workflowPath, "utf8");
+			expect(content).not.toContain("stale body from a previous run");
+			expect(content).toBe(firstContent);
+		});
+
+		it("fails loudly instead of overwriting another package's generated workflow (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const other = join(tmpDir, "apps", "other");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(other, { recursive: true });
+			const workflowPath = join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml");
+
+			const config = {
+				name: "demo",
+				tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+				providers: {},
+			};
+			const sentinelLoaded = { ...loadedFrom(config), filepath: join(sentinel, "holocron.config.json") };
+			const otherLoaded = { ...loadedFrom(config), filepath: join(other, "holocron.config.json") };
+
+			await runSync({
+				loaded: sentinelLoaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoaderWith(sentinelLoaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+			const firstContent = await readFile(workflowPath, "utf8");
+
+			const report = await runSync({
+				loaded: otherLoaded,
+				context: { repoRoot: other },
+				loader: makeLoaderWith(otherLoaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow delivery.previewDeploy");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).toMatch(/apps\/sentinel/);
+			expect(step?.message).toMatch(/holocron#1026/);
+			// The first package's file must survive byte-for-byte untouched --
+			// not just "still contains its marker somewhere" (a bug that
+			// garbled the body while preserving the marker line would pass
+			// a substring check but not this).
+			const content = await readFile(workflowPath, "utf8");
+			expect(content).toBe(firstContent);
 		});
 
 		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {

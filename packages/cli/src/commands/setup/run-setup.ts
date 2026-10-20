@@ -42,7 +42,7 @@ import {
 	readWorkspacePackages,
 } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
-import { isWorkspaceRoot } from "@theholocron/fs-utils";
+import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
@@ -68,6 +68,7 @@ import {
 } from "../../plugin/index.js";
 import dcoConfig from "../../templates/dco.yml";
 import { style, withSpinner } from "../../ui/index.js";
+import { resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import {
@@ -109,6 +110,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const steps: SetupStepResult[] = [];
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
+	// Stamped into every workflow thin caller written below, same marker
+	// `holocron repo sync` uses (holocron#1026) -- this write path has no
+	// way to read the file it's about to overwrite (Source only exposes
+	// write methods, not a read), so it can't check for a collision the
+	// way sync does; it can at least mark its own output so a later sync
+	// run detects one. See holocron#1026's "Collision in setup, not just
+	// sync" follow-up for closing the other half (adding a read capability).
+	const setupGitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
+	const setupPkgRelPath = resolvePkgRelPath(setupGitRoot, input.loaded.filepath);
 
 	// Git hooks: `--hooks`/`--no-hooks` wins, then `config.hooks`, then default
 	// on for `protection: "strict"`.
@@ -249,7 +259,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			const step = withPreview ? `write workflow ${name} (with preview)` : `write workflow ${name}`;
 			steps.push(
 				await runStep("source", step, dryRun, async () => {
-					await source.writeWorkflowFile(filename, `${thinCallerHeader()}${content}`);
+					await source.writeWorkflowFile(
+						filename,
+						`${thinCallerHeader()}# Source package: ${setupPkgRelPath}\n\n${content}`
+					);
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
