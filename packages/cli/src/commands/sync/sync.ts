@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
-import { access, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import { createAstromech, createHeader, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
-import { findRootSync } from "@theholocron/fs-utils";
+import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
@@ -152,9 +152,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const effectivePreset = repo?.protection;
 					if (effectivePreset && effectivePreset !== "none")
 						properties["holocron_branch_protection_level"] = effectivePreset;
-					const isMonorepo = await access(join(gitRoot, "pnpm-workspace.yaml"))
-						.then(() => true)
-						.catch(() => false);
+					const isMonorepo = await isWorkspaceRoot(gitRoot);
 					properties["monorepo"] = String(isMonorepo);
 					const manual = repo?.properties ?? {};
 					if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;

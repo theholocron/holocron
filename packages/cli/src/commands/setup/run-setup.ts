@@ -18,7 +18,7 @@
  * one central place.
  */
 
-import { access, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import {
@@ -42,6 +42,7 @@ import {
 	readWorkspacePackages,
 } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
@@ -489,9 +490,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		if (effectivePreset && effectivePreset !== "none")
 			properties["holocron_branch_protection_level"] = effectivePreset;
 
-		const isMonorepo = await access(join(input.context.repoRoot, "pnpm-workspace.yaml"))
-			.then(() => true)
-			.catch(() => false);
+		const isMonorepo = await isWorkspaceRoot(input.context.repoRoot);
 		properties["monorepo"] = String(isMonorepo);
 
 		const manual = repo?.properties ?? {};
