@@ -64,7 +64,7 @@ workflows: ["lint", { name: "test", with: { "run-unit": true } }, { name: "relea
 `actions/stale` with `exempt-all-pr-milestones: true` — milestoned PRs are
 never marked stale. But there is no equivalent exemption for issues:
 
-- Issues with an "in progress" label are marked stale after 30 days just like idle ones.
+- Issues with an "in progress" label are marked stale after 30 days similar to idle ones.
 - There is no `exempt-issue-labels` input on the reusable, so consuming repos
   cannot exempt active work labels (`in-progress`, `wip`, etc.) through `with:`.
 - There is no `exempt-all-issue-milestones` input, so milestoned issues are not
