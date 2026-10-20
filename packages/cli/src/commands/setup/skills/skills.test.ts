@@ -133,4 +133,35 @@ describe("installSkills — auto-install @theholocron/skills (holocron#653)", ()
 			expect.objectContaining({ cwd: repoRoot })
 		);
 	});
+
+	it("retries with -w when pnpm-workspace.yaml appears between the check and the add (race, review on holocron#653)", async () => {
+		// No pnpm-workspace.yaml at the time of the access() check -- but the
+		// first pnpm add still fails as if one had appeared concurrently.
+		spy.mockReturnValueOnce({ status: 1, stdout: "", stderr: "ERR_PNPM_ADDING_TO_ROOT  ..." });
+		spy.mockReturnValueOnce({ status: 1, stdout: "", stderr: "" });
+
+		await installSkills({ agent: "claude", skills: [], repoRoot }).catch(() => undefined);
+
+		expect(spy).toHaveBeenCalledTimes(2);
+		expect(spy).toHaveBeenNthCalledWith(
+			1,
+			"pnpm",
+			["add", "-D", "@theholocron/skills"],
+			expect.objectContaining({ cwd: repoRoot })
+		);
+		expect(spy).toHaveBeenNthCalledWith(
+			2,
+			"pnpm",
+			["add", "-D", "-w", "@theholocron/skills"],
+			expect.objectContaining({ cwd: repoRoot })
+		);
+	});
+
+	it("does not retry a failure unrelated to ERR_PNPM_ADDING_TO_ROOT", async () => {
+		spy.mockReturnValueOnce({ status: 1, stdout: "", stderr: "ENOTFOUND registry.npmjs.org" });
+
+		await installSkills({ agent: "claude", skills: [], repoRoot }).catch(() => undefined);
+
+		expect(spy).toHaveBeenCalledTimes(1);
+	});
 });
