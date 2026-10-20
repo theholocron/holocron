@@ -16,4 +16,15 @@ describe("defaultPaths", () => {
 		const cli = all.find((p) => p.name === "@theholocron/cli") as (typeof all)[number];
 		expect(defaultPaths("/repo", cli, all)).toEqual(["packages/cli/"]);
 	});
+
+	it("never emits a backslash, even when relative() would return one (holocron#1069)", () => {
+		// node:path's relative() uses the host's native separator -- on
+		// Windows that's "\", which the paths-filter step and GitHub's
+		// PR-files API (both forward-slash-only) would never match. A
+		// literal backslash in a directory NAME is a legal (if unusual)
+		// POSIX filename character, used here to force that branch
+		// deterministically without needing an actual Windows host.
+		const pkg = { name: "@demo/weird", dir: "/repo/packages/weird\\dir", version: "1.0.0", dependencies: {} };
+		expect(defaultPaths("/repo", pkg, [pkg])).toEqual(["packages/weird/dir/"]);
+	});
 });

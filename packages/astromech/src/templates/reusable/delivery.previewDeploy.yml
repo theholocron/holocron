@@ -76,19 +76,58 @@ jobs:
           # API, not local git history (which this job's later shallow
           # checkout, below, doesn't have enough of to diff against the
           # base branch anyway).
-          if [ "$PATHS" = "[]" ]; then
+          #
+          # `jq -e` both parses PATHS and rejects anything that isn't a
+          # JSON array (holocron#1069 review) -- a malformed input (bad
+          # JSON, or valid JSON that isn't an array) fails the job loudly
+          # instead of the process-substitution loop below silently
+          # reading zero prefixes and skipping the deploy with a green
+          # check and no explanation.
+          paths=$(echo "$PATHS" | jq -e 'if type != "array" then error("paths input is not a JSON array") else . end') || {
+            echo "::error::delivery.previewDeploy's paths input is not a valid JSON array: $PATHS"
+            exit 1
+          }
+          # `jq 'length'` on the PARSED value, not a comparison against the
+          # literal string "[]" -- any valid JSON encoding of an empty
+          # array (e.g. " [ ] ") means the same "no filter" thing.
+          if [ "$(echo "$paths" | jq 'length')" = "0" ]; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          files=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[].filename')
+          # Both the new name AND the old one for a rename -- a file
+          # renamed OUT of a watched package (old path matches, new
+          # doesn't) is still a real change to that package's tree.
+          files=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')
+          file_count=$(echo "$files" | grep -c . || true)
+          if [ "$file_count" -ge 3000 ]; then
+            # The pulls-files endpoint caps out at 3,000 entries even with
+            # --paginate -- past that, a watched path could be among the
+            # files we never saw. Can't prove the PR irrelevant, so fail
+            # safe to relevant rather than risk silently skipping a real
+            # deploy.
+            echo "::warning::PR has >= 3000 changed files -- can't reliably determine path relevance, treating as relevant"
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           relevant=false
           while IFS= read -r prefix; do
             [ -z "$prefix" ] && continue
-            if echo "$files" | grep -qF "$prefix"; then
-              relevant=true
-              break
-            fi
-          done < <(echo "$PATHS" | jq -r '.[]')
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              # Unquoted $prefix (deliberately) -- case pattern-matches it
+              # as a glob, anchored at the START of the repo-relative path
+              # (holocron#1069 review: grep -F matched the prefix as a
+              # literal substring anywhere in the filename, and couldn't
+              # match a configured glob like "custom/**" at all). The
+              # trailing `*` covers a plain directory prefix like
+              # "apps/sentinel/"; a caller-supplied prefix that already
+              # has its own wildcards (e.g. "custom/**") just gets one
+              # more, harmlessly.
+              case "$file" in
+                $prefix*) relevant=true; break 2 ;;
+              esac
+            done <<< "$files"
+          done < <(echo "$paths" | jq -r '.[]')
           echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
