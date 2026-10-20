@@ -56,12 +56,19 @@ export type { JobDef, LocalRunner, TaskDef } from "./registry/index.js";
 export { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry/index.js";
 export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci/index.js";
 export { runCi } from "./tasks/ci/index.js";
+export { defaultPaths } from "./tasks/deploy-on-release/default-paths/index.js";
 export type {
 	DeployOnReleaseOptions,
 	DeployOnReleaseReport,
 	DeployOnReleaseResult,
 } from "./tasks/deploy-on-release/index.js";
 export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
+// Aliased: codecov's own, differently-shaped WorkspacePackage ({ slug, name,
+// dir }) already owns the unqualified name above (line 26) — this one
+// carries { name, dir, version, dependencies }, what defaultPaths() and
+// workspaceDependencies() actually need.
+export type { WorkspacePackage as DeployWorkspacePackage } from "./tasks/deploy-on-release/workspace-packages/index.js";
+export { workspacePackages } from "./tasks/deploy-on-release/workspace-packages/index.js";
 export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group/index.js";
 export { runGroup } from "./tasks/group/index.js";
 export { matchNamespace } from "./tasks/match-namespace/index.js";
@@ -85,3 +92,5 @@ export {
 } from "./templates/configs/yamllint/index.js";
 export type { CreateHeaderOptions, HeaderFunctions, WorkflowHeaderFormat } from "./utils/create-header/index.js";
 export { createHeader } from "./utils/create-header/index.js";
+export { defaultListDirs } from "./utils/default-list-dirs/index.js";
+export { defaultReadJson } from "./utils/default-read-json/index.js";

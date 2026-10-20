@@ -11,6 +11,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader, type Source } from "../../plugin/index.js";
+import { withAutoPreviewDeployPaths } from "../preview-deploy-paths/index.js";
 import {
 	CANONICAL_LABELS,
 	deriveCapabilities,
@@ -400,7 +401,14 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "workflows") {
-			const taskEntries = config.tasks ?? [];
+			const rawTaskEntries = config.tasks ?? [];
+			// A delivery.previewDeploy entry with a non-root cwd and no explicit
+			// with.paths gets one auto-computed from its workspace:* dependencies
+			// (holocron#1023) -- so a PR touching an unrelated package in the
+			// monorepo doesn't trigger a real Vercel preview deploy for every PR
+			// regardless of relevance. A repo's own explicit with.paths always wins.
+			const taskEntries =
+				rawTaskEntries.length === 0 ? rawTaskEntries : withAutoPreviewDeployPaths(rawTaskEntries, gitRoot);
 			if (taskEntries.length === 0) {
 				steps.push({
 					capability: "local",
@@ -415,7 +423,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				// map) so step reporting keeps the config's order.
 				const files = createAstromech({
 					cwd: input.context.repoRoot,
-					config: { tasks: config.tasks as TasksConfig["tasks"] },
+					config: { tasks: taskEntries as TasksConfig["tasks"] },
 					orgContext: { org: config.org, domain: config.domain },
 					logger,
 				}).thinCallers();

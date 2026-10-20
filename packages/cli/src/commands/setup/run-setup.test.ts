@@ -1909,6 +1909,55 @@ describe("runSetup", () => {
 		expect(written["delivery.deploy.yml"]).not.toContain("name: Preview");
 	});
 
+	it("auto-computes delivery.previewDeploy's paths from workspace:* dependencies (holocron#1023)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-preview-paths-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const shared = join(tmpDir, "packages", "shared");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(shared, { recursive: true });
+			await writeFile(join(shared, "package.json"), JSON.stringify({ name: "@demo/shared", version: "1.0.0" }));
+			await writeFile(
+				join(sentinel, "package.json"),
+				JSON.stringify({
+					name: "@demo/sentinel",
+					version: "1.0.0",
+					dependencies: { "@demo/shared": "workspace:*" },
+				})
+			);
+
+			const written: Record<string, string> = {};
+			const loaded: LoadedConfig = {
+				resolved: resolveConfig({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel" } }],
+					providers: { source: "github" },
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						enableVulnerabilityAlerts: async () => {},
+						enableAutomatedSecurityFixes: async () => {},
+						enableSecretScanning: async () => {},
+						enablePrivateVulnerabilityReporting: async () => {},
+						writeWorkflowFile: async (name: string, contents: string) => {
+							written[name] = contents;
+						},
+					},
+				}),
+			});
+
+			await runSetup({ loaded, context: { repoRoot: sentinel }, loader, print: () => {} });
+
+			expect(written["delivery.previewDeploy.yml"]).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
 	it("writes combined delivery.deploy.yml with preview job when delivery.deploy config has preview:", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({

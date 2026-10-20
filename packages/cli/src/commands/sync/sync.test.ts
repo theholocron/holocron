@@ -1914,6 +1914,73 @@ describe("runSync", () => {
 			expect(step?.message).not.toMatch(/holocron#1026/);
 		});
 
+		it("auto-computes delivery.previewDeploy's paths from workspace:* dependencies (holocron#1023)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const shared = join(tmpDir, "packages", "shared");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(shared, { recursive: true });
+			await writeFile(join(shared, "package.json"), JSON.stringify({ name: "@demo/shared", version: "1.0.0" }));
+			await writeFile(
+				join(sentinel, "package.json"),
+				JSON.stringify({
+					name: "@demo/sentinel",
+					version: "1.0.0",
+					dependencies: { "@demo/shared": "workspace:*" },
+				})
+			);
+
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel" } }],
+					providers: {},
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+
+			await runSync({
+				loaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+			expect(content).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
+		});
+
+		it("leaves delivery.previewDeploy's paths alone when the repo already set one explicitly", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			await mkdir(sentinel, { recursive: true });
+			await writeFile(
+				join(sentinel, "package.json"),
+				JSON.stringify({ name: "@demo/sentinel", version: "1.0.0" })
+			);
+
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel", paths: ["custom/**"] } }],
+					providers: {},
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+
+			await runSync({
+				loaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+			expect(content).toContain(`paths: '["custom/**"]'`);
+		});
+
 		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {
 			const loaded = loadedFrom({
 				name: "demo",

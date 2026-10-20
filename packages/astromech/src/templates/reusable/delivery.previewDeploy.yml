@@ -8,6 +8,17 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: "."
+      paths:
+        description: >
+          JSON array of repo-relative path prefixes (each ending in "/") --
+          a PR touching none of them skips the actual deploy work instead
+          of spinning up a Vercel preview for every PR in the monorepo
+          regardless of relevance (holocron#1023). Defaults to an empty
+          array: no filter, every PR is relevant -- correct for a
+          single-repo consumer, where every PR IS a PR to that package.
+        required: false
+        type: string
+        default: "[]"
     secrets:
       VERCEL_TOKEN:
         required: false
@@ -46,11 +57,82 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      # Listing the PR's changed files (below, via `gh api`) needs this —
+      # must be granted here too, not only on the thin caller: GitHub
+      # hard-fails the whole run at startup, zero jobs dispatched, if a
+      # called reusable workflow's job asks for more than the caller
+      # grants (holocron#1058).
+      pull-requests: read
     outputs:
       url: ${{ steps.extract.outputs.url }}
     steps:
+      - name: Check whether the PR touches any watched path
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          # No checkout needed — the PR's changed-file list comes from the
+          # API, not local git history (which this job's later shallow
+          # checkout, below, doesn't have enough of to diff against the
+          # base branch anyway).
+          #
+          # `jq -e` both parses PATHS and rejects anything that isn't a
+          # JSON array (holocron#1069 review) -- a malformed input (bad
+          # JSON, or valid JSON that isn't an array) fails the job loudly
+          # instead of the process-substitution loop below silently
+          # reading zero prefixes and skipping the deploy with a green
+          # check and no explanation.
+          paths=$(echo "$PATHS" | jq -e 'if type != "array" then error("paths input is not a JSON array") else . end') || {
+            echo "::error::delivery.previewDeploy's paths input is not a valid JSON array: $PATHS"
+            exit 1
+          }
+          # `jq 'length'` on the PARSED value, not a comparison against the
+          # literal string "[]" -- any valid JSON encoding of an empty
+          # array (e.g. " [ ] ") means the same "no filter" thing.
+          if [ "$(echo "$paths" | jq 'length')" = "0" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Both the new name AND the old one for a rename -- a file
+          # renamed OUT of a watched package (old path matches, new
+          # doesn't) is still a real change to that package's tree.
+          files=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')
+          file_count=$(echo "$files" | grep -c . || true)
+          if [ "$file_count" -ge 3000 ]; then
+            # The pulls-files endpoint caps out at 3,000 entries even with
+            # --paginate -- past that, a watched path could be among the
+            # files we never saw. Can't prove the PR irrelevant, so fail
+            # safe to relevant rather than risk silently skipping a real
+            # deploy.
+            echo "::warning::PR has >= 3000 changed files -- can't reliably determine path relevance, treating as relevant"
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          relevant=false
+          while IFS= read -r prefix; do
+            [ -z "$prefix" ] && continue
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              # Unquoted $prefix (deliberately) -- case pattern-matches it
+              # as a glob, anchored at the START of the repo-relative path
+              # (holocron#1069 review: grep -F matched the prefix as a
+              # literal substring anywhere in the filename, and couldn't
+              # match a configured glob like "custom/**" at all). The
+              # trailing `*` covers a plain directory prefix like
+              # "apps/sentinel/"; a caller-supplied prefix that already
+              # has its own wildcards (e.g. "custom/**") just gets one
+              # more, harmlessly.
+              case "$file" in
+                $prefix*) relevant=true; break 2 ;;
+              esac
+            done <<< "$files"
+          done < <(echo "$paths" | jq -r '.[]')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
         with:
           # The PR's exact head SHA, not the default pull_request
           # merge-commit ref — what gets built and deployed must be the
@@ -60,8 +142,10 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
 
       - name: Check deploy credentials are available
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
         id: creds
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

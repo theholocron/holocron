@@ -68,6 +68,7 @@ import {
 } from "../../plugin/index.js";
 import dcoConfig from "../../templates/dco.yml";
 import { style, withSpinner } from "../../ui/index.js";
+import { withAutoPreviewDeployPaths } from "../preview-deploy-paths/index.js";
 import { resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
@@ -212,7 +213,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	}
 
 	// ── source: workflow thin wrappers ──────────────────────────────────
-	const tasks = config.tasks;
+	// A delivery.previewDeploy entry with a non-root cwd and no explicit
+	// with.paths gets one auto-computed from its workspace:* dependencies
+	// (holocron#1023) -- so a PR touching an unrelated package in the
+	// monorepo doesn't trigger a real Vercel preview deploy for every PR
+	// regardless of relevance. A repo's own explicit with.paths always wins.
+	const tasks =
+		config.tasks && config.tasks.length > 0 ? withAutoPreviewDeployPaths(config.tasks, setupGitRoot) : config.tasks;
 	if (loader.has("source") && tasks && tasks.length > 0) {
 		const source = loader.get("source") as Source;
 		print(style.step("workflows"));
