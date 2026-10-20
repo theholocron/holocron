@@ -1,3 +1,9 @@
+## [1.16.0](https://github.com/theholocron/utils/compare/v1.15.1...v1.16.0) (2026-10-20)
+
+### Features
+
+* **fs-utils:** add isWorkspaceRoot helper for pnpm workspace detection ([#322](https://github.com/theholocron/utils/issues/322)) ([083c962](https://github.com/theholocron/utils/commit/083c96283bf3ae7f6947dec99c2bdce68ae7d0c4)), closes [#321](https://github.com/theholocron/utils/issues/321) [#321](https://github.com/theholocron/utils/issues/321)
+
 ## [1.15.1](https://github.com/theholocron/utils/compare/v1.15.0...v1.15.1) (2026-10-16)
 
 ### Bug Fixes
