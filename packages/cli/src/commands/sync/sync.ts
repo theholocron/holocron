@@ -22,6 +22,7 @@ import {
 	type SetupStepResult,
 	STALE_LABELS,
 } from "../setup/index.js";
+import { resolvePkgRelPath, sanitizeForDisplay, SOURCE_PACKAGE_MARKER } from "../workflow-source-marker/index.js";
 
 // The only content this file ever prefixes with workflowHeader() is thin-caller
 // workflow content from astromech.thinCallers() — sync.ts just writes it. The
@@ -96,6 +97,12 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	} catch {
 		resolvedRepoRoot = input.context.repoRoot;
 	}
+	// Stamped into every generated workflow file (below) so a second
+	// subpackage opting into the same generic task name is detected as a
+	// collision instead of silently overwriting the first's file
+	// (holocron#1026). Derived from the discovered config's own directory,
+	// not --cwd itself — see resolvePkgRelPath's doc comment.
+	const pkgRelPath = resolvePkgRelPath(gitRoot, input.loaded.filepath);
 
 	logger.info({ config: config.name, steps: requestedSteps ?? "all", dryRun: dryRun || undefined }, "sync: start");
 
@@ -436,13 +443,18 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					// knowledge.components) all key their generated file by task
 					// name already — no special-casing needed.
 					// Keyed by task name alone, regardless of which package's
-					// --cwd generated it — two different subpackages opting
-					// into the same generic task name would overwrite each
-					// other's file here, and package-relative paths baked
-					// into a template wouldn't get rebased for a non-root
-					// --cwd. Tracked as #1026; not yet a real collision since
-					// Sentinel's two --cwd-scoped tasks are both task-name-
-					// unique and carry no repo-root-relative content.
+					// --cwd generated it. Two different subpackages opting into
+					// the same generic task name would otherwise overwrite each
+					// other's file silently (holocron#1026) — the "Source
+					// package" marker (stamped below, checked by
+					// assertNoPackageCollision) turns that into a loud failure
+					// instead. The other half of #1026 — a template whose own
+					// content bakes in repo-root-relative paths, which a non-root
+					// --cwd would need rebased — doesn't apply to any current
+					// WORKFLOW_TEMPLATES entry: every --cwd-eligible template
+					// (delivery.previewCheck, delivery.previewDeploy) takes an
+					// explicit `cwd:` `with:` input the reusable workflow itself
+					// resolves, carrying no repo-root-relative content of its own.
 					const filename = `${name}.yml`;
 					const content = files.get(filename);
 					if (content === undefined) continue; // ci: false — nothing to write
@@ -451,7 +463,12 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
 					steps.push(
 						await runSyncStep("local", step, dryRun, async () => {
-							await writeWorkflowFile(gitRoot, filename, `${workflowHeader()}${content}`);
+							await assertNoPackageCollision(gitRoot, filename, name, pkgRelPath);
+							await writeWorkflowFile(
+								gitRoot,
+								filename,
+								`${workflowHeader()}# Source package: ${pkgRelPath}\n\n${content}`
+							);
 						})
 					);
 					print(formatSyncStep(steps[steps.length - 1]!));
@@ -777,4 +794,44 @@ async function writeWorkflowFile(repoRoot: string, filename: string, content: st
 	const tmpPath = join(dir, `.${filename}.${randomUUID()}.tmp`);
 	await writeFile(tmpPath, content, "utf8");
 	await rename(tmpPath, join(dir, filename));
+}
+
+/**
+ * Two different monorepo packages opting into the same generic task name
+ * (e.g. both `apps/sentinel` and some future `apps/other` configuring
+ * `delivery.previewDeploy`) would otherwise overwrite each other's
+ * `.github/workflows/<task>.yml` on whichever package's `holocron repo sync`
+ * ran last — only one package's behavior would ever actually run in CI,
+ * with no signal that the other's was silently dropped (holocron#1026).
+ *
+ * A file with no marker at all predates this check (or was written before
+ * #1026) and is never flagged — only a marker that's present AND disagrees
+ * with the current run's own package is a real collision. Any read error
+ * other than "file doesn't exist" propagates rather than being treated as
+ * "nothing to collide with" — the file may genuinely be unreadable, not
+ * missing.
+ */
+async function assertNoPackageCollision(
+	repoRoot: string,
+	filename: string,
+	taskName: string,
+	pkgRelPath: string
+): Promise<void> {
+	let existing: string;
+	try {
+		existing = await readFile(join(repoRoot, ".github", "workflows", filename), "utf8");
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+		throw err;
+	}
+	const previousPkg = SOURCE_PACKAGE_MARKER.exec(existing)?.[1];
+	if (previousPkg !== undefined && previousPkg !== pkgRelPath) {
+		throw new Error(
+			`task "${taskName}" would overwrite .github/workflows/${filename}, already generated for package ` +
+				`"${sanitizeForDisplay(previousPkg)}" — the same task name can't be used by two different packages ` +
+				`(holocron#1026). If "${sanitizeForDisplay(previousPkg)}" moved or was renamed to this path, delete ` +
+				`.github/workflows/${filename} first and re-run sync; otherwise rename one or give it a different ` +
+				`thin-caller filename.`
+		);
+	}
 }
