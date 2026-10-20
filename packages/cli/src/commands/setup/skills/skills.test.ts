@@ -135,8 +135,8 @@ describe("installSkills — auto-install @theholocron/skills (holocron#653)", ()
 	});
 
 	it("retries with -w when pnpm-workspace.yaml appears between the check and the add (race, review on holocron#653)", async () => {
-		// No pnpm-workspace.yaml at the time of the access() check -- but the
-		// first pnpm add still fails as if one had appeared concurrently.
+		// No pnpm-workspace.yaml at the time of the isWorkspaceRoot() check --
+		// but the first pnpm add still fails as if one had appeared concurrently.
 		spy.mockReturnValueOnce({ status: 1, stdout: "", stderr: "ERR_PNPM_ADDING_TO_ROOT  ..." });
 		spy.mockReturnValueOnce({ status: 1, stdout: "", stderr: "" });
 
