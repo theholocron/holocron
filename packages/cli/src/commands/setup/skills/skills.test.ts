@@ -1,6 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { AGENT_SYMLINK_PATHS, parsePreviousSkills } from "./skills.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 1, stdout: "", stderr: "" })) }));
+
+import { spawnSync } from "node:child_process";
+
+import { AGENT_SYMLINK_PATHS, installSkills, parsePreviousSkills } from "./skills.js";
 
 describe("AGENT_SYMLINK_PATHS", () => {
 	it("provides a symlink path for claude", () => {
@@ -89,5 +97,40 @@ describe("parsePreviousSkills", () => {
 			"/.claude/skills/also-not-managed",
 		].join("\n");
 		expect(parsePreviousSkills(gitignore, symlinkFn)).toEqual(["managed-skill"]);
+	});
+});
+
+describe("installSkills — auto-install @theholocron/skills (holocron#653)", () => {
+	let repoRoot: string;
+	const spy = spawnSync as ReturnType<typeof vi.fn>;
+
+	beforeEach(async () => {
+		repoRoot = await mkdtemp(join(tmpdir(), "holocron-skills-install-"));
+		spy.mockClear();
+	});
+	afterEach(async () => {
+		await rm(repoRoot, { recursive: true, force: true });
+	});
+
+	it("passes -w to pnpm add when repoRoot is a pnpm workspace root", async () => {
+		await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+
+		await installSkills({ agent: "claude", skills: [], repoRoot }).catch(() => undefined);
+
+		expect(spy).toHaveBeenCalledWith(
+			"pnpm",
+			["add", "-D", "-w", "@theholocron/skills"],
+			expect.objectContaining({ cwd: repoRoot })
+		);
+	});
+
+	it("omits -w when repoRoot is not a pnpm workspace root", async () => {
+		await installSkills({ agent: "claude", skills: [], repoRoot }).catch(() => undefined);
+
+		expect(spy).toHaveBeenCalledWith(
+			"pnpm",
+			["add", "-D", "@theholocron/skills"],
+			expect.objectContaining({ cwd: repoRoot })
+		);
 	});
 });

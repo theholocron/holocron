@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, mkdir, readdir, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -55,7 +55,13 @@ export async function installSkills({
 	try {
 		skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
 	} catch {
-		const result = spawnSync("pnpm", ["add", "-D", "@theholocron/skills"], {
+		const isWorkspaceRoot = await access(join(repoRoot, "pnpm-workspace.yaml"))
+			.then(() => true)
+			.catch(() => false);
+		// In a pnpm workspace, `pnpm add` at the root refuses to run without
+		// -w (ERR_PNPM_ADDING_TO_ROOT) -- it assumes a root-level add is a
+		// mistake meant for one of the workspace's own packages (holocron#653).
+		const result = spawnSync("pnpm", ["add", "-D", ...(isWorkspaceRoot ? ["-w"] : []), "@theholocron/skills"], {
 			cwd: repoRoot,
 			stdio: "inherit",
 		});
