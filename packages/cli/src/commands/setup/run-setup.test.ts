@@ -2114,22 +2114,18 @@ describe("runSetup", () => {
 		expect(written.some((c) => c.includes("run-unit: true"))).toBe(true);
 	});
 
-	it("expands run-chromatic object to run-chromatic: true + chromatic-projects", async () => {
+	it("writes chromatic-projects as JSON on the verification.visualRegression thin caller", async () => {
 		const written: string[] = [];
 		const loaded = loadedFrom({
 			name: "demo",
 			tasks: [
 				{
-					name: "verification.unitTests",
+					name: "verification.visualRegression",
 					with: {
-						"run-unit": false,
-						"run-storybook": true,
-						"run-chromatic": {
-							projects: [
-								{ tokenName: "WEB", workingDir: "apps/web" },
-								{ tokenName: "UI", workingDir: "packages/ui" },
-							],
-						},
+						"chromatic-projects": [
+							{ tokenName: "WEB", workingDir: "apps/web" },
+							{ tokenName: "UI", workingDir: "packages/ui" },
+						],
 					},
 				},
 			],
@@ -2150,12 +2146,11 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const testWorkflow = written.find((c) => c.includes("run-chromatic"));
-		expect(testWorkflow).toBeDefined();
-		expect(testWorkflow).toContain("run-chromatic: true");
-		expect(testWorkflow).toContain("chromatic-projects:");
-		expect(testWorkflow).toContain("WEB");
-		expect(testWorkflow).toContain("UI");
+		const visualRegressionWorkflow = written.find((c) => c.includes("chromatic-projects"));
+		expect(visualRegressionWorkflow).toBeDefined();
+		expect(visualRegressionWorkflow).toContain("chromatic-projects:");
+		expect(visualRegressionWorkflow).toContain("WEB");
+		expect(visualRegressionWorkflow).toContain("UI");
 	});
 
 	it("joins untraced array to newline-separated string in chromatic-projects", async () => {
@@ -2164,19 +2159,15 @@ describe("runSetup", () => {
 			name: "demo",
 			tasks: [
 				{
-					name: "verification.unitTests",
+					name: "verification.visualRegression",
 					with: {
-						"run-unit": false,
-						"run-storybook": true,
-						"run-chromatic": {
-							projects: [
-								{
-									tokenName: "UI",
-									workingDir: "packages/ui",
-									untraced: ["./packages/!(ui)/**", "./apps/**"],
-								},
-							],
-						},
+						"chromatic-projects": [
+							{
+								tokenName: "UI",
+								workingDir: "packages/ui",
+								untraced: ["./packages/!(ui)/**", "./apps/**"],
+							},
+						],
 					},
 				},
 			],

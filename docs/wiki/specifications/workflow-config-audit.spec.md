@@ -35,16 +35,16 @@ workflows: ["lint", { name: "test", with: { "run-unit": true } }, { name: "relea
 
 ### Already handled — no changes needed
 
-| Value                                               | Mechanism                                                                                                                    |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Node.js version                                     | `setup-node.yml` reads `.node-version` first; falls back to `"22.x"`. `holocron upgrade node` keeps `.node-version` in sync. |
-| Wiki params (`fern-org`, `base-path`, `preview-id`) | Generated from `providers.wiki` options in the `sync-wiki` step.                                                             |
-| Cloudflare Pages project name                       | Derived from `org` context via `extractPreviewConfig`; falls back to the `CLOUDFLARE_PAGES_PROJECT` org variable.            |
-| Deploy paths (`docs/**`, `astro.config.ts`, …)      | Derived from `with: { docs: true }` shorthand via `deriveDeployPaths()`.                                                     |
-| Storybook deploy config                             | `with: { storybook: [...] }` shorthand via `normalizeWorkflowWith()`.                                                        |
-| Test flags (`run-unit`, `run-interaction`, etc.)    | Passed as `with:` overrides through the `workflows` array.                                                                   |
-| Chromatic config                                    | `run-chromatic` shorthand expands to `chromatic-projects` JSON.                                                              |
-| Stale cron schedule (`"30 1 * * *"`)                | Daily frequency is fine for all repos — this is not worth making configurable.                                               |
+| Value                                               | Mechanism                                                                                                                         |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Node.js version                                     | `setup-node.yml` reads `.node-version` first; falls back to `"22.x"`. `holocron upgrade node` keeps `.node-version` in sync.      |
+| Wiki params (`fern-org`, `base-path`, `preview-id`) | Generated from `providers.wiki` options in the `sync-wiki` step.                                                                  |
+| Cloudflare Pages project name                       | Derived from `org` context via `extractPreviewConfig`; falls back to the `CLOUDFLARE_PAGES_PROJECT` org variable.                 |
+| Deploy paths (`docs/**`, `astro.config.ts`, …)      | Derived from `with: { docs: true }` shorthand via `deriveDeployPaths()`.                                                          |
+| Storybook deploy config                             | `with: { storybook: [...] }` shorthand via `normalizeWorkflowWith()`.                                                             |
+| Test flags (`run-unit`, `run-interaction`, etc.)    | Passed as `with:` overrides through the `workflows` array.                                                                        |
+| Chromatic config                                    | Own task (`verification.visualRegression`, holocron#394/#1062); `chromatic-projects` entries' `untraced` array is newline-joined. |
+| Stale cron schedule (`"30 1 * * *"`)                | Daily frequency is fine for all repos — this is not worth making configurable.                                                    |
 
 ### Should remain hardcoded — org-wide constants
 
@@ -64,7 +64,7 @@ workflows: ["lint", { name: "test", with: { "run-unit": true } }, { name: "relea
 `actions/stale` with `exempt-all-pr-milestones: true` — milestoned PRs are
 never marked stale. But there is no equivalent exemption for issues:
 
-- Issues with an "in progress" label are marked stale after 30 days just like idle ones.
+- Issues with an "in progress" label are marked stale after 30 days similar to idle ones.
 - There is no `exempt-issue-labels` input on the reusable, so consuming repos
   cannot exempt active work labels (`in-progress`, `wip`, etc.) through `with:`.
 - There is no `exempt-all-issue-milestones` input, so milestoned issues are not

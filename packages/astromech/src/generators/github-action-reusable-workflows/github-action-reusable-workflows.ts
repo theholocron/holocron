@@ -47,11 +47,13 @@ import tagWorkflow from "../../templates/reusable/tag.yml";
 import performanceWorkflow from "../../templates/reusable/verification.performance.yml";
 import typeSafetyWorkflow from "../../templates/reusable/verification.typeSafety.yml";
 import unitTestsWorkflow from "../../templates/reusable/verification.unitTests.yml";
+import visualRegressionWorkflow from "../../templates/reusable/verification.visualRegression.yml";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
 export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	"verification.unitTests": unitTestsWorkflow,
+	"verification.visualRegression": visualRegressionWorkflow,
 	"verification.typeSafety": typeSafetyWorkflow,
 	"verification.performance": performanceWorkflow,
 	"sourceQuality.staticAnalysis": staticAnalysisWorkflow,

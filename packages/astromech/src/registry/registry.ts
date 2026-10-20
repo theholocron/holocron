@@ -42,6 +42,14 @@ export const TASKS: Record<string, TaskDef> = {
 			dependsOn: ["^delivery.build"],
 		},
 	},
+	// Its own task/workflow, not a `verification.unitTests` sub-job
+	// (holocron#394/#1062) -- GitHub evaluates a job's `if:` before
+	// expanding its `strategy.matrix`, so no `chromatic-projects` default
+	// can make a *disabled* Chromatic job disappear from PR checks; only
+	// not generating the job at all does. A repo opts in by listing this
+	// task, same as any other optional task -- omitting it means no
+	// workflow, no job, no check, not even a skipped one.
+	"verification.visualRegression": { local: null },
 	"verification.performance": {
 		local: {
 			detect: [
