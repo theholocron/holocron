@@ -112,11 +112,13 @@ catalogs:
 # feature addition) pulled in http-client@1.26.0 for that one edge while
 # every other consumer stayed on the already-locked 1.25.0, splitting
 # ProviderApiError again under a caret override that permitted both.
-# cookie and tsx are also exact/pinned, but for unrelated reasons --
-# cookie@0.7.1 broke the docs prerender build (#332). 6e27c06d pinned
-# tsx to 4.22.4 to dodge an ENOENT crash hit on 4.23.x (then at .12);
-# three patches have shipped since (.13/.14/.15) and none reproduce it
-# -- verified against the exact vulnerable path (datapad's tsx/esm/api
+# cookie and tsx are pinned too, but for unrelated reasons, and not
+# both exactly -- cookie is constrained to the 2.x line (caret range,
+# not exact: ^2.0.1) to dodge cookie@0.7.1, which broke the docs
+# prerender build (#332); tsx IS an exact pin. 6e27c06d pinned tsx to
+# 4.22.4 to dodge an ENOENT crash hit on 4.23.x (then at .12); three
+# patches have shipped since (.13/.14/.15) and none reproduce it --
+# verified against the exact vulnerable path (datapad's tsx/esm/api
 # config loader) plus a full `holocron run ci`, so pinned at current
 # latest instead of the stale downgrade. Both cookie and tsx used to
 # live in package.json's own `pnpm.overrides`, which pnpm prefers over
