@@ -31,10 +31,15 @@ on: # yamllint disable-line rule:truthy
           (or omit for the legacy empty-string form) to use the bare CHROMATIC_PROJECT_TOKEN
           secret for single-project repos.
           buildScript defaults to "build:storybook" when omitted.
-          Default runs a single job from the repo root using CHROMATIC_PROJECT_TOKEN.
+          Defaults to an empty array (holocron#394) -- a repo that opts into
+          Chromatic (run-chromatic: true) must pass this explicitly; a
+          non-empty default here meant every repo that *doesn't* use
+          Chromatic still got one unmatched "skipping" matrix entry in its
+          PR checks, since the matrix is what creates job instances to skip
+          in the first place -- an empty array creates none.
         type: string
         required: false
-        default: '[{"tokenName":"default","workingDir":".","buildScript":"build:storybook"}]'
+        default: "[]"
       run-user-flow:
         description: Run Cypress E2E user-flow tests (requires cypress.config.*)
         type: boolean

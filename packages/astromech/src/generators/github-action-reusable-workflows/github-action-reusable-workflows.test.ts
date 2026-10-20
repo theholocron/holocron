@@ -112,6 +112,20 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
+	it("verification.unitTests.yml defaults chromatic-projects to an empty array, not a single project (holocron#394)", () => {
+		// A non-empty default matrix meant every repo that doesn't opt into
+		// Chromatic at all (run-chromatic: false, the common case) still got
+		// one unmatched "skipping" matrix entry in its PR checks -- the
+		// matrix is what creates job instances to skip in the first place,
+		// so an empty array is what actually suppresses it. A repo that
+		// *does* opt in (run-chromatic: true) must now pass chromatic-projects
+		// explicitly -- confirmed no test here relies on the old single-item
+		// default existing.
+		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
+		expect(wf).toMatch(/chromatic-projects:[\s\S]*?default: "\[\]"/);
+		expect(wf).not.toContain('"tokenName":"default"');
+	});
+
 	it("every Codecov upload fails its step when it fails, instead of passing silently (holocron#934)", () => {
 		for (const name of ["verification.unitTests", "delivery.publish"] as const) {
 			const uploads = REUSABLE_WORKFLOWS[name]!.split("- uses: codecov/codecov-action@").slice(1);
