@@ -53,3 +53,46 @@ export function resolvePkgRelPath(gitRoot: string, configFilepath: string): stri
 	}
 	return pkgRelPath;
 }
+
+/**
+ * Two different monorepo packages opting into the same generic task name
+ * (e.g. both `apps/sentinel` and some future `apps/other` configuring
+ * `delivery.previewDeploy`) would otherwise overwrite each other's
+ * `.github/workflows/<task>.yml` on whichever package's write ran last —
+ * only one package's behavior would ever actually run in CI, with no
+ * signal that the other's was silently dropped (holocron#1026).
+ *
+ * Shared by both `holocron repo sync` (reads the file straight off local
+ * disk) and `holocron repo setup` (reads it through the loaded `Source`
+ * capability, which happens to be local disk too for the github plugin
+ * today, but the interface doesn't promise that for every provider —
+ * holocron#1068). The marker-parsing and error message are identical
+ * either way; `readExisting` is how the two callers differ.
+ *
+ * A file with no marker at all predates this check (or was written before
+ * #1026) and is never flagged — only a marker that's present AND disagrees
+ * with the current run's own package is a real collision. `readExisting`
+ * returning `null` means "nothing there," not "unreadable" — a caller
+ * whose underlying read can fail for reasons other than "doesn't exist"
+ * (e.g. local fs EISDIR) is expected to let that error propagate out of
+ * `readExisting` itself rather than mapping it to `null`.
+ */
+export async function assertNoPackageCollision(
+	taskName: string,
+	pkgRelPath: string,
+	filename: string,
+	readExisting: () => Promise<string | null>
+): Promise<void> {
+	const existing = await readExisting();
+	if (existing === null) return;
+	const previousPkg = SOURCE_PACKAGE_MARKER.exec(existing)?.[1];
+	if (previousPkg !== undefined && previousPkg !== pkgRelPath) {
+		throw new Error(
+			`task "${taskName}" would overwrite .github/workflows/${filename}, already generated for package ` +
+				`"${sanitizeForDisplay(previousPkg)}" — the same task name can't be used by two different packages ` +
+				`(holocron#1026). If "${sanitizeForDisplay(previousPkg)}" moved or was renamed to this path, delete ` +
+				`.github/workflows/${filename} first and re-run this command; otherwise rename one or give it a ` +
+				`different thin-caller filename.`
+		);
+	}
+}
