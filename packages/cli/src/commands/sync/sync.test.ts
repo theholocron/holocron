@@ -64,14 +64,24 @@ describe("runSync", () => {
 		const parent = await mkdtemp(join(tmpdir(), "holocron-sync-nonexistent-"));
 		const repoRoot = join(parent, "never-created");
 		try {
-			const loaded = loadedFrom({ name: "demo", providers: {} });
+			// A real task, not an empty manifest -- "no tasks configured" would
+			// skip before ever touching gitRoot/pkgRelPath, proving nothing
+			// about whether the fallback value actually works downstream.
+			const loaded = loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} });
 			const report = await runSync({
 				loaded,
 				context: { repoRoot },
 				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
 				print: () => {},
 			});
-			expect(report.steps).toBeDefined();
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(
+				join(repoRoot, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
+			expect(content).toContain("AUTO-GENERATED");
 		} finally {
 			await rm(parent, { recursive: true, force: true });
 		}
@@ -1895,6 +1905,12 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("fail");
+			// The original read error (EISDIR, from assertNoPackageCollision's own
+			// readFile) must be what's reported -- not a holocron#1026 collision
+			// message (that would mean the read error was swallowed as "no file
+			// there"), and not some later write/rename error either (writeWorkflowFile
+			// is never reached: assertNoPackageCollision throws first).
+			expect(step?.message).toMatch(/EISDIR/);
 			expect(step?.message).not.toMatch(/holocron#1026/);
 		});
 
