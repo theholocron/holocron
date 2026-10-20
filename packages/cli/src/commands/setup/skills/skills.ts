@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { isWorkspaceRoot } from "@theholocron/fs-utils";
 import { updateGitignore } from "@theholocron/git-utils";
 
 import type { SkillLockEntry, SkillsLock } from "./skills.type.js";
@@ -55,10 +56,32 @@ export async function installSkills({
 	try {
 		skillsRoot = dirname(require.resolve("@theholocron/skills/package.json"));
 	} catch {
-		const result = spawnSync("pnpm", ["add", "-D", "@theholocron/skills"], {
+		const atWorkspaceRoot = await isWorkspaceRoot(repoRoot);
+		// In a pnpm workspace, `pnpm add` at the root refuses to run without
+		// -w (ERR_PNPM_ADDING_TO_ROOT) -- it assumes a root-level add is a
+		// mistake meant for one of the workspace's own packages (holocron#653).
+		// stderr is captured (not inherited) only so a failed first attempt
+		// can be inspected for that specific error below; it's forwarded
+		// either way once the outcome is known.
+		let result = spawnSync("pnpm", ["add", "-D", ...(atWorkspaceRoot ? ["-w"] : []), "@theholocron/skills"], {
 			cwd: repoRoot,
-			stdio: "inherit",
+			stdio: ["inherit", "inherit", "pipe"],
+			encoding: "utf8",
 		});
+		if (result.status !== 0 && !atWorkspaceRoot && result.stderr?.includes("ERR_PNPM_ADDING_TO_ROOT")) {
+			// pnpm-workspace.yaml appeared between the isWorkspaceRoot() check
+			// above and this call (e.g. a concurrent `holocron setup` run) --
+			// pnpm's own rejection is the authoritative signal, so retry
+			// with -w instead of re-checking the filesystem a second time.
+			process.stderr.write(result.stderr);
+			result = spawnSync("pnpm", ["add", "-D", "-w", "@theholocron/skills"], {
+				cwd: repoRoot,
+				stdio: "inherit",
+				encoding: "utf8",
+			});
+		} else if (result.status !== 0 && result.stderr) {
+			process.stderr.write(result.stderr);
+		}
 		if (result.status !== 0) {
 			throw new Error("failed to auto-install @theholocron/skills");
 		}
