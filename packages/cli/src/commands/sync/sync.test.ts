@@ -54,6 +54,39 @@ describe("runSync", () => {
 		vi.clearAllMocks();
 	});
 
+	it("doesn't throw when --cwd doesn't resolve to a real path (holocron#1014)", async () => {
+		// A parent that exists but a leaf that was never created -- realpathSync
+		// throws, falling back to the raw, unresolved value rather than
+		// propagating. Distinct from the existing "/tmp/test" convention used
+		// elsewhere in this file, which happens to already exist on this
+		// machine (and apparently in CI too) and so never actually exercises
+		// this fallback.
+		const parent = await mkdtemp(join(tmpdir(), "holocron-sync-nonexistent-"));
+		const repoRoot = join(parent, "never-created");
+		try {
+			// A real task, not an empty manifest -- "no tasks configured" would
+			// skip before ever touching gitRoot/pkgRelPath, proving nothing
+			// about whether the fallback value actually works downstream.
+			const loaded = loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot },
+				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(
+				join(repoRoot, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
+			expect(content).toContain("AUTO-GENERATED");
+		} finally {
+			await rm(parent, { recursive: true, force: true });
+		}
+	});
+
 	it("runs all sync steps when no steps filter is given", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
@@ -1848,6 +1881,37 @@ describe("runSync", () => {
 			// a substring check but not this).
 			const content = await readFile(workflowPath, "utf8");
 			expect(content).toBe(firstContent);
+		});
+
+		it("propagates a read error other than ENOENT instead of treating it as no collision (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			// A directory where the generated file would go -- readFile throws
+			// EISDIR, not ENOENT, so the collision check must not swallow it as
+			// "nothing there."
+			await mkdir(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), {
+				recursive: true,
+			});
+
+			const loaded = loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("fail");
+			// The original read error (EISDIR, from assertNoPackageCollision's own
+			// readFile) must be what's reported -- not a holocron#1026 collision
+			// message (that would mean the read error was swallowed as "no file
+			// there"), and not some later write/rename error either (writeWorkflowFile
+			// is never reached: assertNoPackageCollision throws first).
+			expect(step?.message).toMatch(/EISDIR/);
+			expect(step?.message).not.toMatch(/holocron#1026/);
 		});
 
 		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {
