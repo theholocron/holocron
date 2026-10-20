@@ -54,6 +54,29 @@ describe("runSync", () => {
 		vi.clearAllMocks();
 	});
 
+	it("doesn't throw when --cwd doesn't resolve to a real path (holocron#1014)", async () => {
+		// A parent that exists but a leaf that was never created -- realpathSync
+		// throws, falling back to the raw, unresolved value rather than
+		// propagating. Distinct from the existing "/tmp/test" convention used
+		// elsewhere in this file, which happens to already exist on this
+		// machine (and apparently in CI too) and so never actually exercises
+		// this fallback.
+		const parent = await mkdtemp(join(tmpdir(), "holocron-sync-nonexistent-"));
+		const repoRoot = join(parent, "never-created");
+		try {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot },
+				loader: makeLoaderWith(loaded, {}),
+				print: () => {},
+			});
+			expect(report.steps).toBeDefined();
+		} finally {
+			await rm(parent, { recursive: true, force: true });
+		}
+	});
+
 	it("runs all sync steps when no steps filter is given", async () => {
 		const called: string[] = [];
 		const loaded = loadedFrom({
@@ -1848,6 +1871,31 @@ describe("runSync", () => {
 			// a substring check but not this).
 			const content = await readFile(workflowPath, "utf8");
 			expect(content).toBe(firstContent);
+		});
+
+		it("propagates a read error other than ENOENT instead of treating it as no collision (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			// A directory where the generated file would go -- readFile throws
+			// EISDIR, not ENOENT, so the collision check must not swallow it as
+			// "nothing there."
+			await mkdir(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), {
+				recursive: true,
+			});
+
+			const loaded = loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).not.toMatch(/holocron#1026/);
 		});
 
 		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {
