@@ -1,3 +1,9 @@
+## [8.8.1](https://github.com/theholocron/configs/compare/v8.8.0...v8.8.1) (2026-10-20)
+
+### Bug Fixes
+
+* 🐛 adopt turbo.json inputs override for this repo's flat layout ([#502](https://github.com/theholocron/configs/issues/502)) ([ab234d8](https://github.com/theholocron/configs/commit/ab234d82eb73fab30df011252bd332b36e7bfb2c))
+
 ## [8.8.0](https://github.com/theholocron/configs/compare/v8.7.1...v8.8.0) (2026-10-17)
 
 ### Features
