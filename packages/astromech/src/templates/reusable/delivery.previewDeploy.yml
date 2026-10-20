@@ -8,6 +8,17 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: "."
+      paths:
+        description: >
+          JSON array of repo-relative path prefixes (each ending in "/") --
+          a PR touching none of them skips the actual deploy work instead
+          of spinning up a Vercel preview for every PR in the monorepo
+          regardless of relevance (holocron#1023). Defaults to an empty
+          array: no filter, every PR is relevant -- correct for a
+          single-repo consumer, where every PR IS a PR to that package.
+        required: false
+        type: string
+        default: "[]"
     secrets:
       VERCEL_TOKEN:
         required: false
@@ -46,11 +57,43 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      # Listing the PR's changed files (below, via `gh api`) needs this —
+      # must be granted here too, not only on the thin caller: GitHub
+      # hard-fails the whole run at startup, zero jobs dispatched, if a
+      # called reusable workflow's job asks for more than the caller
+      # grants (holocron#1058).
+      pull-requests: read
     outputs:
       url: ${{ steps.extract.outputs.url }}
     steps:
+      - name: Check whether the PR touches any watched path
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          # No checkout needed — the PR's changed-file list comes from the
+          # API, not local git history (which this job's later shallow
+          # checkout, below, doesn't have enough of to diff against the
+          # base branch anyway).
+          if [ "$PATHS" = "[]" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[].filename')
+          relevant=false
+          while IFS= read -r prefix; do
+            [ -z "$prefix" ] && continue
+            if echo "$files" | grep -qF "$prefix"; then
+              relevant=true
+              break
+            fi
+          done < <(echo "$PATHS" | jq -r '.[]')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
         with:
           # The PR's exact head SHA, not the default pull_request
           # merge-commit ref — what gets built and deployed must be the
@@ -60,8 +103,10 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
 
       - name: Check deploy credentials are available
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
         id: creds
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

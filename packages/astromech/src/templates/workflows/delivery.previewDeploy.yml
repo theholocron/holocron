@@ -14,6 +14,10 @@ concurrency:
 permissions:
   contents: read
   deployments: write
+  # Must be a superset of what the reusable workflow's own job requests
+  # (holocron#1058) -- its new path-relevance check lists the PR's
+  # changed files via the API (holocron#1023).
+  pull-requests: read
 
 jobs:
   preview-deploy:
