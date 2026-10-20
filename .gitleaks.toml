@@ -4,8 +4,14 @@ title = "gitleaks config"
 useDefault = true
 
 [[allowlists]]
+# Matched against the detected "Secret" value via substring search, not the
+# full line -- gitleaks' own generic-api-key rule truncates its capture to
+# 42 chars (no trailing "9BbXcLK"), so a regex requiring the complete
+# 49-char token can never match what's actually being allowlisted (holocron
+# CI, security.secretDetection, observed on dist/cli.mjs). This shorter
+# prefix is a substring of the capture either way, truncated or not.
 description = "PostHog public project token — client-side analytics key, not a secret"
-regexes = ['''phc_AC4vFCvYzwnzmG7Vg5nEc3PZKZztoPyfKp4Lb9BbXcLK''']
+regexes = ['''phc_AC4vFCvYzwnzmG7Vg5nEc3PZKZztoPyfKp4Lb''']
 
 [[allowlists]]
 description = "Sentry build plugin env file — gitignored, not committed"
