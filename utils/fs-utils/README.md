@@ -17,6 +17,7 @@ import {
   findRoot,
   findUpward,
   hasGitEntry,
+  isWorkspaceRoot,
   walkFilesSync,
 } from "@theholocron/fs-utils";
 
@@ -33,6 +34,9 @@ const configDir = await findUpward(
 
 // a plain boundary check, usable as `findUpward`'s `stop` or on its own
 await hasGitEntry("/path/to/dir"); // true if a .git entry (file or folder) exists there
+
+// decide whether a pnpm command needs -w at this directory
+await isWorkspaceRoot(repoRoot ?? process.cwd());
 ```
 
 ### `findUpward(startDir, check, stop?)`
@@ -112,6 +116,13 @@ Returns `true` when `dir` has a `.git` entry — a directory in a normal
 checkout, a file in a worktree/submodule (existence is all that matters).
 A common `stop` boundary for `findUpward`: treat the nearest `.git` as
 the project root, searched but not walked past.
+
+### `isWorkspaceRoot(dir)`
+
+Returns `true` when `dir` has a `pnpm-workspace.yaml` — the file that marks
+a pnpm workspace root. Several pnpm CLI commands (`pnpm add` among them)
+behave differently at a workspace root than in a plain package, so a caller
+shelling out to pnpm can check this before deciding which flags to pass.
 
 ## Documentation
 
