@@ -112,6 +112,134 @@ describe("turboConfig", () => {
 		// ineligible task suddenly fan out.
 		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { passThroughEnv: ["FOO"] } }] })).toBeNull();
 	});
+
+	it("appends a per-repo turbo.inputs override to the registry default, not replacing it (holocron#845)", () => {
+		// theholocron/configs is entirely flat-layout (index.ts, presets/*.ts,
+		// … directly under the package root, no src/ directory anywhere) —
+		// the registry's "src/**" default matches nothing there, so turbo's
+		// content hash never changes when real source changes.
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toEqual([
+			"src/**",
+			"package.json",
+			"tsdown.config.ts",
+			"vite.config.ts",
+			"rollup.config.ts",
+			"tsconfig.json",
+			"**/*.ts",
+		]);
+	});
+
+	it("omits the inputs override entirely when none is given — the registry default is used as-is", () => {
+		const content = turboConfig({ tasks: ["delivery.build"] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toEqual([
+			"src/**",
+			"package.json",
+			"tsdown.config.ts",
+			"vite.config.ts",
+			"rollup.config.ts",
+			"tsconfig.json",
+		]);
+	});
+
+	it("ignores an empty inputs override the same as no override", () => {
+		const content = turboConfig({ tasks: [{ name: "delivery.build", turbo: { inputs: [] } }] });
+		const withoutOverride = turboConfig({ tasks: ["delivery.build"] });
+		expect(content).toEqual(withoutOverride);
+	});
+
+	it("leaves outputs/dependsOn untouched when only inputs is overridden", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }],
+		});
+		const withOverride = JSON.parse(content!) as {
+			tasks: Record<string, { outputs: string[]; dependsOn: string[] }>;
+		};
+		const withoutOverride = JSON.parse(turboConfig({ tasks: ["delivery.build"] })!) as typeof withOverride;
+		expect(withOverride.tasks["delivery.build"]?.outputs).toEqual(withoutOverride.tasks["delivery.build"]?.outputs);
+		expect(withOverride.tasks["delivery.build"]?.dependsOn).toEqual(
+			withoutOverride.tasks["delivery.build"]?.dependsOn
+		);
+	});
+
+	it("an inputs override on a task with no turbo entry stays a no-op", () => {
+		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { inputs: ["**/*.ts"] } }] })).toBeNull();
+	});
+
+	it("combines a passThroughEnv override and an inputs override on the same task", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"], inputs: ["**/*.ts"] } }],
+		});
+		const parsed = JSON.parse(content!) as {
+			tasks: Record<string, { inputs: string[]; passThroughEnv?: string[] }>;
+		};
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["SENTRY_AUTH_TOKEN"]);
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+	});
+
+	it("accumulates an inputs override across two entries for the same task, instead of the later one overwriting the earlier (review on #845)", () => {
+		// mergeLayers() concatenates `tasks` arrays rather than deduping by
+		// name -- holocron.config.ts's own `tasks` plus a dedicated
+		// astromech.config.ts's merged on top can legitimately produce two
+		// entries for the same task name.
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }, { name: "delivery.build" }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+	});
+
+	it("accumulates a passThroughEnv override across two entries for the same task", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["FOO"] } }, { name: "delivery.build" }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["FOO"]);
+	});
+
+	it("merges two entries for the same task that each contribute their own inputs override", () => {
+		const content = turboConfig({
+			tasks: [
+				{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } },
+				{ name: "delivery.build", turbo: { inputs: ["**/*.tsx"] } },
+			],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.tsx");
+		// Not duplicated beyond the two distinct globs each entry added.
+		expect(parsed.tasks["delivery.build"]?.inputs).toHaveLength(8);
+	});
+
+	it("throws a clear error when turbo.inputs is a bare string instead of an array (review on #845)", () => {
+		// A bare string would otherwise spread into individual characters
+		// ([..."**/*.ts"] -> ["*", "*", "/", "*", ".", "t", "s"]) -- a config
+		// loaded from JSON or plain JS isn't type-checked, so this has to be
+		// a runtime check, not just a TypeScript type.
+		expect(() =>
+			turboConfig({ tasks: [{ name: "delivery.build", turbo: { inputs: "**/*.ts" as unknown as string[] } }] })
+		).toThrow(/turbo\.inputs must be an array of strings/);
+	});
+
+	it("throws a clear error when turbo.inputs contains a non-string entry", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { inputs: [42] as unknown as string[] } }],
+			})
+		).toThrow(/turbo\.inputs must be an array of strings/);
+	});
+
+	it("throws a clear error when turbo.passThroughEnv is a bare string instead of an array", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { passThroughEnv: "FOO" as unknown as string[] } }],
+			})
+		).toThrow(/turbo\.passThroughEnv must be an array of strings/);
+	});
 });
 
 // theholocron/observability's real pnpm-workspace.yaml (#692's actual repro)

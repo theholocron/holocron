@@ -272,6 +272,25 @@ export interface TaskEntryConfig {
 	local?: boolean;
 	/** The task's CI check context is a required status check + part of `holocron run ci`'s default run. */
 	required?: boolean;
+	/**
+	 * Per-repo additions to this task's generated `turbo.json` entry —
+	 * a separate channel from `with:` (that's the reusable *workflow's*
+	 * inputs; this is local turbo cache config, unrelated). No-op for a
+	 * task with no turbo fan-out config in the registry. Mirrors
+	 * astromech's own `TaskEntry["turbo"]` — kept in sync by hand, since
+	 * this package doesn't depend on astromech directly.
+	 */
+	turbo?: {
+		/** Extra env vars turbo hashes into this task's cache key, appended to the registry default. */
+		passThroughEnv?: string[];
+		/**
+		 * Extra input globs appended to the registry default's `inputs`
+		 * (holocron#845) — for a package whose layout the registry
+		 * default doesn't cover (e.g. a flat-layout package with no
+		 * `src/` directory at all).
+		 */
+		inputs?: string[];
+	};
 }
 
 export interface HolocronConfig {
