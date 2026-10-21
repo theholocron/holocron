@@ -392,6 +392,18 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(previewDeploy).not.toContain("collaborator_permission");
 	});
 
+	it("delivery.previewDeploy leaves a visible notice when a fork PR has no deploy credentials (holocron#1027)", () => {
+		const previewDeploy = REUSABLE_WORKFLOWS["delivery.previewDeploy"]!;
+		// A log annotation, not an API write (checks/comments) -- the only
+		// thing available from this step: a fork-triggered pull_request
+		// run never gets a write-scoped token, regardless of permissions:,
+		// so there's no way to post either from here.
+		expect(previewDeploy).toContain('echo "::notice title=No preview deployed::');
+		// Only on the no-token branch -- never fires, and so never adds
+		// noise, for an ordinary same-repo PR that has the secret.
+		expect(previewDeploy).toMatch(/if \[ -n "\$VERCEL_TOKEN" \]; then\s*\n\s*echo "available=true"/);
+	});
+
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
 		expect(build).toMatch(/task: delivery\.build/);

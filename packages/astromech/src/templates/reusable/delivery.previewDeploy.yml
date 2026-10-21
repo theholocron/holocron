@@ -153,12 +153,24 @@ jobs:
           # `secrets` isn't valid in a step `if:` (actionlint-enforced) —
           # a fork PR never receives this secret, so the deploy step below
           # skips cleanly on an empty token instead of failing on a
-          # missing credential. That skip is silent to the fork
-          # contributor -- no preview, no explanation why -- tracked
-          # as #1027 rather than fixed here (the real fix needs either
-          # a status comment or a maintainer-gated trusted-deploy path,
-          # not a quick addition to this step).
-          echo "available=$([ -n "$VERCEL_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          # missing credential -- correct, and must stay that way: a
+          # fork-triggered pull_request run never gets a write-scoped
+          # token either, so there's no way to post a PR comment or check
+          # run from here regardless (that needs a separate,
+          # pull_request_target-triggered job in the base repo's
+          # context -- a real feature with its own review surface, not
+          # this step; holocron#1027 explicitly scoped this fix to
+          # observability only). The ::notice:: below needs no extra
+          # permission -- it's a log annotation the runner itself renders,
+          # not an API write -- so it's the cheap half of #1027 that IS
+          # worth doing here: a visible, on-PR explanation instead of
+          # silence.
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=No preview deployed::This run has no VERCEL_TOKEN -- GitHub never forwards repository secrets to a pull_request run triggered from a fork. No preview was deployed, and delivery.previewCheck (which only runs off a real deployment) will not run either. A maintainer can deploy one manually if needed."
+          fi
 
       - name: Deploy preview
         id: deploy
