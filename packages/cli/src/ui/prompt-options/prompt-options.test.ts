@@ -158,8 +158,7 @@ describe("promptForOptions — flat options", () => {
 		expect(deferred).toEqual([]);
 	});
 
-	it("ignores askLast on a required option -- it's prompted immediately, like any other required option", async () => {
-		inputMock.mockResolvedValue("my-project");
+	it("required + askLast together: included without a checkbox pick, but still deferred", async () => {
 		const entry: OptionsCommand = {
 			name: "x",
 			options: [
@@ -174,9 +173,31 @@ describe("promptForOptions — flat options", () => {
 			],
 		};
 		const { answers, deferred } = await promptForOptions(entry, {});
-		expect(answers).toEqual({ project: "my-project" });
+		// required decided it's included at all (no checkbox needed); askLast
+		// decided its value isn't collected yet.
+		expect(answers).toEqual({});
+		expect(inputMock).not.toHaveBeenCalled();
+		expect(deferred).toHaveLength(1);
+		expect(deferred?.[0]?.key).toBe("project");
+	});
+
+	it("a required option already present in argv is never deferred, even with askLast", async () => {
+		const entry: OptionsCommand = {
+			name: "x",
+			options: [
+				{
+					key: "project",
+					flag: "--project",
+					type: "input",
+					message: "Project:",
+					required: true,
+					askLast: true,
+				},
+			],
+		};
+		const { answers, deferred } = await promptForOptions(entry, { project: "already-set" });
+		expect(answers).toEqual({ project: "already-set" });
 		expect(deferred).toEqual([]);
-		expect(inputMock).toHaveBeenCalled();
 	});
 
 	it("prompts a secret option with password(), not input()", async () => {

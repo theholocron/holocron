@@ -117,7 +117,17 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     human confirming "proceed with the real run?" can both take a while,
     and a time-sensitive secret (a TOTP code) typed before either risks
     going stale before it's actually used — and a dry run never reaches
-    the real npm call that would need it anyway. Every other command's
+    the real npm call that would need it anyway. `required` and
+    `askLast` compose independently: `required` only decides whether an
+    option sits behind the checkbox (always included vs. opt-in);
+    `askLast` only decides when its value is collected (upfront vs.
+    deferred). `package publish`'s `--otp` is `askLast: true` always,
+    and its `required` is computed once at module load from
+    `HOLOCRON_NPM_2FA` — an operator whose own npm account always
+    enforces 2FA sets that env var in their own shell profile (never
+    committed) to stop re-checking the OTP checkbox every run, without
+    forcing an OTP prompt on anyone else publishing from the same repo;
+    it's still collected last either way. Every other command's
     options are still rolled out one PR per command group, tracked on
     #1052 — a command's own yargs options not yet triaged into
     `options`/`skipOptions`/`modes` is a known, accepted gap until that

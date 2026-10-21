@@ -32,16 +32,18 @@ interface FlatResult {
 
 /**
  * For each of `options` not already present in `argv`, resolves a value —
- * `required` ones are always prompted, like required positionals, never
+ * `required` ones are always included, like required positionals, never
  * behind a selector; everything else is offered through one `checkbox()`
  * ("set any options?") and only the picked ones are then prompted in
  * `options`' own declaration order. An empty list (or every optional one
  * left unpicked) means zero prompts.
  *
- * A picked option with `askLast: true` (holocron#1052 follow-up — a
- * time-sensitive secret like an OTP, which should be typed as close as
- * possible to when it's actually used) is collected here, not yet: it's
- * returned in `deferred` instead, for the caller to resolve via
+ * A picked option (whether required or checkbox-picked) with
+ * `askLast: true` (holocron#1052 follow-up — a time-sensitive secret like
+ * an OTP, which should be typed as close as possible to when it's actually
+ * used, or one that's always needed for a specific operator's own account
+ * but not everyone's) isn't given a value here yet: it's returned in
+ * `deferred` instead, for the caller to resolve via
  * `promptForDeferredOptions` right before the real (non-dry-run) spawn.
  *
  * `when`, evaluated against answers collected so far in that same
@@ -79,9 +81,16 @@ async function promptForFlatOptions(
 			answers[option.key] = argv[option.key] as OptionAnswer;
 			continue;
 		}
-		// A required option is always needed right away (there's no later
-		// point to defer to that still makes sense for something the
-		// command can't run without), so askLast is ignored here.
+		// required and askLast combine cleanly: required only decides
+		// whether this option sits behind the checkbox (never, here) --
+		// askLast still decides WHEN its value is collected (holocron#1052
+		// follow-up: --otp, required: true for an operator whose own npm
+		// account enforces 2FA, every run -- still deferred to right
+		// before the real spawn).
+		if (option.askLast) {
+			deferred.push(option);
+			continue;
+		}
 		answers[option.key] = await promptOne(option);
 	}
 

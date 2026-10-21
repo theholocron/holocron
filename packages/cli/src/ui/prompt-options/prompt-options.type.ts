@@ -22,7 +22,12 @@ export interface OptionPrompt {
 	 * echo, telemetry, or logs. Always paired with `type: "password"`.
 	 */
 	secret?: boolean;
-	/** Always prompted, like a required positional — never behind the multi-select, and never subject to `when`. */
+	/**
+	 * Always included, like a required positional — never behind the
+	 * multi-select, and never subject to `when`. Combines with `askLast`
+	 * cleanly: `required` only decides whether this sits behind the
+	 * checkbox, not when its value gets collected.
+	 */
 	required?: boolean;
 	/** Boolean whose yargs default is `true` — answering "no" emits `--no-<flag>` instead of omitting the flag. */
 	negatable?: boolean;
@@ -34,9 +39,11 @@ export interface OptionPrompt {
 	 * (holocron#1052 follow-up) — for a time-sensitive secret (an OTP code)
 	 * that can go stale if typed too early: a dry-run preview and a human
 	 * confirming "proceed with the real run?" can both take a while, and
-	 * neither one actually needs the value anyway. Still offered normally
-	 * through the checkbox; only when its value is collected changes. See
-	 * `promptForDeferredOptions`.
+	 * neither one actually needs the value anyway. Works whether this
+	 * option also has `required: true` (always included, no checkbox pick
+	 * needed) or not (offered through the checkbox as usual) — `askLast`
+	 * only ever changes *when* the value is collected, never whether it's
+	 * included. See `promptForDeferredOptions`.
 	 */
 	askLast?: boolean;
 	/**
