@@ -10,7 +10,17 @@ import {
 	TEST_ORG,
 	TEST_REPO,
 } from "../../testing/publish-fixtures.js";
+import type { PublishExecResult } from "./publish.type.js";
 import { runPublish } from "./run-publish/index.js";
+
+/** Every discovered package reports as not-yet-on-npm — i.e., all genuinely new. */
+function allNewExec(): (cmd: string, args: string[]) => Promise<PublishExecResult> {
+	return async (cmd, args) => {
+		if (cmd === "npm" && args[0] === "whoami") return { exitCode: 0, stdout: "iamnewton", stderr: "" };
+		if (cmd === "npm" && args[0] === "view") return { exitCode: 1, stdout: "", stderr: "npm error code E404" };
+		return { exitCode: 0, stdout: "", stderr: "" };
+	};
+}
 
 // ── discoverPublicPackages ────────────────────────────────────────────────────
 
@@ -23,10 +33,7 @@ describe("discoverPublicPackages (via runPublish without packages injection)", (
 			{ name: "@theholocron/broken-d", invalidJson: true },
 		]);
 		const lines: string[] = [];
-		const { exec } = makeExec({
-			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
-			pnpm: { exitCode: 0, stdout: "", stderr: "" },
-		});
+		const exec = allNewExec();
 		await runPublish({
 			cwd: root,
 			env: baseEnv,
@@ -52,10 +59,7 @@ describe("discoverPublicPackages (via runPublish without packages injection)", (
 			]
 		);
 		const lines: string[] = [];
-		const { exec } = makeExec({
-			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
-			pnpm: { exitCode: 0, stdout: "", stderr: "" },
-		});
+		const exec = allNewExec();
 		await runPublish({
 			cwd: root,
 			env: baseEnv,

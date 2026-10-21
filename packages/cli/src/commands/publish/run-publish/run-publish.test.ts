@@ -113,7 +113,7 @@ describe("runPublish", () => {
 		expect(report.message).toMatch(/whoami.* still fails/);
 	});
 
-	it("runs the pnpm publish with the right filters + flags (monorepo layout)", async () => {
+	it("targets each package by exact name, not a directory glob, when publishing (monorepo layout)", async () => {
 		const root = makeTempMonorepo([{ name: "@theholocron/public-a" }]);
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -131,7 +131,8 @@ describe("runPublish", () => {
 		expect(calls[1]?.cmd).toBe("pnpm");
 		expect(calls[1]?.args).toEqual([
 			"-r",
-			"--filter=./packages/*",
+			"--filter=@theholocron/foo",
+			"--filter=@theholocron/bar",
 			"publish",
 			"--access",
 			"public",
@@ -141,7 +142,7 @@ describe("runPublish", () => {
 		]);
 	});
 
-	it("includes --filter=./plugins/* alongside --filter=./packages/* when both dirs exist (holocron#993 regression)", async () => {
+	it("still uses -r (a monorepo invocation) when plugins/* is the dir that exists, even though the filtered names are explicit (holocron#993 regression)", async () => {
 		const root = makeTempMonorepoWithPlugins(
 			[{ name: "@theholocron/cli" }],
 			[{ name: "@theholocron/holocron-plugin-axiom" }]
@@ -161,8 +162,8 @@ describe("runPublish", () => {
 		});
 		expect(calls[1]?.args).toEqual([
 			"-r",
-			"--filter=./packages/*",
-			"--filter=./plugins/*",
+			"--filter=@theholocron/foo",
+			"--filter=@theholocron/bar",
 			"publish",
 			"--access",
 			"public",
@@ -172,7 +173,7 @@ describe("runPublish", () => {
 		]);
 	});
 
-	it("filters on --filter=./plugins/* alone for a plugins-only repo layout", async () => {
+	it("still uses -r for a plugins-only repo layout", async () => {
 		const root = makeTempPluginsOnlyRepo([{ name: "@theholocron/holocron-plugin-axiom" }]);
 		const { exec, calls } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -189,7 +190,8 @@ describe("runPublish", () => {
 		});
 		expect(calls[1]?.args).toEqual([
 			"-r",
-			"--filter=./plugins/*",
+			"--filter=@theholocron/foo",
+			"--filter=@theholocron/bar",
 			"publish",
 			"--access",
 			"public",
@@ -202,10 +204,13 @@ describe("runPublish", () => {
 	it("publishes without -r/--filter for a single-package repo (holocron#641)", async () => {
 		const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
 		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@theholocron/observability" }));
-		const { exec, calls } = makeExec({
-			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
-			pnpm: { exitCode: 0, stdout: "", stderr: "" },
-		});
+		const calls: Array<{ cmd: string; args: string[] }> = [];
+		const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+			calls.push({ cmd, args });
+			if (cmd === "npm" && args[0] === "whoami") return { exitCode: 0, stdout: "iamnewton", stderr: "" };
+			if (cmd === "npm" && args[0] === "view") return { exitCode: 1, stdout: "", stderr: "npm error code E404" };
+			return { exitCode: 0, stdout: "", stderr: "" };
+		};
 		const report = await runPublish({
 			cwd: root,
 			env: baseEnv,
@@ -216,8 +221,8 @@ describe("runPublish", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.packageNames).toEqual(["@theholocron/observability"]);
-		expect(calls[1]?.cmd).toBe("pnpm");
-		expect(calls[1]?.args).toEqual(["publish", "--access", "public", "--no-git-checks", "--tag", "alpha"]);
+		expect(calls[2]?.cmd).toBe("pnpm");
+		expect(calls[2]?.args).toEqual(["publish", "--access", "public", "--no-git-checks", "--tag", "alpha"]);
 	});
 
 	it("fails loudly instead of a silent no-op when nothing is publishable (holocron#641)", async () => {
@@ -240,6 +245,76 @@ describe("runPublish", () => {
 		expect(lines.join("\n")).toMatch(/nothing to publish/);
 		// never got as far as the publish call — only `npm whoami` ran
 		expect(calls).toHaveLength(1);
+	});
+
+	it("excludes a package that already exists on npm from the publish (holocron#1052 follow-up)", async () => {
+		const lines: string[] = [];
+		const root = makeTempMonorepo([{ name: "@theholocron/old-timer" }, { name: "@theholocron/newcomer" }]);
+		const calls: Array<{ cmd: string; args: string[] }> = [];
+		const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+			calls.push({ cmd, args });
+			if (cmd === "npm" && args[0] === "whoami") return { exitCode: 0, stdout: "iamnewton", stderr: "" };
+			if (cmd === "npm" && args[0] === "view" && args[1] === "@theholocron/old-timer") {
+				return { exitCode: 0, stdout: "1.0.0\n", stderr: "" };
+			}
+			if (cmd === "npm" && args[0] === "view") return { exitCode: 1, stdout: "", stderr: "npm error code E404" };
+			return { exitCode: 0, stdout: "", stderr: "" };
+		};
+		const report = await runPublish({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			orgName: TEST_ORG,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.packageNames).toEqual(["@theholocron/newcomer"]);
+		const publishCall = calls.find((c) => c.cmd === "pnpm");
+		expect(publishCall?.args).toContain("--filter=@theholocron/newcomer");
+		expect(publishCall?.args).not.toContain("--filter=@theholocron/old-timer");
+		expect(lines.join("\n")).not.toContain("@theholocron/old-timer/access");
+		expect(lines.join("\n")).toContain("@theholocron/newcomer/access");
+	});
+
+	it("treats every public package already existing on npm as an idempotent success, not a failure", async () => {
+		const lines: string[] = [];
+		const root = makeTempMonorepo([{ name: "@theholocron/already-there" }]);
+		const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+			if (cmd === "npm" && args[0] === "whoami") return { exitCode: 0, stdout: "iamnewton", stderr: "" };
+			if (cmd === "npm" && args[0] === "view") return { exitCode: 0, stdout: "1.0.0\n", stderr: "" };
+			return { exitCode: 0, stdout: "", stderr: "" };
+		};
+		const report = await runPublish({
+			cwd: root,
+			env: baseEnv,
+			repoName: TEST_REPO,
+			orgName: TEST_ORG,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.packageNames).toEqual([]);
+		expect(lines.join("\n")).toMatch(/nothing new to bootstrap/);
+	});
+
+	it("skips the npm-existence check entirely when packages is explicitly overridden", async () => {
+		const { exec, calls } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			orgName: TEST_ORG,
+			print: () => {},
+			exec,
+		});
+		// whoami, then straight to pnpm publish -- no "npm view" existence check
+		expect(calls).toHaveLength(2);
+		expect(calls[1]?.cmd).toBe("pnpm");
 	});
 
 	it("still fails loudly on zero packages in dry-run", async () => {

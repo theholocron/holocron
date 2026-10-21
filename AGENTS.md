@@ -333,6 +333,11 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   first). The command runs `npm login --auth-type=web` itself when
   `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
   → `pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp <code>`.
+  Self-narrowing: it checks every publicly publishable package against the
+  npm registry (existence, not version) and only targets the ones that
+  don't exist on npm yet — re-running it after adding one new package to an
+  already-bootstrapped monorepo only publishes that one, not all of them
+  again. Nothing new to bootstrap is a success, not a failure.
 
 ## Repo layout
 
