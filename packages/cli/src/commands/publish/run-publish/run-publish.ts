@@ -89,12 +89,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	const exec = input.exec ?? defaultExec;
 	const login = input.login ?? defaultLogin;
 
-	print("");
-	print(`  cwd: ${cwd}`);
-	print(`  tag: ${tag}`);
 	logger.info({ tag, dryRun: dryRun || undefined }, "publish --initial: start");
-	if (otp) print(`  otp: <${otp.length} chars>`);
-	print("");
 
 	// ── 1. Verify npm auth — log in automatically if not ────────────────
 	print("→ verifying npm auth (`npm whoami`)…");
@@ -121,6 +116,12 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	}
 	const whoamiName = whoami.stdout.trim() || "<unknown>";
 	print(`  ✓ authed as ${whoamiName}`);
+
+	print("");
+	print(`  cwd: ${cwd}`);
+	print(`  tag: ${tag}`);
+	if (otp) print(`  otp: <${otp.length} chars>`);
+	print("");
 
 	// ── 2. Resolve dynamic values needed for next-steps ─────────────────
 	// `--initial` only exists for the chicken-and-egg case: a package that
