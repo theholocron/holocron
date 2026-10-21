@@ -89,7 +89,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	const exec = input.exec ?? defaultExec;
 	const login = input.login ?? defaultLogin;
 
-	print(`Holocron publish --initial${dryRun ? " (dry-run)" : ""}`);
+	print("");
 	print(`  cwd: ${cwd}`);
 	print(`  tag: ${tag}`);
 	logger.info({ tag, dryRun: dryRun || undefined }, "publish --initial: start");
