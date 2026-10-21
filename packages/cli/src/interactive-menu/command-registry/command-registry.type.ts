@@ -1,4 +1,4 @@
-import type { OptionPrompt, PositionalPrompt } from "../../ui/index.js";
+import type { OptionMode, OptionPrompt, PositionalPrompt } from "../../ui/index.js";
 
 export interface CommandEntry {
 	/** Full command name as typed at the CLI, e.g. `"auth set"`. */
@@ -13,9 +13,19 @@ export interface CommandEntry {
 	 * `when` evaluation order (holocron#1052). Global flags
 	 * (`--token`/`--org`/`--cwd`/`--dry-run`) are never listed here; those
 	 * are inherited from the parent invocation via `forwardedFlags`
-	 * regardless of this command.
+	 * regardless of this command. Ignored when `modes` is set.
 	 */
 	options?: OptionPrompt[];
+	/**
+	 * Mutually exclusive workflows (holocron#1052 follow-up) — a mode is
+	 * picked first ("What would you like to do?"), and only that mode's
+	 * own options are then offered, so nothing contingent on a different
+	 * mode is ever shown. Use this only when `options` would otherwise
+	 * need `when` to express a real either/or relationship between them
+	 * (`package publish`'s steady-state / `--initial` / `--sync-trust`);
+	 * plain `options` stays the simpler default for everything else.
+	 */
+	modes?: OptionMode[];
 	/**
 	 * This command's yargs options deliberately NOT offered through the
 	 * menu, with the reason recorded in review rather than in code — kept

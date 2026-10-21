@@ -96,12 +96,24 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     predicate over answers collected so far. A `secret: true` option is
     delivered to the spawned child through its env
     (`HOLOCRON_<KEY_IN_SCREAMING_SNAKE_CASE>`), never argv — `ps` and shell
-    history both expose a child's argv, never its env. `package publish`
-    (`--initial`, `--sync-trust`, `--otp`, …) is the first command with
-    `options` declared; every other command's options are still rolled out
-    one PR per command group, tracked on #1052 — a command's own yargs
-    options not yet triaged into `options`/`skipOptions` is a known,
-    accepted gap until that command's turn, not a bug.
+    history both expose a child's argv, never its env.
+    For a command whose options have a real either/or relationship instead
+    of independent flags — `package publish`'s steady-state publish /
+    `--initial` bootstrap / `--sync-trust` maintenance mode, which `when`
+    alone could only approximate by silently dropping a contingent pick
+    after the fact — declare `modes` instead of `options`: the user picks
+    one workflow first ("What would you like to do?"), and only that
+    mode's own options are ever shown, so nothing contingent on a different
+    mode is ever offered in the first place. `package publish` is the
+    first (and, so far, only) command that needs `modes`; every other
+    command with options declares plain `options`. `promptForOptions`
+    returns a `ResolvedOptions` (`{ options, answers }`) either way —
+    `buildChildArgv`/`secretEnv` render both shapes identically, with no
+    need to know which kind of command produced it. Every other command's
+    options are still rolled out one PR per command group, tracked on
+    #1052 — a command's own yargs options not yet triaged into
+    `options`/`skipOptions`/`modes` is a known, accepted gap until that
+    command's turn, not a bug.
 
 ## Consuming packages from `theholocron/clients`
 

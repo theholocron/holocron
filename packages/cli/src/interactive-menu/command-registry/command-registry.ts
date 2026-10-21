@@ -1,7 +1,25 @@
 import { listStoredProviders } from "../../auth/index.js";
+import type { OptionPrompt } from "../../ui/index.js";
 import type { CommandEntry } from "./command-registry.type.js";
 
 const numeric = (value: string): boolean | string => (/^\d+$/.test(value) ? true : "enter a number");
+
+// Shared between package publish's "steady-state" and "initial" modes
+// (holocron#1052 follow-up) -- otp's handler reads it the same way either
+// way (cli.ts's resolveOtp), and both modes offer the same tag semantics.
+const PUBLISH_TAG_OPTION: OptionPrompt = {
+	key: "tag",
+	flag: "--tag",
+	type: "input",
+	message: "npm dist-tag (blank = alpha for a bootstrap publish, latest otherwise):",
+};
+const PUBLISH_OTP_OPTION: OptionPrompt = {
+	key: "otp",
+	flag: "--otp",
+	type: "password",
+	secret: true,
+	message: "One-time password (2FA), if npm requires it for this publish:",
+};
 
 /**
  * The full command surface, hand-maintained in parallel with `cli.ts`'s
@@ -95,65 +113,60 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		description: "Publish @theholocron/* packages to npm",
 		positionals: [],
 		supportsDryRun: true,
-		// Declared in this order deliberately: syncTrust first so later
-		// options' `when` can see whether it was picked (holocron#1052) --
-		// it's a separate mode that makes the rest of a normal publish
-		// irrelevant, same as the handler's own early return in cli.ts.
-		options: [
+		// Three mutually exclusive workflows, not independent flags
+		// (holocron#1052 follow-up) -- modes instead of a flat options list
+		// + `when` so nothing contingent on a different mode is ever shown
+		// (a flat checkbox can't warn when a picked option turns out to be
+		// irrelevant to another pick in the same pass).
+		modes: [
 			{
-				key: "syncTrust",
-				flag: "--sync-trust",
-				type: "input",
-				arity: 2,
-				message: "Trusted Publisher workflow filename (old, then new)",
-			},
-			{
-				key: "repo",
-				flag: "--repo",
-				type: "input",
-				message: "owner/repo for Trusted Publisher config (blank = theholocron/holocron):",
-				when: (a) => Boolean(a.syncTrust),
+				key: "steady",
+				message: "Publish (steady-state)",
+				options: [
+					PUBLISH_TAG_OPTION,
+					PUBLISH_OTP_OPTION,
+					{
+						key: "provenance",
+						flag: "--provenance",
+						type: "confirm",
+						default: true,
+						negatable: true,
+						message: "Publish with --provenance? (on by default)",
+					},
+					{
+						key: "skipAlreadyPublished",
+						flag: "--skip-already-published",
+						type: "confirm",
+						default: false,
+						message: "Skip a package already published at this exact version, instead of one bulk publish?",
+					},
+				],
 			},
 			{
 				key: "initial",
+				message: "One-shot bootstrap publish (use only for a package's very first publish)",
 				flag: "--initial",
-				type: "confirm",
-				default: false,
-				message: "One-shot bootstrap publish? (use only for a package's very first publish)",
-				when: (a) => !a.syncTrust,
+				options: [PUBLISH_TAG_OPTION, PUBLISH_OTP_OPTION],
 			},
 			{
-				key: "tag",
-				flag: "--tag",
-				type: "input",
-				message: "npm dist-tag (blank = alpha for a bootstrap publish, latest otherwise):",
-				when: (a) => !a.syncTrust,
-			},
-			{
-				key: "otp",
-				flag: "--otp",
-				type: "password",
-				secret: true,
-				message: "One-time password (2FA), if npm requires it for this publish:",
-				when: (a) => !a.syncTrust,
-			},
-			{
-				key: "provenance",
-				flag: "--provenance",
-				type: "confirm",
-				default: true,
-				negatable: true,
-				message: "Publish with --provenance? (steady-state only; on by default)",
-				when: (a) => !a.syncTrust && !a.initial,
-			},
-			{
-				key: "skipAlreadyPublished",
-				flag: "--skip-already-published",
-				type: "confirm",
-				default: false,
-				message:
-					"Skip a package already published at this exact version, instead of one bulk publish? (steady-state only)",
-				when: (a) => !a.syncTrust && !a.initial,
+				key: "syncTrust",
+				message: "Sync Trusted Publisher workflow filename across every public package",
+				options: [
+					{
+						key: "syncTrust",
+						flag: "--sync-trust",
+						type: "input",
+						arity: 2,
+						required: true,
+						message: "Workflow filename (old, then new)",
+					},
+					{
+						key: "repo",
+						flag: "--repo",
+						type: "input",
+						message: "owner/repo for Trusted Publisher config (blank = theholocron/holocron):",
+					},
+				],
 			},
 		],
 	},

@@ -337,19 +337,21 @@ describe("launchMenu", () => {
 	});
 
 	describe("options (holocron#1052)", () => {
-		it("offers the command's optional options via checkbox and emits only the picked one", async () => {
+		it("asks which mode first, then offers only that mode's own optional options", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
-			checkboxMock.mockResolvedValue(["initial"]);
-			confirmMock
-				.mockResolvedValueOnce(true) // --initial (type: confirm)
-				.mockResolvedValueOnce(true); // proceed with the real run?
+			selectMock.mockResolvedValue("initial"); // "What would you like to do?"
+			checkboxMock.mockResolvedValue([]); // nothing further picked
+			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
 			const dryChild = new EventEmitter();
 			const realChild = new EventEmitter();
 			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
 
 			const done = launchMenu(COMMAND_REGISTRY, {});
 			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			expect(selectMock).toHaveBeenCalledWith(expect.objectContaining({ message: "What would you like to do?" }));
+			// Picking "initial" implies --initial unconditionally, with no
+			// further prompt for it -- it's already resolved by the pick itself.
 			expect(spawnMock.mock.calls[0]![1]).toEqual([
 				process.argv[1],
 				"package",
@@ -365,9 +367,44 @@ describe("launchMenu", () => {
 			await done;
 		});
 
+		it("never offers an unrelated mode's options at all, not just unprompted — picking syncTrust never shows initial/tag/provenance", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			selectMock.mockResolvedValue("syncTrust");
+			inputMock.mockResolvedValueOnce("old.yml").mockResolvedValueOnce("new.yml"); // required --sync-trust
+			checkboxMock.mockResolvedValue([]); // --repo not picked
+			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			// The checkbox for this mode offers only its own option (--repo) --
+			// --initial/--tag/--otp/--provenance/--skip-already-published, which
+			// belong to the other two modes, are never even in the choices list.
+			expect(checkboxMock).toHaveBeenCalledWith(
+				expect.objectContaining({ choices: [{ name: expect.stringContaining("owner/repo"), value: "repo" }] })
+			);
+			expect(spawnMock.mock.calls[0]![1]).toEqual([
+				process.argv[1],
+				"package",
+				"publish",
+				"--sync-trust",
+				"old.yml",
+				"new.yml",
+				"--dry-run",
+			]);
+			dryChild.emit("exit", 0);
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			realChild.emit("exit", 0);
+			await done;
+		});
+
 		it("delivers a secret option through the child's env, never its argv", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
+			selectMock.mockResolvedValue("initial");
 			checkboxMock.mockResolvedValue(["otp"]);
 			passwordMock.mockResolvedValue("123456");
 			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
@@ -400,42 +437,10 @@ describe("launchMenu", () => {
 			await done;
 		});
 
-		it("skips a picked option whose `when` no longer holds, without prompting for it", async () => {
+		it("asks nothing extra when the steady-state mode is picked with no optional option", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
-			// Both syncTrust and initial picked -- syncTrust is declared first,
-			// so by the time initial's turn comes its `when: !syncTrust` is
-			// already false. confirm must never be called for it.
-			checkboxMock.mockResolvedValue(["syncTrust", "initial"]);
-			inputMock.mockResolvedValueOnce("old.yml").mockResolvedValueOnce("new.yml");
-			confirmMock.mockResolvedValueOnce(true); // proceed with the real run? (the ONLY confirm call)
-			const dryChild = new EventEmitter();
-			const realChild = new EventEmitter();
-			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
-
-			const done = launchMenu(COMMAND_REGISTRY, {});
-			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-			expect(spawnMock.mock.calls[0]![1]).toEqual([
-				process.argv[1],
-				"package",
-				"publish",
-				"--sync-trust",
-				"old.yml",
-				"new.yml",
-				"--dry-run",
-			]);
-			expect(confirmMock).not.toHaveBeenCalled();
-			dryChild.emit("exit", 0);
-			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
-			realChild.emit("exit", 0);
-			await done;
-
-			expect(confirmMock).toHaveBeenCalledTimes(1);
-		});
-
-		it("asks nothing extra when no optional option is picked", async () => {
-			setTTY(true);
-			searchMock.mockResolvedValue("package publish");
+			selectMock.mockResolvedValue("steady");
 			checkboxMock.mockResolvedValue([]);
 			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
 			const dryChild = new EventEmitter();
@@ -451,14 +456,15 @@ describe("launchMenu", () => {
 			await done;
 		});
 
-		it("picking syncTrust also makes --repo promptable (its own `when`)", async () => {
+		it("syncTrust's own option is always prompted (required) and its value renders with arity 2", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
-			checkboxMock.mockResolvedValue(["syncTrust", "repo"]);
+			selectMock.mockResolvedValue("syncTrust");
 			inputMock
 				.mockResolvedValueOnce("old.yml")
 				.mockResolvedValueOnce("new.yml")
 				.mockResolvedValueOnce("theholocron/other-repo");
+			checkboxMock.mockResolvedValue(["repo"]);
 			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
 			const dryChild = new EventEmitter();
 			const realChild = new EventEmitter();
@@ -483,9 +489,10 @@ describe("launchMenu", () => {
 			await done;
 		});
 
-		it("steady-state-only options (provenance, skip-already-published) prompt when --initial isn't picked", async () => {
+		it("the steady-state mode's own options (tag, otp, provenance, skip-already-published) all prompt together", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
+			selectMock.mockResolvedValue("steady");
 			checkboxMock.mockResolvedValue(["tag", "otp", "provenance", "skipAlreadyPublished"]);
 			inputMock.mockResolvedValueOnce("alpha"); // --tag
 			passwordMock.mockResolvedValue("123456"); // --otp (secret)

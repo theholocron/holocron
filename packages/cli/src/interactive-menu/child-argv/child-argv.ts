@@ -1,4 +1,4 @@
-import type { OptionAnswer, OptionPrompt } from "../../ui/index.js";
+import type { OptionAnswer, OptionPrompt, ResolvedOptions } from "../../ui/index.js";
 import type { CommandEntry } from "../command-registry/index.js";
 
 /**
@@ -43,16 +43,23 @@ function optionArgv(option: OptionPrompt, value: OptionAnswer | undefined): stri
 	return value === "" ? [] : [option.flag, value];
 }
 
-/** `entry.spawnArgs` if set, else `entry.name` split into tokens — resolved positionals, then non-secret option flags, then forwarded flags, appended in that order. */
+/**
+ * `entry.spawnArgs` if set, else `entry.name` split into tokens — resolved
+ * positionals, then non-secret option flags, then forwarded flags, appended
+ * in that order. `resolved` is whatever {@link promptForOptions} returned —
+ * for a `modes`-based command, that's already the picked mode's own options
+ * (plus a synthetic entry for its `flag`, if any), so this renders either
+ * shape identically with no need to know which kind of command it came from.
+ */
 export function buildChildArgv(
 	entry: CommandEntry,
 	positionals: string[],
-	optionAnswers: Record<string, OptionAnswer>,
+	resolved: ResolvedOptions,
 	parentArgv: Record<string, unknown>,
 	dryRunOverride?: boolean
 ): string[] {
-	const optionArgs = (entry.options ?? []).flatMap((option) =>
-		option.secret ? [] : optionArgv(option, optionAnswers[option.key])
+	const optionArgs = resolved.options.flatMap((option) =>
+		option.secret ? [] : optionArgv(option, resolved.answers[option.key])
 	);
 	return [
 		...(entry.spawnArgs ?? entry.name.split(" ")),
@@ -69,11 +76,11 @@ export function buildChildArgv(
  * Merged into {@link spawnChild}'s `extraEnv` alongside `NO_UPDATE_NOTIFIER`
  * and (for a preview spawn) `DRY_RUN_PREVIEW_ENV_VAR`.
  */
-export function secretEnv(entry: CommandEntry, optionAnswers: Record<string, OptionAnswer>): Record<string, string> {
+export function secretEnv(resolved: ResolvedOptions): Record<string, string> {
 	const out: Record<string, string> = {};
-	for (const option of entry.options ?? []) {
+	for (const option of resolved.options) {
 		if (!option.secret) continue;
-		const value = optionAnswers[option.key];
+		const value = resolved.answers[option.key];
 		if (typeof value !== "string" || value === "") continue;
 		out[`HOLOCRON_${option.key.replace(/([A-Z])/g, "_$1").toUpperCase()}`] = value;
 	}

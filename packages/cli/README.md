@@ -44,8 +44,19 @@ option is prompted like a positional, and everything else goes through one
 "Set any options?" checkbox, prompting only what you picked:
 
 ```console
-? Set any options? (space to select, enter to skip) › ◉ One-shot bootstrap publish? ◯ npm dist-tag ◯ One-time password (2FA)
-? One-shot bootstrap publish? › yes
+? Set any options? (space to select, enter to skip) › ◉ npm dist-tag ◯ One-time password (2FA)
+? npm dist-tag (blank = latest): › beta
+```
+
+`package publish` specifically has three workflows that don't mix — a
+steady-state publish, a one-shot `--initial` bootstrap, and a `--sync-trust`
+maintenance run — so it asks which one first, then only offers that
+workflow's own options; nothing from a different workflow is ever shown:
+
+```console
+? What would you like to do? › One-shot bootstrap publish (use only for a package's very first publish)
+? Set any options? (space to select, enter to skip) › ◉ One-time password (2FA)
+? One-time password (2FA), if npm requires it for this publish: › ***
 ```
 
 A secret option (`--otp`) is masked as you type and delivered to the spawned

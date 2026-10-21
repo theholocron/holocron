@@ -1,7 +1,7 @@
 import { checkbox, confirm, input, password, select } from "@inquirer/prompts";
 
 import { NonInteractiveError } from "../non-interactive-error/index.js";
-import type { OptionAnswer, OptionPrompt, OptionsCommand } from "./prompt-options.type.js";
+import type { OptionAnswer, OptionMode, OptionPrompt, OptionsCommand, ResolvedOptions } from "./prompt-options.type.js";
 
 async function promptOne(option: OptionPrompt): Promise<OptionAnswer> {
 	if (option.secret || option.type === "password") {
@@ -25,27 +25,25 @@ async function promptOne(option: OptionPrompt): Promise<OptionAnswer> {
 }
 
 /**
- * For each of `entry.options` not already present in `argv`, resolves a
- * value — `required` ones are always prompted, like required positionals,
- * never behind a selector; everything else is offered through one
- * `checkbox()` ("set any options?") and only the picked ones are then
- * prompted in `entry.options`' own declaration order. An empty `options`
- * list (or every optional one left unpicked) means zero prompts.
+ * For each of `options` not already present in `argv`, resolves a value —
+ * `required` ones are always prompted, like required positionals, never
+ * behind a selector; everything else is offered through one `checkbox()`
+ * ("set any options?") and only the picked ones are then prompted in
+ * `options`' own declaration order. An empty list (or every optional one
+ * left unpicked) means zero prompts.
  *
  * `when`, evaluated against answers collected so far in that same
- * declaration order, can skip a picked option entirely — e.g. `package
- * publish`'s `--initial` only makes sense once `--sync-trust` (declared
- * first) wasn't chosen. Skipped this way, the option is simply absent from
- * the result, exactly as if it had never been picked.
- *
- * Throws {@link NonInteractiveError} on a non-TTY stdin the first time a
- * prompt would be needed — mirrors `promptForPositionals`.
+ * declaration order, can skip a picked option entirely. Skipped this way,
+ * the option is simply absent from the result, exactly as if it had never
+ * been picked — acceptable for a minor, genuinely optional dependency, but
+ * prefer `OptionMode` (see `promptForOptions`) when the options have a
+ * real either/or relationship, so nothing contingent is shown at all.
  */
-export async function promptForOptions(
-	entry: OptionsCommand,
+async function promptForFlatOptions(
+	commandName: string,
+	options: OptionPrompt[],
 	argv: Record<string, unknown>
 ): Promise<Record<string, OptionAnswer>> {
-	const options = entry.options ?? [];
 	if (options.length === 0) return {};
 
 	const answers: Record<string, OptionAnswer> = {};
@@ -59,7 +57,7 @@ export async function promptForOptions(
 
 	if ((required.length > 0 || optional.some(needsPrompt)) && !process.stdin.isTTY) {
 		throw new NonInteractiveError(
-			`\`${entry.name}\` has options only settable interactively — pass them directly: holocron ${entry.name} [options]`
+			`\`${commandName}\` has options only settable interactively — pass them directly: holocron ${commandName} [options]`
 		);
 	}
 
@@ -87,4 +85,58 @@ export async function promptForOptions(
 		answers[option.key] = await promptOne(option);
 	}
 	return answers;
+}
+
+/**
+ * For a `modes`-based command (holocron#1052 follow-up): asks which
+ * mutually exclusive workflow first ("What would you like to do?"), then
+ * offers only that mode's own options, via the exact same
+ * `promptForFlatOptions` flow. The picked mode's `flag`, if it has one, is
+ * folded in as an already-resolved `confirm`-type option so
+ * `buildChildArgv` renders it with no special-casing — it just sees
+ * another boolean option whose answer happens to already be `true`.
+ */
+async function promptForModes(
+	entry: OptionsCommand,
+	modes: OptionMode[],
+	argv: Record<string, unknown>
+): Promise<ResolvedOptions> {
+	if (!process.stdin.isTTY) {
+		throw new NonInteractiveError(
+			`\`${entry.name}\` has options only settable interactively — pass them directly: holocron ${entry.name} [options]`
+		);
+	}
+	const modeKey = await select({
+		message: "What would you like to do?",
+		choices: modes.map((m) => ({ name: m.message, value: m.key })),
+	});
+	// `modeKey` is drawn from `modes` itself, so this is always defined.
+	const mode = modes.find((m) => m.key === modeKey)!;
+	const options = mode.options ?? [];
+	const answers = await promptForFlatOptions(entry.name, options, argv);
+	if (!mode.flag) return { options, answers };
+
+	const flagOption: OptionPrompt = {
+		key: `__mode_${mode.key}`,
+		flag: mode.flag,
+		type: "confirm",
+		message: mode.message,
+	};
+	return { options: [flagOption, ...options], answers: { [flagOption.key]: true, ...answers } };
+}
+
+/**
+ * Resolves `entry`'s options into a {@link ResolvedOptions} ready for
+ * `buildChildArgv`/`secretEnv` — delegating to {@link promptForModes} when
+ * `entry.modes` is set, or treating `entry.options` as a flat list
+ * otherwise. See `promptForFlatOptions` for the flat-list prompting
+ * algorithm itself.
+ */
+export async function promptForOptions(entry: OptionsCommand, argv: Record<string, unknown>): Promise<ResolvedOptions> {
+	if (entry.modes && entry.modes.length > 0) {
+		return promptForModes(entry, entry.modes, argv);
+	}
+	const options = entry.options ?? [];
+	const answers = await promptForFlatOptions(entry.name, options, argv);
+	return { options, answers };
 }

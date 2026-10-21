@@ -115,11 +115,11 @@ export async function launchMenu(
 		}
 	}
 	const positionals = await promptForPositionals(picked, {});
-	const optionAnswers = await promptForOptions(picked, {});
-	const extraEnv = secretEnv(picked, optionAnswers);
+	const resolvedOptions = await promptForOptions(picked, {});
+	const extraEnv = secretEnv(resolvedOptions);
 
 	if (shouldPreviewDryRun(picked, parentArgv)) {
-		const dryExit = await spawnChild(buildChildArgv(picked, positionals, optionAnswers, parentArgv, true), {
+		const dryExit = await spawnChild(buildChildArgv(picked, positionals, resolvedOptions, parentArgv, true), {
 			[DRY_RUN_PREVIEW_ENV_VAR]: "1",
 			...extraEnv,
 		});
@@ -137,11 +137,11 @@ export async function launchMenu(
 			return;
 		}
 		process.exitCode = await spawnChild(
-			buildChildArgv(picked, positionals, optionAnswers, parentArgv, false),
+			buildChildArgv(picked, positionals, resolvedOptions, parentArgv, false),
 			extraEnv
 		);
 		return;
 	}
 
-	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, optionAnswers, parentArgv), extraEnv);
+	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, resolvedOptions, parentArgv), extraEnv);
 }
