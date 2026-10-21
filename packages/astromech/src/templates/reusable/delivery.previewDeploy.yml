@@ -169,7 +169,7 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=No preview deployed::This run has no VERCEL_TOKEN -- GitHub never forwards repository secrets to a pull_request run triggered from a fork. No preview was deployed, and delivery.previewCheck (which only runs off a real deployment) will not run either. A maintainer can deploy one manually if needed."
+            echo "::notice title=No preview deployed::This run has no VERCEL_TOKEN available, so no preview was deployed -- most commonly because GitHub withholds repository secrets from a pull_request run triggered by a fork, though any run missing this secret ends up here the same way. Since this run creates no deployment, it won't trigger delivery.previewCheck for this PR. A maintainer can deploy one manually if needed."
           fi
 
       - name: Deploy preview
