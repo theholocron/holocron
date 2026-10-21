@@ -123,7 +123,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `askLast` only decides when its value is collected (upfront vs.
     deferred). `package publish`'s `--otp` is `askLast: true` always,
     and its `required` is computed once at module load from
-    `HOLOCRON_NPM_2FA` — an operator whose own npm account always
+    `HOLOCRON_NPM_ENFORCE_2FA` — an operator whose own npm account always
     enforces 2FA sets that env var in their own shell profile (never
     committed) to stop re-checking the OTP checkbox every run, without
     forcing an OTP prompt on anyone else publishing from the same repo;

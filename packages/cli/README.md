@@ -77,7 +77,7 @@ going stale while something else is still being answered.
 Whether an option is _checkbox-optional vs. always included_ and _collected
 upfront vs. collected last_ are independent choices. `package publish`'s
 `--otp` is always collected last, but whether it's checkbox-optional depends
-on `HOLOCRON_NPM_2FA`: unset (the default), it's opt-in like any other
+on `HOLOCRON_NPM_ENFORCE_2FA`: unset (the default), it's opt-in like any other
 checkbox pick; set in your own shell profile (never checked into the repo),
 it's always included — for an operator whose own npm account enforces 2FA
 on every publish, so the box doesn't need re-checking every single run.

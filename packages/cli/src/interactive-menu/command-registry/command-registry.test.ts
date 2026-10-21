@@ -129,11 +129,11 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 });
 
 // `PUBLISH_OTP_OPTION`'s `required` is computed once, at module load, from
-// HOLOCRON_NPM_2FA -- vi.resetModules() + a fresh dynamic import is needed
+// HOLOCRON_NPM_ENFORCE_2FA -- vi.resetModules() + a fresh dynamic import is needed
 // to see each state; env.get() itself re-reads process.env on every call,
 // but that one-time computation already baked a boolean into the object by
 // the time any later read would happen (holocron#1052 follow-up).
-describe("package publish's otp option — HOLOCRON_NPM_2FA (holocron#1052 follow-up)", () => {
+describe("package publish's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#1052 follow-up)", () => {
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.resetModules();
@@ -153,8 +153,8 @@ describe("package publish's otp option — HOLOCRON_NPM_2FA (holocron#1052 follo
 		expect(otp.askLast).toBe(true);
 	});
 
-	it("becomes required (but still askLast) when HOLOCRON_NPM_2FA is set — an operator whose own npm account always enforces 2FA skips checking the box every run", async () => {
-		vi.stubEnv("HOLOCRON_NPM_2FA", "1");
+	it("becomes required (but still askLast) when HOLOCRON_NPM_ENFORCE_2FA is set — an operator whose own npm account always enforces 2FA skips checking the box every run", async () => {
+		vi.stubEnv("HOLOCRON_NPM_ENFORCE_2FA", "1");
 		vi.resetModules();
 		const { COMMAND_REGISTRY: registry } = await import("./command-registry.js");
 		const otp = otpOption(registry);

@@ -24,13 +24,13 @@ const PUBLISH_OTP_OPTION: OptionPrompt = {
 	// typed any earlier risks going stale before it's actually used
 	// (holocron#1052 follow-up).
 	askLast: true,
-	// HOLOCRON_NPM_2FA is personal to the operator's own npm account, not
+	// HOLOCRON_NPM_ENFORCE_2FA is personal to the operator's own npm account, not
 	// repo config -- someone else publishing from this same repo may have
 	// no 2FA enforced at all. Set it (in your own shell profile, not
 	// checked in anywhere) if your account always needs an OTP, to skip
 	// checking this box every single run; it's still collected last,
 	// exactly as if you'd picked it from the checkbox yourself.
-	required: Boolean(env.get("HOLOCRON_NPM_2FA")),
+	required: Boolean(env.get("HOLOCRON_NPM_ENFORCE_2FA")),
 	message: "One-time password (2FA), if npm requires it for this publish:",
 };
 
