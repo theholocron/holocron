@@ -756,6 +756,10 @@ describe("runSync", () => {
 			expect(written).toContain('\t"start": "node ."');
 			expect(written).toContain('\t\t"verification.unitTests": "holocron run verification.unitTests --"');
 			expect(written).toMatch(/\r\n/);
+			// Not just "at least one CRLF" -- a mixed-ending file (one real
+			// \r\n plus bare \n elsewhere) would satisfy the check above too
+			// (holocron#1033 review).
+			expect(written).not.toMatch(/(?<!\r)\n/);
 			expect(JSON.parse(written)).toMatchObject({
 				scripts: { start: "node .", "verification.unitTests": "holocron run verification.unitTests --" },
 			});
@@ -1343,6 +1347,10 @@ describe("runSync", () => {
 			const written = await readFile(join(tmpDir, "package.json"), "utf8");
 			expect(written).toContain('    "homepage": "https://example.com"');
 			expect(written).toMatch(/\r\n/);
+			// Not just "at least one CRLF" -- a mixed-ending file (one real
+			// \r\n plus bare \n elsewhere) would satisfy the check above too
+			// (holocron#1033 review).
+			expect(written).not.toMatch(/(?<!\r)\n/);
 			expect(JSON.parse(written)).toMatchObject({ homepage: "https://example.com" });
 		});
 

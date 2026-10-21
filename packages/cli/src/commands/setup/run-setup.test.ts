@@ -1486,6 +1486,10 @@ describe("runSetup", () => {
 		expect(written).toContain('\t\t"build": "tsc"');
 		expect(written).toContain('\t\t"prepare": "husky"');
 		expect(written).toMatch(/\r\n/);
+		// Not just "at least one CRLF" -- a mixed-ending file (one real
+		// \r\n plus bare \n elsewhere) would satisfy the check above too
+		// (holocron#1033 review).
+		expect(written).not.toMatch(/(?<!\r)\n/);
 		expect(JSON.parse(written)).toMatchObject({ scripts: { build: "tsc", prepare: "husky" } });
 		await rm(dir, { recursive: true, force: true });
 	});
