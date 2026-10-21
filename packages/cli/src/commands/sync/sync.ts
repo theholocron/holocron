@@ -23,7 +23,7 @@ import {
 	type SetupStepResult,
 	STALE_LABELS,
 } from "../setup/index.js";
-import { resolvePkgRelPath, sanitizeForDisplay, SOURCE_PACKAGE_MARKER } from "../workflow-source-marker/index.js";
+import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 
 // The only content this file ever prefixes with workflowHeader() is thin-caller
 // workflow content from astromech.thinCallers() — sync.ts just writes it. The
@@ -471,7 +471,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
 					steps.push(
 						await runSyncStep("local", step, dryRun, async () => {
-							await assertNoPackageCollision(gitRoot, filename, name, pkgRelPath);
+							await assertNoPackageCollision(name, pkgRelPath, filename, () =>
+								readExistingWorkflowFile(gitRoot, filename)
+							);
 							await writeWorkflowFile(
 								gitRoot,
 								filename,
@@ -804,42 +806,12 @@ async function writeWorkflowFile(repoRoot: string, filename: string, content: st
 	await rename(tmpPath, join(dir, filename));
 }
 
-/**
- * Two different monorepo packages opting into the same generic task name
- * (e.g. both `apps/sentinel` and some future `apps/other` configuring
- * `delivery.previewDeploy`) would otherwise overwrite each other's
- * `.github/workflows/<task>.yml` on whichever package's `holocron repo sync`
- * ran last — only one package's behavior would ever actually run in CI,
- * with no signal that the other's was silently dropped (holocron#1026).
- *
- * A file with no marker at all predates this check (or was written before
- * #1026) and is never flagged — only a marker that's present AND disagrees
- * with the current run's own package is a real collision. Any read error
- * other than "file doesn't exist" propagates rather than being treated as
- * "nothing to collide with" — the file may genuinely be unreadable, not
- * missing.
- */
-async function assertNoPackageCollision(
-	repoRoot: string,
-	filename: string,
-	taskName: string,
-	pkgRelPath: string
-): Promise<void> {
-	let existing: string;
+/** `assertNoPackageCollision`'s local-disk read, with ENOENT mapped to "nothing there." */
+async function readExistingWorkflowFile(repoRoot: string, filename: string): Promise<string | null> {
 	try {
-		existing = await readFile(join(repoRoot, ".github", "workflows", filename), "utf8");
+		return await readFile(join(repoRoot, ".github", "workflows", filename), "utf8");
 	} catch (err) {
-		if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+		if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
 		throw err;
-	}
-	const previousPkg = SOURCE_PACKAGE_MARKER.exec(existing)?.[1];
-	if (previousPkg !== undefined && previousPkg !== pkgRelPath) {
-		throw new Error(
-			`task "${taskName}" would overwrite .github/workflows/${filename}, already generated for package ` +
-				`"${sanitizeForDisplay(previousPkg)}" — the same task name can't be used by two different packages ` +
-				`(holocron#1026). If "${sanitizeForDisplay(previousPkg)}" moved or was renamed to this path, delete ` +
-				`.github/workflows/${filename} first and re-run sync; otherwise rename one or give it a different ` +
-				`thin-caller filename.`
-		);
 	}
 }

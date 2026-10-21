@@ -11,6 +11,7 @@ import type {
 	Source,
 	TeamEntry,
 } from "@theholocron/cli";
+import { findRootSync } from "@theholocron/fs-utils";
 import {
 	createGitHubClient,
 	type CreatePagesPayload,
@@ -54,8 +55,17 @@ export class GitHubSource implements Source {
 		this.owner = owner;
 		this.name = name;
 		this.repo = opts.repo;
-		this.repoRoot = opts.repoRoot;
-		this.workflowDir = join(opts.repoRoot, ".github", "workflows");
+		// `opts.repoRoot` is whatever --cwd the command was invoked with --
+		// a monorepo subpackage directory (e.g. apps/sentinel) for the
+		// --cwd-scoped `holocron repo setup --cwd apps/sentinel` flow, not
+		// necessarily the repo root .github/ actually lives at (holocron#1072
+		// review). Resolved up to the real git root here, once, so every
+		// workflow/repo-file read or write below targets the one real
+		// .github/ regardless of which package's config triggered the run --
+		// `fallback: "start"` only matters for a repoRoot with no .git
+		// anywhere above it (e.g. a test fixture), where it's already root.
+		this.repoRoot = findRootSync(opts.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
+		this.workflowDir = join(this.repoRoot, ".github", "workflows");
 		this.orgClient = opts.orgClient;
 		this.baseUrl = opts.baseUrl;
 		this.fetchImpl = opts.fetch;

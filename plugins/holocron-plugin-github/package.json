@@ -44,6 +44,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/fs-utils": "catalog:utils",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/http-client": "catalog:clients",
     "@theholocron/misc-utils": "catalog:utils",
@@ -63,6 +64,7 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
+    "@theholocron/fs-utils": "catalog:utils",
     "@theholocron/github-client": "catalog:clients",
     "@theholocron/misc-utils": "catalog:utils"
   },

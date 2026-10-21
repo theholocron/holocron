@@ -17,6 +17,12 @@ function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfi
 
 const SOURCE_DEFAULTS = {
 	listWorkflowFiles: async () => [] as string[],
+	// "no existing file" -- holocron#1068's collision check (readWorkflowFile
+	// then writeWorkflowFile) now runs ahead of every workflow write; this
+	// default keeps every test that doesn't care about collisions behaving
+	// exactly as it did before that check existed. A test exercising the
+	// collision itself overrides this with a real marker-bearing string.
+	readWorkflowFile: async () => null as string | null,
 };
 
 function makePlugin(name: string, caps: Record<string, unknown>) {
@@ -1907,6 +1913,157 @@ describe("runSetup", () => {
 		expect("delivery.deploy.yml" in written).toBe(true);
 		expect(written["delivery.deploy.yml"]).not.toContain("pull_request:");
 		expect(written["delivery.deploy.yml"]).not.toContain("name: Preview");
+	});
+
+	it("detects a collision when another package already generated this workflow's thin caller (holocron#1068)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-collision-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const other = join(tmpDir, "apps", "other");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(other, { recursive: true });
+
+			// Shared across both runs -- simulates the same backing store two
+			// separate `holocron repo setup` invocations would actually write
+			// to (sync's equivalent #1026 test uses the same real .github/
+			// workflows dir on local disk; setup's Source capability stands
+			// in for that here).
+			const written: Record<string, string> = {};
+			const sourceCaps = {
+				enableVulnerabilityAlerts: async () => {},
+				enableAutomatedSecurityFixes: async () => {},
+				enableSecretScanning: async () => {},
+				enablePrivateVulnerabilityReporting: async () => {},
+				readWorkflowFile: async (name: string) => written[name] ?? null,
+				writeWorkflowFile: async (name: string, contents: string) => {
+					written[name] = contents;
+				},
+			};
+			const loaderFor = (configDir: string) => {
+				const loaded: LoadedConfig = {
+					resolved: resolveConfig({
+						name: "demo",
+						tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+						providers: { source: "github" },
+					}),
+					filepath: join(configDir, "holocron.config.json"),
+				};
+				return {
+					loaded,
+					loader: makeLoaderWith(loaded, {
+						"@theholocron/holocron-plugin-github": makePlugin("gh", { source: sourceCaps }),
+					}),
+				};
+			};
+
+			const first = loaderFor(sentinel);
+			await runSetup({
+				loaded: first.loaded,
+				context: { repoRoot: sentinel },
+				loader: first.loader,
+				print: () => {},
+			});
+			const firstContent = written["delivery.previewDeploy.yml"];
+			expect(firstContent).toContain("# Source package: apps/sentinel");
+
+			const second = loaderFor(other);
+			const report = await runSetup({
+				loaded: second.loaded,
+				context: { repoRoot: other },
+				loader: second.loader,
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).toMatch(/apps\/sentinel/);
+			expect(step?.message).toMatch(/holocron#1026/);
+			// The first package's file must survive untouched.
+			expect(written["delivery.previewDeploy.yml"]).toBe(firstContent);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("re-running setup for the same package overwrites its own file without a collision (holocron#1068)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-collision-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			await mkdir(sentinel, { recursive: true });
+
+			const written: Record<string, string> = {};
+			const loaded: LoadedConfig = {
+				resolved: resolveConfig({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+					providers: { source: "github" },
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+			const makeLoader = () =>
+				makeLoaderWith(loaded, {
+					"@theholocron/holocron-plugin-github": makePlugin("gh", {
+						source: {
+							enableVulnerabilityAlerts: async () => {},
+							enableAutomatedSecurityFixes: async () => {},
+							enableSecretScanning: async () => {},
+							enablePrivateVulnerabilityReporting: async () => {},
+							readWorkflowFile: async (name: string) => written[name] ?? null,
+							writeWorkflowFile: async (name: string, contents: string) => {
+								written[name] = contents;
+							},
+						},
+					}),
+				});
+
+			await runSetup({ loaded, context: { repoRoot: sentinel }, loader: makeLoader(), print: () => {} });
+			const firstContent = written["delivery.previewDeploy.yml"];
+
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoader(),
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
+			expect(step?.status).toBe("ok");
+			expect(written["delivery.previewDeploy.yml"]).toBe(firstContent);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("propagates a readWorkflowFile error instead of treating it as no collision (holocron#1068)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					readWorkflowFile: async () => {
+						throw new Error("boom: network error");
+					},
+					writeWorkflowFile: async () => {
+						throw new Error("writeWorkflowFile should never be reached");
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toMatch(/boom: network error/);
 	});
 
 	it("auto-computes delivery.previewDeploy's paths from workspace:* dependencies (holocron#1023)", async () => {

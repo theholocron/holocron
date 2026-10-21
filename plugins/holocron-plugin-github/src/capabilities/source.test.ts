@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -410,6 +411,27 @@ describe("GitHubSource — workflow files (local fs)", () => {
 		await writeFile(join(repoRoot, ".github", "workflows"), "not a directory");
 		const { source } = makeSource([], repoRoot);
 		await expect(source.listWorkflowFiles()).rejects.toThrow();
+	});
+
+	it("resolves workflow/repo files against the real git root, not a --cwd subpackage directory (holocron#1072)", async () => {
+		// Simulates `holocron repo setup --cwd apps/sentinel` -- the
+		// constructor's own opts.repoRoot is the subpackage directory, not
+		// the repo root .github/ actually lives at.
+		await mkdir(join(repoRoot, ".git"));
+		const subpackage = join(repoRoot, "apps", "sentinel");
+		await mkdir(subpackage, { recursive: true });
+
+		const { source } = makeSource([], subpackage);
+
+		await source.writeWorkflowFile("delivery.previewDeploy.yml", "name: preview deploy");
+		const written = await readFile(join(repoRoot, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+		expect(written).toBe("name: preview deploy");
+		expect(await source.readWorkflowFile("delivery.previewDeploy.yml")).toBe("name: preview deploy");
+		// Not written into the subpackage's own, GitHub-invisible .github/.
+		expect(existsSync(join(subpackage, ".github"))).toBe(false);
+
+		await source.writeRepoFile("docs/sentinel.md", "# Sentinel");
+		expect(await readFile(join(repoRoot, "docs", "sentinel.md"), "utf8")).toBe("# Sentinel");
 	});
 
 	it("readWorkflowFile rethrows non-ENOENT errors", async () => {

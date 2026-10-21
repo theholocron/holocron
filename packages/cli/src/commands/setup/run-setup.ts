@@ -69,7 +69,7 @@ import {
 import dcoConfig from "../../templates/dco.yml";
 import { style, withSpinner } from "../../ui/index.js";
 import { withAutoPreviewDeployPaths } from "../preview-deploy-paths/index.js";
-import { resolvePkgRelPath } from "../workflow-source-marker/index.js";
+import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
 import {
@@ -112,12 +112,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
 	// Stamped into every workflow thin caller written below, same marker
-	// `holocron repo sync` uses (holocron#1026) -- this write path has no
-	// way to read the file it's about to overwrite (Source only exposes
-	// write methods, not a read), so it can't check for a collision the
-	// way sync does; it can at least mark its own output so a later sync
-	// run detects one. See holocron#1068 for closing the other half
-	// (adding a read capability so setup can check too).
+	// `holocron repo sync` uses (holocron#1026) and checked the same way
+	// via assertNoPackageCollision -- before writing, read the file back
+	// through the loaded Source capability and compare its marker (holocron#1068;
+	// previously setup could only stamp its own marker for a LATER sync
+	// run to catch, with no protection of its own in either direction).
 	const setupGitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
 	const setupPkgRelPath = resolvePkgRelPath(setupGitRoot, input.loaded.filepath);
 
@@ -266,6 +265,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			const step = withPreview ? `write workflow ${name} (with preview)` : `write workflow ${name}`;
 			steps.push(
 				await runStep("source", step, dryRun, async () => {
+					await assertNoPackageCollision(name, setupPkgRelPath, filename, () =>
+						source.readWorkflowFile(filename)
+					);
 					await source.writeWorkflowFile(
 						filename,
 						`${thinCallerHeader()}# Source package: ${setupPkgRelPath}\n\n${content}`
