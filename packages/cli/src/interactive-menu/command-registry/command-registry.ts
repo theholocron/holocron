@@ -95,6 +95,67 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		description: "Publish @theholocron/* packages to npm",
 		positionals: [],
 		supportsDryRun: true,
+		// Declared in this order deliberately: syncTrust first so later
+		// options' `when` can see whether it was picked (holocron#1052) --
+		// it's a separate mode that makes the rest of a normal publish
+		// irrelevant, same as the handler's own early return in cli.ts.
+		options: [
+			{
+				key: "syncTrust",
+				flag: "--sync-trust",
+				type: "input",
+				arity: 2,
+				message: "Trusted Publisher workflow filename (old, then new)",
+			},
+			{
+				key: "repo",
+				flag: "--repo",
+				type: "input",
+				message: "owner/repo for Trusted Publisher config (blank = theholocron/holocron):",
+				when: (a) => Boolean(a.syncTrust),
+			},
+			{
+				key: "initial",
+				flag: "--initial",
+				type: "confirm",
+				default: false,
+				message: "One-shot bootstrap publish? (use only for a package's very first publish)",
+				when: (a) => !a.syncTrust,
+			},
+			{
+				key: "tag",
+				flag: "--tag",
+				type: "input",
+				message: "npm dist-tag (blank = alpha for a bootstrap publish, latest otherwise):",
+				when: (a) => !a.syncTrust,
+			},
+			{
+				key: "otp",
+				flag: "--otp",
+				type: "password",
+				secret: true,
+				message: "One-time password (2FA), if npm requires it for this publish:",
+				when: (a) => !a.syncTrust,
+			},
+			{
+				key: "provenance",
+				flag: "--provenance",
+				type: "confirm",
+				default: true,
+				negatable: true,
+				message: "Publish with --provenance? (steady-state only; on by default)",
+				when: (a) => !a.syncTrust && !a.initial,
+			},
+			{
+				key: "skipAlreadyPublished",
+				flag: "--skip-already-published",
+				type: "confirm",
+				default: false,
+				message:
+					"Skip a package already published at this exact version, instead of one bulk publish? (steady-state only)",
+				when: (a) => !a.syncTrust && !a.initial,
+			},
+		],
 	},
 	{
 		name: "repo sync",

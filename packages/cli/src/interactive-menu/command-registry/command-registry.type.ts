@@ -1,4 +1,4 @@
-import type { PositionalPrompt } from "../../ui/index.js";
+import type { OptionPrompt, PositionalPrompt } from "../../ui/index.js";
 
 export interface CommandEntry {
 	/** Full command name as typed at the CLI, e.g. `"auth set"`. */
@@ -7,6 +7,22 @@ export interface CommandEntry {
 	description: string;
 	/** Required positionals only, in order. Empty when the command needs none. */
 	positionals: PositionalPrompt[];
+	/**
+	 * This command's yargs options, offered through the menu
+	 * (`promptForOptions`) — in declaration order, which also governs
+	 * `when` evaluation order (holocron#1052). Global flags
+	 * (`--token`/`--org`/`--cwd`/`--dry-run`) are never listed here; those
+	 * are inherited from the parent invocation via `forwardedFlags`
+	 * regardless of this command.
+	 */
+	options?: OptionPrompt[];
+	/**
+	 * This command's yargs options deliberately NOT offered through the
+	 * menu, with the reason recorded in review rather than in code — kept
+	 * so a future drift test can tell "considered and skipped" apart from
+	 * "never considered."
+	 */
+	skipOptions?: string[];
 	/**
 	 * Whether this command's handler honours the global `--dry-run` flag.
 	 * Drives `launchMenu`'s dry-run offer: a menu-launched command with this

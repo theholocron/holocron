@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 
 import { confirm } from "@inquirer/prompts";
 
-import { NonInteractiveError, pickMenuItem, promptForPositionals } from "../../ui/index.js";
-import { buildChildArgv } from "../child-argv/index.js";
+import { NonInteractiveError, pickMenuItem, promptForOptions, promptForPositionals } from "../../ui/index.js";
+import { buildChildArgv, secretEnv } from "../child-argv/index.js";
 import type { CommandEntry } from "../command-registry/index.js";
 import { BACK, GROUP, menuItems } from "../menu-items/index.js";
 
@@ -115,10 +115,13 @@ export async function launchMenu(
 		}
 	}
 	const positionals = await promptForPositionals(picked, {});
+	const optionAnswers = await promptForOptions(picked, {});
+	const extraEnv = secretEnv(picked, optionAnswers);
 
 	if (shouldPreviewDryRun(picked, parentArgv)) {
-		const dryExit = await spawnChild(buildChildArgv(picked, positionals, parentArgv, true), {
+		const dryExit = await spawnChild(buildChildArgv(picked, positionals, optionAnswers, parentArgv, true), {
 			[DRY_RUN_PREVIEW_ENV_VAR]: "1",
+			...extraEnv,
 		});
 		if (dryExit === DRY_RUN_NOOP_EXIT_CODE) {
 			process.exitCode = 0;
@@ -133,9 +136,12 @@ export async function launchMenu(
 			process.exitCode = 0;
 			return;
 		}
-		process.exitCode = await spawnChild(buildChildArgv(picked, positionals, parentArgv, false));
+		process.exitCode = await spawnChild(
+			buildChildArgv(picked, positionals, optionAnswers, parentArgv, false),
+			extraEnv
+		);
 		return;
 	}
 
-	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, parentArgv));
+	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, optionAnswers, parentArgv), extraEnv);
 }

@@ -5,10 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const inputMock = vi.fn();
 const selectMock = vi.fn();
 const confirmMock = vi.fn();
+const checkboxMock = vi.fn();
+const passwordMock = vi.fn();
 vi.mock("@inquirer/prompts", () => ({
 	input: (...args: unknown[]) => inputMock(...args),
 	select: (...args: unknown[]) => selectMock(...args),
 	confirm: (...args: unknown[]) => confirmMock(...args),
+	checkbox: (...args: unknown[]) => checkboxMock(...args),
+	password: (...args: unknown[]) => passwordMock(...args),
 }));
 
 const searchMock = vi.fn();
@@ -50,6 +54,9 @@ describe("launchMenu", () => {
 		searchMock.mockReset();
 		spawnMock.mockReset();
 		confirmMock.mockReset();
+		checkboxMock.mockReset();
+		passwordMock.mockReset();
+		inputMock.mockReset();
 	});
 	afterEach(() => setTTY(false));
 
@@ -327,6 +334,210 @@ describe("launchMenu", () => {
 
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(confirmMock).not.toHaveBeenCalled();
+	});
+
+	describe("options (holocron#1052)", () => {
+		it("offers the command's optional options via checkbox and emits only the picked one", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			checkboxMock.mockResolvedValue(["initial"]);
+			confirmMock
+				.mockResolvedValueOnce(true) // --initial (type: confirm)
+				.mockResolvedValueOnce(true); // proceed with the real run?
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			expect(spawnMock.mock.calls[0]![1]).toEqual([
+				process.argv[1],
+				"package",
+				"publish",
+				"--initial",
+				"--dry-run",
+			]);
+			dryChild.emit("exit", 0);
+
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			expect(spawnMock.mock.calls[1]![1]).toEqual([process.argv[1], "package", "publish", "--initial"]);
+			realChild.emit("exit", 0);
+			await done;
+		});
+
+		it("delivers a secret option through the child's env, never its argv", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			checkboxMock.mockResolvedValue(["otp"]);
+			passwordMock.mockResolvedValue("123456");
+			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			const [, dryArgs, dryOpts] = spawnMock.mock.calls[0] as [
+				unknown,
+				string[],
+				{ env: Record<string, string> },
+			];
+			expect(dryArgs).not.toContain("--otp");
+			expect(dryArgs).not.toContain("123456");
+			expect(dryOpts.env["HOLOCRON_OTP"]).toBe("123456");
+			dryChild.emit("exit", 0);
+
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			const [, realArgs, realOpts] = spawnMock.mock.calls[1] as [
+				unknown,
+				string[],
+				{ env: Record<string, string> },
+			];
+			expect(realArgs).not.toContain("--otp");
+			expect(realArgs).not.toContain("123456");
+			expect(realOpts.env["HOLOCRON_OTP"]).toBe("123456");
+			realChild.emit("exit", 0);
+			await done;
+		});
+
+		it("skips a picked option whose `when` no longer holds, without prompting for it", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			// Both syncTrust and initial picked -- syncTrust is declared first,
+			// so by the time initial's turn comes its `when: !syncTrust` is
+			// already false. confirm must never be called for it.
+			checkboxMock.mockResolvedValue(["syncTrust", "initial"]);
+			inputMock.mockResolvedValueOnce("old.yml").mockResolvedValueOnce("new.yml");
+			confirmMock.mockResolvedValueOnce(true); // proceed with the real run? (the ONLY confirm call)
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			expect(spawnMock.mock.calls[0]![1]).toEqual([
+				process.argv[1],
+				"package",
+				"publish",
+				"--sync-trust",
+				"old.yml",
+				"new.yml",
+				"--dry-run",
+			]);
+			expect(confirmMock).not.toHaveBeenCalled();
+			dryChild.emit("exit", 0);
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			realChild.emit("exit", 0);
+			await done;
+
+			expect(confirmMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("asks nothing extra when no optional option is picked", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			checkboxMock.mockResolvedValue([]);
+			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			expect(spawnMock.mock.calls[0]![1]).toEqual([process.argv[1], "package", "publish", "--dry-run"]);
+			dryChild.emit("exit", 0);
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			realChild.emit("exit", 0);
+			await done;
+		});
+
+		it("picking syncTrust also makes --repo promptable (its own `when`)", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			checkboxMock.mockResolvedValue(["syncTrust", "repo"]);
+			inputMock
+				.mockResolvedValueOnce("old.yml")
+				.mockResolvedValueOnce("new.yml")
+				.mockResolvedValueOnce("theholocron/other-repo");
+			confirmMock.mockResolvedValueOnce(true); // proceed with the real run?
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			expect(spawnMock.mock.calls[0]![1]).toEqual([
+				process.argv[1],
+				"package",
+				"publish",
+				"--sync-trust",
+				"old.yml",
+				"new.yml",
+				"--repo",
+				"theholocron/other-repo",
+				"--dry-run",
+			]);
+			dryChild.emit("exit", 0);
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			realChild.emit("exit", 0);
+			await done;
+		});
+
+		it("steady-state-only options (provenance, skip-already-published) prompt when --initial isn't picked", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("package publish");
+			checkboxMock.mockResolvedValue(["tag", "otp", "provenance", "skipAlreadyPublished"]);
+			inputMock.mockResolvedValueOnce("alpha"); // --tag
+			passwordMock.mockResolvedValue("123456"); // --otp (secret)
+			confirmMock
+				.mockResolvedValueOnce(false) // --provenance (negatable, default true)
+				.mockResolvedValueOnce(true) // --skip-already-published
+				.mockResolvedValueOnce(true); // proceed with the real run?
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			const [, dryArgs, dryOpts] = spawnMock.mock.calls[0] as [
+				unknown,
+				string[],
+				{ env: Record<string, string> },
+			];
+			expect(dryArgs).toEqual([
+				process.argv[1],
+				"package",
+				"publish",
+				"--tag",
+				"alpha",
+				"--no-provenance",
+				"--skip-already-published",
+				"--dry-run",
+			]);
+			expect(dryOpts.env["HOLOCRON_OTP"]).toBe("123456");
+			dryChild.emit("exit", 0);
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			realChild.emit("exit", 0);
+			await done;
+		});
+
+		it("never calls checkbox for a command with no declared options", async () => {
+			setTTY(true);
+			searchMock.mockResolvedValue("doctor");
+			confirmMock.mockResolvedValueOnce(true);
+			const dryChild = new EventEmitter();
+			const realChild = new EventEmitter();
+			spawnMock.mockReturnValueOnce(dryChild).mockReturnValueOnce(realChild);
+
+			const done = launchMenu(COMMAND_REGISTRY, {});
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			dryChild.emit("exit", 0);
+			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			realChild.emit("exit", 0);
+			await done;
+
+			expect(checkboxMock).not.toHaveBeenCalled();
+		});
 	});
 
 	it("a command that doesn't support --dry-run never previews", async () => {

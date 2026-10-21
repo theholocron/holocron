@@ -29,7 +29,7 @@ import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
+import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
 import { runSecretSet } from "./commands/secret-set/index.js";
 import { runSecretsSync } from "./commands/secrets-sync/index.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -1462,6 +1462,7 @@ try {
 										"that ship many independently-versioned packages where a release doesn't bump every one.",
 								}),
 						async (argv) => {
+							const otp = resolveOtp(argv.otp as string | undefined, env);
 							if (argv.syncTrust) {
 								const [oldFile, newFile] = argv.syncTrust as [string?, string?];
 								if (!oldFile || !newFile) {
@@ -1488,7 +1489,7 @@ try {
 									cwd: argv.cwd,
 									dryRun: argv.dryRun,
 									...(argv.tag ? { tag: argv.tag as string } : {}),
-									...(argv.otp ? { otp: argv.otp as string } : {}),
+									...(otp ? { otp } : {}),
 								});
 								if (report.status === "fail") {
 									process.exitCode = 1;
@@ -1501,7 +1502,7 @@ try {
 								provenance: argv.provenance as boolean,
 								skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
 								...(argv.tag ? { tag: argv.tag as string } : {}),
-								...(argv.otp ? { otp: argv.otp as string } : {}),
+								...(otp ? { otp } : {}),
 							});
 							if (report.status === "fail") {
 								process.exitCode = 1;

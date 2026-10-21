@@ -82,10 +82,26 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `USER_FACING_ERRORS`) instead of relying on `@inquirer/prompts`'
     `ExitPromptError` on a closed stdin. The generic prompting pieces
     (`NonInteractiveError`, `pickMenuItem` / `searchChoices`,
-    `promptForPositionals`) live in `packages/cli/src/ui/`, which has no
-    knowledge of commands; `interactive-menu/` holds the rest, one folder per
-    piece: `command-registry`, `menu-items`, `run-menu-entries`, `child-argv`
-    and `launch-menu`.
+    `promptForPositionals`, `promptForOptions`) live in
+    `packages/cli/src/ui/`, which has no knowledge of commands;
+    `interactive-menu/` holds the rest, one folder per piece:
+    `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
+    `launch-menu`.
+    A `CommandEntry` can also declare `options` (spec
+    `tech-interactive-menu-options.spec.md`, #1052) so its yargs options are
+    offered through the menu too, not just required positionals — required
+    options are always prompted like positionals; everything else goes
+    through one `checkbox()` ("set any options?") and only the picked ones
+    are then prompted, in declaration order, honouring each option's `when`
+    predicate over answers collected so far. A `secret: true` option is
+    delivered to the spawned child through its env
+    (`HOLOCRON_<KEY_IN_SCREAMING_SNAKE_CASE>`), never argv — `ps` and shell
+    history both expose a child's argv, never its env. `package publish`
+    (`--initial`, `--sync-trust`, `--otp`, …) is the first command with
+    `options` declared; every other command's options are still rolled out
+    one PR per command group, tracked on #1052 — a command's own yargs
+    options not yet triaged into `options`/`skipOptions` is a known,
+    accepted gap until that command's turn, not a bug.
 
 ## Consuming packages from `theholocron/clients`
 

@@ -38,6 +38,20 @@ $ holocron
 ? Target Node.js major version: › 24
 ```
 
+For a command that declares options (so far: `package publish` — more are
+rolled out one command group at a time), it also offers those: any required
+option is prompted like a positional, and everything else goes through one
+"Set any options?" checkbox, prompting only what you picked:
+
+```console
+? Set any options? (space to select, enter to skip) › ◉ One-shot bootstrap publish? ◯ npm dist-tag ◯ One-time password (2FA)
+? One-shot bootstrap publish? › yes
+```
+
+A secret option (`--otp`) is masked as you type and delivered to the spawned
+command through its environment, never its argv — `ps` and shell history
+both expose a child's argv, never its env.
+
 The picked command spawns as a normal `holocron <command> …` invocation —
 `--token`, `--org`, `--cwd`, and `--dry-run` on the original invocation carry
 through. A non-interactive shell (CI, a script, a pipe) gets the old
@@ -651,10 +665,13 @@ the local override exists to exempt.
   `monitoring check`, `secrets set`, `secrets sync`, `package publish`,
   `package bump-versions`, `sync github`, `repo upgrade node`,
   `repo upgrade deps`, `new plugin`, `auth`
-- `src/interactive-menu.ts` — the interactive fallback: `COMMAND_REGISTRY`,
-  `launchMenu` (Layers 1–2, picks + spawns a fresh `holocron <command>`),
-  `promptForPositionals` (Layer 3, called inline from each leaf command's
-  `cli.ts` handler)
+- `src/interactive-menu/` — the interactive fallback: `command-registry`
+  (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `launch-menu`
+  (Layers 1–2, picks + spawns a fresh `holocron <command>`), `child-argv`
+  (builds the spawned argv + secret env), `menu-items`, `run-menu-entries`.
+  The generic prompting pieces it calls — `promptForPositionals`,
+  `promptForOptions` (Layer 3) — live in `src/ui/`, which has no knowledge
+  of commands.
 
 ## Status
 
