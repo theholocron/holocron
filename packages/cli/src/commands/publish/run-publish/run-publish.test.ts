@@ -273,8 +273,11 @@ describe("runPublish", () => {
 		const publishCall = calls.find((c) => c.cmd === "pnpm");
 		expect(publishCall?.args).toContain("--filter=@theholocron/newcomer");
 		expect(publishCall?.args).not.toContain("--filter=@theholocron/old-timer");
-		expect(lines.join("\n")).not.toContain("@theholocron/old-timer/access");
-		expect(lines.join("\n")).toContain("@theholocron/newcomer/access");
+		const joined = lines.join("\n");
+		expect(joined).toContain("@theholocron/old-timer  already published");
+		expect(joined).not.toContain("@theholocron/old-timer/access");
+		expect(joined).toContain("@theholocron/newcomer/access");
+		expect(joined).toContain("1 published, 0 failed, 1 skipped");
 	});
 
 	it("treats every public package already existing on npm as an idempotent success, not a failure", async () => {
@@ -295,7 +298,10 @@ describe("runPublish", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.packageNames).toEqual([]);
-		expect(lines.join("\n")).toMatch(/nothing new to bootstrap/);
+		expect(report.message).toMatch(/nothing new to bootstrap/);
+		const joined = lines.join("\n");
+		expect(joined).toContain("already published");
+		expect(joined).toContain("0 published, 0 failed, 1 skipped");
 	});
 
 	it("skips the npm-existence check entirely when packages is explicitly overridden", async () => {
@@ -355,6 +361,7 @@ describe("runPublish", () => {
 	});
 
 	it("returns fail with the captured stderr when publish exits non-zero", async () => {
+		const lines: string[] = [];
 		const { exec } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
 			pnpm: { exitCode: 1, stdout: "", stderr: "EPUBLISHCONFLICT" },
@@ -365,11 +372,14 @@ describe("runPublish", () => {
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
 			orgName: TEST_ORG,
-			print: () => {},
+			print: (l) => lines.push(l),
 			exec,
 		});
 		expect(report.status).toBe("fail");
 		expect(report.message).toContain("EPUBLISHCONFLICT");
+		// Atomic bulk publish: a failure counts every targeted package as
+		// failed, never a partial count (unlike clone's per-repo loop).
+		expect(lines.join("\n")).toContain("0 published, 2 failed, 0 skipped");
 	});
 
 	it("forwards --otp to pnpm publish when provided", async () => {
@@ -452,7 +462,9 @@ describe("runPublish", () => {
 		});
 		expect(report.status).toBe("dry-run");
 		expect(calls).toHaveLength(1); // only whoami
-		expect(lines.some((l) => l.includes("would run"))).toBe(true);
+		const joined = lines.join("\n");
+		expect(joined).toContain("would run");
+		expect(joined).toContain("dry-run: 2 published, 0 failed, 0 skipped");
 	});
 
 	it("includes the discovered package URLs and repo name in next-steps output", async () => {
@@ -471,6 +483,7 @@ describe("runPublish", () => {
 			exec,
 		});
 		const joined = lines.join("\n");
+		expect(joined).toContain("2 published, 0 failed, 0 skipped");
 		expect(joined).toContain("→ packages to be published:");
 		expect(joined).toContain("npmjs.com/package/@theholocron/foo/access");
 		expect(joined).toContain("npmjs.com/package/@theholocron/bar/access");

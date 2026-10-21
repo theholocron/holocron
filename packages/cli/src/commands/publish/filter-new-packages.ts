@@ -1,4 +1,5 @@
-import type { PublishExecResult } from "./publish.type.js";
+import { statusRow } from "../../ui/index.js";
+import type { PublishExecResult, PublishPrint } from "./publish.type.js";
 
 /**
  * Keeps only the names that don't exist on npm yet — the actual
@@ -12,17 +13,26 @@ import type { PublishExecResult } from "./publish.type.js";
  * already-published check, this intentionally ignores the local version —
  * a package that exists on npm at an older version is still not `--initial`'s
  * problem.
+ *
+ * Prints one `statusRow("skip", …)` line per already-published name as it
+ * finds them — same shape `clone` uses for an already-cloned repo — so the
+ * caller's own summary line is the only other thing it needs to print.
  */
 export async function filterNewPackages(
 	packageNames: readonly string[],
 	cwd: string,
-	exec: (cmd: string, args: string[], opts: { cwd: string }) => Promise<PublishExecResult>
+	exec: (cmd: string, args: string[], opts: { cwd: string }) => Promise<PublishExecResult>,
+	print: PublishPrint
 ): Promise<string[]> {
 	const results: string[] = [];
 	for (const name of packageNames) {
 		const view = await exec("npm", ["view", name, "version"], { cwd });
 		const alreadyExists = view.exitCode === 0 && view.stdout.trim().length > 0;
-		if (!alreadyExists) results.push(name);
+		if (alreadyExists) {
+			print(statusRow("skip", [name, "already published"]));
+			continue;
+		}
+		results.push(name);
 	}
 	return results;
 }
