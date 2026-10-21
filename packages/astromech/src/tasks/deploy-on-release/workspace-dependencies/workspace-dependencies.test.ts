@@ -34,20 +34,41 @@ describe("workspaceDependencies", () => {
 		expect(workspaceDependencies(a, [a, b, c]).map((d) => d.name)).toEqual(["@demo/b", "@demo/c"]);
 	});
 
-	it("counts a workspace:* devDependency, not just dependencies (holocron#1071)", () => {
+	it("ignores a workspace:* devDependency by default (holocron#1071 review) -- deployOnRelease's publish-wait list must not see one", () => {
 		const tsconfig = pkg("@demo/tsconfig");
 		const app = pkg("@demo/app", { devDependencies: { "@demo/tsconfig": "workspace:*" } });
-		expect(workspaceDependencies(app, [app, tsconfig]).map((d) => d.name)).toEqual(["@demo/tsconfig"]);
+		expect(workspaceDependencies(app, [app, tsconfig])).toEqual([]);
 	});
 
-	it("includes a transitive devDependency too, not only the direct one", () => {
+	it("counts a workspace:* devDependency when includeDevDependencies is true", () => {
+		const tsconfig = pkg("@demo/tsconfig");
+		const app = pkg("@demo/app", { devDependencies: { "@demo/tsconfig": "workspace:*" } });
+		expect(
+			workspaceDependencies(app, [app, tsconfig], { includeDevDependencies: true }).map((d) => d.name)
+		).toEqual(["@demo/tsconfig"]);
+	});
+
+	it("includes a transitive devDependency too, not only the direct one, when opted in", () => {
 		const tsconfig = pkg("@demo/tsconfig");
 		const buildTool = pkg("@demo/build-tool", { devDependencies: { "@demo/tsconfig": "workspace:*" } });
 		const app = pkg("@demo/app", { devDependencies: { "@demo/build-tool": "workspace:*" } });
-		expect(workspaceDependencies(app, [app, buildTool, tsconfig]).map((d) => d.name)).toEqual([
-			"@demo/build-tool",
-			"@demo/tsconfig",
-		]);
+		expect(
+			workspaceDependencies(app, [app, buildTool, tsconfig], { includeDevDependencies: true }).map((d) => d.name)
+		).toEqual(["@demo/build-tool", "@demo/tsconfig"]);
+	});
+
+	it("treats a missing devDependencies field as {} rather than throwing (holocron#1071 review)", () => {
+		// The previous WorkspacePackage shape had no devDependencies field
+		// at all -- devDependencies is optional precisely so a caller still
+		// holding that shape doesn't crash here, even with
+		// includeDevDependencies: true.
+		const legacy: WorkspacePackage = {
+			name: "@demo/legacy",
+			dir: "/repo/packages/legacy",
+			version: "1.0.0",
+			dependencies: {},
+		};
+		expect(workspaceDependencies(legacy, [legacy], { includeDevDependencies: true })).toEqual([]);
 	});
 
 	it("includes a shared transitive dependency only once (diamond dependency)", () => {

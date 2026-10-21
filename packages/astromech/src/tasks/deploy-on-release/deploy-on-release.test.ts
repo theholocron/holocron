@@ -205,6 +205,51 @@ describe("deployOnRelease", () => {
 		expect(lines).toContain(`@theholocron/app: waiting for npm to serve @theholocron/datapad@${VERSION}.`);
 	});
 
+	it("doesn't wait on an unpublished workspace devDependency -- only runtime dependencies gate the deploy (holocron#1071 review)", async () => {
+		// @theholocron/build-tool is a workspace:* devDependency, never a
+		// runtime one -- npm returning 404 for it specifically (while
+		// still serving the real dependencies, cli/datapad) proves it's
+		// never even looked up: if the wait list included it, this deploy
+		// would fail after timing out instead of succeeding.
+		const run = fakeRun();
+		run.mockImplementation((command, args) => {
+			if (command === "git") return { status: 0, stdout: "packages/app/src/x.ts\n", stderr: "" };
+			if (command === "npm") {
+				const spec = args[1] as string;
+				if (spec.includes("build-tool")) return { status: 1, stdout: "", stderr: "E404 not found" };
+				const version = spec.slice(spec.lastIndexOf("@") + 1);
+				return { status: 0, stdout: `${version}\n`, stderr: "" };
+			}
+			return { status: 0, stdout: "", stderr: "" };
+		});
+		const files: Record<string, unknown> = {
+			...FILES,
+			"/repo/packages/app/package.json": {
+				...(FILES["/repo/packages/app/package.json"] as Record<string, unknown>),
+				devDependencies: { "@theholocron/build-tool": "workspace:*" },
+			},
+			"/repo/packages/build-tool/package.json": { name: "@theholocron/build-tool", version: VERSION },
+		};
+		const lines: string[] = [];
+
+		const report = await deployOnRelease(
+			{ ...OPTIONS, print: (line) => lines.push(line) },
+			{
+				run,
+				readJson: (path) => files[path],
+				listDirs: () => ["app", "astromech", "build-tool", "cli", "datapad"],
+				...fakeClock(),
+				loadTasks: (dir) => Promise.resolve(dir.endsWith("app") ? APP_DEPLOY : {}),
+			}
+		);
+
+		expect(report.status).toBe("ok");
+		expect(run.mock.calls.some(([command, args]) => command === "npm" && args[1]?.includes("build-tool"))).toBe(
+			false
+		);
+		expect(lines.find((l) => l.includes("waiting for npm"))).not.toContain("build-tool");
+	});
+
 	it("reports what it would deploy, and deploys nothing, on a dry run", async () => {
 		const run = fakeRun();
 
