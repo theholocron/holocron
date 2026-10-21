@@ -107,9 +107,17 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     mode is ever offered in the first place. `package publish` is the
     first (and, so far, only) command that needs `modes`; every other
     command with options declares plain `options`. `promptForOptions`
-    returns a `ResolvedOptions` (`{ options, answers }`) either way —
-    `buildChildArgv`/`secretEnv` render both shapes identically, with no
-    need to know which kind of command produced it. Every other command's
+    returns a `ResolvedOptions` (`{ options, answers, deferred }`) either
+    way — `buildChildArgv`/`secretEnv` render both shapes identically,
+    with no need to know which kind of command produced it. An option
+    marked `askLast: true` (e.g. `package publish`'s `--otp`) is left out
+    of `answers` and listed in `deferred` instead — its value isn't
+    collected until `promptForDeferredOptions` is called right before the
+    real (non-dry-run) spawn, never any earlier: a dry-run preview and a
+    human confirming "proceed with the real run?" can both take a while,
+    and a time-sensitive secret (a TOTP code) typed before either risks
+    going stale before it's actually used — and a dry run never reaches
+    the real npm call that would need it anyway. Every other command's
     options are still rolled out one PR per command group, tracked on
     #1052 — a command's own yargs options not yet triaged into
     `options`/`skipOptions`/`modes` is a known, accepted gap until that

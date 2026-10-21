@@ -29,6 +29,17 @@ export interface OptionPrompt {
 	/** Array option taking exactly `arity` values (e.g. `--sync-trust <old> <new>`) — prompted once per value. */
 	arity?: number;
 	/**
+	 * Defer collecting this option's value until right before the real
+	 * (non-dry-run) spawn, instead of upfront with everything else
+	 * (holocron#1052 follow-up) — for a time-sensitive secret (an OTP code)
+	 * that can go stale if typed too early: a dry-run preview and a human
+	 * confirming "proceed with the real run?" can both take a while, and
+	 * neither one actually needs the value anyway. Still offered normally
+	 * through the checkbox; only when its value is collected changes. See
+	 * `promptForDeferredOptions`.
+	 */
+	askLast?: boolean;
+	/**
 	 * Evaluated against answers collected so far, in declaration order —
 	 * `false` skips prompting (and so emitting) this option entirely, as if
 	 * it had never been selected. Not applied to `required` options. For a
@@ -81,6 +92,8 @@ export interface OptionMode {
 export interface ResolvedOptions {
 	options: OptionPrompt[];
 	answers: Record<string, OptionAnswer>;
+	/** Picked `askLast: true` options with no value yet — resolve via `promptForDeferredOptions` right before the real spawn. Undefined/empty is the common case: nothing deferred. */
+	deferred?: OptionPrompt[];
 }
 
 /** The part of a command that {@link promptForOptions} needs: its name and the options (or modes) to offer. */

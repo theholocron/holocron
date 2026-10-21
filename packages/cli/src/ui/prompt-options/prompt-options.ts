@@ -24,6 +24,12 @@ async function promptOne(option: OptionPrompt): Promise<OptionAnswer> {
 	return await input({ message: option.message, default: option.default as string | undefined });
 }
 
+interface FlatResult {
+	answers: Record<string, OptionAnswer>;
+	/** Picked options with `askLast: true` -- their value isn't collected here; see `promptForDeferredOptions`. */
+	deferred: OptionPrompt[];
+}
+
 /**
  * For each of `options` not already present in `argv`, resolves a value —
  * `required` ones are always prompted, like required positionals, never
@@ -31,6 +37,12 @@ async function promptOne(option: OptionPrompt): Promise<OptionAnswer> {
  * ("set any options?") and only the picked ones are then prompted in
  * `options`' own declaration order. An empty list (or every optional one
  * left unpicked) means zero prompts.
+ *
+ * A picked option with `askLast: true` (holocron#1052 follow-up — a
+ * time-sensitive secret like an OTP, which should be typed as close as
+ * possible to when it's actually used) is collected here, not yet: it's
+ * returned in `deferred` instead, for the caller to resolve via
+ * `promptForDeferredOptions` right before the real (non-dry-run) spawn.
  *
  * `when`, evaluated against answers collected so far in that same
  * declaration order, can skip a picked option entirely. Skipped this way,
@@ -43,10 +55,11 @@ async function promptForFlatOptions(
 	commandName: string,
 	options: OptionPrompt[],
 	argv: Record<string, unknown>
-): Promise<Record<string, OptionAnswer>> {
-	if (options.length === 0) return {};
+): Promise<FlatResult> {
+	if (options.length === 0) return { answers: {}, deferred: [] };
 
 	const answers: Record<string, OptionAnswer> = {};
+	const deferred: OptionPrompt[] = [];
 	const needsPrompt = (option: OptionPrompt): boolean => {
 		const existing = argv[option.key];
 		return existing === undefined || existing === "";
@@ -66,25 +79,32 @@ async function promptForFlatOptions(
 			answers[option.key] = argv[option.key] as OptionAnswer;
 			continue;
 		}
+		// A required option is always needed right away (there's no later
+		// point to defer to that still makes sense for something the
+		// command can't run without), so askLast is ignored here.
 		answers[option.key] = await promptOne(option);
 	}
 
 	const selectable = optional.filter(needsPrompt);
-	if (selectable.length === 0) return answers;
+	if (selectable.length === 0) return { answers, deferred };
 
 	const picked = await checkbox({
 		message: "Set any options? (space to select, enter to skip)",
 		choices: selectable.map((o) => ({ name: o.message, value: o.key })),
 	});
-	if (picked.length === 0) return answers;
+	if (picked.length === 0) return { answers, deferred };
 
 	const pickedSet = new Set(picked);
 	for (const option of optional) {
 		if (!pickedSet.has(option.key)) continue;
 		if (option.when && !option.when(answers)) continue;
+		if (option.askLast) {
+			deferred.push(option);
+			continue;
+		}
 		answers[option.key] = await promptOne(option);
 	}
-	return answers;
+	return { answers, deferred };
 }
 
 /**
@@ -113,8 +133,8 @@ async function promptForModes(
 	// `modeKey` is drawn from `modes` itself, so this is always defined.
 	const mode = modes.find((m) => m.key === modeKey)!;
 	const options = mode.options ?? [];
-	const answers = await promptForFlatOptions(entry.name, options, argv);
-	if (!mode.flag) return { options, answers };
+	const { answers, deferred } = await promptForFlatOptions(entry.name, options, argv);
+	if (!mode.flag) return { options, answers, deferred };
 
 	const flagOption: OptionPrompt = {
 		key: `__mode_${mode.key}`,
@@ -122,7 +142,7 @@ async function promptForModes(
 		type: "confirm",
 		message: mode.message,
 	};
-	return { options: [flagOption, ...options], answers: { [flagOption.key]: true, ...answers } };
+	return { options: [flagOption, ...options], answers: { [flagOption.key]: true, ...answers }, deferred };
 }
 
 /**
@@ -130,13 +150,32 @@ async function promptForModes(
  * `buildChildArgv`/`secretEnv` — delegating to {@link promptForModes} when
  * `entry.modes` is set, or treating `entry.options` as a flat list
  * otherwise. See `promptForFlatOptions` for the flat-list prompting
- * algorithm itself.
+ * algorithm itself. `result.deferred` still needs
+ * {@link promptForDeferredOptions} before the real spawn.
  */
 export async function promptForOptions(entry: OptionsCommand, argv: Record<string, unknown>): Promise<ResolvedOptions> {
 	if (entry.modes && entry.modes.length > 0) {
 		return promptForModes(entry, entry.modes, argv);
 	}
 	const options = entry.options ?? [];
-	const answers = await promptForFlatOptions(entry.name, options, argv);
-	return { options, answers };
+	const { answers, deferred } = await promptForFlatOptions(entry.name, options, argv);
+	return { options, answers, deferred };
+}
+
+/**
+ * Collects a value for each of `deferred` — the `askLast: true` options
+ * `promptForOptions` deliberately left unresolved. Call this as the very
+ * last thing before the real (non-dry-run) spawn, never before: a dry-run
+ * preview never reaches the real npm call these options exist for (an OTP
+ * is never checked during `--dry-run`), and a time-sensitive code typed
+ * any earlier — before a dry-run preview runs, before "proceed with the
+ * real run?" waits on a human — risks going stale before it's actually
+ * used. A no-op (no prompt at all) when `deferred` is empty.
+ */
+export async function promptForDeferredOptions(deferred: OptionPrompt[]): Promise<Record<string, OptionAnswer>> {
+	const answers: Record<string, OptionAnswer> = {};
+	for (const option of deferred) {
+		answers[option.key] = await promptOne(option);
+	}
+	return answers;
 }

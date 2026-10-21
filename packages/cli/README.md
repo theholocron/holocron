@@ -56,6 +56,8 @@ workflow's own options; nothing from a different workflow is ever shown:
 ```console
 ? What would you like to do? › Initial publish (--initial)
 ? Set any options? (space to select, enter to skip) › ◉ One-time password (2FA)
+...dry-run output...
+? Dry run complete — proceed with the real run? › yes
 ? One-time password (2FA), if npm requires it for this publish: › ***
 ```
 
@@ -66,7 +68,11 @@ label itself.
 
 A secret option (`--otp`) is masked as you type and delivered to the spawned
 command through its environment, never its argv — `ps` and shell history
-both expose a child's argv, never its env.
+both expose a child's argv, never its env. A time-sensitive one like `--otp`
+is checked off early but not actually typed until right before the real run
+— after the dry-run preview and the "proceed?" question, never before —
+since a dry run never checks it anyway and a code typed any earlier risks
+going stale while something else is still being answered.
 
 The picked command spawns as a normal `holocron <command> …` invocation —
 `--token`, `--org`, `--cwd`, and `--dry-run` on the original invocation carry

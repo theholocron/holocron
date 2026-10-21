@@ -14,7 +14,7 @@ vi.mock("@inquirer/prompts", () => ({
 }));
 
 const { NonInteractiveError } = await import("../non-interactive-error/index.js");
-const { promptForOptions } = await import("./prompt-options.js");
+const { promptForDeferredOptions, promptForOptions } = await import("./prompt-options.js");
 import type { OptionsCommand } from "./prompt-options.type.js";
 
 function setTTY(value: boolean): void {
@@ -32,9 +32,9 @@ describe("promptForOptions — flat options", () => {
 	});
 	afterEach(() => setTTY(false));
 
-	it("returns no options/answers and prompts nothing for a command with no declared options", async () => {
+	it("returns no options/answers/deferred and prompts nothing for a command with no declared options", async () => {
 		const entry: OptionsCommand = { name: "doctor" };
-		expect(await promptForOptions(entry, {})).toEqual({ options: [], answers: {} });
+		expect(await promptForOptions(entry, {})).toEqual({ options: [], answers: {}, deferred: [] });
 		expect(checkboxMock).not.toHaveBeenCalled();
 	});
 
@@ -133,6 +133,50 @@ describe("promptForOptions — flat options", () => {
 		expect(answers).toEqual({ syncTrust: ["old.yml", "new.yml"] });
 		expect(inputMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ message: "File (1 of 2)" }));
 		expect(inputMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ message: "File (2 of 2)" }));
+	});
+
+	it("defers a picked askLast option instead of prompting it immediately", async () => {
+		checkboxMock.mockResolvedValue(["otp"]);
+		const entry: OptionsCommand = {
+			name: "x",
+			options: [{ key: "otp", flag: "--otp", type: "password", secret: true, askLast: true, message: "OTP:" }],
+		};
+		const { answers, deferred } = await promptForOptions(entry, {});
+		expect(answers).toEqual({});
+		expect(passwordMock).not.toHaveBeenCalled();
+		expect(deferred).toHaveLength(1);
+		expect(deferred?.[0]?.key).toBe("otp");
+	});
+
+	it("doesn't defer an askLast option that wasn't picked at all", async () => {
+		checkboxMock.mockResolvedValue([]);
+		const entry: OptionsCommand = {
+			name: "x",
+			options: [{ key: "otp", flag: "--otp", type: "password", secret: true, askLast: true, message: "OTP:" }],
+		};
+		const { deferred } = await promptForOptions(entry, {});
+		expect(deferred).toEqual([]);
+	});
+
+	it("ignores askLast on a required option -- it's prompted immediately, like any other required option", async () => {
+		inputMock.mockResolvedValue("my-project");
+		const entry: OptionsCommand = {
+			name: "x",
+			options: [
+				{
+					key: "project",
+					flag: "--project",
+					type: "input",
+					message: "Project:",
+					required: true,
+					askLast: true,
+				},
+			],
+		};
+		const { answers, deferred } = await promptForOptions(entry, {});
+		expect(answers).toEqual({ project: "my-project" });
+		expect(deferred).toEqual([]);
+		expect(inputMock).toHaveBeenCalled();
 	});
 
 	it("prompts a secret option with password(), not input()", async () => {
@@ -293,5 +337,28 @@ describe("promptForOptions — modes", () => {
 		const err = await promptForOptions(entry, {}).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(NonInteractiveError);
 		expect(selectMock).not.toHaveBeenCalled();
+	});
+});
+
+describe("promptForDeferredOptions", () => {
+	beforeEach(() => {
+		inputMock.mockReset();
+		passwordMock.mockReset();
+		setTTY(true);
+	});
+	afterEach(() => setTTY(false));
+
+	it("prompts nothing and returns {} for an empty deferred list", async () => {
+		expect(await promptForDeferredOptions([])).toEqual({});
+		expect(passwordMock).not.toHaveBeenCalled();
+	});
+
+	it("prompts each deferred option via the same logic as an immediate one", async () => {
+		passwordMock.mockResolvedValue("123456");
+		const answers = await promptForDeferredOptions([
+			{ key: "otp", flag: "--otp", type: "password", secret: true, message: "OTP:" },
+		]);
+		expect(answers).toEqual({ otp: "123456" });
+		expect(passwordMock).toHaveBeenCalledWith({ message: "OTP:" });
 	});
 });

@@ -2,7 +2,14 @@ import { spawn } from "node:child_process";
 
 import { confirm } from "@inquirer/prompts";
 
-import { NonInteractiveError, pickMenuItem, promptForOptions, promptForPositionals } from "../../ui/index.js";
+import {
+	NonInteractiveError,
+	pickMenuItem,
+	promptForDeferredOptions,
+	promptForOptions,
+	promptForPositionals,
+	type ResolvedOptions,
+} from "../../ui/index.js";
 import { buildChildArgv, secretEnv } from "../child-argv/index.js";
 import type { CommandEntry } from "../command-registry/index.js";
 import { BACK, GROUP, menuItems } from "../menu-items/index.js";
@@ -48,6 +55,20 @@ function spawnChild(args: string[], extraEnv?: Record<string, string>): Promise<
 		child.on("exit", (code) => resolve(code ?? 0));
 		child.on("error", () => resolve(1));
 	});
+}
+
+/**
+ * Collects `resolved.deferred`'s values (holocron#1052 follow-up) and folds
+ * them into `resolved.answers` — call this once, right before building the
+ * real (non-dry-run) spawn's argv, never any earlier: a dry-run preview and
+ * a human confirming "proceed with the real run?" can both take a while,
+ * and a time-sensitive secret (an OTP) typed before either risks going
+ * stale before it's actually used. A no-op when nothing was deferred.
+ */
+async function resolveForRealSpawn(resolved: ResolvedOptions): Promise<ResolvedOptions> {
+	if (!resolved.deferred || resolved.deferred.length === 0) return resolved;
+	const deferredAnswers = await promptForDeferredOptions(resolved.deferred);
+	return { ...resolved, answers: { ...resolved.answers, ...deferredAnswers } };
 }
 
 /**
@@ -136,12 +157,14 @@ export async function launchMenu(
 			process.exitCode = 0;
 			return;
 		}
+		const forReal = await resolveForRealSpawn(resolvedOptions);
 		process.exitCode = await spawnChild(
-			buildChildArgv(picked, positionals, resolvedOptions, parentArgv, false),
-			extraEnv
+			buildChildArgv(picked, positionals, forReal, parentArgv, false),
+			secretEnv(forReal)
 		);
 		return;
 	}
 
-	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, resolvedOptions, parentArgv), extraEnv);
+	const forReal = await resolveForRealSpawn(resolvedOptions);
+	process.exitCode = await spawnChild(buildChildArgv(picked, positionals, forReal, parentArgv), secretEnv(forReal));
 }

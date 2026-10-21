@@ -401,7 +401,7 @@ describe("launchMenu", () => {
 			await done;
 		});
 
-		it("delivers a secret option through the child's env, never its argv", async () => {
+		it("delivers a secret option through the child's env, never its argv, collected last (after the proceed? confirm)", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
 			selectMock.mockResolvedValue("initial");
@@ -414,17 +414,23 @@ describe("launchMenu", () => {
 
 			const done = launchMenu(COMMAND_REGISTRY, {});
 			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			// otp is askLast -- the dry run never prompts for it at all (it
+			// never reaches the real npm call that would need it either),
+			// even though passwordMock is already primed to resolve.
+			expect(passwordMock).not.toHaveBeenCalled();
 			const [, dryArgs, dryOpts] = spawnMock.mock.calls[0] as [
 				unknown,
 				string[],
 				{ env: Record<string, string> },
 			];
 			expect(dryArgs).not.toContain("--otp");
-			expect(dryArgs).not.toContain("123456");
-			expect(dryOpts.env["HOLOCRON_OTP"]).toBe("123456");
+			expect(dryOpts.env["HOLOCRON_OTP"]).toBeUndefined();
 			dryChild.emit("exit", 0);
 
+			// Only now, after "proceed with the real run?", is otp finally
+			// collected -- as close as possible to when it's actually used.
 			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			expect(passwordMock).toHaveBeenCalledWith({ message: expect.stringContaining("One-time password") });
 			const [, realArgs, realOpts] = spawnMock.mock.calls[1] as [
 				unknown,
 				string[],
@@ -489,13 +495,13 @@ describe("launchMenu", () => {
 			await done;
 		});
 
-		it("the steady-state mode's own options (tag, otp, provenance, skip-already-published) all prompt together", async () => {
+		it("the steady-state mode's own non-deferred options (tag, provenance, skip-already-published) all prompt together; otp waits until the real run", async () => {
 			setTTY(true);
 			searchMock.mockResolvedValue("package publish");
 			selectMock.mockResolvedValue("steady");
 			checkboxMock.mockResolvedValue(["tag", "otp", "provenance", "skipAlreadyPublished"]);
 			inputMock.mockResolvedValueOnce("alpha"); // --tag
-			passwordMock.mockResolvedValue("123456"); // --otp (secret)
+			passwordMock.mockResolvedValue("123456"); // --otp (secret, askLast)
 			confirmMock
 				.mockResolvedValueOnce(false) // --provenance (negatable, default true)
 				.mockResolvedValueOnce(true) // --skip-already-published
@@ -506,6 +512,7 @@ describe("launchMenu", () => {
 
 			const done = launchMenu(COMMAND_REGISTRY, {});
 			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+			expect(passwordMock).not.toHaveBeenCalled();
 			const [, dryArgs, dryOpts] = spawnMock.mock.calls[0] as [
 				unknown,
 				string[],
@@ -521,9 +528,12 @@ describe("launchMenu", () => {
 				"--skip-already-published",
 				"--dry-run",
 			]);
-			expect(dryOpts.env["HOLOCRON_OTP"]).toBe("123456");
+			expect(dryOpts.env["HOLOCRON_OTP"]).toBeUndefined();
 			dryChild.emit("exit", 0);
 			await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+			expect(passwordMock).toHaveBeenCalled();
+			const [, , realOpts] = spawnMock.mock.calls[1] as [unknown, string[], { env: Record<string, string> }];
+			expect(realOpts.env["HOLOCRON_OTP"]).toBe("123456");
 			realChild.emit("exit", 0);
 			await done;
 		});

@@ -18,6 +18,11 @@ const PUBLISH_OTP_OPTION: OptionPrompt = {
 	flag: "--otp",
 	type: "password",
 	secret: true,
+	// Collected last, right before the real spawn -- a dry run never
+	// checks it (npm publish itself is never called), and a TOTP code
+	// typed any earlier risks going stale before it's actually used
+	// (holocron#1052 follow-up).
+	askLast: true,
 	message: "One-time password (2FA), if npm requires it for this publish:",
 };
 
