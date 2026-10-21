@@ -1493,6 +1493,16 @@ try {
 								});
 								if (report.status === "fail") {
 									process.exitCode = 1;
+								} else if (
+									report.status === "ok" &&
+									report.packageNames.length === 0 &&
+									env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1"
+								) {
+									// Every publicly publishable package already exists on npm —
+									// nothing the real run would do either. Same signal clone's
+									// "already cloned" case uses to skip the menu's follow-up
+									// "proceed with the real run?" question.
+									process.exitCode = DRY_RUN_NOOP_EXIT_CODE;
 								}
 								return;
 							}
