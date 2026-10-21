@@ -742,6 +742,25 @@ describe("runSync", () => {
 			});
 		});
 
+		it("keeps the file's own indent and line endings when merging scripts (holocron#1033)", async () => {
+			// Tabs + CRLF -- stringifyJson's `like: content` preserves
+			// whatever the repo already used; a bare JSON.stringify(x,
+			// null, 2) would have silently rewritten both to 2-space LF.
+			const tabbedCrlf = '{\r\n\t"name": "demo",\r\n\t"scripts": {\r\n\t\t"start": "node ."\r\n\t}\r\n}\r\n';
+			await writeFile(join(tmpDir, "package.json"), tabbedCrlf);
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.unitTests"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
+			const written = await readFile(join(tmpDir, "package.json"), "utf8");
+			expect(written).toContain('\t"start": "node ."');
+			expect(written).toContain('\t\t"verification.unitTests": "holocron run verification.unitTests --"');
+			expect(written).toMatch(/\r\n/);
+			expect(JSON.parse(written)).toMatchObject({
+				scripts: { start: "node .", "verification.unitTests": "holocron run verification.unitTests --" },
+			});
+		});
+
 		it("updates a drifted value and is a no-op when already current", async () => {
 			// platform.commitStandards has no turbo entry — the #747 protection
 			// below is specifically about turbo-eligible tasks, so a plain
@@ -1303,6 +1322,28 @@ describe("runSync", () => {
 
 			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { homepage: string };
 			expect(pkg.homepage).toBe("https://example.com");
+		});
+
+		it("keeps the file's own indent and line endings when writing homepage (holocron#1033)", async () => {
+			// 4 spaces + CRLF -- stringifyJson's `like: content` preserves
+			// whatever the repo already used.
+			const fourSpaceCrlf = '{\r\n    "name": "demo",\r\n    "homepage": ""\r\n}\r\n';
+			await writeFile(join(tmpDir, "package.json"), fourSpaceCrlf);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });
+
+			const written = await readFile(join(tmpDir, "package.json"), "utf8");
+			expect(written).toContain('    "homepage": "https://example.com"');
+			expect(written).toMatch(/\r\n/);
+			expect(JSON.parse(written)).toMatchObject({ homepage: "https://example.com" });
 		});
 
 		it("step reports ok even when package.json is absent and no syncHomepage provider", async () => {

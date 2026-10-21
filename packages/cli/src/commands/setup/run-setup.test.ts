@@ -1469,6 +1469,27 @@ describe("runSetup", () => {
 		await rm(dir, { recursive: true, force: true });
 	});
 
+	it("keeps the file's own indent and line endings when adding prepare = husky (holocron#1033)", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		// Tabs + CRLF -- stringifyJson's `like: content` preserves whatever
+		// the repo already used; a bare JSON.stringify(x, null, 2) would
+		// have silently rewritten both to 2-space LF.
+		const tabbedCrlf = '{\r\n\t"name": "demo",\r\n\t"scripts": {\r\n\t\t"build": "tsc"\r\n\t}\r\n}\r\n';
+		await writeFile(join(dir, "package.json"), tabbedCrlf, "utf8");
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const written = await readFile(join(dir, "package.json"), "utf8");
+		expect(written).toContain('\t\t"build": "tsc"');
+		expect(written).toContain('\t\t"prepare": "husky"');
+		expect(written).toMatch(/\r\n/);
+		expect(JSON.parse(written)).toMatchObject({ scripts: { build: "tsc", prepare: "husky" } });
+		await rm(dir, { recursive: true, force: true });
+	});
+
 	it("adds a scripts block when package.json has none", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
 		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "demo" }), "utf8");
