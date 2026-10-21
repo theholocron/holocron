@@ -12,7 +12,14 @@ import type { WorkspacePackage } from "../workspace-packages/index.js";
  * @returns Repo-relative prefixes, each ending in `/`.
  */
 export function defaultPaths(repoRoot: string, pkg: WorkspacePackage, all: WorkspacePackage[]): string[] {
-	return [pkg, ...workspaceDependencies(pkg, all)].map(
+	// includeDevDependencies: true -- a change to a shared dev/build-time
+	// workspace package (a tsconfig, a lint config) can still affect what
+	// gets built, so it should count toward "does this touch my paths"
+	// (holocron#1071). Unlike deployOnRelease's separate publish-wait use
+	// of workspaceDependencies(), nothing here waits on npm to publish
+	// anything, so there's no risk of waiting forever on an unpublished
+	// dev-only package.
+	return [pkg, ...workspaceDependencies(pkg, all, { includeDevDependencies: true })].map(
 		// `relative()` uses the host's native separator -- `\` on Windows --
 		// but every consumer of this output (GitHub's PR-files API, git
 		// itself) always reports paths with `/`. Normalized unconditionally

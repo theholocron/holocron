@@ -24,7 +24,42 @@ describe("defaultPaths", () => {
 		// literal backslash in a directory NAME is a legal (if unusual)
 		// POSIX filename character, used here to force that branch
 		// deterministically without needing an actual Windows host.
-		const pkg = { name: "@demo/weird", dir: "/repo/packages/weird\\dir", version: "1.0.0", dependencies: {} };
+		const pkg = {
+			name: "@demo/weird",
+			dir: "/repo/packages/weird\\dir",
+			version: "1.0.0",
+			dependencies: {},
+			devDependencies: {},
+		};
 		expect(defaultPaths("/repo", pkg, [pkg])).toEqual(["packages/weird/dir/"]);
+	});
+
+	it("includes a transitive and a devDependency's folder, not just direct dependencies (holocron#1071)", () => {
+		const tsconfig = {
+			name: "@demo/tsconfig",
+			dir: "/repo/packages/tsconfig",
+			version: "1.0.0",
+			dependencies: {},
+			devDependencies: {},
+		};
+		const shared = {
+			name: "@demo/shared",
+			dir: "/repo/packages/shared",
+			version: "1.0.0",
+			dependencies: {},
+			devDependencies: { "@demo/tsconfig": "workspace:*" },
+		};
+		const app = {
+			name: "@demo/app",
+			dir: "/repo/packages/app",
+			version: "1.0.0",
+			dependencies: { "@demo/shared": "workspace:*" },
+			devDependencies: {},
+		};
+		expect(defaultPaths("/repo", app, [app, shared, tsconfig])).toEqual([
+			"packages/app/",
+			"packages/shared/",
+			"packages/tsconfig/",
+		]);
 	});
 });

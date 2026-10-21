@@ -65,8 +65,12 @@ export type {
 export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
 // Aliased: codecov's own, differently-shaped WorkspacePackage ({ slug, name,
 // dir }) already owns the unqualified name above (line 26) — this one
-// carries { name, dir, version, dependencies }, what defaultPaths() and
-// workspaceDependencies() actually need.
+// carries { name, dir, version, dependencies, devDependencies }, what
+// defaultPaths() and workspaceDependencies() actually need.
+// workspaceDependencies() traverses both dependency maps transitively;
+// devDependencies counts only when a caller opts in via its
+// includeDevDependencies option (holocron#1071) — defaultPaths() does,
+// deployOnRelease's own direct publish-wait call doesn't.
 export type { WorkspacePackage as DeployWorkspacePackage } from "./tasks/deploy-on-release/workspace-packages/index.js";
 export { workspacePackages } from "./tasks/deploy-on-release/workspace-packages/index.js";
 export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group/index.js";

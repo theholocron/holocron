@@ -21,6 +21,16 @@ export function workspacePackages(repoRoot: string, { readJson, listDirs }: Tree
 			}
 		},
 	}).flatMap(({ name, dir, manifest }) =>
-		name ? [{ name, dir, version: manifest.version, dependencies: manifest.dependencies ?? {} }] : []
+		name
+			? [
+					{
+						name,
+						dir,
+						version: manifest.version,
+						dependencies: manifest.dependencies ?? {},
+						devDependencies: manifest.devDependencies ?? {},
+					},
+				]
+			: []
 	);
 }
