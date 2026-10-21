@@ -49,4 +49,11 @@ export interface RunPublishInput {
 	 * output. Auto-detected from `git remote get-url origin` when omitted.
 	 */
 	repoName?: string;
+	/**
+	 * Override the org name shown in the Trusted Publisher next-steps
+	 * output. Auto-detected from `git remote get-url origin` when omitted —
+	 * same remote read as `repoName`, so providing one without the other
+	 * still triggers that lookup for whichever one is missing.
+	 */
+	orgName?: string;
 }

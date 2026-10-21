@@ -64,6 +64,7 @@ export const baseEnv: NodeJS.ProcessEnv = {};
 // Fixtures injected directly to avoid touching the filesystem or git in tests.
 export const TEST_PACKAGES = ["@theholocron/foo", "@theholocron/bar"] as const;
 export const TEST_REPO = "test-repo";
+export const TEST_ORG = "test-org";
 
 /** Queue-based exec mock — each call consumes the next queued response, matched by call index. */
 export function makeQueueExec(responses: PublishExecResult[]) {

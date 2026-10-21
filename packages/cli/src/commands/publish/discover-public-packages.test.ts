@@ -7,6 +7,7 @@ import {
 	makeExec,
 	makeTempMonorepo,
 	makeTempMonorepoWithPlugins,
+	TEST_ORG,
 	TEST_REPO,
 } from "../../testing/publish-fixtures.js";
 import { runPublish } from "./run-publish/index.js";
@@ -30,6 +31,7 @@ describe("discoverPublicPackages (via runPublish without packages injection)", (
 			cwd: root,
 			env: baseEnv,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -58,6 +60,7 @@ describe("discoverPublicPackages (via runPublish without packages injection)", (
 			cwd: root,
 			env: baseEnv,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -78,6 +81,7 @@ describe("discoverPublicPackages (via runPublish without packages injection)", (
 			cwd: "/tmp/test",
 			env: baseEnv,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});

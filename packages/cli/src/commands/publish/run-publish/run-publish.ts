@@ -36,7 +36,8 @@ import { defaultLogin } from "../default-login.js";
 import { discoverPublicPackages } from "../discover-public-packages.js";
 import { printNextSteps } from "../print-next-steps.js";
 import type { PublishReport } from "../publish.type.js";
-import { resolveRepoName } from "../resolve-repo-name.js";
+import { resolveRepoIdentity } from "../resolve-repo-identity.js";
+import type { RepoIdentity } from "../resolve-repo-identity.type.js";
 import { workspaceFilterArgs } from "../workspace-filter-args.js";
 import type { RunPublishInput } from "./run-publish.type.js";
 
@@ -77,7 +78,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	print("");
 
 	// ── 1. Verify npm auth — log in automatically if not ────────────────
-	print("  → verifying npm auth (`npm whoami`)…");
+	print("→ verifying npm auth (`npm whoami`)…");
 	let whoami = await exec("npm", ["whoami"], { cwd });
 	if (whoami.exitCode !== 0) {
 		print("    not authenticated — running `npm login --auth-type=web`…");
@@ -100,11 +101,20 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		}
 	}
 	const whoamiName = whoami.stdout.trim() || "<unknown>";
-	print(`    ✓ authed as ${whoamiName}`);
+	print(`  ✓ authed as ${whoamiName}`);
 
 	// ── 2. Resolve dynamic values needed for next-steps ─────────────────
 	const packageNames = input.packages ?? discoverPublicPackages(cwd);
-	const repoName = input.repoName ?? (await resolveRepoName(cwd, exec));
+	// Both overridden -> skip the git remote read entirely; either missing
+	// -> one combined read fills in whichever wasn't given.
+	const resolvedIdentity: RepoIdentity =
+		input.repoName !== undefined && input.orgName !== undefined
+			? { owner: input.orgName, repo: input.repoName }
+			: await resolveRepoIdentity(cwd, exec);
+	const identity: RepoIdentity = {
+		owner: input.orgName ?? resolvedIdentity.owner,
+		repo: input.repoName ?? resolvedIdentity.repo,
+	};
 
 	// A `pnpm --filter=./packages/*` (or a bare `pnpm publish`) that matches
 	// nothing still exits 0 — catch the no-op before it's mistaken for
@@ -120,9 +130,9 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// ── 3. Publish ──────────────────────────────────────────────────────
 	if (dryRun) {
 		print("");
-		print("  … (dry-run) skipping actual publish");
-		print(`    would run: pnpm ${publishArgs.join(" ")}`);
-		printNextSteps(print, env, packageNames, repoName);
+		print("  dry-run: skipping actual publish…");
+		print(`  would run: pnpm ${publishArgs.join(" ")}`);
+		printNextSteps(print, env, packageNames, identity);
 		logger.info({ tag, status: "dry-run", packages: packageNames.length }, "publish --initial: done");
 		return { status: "dry-run", message: "dry-run — no publish executed", packageNames };
 	}
@@ -145,7 +155,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	print("    ✓ publish complete");
 
 	// ── 4. Next-step reminders ──────────────────────────────────────────
-	printNextSteps(print, env, packageNames, repoName);
+	printNextSteps(print, env, packageNames, identity);
 	logger.info({ tag, status: "ok", packages: packageNames.length }, "publish --initial: done");
 	return { status: "ok", packageNames };
 }

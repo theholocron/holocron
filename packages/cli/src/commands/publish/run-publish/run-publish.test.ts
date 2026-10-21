@@ -14,6 +14,7 @@ import {
 	makeTempMonorepo,
 	makeTempMonorepoWithPlugins,
 	makeTempPluginsOnlyRepo,
+	TEST_ORG,
 	TEST_PACKAGES,
 	TEST_REPO,
 } from "../../../testing/publish-fixtures.js";
@@ -32,6 +33,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 			logger: log,
@@ -61,6 +63,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 			login,
@@ -81,6 +84,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 			login,
@@ -100,6 +104,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 			login,
@@ -119,6 +124,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -149,6 +155,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -176,6 +183,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -202,6 +210,7 @@ describe("runPublish", () => {
 			cwd: root,
 			env: baseEnv,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -222,6 +231,7 @@ describe("runPublish", () => {
 			cwd: root,
 			env: baseEnv,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -243,6 +253,7 @@ describe("runPublish", () => {
 			dryRun: true,
 			env: baseEnv,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -261,6 +272,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -277,6 +289,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -295,6 +308,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: () => {},
 			exec,
 		});
@@ -317,6 +331,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -337,6 +352,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -355,6 +371,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -374,18 +391,22 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
 		const joined = lines.join("\n");
+		expect(joined).toContain("→ packages to be published:");
 		expect(joined).toContain("npmjs.com/package/@theholocron/foo/access");
 		expect(joined).toContain("npmjs.com/package/@theholocron/bar/access");
-		expect(joined).toContain(`Repo: ${TEST_REPO}`);
+		expect(joined).toContain(`Organization: ${TEST_ORG}`);
+		expect(joined).toContain(`Repository: ${TEST_REPO}`);
 		expect(joined).toContain("Publisher: GitHub Actions");
-		expect(joined).toContain("Workflow: delivery.publish.yml");
+		expect(joined).toContain("Label: Holocron Release");
+		expect(joined).toContain("Workflow filename: delivery.publish.yml");
 	});
 
-	it("auto-detects repo name from git remote when repoName is not injected", async () => {
+	it("auto-detects org + repo from git remote when orgName/repoName are not injected", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -399,10 +420,12 @@ describe("runPublish", () => {
 			print: (l) => lines.push(l),
 			exec,
 		});
-		expect(lines.join("\n")).toContain("Repo: themes");
+		const joined = lines.join("\n");
+		expect(joined).toContain("Organization: theholocron");
+		expect(joined).toContain("Repository: themes");
 	});
 
-	it("auto-detects repo name from SSH remote URL format", async () => {
+	it("auto-detects org + repo from SSH remote URL format", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -416,10 +439,12 @@ describe("runPublish", () => {
 			print: (l) => lines.push(l),
 			exec,
 		});
-		expect(lines.join("\n")).toContain("Repo: clients");
+		const joined = lines.join("\n");
+		expect(joined).toContain("Organization: theholocron");
+		expect(joined).toContain("Repository: clients");
 	});
 
-	it("falls back to 'unknown' when git remote fails", async () => {
+	it("falls back to 'unknown' for both org and repo when git remote fails", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({
 			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
@@ -433,7 +458,29 @@ describe("runPublish", () => {
 			print: (l) => lines.push(l),
 			exec,
 		});
-		expect(lines.join("\n")).toContain("Repo: unknown");
+		const joined = lines.join("\n");
+		expect(joined).toContain("Organization: unknown");
+		expect(joined).toContain("Repository: unknown");
+	});
+
+	it("resolves only the missing half from git when just one of orgName/repoName is injected", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+			git: { exitCode: 0, stdout: "https://github.com/theholocron/themes.git\n", stderr: "" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		const joined = lines.join("\n");
+		expect(joined).toContain("Organization: theholocron");
+		expect(joined).toContain(`Repository: ${TEST_REPO}`);
 	});
 
 	it("prints a token-revoke reminder when NPM_TOKEN is detected in env", async () => {
@@ -447,6 +494,7 @@ describe("runPublish", () => {
 			env: { NPM_TOKEN: "npm_xxx" },
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
@@ -466,6 +514,7 @@ describe("runPublish", () => {
 			env: baseEnv,
 			packages: TEST_PACKAGES,
 			repoName: TEST_REPO,
+			orgName: TEST_ORG,
 			print: (l) => lines.push(l),
 			exec,
 		});
