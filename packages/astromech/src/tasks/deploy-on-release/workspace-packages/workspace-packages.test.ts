@@ -58,6 +58,28 @@ describe("workspacePackages", () => {
 		]);
 	});
 
+	it("captures devDependencies too, not just dependencies (holocron#1071)", () => {
+		const files: Record<string, unknown> = {
+			"/repo/packages/cli/package.json": {
+				name: "@theholocron/cli",
+				devDependencies: { "@theholocron/tsconfig": "workspace:*" },
+			},
+		};
+		const tree = {
+			readJson: (path: string) => {
+				if (!(path in files)) throw new Error(`ENOENT: ${path}`);
+				return files[path];
+			},
+			listDirs: (dirPath: string) => (dirPath.endsWith("packages") ? ["cli"] : []),
+		};
+		const [cli] = workspacePackages("/repo", tree) as [ReturnType<typeof workspacePackages>[number]];
+		expect(cli.devDependencies).toEqual({ "@theholocron/tsconfig": "workspace:*" });
+	});
+
+	it("defaults devDependencies to {} when the manifest has none", () => {
+		expect(all[0]?.devDependencies).toEqual({});
+	});
+
 	it("treats a missing plugins/ directory as empty rather than throwing", () => {
 		const tree = {
 			readJson: (path: string) => {
