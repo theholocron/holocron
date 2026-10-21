@@ -121,7 +121,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		modes: [
 			{
 				key: "steady",
-				message: "Publish (steady-state)",
+				message: "Publish a new version",
 				options: [
 					PUBLISH_TAG_OPTION,
 					PUBLISH_OTP_OPTION,
@@ -144,13 +144,14 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 			},
 			{
 				key: "initial",
-				message: "One-shot bootstrap publish (use only for a package's very first publish)",
+				message: "Initial publish (--initial)",
+				description: "Use only for a package's very first publish.",
 				flag: "--initial",
 				options: [PUBLISH_TAG_OPTION, PUBLISH_OTP_OPTION],
 			},
 			{
 				key: "syncTrust",
-				message: "Sync Trusted Publisher workflow filename across every public package",
+				message: "Sync Trusted Publisher workflow filename across every public package (--sync-trust)",
 				options: [
 					{
 						key: "syncTrust",

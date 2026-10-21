@@ -49,8 +49,15 @@ export interface OptionPrompt {
 export interface OptionMode {
 	/** Unique within the command's `modes` — identifies the pick, never shown. */
 	key: string;
-	/** Shown as this mode's choice label in the "what would you like to do?" prompt. */
+	/** Shown as this mode's choice label in the "what would you like to do?" prompt — keep it short; put caveats in `description` instead. */
 	message: string;
+	/**
+	 * Longer explanation shown as helper text under this choice only while
+	 * it's highlighted (`select()`'s own per-choice `description`) — the
+	 * place for a caveat ("use only for a package's very first publish")
+	 * that would make `message` too long to scan at a glance.
+	 */
+	description?: string;
 	/**
 	 * Emitted unconditionally once this mode is picked, before any of its
 	 * own options — e.g. `"--initial"` for a bootstrap-publish mode. Omit

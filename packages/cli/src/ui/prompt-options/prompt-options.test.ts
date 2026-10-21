@@ -223,6 +223,7 @@ describe("promptForOptions — modes", () => {
 			{
 				key: "initial",
 				message: "Bootstrap",
+				description: "Use only for a package's very first publish.",
 				flag: "--initial",
 				options: [{ key: "otp", flag: "--otp", type: "password", secret: true, message: "OTP:" }],
 			},
@@ -238,9 +239,9 @@ describe("promptForOptions — modes", () => {
 		expect(selectMock).toHaveBeenCalledWith({
 			message: "What would you like to do?",
 			choices: [
-				{ name: "Publish (steady-state)", value: "steady" },
-				{ name: "Bootstrap", value: "initial" },
-				{ name: "Sync Trust", value: "syncTrust" },
+				{ name: "Publish (steady-state)", value: "steady", description: undefined },
+				{ name: "Bootstrap", value: "initial", description: "Use only for a package's very first publish." },
+				{ name: "Sync Trust", value: "syncTrust", description: undefined },
 			],
 		});
 	});

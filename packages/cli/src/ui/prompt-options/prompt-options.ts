@@ -108,7 +108,7 @@ async function promptForModes(
 	}
 	const modeKey = await select({
 		message: "What would you like to do?",
-		choices: modes.map((m) => ({ name: m.message, value: m.key })),
+		choices: modes.map((m) => ({ name: m.message, value: m.key, description: m.description })),
 	});
 	// `modeKey` is drawn from `modes` itself, so this is always defined.
 	const mode = modes.find((m) => m.key === modeKey)!;

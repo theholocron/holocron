@@ -54,10 +54,15 @@ maintenance run — so it asks which one first, then only offers that
 workflow's own options; nothing from a different workflow is ever shown:
 
 ```console
-? What would you like to do? › One-shot bootstrap publish (use only for a package's very first publish)
+? What would you like to do? › Initial publish (--initial)
 ? Set any options? (space to select, enter to skip) › ◉ One-time password (2FA)
 ? One-time password (2FA), if npm requires it for this publish: › ***
 ```
+
+Each workflow's label ends with its real flag in parentheses when it has
+one, and a longer caveat ("use only for a package's very first publish")
+shows as helper text under the highlighted choice rather than bloating the
+label itself.
 
 A secret option (`--otp`) is masked as you type and delivered to the spawned
 command through its environment, never its argv — `ps` and shell history
