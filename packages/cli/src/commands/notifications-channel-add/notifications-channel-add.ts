@@ -140,6 +140,7 @@ export async function runNotificationsChannelAdd(
 ): Promise<NotificationsChannelAddReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
+	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
 	assertPluginsResolvable(loader, "notifications channel add");
@@ -198,7 +199,8 @@ export async function runNotificationsChannelAdd(
 			`notifications channel add: ${input.name}`
 		);
 		if (channel.webhook && !channel.webhook.stored && !dryRun) {
-			const message = channel.webhook.note ?? "the webhook URL was not stored";
+			// `note` is always set when a webhook was requested but not stored.
+			const message = channel.webhook.note!;
 			print(`  ✗ ${message}`);
 			return { status: "fail", channel, message };
 		}

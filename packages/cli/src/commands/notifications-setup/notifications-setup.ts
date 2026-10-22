@@ -26,6 +26,7 @@ import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput 
 export async function runNotificationsSetup(input: RunNotificationsSetupInput): Promise<NotificationsSetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
+	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
 	assertPluginsResolvable(loader, "notifications setup");
@@ -132,7 +133,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				if (outcome.webhook && !outcome.webhook.stored) {
 					report.failures.push({
 						step: `webhook ${outcome.webhook.name}`,
-						message: outcome.webhook.note ?? "not stored",
+						message: outcome.webhook.note!,
 					});
 				}
 			});

@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
-import { defaultSecretName, pickProvisioner, runNotificationsChannelAdd } from "./notifications-channel-add.js";
+import {
+	defaultSecretName,
+	pickProvisioner,
+	provisionChannel,
+	runNotificationsChannelAdd,
+} from "./notifications-channel-add.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -362,6 +367,70 @@ describe("runNotificationsChannelAdd", () => {
 			loader,
 			print: () => {},
 		});
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("fails when the provider can only manage roles and a channel is asked for", async () => {
+		const n = fakeNotifications({
+			ensureChannel: undefined,
+			ensureRole: vi.fn(async () => ({ id: "1", created: true })),
+		});
+		const { result } = run(n, undefined);
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/cannot create channels/),
+		});
+	});
+
+	it("reports a found webhook as found when its URL is stored again", async () => {
+		const secrets = fakeSecrets();
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: "https://hook/again" })),
+		});
+		const { result, lines } = run(n, secrets, { withWebhook: true });
+		expect((await result).status).toBe("ok");
+		expect(secrets.calls[0]?.value).toBe("https://hook/again");
+		expect(lines.join("\n")).toContain("found   webhook alerts; URL stored in HOLOCRON_NOTIFY_WEBHOOK_ALERTS");
+	});
+
+	it("words a failed secret write for an existing webhook as 'found', not 'created'", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				setSecret: async () => {
+					throw new Error("boom");
+				},
+			},
+		};
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: "https://hook/again" })),
+		});
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		expect((await result).message).toMatch(/webhook alerts was found but storing its URL/);
+	});
+
+	it("prints to the console when no print function is given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const loaded = loadedDemo();
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: fakeNotifications() }),
+		});
+		await runNotificationsChannelAdd({ loaded, context: { repoRoot: "/tmp/test" }, name: "x", loader });
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("notifications channel add — x"));
+		log.mockRestore();
+	});
+});
+
+describe("provisionChannel", () => {
+	it("refuses a real webhook request when no secrets provider was resolved", async () => {
+		const n = fakeNotifications();
+		await expect(
+			provisionChannel(
+				{ notifications: n, scope: { kind: "repo" }, dryRun: false, print: () => {} },
+				{ name: "alerts", webhook: {} }
+			)
+		).rejects.toThrow(/needs a `secrets` provider/);
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 });

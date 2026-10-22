@@ -309,6 +309,15 @@ describe("DiscordNotifications — reconciling and resolving existing channels",
 		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { topic: "new" } });
 	});
 
+	it("sets a topic on an existing channel that has none", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "alerts")] },
+			{ body: text("2001", "alerts") },
+		]);
+		await notifs.ensureChannel({ name: "alerts", topic: "now has one" });
+		expect(calls[1]).toMatchObject({ method: "PATCH", body: { topic: "now has one" } });
+	});
+
 	it("leaves a matching topic alone and never clears one that was not asked about", async () => {
 		const { notifs, calls } = makeProvisioner([{ body: [{ ...text("2001", "alerts"), topic: "same" }] }]);
 		await notifs.ensureChannel({ name: "alerts", topic: "same" });

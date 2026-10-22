@@ -291,4 +291,53 @@ describe("runNotificationsSetup", () => {
 		expect(report.status).toBe("ok");
 		expect(report.roles).toEqual([{ name: "gatekeepers", id: "5", created: true }]);
 	});
+
+	it("refuses when no notifications provider is configured at all", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { secrets: "github" } });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: { providerName: "github", setSecret: async () => {} },
+			}),
+		});
+		const report = await runNotificationsSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can provision/) });
+	});
+
+	it("handles a layout whose only category declares no channels", async () => {
+		const layout: NotificationsLayout = { categories: [{ name: "EMPTY" }] };
+		const n = fakeNotifications({ layout });
+		const report = await setup(n, { secrets: false, org: "" }).run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureCategory).toHaveBeenCalledWith("EMPTY");
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("reports categories and roles that already exist as existing", async () => {
+		const n = fakeNotifications({
+			ensureCategory: vi.fn(async () => ({ id: "c", created: false })),
+			ensureRole: vi.fn(async () => ({ id: "99", created: false })),
+		});
+		const { run, lines } = setup(n);
+		await run();
+		expect(lines.join("\n")).toContain("· exists  category ALERTS");
+		expect(lines.join("\n")).toContain("· exists  role gatekeepers (id 99)");
+	});
+
+	it("prints to the console when no print function is given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+				notifications: fakeNotifications({ layout: { roles: [{ name: "x" }] } }),
+			}),
+		});
+		await runNotificationsSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader });
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("notifications setup — discord"));
+		log.mockRestore();
+	});
 });
