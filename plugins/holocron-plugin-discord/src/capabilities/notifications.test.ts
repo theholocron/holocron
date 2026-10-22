@@ -2,7 +2,7 @@ import { AuthError, ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { createDiscordClient } from "../rest.js";
+import { ChannelType, createDiscordBotClient, createDiscordClient } from "../rest.js";
 import { DiscordNotifications } from "./notifications.js";
 
 const BASE = "https://discord.test/api/v10";
@@ -84,5 +84,313 @@ describe("DiscordNotifications.send — defaultChannel", () => {
 		const { notifs, calls } = makeNotifs([{ status: 204 }], { defaultChannel: WEBHOOK });
 		await notifs.send("totally-unmapped-channel", "hello");
 		expect(calls[0]?.url).toContain(`/webhooks/${ID}/${TOKEN}`);
+	});
+});
+
+// ── provisioning ───────────────────────────────────────────────────────
+
+const GUILD = "1303969001822486568";
+
+function makeProvisioner(responses: Parameters<typeof stubFetch>[0], opts: { guildId?: string } = { guildId: GUILD }) {
+	const { fetch, calls } = stubFetch(responses);
+	const bot = createDiscordBotClient({ botToken: "bot-tok", baseUrl: BASE, fetch });
+	const client = createDiscordClient({ baseUrl: BASE, fetch });
+	return {
+		notifs: new DiscordNotifications(
+			client,
+			opts,
+			() => WEBHOOK,
+			() => bot
+		),
+		calls,
+	};
+}
+
+const text = (id: string, name: string, parent_id?: string) => ({ id, name, type: ChannelType.Text, parent_id });
+const category = (id: string, name: string) => ({ id, name, type: ChannelType.Category });
+
+describe("DiscordNotifications.layout", () => {
+	it("carries the declared layout from the provider options", () => {
+		const layout = { roles: [{ name: "gatekeepers" }] };
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE }),
+			{ guildId: GUILD, layout },
+			() => WEBHOOK
+		);
+		expect(notifs.layout).toBe(layout);
+	});
+});
+
+describe("DiscordNotifications provisioning without a server id", () => {
+	it("fails with a message that names the option to set", async () => {
+		const { notifs } = makeProvisioner([{ body: [] }], {});
+		await expect(notifs.ensureCategory("ALERTS")).rejects.toThrow(/guildId/);
+	});
+
+	it("refuses when no bot client is configured", async () => {
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE }),
+			{ guildId: GUILD },
+			() => WEBHOOK
+		);
+		await expect(notifs.ensureCategory("ALERTS")).rejects.toThrow(/no Discord bot client/);
+	});
+});
+
+describe("DiscordNotifications.ensureCategory", () => {
+	it("returns the existing category without creating one (case-insensitive)", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [category("1001", "Alerts")] }]);
+		expect(await notifs.ensureCategory("ALERTS")).toEqual({ id: "1001", created: false });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("creates a category when none matches", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "alerts")] },
+			{ body: category("1002", "ALERTS") },
+		]);
+		expect(await notifs.ensureCategory("ALERTS")).toEqual({ id: "1002", created: true });
+		expect(calls[1]).toMatchObject({
+			method: "POST",
+			url: `${BASE}/guilds/${GUILD}/channels`,
+			body: { name: "ALERTS", type: ChannelType.Category },
+		});
+	});
+});
+
+describe("DiscordNotifications.ensureChannel", () => {
+	it("returns an existing channel untouched when no category is requested", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [text("2001", "alerts")] }]);
+		expect(await notifs.ensureChannel({ name: "alerts" })).toEqual({ id: "2001", created: false });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("leaves a channel already under the requested category alone", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS")] },
+			{ body: [category("1001", "ALERTS"), text("2001", "alerts", "1001")] },
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS" })).toEqual({
+			id: "2001",
+			created: false,
+		});
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
+	it("moves an existing channel into the requested category", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS")] },
+			{ body: [category("1001", "ALERTS"), text("2001", "alerts")] },
+			{ body: text("2001", "alerts", "1001") },
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS" })).toEqual({
+			id: "2001",
+			created: false,
+		});
+		expect(calls[2]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { parent_id: "1001" } });
+	});
+
+	it("creates a channel with its topic and parent", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS")] },
+			{ body: [category("1001", "ALERTS")] },
+			{ body: text("2002", "alerts", "1001") },
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS", topic: "needs a human" })).toEqual({
+			id: "2002",
+			created: true,
+		});
+		expect(calls[2]?.body).toEqual({
+			name: "alerts",
+			type: ChannelType.Text,
+			topic: "needs a human",
+			parent_id: "1001",
+		});
+	});
+
+	it("creates a bare channel when neither topic nor category is given", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: text("2003", "dev") }]);
+		await notifs.ensureChannel({ name: "dev" });
+		expect(calls[1]?.body).toEqual({ name: "dev", type: ChannelType.Text });
+	});
+});
+
+describe("DiscordNotifications.ensureWebhook", () => {
+	const hook = { id: "w1", channel_id: "2001", name: "repo-sync" };
+
+	it("fails clearly when the channel does not exist", async () => {
+		const { notifs } = makeProvisioner([{ body: [] }]);
+		await expect(notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).rejects.toThrow(
+			/no channel named `sync`/
+		);
+	});
+
+	it("creates a webhook and returns its url", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [] },
+			{ body: { ...hook, token: "tk", url: "https://discord.com/api/webhooks/w1/tk" } },
+		]);
+		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({
+			created: true,
+			url: "https://discord.com/api/webhooks/w1/tk",
+		});
+		expect(calls[2]).toMatchObject({
+			method: "POST",
+			url: `${BASE}/channels/2001/webhooks`,
+			body: { name: "repo-sync" },
+		});
+	});
+
+	it("reports an existing webhook it cannot read back (no token) without a url", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [text("2001", "sync")] }, { body: [hook] }]);
+		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({ created: false });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("returns the url of an existing webhook this bot created", async () => {
+		const { notifs } = makeProvisioner([{ body: [text("2001", "sync")] }, { body: [{ ...hook, token: "tk" }] }]);
+		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({
+			created: false,
+			url: "https://discord.com/api/webhooks/w1/tk",
+		});
+	});
+
+	it("creates a webhook that comes back without a url", async () => {
+		const { notifs } = makeProvisioner([{ body: [text("2001", "sync")] }, { body: [] }, { body: hook }]);
+		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({ created: true });
+	});
+});
+
+describe("DiscordNotifications.ensureRole", () => {
+	it("returns an existing role", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ id: "r1", name: "Gatekeepers", color: 0, mentionable: true }] },
+		]);
+		expect(await notifs.ensureRole({ name: "gatekeepers" })).toEqual({ id: "r1", created: false });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("creates a role with the mentionable flag", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			{ body: { id: "r2", name: "gatekeepers", color: 0, mentionable: true } },
+		]);
+		expect(await notifs.ensureRole({ name: "gatekeepers", mentionable: true })).toEqual({
+			id: "r2",
+			created: true,
+		});
+		expect(calls[1]).toMatchObject({
+			method: "POST",
+			url: `${BASE}/guilds/${GUILD}/roles`,
+			body: { name: "gatekeepers", mentionable: true },
+		});
+	});
+
+	it("creates a role without a mentionable flag when none is given", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			{ body: { id: "r3", name: "x", color: 0, mentionable: false } },
+		]);
+		await notifs.ensureRole({ name: "x" });
+		expect(calls[1]?.body).toEqual({ name: "x" });
+	});
+});
+
+describe("DiscordNotifications — reconciling and resolving existing channels", () => {
+	const announce = (id: string, name: string) => ({ id, name, type: ChannelType.Announcement });
+
+	it("updates the topic of an existing channel when the layout asks for a different one", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ ...text("2001", "alerts"), topic: "old" }] },
+			{ body: text("2001", "alerts") },
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", topic: "new" })).toEqual({ id: "2001", created: false });
+		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { topic: "new" } });
+	});
+
+	it("sets a topic on an existing channel that has none", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "alerts")] },
+			{ body: text("2001", "alerts") },
+		]);
+		await notifs.ensureChannel({ name: "alerts", topic: "now has one" });
+		expect(calls[1]).toMatchObject({ method: "PATCH", body: { topic: "now has one" } });
+	});
+
+	it("leaves a matching topic alone and never clears one that was not asked about", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [{ ...text("2001", "alerts"), topic: "same" }] }]);
+		await notifs.ensureChannel({ name: "alerts", topic: "same" });
+		expect(calls).toHaveLength(1);
+		const second = makeProvisioner([{ body: [{ ...text("2001", "alerts"), topic: "kept" }] }]);
+		await second.notifs.ensureChannel({ name: "alerts" });
+		expect(second.calls).toHaveLength(1);
+	});
+
+	it("reuses an existing announcement channel instead of creating a text one", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [announce("2005", "releases")] }]);
+		expect(await notifs.ensureChannel({ name: "releases" })).toEqual({ id: "2005", created: false });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("picks the same-named channel that is already under the requested category", async () => {
+		const channels = [
+			category("1001", "ALERTS"),
+			category("1002", "AUTOMATION"),
+			text("2001", "sync", "1002"),
+			text("2002", "sync", "1001"),
+		];
+		const { notifs, calls } = makeProvisioner([{ body: channels }, { body: channels }]);
+		expect(await notifs.ensureChannel({ name: "sync", category: "ALERTS" })).toEqual({
+			id: "2002",
+			created: false,
+		});
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("creates a new channel rather than stealing one from a different category", async () => {
+		const channels = [category("1001", "ALERTS"), category("1002", "AUTOMATION"), text("2001", "sync", "1002")];
+		const { notifs, calls } = makeProvisioner([
+			{ body: channels },
+			{ body: channels },
+			{ body: text("2009", "sync", "1001") },
+		]);
+		expect(await notifs.ensureChannel({ name: "sync", category: "ALERTS" })).toEqual({ id: "2009", created: true });
+		expect(calls[2]).toMatchObject({ method: "POST", body: { name: "sync", parent_id: "1001" } });
+	});
+
+	it("attaches a webhook to the channel in the requested category, not just any same-named one", async () => {
+		const channels = [
+			category("1001", "ALERTS"),
+			category("1002", "AUTOMATION"),
+			text("2001", "sync", "1002"),
+			text("2002", "sync", "1001"),
+		];
+		const { notifs, calls } = makeProvisioner([
+			{ body: channels },
+			{ body: channels },
+			{ body: [] },
+			{ body: { id: "w1", name: "sync", channel_id: "2002", token: "tk" } },
+		]);
+		await notifs.ensureWebhook({ channel: "sync", name: "sync", category: "ALERTS" });
+		expect(calls[2]?.url).toBe(`${BASE}/channels/2002/webhooks`);
+	});
+
+	it("matches an existing webhook whose name differs only by case", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [{ id: "w1", name: "Repo-Sync", channel_id: "2001" }] },
+		]);
+		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({ created: false });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("treats an existing webhook with no name as a non-match", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [{ id: "w1", name: null, channel_id: "2001" }] },
+			{ body: { id: "w2", name: "sync", channel_id: "2001", token: "tk" } },
+		]);
+		expect((await notifs.ensureWebhook({ channel: "sync", name: "sync" })).created).toBe(true);
 	});
 });

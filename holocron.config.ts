@@ -108,6 +108,58 @@ export default defineConfig({
 		errors: ["sentry", { org: "theholocron" }],
 		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
 		logs: "axiom",
+		// Notifications: the Holocron Discord server. `holocron notifications setup`
+		// applies the layout below (idempotent; --dry-run previews it). This block
+		// lives in ONE repo on purpose -- a server layout is org-level, so it must
+		// not sit in a shared preset that every repo would then apply. Each webhook
+		// URL is stored straight into the org secret HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>
+		// (never printed). Needs HOLOCRON_DISCORD_BOT_TOKEN (the Holonet bot).
+		notifications: [
+			"discord",
+			{
+				guildId: "1303969001822486568",
+				layout: {
+					categories: [
+						{
+							name: "START HERE",
+							channels: [{ name: "welcome", topic: "What this server is and how to get help" }],
+						},
+						{
+							name: "ALERTS",
+							channels: [
+								{
+									name: "alerts",
+									topic: "Anything that needs a human: failed runs, PRs to merge by hand",
+									webhook: true,
+								},
+								{ name: "errors", topic: "Errors from Sentinel and Sentry", webhook: true },
+								{ name: "uptime", topic: "Monitoring up/down", webhook: true },
+							],
+						},
+						{
+							name: "AUTOMATION",
+							channels: [
+								{ name: "releases", topic: "Each lockstep release across the org", webhook: true },
+								{
+									name: "deploys",
+									topic: "Sentinel and Vercel deploys, Preview Check results",
+									webhook: true,
+								},
+								{ name: "sync", topic: "Repo-sync PRs and template pushes", webhook: true },
+							],
+						},
+						{
+							name: "BUILD",
+							channels: [
+								{ name: "dev", topic: "Day-to-day building talk" },
+								{ name: "ideas", topic: "Half-formed ideas and things to spec later" },
+							],
+						},
+					],
+					roles: [{ name: "gatekeepers", mentionable: true }],
+				},
+			},
+		],
 		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
 		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},

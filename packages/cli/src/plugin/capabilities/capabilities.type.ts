@@ -929,6 +929,41 @@ export interface Tooling extends ProviderIdentity {
 	doctor(): Promise<ToolingDoctorReport>;
 }
 
+/** What an `ensure*` call found or made. `created: false` means it already existed. */
+export interface EnsuredResource {
+	id: string;
+	created: boolean;
+}
+
+/** A webhook (or equivalent inbound URL) for a channel. */
+export interface EnsureWebhookResult {
+	created: boolean;
+	/**
+	 * The posting URL — a credential. Absent when the webhook already existed and
+	 * the provider will not reveal it again (Discord returns the token only to
+	 * the application that created the webhook, and only on creation).
+	 */
+	url?: string;
+}
+
+/** One channel in a {@link NotificationsLayout}. */
+export interface NotificationsChannelLayout {
+	name: string;
+	topic?: string;
+	/**
+	 * Create an inbound webhook for the channel and store its URL in a secret.
+	 * `true` uses the defaults; the object form overrides the webhook's display
+	 * name and the secret's name.
+	 */
+	webhook?: boolean | { name?: string; secret?: string };
+}
+
+/** A declared server layout, applied idempotently by `holocron notifications setup`. */
+export interface NotificationsLayout {
+	categories?: Array<{ name: string; channels?: NotificationsChannelLayout[] }>;
+	roles?: Array<{ name: string; mentionable?: boolean }>;
+}
+
 export interface Notifications extends ProviderIdentity {
 	readonly key: "notifications";
 
@@ -937,6 +972,22 @@ export interface Notifications extends ProviderIdentity {
 	 * Discord webhook url-name, etc.); adapters resolve from config.
 	 */
 	send(channel: string, message: string): Promise<void>;
+
+	/**
+	 * The server layout the owner declared for this provider, if any. Read by
+	 * `holocron notifications setup`; the provider just carries it from its options.
+	 */
+	readonly layout?: NotificationsLayout;
+
+	/**
+	 * Provisioning. All optional, all idempotent (look up by name, create only
+	 * what is missing), and all need provider credentials beyond the posting
+	 * URL — so a provider that only posts simply omits them.
+	 */
+	ensureCategory?(name: string): Promise<EnsuredResource>;
+	ensureChannel?(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource>;
+	ensureWebhook?(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult>;
+	ensureRole?(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource>;
 }
 
 export interface Analytics extends ProviderIdentity {

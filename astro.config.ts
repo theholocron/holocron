@@ -23,6 +23,8 @@ export default defineConfig({
 					{ label: "doctor", slug: "commands/doctor" },
 					{ label: "new plugin", slug: "commands/new-plugin" },
 					{ label: "new repo", slug: "commands/new-repo" },
+					{ label: "notifications channel add", slug: "commands/notifications-channel-add" },
+					{ label: "notifications setup", slug: "commands/notifications-setup" },
 					{ label: "package bump-versions", slug: "commands/package-bump-versions" },
 					{ label: "package publish", slug: "commands/package-publish" },
 					{ label: "repo setup", slug: "commands/repo-setup" },

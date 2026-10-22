@@ -87,6 +87,18 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "notifications channel add",
+		description: "Create a notification channel, optionally with a webhook whose URL is stored as a secret",
+		positionals: [{ key: "name", message: "Channel name:", type: "input" }],
+		supportsDryRun: true,
+	},
+	{
+		name: "notifications setup",
+		description: "Apply the server layout a notifications provider declares in holocron.config.ts",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
 		name: "deploy",
 		description: "Trigger a deployment via the configured `deployment` capability",
 		positionals: [{ key: "branch", message: "Branch to deploy:", type: "input" }],
