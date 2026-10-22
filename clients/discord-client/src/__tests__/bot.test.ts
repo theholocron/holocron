@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ChannelType, createDiscordBotClient } from "../index.js";
 import { stubFetch } from "./helpers.js";
@@ -17,7 +17,18 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	};
 }
 
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
+
 describe("createDiscordBotClient", () => {
+	it("falls back to the global fetch when none is injected", async () => {
+		const { fetch, calls } = stubFetch([{ body: { id: "u1", username: "holonet" } }]);
+		vi.stubGlobal("fetch", fetch);
+		await createDiscordBotClient({ botToken: "tok" }).users.me();
+		expect(calls[0]?.url).toBe("https://discord.com/api/v10/users/@me");
+	});
+
 	it("authenticates with the Bot scheme, not Bearer", async () => {
 		const { client, calls } = makeClient([{ body: { id: "u1", username: "holonet", bot: true } }]);
 		await client.users.me();
