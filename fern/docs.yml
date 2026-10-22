@@ -87,10 +87,8 @@ navbar-links:
     links:
       - href: https://wiki.theholocron.dev
         text: Cli Template
-      - href: https://wiki.theholocron.dev
+      - href: https://theholocron.dev
         text: Clients
-      - href: https://wiki.theholocron.dev
-        text: Configs
       - href: https://wiki.theholocron.dev/internal
         text: Internal
       - href: https://wiki.theholocron.dev
@@ -104,15 +102,7 @@ navbar-links:
       - href: https://wiki.theholocron.dev
         text: Node Template
       - href: https://wiki.theholocron.dev
-        text: Observability
-      - href: https://wiki.theholocron.dev
         text: React Template
-      - href: https://wiki.theholocron.dev
-        text: Skills
-      - href: https://wiki.theholocron.dev
-        text: Themes
-      - href: https://wiki.theholocron.dev
-        text: Utils
 
 colors:
   accent-primary:
