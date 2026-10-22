@@ -803,7 +803,15 @@ export interface Errors extends ProviderIdentity {
 	readonly key: "errors";
 	/** Returns the env var names the app reads at runtime for this provider. */
 	describe(): Promise<{ provider: string; envKeys: string[] }>;
-	whoami?(): Promise<{ org: string }>;
+	/**
+	 * Reachability probe. `null` means the check genuinely can't run right
+	 * now on an otherwise-valid configuration (e.g. Sentry's optional `org`
+	 * setting is unset — error ingestion still works from the DSN alone,
+	 * `org` is only needed for the management-API calls `whoami` makes) —
+	 * callers should fall back to `describe()`, not treat it as a failure.
+	 * Still throws for a genuine failure (bad token, network error, etc.).
+	 */
+	whoami?(): Promise<{ org: string } | null>;
 	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
 }
 

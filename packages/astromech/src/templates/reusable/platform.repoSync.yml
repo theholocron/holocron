@@ -48,6 +48,12 @@ jobs:
     name: Run holocron repo sync
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Serialise the find-or-create-PR and supersede steps repo-wide: the caller's
+    # concurrency key is per ref, so runs from different refs could otherwise
+    # interleave and leave several sync PRs open.
+    concurrency:
+      group: repo-sync-pr-${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
@@ -94,20 +100,60 @@ jobs:
         name: Commit sync changes
         with:
           token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
-          branch: chore/auto-sync
+          # One branch per source commit (full SHA, so distinct commits never collide): a PR left unreviewed never blocks the
+          # next sync, and a re-run for the same commit updates its own branch.
+          branch: ${{ format('chore/auto-sync-{0}', github.sha) }}
           commit-message: "chore: sync from holocron.config"
           commit-options: "--no-verify"
 
-      - name: Open PR if changes were committed
+      - name: Open PR and enable auto-merge
         if: steps.auto-commit.outputs.changes-detected == 'true'
         run: |
-          gh pr create \
+          # Find or create this run's PR first: older PRs are only closed once
+          # a replacement exists, so a failure here never leaves the changes
+          # without an open PR.
+          url=$(gh pr view "$BRANCH" --json url --jq .url 2>/dev/null || gh pr create \
             --title "chore: sync README and repo metadata" \
-            --body "Automated sync triggered by changes to config or package files. Merge to apply." \
+            --body "Automated sync from holocron.config. Auto-merges once required checks pass." \
             --base main \
-            --head chore/auto-sync \
-          || echo "PR already open — branch updated."
+            --head "$BRANCH")
+          created=$(gh pr view "$url" --json createdAt --jq .createdAt)
+
+          # Supersede older sync PRs: same-repo only, exact generated or legacy
+          # branch name, and created before this one (a slow older run can
+          # never close a newer PR). --limit covers more than the default page.
+          gh pr list --state open --limit 200 --json number,headRefName,isCrossRepository,createdAt \
+            --jq ".[] | select(.isCrossRepository | not) | select(.headRefName == \"chore/auto-sync\" or (.headRefName | test(\"^chore/auto-sync-[0-9a-f]{40}$\"))) | select(.headRefName != \"$BRANCH\") | select(.createdAt < \"$created\") | .number" |
+            while read -r n; do
+              gh pr close "$n" --delete-branch --comment "Superseded by $url." || true
+            done
+
+          # Delete pushed sync branches that never got a PR (e.g. a run
+          # cancelled between push and PR creation). The repo-wide concurrency
+          # group means no other run is mid-flight here.
+          open=$(gh pr list --state open --limit 200 --json headRefName --jq '.[].headRefName')
+          git ls-remote --heads origin 'refs/heads/chore/auto-sync-*' | sed 's|.*refs/heads/||' |
+            while read -r b; do
+              [ "$b" = "$BRANCH" ] && continue
+              echo "$b" | grep -Eq '^chore/auto-sync-[0-9a-f]{40}$' || continue
+              echo "$open" | grep -qxF "$b" || git push origin --delete "$b" || true
+            done
+
+          # A PR opened with the default GITHUB_TOKEN does not trigger
+          # pull_request workflows, so required checks would never start and
+          # auto-merge would wait forever.
+          if [ "$HAS_PAT" != "true" ]; then
+            echo "::warning::Sync PR $url opened with GITHUB_TOKEN: checks will not run and auto-merge is skipped. Set HOLOCRON_SYNC_TOKEN."
+            echo "Sync PR $url — needs manual merge (no PAT)." >> "$GITHUB_STEP_SUMMARY"
+          elif gh pr merge "$url" --auto --squash; then
+            echo "Sync PR $url — auto-merge enabled." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Sync PR $url opened but auto-merge could not be enabled; merge it manually."
+            echo "Sync PR $url — needs manual merge." >> "$GITHUB_STEP_SUMMARY"
+          fi
         env:
+          BRANCH: ${{ format('chore/auto-sync-{0}', github.sha) }}
+          HAS_PAT: ${{ secrets.HOLOCRON_SYNC_TOKEN != '' || secrets.GH_TOKEN != '' }}
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
 
       - name: Broadcast wiki sync if navbar changed
