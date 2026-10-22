@@ -34,11 +34,13 @@ const deployment = {
 };
 
 describe("pages.listProjects", () => {
-	it("GETs /accounts/{accountId}/pages/projects", async () => {
+	it("GETs /accounts/{accountId}/pages/projects with no pagination params", async () => {
 		const { pages, calls } = client([cfOk([project])]);
 		const result = await pages.listProjects(ACCOUNT);
 		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/pages/projects`);
-		expect(calls[0]?.url).toContain("per_page=100");
+		// Pages rejects the request outright when `per_page` is present at
+		// all (error 8000024) — must never be sent, even as a default.
+		expect(calls[0]?.url).not.toContain("per_page");
 		expect(result[0]?.name).toBe(PROJECT_NAME);
 	});
 });

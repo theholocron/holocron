@@ -56,10 +56,13 @@ export interface CfPagesDeployment {
 
 export function pages(rest: RestClient) {
 	return {
+		// Unlike most Cloudflare v4 list endpoints, Pages' project list rejects
+		// the request outright (error 8000024, "Invalid list options provided")
+		// whenever `per_page` is present at all, regardless of its value —
+		// confirmed against the live API. `page` alone is accepted; omitting
+		// both entirely also works and returns every project in one response.
 		listProjects: (accountId: string): Promise<CfPagesProject[]> =>
-			cfRequest<CfPagesProject[]>(rest, "GET", `/accounts/${accountId}/pages/projects`, undefined, {
-				per_page: "100",
-			}),
+			cfRequest<CfPagesProject[]>(rest, "GET", `/accounts/${accountId}/pages/projects`),
 
 		getProject: (accountId: string, name: string): Promise<CfPagesProject> =>
 			cfRequest<CfPagesProject>(rest, "GET", `/accounts/${accountId}/pages/projects/${name}`),
