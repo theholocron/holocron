@@ -31,11 +31,9 @@ describe("SentryErrors — org validation", () => {
 		expect(() => makeErrors([], {})).not.toThrow();
 	});
 
-	it("throws from whoami when no org is configured", async () => {
+	it("whoami returns null (not a throw) when no org is configured — DSN-only ingestion still works", async () => {
 		const { errors } = makeErrors([], {});
-		const err = await errors.whoami().catch((e: unknown) => e);
-		expect(err).toBeInstanceOf(Error);
-		expect((err as Error).message).toMatch(/requires `org`/);
+		expect(await errors.whoami()).toBeNull();
 	});
 
 	it("throws from ensureProject when no org is configured", async () => {
@@ -60,7 +58,7 @@ describe("SentryErrors.whoami", () => {
 		const { errors, calls } = makeErrors([{ body: { id: "1", slug: ORG, name: "My Org" } }]);
 		const result = await errors.whoami();
 		expect(calls[0]?.url).toContain(`/organizations/${ORG}/`);
-		expect(result.org).toBe(ORG);
+		expect(result?.org).toBe(ORG);
 	});
 });
 

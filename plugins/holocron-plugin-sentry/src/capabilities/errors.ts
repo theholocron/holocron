@@ -27,7 +27,11 @@ export class SentryErrors implements Errors {
 	}
 
 	async whoami() {
-		const org = await this.client().auth.getOrg(this.requireOrg());
+		// Unlike ensureProject, a missing `org` here isn't a failure — error
+		// ingestion works from the DSN alone, `org` is only needed for this
+		// management-API call. Let the caller fall back to describe() instead.
+		if (!this.opts.org) return null;
+		const org = await this.client().auth.getOrg(this.opts.org);
 		return { org: org.slug };
 	}
 
