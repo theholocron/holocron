@@ -8,12 +8,20 @@ inputs:
   webhook:
     description: >
       Discord incoming webhook URL (https://discord.com/api/webhooks/{id}/{token}).
-      Pass `secrets.HOLOCRON_DISCORD_WEBHOOK`. Empty = skip.
+      A webhook posts to exactly one channel, so pass the secret for the
+      channel this message belongs in (for example
+      `secrets.HOLOCRON_DISCORD_WEBHOOK_ALERTS`). Empty = skip.
     required: false
     default: ""
   message:
     description: Message text. Truncated to Discord's 2000-character limit.
     required: true
+  mention:
+    description: >
+      Optional Discord role id (digits only) to ping. Only that one role can
+      be mentioned; anything else in the message never pings.
+    required: false
+    default: ""
   username:
     description: Display name for the post.
     required: false
@@ -31,10 +39,16 @@ runs:
         fi
         echo "::add-mask::$WEBHOOK"
         # allowed_mentions.parse = [] so message text can never ping @everyone
-        # or a role. The body is built with jq so quotes/newlines in the
+        # or a role; only the explicit `mention` role id is allowed through. The body is built with jq so quotes/newlines in the
         # message can't break the JSON.
-        body=$(jq -n --arg content "${MESSAGE:0:2000}" --arg username "$USERNAME" \
-          '{content: $content, username: $username, allowed_mentions: {parse: []}}')
+        content="$MESSAGE"
+        roles='[]'
+        if [[ "$MENTION" =~ ^[0-9]+$ ]]; then
+          content="<@&$MENTION> $MESSAGE"
+          roles=$(jq -cn --arg r "$MENTION" '[$r]')
+        fi
+        body=$(jq -n --arg content "${content:0:2000}" --arg username "$USERNAME" --argjson roles "$roles" \
+          '{content: $content, username: $username, allowed_mentions: {parse: [], roles: $roles}}')
         status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 \
           -H 'Content-Type: application/json' -d "$body" "$WEBHOOK" || true)
         case "${status:-000}" in
@@ -44,4 +58,5 @@ runs:
       env:
         WEBHOOK: ${{ inputs.webhook }}
         MESSAGE: ${{ inputs.message }}
+        MENTION: ${{ inputs.mention }}
         USERNAME: ${{ inputs.username }}
