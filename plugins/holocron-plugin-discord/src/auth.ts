@@ -12,3 +12,13 @@ export const resolveToken = createResolveToken({
 		"no Discord webhook URL found. Pass --token <WEBHOOK_URL>, set HOLOCRON_DISCORD_WEBHOOK / DISCORD_WEBHOOK_URL, " +
 		"or run: holocron auth set discord <https://discord.com/api/webhooks/...>",
 });
+
+// Provisioning (channels, roles, webhooks) needs a bot token, not a webhook URL.
+export const resolveBotToken = createResolveToken({
+	envName: "HOLOCRON_DISCORD_BOT_TOKEN",
+	vendorEnvName: "DISCORD_BOT_TOKEN",
+	keyringService: "discord-bot",
+	errorMessage:
+		"no Discord bot token found. Set HOLOCRON_DISCORD_BOT_TOKEN (or DISCORD_BOT_TOKEN) — " +
+		"it is the bot token from the Discord developer portal (Bot → Reset Token), not a webhook URL.",
+});

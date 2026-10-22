@@ -27,6 +27,8 @@ import { resolveMonitoringChecks, runMonitoringCheck } from "./commands/monitori
 import { runMonitoringResolveChecks } from "./commands/monitoring-resolve-checks/index.js";
 import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands/monitoring-run-resolved/index.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
+import { runNotificationsChannelAdd } from "./commands/notifications-channel-add/index.js";
+import { runNotificationsSetup } from "./commands/notifications-setup/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
@@ -1304,6 +1306,136 @@ try {
 						() => {},
 						async (argv) => {
 							await launchGroupMenu("secrets", argv);
+						}
+					),
+			() => {}
+		)
+		.command(
+			"notifications",
+			"Provision notification channels, webhooks and roles",
+			(g) =>
+				g
+					.command(
+						"channel",
+						"Manage notification channels",
+						(c) =>
+							c
+								.command(
+									"add [name]",
+									"Create a channel, optionally with a webhook whose URL is stored as a secret",
+									(y) =>
+										y
+											.positional("name", {
+												type: "string",
+												describe: "Channel name (e.g. alerts)",
+											})
+											.option("category", {
+												type: "string",
+												describe: "Put the channel under this category (created if missing)",
+											})
+											.option("topic", { type: "string", describe: "Channel topic" })
+											.option("with-webhook", {
+												type: "boolean",
+												default: false,
+												describe:
+													"Also create a webhook and store its URL as a secret (the URL is never printed)",
+											})
+											.option("webhook-name", {
+												type: "string",
+												describe: "Webhook display name (default: the channel name)",
+											})
+											.option("secret", {
+												type: "string",
+												describe:
+													"Secret to store the URL in (default: HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>)",
+											})
+											.option("scope", {
+												type: "string",
+												describe:
+													'Secret scope: "repo", "env=<name>" or "org=<name>" (default: the org)',
+											})
+											.option("provider", {
+												type: "string",
+												describe: "Which notifications provider, when several can provision",
+											}),
+									async (argv) => {
+										const tokens = tokenContext(argv.token);
+										if (!tokens) return;
+										const [name] = await promptForPositionals(
+											getEntry("notifications channel add"),
+											argv as Record<string, unknown>
+										);
+										const loaded = await loadConfig(argv.cwd);
+										applyResolvedConfig(argv, loaded.resolved);
+										const report = await runNotificationsChannelAdd({
+											loaded,
+											context: {
+												repoRoot: argv.cwd,
+												dryRun: argv.dryRun,
+												...tokens,
+												org: resolveOrg(argv, loaded.resolved),
+											},
+											name: name!,
+											...(argv.category ? { category: argv.category as string } : {}),
+											...(argv.topic ? { topic: argv.topic as string } : {}),
+											...(argv.withWebhook ? { withWebhook: true } : {}),
+											...(argv.webhookName ? { webhookName: argv.webhookName as string } : {}),
+											...(argv.secret ? { secret: argv.secret as string } : {}),
+											...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
+											...(argv.provider ? { provider: argv.provider as string } : {}),
+										});
+										if (report.status === "fail") process.exitCode = 1;
+									}
+								)
+								.command(
+									"$0",
+									false,
+									() => {},
+									async (argv) => {
+										await launchGroupMenu("notifications channel", argv);
+									}
+								),
+						() => {}
+					)
+					.command(
+						"setup",
+						"Apply the server layout a notifications provider declares in holocron.config.ts",
+						(y) =>
+							y
+								.option("scope", {
+									type: "string",
+									describe:
+										'Webhook secret scope: "repo", "env=<name>" or "org=<name>" (default: the org)',
+								})
+								.option("provider", {
+									type: "string",
+									describe: "Which notifications provider, when several can provision",
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runNotificationsSetup({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
+								...(argv.provider ? { provider: argv.provider as string } : {}),
+							});
+							if (report.status === "fail") process.exitCode = 1;
+						}
+					)
+					.command(
+						"$0",
+						false,
+						() => {},
+						async (argv) => {
+							await launchGroupMenu("notifications", argv);
 						}
 					),
 			() => {}

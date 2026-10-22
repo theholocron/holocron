@@ -1,8 +1,8 @@
 import type { Notifications } from "@theholocron/cli";
 
-import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import { resolveBotToken, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { DiscordNotifications, type DiscordNotificationsOptions } from "./capabilities/notifications.js";
-import { createDiscordClient, type DiscordClient } from "./rest.js";
+import { createDiscordBotClient, createDiscordClient, type DiscordBotClient, type DiscordClient } from "./rest.js";
 
 export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotificationsOptions {
 	/** Override base URL for tests. Default: https://discord.com/api/v10 */
@@ -18,19 +18,29 @@ export interface PluginContext {
 	 * resolved on first `send()`, not at plugin load. `describe()` never calls it.
 	 */
 	defaultWebhookUrl: () => string;
+	/** Memoized — resolves the bot token on the first provisioning call; `send()` and `describe()` never touch it. */
+	bot: () => DiscordBotClient;
 }
 
 export function createContext(options: DiscordPluginOptions = {}): PluginContext {
 	let url: string | undefined;
+	let bot: DiscordBotClient | undefined;
 	return {
 		options,
 		client: createDiscordClient({ baseUrl: options.baseUrl, fetch: options.fetch }),
 		defaultWebhookUrl: () => (url ??= resolveToken(options)),
+		bot: () =>
+			(bot ??= createDiscordBotClient({
+				// The bot token is a different credential from the webhook URL in `options.cliToken`.
+				botToken: resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org }),
+				...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+				...(options.fetch ? { fetch: options.fetch } : {}),
+			})),
 	};
 }
 
 export function notifications(ctx: PluginContext): Notifications {
-	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl);
+	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl, ctx.bot);
 }
 
 export function createPlugin(options: DiscordPluginOptions = {}) {

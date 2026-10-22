@@ -47,22 +47,22 @@ catalog:
 catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
-    "@theholocron/axiom-client": ^1.42.1
-    "@theholocron/checkly-client": ^1.42.1
-    "@theholocron/clerk-client": ^1.42.1
+    "@theholocron/axiom-client": ^1.43.1
+    "@theholocron/checkly-client": ^1.43.1
+    "@theholocron/clerk-client": ^1.43.1
     "@theholocron/cloudflare-client": ^1.43.1
-    "@theholocron/discord-client": ^1.42.1
-    "@theholocron/doppler-client": ^1.42.1
-    "@theholocron/github-client": ^1.42.1
-    "@theholocron/http-client": ^1.42.1
-    "@theholocron/infisical-client": ^1.42.1
-    "@theholocron/neon-client": ^1.42.1
-    "@theholocron/netlify-client": ^1.42.1
-    "@theholocron/posthog-client": ^1.42.1
-    "@theholocron/postman-client": ^1.42.1
-    "@theholocron/sentry-client": ^1.42.1
-    "@theholocron/slack-client": ^1.42.1
-    "@theholocron/vercel-client": ^1.42.1
+    "@theholocron/discord-client": ^1.43.1
+    "@theholocron/doppler-client": ^1.43.1
+    "@theholocron/github-client": ^1.43.1
+    "@theholocron/http-client": ^1.43.1
+    "@theholocron/infisical-client": ^1.43.1
+    "@theholocron/neon-client": ^1.43.1
+    "@theholocron/netlify-client": ^1.43.0
+    "@theholocron/posthog-client": ^1.43.1
+    "@theholocron/postman-client": ^1.43.1
+    "@theholocron/sentry-client": ^1.43.1
+    "@theholocron/slack-client": ^1.43.1
+    "@theholocron/vercel-client": ^1.43.1
 
   # Shared configs — release in lockstep; bump all entries together.
   configs:

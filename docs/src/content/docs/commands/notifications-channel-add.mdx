@@ -1,0 +1,42 @@
+---
+title: "notifications channel add"
+description: Create a notification channel, optionally with a webhook whose URL is stored as a secret.
+---
+
+```bash
+holocron notifications channel add <name> [--category <name>] [--topic <text>] [--with-webhook] [--webhook-name <name>] [--secret <NAME>] [--scope <scope>] [--provider <name>] [--dry-run]
+```
+
+Creates one channel through the `notifications` capability. It is idempotent: a channel that already exists is left alone (and moved under `--category` if it is somewhere else), so it is safe to re-run.
+
+With `--with-webhook` it also creates an inbound webhook for the channel and stores the URL straight into a secret. **The URL is never printed.** Use it to give a workflow a place to post.
+
+## Arguments and options
+
+| Argument / Option    | Default                          | Description                                                      |
+| -------------------- | -------------------------------- | ---------------------------------------------------------------- |
+| `<name>`             | _(required)_                     | Channel name (e.g. `alerts`)                                     |
+| `--category <name>`  | —                                | Put the channel under this category (created if missing)         |
+| `--topic <text>`     | —                                | Channel topic                                                    |
+| `--with-webhook`     | `false`                          | Also create a webhook and store its URL as a secret              |
+| `--webhook-name <n>` | the channel name                 | Webhook display name                                             |
+| `--secret <NAME>`    | `HOLOCRON_NOTIFY_WEBHOOK_<NAME>` | Secret to store the URL in                                       |
+| `--scope <scope>`    | the org                          | Secret scope: `repo`, `env=<name>`, or `org=<name>`              |
+| `--provider <name>`  | —                                | Which `notifications` provider, when more than one can provision |
+| `--dry-run`          | `false`                          | Print what would happen without calling the provider             |
+
+## An existing webhook
+
+Discord returns a webhook's URL only to the application that created it, and only when it is created. If the channel already has a webhook that this bot did not create, the command reports that it cannot read the URL back and stores nothing. Delete the webhook in Discord and re-run, or set the secret yourself.
+
+## Examples
+
+```bash
+# A channel under a category
+holocron notifications channel add alerts --category ALERTS
+
+# A channel plus a webhook, stored as HOLOCRON_NOTIFY_WEBHOOK_SYNC in the org's secrets
+holocron notifications channel add sync --category AUTOMATION --with-webhook
+```
+
+Provisioning needs a bot token (for Discord, `HOLOCRON_DISCORD_BOT_TOKEN`); see the [Discord plugin](/holocron/plugins/discord/).

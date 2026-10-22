@@ -32,6 +32,8 @@ const EVERY_COMMAND = [
 	"repo setup",
 	"secrets set",
 	"secrets sync",
+	"notifications channel add",
+	"notifications setup",
 	"deploy",
 	"deploy cleanup-preview",
 	"monitoring check",
