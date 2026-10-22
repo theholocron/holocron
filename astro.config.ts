@@ -39,6 +39,13 @@ export default defineConfig({
 				items: [{ label: "stale", slug: "workflows/stale" }],
 			},
 			{
+				label: "Legal",
+				items: [
+					{ label: "Terms of Service", slug: "legal/terms" },
+					{ label: "Privacy Policy", slug: "legal/privacy" },
+				],
+			},
+			{
 				label: "Plugins",
 				items: [
 					{ label: "Overview", slug: "plugins/overview" },
