@@ -540,7 +540,7 @@ describe("runDoctor", () => {
 		expect(ok?.provider).toBe("discord");
 	});
 
-	it("issues smoke check reports resolved lifecycle slot count", async () => {
+	it("issues smoke check reports lifecycle readiness and names the unresolved slots", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { vault: "1password", issues: "github" },
@@ -573,7 +573,36 @@ describe("runDoctor", () => {
 		});
 
 		const issuesRow = report.rows.find((r) => r.capability === ("issues" satisfies CapabilityKey));
-		expect(issuesRow?.message).toContain("2/3 lifecycle slots ready");
+		expect(issuesRow?.message).toBe("lifecycle: 2/3 slots ready (unresolved: inReview)");
+		// ...and does not repeat the token's user or the repo, which other rows already show.
+		expect(issuesRow?.message).not.toContain("iamnewton");
+		expect(issuesRow?.message).not.toContain("x/y");
+	});
+
+	it("issues smoke check names no unresolved slots when every lifecycle slot is ready", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { issues: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				issues: {
+					doctor: async () => ({
+						authedAs: "Newton (iamnewton)",
+						projectLabel: "Repo: x/y",
+						statuses: [],
+						lifecycle: [
+							{ slot: "inProgress" as const, value: "a", resolved: true, note: "" },
+							{ slot: "inReview" as const, value: "b", resolved: true, note: "" },
+							{ slot: "done" as const, value: "c", resolved: true, note: "" },
+						],
+					}),
+				},
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const row = report.rows.find((r) => r.capability === ("issues" satisfies CapabilityKey));
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toBe("lifecycle: 3/3 slots ready");
 	});
 
 	it("secrets smoke check reports configured secret count", async () => {
@@ -645,7 +674,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "ci");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("no recent runs");
+		expect(row?.message).toBe("runs: none recent");
 	});
 
 	it("auth smoke check reports whoami reachability, not just describe()'s env keys", async () => {
@@ -886,7 +915,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "monitoring");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("verified");
+		expect(row?.message).toBe("token: verified");
 	});
 
 	it("monitoring smoke check reports fail when whoami fails", async () => {
@@ -913,6 +942,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "monitoring");
 		expect(row?.status).toBe("fail");
+		expect(row?.message).toBe("token: check failed");
 	});
 
 	it("monitoring falls through to skip when the provider defines no whoami", async () => {
@@ -941,7 +971,7 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("no smoke check defined");
 	});
 
-	it("wiki smoke check reports ok (token configured) when whoami passes", async () => {
+	it("wiki smoke check reports ok (token: configured) when whoami passes", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { wiki: "fern" },
@@ -964,10 +994,10 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "wiki");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("token configured");
+		expect(row?.message).toBe("token: configured");
 	});
 
-	it("wiki smoke check reports fail (token not configured) when whoami fails", async () => {
+	it("wiki smoke check reports fail (token: not configured) when whoami fails", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { wiki: "fern" },
@@ -990,7 +1020,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "wiki");
 		expect(row?.status).toBe("fail");
-		expect(row?.message).toContain("token not configured");
+		expect(row?.message).toBe("token: not configured");
 	});
 
 	it("wiki falls through to skip when the provider defines no whoami", async () => {
