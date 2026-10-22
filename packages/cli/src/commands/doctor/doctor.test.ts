@@ -478,6 +478,64 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("SENTRY_DSN");
 	});
 
+	it("errors smoke check falls back to describe when whoami returns null (e.g. Sentry's org unset) — not a failure", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { errors: "sentry" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }),
+					whoami: async () => null,
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "errors");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("sentry");
+		expect(row?.message).toContain("SENTRY_DSN");
+	});
+
+	it("reports fail (not an indefinite hang) when a provider's smoke check never settles", async () => {
+		vi.useFakeTimers();
+		try {
+			const loaded = loadedFrom({
+				name: "demo",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					// Never resolves or rejects — simulates a stalled request.
+					source: { whoami: () => new Promise(() => {}) },
+				}),
+			});
+
+			const reportPromise = runDoctor({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+			});
+			await vi.advanceTimersByTimeAsync(10_000);
+			const report = await reportPromise;
+
+			const row = report.rows.find((r) => r.capability === "source");
+			expect(row?.status).toBe("fail");
+			expect(row?.message).toMatch(/timed out/);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("logs smoke check reports dataset reachability via whoami", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

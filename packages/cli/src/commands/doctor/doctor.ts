@@ -120,107 +120,133 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 
 // ── smoke checks ────────────────────────────────────────────────────
 
+/** A stalled provider request must not hang the whole report forever. */
+const SMOKE_CHECK_TIMEOUT_MS = 10_000;
+
+/** Rejects after `ms` if `promise` hasn't settled yet — races, never cancels the original call. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			(err: unknown) => {
+				clearTimeout(timer);
+				reject(err);
+			}
+		);
+	});
+}
+
 async function smokeCheck(key: string, provider: string, impl: unknown): Promise<DoctorRow> {
 	try {
-		switch (key) {
-			case "source": {
-				const result = await (impl as Source).whoami();
-				return mk(key, provider, "ok", `whoami: ${result.login}`);
-			}
-			case "issues": {
-				const report = await (impl as Issues).doctor();
-				return mk(
-					key,
-					provider,
-					"ok",
-					`${report.authedAs} / ${report.projectLabel} (${countResolvedLifecycle(report)})`
-				);
-			}
-			case "secrets": {
-				const names = await (impl as Secrets).listSecrets({ kind: "repo" });
-				return mk(key, provider, "ok", `repo secrets: ${names.length} configured`);
-			}
-			case "ci": {
-				const runs = await (impl as Ci).listRuns({ limit: 1 });
-				return mk(
-					key,
-					provider,
-					"ok",
-					runs.length === 0 ? "no recent runs" : `most recent: ${runs[0]!.workflowName} (${runs[0]!.status})`
-				);
-			}
-			case "vault": {
-				const keys = await (impl as Vault).list();
-				return mk(key, provider, "ok", `${keys.length} keys available`);
-			}
-			case "deployment": {
-				const projects = await (impl as Deployment).listProjects();
-				return mk(key, provider, "ok", `${projects.length} project(s) visible`);
-			}
-			case "environments": {
-				const envs = await (impl as Environments).listEnvironments();
-				return mk(key, provider, "ok", `${envs.length} environment(s) configured`);
-			}
-			case "dns": {
-				const dns = impl as Dns;
-				if (dns.whoami) {
-					const who = await dns.whoami();
-					return mk(key, provider, who.ok ? "ok" : "fail", `${who.zones} zone(s) visible`);
-				}
-				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
-			}
-			case "workers": {
-				const workers = impl as Workers;
-				if (workers.whoami) {
-					const who = await workers.whoami();
-					return mk(key, provider, who.ok ? "ok" : "fail", `${who.scripts} script(s) visible`);
-				}
-				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
-			}
-			case "auth": {
-				// `whoami` is required on every Auth provider (unlike the optional
-				// whoami? on dns/workers/monitoring/errors) — it's always safe to
-				// call directly rather than falling back to describe()'s mere
-				// env-key listing.
-				const who = await (impl as Auth).whoami();
-				const details = who.details
-					? ` (${Object.entries(who.details)
-							.map(([k, v]) => `${k}=${v}`)
-							.join(", ")})`
-					: "";
-				return mk(key, provider, "ok", `whoami: ${who.provider}${details}`);
-			}
-			case "errors": {
-				const errors = impl as Errors;
-				if (errors.whoami) {
-					const who = await errors.whoami();
-					return mk(key, provider, "ok", `org: ${who.org}`);
-				}
-				const desc = await errors.describe();
-				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
-			}
-			case "logs": {
-				const logs = impl as Logs;
-				const desc = await logs.describe();
-				if (logs.whoami) {
-					const who = await logs.whoami();
-					return mk(key, provider, who.ok ? "ok" : "fail", `dataset: ${who.dataset}`);
-				}
-				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
-			}
-			case "monitoring": {
-				const monitoring = impl as Monitoring;
-				if (monitoring.whoami) {
-					const who = await monitoring.whoami();
-					return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token verified" : "token check failed");
-				}
-				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
-			}
-			default:
-				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
-		}
+		return await withTimeout(runSmokeCheck(key, provider, impl), SMOKE_CHECK_TIMEOUT_MS);
 	} catch (err) {
 		return mk(key, provider, "fail", errorMessage(err));
+	}
+}
+
+async function runSmokeCheck(key: string, provider: string, impl: unknown): Promise<DoctorRow> {
+	switch (key) {
+		case "source": {
+			const result = await (impl as Source).whoami();
+			return mk(key, provider, "ok", `whoami: ${result.login}`);
+		}
+		case "issues": {
+			const report = await (impl as Issues).doctor();
+			return mk(
+				key,
+				provider,
+				"ok",
+				`${report.authedAs} / ${report.projectLabel} (${countResolvedLifecycle(report)})`
+			);
+		}
+		case "secrets": {
+			const names = await (impl as Secrets).listSecrets({ kind: "repo" });
+			return mk(key, provider, "ok", `repo secrets: ${names.length} configured`);
+		}
+		case "ci": {
+			const runs = await (impl as Ci).listRuns({ limit: 1 });
+			return mk(
+				key,
+				provider,
+				"ok",
+				runs.length === 0 ? "no recent runs" : `most recent: ${runs[0]!.workflowName} (${runs[0]!.status})`
+			);
+		}
+		case "vault": {
+			const keys = await (impl as Vault).list();
+			return mk(key, provider, "ok", `${keys.length} keys available`);
+		}
+		case "deployment": {
+			const projects = await (impl as Deployment).listProjects();
+			return mk(key, provider, "ok", `${projects.length} project(s) visible`);
+		}
+		case "environments": {
+			const envs = await (impl as Environments).listEnvironments();
+			return mk(key, provider, "ok", `${envs.length} environment(s) configured`);
+		}
+		case "dns": {
+			const dns = impl as Dns;
+			if (dns.whoami) {
+				const who = await dns.whoami();
+				return mk(key, provider, who.ok ? "ok" : "fail", `${who.zones} zone(s) visible`);
+			}
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+		}
+		case "workers": {
+			const workers = impl as Workers;
+			if (workers.whoami) {
+				const who = await workers.whoami();
+				return mk(key, provider, who.ok ? "ok" : "fail", `${who.scripts} script(s) visible`);
+			}
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+		}
+		case "auth": {
+			// `whoami` is required on every Auth provider (unlike the optional
+			// whoami? on dns/workers/monitoring/errors) — it's always safe to
+			// call directly rather than falling back to describe()'s mere
+			// env-key listing.
+			const who = await (impl as Auth).whoami();
+			const details = who.details
+				? ` (${Object.entries(who.details)
+						.map(([k, v]) => `${k}=${v}`)
+						.join(", ")})`
+				: "";
+			return mk(key, provider, "ok", `whoami: ${who.provider}${details}`);
+		}
+		case "errors": {
+			const errors = impl as Errors;
+			// `null` means whoami genuinely can't run on an otherwise-valid
+			// config (e.g. Sentry's optional `org` unset) — fall back to
+			// describe() same as a provider with no whoami at all, rather
+			// than treating it as a failure.
+			const who = errors.whoami ? await errors.whoami() : null;
+			if (who) return mk(key, provider, "ok", `org: ${who.org}`);
+			const desc = await errors.describe();
+			return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
+		}
+		case "logs": {
+			const logs = impl as Logs;
+			const desc = await logs.describe();
+			if (logs.whoami) {
+				const who = await logs.whoami();
+				return mk(key, provider, who.ok ? "ok" : "fail", `dataset: ${who.dataset}`);
+			}
+			return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
+		}
+		case "monitoring": {
+			const monitoring = impl as Monitoring;
+			if (monitoring.whoami) {
+				const who = await monitoring.whoami();
+				return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token verified" : "token check failed");
+			}
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+		}
+		default:
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 	}
 }
 
