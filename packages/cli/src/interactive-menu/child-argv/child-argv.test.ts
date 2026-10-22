@@ -138,6 +138,11 @@ describe("buildChildArgv", () => {
 		]);
 	});
 
+	it("omits an array option's flag entirely when the array is empty (patch coverage)", () => {
+		const entry = getEntry("package publish");
+		expect(buildChildArgv(entry, [], resolved(SYNC_TRUST_OPTION, []), {})).toEqual(["package", "publish"]);
+	});
+
 	it("never emits a secret option's flag or value", () => {
 		const entry = getEntry("package publish");
 		expect(buildChildArgv(entry, [], resolved(OTP_OPTION, "123456"), {})).toEqual(["package", "publish"]);

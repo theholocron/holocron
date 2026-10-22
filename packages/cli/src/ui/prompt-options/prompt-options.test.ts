@@ -284,6 +284,40 @@ describe("promptForOptions — flat options", () => {
 		expect(selectMock).toHaveBeenCalledWith({ message: "Provider:", choices: [{ value: "github" }] });
 	});
 
+	it("prompts via select() with a plain array `choices`, not just a thunk (patch coverage)", async () => {
+		checkboxMock.mockResolvedValue(["provider"]);
+		selectMock.mockResolvedValue("github");
+		const entry: OptionsCommand = {
+			name: "x",
+			options: [
+				{
+					key: "provider",
+					flag: "--provider",
+					type: "select",
+					message: "Provider:",
+					choices: ["github", "gitlab"],
+				},
+			],
+		};
+		const { answers } = await promptForOptions(entry, {});
+		expect(answers).toEqual({ provider: "github" });
+		expect(selectMock).toHaveBeenCalledWith({
+			message: "Provider:",
+			choices: [{ value: "github" }, { value: "gitlab" }],
+		});
+	});
+
+	it("prompts via select() with an empty choice list when `choices` is omitted entirely (patch coverage)", async () => {
+		checkboxMock.mockResolvedValue(["provider"]);
+		selectMock.mockResolvedValue(undefined);
+		const entry: OptionsCommand = {
+			name: "x",
+			options: [{ key: "provider", flag: "--provider", type: "select", message: "Provider:" }],
+		};
+		await promptForOptions(entry, {});
+		expect(selectMock).toHaveBeenCalledWith({ message: "Provider:", choices: [] });
+	});
+
 	it("throws NonInteractiveError on non-TTY stdin before prompting a required option", async () => {
 		setTTY(false);
 		const entry: OptionsCommand = {
@@ -413,6 +447,18 @@ describe("promptForOptions — modes", () => {
 		expect(answers).toEqual({});
 		expect(inputMock).not.toHaveBeenCalled();
 		expect(passwordMock).not.toHaveBeenCalled();
+	});
+
+	it("treats a mode with no `options` field at all as having none, same as an empty array (patch coverage)", async () => {
+		const noOptionsEntry: OptionsCommand = {
+			name: "x",
+			modes: [{ key: "bare", message: "Just do it" }],
+		};
+		selectMock.mockResolvedValue("bare");
+		const { options, answers } = await promptForOptions(noOptionsEntry, {});
+		expect(options).toEqual([]);
+		expect(answers).toEqual({});
+		expect(checkboxMock).not.toHaveBeenCalled();
 	});
 
 	it("throws NonInteractiveError on non-TTY stdin before asking which mode", async () => {
