@@ -394,3 +394,39 @@ describe("DiscordNotifications — reconciling and resolving existing channels",
 		expect((await notifs.ensureWebhook({ channel: "sync", name: "sync" })).created).toBe(true);
 	});
 });
+
+describe("DiscordNotifications.whoami", () => {
+	it("names the server and the bot when the token works and the server is visible", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: { id: "9", username: "Holonet", bot: true } },
+			{ body: { id: GUILD, name: "Holocron" } },
+		]);
+		expect(await notifs.whoami()).toEqual({ target: "Holocron (as Holonet)" });
+		expect(calls.map((c) => c.url)).toEqual([`${BASE}/users/@me`, `${BASE}/guilds/${GUILD}`]);
+	});
+
+	it("is null, and calls nothing, for a post-only config with no server id", async () => {
+		const { notifs, calls } = makeProvisioner([], {});
+		expect(await notifs.whoami()).toBeNull();
+		expect(calls).toHaveLength(0);
+	});
+
+	it("fails, naming the missing option, when a layout is declared without a server id", async () => {
+		const { fetch } = stubFetch([]);
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE, fetch }),
+			{ layout: { roles: [{ name: "gatekeepers" }] } },
+			() => WEBHOOK,
+			() => createDiscordBotClient({ botToken: "t", baseUrl: BASE, fetch })
+		);
+		await expect(notifs.whoami()).rejects.toThrow(/`layout` is set but `guildId` is not/);
+	});
+
+	it("fails when the bot cannot see the server", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: { id: "9", username: "Holonet" } },
+			{ status: 404, body: { message: "Unknown Guild" } },
+		]);
+		await expect(notifs.whoami()).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});

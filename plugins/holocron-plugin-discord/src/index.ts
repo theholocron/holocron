@@ -24,7 +24,7 @@ export interface PluginContext {
 	 * resolved on first `send()`, not at plugin load. `describe()` never calls it.
 	 */
 	defaultWebhookUrl: () => string;
-	/** Memoized — resolves the bot token on the first provisioning call; `send()` and `describe()` never touch it. */
+	/** Memoized — resolves the bot token on the first provisioning call, or when `holocron doctor` checks a provider that has a `guildId`; `send()` and `describe()` never touch it. */
 	bot: () => DiscordBotClient;
 }
 

@@ -70,4 +70,23 @@ describe("createPlugin", () => {
 		const ctx = createContext({ cliToken: WEBHOOK, env: {}, keyring: () => null });
 		expect(() => ctx.bot()).toThrow(/HOLOCRON_DISCORD_BOT_TOKEN/);
 	});
+
+	it("reads the bot token from the keyring entry discord.holonet", () => {
+		const asked: string[] = [];
+		const ctx = createContext({
+			cliToken: WEBHOOK,
+			env: {},
+			keyring: (key) => {
+				asked.push(key);
+				return key === "discord.holonet" ? "stored-bot-tok" : null;
+			},
+		});
+		expect(() => ctx.bot()).not.toThrow();
+		expect(asked).toContain("discord.holonet");
+	});
+
+	it("points the user at `holocron auth set discord.holonet` when no bot token is found", () => {
+		const ctx = createContext({ cliToken: WEBHOOK, env: {}, keyring: () => null });
+		expect(() => ctx.bot()).toThrow(/holocron auth set discord\.holonet/);
+	});
 });

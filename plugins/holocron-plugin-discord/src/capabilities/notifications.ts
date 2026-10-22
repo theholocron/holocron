@@ -50,6 +50,27 @@ export class DiscordNotifications implements Notifications {
 		await this.client.webhooks.execute(id, token, message);
 	}
 
+	/**
+	 * `holocron doctor`: the bot token is valid and can see the configured server.
+	 * Null when no `guildId` is set -- a post-only config has no bot to check. A
+	 * `layout` without a `guildId` is a half-written provisioning config, so that
+	 * fails instead of passing as post-only.
+	 */
+	async whoami(): Promise<{ target: string } | null> {
+		if (!this.opts.guildId) {
+			if (this.opts.layout) {
+				throw new Error(
+					"`layout` is set but `guildId` is not — add the server id to the discord provider options"
+				);
+			}
+			return null;
+		}
+		const bot = this.bot();
+		const me = await bot.users.me();
+		const guild = await bot.guilds.get(this.opts.guildId);
+		return { target: `${guild.name} (as ${me.username})` };
+	}
+
 	private guild(): string {
 		if (!this.opts.guildId) {
 			throw new Error(
