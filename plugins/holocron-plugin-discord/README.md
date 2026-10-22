@@ -70,7 +70,8 @@ methods. They use the **Holonet bot**, not a webhook URL:
 
 - `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`), or the keyring entry
   `discord.holonet` (`holocron auth set discord.holonet <token>`) — the bot token
-  from the Developer Portal. Only read when a provisioning command runs.
+  from the Developer Portal. Only read when a provisioning command runs, or when
+  `holocron doctor` checks a provider that has a `guildId`; posting never needs it.
 - `guildId` — the server id (not a secret), set in the provider options.
 - `layout` — categories, channels (each optionally with a `webhook`) and roles.
 

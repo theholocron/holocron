@@ -411,6 +411,17 @@ describe("DiscordNotifications.whoami", () => {
 		expect(calls).toHaveLength(0);
 	});
 
+	it("fails, naming the missing option, when a layout is declared without a server id", async () => {
+		const { fetch } = stubFetch([]);
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE, fetch }),
+			{ layout: { roles: [{ name: "gatekeepers" }] } },
+			() => WEBHOOK,
+			() => createDiscordBotClient({ botToken: "t", baseUrl: BASE, fetch })
+		);
+		await expect(notifs.whoami()).rejects.toThrow(/`layout` is set but `guildId` is not/);
+	});
+
 	it("fails when the bot cannot see the server", async () => {
 		const { notifs } = makeProvisioner([
 			{ body: { id: "9", username: "Holonet" } },

@@ -85,8 +85,12 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 			const impls = loader.get(key) as unknown as unknown[];
 			// Each provider is checked on its own; a capability with no smoke check
 			// for a provider still reports "loaded" (see runSmokeCheck's default).
+			// Label each row by the implementation's own name: a provider that failed
+			// to load is missing from `impls` but still in the configured list, so
+			// indexing the list would put a later provider's result under the wrong name.
 			for (const [idx, impl] of impls.entries()) {
-				rows.push(await smokeCheck(key, providers[idx]!, impl)); // same config, same length as impls
+				const name = (impl as { providerName?: string }).providerName ?? providers[idx]!;
+				rows.push(await smokeCheck(key, name, impl));
 			}
 		} else {
 			const impl = loader.get(key) as unknown;
@@ -161,14 +165,14 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 
 /** Vendor response bodies land in the terminal — cap their length so one
  *  oversized error can't flood the report, and strip control characters
- *  (newlines included) so a crafted body can't forge extra report lines
- *  or inject terminal escape sequences. */
+ *  (newlines and the C1 range, whose 0x9b is an 8-bit CSI) so a crafted body
+ *  can't forge extra report lines or inject terminal escape sequences. */
 const MAX_DETAIL_LENGTH = 200;
 
 function sanitizeDetail(text: string): string {
 	const stripped = text
 		// eslint-disable-next-line no-control-regex -- deliberately matching control chars (incl. newlines) to strip them
-		.replace(/[\x00-\x1f\x7f]/g, " ")
+		.replace(/[\x00-\x1f\x7f-\x9f]/g, " ")
 		.replace(/\s+/g, " ")
 		.trim();
 	return stripped.length > MAX_DETAIL_LENGTH ? `${stripped.slice(0, MAX_DETAIL_LENGTH)}…` : stripped;
@@ -291,7 +295,8 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 		case "notifications": {
 			const notifications = impl as Notifications;
 			const who = notifications.whoami ? await notifications.whoami() : null;
-			if (who) return mk(key, provider, "ok", `server: ${who.target}`);
+			// The target is a name someone else chose (a server name); keep it off the terminal raw.
+			if (who) return mk(key, provider, "ok", `server: ${sanitizeDetail(who.target)}`);
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}
 		case "wiki": {

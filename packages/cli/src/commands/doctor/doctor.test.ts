@@ -507,6 +507,39 @@ describe("runDoctor", () => {
 		expect(rows[2]?.message).toContain("no Discord bot token found");
 	});
 
+	it("keeps terminal control characters from a server name off the report", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+				notifications: { whoami: async () => ({ target: "Evil\u001b[2J\u009b31m\nFAKE ROW (as bot)" }) },
+			}),
+		});
+		const lines: string[] = [];
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: (l) => lines.push(l),
+		});
+		const row = report.rows.find((r) => r.capability === "notifications");
+		expect(row?.message).toBe("server: Evil [2J 31m FAKE ROW (as bot)");
+		const out = lines.join("\n");
+		expect(out.includes("\u001b") || out.includes("\u009b")).toBe(false);
+	});
+
+	it("labels a notifications row by the implementation's own name when an earlier provider failed to load", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["slack", "discord"] } });
+		const loader = makeLoaderWith(loaded, {
+			// slack is missing, so only discord loads and `impls` has one entry while the config lists two.
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+				notifications: { providerName: "discord", whoami: async () => ({ target: "Holocron (as Holonet)" }) },
+			}),
+		});
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const ok = report.rows.find((r) => r.capability === "notifications" && r.status === "ok");
+		expect(ok?.provider).toBe("discord");
+	});
+
 	it("issues smoke check reports resolved lifecycle slot count", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
