@@ -1,0 +1,64 @@
+name: Notify
+description: >
+  Post a message to a chat channel through an incoming webhook. The request
+  body is Discord-compatible (`content`, `username`, `allowed_mentions`), so
+  the webhook must accept that shape. Does nothing (and never fails the
+  calling job) when no webhook is provided, so repos that haven't set one up
+  are unaffected.
+
+inputs:
+  webhook:
+    description: >
+      Incoming webhook URL for the target channel.
+      A webhook posts to exactly one channel, so pass the secret for the
+      channel this message belongs in (for example
+      `secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS`). Empty = skip.
+    required: false
+    default: ""
+  message:
+    description: Message text. Truncated to 2000 characters.
+    required: true
+  mention:
+    description: >
+      Optional role id (digits only) to ping. Only that one role can
+      be mentioned; anything else in the message never pings.
+    required: false
+    default: ""
+  username:
+    description: Display name for the post.
+    required: false
+    default: "Holocron"
+
+runs:
+  using: composite
+  steps:
+    - name: Post the notification
+      shell: bash
+      run: |
+        if [ -z "$WEBHOOK" ]; then
+          echo "::notice::No notification webhook set — skipping notification."
+          exit 0
+        fi
+        echo "::add-mask::$WEBHOOK"
+        # allowed_mentions.parse = [] so message text can never ping @everyone
+        # or a role; only the explicit `mention` role id is allowed through. The body is built with jq so quotes/newlines in the
+        # message can't break the JSON.
+        content="$MESSAGE"
+        roles='[]'
+        if [[ "$MENTION" =~ ^[0-9]+$ ]]; then
+          content="<@&$MENTION> $MESSAGE"
+          roles=$(jq -cn --arg r "$MENTION" '[$r]')
+        fi
+        body=$(jq -n --arg content "${content:0:2000}" --arg username "$USERNAME" --argjson roles "$roles" \
+          '{content: $content, username: $username, allowed_mentions: {parse: [], roles: $roles}}')
+        status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 \
+          -H 'Content-Type: application/json' -d "$body" "$WEBHOOK" || true)
+        case "${status:-000}" in
+          2??) echo "Notification posted." ;;
+          *) echo "::warning::Notification failed (HTTP ${status:-000})." ;;
+        esac
+      env:
+        WEBHOOK: ${{ inputs.webhook }}
+        MESSAGE: ${{ inputs.message }}
+        MENTION: ${{ inputs.mention }}
+        USERNAME: ${{ inputs.username }}
