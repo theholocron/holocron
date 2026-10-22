@@ -13,7 +13,7 @@ inputs:
   branch:
     description: >
       Branch to commit to. Leave empty to commit to the current branch (useful
-      in PR contexts). Provide an explicit name (e.g. chore/auto-sync) to push
+      in PR contexts). Provide an explicit name (e.g. chore/auto-sync-abc1234) to push
       to a separate branch.
     required: false
     default: ""
