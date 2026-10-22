@@ -50,6 +50,18 @@ export class DiscordNotifications implements Notifications {
 		await this.client.webhooks.execute(id, token, message);
 	}
 
+	/**
+	 * `holocron doctor`: the bot token is valid and can see the configured server.
+	 * Null when no `guildId` is set -- a post-only config has no bot to check.
+	 */
+	async whoami(): Promise<{ target: string } | null> {
+		if (!this.opts.guildId) return null;
+		const bot = this.bot();
+		const me = await bot.users.me();
+		const guild = await bot.guilds.get(this.opts.guildId);
+		return { target: `${guild.name} (as ${me.username})` };
+	}
+
 	private guild(): string {
 		if (!this.opts.guildId) {
 			throw new Error(

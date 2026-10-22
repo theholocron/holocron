@@ -478,6 +478,35 @@ describe("runDoctor", () => {
 		expect(notifRows.map((r) => r.provider)).toEqual(["slack", "discord"]);
 	});
 
+	it("runs each notifications provider's whoami, and reports ok, fail and skip per provider", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { notifications: ["slack", "discord", "email"] },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-slack": makePlugin("slack", { notifications: { whoami: async () => null } }),
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+				notifications: { whoami: async () => ({ target: "Holocron (as Holonet)" }) },
+			}),
+			"@theholocron/holocron-plugin-email": makePlugin("email", {
+				notifications: {
+					whoami: async () => {
+						throw new Error("no Discord bot token found");
+					},
+				},
+			}),
+		});
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rows = report.rows.filter((r) => r.capability === "notifications");
+		expect(rows.map((r) => [r.provider, r.status])).toEqual([
+			["slack", "skip"],
+			["discord", "ok"],
+			["email", "fail"],
+		]);
+		expect(rows[1]?.message).toBe("server: Holocron (as Holonet)");
+		expect(rows[2]?.message).toContain("no Discord bot token found");
+	});
+
 	it("issues smoke check reports resolved lifecycle slot count", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

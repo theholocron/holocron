@@ -17,8 +17,10 @@ export const resolveToken = createResolveToken({
 export const resolveBotToken = createResolveToken({
 	envName: "HOLOCRON_DISCORD_BOT_TOKEN",
 	vendorEnvName: "DISCORD_BOT_TOKEN",
-	keyringService: "discord-bot",
+	// Dotted like `github.admin`: `holocron auth set discord.holonet <token>` stores it directly (no plugin lookup).
+	keyringService: "discord.holonet",
 	errorMessage:
-		"no Discord bot token found. Set HOLOCRON_DISCORD_BOT_TOKEN (or DISCORD_BOT_TOKEN) — " +
-		"it is the bot token from the Discord developer portal (Bot → Reset Token), not a webhook URL.",
+		"no Discord bot token found. Set HOLOCRON_DISCORD_BOT_TOKEN (or DISCORD_BOT_TOKEN), or run: " +
+		"holocron auth set discord.holonet <token> — it is the bot token from the Discord developer portal " +
+		"(Bot → Reset Token), not a webhook URL.",
 });

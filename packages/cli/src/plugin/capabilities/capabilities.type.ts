@@ -988,6 +988,15 @@ export interface Notifications extends ProviderIdentity {
 	ensureChannel?(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource>;
 	ensureWebhook?(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult>;
 	ensureRole?(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource>;
+
+	/**
+	 * Smoke check for `holocron doctor`: prove the provisioning credentials work
+	 * and name what they reach. Returns `null` when there is nothing to check (a
+	 * config that only posts has no provisioning credentials), which doctor shows
+	 * as "loaded" rather than as a failure. Throws when it is configured to
+	 * provision but cannot (missing token, no access).
+	 */
+	whoami?(): Promise<{ target: string } | null>;
 }
 
 export interface Analytics extends ProviderIdentity {
