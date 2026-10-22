@@ -1,3 +1,9 @@
+## [8.8.2](https://github.com/theholocron/configs/compare/v8.8.1...v8.8.2) (2026-10-22)
+
+### Bug Fixes
+
+* 🐛 allow vitest 5 in vitest-config peer ranges ([#504](https://github.com/theholocron/configs/issues/504)) ([83b1012](https://github.com/theholocron/configs/commit/83b10128fa54015268a542e65b58e89667f45a04))
+
 ## [8.8.1](https://github.com/theholocron/configs/compare/v8.8.0...v8.8.1) (2026-10-20)
 
 ### Bug Fixes
