@@ -21,3 +21,16 @@ regexes = ['''^phc_AC4vFCvYzwnzmG7Vg5nEc3PZKZztoPyfKp4Lb(9BbXcLK)?$''']
 [[allowlists]]
 description = "Sentry build plugin env file — gitignored, not committed"
 paths = ['''.env.sentry-build-plugin''']
+
+[[allowlists]]
+# `gitleaks dir` scans the filesystem directly, bypassing .gitignore — every
+# package's `dist/` (always gitignored, rebuildable, never committed) gets
+# scanned too. The bundled/minified copy of the PostHog token above has
+# tripped generic-api-key with a DIFFERENT truncation length each time
+# (holocron#1067: 42 chars; later observed: 36 chars) — the regex-based
+# allowlist above is apparently not a stable fix for a build artifact.
+# Excluding dist/ entirely is the real fix: a fresh CI checkout never has
+# dist/ built before gitleaks runs, so nothing here is actually scanned
+# there either way.
+description = "Build output — always gitignored, never committed"
+paths = ['''(^|/)dist/''']
