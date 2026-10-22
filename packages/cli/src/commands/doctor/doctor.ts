@@ -32,6 +32,7 @@ import {
 	type Logs,
 	type Monitoring,
 	PluginLoader,
+	ProviderApiError,
 	type Secrets,
 	type Source,
 	type Vault,
@@ -97,7 +98,12 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 	// Render rows
 	for (const row of rows) {
 		log[row.status === "fail" ? "warn" : "info"](
-			{ capability: row.capability, provider: row.provider, status: row.status, detail: row.message },
+			{
+				capability: row.capability,
+				provider: row.provider,
+				status: row.status,
+				detail: row.logMessage ?? row.message,
+			},
 			`doctor: ${row.capability}`
 		);
 		print(statusRow(row.status, [`${pad(row.capability, 14)} via ${pad(row.provider, 14)}`, row.message]));
@@ -144,8 +150,44 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 	try {
 		return await withTimeout(runSmokeCheck(key, provider, impl), SMOKE_CHECK_TIMEOUT_MS);
 	} catch (err) {
-		return mk(key, provider, "fail", errorMessage(err));
+		// `message` (terminal display) gets the enriched, sanitized/capped
+		// detail; `logMessage` (telemetry) stays the plain vendor-body-free
+		// summary — a provider's raw response text has no business leaving
+		// this machine via the structured logger.
+		return mk(key, provider, "fail", smokeCheckErrorMessage(err), errorMessage(err));
 	}
+}
+
+/** Vendor response bodies land in the terminal — cap their length so one
+ *  oversized error can't flood the report, and strip control characters
+ *  (newlines included) so a crafted body can't forge extra report lines
+ *  or inject terminal escape sequences. */
+const MAX_DETAIL_LENGTH = 200;
+
+function sanitizeDetail(text: string): string {
+	const stripped = text
+		// eslint-disable-next-line no-control-regex -- deliberately matching control chars (incl. newlines) to strip them
+		.replace(/[\x00-\x1f\x7f]/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	return stripped.length > MAX_DETAIL_LENGTH ? `${stripped.slice(0, MAX_DETAIL_LENGTH)}…` : stripped;
+}
+
+/**
+ * `errorMessage(err)` alone is just `"<Vendor> <METHOD> <path> → <status>"` —
+ * the actual reason (what the vendor's response body said) lives in
+ * `ProviderApiError.details`, a raw response-body string (not parsed JSON —
+ * see AGENTS.md), and was being silently dropped. Appending it (sanitized
+ * and length-capped — see `sanitizeDetail`) turns e.g. a bare "→ 400" into
+ * something that actually explains itself, without the vendor text being
+ * able to overwhelm or manipulate the terminal report.
+ */
+function smokeCheckErrorMessage(err: unknown): string {
+	if (err instanceof ProviderApiError && err.details) {
+		const detail = sanitizeDetail(String(err.details));
+		if (detail) return `${errorMessage(err)}: ${detail}`;
+	}
+	return errorMessage(err);
 }
 
 async function runSmokeCheck(key: string, provider: string, impl: unknown): Promise<DoctorRow> {
@@ -255,6 +297,12 @@ function countResolvedLifecycle(report: Awaited<ReturnType<Issues["doctor"]>>): 
 	return `${resolved}/${report.lifecycle.length} lifecycle slots ready`;
 }
 
-function mk(capability: string, provider: string, status: DoctorStatus, message: string): DoctorRow {
-	return { capability, provider, status, message };
+function mk(
+	capability: string,
+	provider: string,
+	status: DoctorStatus,
+	message: string,
+	logMessage?: string
+): DoctorRow {
+	return { capability, provider, status, message, ...(logMessage !== undefined ? { logMessage } : {}) };
 }
