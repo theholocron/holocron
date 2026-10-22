@@ -1,6 +1,6 @@
 # @theholocron/discord-client
 
-A TypeScript client for the Discord webhooks API — reads a webhook's info and posts messages through it.
+A TypeScript client for Discord — posts messages through webhooks, and (with a bot token) provisions a server's channels, roles and webhooks.
 
 ## Installation
 
@@ -48,6 +48,66 @@ Returns a client with one resource namespace:
 
 Parses a Discord webhook URL (e.g. `https://discord.com/api/webhooks/<id>/<token>`)
 into `{ id, token }`.
+
+## Bot client — provisioning a server
+
+`createDiscordBotClient` authenticates as a bot (`Authorization: Bot <token>`)
+and covers what you need to set a server up. It does not post messages; use
+`createDiscordClient().webhooks.execute` for that.
+
+```ts
+import { ChannelType, createDiscordBotClient } from "@theholocron/discord-client";
+
+const bot = createDiscordBotClient({
+  botToken: process.env.DISCORD_BOT_TOKEN!,
+});
+
+const category = await bot.guilds.createChannel(guildId, {
+  name: "ALERTS",
+  type: ChannelType.Category,
+});
+const channel = await bot.guilds.createChannel(guildId, {
+  name: "alerts",
+  parent_id: category.id,
+});
+const hook = await bot.channels.createWebhook(channel.id, {
+  name: "repo-sync",
+});
+console.log(hook.url); // a secret -- Discord returns it only for webhooks this bot created
+```
+
+### `createDiscordBotClient(opts)`
+
+| Option       | Type           | Default                       | Description                   |
+| ------------ | -------------- | ----------------------------- | ----------------------------- |
+| `botToken`   | `string`       | _(required)_                  | Bot token                     |
+| `baseUrl`    | `string`       | `https://discord.com/api/v10` | Override base URL for testing |
+| `fetch`      | `typeof fetch` | `globalThis.fetch`            | Override fetch for testing    |
+| `timeoutMs`  | `number`       | `15000`                       | Per-request deadline          |
+| `maxRetries` | `number`       | `3`                           | Retries after a 429           |
+
+`baseUrl` is a test seam: the bot token is sent to whatever host it names, so
+never derive it from untrusted input. Ids passed to any method must be Discord
+snowflakes (digits only); anything else throws before a request is made.
+
+A 429 is retried, up to `maxRetries` times, waiting for the `Retry-After` Discord
+sends; a wait longer than 10 seconds fails immediately instead. A request that
+runs past `timeoutMs` is aborted. Other errors are not retried, and the
+`create*` calls are not idempotent: if a response is lost after Discord created
+the resource, look it up by name before creating it again. A webhook created
+that way cannot have its URL read back, since Discord returns the token only on
+the create response.
+
+| Resource          | Methods                                                   |
+| ----------------- | --------------------------------------------------------- |
+| `client.users`    | `me()` — `GET /users/@me`, a cheap token check            |
+| `client.guilds`   | `get`, `channels`, `createChannel`, `roles`, `createRole` |
+| `client.channels` | `modify`, `webhooks`, `createWebhook`                     |
+
+The bot needs Manage Channels, Manage Roles and Manage Webhooks in the server.
+Discord only returns a webhook's `token`/`url` for webhooks the same
+application created, so a pre-existing webhook can be found by name but its URL
+cannot be read back.
 
 ## License
 
