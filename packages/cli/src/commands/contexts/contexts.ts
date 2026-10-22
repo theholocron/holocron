@@ -45,6 +45,8 @@ export const COMMAND_CONTEXTS = {
 	"repo setup": "workspace",
 	"secrets set": "workspace",
 	"secrets sync": "workspace",
+	"notifications channel add": "workspace",
+	"notifications setup": "workspace",
 	deploy: "workspace",
 	"deploy cleanup-preview": "workspace",
 	"monitoring check": "workspace",

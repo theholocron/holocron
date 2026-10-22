@@ -1,6 +1,12 @@
-import type { Notifications } from "@theholocron/cli";
+import type { EnsuredResource, EnsureWebhookResult, Notifications, NotificationsLayout } from "@theholocron/cli";
 
-import { type DiscordClient, parseWebhookUrl } from "../rest.js";
+import {
+	ChannelType,
+	type DiscordBotClient,
+	type DiscordChannel,
+	type DiscordClient,
+	parseWebhookUrl,
+} from "../rest.js";
 
 export interface DiscordNotificationsOptions {
 	/**
@@ -13,6 +19,10 @@ export interface DiscordNotificationsOptions {
 	 * without an explicit channel, or with an empty string.
 	 */
 	defaultChannel?: string;
+	/** Discord server (guild) id that `notifications setup` provisions. Not a secret. */
+	guildId?: string;
+	/** The server layout `notifications setup` applies. */
+	layout?: NotificationsLayout;
 }
 
 export class DiscordNotifications implements Notifications {
@@ -23,13 +33,122 @@ export class DiscordNotifications implements Notifications {
 		private readonly client: DiscordClient,
 		private readonly opts: DiscordNotificationsOptions,
 		/** Memoized thunk — resolves the default webhook URL on the first `send()`. */
-		private readonly defaultWebhookUrl: () => string
+		private readonly defaultWebhookUrl: () => string,
+		/** Memoized thunk — resolves the bot token on first provisioning call, never on `send()`. */
+		private readonly bot: () => DiscordBotClient = () => {
+			throw new Error("no Discord bot client configured");
+		}
 	) {}
+
+	get layout(): NotificationsLayout | undefined {
+		return this.opts.layout;
+	}
 
 	async send(channel: string, message: string): Promise<void> {
 		const webhookUrl = this.resolve(channel || this.opts.defaultChannel || "");
 		const { id, token } = parseWebhookUrl(webhookUrl);
 		await this.client.webhooks.execute(id, token, message);
+	}
+
+	private guild(): string {
+		if (!this.opts.guildId) {
+			throw new Error(
+				"no Discord server id — set `guildId` in the discord provider options in holocron.config.ts"
+			);
+		}
+		return this.opts.guildId;
+	}
+
+	// Discord lower-cases text-channel names on creation, so compare case-insensitively.
+	private static same(a: string, b: string): boolean {
+		return a.toLowerCase() === b.toLowerCase();
+	}
+
+	async ensureCategory(name: string): Promise<EnsuredResource> {
+		const bot = this.bot();
+		const existing = (await bot.guilds.channels(this.guild())).find(
+			(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, name)
+		);
+		if (existing) return { id: existing.id, created: false };
+		const made = await bot.guilds.createChannel(this.guild(), { name, type: ChannelType.Category });
+		return { id: made.id, created: true };
+	}
+
+	/**
+	 * Find a channel by name. A name can exist in several categories, so with a
+	 * parent: prefer the one already there, then an uncategorised one (moved in);
+	 * never grab a channel that lives under a different category. Announcement
+	 * channels count: reusing one beats creating a same-named text channel.
+	 */
+	private static findChannel(
+		channels: DiscordChannel[],
+		name: string,
+		parentId?: string
+	): DiscordChannel | undefined {
+		const named = channels.filter(
+			(c) =>
+				(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
+				DiscordNotifications.same(c.name, name)
+		);
+		if (!parentId) return named[0];
+		return named.find((c) => c.parent_id === parentId) ?? named.find((c) => !c.parent_id);
+	}
+
+	async ensureChannel(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource> {
+		const bot = this.bot();
+		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
+		const existing = DiscordNotifications.findChannel(await bot.guilds.channels(this.guild()), input.name, parent);
+		if (existing) {
+			// Already there: reconcile what the layout asks for (category, topic), leave the rest.
+			const patch = {
+				...(parent && existing.parent_id !== parent ? { parent_id: parent } : {}),
+				...(input.topic !== undefined && (existing.topic ?? "") !== input.topic ? { topic: input.topic } : {}),
+			};
+			if (Object.keys(patch).length > 0) await bot.channels.modify(existing.id, patch);
+			return { id: existing.id, created: false };
+		}
+		const made = await bot.guilds.createChannel(this.guild(), {
+			name: input.name,
+			type: ChannelType.Text,
+			...(input.topic ? { topic: input.topic } : {}),
+			...(parent ? { parent_id: parent } : {}),
+		});
+		return { id: made.id, created: true };
+	}
+
+	async ensureWebhook(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult> {
+		const bot = this.bot();
+		const parent = input.category
+			? (await bot.guilds.channels(this.guild())).find(
+					(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, input.category!)
+				)?.id
+			: undefined;
+		const channel = DiscordNotifications.findChannel(
+			await bot.guilds.channels(this.guild()),
+			input.channel,
+			parent
+		);
+		if (!channel) throw new Error(`no channel named \`${input.channel}\` — create it first`);
+		const existing = (await bot.channels.webhooks(channel.id)).find((w) =>
+			DiscordNotifications.same(w.name ?? "", input.name)
+		);
+		// `url` is only present for webhooks this bot created; otherwise Discord will not say it again.
+		if (existing) return { created: false, ...(existing.url ? { url: existing.url } : {}) };
+		const made = await bot.channels.createWebhook(channel.id, { name: input.name });
+		return { created: true, ...(made.url ? { url: made.url } : {}) };
+	}
+
+	async ensureRole(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource> {
+		const bot = this.bot();
+		const existing = (await bot.guilds.roles(this.guild())).find((r) =>
+			DiscordNotifications.same(r.name, input.name)
+		);
+		if (existing) return { id: existing.id, created: false };
+		const made = await bot.guilds.createRole(this.guild(), {
+			name: input.name,
+			...(input.mentionable !== undefined ? { mentionable: input.mentionable } : {}),
+		});
+		return { id: made.id, created: true };
 	}
 
 	private resolve(channel: string): string {

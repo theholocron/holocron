@@ -95,3 +95,22 @@ await notif.send("https://discord.com/api/webhooks/111/abc", "Deploy complete");
 // Via default
 await notif.send("", "Deploy complete");
 ```
+
+## Provisioning a server
+
+Posting needs only a webhook URL. Setting a server up (creating channels, roles and webhooks) needs the **Holonet bot** instead:
+
+| What               | Value                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Bot token          | `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — Developer Portal → Bot → Reset Token                   |
+| Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                  |
+| `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                   |
+| `layout` (config)  | Categories, channels and roles to create; see [`notifications setup`](/holocron/commands/notifications-setup/) |
+
+The bot token is read only when a provisioning command runs; `send()` never needs it. Discord returns a webhook's URL only to the application that created it, so an existing webhook cannot be read back.
+
+```bash
+holocron notifications setup --dry-run   # preview
+holocron notifications setup             # apply
+holocron notifications channel add sync --category AUTOMATION --with-webhook
+```

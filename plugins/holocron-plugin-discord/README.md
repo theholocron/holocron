@@ -61,3 +61,23 @@ server membership is required — generate one in Discord under
 The webhook id and token are embedded in the URL path — no `Authorization`
 header is sent. `parseWebhookUrl` is exported as a utility for callers
 that need to split the URL into its parts.
+
+## Provisioning
+
+`holocron notifications setup` and `holocron notifications channel add` create
+channels, roles and webhooks through the `notifications` capability's `ensure*`
+methods. They use the **Holonet bot**, not a webhook URL:
+
+- `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — the bot token from
+  the Developer Portal. Only read when a provisioning command runs.
+- `guildId` — the server id (not a secret), set in the provider options.
+- `layout` — categories, channels (each optionally with a `webhook`) and roles.
+
+The bot needs Manage Channels, Manage Roles, Manage Webhooks and View Channels.
+Everything is idempotent (looked up by name). Discord returns a webhook's URL
+only to the application that created it, so a webhook the bot did not create
+cannot have its URL read back.
+
+`baseUrl` only redirects posting. The bot token is always sent to the real
+Discord API unless `unsafeBotBaseUrl: true` is also set (meant for tests that
+stub the API), so a changed config cannot redirect the token to another host.
