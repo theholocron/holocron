@@ -1,8 +1,34 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
-import { type CapabilityKey, type PluginImporter, PluginLoader, WorkspaceContextError } from "../../plugin/index.js";
+import {
+	type CapabilityKey,
+	type PluginImporter,
+	PluginLoader,
+	ProviderApiError,
+	WorkspaceContextError,
+} from "../../plugin/index.js";
 import { runDoctor } from "./doctor.js";
+
+// A fake structured logger so tests can assert exactly what reaches
+// telemetry — never what the real `createLogger()` would do, which depends
+// on Axiom env vars this test run shouldn't need.
+const fakeLogger = {
+	debug: vi.fn(),
+	info: vi.fn(),
+	warn: vi.fn(),
+	error: vi.fn(),
+	child: () => fakeLogger,
+	flush: async () => {},
+};
+vi.mock("../../observability/logger/index.js", () => ({ getLogger: () => fakeLogger }));
+
+beforeEach(() => {
+	fakeLogger.debug.mockClear();
+	fakeLogger.info.mockClear();
+	fakeLogger.warn.mockClear();
+	fakeLogger.error.mockClear();
+});
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -234,6 +260,193 @@ describe("runDoctor", () => {
 		expect(sourceRow?.status).toBe("fail");
 		expect(sourceRow?.message).toContain("401 Unauthorized");
 		expect(report.summary).toEqual({ ok: 1, fail: 1, skip: 0 });
+	});
+
+	it("appends a ProviderApiError's response-body details to the failure message, not just '→ <status>'", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => {
+						throw new ProviderApiError(
+							"Cloudflare GET /accounts/xxx/pages/projects → 400",
+							400,
+							'{"success":false,"errors":[{"code":1000,"message":"Pages is not enabled for this account"}]}'
+						);
+					},
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.status).toBe("fail");
+		expect(row?.message).toContain("→ 400");
+		expect(row?.message).toContain("Pages is not enabled for this account");
+	});
+
+	it("falls back to the plain error message when a ProviderApiError has no details", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => {
+						throw new ProviderApiError("Cloudflare GET /accounts/xxx/pages/projects → 400", 400, undefined);
+					},
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.status).toBe("fail");
+		expect(row?.message).toBe("Cloudflare GET /accounts/xxx/pages/projects → 400");
+	});
+
+	it("keeps the vendor response body out of the structured log, even though the terminal message carries it", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => {
+						throw new ProviderApiError(
+							"Cloudflare GET /accounts/xxx/pages/projects → 400",
+							400,
+							'{"success":false,"errors":[{"code":1000,"message":"Pages is not enabled for this account"}]}'
+						);
+					},
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.message).toContain("Pages is not enabled for this account");
+
+		const logCall = fakeLogger.warn.mock.calls.find(
+			([obj]) => (obj as { capability: string }).capability === "deployment"
+		);
+		expect((logCall?.[0] as { detail: string }).detail).toBe("Cloudflare GET /accounts/xxx/pages/projects → 400");
+		expect((logCall?.[0] as { detail: string }).detail).not.toContain("Pages is not enabled");
+	});
+
+	it("sanitizes control characters out of a vendor detail before it reaches the terminal", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => {
+						throw new ProviderApiError(
+							"Cloudflare GET /accounts/xxx/pages/projects → 400",
+							400,
+							"line one\nline two\x1b[31mRED\x1b[0m"
+						);
+					},
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.message).not.toContain("\n");
+		expect(row?.message).not.toContain("\x1b");
+		expect(row?.message).toContain("line one line two");
+		expect(row?.message).toContain("RED");
+	});
+
+	it("caps an oversized vendor detail to a bounded length before it reaches the terminal", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare" },
+		});
+		const hugeDetail = "x".repeat(500);
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => {
+						throw new ProviderApiError(
+							"Cloudflare GET /accounts/xxx/pages/projects → 400",
+							400,
+							hugeDetail
+						);
+					},
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.message).toContain("…");
+		expect(row?.message?.length).toBeLessThan(260);
+	});
+
+	it("also falls back to the plain error message when details is present but blank after trimming", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					listProjects: async () => {
+						throw new ProviderApiError("Cloudflare GET /accounts/xxx/pages/projects → 400", 400, "   ");
+					},
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "deployment");
+		expect(row?.status).toBe("fail");
+		expect(row?.message).toBe("Cloudflare GET /accounts/xxx/pages/projects → 400");
 	});
 
 	it("reports skip for many-cardinality capabilities (no smoke endpoint yet)", async () => {
