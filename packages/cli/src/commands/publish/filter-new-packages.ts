@@ -1,4 +1,4 @@
-import { statusRow } from "../../ui/index.js";
+import { pad, statusRow } from "../../ui/index.js";
 import type { PublicPackageEntry } from "./public-package-entry.type.js";
 import type { PublishExecResult, PublishPrint } from "./publish.type.js";
 
@@ -19,20 +19,33 @@ import type { PublishExecResult, PublishPrint } from "./publish.type.js";
  * finds them — same shape `clone` uses for an already-cloned repo, with the
  * registry's own version (not the local one) in the message, since that's
  * what "already published" actually means — so the caller's own summary
- * line is the only other thing it needs to print.
+ * line is the only other thing it needs to print. `nameWidth`/`dirWidth`
+ * (computed by the caller across every discovered entry, not just the ones
+ * landing here) keep these rows column-aligned with the "would
+ * publish"/"published" rows the caller prints afterward for the entries
+ * that come back from this function — the two sets only read as one table
+ * when both pad to the same widths.
  */
 export async function filterNewPackages(
 	entries: readonly PublicPackageEntry[],
 	cwd: string,
 	exec: (cmd: string, args: string[], opts: { cwd: string }) => Promise<PublishExecResult>,
-	print: PublishPrint
+	print: PublishPrint,
+	nameWidth: number,
+	dirWidth: number
 ): Promise<PublicPackageEntry[]> {
 	const results: PublicPackageEntry[] = [];
 	for (const entry of entries) {
 		const view = await exec("npm", ["view", entry.name, "version"], { cwd });
 		const publishedVersion = view.exitCode === 0 ? view.stdout.trim() : "";
 		if (publishedVersion) {
-			print(statusRow("skip", [entry.name, entry.dir, `already published (v${publishedVersion})`]));
+			print(
+				statusRow("skip", [
+					pad(entry.name, nameWidth),
+					pad(entry.dir, dirWidth),
+					`already published (v${publishedVersion})`,
+				])
+			);
 			continue;
 		}
 		results.push(entry);

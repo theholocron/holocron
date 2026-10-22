@@ -40,7 +40,7 @@
 
 import { makeEnv } from "../../../env/index.js";
 import { getLogger } from "../../../observability/logger/index.js";
-import { statusRow, style } from "../../../ui/index.js";
+import { pad, statusRow, style } from "../../../ui/index.js";
 import { defaultExec } from "../default-exec.js";
 import { defaultLogin } from "../default-login.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
@@ -131,9 +131,14 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// re-running --initial after adding one new package to an
 	// already-bootstrapped monorepo only touches that one package.
 	const discoveredEntries = input.packages ?? discoverPublicPackageEntries(cwd);
+	// Computed once across every discovered entry (skipped and new alike) so
+	// the skip rows filterNewPackages prints and the would-publish/published
+	// rows below read as one aligned table, not two differently-padded ones.
+	const nameWidth = Math.max(0, ...discoveredEntries.map((e) => e.name.length));
+	const dirWidth = Math.max(0, ...discoveredEntries.map((e) => e.dir.length));
 	const newEntries: PublicPackageEntry[] = input.packages
 		? [...discoveredEntries]
-		: await filterNewPackages(discoveredEntries, cwd, exec, print);
+		: await filterNewPackages(discoveredEntries, cwd, exec, print, nameWidth, dirWidth);
 	const packageNames = newEntries.map((e) => e.name);
 	const skippedCount = input.packages ? 0 : discoveredEntries.length - newEntries.length;
 	// Both overridden -> skip the git remote read entirely; either missing
@@ -191,7 +196,11 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	if (dryRun) {
 		print("");
 		for (const entry of newEntries) {
-			print(style.dim(`  ${entry.name}  ${entry.dir}  would publish (v${entry.version})`));
+			print(
+				style.dim(
+					`  ${pad(entry.name, nameWidth)}  ${pad(entry.dir, dirWidth)}  would publish (v${entry.version})`
+				)
+			);
 		}
 		print(style.dim(`  would run: pnpm ${publishArgs.join(" ")}`));
 		printSummary(print, dryRun, packageNames.length, 0, skippedCount);
@@ -214,14 +223,14 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		}
 		// Atomic bulk publish: every targeted entry failed together, never partially.
 		for (const entry of newEntries) {
-			print(statusRow("fail", [entry.name, entry.dir, "publish failed"]));
+			print(statusRow("fail", [pad(entry.name, nameWidth), pad(entry.dir, dirWidth), "publish failed"]));
 		}
 		printSummary(print, dryRun, 0, packageNames.length, skippedCount);
 		logger.warn({ tag, reason: message }, "publish --initial: done");
 		return { status: "fail", message, packageNames };
 	}
 	for (const entry of newEntries) {
-		print(statusRow("ok", [entry.name, entry.dir, `published (v${entry.version})`]));
+		print(statusRow("ok", [pad(entry.name, nameWidth), pad(entry.dir, dirWidth), `published (v${entry.version})`]));
 	}
 	printSummary(print, dryRun, packageNames.length, 0, skippedCount);
 

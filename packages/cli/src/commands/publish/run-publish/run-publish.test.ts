@@ -277,10 +277,12 @@ describe("runPublish", () => {
 		expect(publishCall?.args).toContain("--filter=@theholocron/newcomer");
 		expect(publishCall?.args).not.toContain("--filter=@theholocron/old-timer");
 		const joined = lines.join("\n");
+		// Column-aligned against the longer name/dir pair (old-timer) — newcomer's
+		// row is padded with one extra trailing space on each column to match.
 		expect(joined).toContain(
 			"@theholocron/old-timer  ./packages/@theholocron-old-timer  already published (v1.0.0)"
 		);
-		expect(joined).toContain("@theholocron/newcomer  ./packages/@theholocron-newcomer  published (v1.0.0)");
+		expect(joined).toContain("@theholocron/newcomer   ./packages/@theholocron-newcomer   published (v1.0.0)");
 		expect(joined).not.toContain("@theholocron/old-timer/access");
 		expect(joined).toContain("@theholocron/newcomer/access");
 		expect(joined).toContain("1 published, 0 failed, 1 skipped");
