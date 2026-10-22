@@ -362,3 +362,15 @@ describe("FernWiki.proxyConfig", () => {
 		expect(config?.headers).toEqual({ "X-Fern-Host": "wiki.example.com" });
 	});
 });
+
+describe("FernWiki.whoami", () => {
+	it("resolves ok: true when a token is configured", async () => {
+		const wiki = new FernWiki({ org: "myorg", cliToken: "tok" });
+		await expect(wiki.whoami()).resolves.toEqual({ ok: true });
+	});
+
+	it("resolves ok: false when no token is configured — not a live check (holocron#1079)", async () => {
+		const wiki = new FernWiki({ org: "myorg", env: {}, keyring: () => null });
+		await expect(wiki.whoami()).resolves.toEqual({ ok: false });
+	});
+});

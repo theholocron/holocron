@@ -4,9 +4,11 @@ import { join } from "node:path";
 import type { DnsRecordRequest, Wiki, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
 import { stringifyJson } from "@theholocron/json-utils";
 
+import { resolveToken, type ResolveTokenInput } from "../auth.js";
+
 export const FERN_VERSION = "5.114.1";
 
-export interface FernWikiOptions {
+export interface FernWikiOptions extends ResolveTokenInput {
 	/** Absolute path to the working repo root. Injected by the loader from RuntimeContext. */
 	repoRoot?: string;
 	/** Active org name (e.g. "theholocron"). Injected by the loader from RuntimeContext. */
@@ -75,6 +77,22 @@ export class FernWiki implements Wiki {
 			target: "https://app.buildwithfern.com",
 			headers: { "X-Fern-Host": hostname },
 		};
+	}
+
+	/**
+	 * Confirms `HOLOCRON_FERN_TOKEN`/`FERN_TOKEN` resolves — not a live check.
+	 * Fern exposes no lightweight endpoint to verify a token actually works
+	 * (the only token-consuming operation is a full `fern generate`, see
+	 * holocron#1079); this only confirms one is configured, the same way
+	 * CI's `fern generate --docs` step would find it.
+	 */
+	async whoami(): Promise<{ ok: boolean }> {
+		try {
+			resolveToken(this.opts);
+			return { ok: true };
+		} catch {
+			return { ok: false };
+		}
 	}
 
 	dnsRecord(): DnsRecordRequest | null {

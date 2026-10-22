@@ -992,6 +992,15 @@ export interface Wiki extends ProviderIdentity {
 	 * Called by `setup` to deploy the proxy via the `workers` capability.
 	 */
 	proxyConfig?(): WikiProxyConfig | null;
+	/**
+	 * Confirms a provider token resolves. Unlike `dns`/`workers`/`monitoring`'s
+	 * `whoami()`, this is NOT a live reachability check — Fern (the only
+	 * current `wiki` provider) exposes no lightweight endpoint to verify a
+	 * token actually works; the only token-consuming operation is a full
+	 * `fern generate` (holocron#1079). `ok: true` means "a token was found",
+	 * not "the token works".
+	 */
+	whoami?(): Promise<{ ok: boolean }>;
 }
 
 /** Config for `Workers.deployScript()` — an arbitrary Worker, not a generated reverse-proxy. */
