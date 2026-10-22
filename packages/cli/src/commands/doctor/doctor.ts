@@ -203,12 +203,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 		}
 		case "issues": {
 			const report = await (impl as Issues).doctor();
-			return mk(
-				key,
-				provider,
-				"ok",
-				`${report.authedAs} / ${report.projectLabel} (${countResolvedLifecycle(report)})`
-			);
+			return mk(key, provider, "ok", describeLifecycle(report));
 		}
 		case "secrets": {
 			const names = await (impl as Secrets).listSecrets({ kind: "repo" });
@@ -220,7 +215,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 				key,
 				provider,
 				"ok",
-				runs.length === 0 ? "no recent runs" : `most recent: ${runs[0]!.workflowName} (${runs[0]!.status})`
+				runs.length === 0 ? "runs: none recent" : `most recent: ${runs[0]!.workflowName} (${runs[0]!.status})`
 			);
 		}
 		case "vault": {
@@ -288,7 +283,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			const monitoring = impl as Monitoring;
 			if (monitoring.whoami) {
 				const who = await monitoring.whoami();
-				return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token verified" : "token check failed");
+				return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token: verified" : "token: check failed");
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}
@@ -319,9 +314,17 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 	}
 }
 
-function countResolvedLifecycle(report: Awaited<ReturnType<Issues["doctor"]>>): string {
-	const resolved = report.lifecycle.filter((l) => l.resolved).length;
-	return `${resolved}/${report.lifecycle.length} lifecycle slots ready`;
+/**
+ * What the issues row says: how many lifecycle slots (inProgress, inReview, done)
+ * map to something the tracker recognises, and which do not. The token's user and
+ * the repo are not repeated -- `source` already names the account, and a slot
+ * that is not configured is the part someone has to act on.
+ */
+function describeLifecycle(report: Awaited<ReturnType<Issues["doctor"]>>): string {
+	const unresolved = report.lifecycle.filter((l) => !l.resolved).map((l) => l.slot);
+	const ready = report.lifecycle.length - unresolved.length;
+	const base = `lifecycle: ${ready}/${report.lifecycle.length} slots ready`;
+	return unresolved.length > 0 ? `${base} (unresolved: ${unresolved.join(", ")})` : base;
 }
 
 function mk(

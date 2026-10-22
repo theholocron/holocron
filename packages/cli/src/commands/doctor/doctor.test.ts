@@ -540,7 +540,7 @@ describe("runDoctor", () => {
 		expect(ok?.provider).toBe("discord");
 	});
 
-	it("issues smoke check reports resolved lifecycle slot count", async () => {
+	it("issues smoke check reports lifecycle readiness and names the unresolved slots", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { vault: "1password", issues: "github" },
@@ -573,7 +573,10 @@ describe("runDoctor", () => {
 		});
 
 		const issuesRow = report.rows.find((r) => r.capability === ("issues" satisfies CapabilityKey));
-		expect(issuesRow?.message).toContain("2/3 lifecycle slots ready");
+		expect(issuesRow?.message).toBe("lifecycle: 2/3 slots ready (unresolved: inReview)");
+		// ...and does not repeat the token's user or the repo, which other rows already show.
+		expect(issuesRow?.message).not.toContain("iamnewton");
+		expect(issuesRow?.message).not.toContain("x/y");
 	});
 
 	it("secrets smoke check reports configured secret count", async () => {
@@ -645,7 +648,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "ci");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("no recent runs");
+		expect(row?.message).toBe("runs: none recent");
 	});
 
 	it("auth smoke check reports whoami reachability, not just describe()'s env keys", async () => {
@@ -886,7 +889,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "monitoring");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("verified");
+		expect(row?.message).toBe("token: verified");
 	});
 
 	it("monitoring smoke check reports fail when whoami fails", async () => {
@@ -913,6 +916,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "monitoring");
 		expect(row?.status).toBe("fail");
+		expect(row?.message).toBe("token: check failed");
 	});
 
 	it("monitoring falls through to skip when the provider defines no whoami", async () => {
