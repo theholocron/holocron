@@ -409,6 +409,29 @@ describe("runPublish", () => {
 		expect(calls[1]?.args).toContain("123456");
 	});
 
+	it("redacts the otp value in the dry-run 'would run' preview line (holocron#1076 review)", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({
+			npm: { exitCode: 0, stdout: "iamnewton", stderr: "" },
+		});
+		await runPublish({
+			cwd: "/tmp/test",
+			otp: "123456",
+			dryRun: true,
+			env: baseEnv,
+			packages: TEST_PACKAGES,
+			repoName: TEST_REPO,
+			orgName: TEST_ORG,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		const joined = lines.join("\n");
+		expect(joined).toContain("would run");
+		expect(joined).toContain("--otp");
+		expect(joined).not.toContain("123456");
+		expect(joined).toContain("***");
+	});
+
 	it("surfaces the --otp hint when publish output includes EOTP", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({

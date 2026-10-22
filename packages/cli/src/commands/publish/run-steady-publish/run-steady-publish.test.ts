@@ -118,6 +118,25 @@ describe("runSteadyPublish", () => {
 		expect(calls[0]?.args).toEqual(expect.arrayContaining(["--otp", "123456"]));
 	});
 
+	it("redacts the otp value in the dry-run 'would run' preview line (holocron#1076 review)", async () => {
+		const lines: string[] = [];
+		const { exec } = makeExec({});
+		await runSteadyPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			packages: STEADY_ENTRIES,
+			otp: "123456",
+			dryRun: true,
+			print: (l) => lines.push(l),
+			exec,
+		});
+		const joined = lines.join("\n");
+		expect(joined).toContain("would run");
+		expect(joined).toContain("--otp");
+		expect(joined).not.toContain("123456");
+		expect(joined).toContain("***");
+	});
+
 	it("fails and prints an --otp hint on an EOTP bulk-publish failure", async () => {
 		const lines: string[] = [];
 		const { exec } = makeExec({ pnpm: { exitCode: 1, stdout: "", stderr: "EOTP: 2FA required" } });
@@ -210,6 +229,42 @@ describe("runSteadyPublish", () => {
 			const pnpmCalls = calls.filter((c) => c.cmd === "pnpm");
 			expect(pnpmCalls).toHaveLength(1);
 			expect(pnpmCalls[0]?.args).toEqual(expect.arrayContaining(["--filter", "./packages/bar"]));
+		});
+
+		it("treats a lost race against a concurrent publish as a skip, not a failure, and continues (holocron#1076 review)", async () => {
+			const lines: string[] = [];
+			let viewCallsForFoo = 0;
+			const calls: Array<{ cmd: string; args: string[] }> = [];
+			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+				calls.push({ cmd, args: [...args] });
+				if (cmd === "npm" && args[1] === "@theholocron/foo@1.0.0") {
+					viewCallsForFoo += 1;
+					// First check (before publishing): not found yet. Second
+					// check (after our own publish call failed): another
+					// concurrent run already published it in the meantime.
+					return viewCallsForFoo === 1
+						? { exitCode: 1, stdout: "", stderr: "404" }
+						: { exitCode: 0, stdout: "1.0.0\n", stderr: "" };
+				}
+				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" };
+				// pnpm publish for foo loses the race (409); bar succeeds normally.
+				if (args.includes("./packages/foo")) {
+					return { exitCode: 1, stdout: "", stderr: "E409 cannot publish over previously published version" };
+				}
+				return { exitCode: 0, stdout: "", stderr: "" };
+			};
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				print: (l) => lines.push(l),
+				exec,
+			});
+			expect(report.status).toBe("ok");
+			expect(lines.join("\n")).toContain("published concurrently by another run");
+			// both packages were still attempted -- bar wasn't skipped because of foo's race
+			expect(calls.filter((c) => c.cmd === "pnpm")).toHaveLength(2);
 		});
 
 		it("fails on the first per-package publish failure, without attempting the rest", async () => {

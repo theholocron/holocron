@@ -2,6 +2,7 @@ import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
 import type { PublishReport } from "../publish.type.js";
+import { redactOtp } from "../redact-otp.js";
 import { workspaceFilterArgs } from "../workspace-filter-args.js";
 import type { RunSteadyPublishInput } from "./run-steady-publish.type.js";
 
@@ -61,7 +62,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 		} else {
 			const args = [...workspaceFilterArgs(cwd), "publish", ...baseFlags, ...otpFlags];
 			print(`  … (dry-run) skipping actual publish`);
-			print(`    would run: pnpm ${args.join(" ")}`);
+			print(`    would run: pnpm ${redactOtp(args, otp).join(" ")}`);
 		}
 		logger.info({ tag, status: "dry-run", packages: entries.length }, "publish: done");
 		return { status: "dry-run", message: "dry-run — no publish executed", packageNames };
@@ -77,6 +78,17 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 			}
 			const publish = await exec("pnpm", ["--filter", entry.dir, "publish", ...baseFlags, ...otpFlags], { cwd });
 			if (publish.exitCode !== 0) {
+				// Lost a race with another concurrent publish of this exact
+				// version (two CI jobs, a person + CI, etc.) between the npm
+				// view above and this call -- re-check instead of assuming
+				// failure: if it's actually published now, the end state is
+				// exactly what skipAlreadyPublished wanted, just reached by a
+				// different runner.
+				const recheck = await exec("npm", ["view", `${entry.name}@${entry.version}`, "version"], { cwd });
+				if (recheck.exitCode === 0 && recheck.stdout.trim()) {
+					print(`    skip ${entry.name}@${entry.version} (published concurrently by another run)`);
+					continue;
+				}
 				const message = `publish failed for ${entry.name}@${entry.version} (exit ${publish.exitCode}): ${publish.stderr.trim() || publish.stdout.trim() || "no output"}`;
 				print(`  ✗ ${message}`);
 				logger.warn({ tag, package: entry.name, reason: message }, "publish: done");

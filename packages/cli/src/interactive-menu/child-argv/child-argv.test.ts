@@ -34,6 +34,8 @@ const SYNC_TRUST_OPTION: OptionPrompt = {
 	message: "File:",
 };
 const OTP_OPTION: OptionPrompt = { key: "otp", flag: "--otp", type: "password", secret: true, message: "OTP:" };
+/** `type: "password"` but `secret` left unset — must still be treated as secret (holocron#1076 review). */
+const PASSWORD_WITHOUT_SECRET_OPTION: OptionPrompt = { key: "pin", flag: "--pin", type: "password", message: "PIN:" };
 
 describe("forwardedFlags", () => {
 	it("forwards repeated --token entries", () => {
@@ -141,6 +143,14 @@ describe("buildChildArgv", () => {
 		expect(buildChildArgv(entry, [], resolved(OTP_OPTION, "123456"), {})).toEqual(["package", "publish"]);
 	});
 
+	it('never emits a type: "password" option\'s flag or value, even without secret: true set (holocron#1076 review)', () => {
+		const entry = getEntry("package publish");
+		expect(buildChildArgv(entry, [], resolved(PASSWORD_WITHOUT_SECRET_OPTION, "1234"), {})).toEqual([
+			"package",
+			"publish",
+		]);
+	});
+
 	it("omits an option answer absent from the resolved answers", () => {
 		expect(buildChildArgv(getEntry("package publish"), [], EMPTY_RESOLVED, {})).toEqual(["package", "publish"]);
 	});
@@ -160,5 +170,9 @@ describe("secretEnv", () => {
 	it("omits a secret option that was never answered or answered empty", () => {
 		expect(secretEnv({ options: [OTP_OPTION], answers: {} })).toEqual({});
 		expect(secretEnv(resolved(OTP_OPTION, ""))).toEqual({});
+	});
+
+	it('delivers a type: "password" option via env even without secret: true set (holocron#1076 review)', () => {
+		expect(secretEnv(resolved(PASSWORD_WITHOUT_SECRET_OPTION, "1234"))).toEqual({ HOLOCRON_PIN: "1234" });
 	});
 });

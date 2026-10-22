@@ -3,9 +3,17 @@ import { checkbox, confirm, input, password, select } from "@inquirer/prompts";
 import { NonInteractiveError } from "../non-interactive-error/index.js";
 import type { OptionAnswer, OptionMode, OptionPrompt, OptionsCommand, ResolvedOptions } from "./prompt-options.type.js";
 
+/**
+ * A required option must not resolve to an empty answer — `optionArgv`/
+ * `secretEnv` (child-argv.ts) both drop an empty-string value entirely,
+ * which would silently invoke the child without a flag the caller asked
+ * for. Passed as `validate` so inquirer re-prompts instead of accepting it.
+ */
+const requireNonEmpty = (value: string): boolean | string => value.trim().length > 0 || "required";
+
 async function promptOne(option: OptionPrompt): Promise<OptionAnswer> {
 	if (option.secret || option.type === "password") {
-		return await password({ message: option.message });
+		return await password({ message: option.message, ...(option.required ? { validate: requireNonEmpty } : {}) });
 	}
 	if (option.type === "confirm") {
 		return await confirm({ message: option.message, default: option.default as boolean | undefined });
@@ -17,11 +25,20 @@ async function promptOne(option: OptionPrompt): Promise<OptionAnswer> {
 	if (option.arity && option.arity > 1) {
 		const values: string[] = [];
 		for (let n = 0; n < option.arity; n++) {
-			values.push(await input({ message: `${option.message} (${n + 1} of ${option.arity})` }));
+			values.push(
+				await input({
+					message: `${option.message} (${n + 1} of ${option.arity})`,
+					...(option.required ? { validate: requireNonEmpty } : {}),
+				})
+			);
 		}
 		return values;
 	}
-	return await input({ message: option.message, default: option.default as string | undefined });
+	return await input({
+		message: option.message,
+		default: option.default as string | undefined,
+		...(option.required ? { validate: requireNonEmpty } : {}),
+	});
 }
 
 interface FlatResult {
@@ -70,7 +87,7 @@ async function promptForFlatOptions(
 	const required = options.filter((o) => o.required);
 	const optional = options.filter((o) => !o.required);
 
-	if ((required.length > 0 || optional.some(needsPrompt)) && !process.stdin.isTTY) {
+	if ((required.some(needsPrompt) || optional.some(needsPrompt)) && !process.stdin.isTTY) {
 		throw new NonInteractiveError(
 			`\`${commandName}\` has options only settable interactively — pass them directly: holocron ${commandName} [options]`
 		);
@@ -92,6 +109,14 @@ async function promptForFlatOptions(
 			continue;
 		}
 		answers[option.key] = await promptOne(option);
+	}
+
+	// An optional option already supplied in argv is never re-prompted, but
+	// its value still needs to land in `answers` -- otherwise a `when`
+	// predicate checking for it sees it as missing, and buildChildArgv drops
+	// the flag the caller explicitly passed, silently.
+	for (const option of optional) {
+		if (!needsPrompt(option)) answers[option.key] = argv[option.key] as OptionAnswer;
 	}
 
 	const selectable = optional.filter(needsPrompt);

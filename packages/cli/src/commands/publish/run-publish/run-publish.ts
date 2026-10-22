@@ -50,6 +50,7 @@ import { hasPluginsDir } from "../has-plugins-dir.js";
 import { printNextSteps } from "../print-next-steps.js";
 import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import type { PublishPrint, PublishReport } from "../publish.type.js";
+import { redactOtp } from "../redact-otp.js";
 import { resolveRepoIdentity } from "../resolve-repo-identity.js";
 import type { RepoIdentity } from "../resolve-repo-identity.type.js";
 import type { RunPublishInput } from "./run-publish.type.js";
@@ -202,7 +203,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 				)
 			);
 		}
-		print(style.dim(`  would run: pnpm ${publishArgs.join(" ")}`));
+		print(style.dim(`  would run: pnpm ${redactOtp(publishArgs, otp).join(" ")}`));
 		printSummary(print, dryRun, packageNames.length, 0, skippedCount);
 		printNextSteps(print, env, packageNames, identity);
 		logger.info({ tag, status: "dry-run", packages: packageNames.length }, "publish --initial: done");

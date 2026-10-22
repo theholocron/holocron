@@ -50,6 +50,31 @@ describe("promptForOptions — flat options", () => {
 		expect(inputMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Project:" }));
 	});
 
+	it("rejects an empty answer for a required input option, so it can never disappear from the child's argv (holocron#1076 review)", async () => {
+		inputMock.mockResolvedValue("my-project");
+		const entry: OptionsCommand = {
+			name: "deploy cleanup-preview",
+			options: [{ key: "project", flag: "--project", type: "input", message: "Project:", required: true }],
+		};
+		await promptForOptions(entry, {});
+		const call = inputMock.mock.calls[0]![0] as { validate: (v: string) => boolean | string };
+		expect(call.validate("")).not.toBe(true);
+		expect(call.validate("   ")).not.toBe(true);
+		expect(call.validate("my-project")).toBe(true);
+	});
+
+	it("does not add a validate function for a non-required input option", async () => {
+		inputMock.mockResolvedValue("beta");
+		const entry: OptionsCommand = {
+			name: "package publish",
+			options: [{ key: "tag", flag: "--tag", type: "input", message: "Tag:" }],
+		};
+		checkboxMock.mockResolvedValue(["tag"]);
+		await promptForOptions(entry, {});
+		const call = inputMock.mock.calls[0]![0] as { validate?: unknown };
+		expect(call.validate).toBeUndefined();
+	});
+
 	it("skips prompting a required option already present in argv", async () => {
 		const entry: OptionsCommand = {
 			name: "deploy cleanup-preview",
@@ -135,6 +160,20 @@ describe("promptForOptions — flat options", () => {
 		expect(inputMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ message: "File (2 of 2)" }));
 	});
 
+	it("rejects an empty answer for each value of a required arity option (holocron#1076 review) — matches --sync-trust's own declaration", async () => {
+		inputMock.mockResolvedValueOnce("old.yml").mockResolvedValueOnce("new.yml");
+		const entry: OptionsCommand = {
+			name: "package publish",
+			options: [
+				{ key: "syncTrust", flag: "--sync-trust", type: "input", arity: 2, required: true, message: "File" },
+			],
+		};
+		await promptForOptions(entry, {});
+		const firstCall = inputMock.mock.calls[0]![0] as { validate: (v: string) => boolean | string };
+		expect(firstCall.validate("")).not.toBe(true);
+		expect(firstCall.validate("old.yml")).toBe(true);
+	});
+
 	it("defers a picked askLast option instead of prompting it immediately", async () => {
 		checkboxMock.mockResolvedValue(["otp"]);
 		const entry: OptionsCommand = {
@@ -213,6 +252,18 @@ describe("promptForOptions — flat options", () => {
 		expect(inputMock).not.toHaveBeenCalled();
 	});
 
+	it("rejects an empty answer for a required password option too (holocron#1076 review)", async () => {
+		passwordMock.mockResolvedValue("123456");
+		const entry: OptionsCommand = {
+			name: "package publish",
+			options: [{ key: "otp", flag: "--otp", type: "password", secret: true, required: true, message: "OTP:" }],
+		};
+		await promptForOptions(entry, {});
+		const call = passwordMock.mock.calls[0]![0] as { validate: (v: string) => boolean | string };
+		expect(call.validate("")).not.toBe(true);
+		expect(call.validate("123456")).toBe(true);
+	});
+
 	it("prompts via select() and resolves a thunk `choices` at prompt time", async () => {
 		checkboxMock.mockResolvedValue(["provider"]);
 		selectMock.mockResolvedValue("github");
@@ -255,14 +306,25 @@ describe("promptForOptions — flat options", () => {
 		expect(checkboxMock).not.toHaveBeenCalled();
 	});
 
-	it("doesn't throw on non-TTY stdin when every option is already satisfied by argv", async () => {
+	it("doesn't throw on non-TTY stdin when every option is already satisfied by argv, and seeds its already-supplied value into answers", async () => {
 		setTTY(false);
 		const entry: OptionsCommand = {
 			name: "x",
 			options: [{ key: "initial", flag: "--initial", type: "confirm", message: "Initial?" }],
 		};
 		const { answers } = await promptForOptions(entry, { initial: true });
-		expect(answers).toEqual({});
+		expect(answers).toEqual({ initial: true });
+	});
+
+	it("doesn't throw on non-TTY stdin when a required option is already supplied in argv", async () => {
+		setTTY(false);
+		const entry: OptionsCommand = {
+			name: "deploy cleanup-preview",
+			options: [{ key: "project", flag: "--project", type: "input", message: "Project:", required: true }],
+		};
+		const { answers } = await promptForOptions(entry, { project: "my-project" });
+		expect(answers).toEqual({ project: "my-project" });
+		expect(inputMock).not.toHaveBeenCalled();
 	});
 });
 

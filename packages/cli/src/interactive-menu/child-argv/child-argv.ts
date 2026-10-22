@@ -2,6 +2,19 @@ import type { OptionAnswer, OptionPrompt, ResolvedOptions } from "../../ui/index
 import type { CommandEntry } from "../command-registry/index.js";
 
 /**
+ * Whether `option`'s answer must be delivered via env, never argv — true for
+ * an explicit `secret: true`, and also for any `type: "password"` option
+ * even if `secret` was left unset. `promptOne` (prompt-options.ts) already
+ * treats these two as interchangeable triggers for masking the input
+ * itself; `buildChildArgv`/`secretEnv` need to agree, or a password-typed
+ * option that forgot to also set `secret: true` would mask the keystrokes
+ * on screen while still leaking the typed value into the child's argv.
+ */
+function isSecretOption(option: OptionPrompt): boolean {
+	return Boolean(option.secret) || option.type === "password";
+}
+
+/**
  * `--token` (repeatable), `--org`, `--cwd`, `--dry-run` — the global flags a
  * menu-launched child should inherit from the parent invocation. Everything
  * else (command-specific options) was never captured by the top-level `$0`
@@ -59,7 +72,7 @@ export function buildChildArgv(
 	dryRunOverride?: boolean
 ): string[] {
 	const optionArgs = resolved.options.flatMap((option) =>
-		option.secret ? [] : optionArgv(option, resolved.answers[option.key])
+		isSecretOption(option) ? [] : optionArgv(option, resolved.answers[option.key])
 	);
 	return [
 		...(entry.spawnArgs ?? entry.name.split(" ")),
@@ -79,7 +92,7 @@ export function buildChildArgv(
 export function secretEnv(resolved: ResolvedOptions): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const option of resolved.options) {
-		if (!option.secret) continue;
+		if (!isSecretOption(option)) continue;
 		const value = resolved.answers[option.key];
 		if (typeof value !== "string" || value === "") continue;
 		out[`HOLOCRON_${option.key.replace(/([A-Z])/g, "_$1").toUpperCase()}`] = value;
