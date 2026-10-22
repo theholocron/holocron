@@ -267,6 +267,40 @@ describe("runSteadyPublish", () => {
 			expect(calls.filter((c) => c.cmd === "pnpm")).toHaveLength(2);
 		});
 
+		it("falls back to the publish call's stdout when a genuine (non-race) per-package failure has empty stderr (patch coverage)", async () => {
+			const exec = async (cmd: string): Promise<PublishExecResult> => {
+				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" }; // never published, not a race
+				return { exitCode: 1, stdout: "publish blew up on stdout", stderr: "" };
+			};
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				print: () => {},
+				exec,
+			});
+			expect(report.status).toBe("fail");
+			expect(report.message).toContain("publish blew up on stdout");
+		});
+
+		it("falls back to 'no output' when a genuine (non-race) per-package failure has empty stderr and stdout (patch coverage)", async () => {
+			const exec = async (cmd: string): Promise<PublishExecResult> => {
+				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" }; // never published, not a race
+				return { exitCode: 1, stdout: "", stderr: "" };
+			};
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				print: () => {},
+				exec,
+			});
+			expect(report.status).toBe("fail");
+			expect(report.message).toContain("no output");
+		});
+
 		it("fails on the first per-package publish failure, without attempting the rest", async () => {
 			const calls: Array<{ cmd: string; args: string[] }> = [];
 			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {

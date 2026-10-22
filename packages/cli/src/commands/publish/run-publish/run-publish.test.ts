@@ -94,6 +94,24 @@ describe("runPublish", () => {
 		expect(calls).toHaveLength(1); // only the first whoami — never attempted publish
 	});
 
+	it("falls back to auto-discovering packageNames (no override) when `npm login` itself fails (patch coverage)", async () => {
+		const { exec } = makeExec({
+			npm: { exitCode: 1, stdout: "", stderr: "ENEEDAUTH" },
+		});
+		const login = vi.fn(async () => ({ exitCode: 1 }));
+		const report = await runPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			repoName: TEST_REPO,
+			orgName: TEST_ORG,
+			print: () => {},
+			exec,
+			login,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.packageNames).toEqual([]);
+	});
+
 	it("fails when `npm login` succeeds but whoami still fails afterward", async () => {
 		const { exec } = makeExec({
 			npm: { exitCode: 1, stdout: "", stderr: "ENEEDAUTH" },
@@ -111,6 +129,24 @@ describe("runPublish", () => {
 		});
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/whoami.* still fails/);
+	});
+
+	it("falls back to auto-discovering packageNames (no override) when whoami still fails after login (patch coverage)", async () => {
+		const { exec } = makeExec({
+			npm: { exitCode: 1, stdout: "", stderr: "ENEEDAUTH" },
+		});
+		const login = vi.fn(async () => ({ exitCode: 0 }));
+		const report = await runPublish({
+			cwd: "/tmp/test",
+			env: baseEnv,
+			repoName: TEST_REPO,
+			orgName: TEST_ORG,
+			print: () => {},
+			exec,
+			login,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.packageNames).toEqual([]);
 	});
 
 	it("targets each package by exact name, not a directory glob, when publishing (monorepo layout)", async () => {
