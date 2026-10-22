@@ -1,8 +1,9 @@
 import { statusRow } from "../../ui/index.js";
+import type { PublicPackageEntry } from "./public-package-entry.type.js";
 import type { PublishExecResult, PublishPrint } from "./publish.type.js";
 
 /**
- * Keeps only the names that don't exist on npm yet — the actual
+ * Keeps only the entries that don't exist on npm yet — the actual
  * chicken-and-egg case `--initial` exists for (ADR: npm requires a package
  * to exist before Trusted Publishing can be configured on it). Once a name
  * exists on npm at all, regardless of version, Trusted Publishing can
@@ -14,25 +15,27 @@ import type { PublishExecResult, PublishPrint } from "./publish.type.js";
  * a package that exists on npm at an older version is still not `--initial`'s
  * problem.
  *
- * Prints one `statusRow("skip", …)` line per already-published name as it
- * finds them — same shape `clone` uses for an already-cloned repo — so the
- * caller's own summary line is the only other thing it needs to print.
+ * Prints one `statusRow("skip", …)` line per already-published entry as it
+ * finds them — same shape `clone` uses for an already-cloned repo, with the
+ * registry's own version (not the local one) in the message, since that's
+ * what "already published" actually means — so the caller's own summary
+ * line is the only other thing it needs to print.
  */
 export async function filterNewPackages(
-	packageNames: readonly string[],
+	entries: readonly PublicPackageEntry[],
 	cwd: string,
 	exec: (cmd: string, args: string[], opts: { cwd: string }) => Promise<PublishExecResult>,
 	print: PublishPrint
-): Promise<string[]> {
-	const results: string[] = [];
-	for (const name of packageNames) {
-		const view = await exec("npm", ["view", name, "version"], { cwd });
-		const alreadyExists = view.exitCode === 0 && view.stdout.trim().length > 0;
-		if (alreadyExists) {
-			print(statusRow("skip", [name, "already published"]));
+): Promise<PublicPackageEntry[]> {
+	const results: PublicPackageEntry[] = [];
+	for (const entry of entries) {
+		const view = await exec("npm", ["view", entry.name, "version"], { cwd });
+		const publishedVersion = view.exitCode === 0 ? view.stdout.trim() : "";
+		if (publishedVersion) {
+			print(statusRow("skip", [entry.name, entry.dir, `already published (v${publishedVersion})`]));
 			continue;
 		}
-		results.push(name);
+		results.push(entry);
 	}
 	return results;
 }

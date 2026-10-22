@@ -1,5 +1,6 @@
 import type { Logger } from "@theholocron/observability/core";
 
+import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import type { PublishExecResult, PublishPrint } from "../publish.type.js";
 
 export interface RunPublishInput {
@@ -38,12 +39,14 @@ export interface RunPublishInput {
 	/** Env vars; passed in for testability. Defaults to process.env. */
 	env?: NodeJS.ProcessEnv;
 	/**
-	 * Override the list of package names shown in the Trusted Publisher
-	 * next-steps output. Auto-discovered from packages/*\/package.json and
-	 * plugins/*\/package.json (or the root package.json for a
+	 * Override the packages checked against npm and shown in the
+	 * Trusted Publisher next-steps output — `dir` is needed for the
+	 * `pnpm --filter` target and the printed path column, `version` for the
+	 * "will publish v<x>" row. Auto-discovered from packages/*\/package.json
+	 * and plugins/*\/package.json (or the root package.json for a
 	 * single-package repo) when omitted.
 	 */
-	packages?: readonly string[];
+	packages?: readonly PublicPackageEntry[];
 	/**
 	 * Override the repo name shown in the Trusted Publisher next-steps
 	 * output. Auto-detected from `git remote get-url origin` when omitted.

@@ -40,14 +40,15 @@
 
 import { makeEnv } from "../../../env/index.js";
 import { getLogger } from "../../../observability/logger/index.js";
-import { style } from "../../../ui/index.js";
+import { statusRow, style } from "../../../ui/index.js";
 import { defaultExec } from "../default-exec.js";
 import { defaultLogin } from "../default-login.js";
-import { discoverPublicPackages } from "../discover-public-packages.js";
+import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
 import { filterNewPackages } from "../filter-new-packages.js";
 import { hasPackagesDir } from "../has-packages-dir.js";
 import { hasPluginsDir } from "../has-plugins-dir.js";
 import { printNextSteps } from "../print-next-steps.js";
+import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import type { PublishPrint, PublishReport } from "../publish.type.js";
 import { resolveRepoIdentity } from "../resolve-repo-identity.js";
 import type { RepoIdentity } from "../resolve-repo-identity.type.js";
@@ -102,7 +103,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (loginResult.exitCode !== 0) {
 			const message = "npm login failed. Run `npm login --auth-type=web` (or `npm login`) manually, then re-run.";
 			print(`  ✗ ${message}`);
-			const packageNames = input.packages ?? discoverPublicPackages(cwd);
+			const packageNames = (input.packages ?? discoverPublicPackageEntries(cwd)).map((e) => e.name);
 			logger.warn({ reason: "npm login failed" }, "publish --initial: done");
 			return { status: "fail", message, packageNames };
 		}
@@ -110,7 +111,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (whoami.exitCode !== 0) {
 			const message = "npm login completed but `npm whoami` still fails — check your npm account.";
 			print(`  ✗ ${message}`);
-			const packageNames = input.packages ?? discoverPublicPackages(cwd);
+			const packageNames = (input.packages ?? discoverPublicPackageEntries(cwd)).map((e) => e.name);
 			logger.warn({ reason: "npm whoami still fails after login" }, "publish --initial: done");
 			return { status: "fail", message, packageNames };
 		}
@@ -119,10 +120,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	print(style.dim(`    ✓ authed as ${whoamiName}`));
 
 	print("");
-	print(style.dim(`  cwd: ${cwd}`));
-	print(style.dim(`  tag: ${tag}`));
 	if (otp) print(style.dim(`  otp: <${otp.length} chars>`));
-	print("");
 
 	// ── 2. Resolve dynamic values needed for next-steps ─────────────────
 	// `--initial` only exists for the chicken-and-egg case: a package that
@@ -132,11 +130,12 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// — filter down to genuinely new ones before doing anything else, so
 	// re-running --initial after adding one new package to an
 	// already-bootstrapped monorepo only touches that one package.
-	const discoveredPackages = input.packages ?? discoverPublicPackages(cwd);
-	const packageNames = input.packages
-		? discoveredPackages
-		: await filterNewPackages(discoveredPackages, cwd, exec, print);
-	const skippedCount = input.packages ? 0 : discoveredPackages.length - packageNames.length;
+	const discoveredEntries = input.packages ?? discoverPublicPackageEntries(cwd);
+	const newEntries: PublicPackageEntry[] = input.packages
+		? [...discoveredEntries]
+		: await filterNewPackages(discoveredEntries, cwd, exec, print);
+	const packageNames = newEntries.map((e) => e.name);
+	const skippedCount = input.packages ? 0 : discoveredEntries.length - newEntries.length;
 	// Both overridden -> skip the git remote read entirely; either missing
 	// -> one combined read fills in whichever wasn't given.
 	const resolvedIdentity: RepoIdentity =
@@ -152,7 +151,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		// Everything publicly publishable already exists on npm — not a
 		// misconfiguration, just nothing left to bootstrap. Idempotent
 		// success, same as re-running any already-applied setup step.
-		if (input.packages === undefined && discoveredPackages.length > 0) {
+		if (input.packages === undefined && discoveredEntries.length > 0) {
 			const message = "nothing to publish — every public package already exists on npm; nothing new to bootstrap";
 			printSummary(print, dryRun, 0, 0, skippedCount);
 			logger.info({ reason: message }, "publish --initial: done");
@@ -191,8 +190,10 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// ── 3. Publish ──────────────────────────────────────────────────────
 	if (dryRun) {
 		print("");
-		print("  dry-run: skipping actual publish…");
-		print(`  would run: pnpm ${publishArgs.join(" ")}`);
+		for (const entry of newEntries) {
+			print(style.dim(`  ${entry.name}  ${entry.dir}  would publish (v${entry.version})`));
+		}
+		print(style.dim(`  would run: pnpm ${publishArgs.join(" ")}`));
 		printSummary(print, dryRun, packageNames.length, 0, skippedCount);
 		printNextSteps(print, env, packageNames, identity);
 		logger.info({ tag, status: "dry-run", packages: packageNames.length }, "publish --initial: done");
@@ -211,9 +212,16 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
 			print(`    pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp <6-digit-code>`);
 		}
+		// Atomic bulk publish: every targeted entry failed together, never partially.
+		for (const entry of newEntries) {
+			print(statusRow("fail", [entry.name, entry.dir, "publish failed"]));
+		}
 		printSummary(print, dryRun, 0, packageNames.length, skippedCount);
 		logger.warn({ tag, reason: message }, "publish --initial: done");
 		return { status: "fail", message, packageNames };
+	}
+	for (const entry of newEntries) {
+		print(statusRow("ok", [entry.name, entry.dir, `published (v${entry.version})`]));
 	}
 	printSummary(print, dryRun, packageNames.length, 0, skippedCount);
 

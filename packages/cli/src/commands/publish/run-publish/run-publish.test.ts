@@ -203,7 +203,10 @@ describe("runPublish", () => {
 
 	it("publishes without -r/--filter for a single-package repo (holocron#641)", async () => {
 		const root = mkdtempSync(join(tmpdir(), "holocron-test-"));
-		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@theholocron/observability" }));
+		writeFileSync(
+			join(root, "package.json"),
+			JSON.stringify({ name: "@theholocron/observability", version: "1.0.0" })
+		);
 		const calls: Array<{ cmd: string; args: string[] }> = [];
 		const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
 			calls.push({ cmd, args });
@@ -274,7 +277,10 @@ describe("runPublish", () => {
 		expect(publishCall?.args).toContain("--filter=@theholocron/newcomer");
 		expect(publishCall?.args).not.toContain("--filter=@theholocron/old-timer");
 		const joined = lines.join("\n");
-		expect(joined).toContain("@theholocron/old-timer  already published");
+		expect(joined).toContain(
+			"@theholocron/old-timer  ./packages/@theholocron-old-timer  already published (v1.0.0)"
+		);
+		expect(joined).toContain("@theholocron/newcomer  ./packages/@theholocron-newcomer  published (v1.0.0)");
 		expect(joined).not.toContain("@theholocron/old-timer/access");
 		expect(joined).toContain("@theholocron/newcomer/access");
 		expect(joined).toContain("1 published, 0 failed, 1 skipped");
