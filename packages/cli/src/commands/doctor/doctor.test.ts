@@ -373,7 +373,7 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("no recent runs");
 	});
 
-	it("auth smoke check reports provider and env keys", async () => {
+	it("auth smoke check reports whoami reachability, not just describe()'s env keys", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { auth: "clerk" },
@@ -382,6 +382,7 @@ describe("runDoctor", () => {
 			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
 				auth: {
 					describe: async () => ({ provider: "clerk", envKeys: ["CLERK_SECRET_KEY"] }),
+					whoami: async () => ({ provider: "clerk", details: { userCount: 42 } }),
 				},
 			}),
 		});
@@ -396,10 +397,62 @@ describe("runDoctor", () => {
 		const row = report.rows.find((r) => r.capability === "auth");
 		expect(row?.status).toBe("ok");
 		expect(row?.message).toContain("clerk");
-		expect(row?.message).toContain("CLERK_SECRET_KEY");
+		expect(row?.message).toContain("userCount=42");
 	});
 
-	it("errors smoke check reports provider and env keys", async () => {
+	it("auth smoke check omits the parenthetical when whoami returns no details", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { auth: "clerk" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
+				auth: {
+					describe: async () => ({ provider: "clerk", envKeys: ["CLERK_SECRET_KEY"] }),
+					whoami: async () => ({ provider: "clerk" }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "auth");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toBe("whoami: clerk");
+	});
+
+	it("errors smoke check reports org reachability via whoami", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { errors: "sentry" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }),
+					whoami: async () => ({ org: "theholocron" }),
+				},
+			}),
+		});
+
+		const report = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const row = report.rows.find((r) => r.capability === "errors");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("theholocron");
+	});
+
+	it("errors smoke check falls back to describe when whoami is not implemented", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { errors: "sentry" },

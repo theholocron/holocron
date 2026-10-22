@@ -7,7 +7,8 @@
  *   issues   → `doctor()` (rich report)
  *   secrets  → `listSecrets({ kind: 'repo' })`
  *   ci       → `listRuns({ limit: 1 })`
- *   errors   → `describe()`
+ *   auth     → `whoami()` (required on every provider)
+ *   errors   → `whoami()` (org reachability) or `describe()`
  *   logs     → `whoami()` (dataset reachability) or `describe()`
  *   others   → just "loaded" (no smoke endpoint defined yet)
  *
@@ -177,11 +178,25 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 				return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 			}
 			case "auth": {
-				const desc = await (impl as Auth).describe();
-				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
+				// `whoami` is required on every Auth provider (unlike the optional
+				// whoami? on dns/workers/monitoring/errors) — it's always safe to
+				// call directly rather than falling back to describe()'s mere
+				// env-key listing.
+				const who = await (impl as Auth).whoami();
+				const details = who.details
+					? ` (${Object.entries(who.details)
+							.map(([k, v]) => `${k}=${v}`)
+							.join(", ")})`
+					: "";
+				return mk(key, provider, "ok", `whoami: ${who.provider}${details}`);
 			}
 			case "errors": {
-				const desc = await (impl as Errors).describe();
+				const errors = impl as Errors;
+				if (errors.whoami) {
+					const who = await errors.whoami();
+					return mk(key, provider, "ok", `org: ${who.org}`);
+				}
+				const desc = await errors.describe();
 				return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${desc.envKeys.join(", ")}`);
 			}
 			case "logs": {
