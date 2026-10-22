@@ -32,6 +32,7 @@ import {
 	type Logs,
 	type Monitoring,
 	PluginLoader,
+	ProviderApiError,
 	type Secrets,
 	type Source,
 	type Vault,
@@ -144,8 +145,23 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 	try {
 		return await withTimeout(runSmokeCheck(key, provider, impl), SMOKE_CHECK_TIMEOUT_MS);
 	} catch (err) {
-		return mk(key, provider, "fail", errorMessage(err));
+		return mk(key, provider, "fail", smokeCheckErrorMessage(err));
 	}
+}
+
+/**
+ * `errorMessage(err)` alone is just `"<Vendor> <METHOD> <path> → <status>"` —
+ * the actual reason (what the vendor's response body said) lives in
+ * `ProviderApiError.details`, a raw response-body string (not parsed JSON —
+ * see AGENTS.md), and was being silently dropped. Appending it turns e.g. a
+ * bare "→ 400" into something that actually explains itself.
+ */
+function smokeCheckErrorMessage(err: unknown): string {
+	if (err instanceof ProviderApiError && err.details) {
+		const detail = String(err.details).trim();
+		if (detail) return `${errorMessage(err)}: ${detail}`;
+	}
+	return errorMessage(err);
 }
 
 async function runSmokeCheck(key: string, provider: string, impl: unknown): Promise<DoctorRow> {
