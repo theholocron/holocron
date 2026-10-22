@@ -1,0 +1,67 @@
+---
+title: Privacy Policy
+description: What data Holonet, The Holocron's Discord bot, handles, and what it doesn't.
+---
+
+_Effective 22 October 2026._
+
+This policy covers **Holonet**, the Discord bot operated by The Holocron
+maintainers. It is written to say what actually happens, which is very little.
+
+## What Holonet does not do
+
+- It does not read, log or store the content of messages in your server.
+- It does not read direct messages.
+- It does not sell, share for advertising, or profile anyone.
+
+Holonet only calls Discord's HTTP API to create and manage channels, webhooks
+and roles, and receives nothing from a server it has not been added to.
+
+## What passes through it
+
+- **Notifications.** GitHub Actions workflows post messages through Discord
+  webhooks. These contain repository names, pull request and workflow-run
+  links, and short status text. They are sent to Discord and are not copied
+  anywhere else by Holonet. Discord stores them under its own policies.
+- **Server setup.** When a maintainer runs the setup command, Holonet reads and
+  changes the server's channels, webhooks and roles using a bot token. The token
+  is kept as a secret by the maintainers and is never published.
+
+## Role sync (not yet released)
+
+If role sync is enabled for a server, Holonet will process, for members who
+choose to connect their accounts:
+
+- the member's **Discord user id** and the **verified GitHub account** linked to
+  it (obtained through Discord's OAuth `identify` and `connections` scopes), and
+- a stored pairing of that Discord id and GitHub id, so a role can be added or
+  removed when GitHub team membership changes.
+
+OAuth access tokens are not stored. Nothing else about a member is kept. A
+member can ask for their pairing to be deleted (see Contact), or revoke access
+from Discord's **Authorized Apps** settings.
+
+## Retention
+
+Holonet keeps no message content. GitHub Actions logs are retained under
+GitHub's policies and Discord messages under Discord's. Any role-sync pairing is
+kept only while it is needed and deleted on request.
+
+## Third parties
+
+Holonet runs on infrastructure from Discord, GitHub and Vercel, each with its own
+privacy policy. We don't share data with anyone else.
+
+## Children
+
+Holonet is not directed at children. Discord requires users to be at least 13
+(or older, depending on where they live).
+
+## Changes
+
+If this policy changes, the effective date above changes with it.
+
+## Contact
+
+Open an issue at [github.com/theholocron/holocron](https://github.com/theholocron/holocron/issues)
+to ask a question or request deletion of a stored pairing.
