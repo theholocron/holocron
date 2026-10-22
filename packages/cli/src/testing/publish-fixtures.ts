@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { PublicPackageEntry } from "../commands/publish/public-package-entry.type.js";
 import type { PublishExecResult } from "../commands/publish/publish.type.js";
 
 export type TempPackageSpec = { name: string; version?: string; private?: boolean; invalidJson?: boolean };
@@ -62,8 +63,12 @@ export function makeExec(responses: Record<string, PublishExecResult>) {
 export const baseEnv: NodeJS.ProcessEnv = {};
 
 // Fixtures injected directly to avoid touching the filesystem or git in tests.
-export const TEST_PACKAGES = ["@theholocron/foo", "@theholocron/bar"] as const;
+export const TEST_PACKAGES: readonly PublicPackageEntry[] = [
+	{ name: "@theholocron/foo", version: "1.0.0", dir: "./packages/foo" },
+	{ name: "@theholocron/bar", version: "2.0.0", dir: "./packages/bar" },
+];
 export const TEST_REPO = "test-repo";
+export const TEST_ORG = "test-org";
 
 /** Queue-based exec mock — each call consumes the next queued response, matched by call index. */
 export function makeQueueExec(responses: PublishExecResult[]) {

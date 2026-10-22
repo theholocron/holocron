@@ -38,6 +38,51 @@ $ holocron
 ? Target Node.js major version: › 24
 ```
 
+For a command that declares options (so far: `package publish` — more are
+rolled out one command group at a time), it also offers those: any required
+option is prompted like a positional, and everything else goes through one
+"Set any options?" checkbox, prompting only what you picked:
+
+```console
+? Set any options? (space to select, enter to skip) › ◉ npm dist-tag ◯ One-time password (2FA)
+? npm dist-tag (blank = latest): › beta
+```
+
+`package publish` specifically has three workflows that don't mix — a
+steady-state publish, a one-shot `--initial` bootstrap, and a `--sync-trust`
+maintenance run — so it asks which one first, then only offers that
+workflow's own options; nothing from a different workflow is ever shown:
+
+```console
+? What would you like to do? › Initial publish (--initial)
+? Set any options? (space to select, enter to skip) › ◉ One-time password (2FA)
+...dry-run output...
+? Dry run complete — proceed with the real run? › yes
+? One-time password (2FA), if npm requires it for this publish: › ***
+```
+
+Each workflow's label ends with its real flag in parentheses when it has
+one, and a longer caveat ("use only for a package's very first publish")
+shows as helper text under the highlighted choice rather than bloating the
+label itself.
+
+A secret option (`--otp`) is masked as you type and delivered to the spawned
+command through its environment, never its argv — `ps` and shell history
+both expose a child's argv, never its env. A time-sensitive one like `--otp`
+is checked off early but not actually typed until right before the real run
+— after the dry-run preview and the "proceed?" question, never before —
+since a dry run never checks it anyway and a code typed any earlier risks
+going stale while something else is still being answered.
+
+Whether an option is _checkbox-optional vs. always included_ and _collected
+upfront vs. collected last_ are independent choices. `package publish`'s
+`--otp` is always collected last, but whether it's checkbox-optional depends
+on `HOLOCRON_NPM_ENFORCE_2FA`: unset (the default), it's opt-in like any other
+checkbox pick; set in your own shell profile (never checked into the repo),
+it's always included — for an operator whose own npm account enforces 2FA
+on every publish, so the box doesn't need re-checking every single run.
+Setting it has no effect on anyone else publishing from the same repo.
+
 The picked command spawns as a normal `holocron <command> …` invocation —
 `--token`, `--org`, `--cwd`, and `--dry-run` on the original invocation carry
 through. A non-interactive shell (CI, a script, a pipe) gets the old
@@ -651,10 +696,13 @@ the local override exists to exempt.
   `monitoring check`, `secrets set`, `secrets sync`, `package publish`,
   `package bump-versions`, `sync github`, `repo upgrade node`,
   `repo upgrade deps`, `new plugin`, `auth`
-- `src/interactive-menu.ts` — the interactive fallback: `COMMAND_REGISTRY`,
-  `launchMenu` (Layers 1–2, picks + spawns a fresh `holocron <command>`),
-  `promptForPositionals` (Layer 3, called inline from each leaf command's
-  `cli.ts` handler)
+- `src/interactive-menu/` — the interactive fallback: `command-registry`
+  (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `launch-menu`
+  (Layers 1–2, picks + spawns a fresh `holocron <command>`), `child-argv`
+  (builds the spawned argv + secret env), `menu-items`, `run-menu-entries`.
+  The generic prompting pieces it calls — `promptForPositionals`,
+  `promptForOptions` (Layer 3) — live in `src/ui/`, which has no knowledge
+  of commands.
 
 ## Status
 

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: proposed
 issue: theholocron/holocron#1052
 blocked-by: []
 related:
@@ -7,6 +7,15 @@ related:
 ---
 
 # Interactive menu: prompt for command options
+
+## Status
+
+Rollout step 1 (types, the multi-select flow, `buildChildArgv`, secret env
+delivery, `package publish` as the first `options`-declaring entry) is done.
+Steps 2 (one PR per remaining command group) and 3 (this file's own eventual
+move to `docs/wiki/specifications/`) are still open — `AGENTS.md`'s
+Interactive fallback bullet and `packages/cli/README.md`'s Interactive mode
+section already reflect what's shipped so far.
 
 ## Problem
 

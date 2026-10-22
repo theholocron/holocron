@@ -82,10 +82,56 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `USER_FACING_ERRORS`) instead of relying on `@inquirer/prompts`'
     `ExitPromptError` on a closed stdin. The generic prompting pieces
     (`NonInteractiveError`, `pickMenuItem` / `searchChoices`,
-    `promptForPositionals`) live in `packages/cli/src/ui/`, which has no
-    knowledge of commands; `interactive-menu/` holds the rest, one folder per
-    piece: `command-registry`, `menu-items`, `run-menu-entries`, `child-argv`
-    and `launch-menu`.
+    `promptForPositionals`, `promptForOptions`) live in
+    `packages/cli/src/ui/`, which has no knowledge of commands;
+    `interactive-menu/` holds the rest, one folder per piece:
+    `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
+    `launch-menu`.
+    A `CommandEntry` can also declare `options` (spec
+    `tech-interactive-menu-options.spec.md`, #1052) so its yargs options are
+    offered through the menu too, not just required positionals — required
+    options are always prompted like positionals; everything else goes
+    through one `checkbox()` ("set any options?") and only the picked ones
+    are then prompted, in declaration order, honouring each option's `when`
+    predicate over answers collected so far. A `secret: true` option is
+    delivered to the spawned child through its env
+    (`HOLOCRON_<KEY_IN_SCREAMING_SNAKE_CASE>`), never argv — `ps` and shell
+    history both expose a child's argv, never its env.
+    For a command whose options have a real either/or relationship instead
+    of independent flags — `package publish`'s steady-state publish /
+    `--initial` bootstrap / `--sync-trust` maintenance mode, which `when`
+    alone could only approximate by silently dropping a contingent pick
+    after the fact — declare `modes` instead of `options`: the user picks
+    one workflow first ("What would you like to do?"), and only that
+    mode's own options are ever shown, so nothing contingent on a different
+    mode is ever offered in the first place. `package publish` is the
+    first (and, so far, only) command that needs `modes`; every other
+    command with options declares plain `options`. `promptForOptions`
+    returns a `ResolvedOptions` (`{ options, answers, deferred }`) either
+    way — `buildChildArgv`/`secretEnv` render both shapes identically,
+    with no need to know which kind of command produced it. An option
+    marked `askLast: true` (e.g. `package publish`'s `--otp`) is left out
+    of `answers` and listed in `deferred` instead — its value isn't
+    collected until `promptForDeferredOptions` is called right before the
+    real (non-dry-run) spawn, never any earlier: a dry-run preview and a
+    human confirming "proceed with the real run?" can both take a while,
+    and a time-sensitive secret (a TOTP code) typed before either risks
+    going stale before it's actually used — and a dry run never reaches
+    the real npm call that would need it anyway. `required` and
+    `askLast` compose independently: `required` only decides whether an
+    option sits behind the checkbox (always included vs. opt-in);
+    `askLast` only decides when its value is collected (upfront vs.
+    deferred). `package publish`'s `--otp` is `askLast: true` always,
+    and its `required` is computed once at module load from
+    `HOLOCRON_NPM_ENFORCE_2FA` — an operator whose own npm account always
+    enforces 2FA sets that env var in their own shell profile (never
+    committed) to stop re-checking the OTP checkbox every run, without
+    forcing an OTP prompt on anyone else publishing from the same repo;
+    it's still collected last either way. Every other command's
+    options are still rolled out one PR per command group, tracked on
+    #1052 — a command's own yargs options not yet triaged into
+    `options`/`skipOptions`/`modes` is a known, accepted gap until that
+    command's turn, not a bug.
 
 ## Consuming packages from `theholocron/clients`
 
@@ -287,6 +333,11 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   first). The command runs `npm login --auth-type=web` itself when
   `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
   → `pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp <code>`.
+  Self-narrowing: it checks every publicly publishable package against the
+  npm registry (existence, not version) and only targets the ones that
+  don't exist on npm yet — re-running it after adding one new package to an
+  already-bootstrapped monorepo only publishes that one, not all of them
+  again. Nothing new to bootstrap is a success, not a failure.
 
 ## Repo layout
 

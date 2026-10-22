@@ -29,7 +29,7 @@ import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
+import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
 import { runSecretSet } from "./commands/secret-set/index.js";
 import { runSecretsSync } from "./commands/secrets-sync/index.js";
 import { runSetup } from "./commands/setup/index.js";
@@ -1462,6 +1462,7 @@ try {
 										"that ship many independently-versioned packages where a release doesn't bump every one.",
 								}),
 						async (argv) => {
+							const otp = resolveOtp(argv.otp as string | undefined, env);
 							if (argv.syncTrust) {
 								const [oldFile, newFile] = argv.syncTrust as [string?, string?];
 								if (!oldFile || !newFile) {
@@ -1488,10 +1489,20 @@ try {
 									cwd: argv.cwd,
 									dryRun: argv.dryRun,
 									...(argv.tag ? { tag: argv.tag as string } : {}),
-									...(argv.otp ? { otp: argv.otp as string } : {}),
+									...(otp ? { otp } : {}),
 								});
 								if (report.status === "fail") {
 									process.exitCode = 1;
+								} else if (
+									report.status === "ok" &&
+									report.packageNames.length === 0 &&
+									env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1"
+								) {
+									// Every publicly publishable package already exists on npm —
+									// nothing the real run would do either. Same signal clone's
+									// "already cloned" case uses to skip the menu's follow-up
+									// "proceed with the real run?" question.
+									process.exitCode = DRY_RUN_NOOP_EXIT_CODE;
 								}
 								return;
 							}
@@ -1501,7 +1512,7 @@ try {
 								provenance: argv.provenance as boolean,
 								skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
 								...(argv.tag ? { tag: argv.tag as string } : {}),
-								...(argv.otp ? { otp: argv.otp as string } : {}),
+								...(otp ? { otp } : {}),
 							});
 							if (report.status === "fail") {
 								process.exitCode = 1;
