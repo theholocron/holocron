@@ -2,14 +2,6 @@
   "name": "@theholocron/vitest-config",
   "version": "8.8.1",
   "description": "Vitest configuration presets for libraries, React apps, and Storybook within the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/vitest-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
-  },
-  "license": "GPL-3.0",
-  "author": "Newton Koumantzelis",
   "keywords": [
     "vitest",
     "testing",
@@ -18,22 +10,15 @@
     "config",
     "theholocron"
   ],
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/vitest-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
   "type": "module",
-  "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
-    "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
-  },
-  "devDependencies": {
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/tsconfig": "workspace:*",
-    "@vitest/coverage-v8": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -85,19 +70,37 @@
   "files": [
     "dist/"
   ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/tsconfig": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
   "peerDependencies": {
-    "vitest": "^4",
+    "@storybook/addon-vitest": "^9",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
     "@testing-library/user-event": "^14",
-    "@vitest/browser": "^4",
-    "@vitest/coverage-v8": "^4",
-    "@storybook/addon-vitest": "^9",
-    "@vitest/browser-playwright": "^4",
+    "@vitest/browser": "^4 || ^5",
+    "@vitest/browser-playwright": "^4 || ^5",
+    "@vitest/coverage-v8": "^4 || ^5",
     "jsdom": "^26",
-    "playwright": "^1"
+    "playwright": "^1",
+    "vitest": "^4 || ^5"
   },
   "peerDependenciesMeta": {
+    "@storybook/addon-vitest": {
+      "optional": true
+    },
     "@testing-library/jest-dom": {
       "optional": true
     },
@@ -110,13 +113,10 @@
     "@vitest/browser": {
       "optional": true
     },
-    "@vitest/coverage-v8": {
-      "optional": true
-    },
-    "@storybook/addon-vitest": {
-      "optional": true
-    },
     "@vitest/browser-playwright": {
+      "optional": true
+    },
+    "@vitest/coverage-v8": {
       "optional": true
     },
     "jsdom": {
