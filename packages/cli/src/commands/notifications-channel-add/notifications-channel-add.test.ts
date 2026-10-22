@@ -91,8 +91,18 @@ describe("pickProvisioner", () => {
 	const post = { key: "notifications", providerName: "slack", send: async () => {} } as Notifications;
 
 	it("rejects when no provider can provision", () => {
-		expect(() => pickProvisioner([post])).toThrow(/can provision channels/);
-		expect(() => pickProvisioner([])).toThrow(/can provision channels/);
+		expect(() => pickProvisioner([post])).toThrow(/can provision/);
+		expect(() => pickProvisioner([])).toThrow(/can provision/);
+	});
+
+	it("accepts a role-only provider", () => {
+		const rolesOnly = {
+			key: "notifications",
+			providerName: "r",
+			send: async () => {},
+			ensureRole: async () => ({ id: "1", created: true }),
+		} as Notifications;
+		expect(pickProvisioner([rolesOnly])).toBe(rolesOnly);
 	});
 
 	it("takes the only capable provider", () => {
@@ -161,13 +171,14 @@ describe("runNotificationsChannelAdd", () => {
 		expect(secrets.calls[0]).toMatchObject({ scope: { kind: "repo" }, name: "MY_SECRET" });
 	});
 
-	it("does not store anything, and says why, when an existing webhook's URL cannot be read", async () => {
+	it("fails, storing nothing and saying why, when an existing webhook's URL cannot be read", async () => {
 		const secrets = fakeSecrets();
 		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
 		const { result, lines } = run(n, secrets, { withWebhook: true });
 		const report = await result;
 		expect(secrets.calls).toEqual([]);
-		expect(report.status).toBe("ok");
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/cannot be read back/);
 		expect(report.channel?.webhook).toMatchObject({ stored: false, created: false });
 		expect(lines.join("\n")).toContain("cannot be read back");
 	});
@@ -179,8 +190,11 @@ describe("runNotificationsChannelAdd", () => {
 			category: "ALERTS",
 			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
 		});
+		const secrets = fakeSecrets();
 		expect((await result).status).toBe("dry-run");
 		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(secrets.calls).toEqual([]);
 		expect(lines.join("\n")).toContain(
 			"would ensure webhook alerts and store its URL in HOLOCRON_NOTIFY_WEBHOOK_ALERTS"
 		);
@@ -209,6 +223,8 @@ describe("runNotificationsChannelAdd", () => {
 		const n = fakeNotifications({ ensureWebhook: undefined });
 		const { result } = run(n, fakeSecrets(), { withWebhook: true });
 		expect((await result).message).toMatch(/cannot create webhooks/);
+		// ...and it said so BEFORE creating the channel, so nothing is left behind.
+		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
 	it("fails when a webhook was asked for but no secrets provider is configured", async () => {
@@ -255,7 +271,7 @@ describe("runNotificationsChannelAdd", () => {
 			loader,
 			print: () => {},
 		});
-		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can provision channels/) });
+		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can provision/) });
 	});
 
 	it("explains why the secrets provider is missing when it failed to load", async () => {
@@ -291,5 +307,61 @@ describe("runNotificationsChannelAdd", () => {
 		});
 		expect(report.status).toBe("dry-run");
 		expect(lines.join("\n")).toContain("would ensure webhook x");
+	});
+
+	it("refuses a webhook request up front, even on --dry-run, when the provider cannot create webhooks", async () => {
+		const n = fakeNotifications({ ensureWebhook: undefined });
+		const { result } = run(n, fakeSecrets(), {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/cannot create webhooks/),
+		});
+	});
+
+	it("passes the category through so the webhook lands on the right channel", async () => {
+		const n = fakeNotifications();
+		const { result } = run(n, fakeSecrets(), { withWebhook: true, category: "AUTOMATION", name: "sync" });
+		await result;
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "sync", name: "sync", category: "AUTOMATION" });
+	});
+
+	it("tells the user how to recover when the webhook was created but the secret write failed", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				setSecret: async () => {
+					throw new Error("403 Resource not accessible");
+				},
+			},
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+		});
+		const report = await result;
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(
+			/was created but storing its URL in HOLOCRON_NOTIFY_WEBHOOK_ALERTS failed .*403.*delete the webhook/
+		);
+	});
+
+	it("fails before creating the channel when a real run has no secrets provider loaded", async () => {
+		const n = fakeNotifications();
+		const secretless = loadedFrom({ name: "demo", providers: { notifications: ["discord"], secrets: "github" } });
+		const loader = makeLoader(secretless, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: n }),
+		});
+		await runNotificationsChannelAdd({
+			loaded: secretless,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			name: "x",
+			withWebhook: true,
+			loader,
+			print: () => {},
+		});
+		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 });

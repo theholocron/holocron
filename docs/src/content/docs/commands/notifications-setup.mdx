@@ -47,3 +47,9 @@ A layout belongs to the server, not to a repo. Put it in **one** repo's config (
 | `--scope <scope>`   | the org | Webhook secret scope: `repo`, `env=<name>`, or `org=<name>`      |
 | `--provider <name>` | —       | Which `notifications` provider, when more than one can provision |
 | `--dry-run`         | `false` | Print what would happen without calling the provider             |
+
+## Security
+
+- **Where webhook secrets live.** By default each webhook URL is stored as an **organization** secret visible to **all** repositories, so every repo's workflows can post to the channel. That is the point for shared channels like `sync`, but it means anyone who can run a workflow in the org can read the URL and post to that channel. Use `--scope repo` (or `env=<name>`) to keep a webhook to one repo. A leaked URL is revoked by deleting the webhook in the provider and re-running the command for a new one.
+- **The bot token never goes to a custom host.** The Discord plugin only sends it to the real Discord API. A `baseUrl` in the provider options affects posting, not provisioning, unless `unsafeBotBaseUrl: true` is also set (for tests that stub the API).
+- **Collisions.** Two channels whose names normalise to the same default secret (`release-notes` and `release_notes`) are refused before anything is created; give one a distinct `webhook.secret`.

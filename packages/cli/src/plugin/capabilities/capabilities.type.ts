@@ -986,7 +986,7 @@ export interface Notifications extends ProviderIdentity {
 	 */
 	ensureCategory?(name: string): Promise<EnsuredResource>;
 	ensureChannel?(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource>;
-	ensureWebhook?(input: { channel: string; name: string }): Promise<EnsureWebhookResult>;
+	ensureWebhook?(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult>;
 	ensureRole?(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource>;
 }
 

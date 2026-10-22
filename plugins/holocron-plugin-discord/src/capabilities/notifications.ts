@@ -1,6 +1,12 @@
 import type { EnsuredResource, EnsureWebhookResult, Notifications, NotificationsLayout } from "@theholocron/cli";
 
-import { ChannelType, type DiscordBotClient, type DiscordClient, parseWebhookUrl } from "../rest.js";
+import {
+	ChannelType,
+	type DiscordBotClient,
+	type DiscordChannel,
+	type DiscordClient,
+	parseWebhookUrl,
+} from "../rest.js";
 
 export interface DiscordNotificationsOptions {
 	/**
@@ -68,15 +74,37 @@ export class DiscordNotifications implements Notifications {
 		return { id: made.id, created: true };
 	}
 
+	/**
+	 * Find a channel by name. A name can exist in several categories, so with a
+	 * parent: prefer the one already there, then an uncategorised one (moved in);
+	 * never grab a channel that lives under a different category. Announcement
+	 * channels count: reusing one beats creating a same-named text channel.
+	 */
+	private static findChannel(
+		channels: DiscordChannel[],
+		name: string,
+		parentId?: string
+	): DiscordChannel | undefined {
+		const named = channels.filter(
+			(c) =>
+				(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
+				DiscordNotifications.same(c.name, name)
+		);
+		if (!parentId) return named[0];
+		return named.find((c) => c.parent_id === parentId) ?? named.find((c) => !c.parent_id);
+	}
+
 	async ensureChannel(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource> {
 		const bot = this.bot();
 		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
-		const existing = (await bot.guilds.channels(this.guild())).find(
-			(c) => c.type === ChannelType.Text && DiscordNotifications.same(c.name, input.name)
-		);
+		const existing = DiscordNotifications.findChannel(await bot.guilds.channels(this.guild()), input.name, parent);
 		if (existing) {
-			// Already there: only move it if it was asked to live under a different category.
-			if (parent && existing.parent_id !== parent) await bot.channels.modify(existing.id, { parent_id: parent });
+			// Already there: reconcile what the layout asks for (category, topic), leave the rest.
+			const patch = {
+				...(parent && existing.parent_id !== parent ? { parent_id: parent } : {}),
+				...(input.topic !== undefined && (existing.topic ?? "") !== input.topic ? { topic: input.topic } : {}),
+			};
+			if (Object.keys(patch).length > 0) await bot.channels.modify(existing.id, patch);
 			return { id: existing.id, created: false };
 		}
 		const made = await bot.guilds.createChannel(this.guild(), {
@@ -88,13 +116,22 @@ export class DiscordNotifications implements Notifications {
 		return { id: made.id, created: true };
 	}
 
-	async ensureWebhook(input: { channel: string; name: string }): Promise<EnsureWebhookResult> {
+	async ensureWebhook(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult> {
 		const bot = this.bot();
-		const channel = (await bot.guilds.channels(this.guild())).find(
-			(c) => c.type === ChannelType.Text && DiscordNotifications.same(c.name, input.channel)
+		const parent = input.category
+			? (await bot.guilds.channels(this.guild())).find(
+					(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, input.category!)
+				)?.id
+			: undefined;
+		const channel = DiscordNotifications.findChannel(
+			await bot.guilds.channels(this.guild()),
+			input.channel,
+			parent
 		);
 		if (!channel) throw new Error(`no channel named \`${input.channel}\` — create it first`);
-		const existing = (await bot.channels.webhooks(channel.id)).find((w) => w.name === input.name);
+		const existing = (await bot.channels.webhooks(channel.id)).find((w) =>
+			DiscordNotifications.same(w.name ?? "", input.name)
+		);
 		// `url` is only present for webhooks this bot created; otherwise Discord will not say it again.
 		if (existing) return { created: false, ...(existing.url ? { url: existing.url } : {}) };
 		const made = await bot.channels.createWebhook(channel.id, { name: input.name });

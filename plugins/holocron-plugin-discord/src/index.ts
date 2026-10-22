@@ -8,6 +8,12 @@ export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotifica
 	/** Override base URL for tests. Default: https://discord.com/api/v10 */
 	baseUrl?: string;
 	fetch?: typeof fetch;
+	/**
+	 * Also send the BOT token to `baseUrl`. Off by default: `baseUrl` comes from a
+	 * repo's config, and a changed config must not be able to redirect the bot
+	 * token to another host. Tests that stub the API set it.
+	 */
+	unsafeBotBaseUrl?: boolean;
 }
 
 export interface PluginContext {
@@ -33,7 +39,7 @@ export function createContext(options: DiscordPluginOptions = {}): PluginContext
 			(bot ??= createDiscordBotClient({
 				// The bot token is a different credential from the webhook URL in `options.cliToken`.
 				botToken: resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org }),
-				...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+				...(options.unsafeBotBaseUrl && options.baseUrl ? { baseUrl: options.baseUrl } : {}),
 				...(options.fetch ? { fetch: options.fetch } : {}),
 			})),
 	};

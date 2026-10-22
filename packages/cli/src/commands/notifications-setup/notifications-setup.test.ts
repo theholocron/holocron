@@ -48,6 +48,7 @@ function fakeNotifications(over: Partial<Notifications> = {}): Notifications {
 		providerName: "discord",
 		send: async () => {},
 		layout: LAYOUT,
+		ensureCategory: vi.fn(async () => ({ id: "c", created: true })),
 		ensureChannel: vi.fn(async () => ({ id: "1", created: true })),
 		ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/x" })),
 		ensureRole: vi.fn(async () => ({ id: "99", created: true })),
@@ -117,12 +118,16 @@ describe("runNotificationsSetup", () => {
 
 	it("previews every step on --dry-run and calls the provider for none of them", async () => {
 		const n = fakeNotifications();
-		const { run, lines } = setup(n, { dryRun: true });
+		const { run, lines, stored } = setup(n, { dryRun: true });
 		const report = await run();
 		expect(report.status).toBe("dry-run");
 		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(n.ensureCategory).not.toHaveBeenCalled();
 		expect(n.ensureRole).not.toHaveBeenCalled();
+		expect(stored).toEqual([]);
 		expect(lines.join("\n")).toContain("would ensure role gatekeepers");
+		expect(lines.join("\n")).toContain("would ensure category EMPTY");
 	});
 
 	it("keeps going after a failing step and exits fail", async () => {
@@ -224,5 +229,66 @@ describe("runNotificationsSetup", () => {
 		});
 		expect(report.status).toBe("dry-run");
 		expect(report.channels).toHaveLength(3);
+	});
+
+	it("creates every declared category on its own, including one with no channels", async () => {
+		const n = fakeNotifications();
+		await setup(n).run();
+		expect(n.ensureCategory).toHaveBeenCalledTimes(3);
+		expect(n.ensureCategory).toHaveBeenCalledWith("EMPTY");
+	});
+
+	it("goes on without categories when the provider has none", async () => {
+		const n = fakeNotifications({ ensureCategory: undefined });
+		const report = await setup(n).run();
+		expect(report.status).toBe("ok");
+		expect(report.channels).toHaveLength(3);
+	});
+
+	it("refuses two channels that would share one webhook secret", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "A",
+					channels: [
+						{ name: "release-notes", webhook: true },
+						{ name: "release_notes", webhook: true },
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const report = await setup(n).run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/both store their webhook in HOLOCRON_NOTIFY_WEBHOOK_RELEASE_NOTES/);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("allows the same default secret name to be overridden to avoid a clash", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "A",
+					channels: [
+						{ name: "release-notes", webhook: true },
+						{ name: "release_notes", webhook: { secret: "OTHER" } },
+					],
+				},
+			],
+		};
+		expect((await setup(fakeNotifications({ layout })).run()).status).toBe("ok");
+	});
+
+	it("runs a role-only layout against a provider that only manages roles", async () => {
+		const rolesOnly = {
+			key: "notifications",
+			providerName: "r",
+			send: async () => {},
+			layout: { roles: [{ name: "gatekeepers" }] },
+			ensureRole: vi.fn(async () => ({ id: "5", created: true })),
+		} as unknown as Notifications;
+		const report = await setup(rolesOnly).run();
+		expect(report.status).toBe("ok");
+		expect(report.roles).toEqual([{ name: "gatekeepers", id: "5", created: true }]);
 	});
 });

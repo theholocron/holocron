@@ -15,7 +15,12 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Secrets } from "../../plugin/index.js";
-import { pickProvisioner, provisionChannel, whyMissing } from "../notifications-channel-add/index.js";
+import {
+	defaultSecretName,
+	pickProvisioner,
+	provisionChannel,
+	whyMissing,
+} from "../notifications-channel-add/index.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
 
 export async function runNotificationsSetup(input: RunNotificationsSetupInput): Promise<NotificationsSetupReport> {
@@ -70,6 +75,24 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		return refuse("no org to store webhook secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
 
+	// Two webhooks cannot share one secret: the second would overwrite the first and
+	// callers would post to the wrong channel. Normalising punctuation makes that
+	// easy to hit by accident (release-notes vs release_notes), so refuse up front.
+	const taken = new Map<string, string>();
+	for (const category of layout.categories ?? []) {
+		for (const channel of category.channels ?? []) {
+			if (!channel.webhook) continue;
+			const secret = (channel.webhook !== true && channel.webhook.secret) || defaultSecretName(channel.name);
+			const other = taken.get(secret);
+			if (other) {
+				return refuse(
+					`channels \`${other}\` and \`${channel.name}\` would both store their webhook in ${secret} — give one a distinct \`webhook.secret\``
+				);
+			}
+			taken.set(secret, channel.name);
+		}
+	}
+
 	print(`Holocron notifications setup — ${notifications.providerName}${dryRun ? " (dry-run)" : ""}`);
 
 	const attempt = async (step: string, fn: () => Promise<void>) => {
@@ -85,6 +108,15 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	for (const category of layout.categories ?? []) {
 		print(`\n${category.name}`);
 		report.categories.push(category.name);
+		await attempt(`category ${category.name}`, async () => {
+			if (!notifications.ensureCategory) return; // the provider has no categories; channels simply go ungrouped
+			if (dryRun) {
+				print(`  … would ensure category ${category.name}`);
+				return;
+			}
+			const made = await notifications.ensureCategory(category.name);
+			print(`  ${made.created ? "✓ created" : "· exists "} category ${category.name}`);
+		});
 		for (const channel of category.channels ?? []) {
 			await attempt(`channel ${channel.name}`, async () => {
 				const outcome = await provisionChannel(

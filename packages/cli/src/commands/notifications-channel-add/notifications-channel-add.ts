@@ -37,10 +37,16 @@ export function whyMissing(loader: PluginLoader, key: "secrets", fallback: strin
 
 /** Pick the provider that can provision; with several, `--provider` decides. */
 export function pickProvisioner(providers: Notifications[], wanted?: string): Notifications {
-	const capable = providers.filter((p) => typeof p.ensureChannel === "function");
+	// Any ensure* method counts: a role-only layout needs no channel support.
+	const capable = providers.filter(
+		(p) =>
+			typeof p.ensureChannel === "function" ||
+			typeof p.ensureCategory === "function" ||
+			typeof p.ensureRole === "function"
+	);
 	if (capable.length === 0) {
 		throw new Error(
-			"no `notifications` provider can provision channels — add one that implements it (for example discord) to holocron.config.ts"
+			"no `notifications` provider can provision — add one that implements it (for example discord) to holocron.config.ts"
 		);
 	}
 	if (wanted) {
@@ -68,13 +74,26 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	const webhookName = webhookCfg?.name ?? spec.name;
 	const where = spec.category ? ` in ${spec.category}` : "";
 
+	// Check everything the request needs BEFORE the dry-run return and before any
+	// change, so a preview never promises what a real run cannot do and a real run
+	// never leaves a channel behind before failing.
+	if (!notifications.ensureChannel) {
+		throw new Error(`\`${notifications.providerName}\` cannot create channels`);
+	}
+	if (webhookCfg && !notifications.ensureWebhook) {
+		throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
+	}
+	if (webhookCfg && !dryRun && !secrets) {
+		throw new Error("storing a webhook URL needs a `secrets` provider — add one to holocron.config.ts");
+	}
+
 	if (dryRun) {
 		print(`  … would ensure channel ${spec.name}${where}`);
 		if (webhookCfg) print(`  … would ensure webhook ${webhookName} and store its URL in ${secretName}`);
 		return { name: spec.name, ...(spec.category ? { category: spec.category } : {}), created: false };
 	}
 
-	const channel = await notifications.ensureChannel!({
+	const channel = await notifications.ensureChannel({
 		name: spec.name,
 		...(spec.category ? { category: spec.category } : {}),
 		...(spec.topic ? { topic: spec.topic } : {}),
@@ -87,16 +106,23 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	};
 	if (!webhookCfg) return outcome;
 
-	if (!notifications.ensureWebhook) {
-		throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
-	}
-	if (!secrets) {
-		throw new Error("storing a webhook URL needs a `secrets` provider — add one to holocron.config.ts");
-	}
-	const hook = await notifications.ensureWebhook({ channel: spec.name, name: webhookName });
+	const hook = await notifications.ensureWebhook!({
+		channel: spec.name,
+		name: webhookName,
+		...(spec.category ? { category: spec.category } : {}),
+	});
 	if (hook.url) {
 		// The URL is a credential: it goes to the secret store and nowhere else.
-		await secrets.setSecret(scope, secretName, hook.url);
+		try {
+			await secrets!.setSecret(scope, secretName, hook.url);
+		} catch (err) {
+			// The URL is shown once and is now lost; say how to get unstuck.
+			throw new Error(
+				`webhook ${webhookName} was ${hook.created ? "created" : "found"} but storing its URL in ${secretName} failed ` +
+					`(${errorMessage(err)}) — delete the webhook in the provider and re-run to get a fresh URL`,
+				{ cause: err }
+			);
+		}
 		print(`  ✓ ${hook.created ? "created" : "found  "} webhook ${webhookName}; URL stored in ${secretName}`);
 		outcome.webhook = { name: webhookName, created: hook.created, secret: secretName, stored: true };
 	} else {
@@ -171,6 +197,11 @@ export async function runNotificationsChannelAdd(
 			{ channel: input.name, created: channel.created, provider: notifications.providerName, status: "ok" },
 			`notifications channel add: ${input.name}`
 		);
+		if (channel.webhook && !channel.webhook.stored && !dryRun) {
+			const message = channel.webhook.note ?? "the webhook URL was not stored";
+			print(`  ✗ ${message}`);
+			return { status: "fail", channel, message };
+		}
 		return { status: dryRun ? "dry-run" : "ok", channel };
 	} catch (err) {
 		const message = errorMessage(err);

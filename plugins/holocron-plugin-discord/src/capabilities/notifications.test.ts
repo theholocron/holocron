@@ -296,3 +296,92 @@ describe("DiscordNotifications.ensureRole", () => {
 		expect(calls[1]?.body).toEqual({ name: "x" });
 	});
 });
+
+describe("DiscordNotifications — reconciling and resolving existing channels", () => {
+	const announce = (id: string, name: string) => ({ id, name, type: ChannelType.Announcement });
+
+	it("updates the topic of an existing channel when the layout asks for a different one", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ ...text("2001", "alerts"), topic: "old" }] },
+			{ body: text("2001", "alerts") },
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", topic: "new" })).toEqual({ id: "2001", created: false });
+		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { topic: "new" } });
+	});
+
+	it("leaves a matching topic alone and never clears one that was not asked about", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [{ ...text("2001", "alerts"), topic: "same" }] }]);
+		await notifs.ensureChannel({ name: "alerts", topic: "same" });
+		expect(calls).toHaveLength(1);
+		const second = makeProvisioner([{ body: [{ ...text("2001", "alerts"), topic: "kept" }] }]);
+		await second.notifs.ensureChannel({ name: "alerts" });
+		expect(second.calls).toHaveLength(1);
+	});
+
+	it("reuses an existing announcement channel instead of creating a text one", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [announce("2005", "releases")] }]);
+		expect(await notifs.ensureChannel({ name: "releases" })).toEqual({ id: "2005", created: false });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("picks the same-named channel that is already under the requested category", async () => {
+		const channels = [
+			category("1001", "ALERTS"),
+			category("1002", "AUTOMATION"),
+			text("2001", "sync", "1002"),
+			text("2002", "sync", "1001"),
+		];
+		const { notifs, calls } = makeProvisioner([{ body: channels }, { body: channels }]);
+		expect(await notifs.ensureChannel({ name: "sync", category: "ALERTS" })).toEqual({
+			id: "2002",
+			created: false,
+		});
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("creates a new channel rather than stealing one from a different category", async () => {
+		const channels = [category("1001", "ALERTS"), category("1002", "AUTOMATION"), text("2001", "sync", "1002")];
+		const { notifs, calls } = makeProvisioner([
+			{ body: channels },
+			{ body: channels },
+			{ body: text("2009", "sync", "1001") },
+		]);
+		expect(await notifs.ensureChannel({ name: "sync", category: "ALERTS" })).toEqual({ id: "2009", created: true });
+		expect(calls[2]).toMatchObject({ method: "POST", body: { name: "sync", parent_id: "1001" } });
+	});
+
+	it("attaches a webhook to the channel in the requested category, not just any same-named one", async () => {
+		const channels = [
+			category("1001", "ALERTS"),
+			category("1002", "AUTOMATION"),
+			text("2001", "sync", "1002"),
+			text("2002", "sync", "1001"),
+		];
+		const { notifs, calls } = makeProvisioner([
+			{ body: channels },
+			{ body: channels },
+			{ body: [] },
+			{ body: { id: "w1", name: "sync", channel_id: "2002", token: "tk" } },
+		]);
+		await notifs.ensureWebhook({ channel: "sync", name: "sync", category: "ALERTS" });
+		expect(calls[2]?.url).toBe(`${BASE}/channels/2002/webhooks`);
+	});
+
+	it("matches an existing webhook whose name differs only by case", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [{ id: "w1", name: "Repo-Sync", channel_id: "2001" }] },
+		]);
+		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({ created: false });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("treats an existing webhook with no name as a non-match", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [{ id: "w1", name: null, channel_id: "2001" }] },
+			{ body: { id: "w2", name: "sync", channel_id: "2001", token: "tk" } },
+		]);
+		expect((await notifs.ensureWebhook({ channel: "sync", name: "sync" })).created).toBe(true);
+	});
+});

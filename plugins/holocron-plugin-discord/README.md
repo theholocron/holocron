@@ -77,3 +77,7 @@ The bot needs Manage Channels, Manage Roles, Manage Webhooks and View Channels.
 Everything is idempotent (looked up by name). Discord returns a webhook's URL
 only to the application that created it, so a webhook the bot did not create
 cannot have its URL read back.
+
+`baseUrl` only redirects posting. The bot token is always sent to the real
+Discord API unless `unsafeBotBaseUrl: true` is also set (meant for tests that
+stub the API), so a changed config cannot redirect the token to another host.
