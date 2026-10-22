@@ -22,7 +22,7 @@ export async function pickMenuItem(items: MenuItem[], message = "What would you 
 export function searchChoices(
 	items: MenuItem[],
 	term: string | undefined
-): Array<{ name: string; value: string; description: string }> {
+): Array<{ name: string; value: string; description: string; short: string }> {
 	const needle = term?.toLowerCase();
 	const pool = !needle ? items : items.filter((i) => i.haystack.includes(needle));
 	// Name-prefix hits, then other name hits, then description-only hits (stable, so
@@ -35,5 +35,13 @@ export function searchChoices(
 	};
 	return [...pool]
 		.sort((a, b) => rank(a) - rank(b))
-		.map((i) => ({ name: i.name, value: i.value, description: i.description }));
+		.map((i) => ({
+			name: i.name,
+			value: i.value,
+			description: i.description,
+			// `name`'s trailing " ›" is a live-list-only signal ("this opens a
+			// submenu") — once picked, `search()` echoes `short` on the "done"
+			// line instead, so the chevron doesn't linger in the completed answer.
+			short: i.name.replace(/ ›$/, ""),
+		}));
 }

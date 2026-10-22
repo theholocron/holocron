@@ -89,8 +89,23 @@ describe("searchChoices — the `source` callback pickMenuItem hands to search()
 		expect(searchChoices(level, "up").map((c) => c.value)).toEqual(["group:repo upgrade", "repo setup"]);
 	});
 
-	it("each choice carries name, value, and description", () => {
+	it("each choice carries name, value, description, and short", () => {
 		const [choice] = searchChoices(items, "doctor");
-		expect(choice).toEqual({ name: "doctor", value: "doctor", description: "Check setup health" });
+		expect(choice).toEqual({
+			name: "doctor",
+			value: "doctor",
+			description: "Check setup health",
+			short: "doctor",
+		});
+	});
+
+	it("strips a group's trailing › from short, so the completed-answer echo doesn't show it (the live list's name keeps it)", () => {
+		const [choice] = searchChoices(items, "repo");
+		expect(choice).toEqual(expect.objectContaining({ name: "repo ›", value: "group:repo", short: "repo" }));
+	});
+
+	it("leaves short equal to name for a non-group item (no trailing ›)", () => {
+		const [choice] = searchChoices(items, "doctor");
+		expect(choice.name).toBe(choice.short);
 	});
 });
