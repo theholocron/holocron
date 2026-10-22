@@ -10,6 +10,7 @@
  *   auth     → `whoami()` (required on every provider)
  *   errors   → `whoami()` (org reachability) or `describe()`
  *   logs     → `whoami()` (dataset reachability) or `describe()`
+ *   wiki     → `whoami()` (token presence only — not a live check, see holocron#1079)
  *   others   → just "loaded" (no smoke endpoint defined yet)
  *
  * Output is plain text via a passed-in `print` function so tests can
@@ -36,6 +37,7 @@ import {
 	type Secrets,
 	type Source,
 	type Vault,
+	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
 import { pad, statusRow, style, withSpinner } from "../../ui/index.js";
@@ -284,6 +286,16 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			if (monitoring.whoami) {
 				const who = await monitoring.whoami();
 				return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token verified" : "token check failed");
+			}
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+		}
+		case "wiki": {
+			const wiki = impl as Wiki;
+			if (wiki.whoami) {
+				const who = await wiki.whoami();
+				// Not a live reachability check — see holocron#1079. "ok" means
+				// only that a token was found, not that it works.
+				return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token configured" : "token not configured");
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}

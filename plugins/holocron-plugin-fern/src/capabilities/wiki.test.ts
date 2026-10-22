@@ -362,3 +362,41 @@ describe("FernWiki.proxyConfig", () => {
 		expect(config?.headers).toEqual({ "X-Fern-Host": "wiki.example.com" });
 	});
 });
+
+describe("FernWiki.whoami", () => {
+	it("resolves ok: true when HOLOCRON_FERN_TOKEN is set", async () => {
+		const wiki = new FernWiki({ org: "myorg", env: { HOLOCRON_FERN_TOKEN: "tok" }, keyring: () => null });
+		await expect(wiki.whoami()).resolves.toEqual({ ok: true });
+	});
+
+	it("resolves ok: true when a Fern token is stored in the keyring", async () => {
+		const wiki = new FernWiki({ org: "myorg", env: {}, keyring: () => "tok" });
+		await expect(wiki.whoami()).resolves.toEqual({ ok: true });
+	});
+
+	it("resolves ok: false when no token is configured — not a live check (holocron#1079)", async () => {
+		const wiki = new FernWiki({ org: "myorg", env: {}, keyring: () => null });
+		await expect(wiki.whoami()).resolves.toEqual({ ok: false });
+	});
+
+	it("ignores cliToken (--token) — a bare flag meant for another provider must not read as 'configured'", async () => {
+		const wiki = new FernWiki({
+			org: "myorg",
+			cliToken: "some-other-providers-token",
+			env: {},
+			keyring: () => null,
+		});
+		await expect(wiki.whoami()).resolves.toEqual({ ok: false });
+	});
+
+	it("lets a non-AuthError from resolveToken (e.g. a keyring failure) propagate, not get reported as a missing token", async () => {
+		const wiki = new FernWiki({
+			org: "myorg",
+			env: {},
+			keyring: () => {
+				throw new Error("keyring locked");
+			},
+		});
+		await expect(wiki.whoami()).rejects.toThrow("keyring locked");
+	});
+});

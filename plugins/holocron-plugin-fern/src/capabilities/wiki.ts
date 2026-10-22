@@ -4,9 +4,11 @@ import { join } from "node:path";
 import type { DnsRecordRequest, Wiki, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
 import { stringifyJson } from "@theholocron/json-utils";
 
+import { AuthError, resolveToken, type ResolveTokenInput } from "../auth.js";
+
 export const FERN_VERSION = "5.114.1";
 
-export interface FernWikiOptions {
+export interface FernWikiOptions extends ResolveTokenInput {
 	/** Absolute path to the working repo root. Injected by the loader from RuntimeContext. */
 	repoRoot?: string;
 	/** Active org name (e.g. "theholocron"). Injected by the loader from RuntimeContext. */
@@ -75,6 +77,36 @@ export class FernWiki implements Wiki {
 			target: "https://app.buildwithfern.com",
 			headers: { "X-Fern-Host": hostname },
 		};
+	}
+
+	/**
+	 * Confirms `HOLOCRON_FERN_TOKEN`/`FERN_TOKEN` resolves, or a Fern token
+	 * is stored in the keyring — not a live check. Fern exposes no
+	 * lightweight endpoint to verify a token actually works (the only
+	 * token-consuming operation is a full `fern generate`, see
+	 * holocron#1079); this only confirms one is configured, the same way
+	 * CI's `fern generate --docs` step would find it.
+	 *
+	 * Deliberately ignores `cliToken` (`--token`): CI's step only ever sees
+	 * the env var from a GitHub Actions secret, never a CLI flag — and a
+	 * bare `--token <value>` meant for some OTHER provider is forwarded to
+	 * every loaded plugin as a fallback (see AGENTS.md), so honoring it
+	 * here would report "configured" even when no Fern-specific credential
+	 * exists anywhere CI would actually look.
+	 *
+	 * Only `AuthError` (the specific "no token found" signal) is treated as
+	 * `ok: false` — any other error (e.g. a real keyring failure) is a
+	 * genuine problem and must surface as a failure, not get misreported as
+	 * a missing token.
+	 */
+	async whoami(): Promise<{ ok: boolean }> {
+		try {
+			resolveToken({ ...this.opts, cliToken: undefined });
+			return { ok: true };
+		} catch (err) {
+			if (err instanceof AuthError) return { ok: false };
+			throw err;
+		}
 	}
 
 	dnsRecord(): DnsRecordRequest | null {
