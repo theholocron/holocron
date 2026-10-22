@@ -225,11 +225,11 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 		}
 		case "vault": {
 			const keys = await (impl as Vault).list();
-			return mk(key, provider, "ok", `keys: ${keys.length} configured`);
+			return mk(key, provider, "ok", `keys: ${keys.length} visible`);
 		}
 		case "deployment": {
 			const projects = await (impl as Deployment).listProjects();
-			return mk(key, provider, "ok", `projects: ${projects.length} configured`);
+			return mk(key, provider, "ok", `projects: ${projects.length} visible`);
 		}
 		case "environments": {
 			const envs = await (impl as Environments).listEnvironments();
@@ -239,7 +239,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			const dns = impl as Dns;
 			if (dns.whoami) {
 				const who = await dns.whoami();
-				return mk(key, provider, who.ok ? "ok" : "fail", `zones: ${who.zones} configured`);
+				return mk(key, provider, who.ok ? "ok" : "fail", `zones: ${who.zones} visible`);
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}
@@ -247,7 +247,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			const workers = impl as Workers;
 			if (workers.whoami) {
 				const who = await workers.whoami();
-				return mk(key, provider, who.ok ? "ok" : "fail", `scripts: ${who.scripts} configured`);
+				return mk(key, provider, who.ok ? "ok" : "fail", `scripts: ${who.scripts} visible`);
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}

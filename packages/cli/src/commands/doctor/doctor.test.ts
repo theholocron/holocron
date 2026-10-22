@@ -87,7 +87,7 @@ describe("runDoctor", () => {
 
 		const vaultRow = report.rows.find((r) => r.capability === "vault");
 		expect(vaultRow?.status).toBe("ok");
-		expect(vaultRow?.message).toContain("keys: 2 configured");
+		expect(vaultRow?.message).toContain("keys: 2 visible");
 
 		expect(report.summary).toEqual({ ok: 2, fail: 0, skip: 0 });
 		expect(lines.join("\n")).toContain("config: /tmp/test/holocron.config.json");
@@ -123,7 +123,7 @@ describe("runDoctor", () => {
 
 		expect(report.rows.find((r) => r.capability === "deployment")).toMatchObject({
 			status: "ok",
-			message: "projects: 2 configured",
+			message: "projects: 2 visible",
 		});
 		expect(report.rows.find((r) => r.capability === "environments")).toMatchObject({
 			status: "ok",
@@ -131,11 +131,11 @@ describe("runDoctor", () => {
 		});
 		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({
 			status: "ok",
-			message: "zones: 3 configured",
+			message: "zones: 3 visible",
 		});
 		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
 			status: "ok",
-			message: "scripts: 4 configured",
+			message: "scripts: 4 visible",
 		});
 	});
 
@@ -166,7 +166,7 @@ describe("runDoctor", () => {
 
 		expect(report.rows.find((r) => r.capability === "dns")).toMatchObject({
 			status: "fail",
-			message: "zones: 0 configured",
+			message: "zones: 0 visible",
 		});
 	});
 
@@ -182,7 +182,7 @@ describe("runDoctor", () => {
 
 		expect(report.rows.find((r) => r.capability === "workers")).toMatchObject({
 			status: "fail",
-			message: "scripts: 0 configured",
+			message: "scripts: 0 visible",
 		});
 	});
 
