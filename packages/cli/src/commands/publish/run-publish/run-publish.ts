@@ -92,7 +92,8 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	logger.info({ tag, dryRun: dryRun || undefined }, "publish --initial: start");
 
 	// ── 1. Verify npm auth — log in automatically if not ────────────────
-	print("→ verifying npm auth (`npm whoami`)…");
+	print("");
+	print(style.dim("  → verifying npm auth (`npm whoami`)…"));
 	let whoami = await exec("npm", ["whoami"], { cwd });
 	if (whoami.exitCode !== 0) {
 		print("    not authenticated — running `npm login --auth-type=web`…");
@@ -115,12 +116,12 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		}
 	}
 	const whoamiName = whoami.stdout.trim() || "<unknown>";
-	print(`  ✓ authed as ${whoamiName}`);
+	print(style.dim(`    ✓ authed as ${whoamiName}`));
 
 	print("");
-	print(`  cwd: ${cwd}`);
-	print(`  tag: ${tag}`);
-	if (otp) print(`  otp: <${otp.length} chars>`);
+	print(style.dim(`  cwd: ${cwd}`));
+	print(style.dim(`  tag: ${tag}`));
+	if (otp) print(style.dim(`  otp: <${otp.length} chars>`));
 	print("");
 
 	// ── 2. Resolve dynamic values needed for next-steps ─────────────────
