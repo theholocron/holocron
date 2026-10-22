@@ -15,6 +15,7 @@
 import autoCommitAction from "../../templates/reusable/actions/auto-commit.yml";
 import holocronAction from "../../templates/reusable/actions/holocron.yml";
 import installAction from "../../templates/reusable/actions/install.yml";
+import notifyAction from "../../templates/reusable/actions/notify.yml";
 import setupAction from "../../templates/reusable/actions/setup.yml";
 import setupNodeAction from "../../templates/reusable/actions/setup-node.yml";
 import bookkeepingWorkflow from "../../templates/reusable/bookkeeping.yml";
@@ -94,6 +95,7 @@ export const REUSABLE_ACTIONS: Record<string, string> = {
 	"auto-commit/action": autoCommitAction,
 	"holocron/action": holocronAction,
 	"install/action": installAction,
+	"notify/action": notifyAction,
 	"setup/action": setupAction,
 	"setup-node/action": setupNodeAction,
 };

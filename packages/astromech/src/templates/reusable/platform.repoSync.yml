@@ -37,6 +37,12 @@ on: # yamllint disable-line rule:truthy
         required: false
       HOLOCRON_SYNC_TOKEN:
         required: false
+      HOLOCRON_DISCORD_WEBHOOK:
+        description: >
+          Discord incoming webhook URL. When set, the run posts the sync PR
+          outcome (or a failure notice) to that channel; when unset, no
+          notification is sent.
+        required: false
       GH_TOKEN:
         description: >
           Generic GitHub token fallback for gh CLI calls. Used when
@@ -107,6 +113,7 @@ jobs:
           commit-options: "--no-verify"
 
       - name: Open PR and enable auto-merge
+        id: pr
         if: steps.auto-commit.outputs.changes-detected == 'true'
         run: |
           # Find or create this run's PR first: older PRs are only closed once
@@ -145,16 +152,30 @@ jobs:
           if [ "$HAS_PAT" != "true" ]; then
             echo "::warning::Sync PR $url opened with GITHUB_TOKEN: checks will not run and auto-merge is skipped. Set HOLOCRON_SYNC_TOKEN."
             echo "Sync PR $url — needs manual merge (no PAT)." >> "$GITHUB_STEP_SUMMARY"
+            result="needs a manual merge (no PAT, so checks will not run)"
           elif gh pr merge "$url" --auto --squash; then
             echo "Sync PR $url — auto-merge enabled." | tee -a "$GITHUB_STEP_SUMMARY"
+            result="auto-merge enabled"
           else
             echo "::warning::Sync PR $url opened but auto-merge could not be enabled; merge it manually."
             echo "Sync PR $url — needs manual merge." >> "$GITHUB_STEP_SUMMARY"
+            result="needs a manual merge (auto-merge could not be enabled)"
           fi
+          {
+            echo "url=$url"
+            echo "result=$result"
+          } >> "$GITHUB_OUTPUT"
         env:
           BRANCH: ${{ format('chore/auto-sync-{0}', github.sha) }}
           HAS_PAT: ${{ secrets.HOLOCRON_SYNC_TOKEN != '' || secrets.GH_TOKEN != '' }}
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Notify Discord of the sync PR
+        if: steps.pr.outputs.url != ''
+        with:
+          webhook: ${{ secrets.HOLOCRON_DISCORD_WEBHOOK }}
+          message: "🔄 ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}"
 
       - name: Broadcast wiki sync if navbar changed
         if: >-
@@ -170,3 +191,10 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Notify Discord of a failed sync
+        if: failure()
+        with:
+          webhook: ${{ secrets.HOLOCRON_DISCORD_WEBHOOK }}
+          message: "❌ ${{ github.repository }}: repo sync failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -1,0 +1,47 @@
+name: Notify
+description: >
+  Post a message to a Discord channel through an incoming webhook. Does
+  nothing (and never fails the calling job) when no webhook is provided, so
+  repos that haven't set one up are unaffected.
+
+inputs:
+  webhook:
+    description: >
+      Discord incoming webhook URL (https://discord.com/api/webhooks/{id}/{token}).
+      Pass `secrets.HOLOCRON_DISCORD_WEBHOOK`. Empty = skip.
+    required: false
+    default: ""
+  message:
+    description: Message text. Truncated to Discord's 2000-character limit.
+    required: true
+  username:
+    description: Display name for the post.
+    required: false
+    default: "Holocron"
+
+runs:
+  using: composite
+  steps:
+    - name: Post to Discord
+      shell: bash
+      run: |
+        if [ -z "$WEBHOOK" ]; then
+          echo "::notice::No Discord webhook set — skipping notification."
+          exit 0
+        fi
+        echo "::add-mask::$WEBHOOK"
+        # allowed_mentions.parse = [] so message text can never ping @everyone
+        # or a role. The body is built with jq so quotes/newlines in the
+        # message can't break the JSON.
+        body=$(jq -n --arg content "${MESSAGE:0:2000}" --arg username "$USERNAME" \
+          '{content: $content, username: $username, allowed_mentions: {parse: []}}')
+        status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 \
+          -H 'Content-Type: application/json' -d "$body" "$WEBHOOK" || true)
+        case "${status:-000}" in
+          2??) echo "Posted to Discord." ;;
+          *) echo "::warning::Discord notification failed (HTTP ${status:-000})." ;;
+        esac
+      env:
+        WEBHOOK: ${{ inputs.webhook }}
+        MESSAGE: ${{ inputs.message }}
+        USERNAME: ${{ inputs.username }}
