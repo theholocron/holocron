@@ -305,7 +305,12 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 				const who = await wiki.whoami();
 				// Not a live reachability check — see holocron#1079. "ok" means
 				// only that a token was found, not that it works.
-				return mk(key, provider, who.ok ? "ok" : "fail", who.ok ? "token configured" : "token not configured");
+				return mk(
+					key,
+					provider,
+					who.ok ? "ok" : "fail",
+					who.ok ? "token: configured" : "token: not configured"
+				);
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}

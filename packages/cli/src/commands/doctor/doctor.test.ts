@@ -941,7 +941,7 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("no smoke check defined");
 	});
 
-	it("wiki smoke check reports ok (token configured) when whoami passes", async () => {
+	it("wiki smoke check reports ok (token: configured) when whoami passes", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { wiki: "fern" },
@@ -964,10 +964,10 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "wiki");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("token configured");
+		expect(row?.message).toContain("token: configured");
 	});
 
-	it("wiki smoke check reports fail (token not configured) when whoami fails", async () => {
+	it("wiki smoke check reports fail (token: not configured) when whoami fails", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
 			providers: { wiki: "fern" },
@@ -990,7 +990,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "wiki");
 		expect(row?.status).toBe("fail");
-		expect(row?.message).toContain("token not configured");
+		expect(row?.message).toContain("token: not configured");
 	});
 
 	it("wiki falls through to skip when the provider defines no whoami", async () => {
