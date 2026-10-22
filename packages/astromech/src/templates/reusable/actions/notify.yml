@@ -1,24 +1,26 @@
 name: Notify
 description: >
-  Post a message to a Discord channel through an incoming webhook. Does
-  nothing (and never fails the calling job) when no webhook is provided, so
-  repos that haven't set one up are unaffected.
+  Post a message to a chat channel through an incoming webhook. The request
+  body is Discord-compatible (`content`, `username`, `allowed_mentions`), so
+  the webhook must accept that shape. Does nothing (and never fails the
+  calling job) when no webhook is provided, so repos that haven't set one up
+  are unaffected.
 
 inputs:
   webhook:
     description: >
-      Discord incoming webhook URL (https://discord.com/api/webhooks/{id}/{token}).
+      Incoming webhook URL for the target channel.
       A webhook posts to exactly one channel, so pass the secret for the
       channel this message belongs in (for example
-      `secrets.HOLOCRON_DISCORD_WEBHOOK_ALERTS`). Empty = skip.
+      `secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS`). Empty = skip.
     required: false
     default: ""
   message:
-    description: Message text. Truncated to Discord's 2000-character limit.
+    description: Message text. Truncated to 2000 characters.
     required: true
   mention:
     description: >
-      Optional Discord role id (digits only) to ping. Only that one role can
+      Optional role id (digits only) to ping. Only that one role can
       be mentioned; anything else in the message never pings.
     required: false
     default: ""
@@ -30,11 +32,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Post to Discord
+    - name: Post the notification
       shell: bash
       run: |
         if [ -z "$WEBHOOK" ]; then
-          echo "::notice::No Discord webhook set — skipping notification."
+          echo "::notice::No notification webhook set — skipping notification."
           exit 0
         fi
         echo "::add-mask::$WEBHOOK"
@@ -52,8 +54,8 @@ runs:
         status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 \
           -H 'Content-Type: application/json' -d "$body" "$WEBHOOK" || true)
         case "${status:-000}" in
-          2??) echo "Posted to Discord." ;;
-          *) echo "::warning::Discord notification failed (HTTP ${status:-000})." ;;
+          2??) echo "Notification posted." ;;
+          *) echo "::warning::Notification failed (HTTP ${status:-000})." ;;
         esac
       env:
         WEBHOOK: ${{ inputs.webhook }}

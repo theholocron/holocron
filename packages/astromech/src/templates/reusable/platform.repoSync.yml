@@ -37,16 +37,16 @@ on: # yamllint disable-line rule:truthy
         required: false
       HOLOCRON_SYNC_TOKEN:
         required: false
-      HOLOCRON_DISCORD_WEBHOOK_SYNC:
+      HOLOCRON_NOTIFY_WEBHOOK_SYNC:
         description: >
-          Discord webhook for the sync channel: a sync PR opened and its
+          Webhook for the sync channel: a sync PR opened and its
           auto-merge result. Unset = no post.
         required: false
-      HOLOCRON_DISCORD_WEBHOOK_ALERTS:
+      HOLOCRON_NOTIFY_WEBHOOK_ALERTS:
         description: >
-          Discord webhook for the alerts channel: a failed sync run, or a sync
+          Webhook for the alerts channel: a failed sync run, or a sync
           PR that needs a manual merge. Unset = no post. An optional
-          HOLOCRON_DISCORD_ALERT_ROLE variable (a Discord role id) makes
+          HOLOCRON_NOTIFY_ALERT_ROLE variable (a role id) makes
           these posts mention that role.
         required: false
       GH_TOKEN:
@@ -180,18 +180,18 @@ jobs:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
 
       - uses: theholocron/.github/.github/actions/notify@main
-        name: Notify Discord of the sync PR
+        name: Notify of the sync PR
         if: steps.pr.outputs.url != '' && steps.pr.outputs.attention != 'true'
         with:
-          webhook: ${{ secrets.HOLOCRON_DISCORD_WEBHOOK_SYNC }}
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_SYNC }}
           message: "🔄 ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}"
 
       - uses: theholocron/.github/.github/actions/notify@main
-        name: Notify Discord that a sync PR needs attention
+        name: Notify that a sync PR needs attention
         if: steps.pr.outputs.attention == 'true'
         with:
-          webhook: ${{ secrets.HOLOCRON_DISCORD_WEBHOOK_ALERTS }}
-          mention: ${{ vars.HOLOCRON_DISCORD_ALERT_ROLE }}
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
+          mention: ${{ vars.HOLOCRON_NOTIFY_ALERT_ROLE }}
           message: "⚠️ ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}"
 
       - name: Broadcast wiki sync if navbar changed
@@ -210,9 +210,9 @@ jobs:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
 
       - uses: theholocron/.github/.github/actions/notify@main
-        name: Notify Discord of a failed sync
+        name: Notify of a failed sync
         if: failure()
         with:
-          webhook: ${{ secrets.HOLOCRON_DISCORD_WEBHOOK_ALERTS }}
-          mention: ${{ vars.HOLOCRON_DISCORD_ALERT_ROLE }}
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
+          mention: ${{ vars.HOLOCRON_NOTIFY_ALERT_ROLE }}
           message: "❌ ${{ github.repository }}: repo sync failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
