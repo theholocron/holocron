@@ -579,6 +579,32 @@ describe("runDoctor", () => {
 		expect(issuesRow?.message).not.toContain("x/y");
 	});
 
+	it("issues smoke check names no unresolved slots when every lifecycle slot is ready", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { issues: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				issues: {
+					doctor: async () => ({
+						authedAs: "Newton (iamnewton)",
+						projectLabel: "Repo: x/y",
+						statuses: [],
+						lifecycle: [
+							{ slot: "inProgress" as const, value: "a", resolved: true, note: "" },
+							{ slot: "inReview" as const, value: "b", resolved: true, note: "" },
+							{ slot: "done" as const, value: "c", resolved: true, note: "" },
+						],
+					}),
+				},
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const row = report.rows.find((r) => r.capability === ("issues" satisfies CapabilityKey));
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toBe("lifecycle: 3/3 slots ready");
+	});
+
 	it("secrets smoke check reports configured secret count", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
@@ -968,7 +994,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "wiki");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("token: configured");
+		expect(row?.message).toBe("token: configured");
 	});
 
 	it("wiki smoke check reports fail (token: not configured) when whoami fails", async () => {
@@ -994,7 +1020,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "wiki");
 		expect(row?.status).toBe("fail");
-		expect(row?.message).toContain("token: not configured");
+		expect(row?.message).toBe("token: not configured");
 	});
 
 	it("wiki falls through to skip when the provider defines no whoami", async () => {
