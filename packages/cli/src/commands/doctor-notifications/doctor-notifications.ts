@@ -1,5 +1,5 @@
 /**
- * `holocron notifications verify` -- read-only: compare the layout a provider
+ * `holocron doctor notifications` -- read-only: compare the layout a provider
  * declares in `holocron.config.ts` with what is actually on the server and in the
  * secrets store, step by step.
  *
@@ -23,10 +23,10 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import type {
-	NotificationsVerifyReport,
-	RunNotificationsVerifyInput,
-	VerifyCheck,
-} from "./notifications-verify.type.js";
+	DoctorNotificationsReport,
+	NotificationsCheck,
+	RunDoctorNotificationsInput,
+} from "./doctor-notifications.type.js";
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
@@ -45,15 +45,15 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const shown = (s: string) => sanitizeDetail(s);
 const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
 
-export async function runNotificationsVerify(input: RunNotificationsVerifyInput): Promise<NotificationsVerifyReport> {
+export async function runDoctorNotifications(input: RunDoctorNotificationsInput): Promise<DoctorNotificationsReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "notifications verify");
+	assertPluginsResolvable(loader, "doctor notifications");
 
-	const checks: VerifyCheck[] = [];
+	const checks: NotificationsCheck[] = [];
 	const add = (id: string, title: string, problems: string[], pass: string): void => {
 		checks.push({
 			id,
@@ -73,24 +73,24 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		fail: checks.filter((c) => c.status === "fail").length,
 		skip: input.builtOnly ? PLANNED_CHECKS.length : 0,
 	});
-	const finish = (): NotificationsVerifyReport => {
+	const finish = (): DoctorNotificationsReport => {
 		const summary = summarise();
-		const report: NotificationsVerifyReport = {
+		const report: DoctorNotificationsReport = {
 			status: summary.fail > 0 ? "fail" : "ok",
 			checks,
 			summary,
 		};
 		logger.info(
 			{ ...summary, status: report.status, checks: checks.map((c) => `${c.id}:${c.status}`) },
-			"notifications verify"
+			"doctor notifications"
 		);
 		return report;
 	};
-	const refuse = (message: string, reason: string = message): NotificationsVerifyReport => {
+	const refuse = (message: string, reason: string = message): DoctorNotificationsReport => {
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "notifications verify");
+		logger.warn({ reason }, "doctor notifications");
 		return { status: "fail", checks, summary: summarise(), message };
 	};
 
