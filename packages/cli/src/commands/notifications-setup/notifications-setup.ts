@@ -94,9 +94,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
-	// Refuse a layout whose secret names would collide, before anything is created.
+	// Refuse a layout whose secret names would collide, or that the provider cannot apply,
+	// before anything is created: a half-applied layout is harder to reason about than none.
 	const secretProblem = layoutSecretProblem(layout);
 	if (secretProblem) return refuse(secretProblem);
+	const providerProblem = notifications.validateLayout?.(layout);
+	if (providerProblem) return refuse(providerProblem);
 
 	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
 	const tally = { ok: 0, skip: 0 };

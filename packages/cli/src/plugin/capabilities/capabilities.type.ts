@@ -1047,6 +1047,13 @@ export interface Notifications extends ProviderIdentity {
 	}): Promise<EnsuredResource>;
 
 	/**
+	 * Check the provider-specific parts of the layout (colours, permission names, …) without
+	 * touching the server, so `setup` can refuse a bad layout before it creates anything.
+	 * Returns the first problem, or `undefined` when the layout is fine.
+	 */
+	validateLayout?(layout: NotificationsLayout): string | undefined;
+
+	/**
 	 * Smoke check for `holocron doctor`: prove the provisioning credentials work
 	 * and name what they reach. Returns `null` when there is nothing to check (a
 	 * config that only posts has no provisioning credentials), which doctor shows

@@ -26,9 +26,9 @@ function colorToInt(hex: string): number {
 	return Number.parseInt(hex.slice(1), 16);
 }
 
-/** Discord's integer colour to `#rrggbb`; 0 is the default (no colour). */
-function colorToHex(color: number): string | undefined {
-	return color === 0 ? undefined : `#${color.toString(16).padStart(6, "0")}`;
+/** Discord's integer colour to `#rrggbb`. 0 is Discord's "no colour", and is what `#000000` means too. */
+function colorToHex(color: number): string {
+	return `#${color.toString(16).padStart(6, "0")}`;
 }
 
 /** An error as one line: the message, plus Discord's own response body when there is one. */
@@ -145,12 +145,11 @@ export class DiscordNotifications implements Notifications {
 		if ((layout.roles ?? []).length > 0) {
 			try {
 				roles = (await bot.guilds.roles(this.guild())).map((r) => {
-					const color = colorToHex(r.color);
 					return {
 						name: r.name,
 						id: r.id,
 						mentionable: r.mentionable,
-						...(color ? { color } : {}),
+						color: colorToHex(r.color),
 						...(r.hoist !== undefined ? { hoist: r.hoist } : {}),
 						...(r.permissions !== undefined ? { permissions: permissionNames(r.permissions) } : {}),
 					};
@@ -165,6 +164,18 @@ export class DiscordNotifications implements Notifications {
 			roles,
 			...(rolesError ? { rolesError } : {}),
 		};
+	}
+
+	validateLayout(layout: NotificationsLayout): string | undefined {
+		for (const role of layout.roles ?? []) {
+			try {
+				if (role.color !== undefined) colorToInt(role.color);
+				if (role.permissions !== undefined) permissions(role.permissions as PermissionName[]);
+			} catch (err) {
+				return `role \`${role.name}\`: ${errorMessage(err)}`;
+			}
+		}
+		return undefined;
 	}
 
 	private guild(): string {
@@ -309,9 +320,16 @@ export class DiscordNotifications implements Notifications {
 		// Validate the declared values before touching anything.
 		const color = input.color !== undefined ? colorToInt(input.color) : undefined;
 		const wanted = input.permissions !== undefined ? permissions(input.permissions as PermissionName[]) : undefined;
-		const existing = (await bot.guilds.roles(this.guild())).find((r) =>
+		const matches = (await bot.guilds.roles(this.guild())).filter((r) =>
 			DiscordNotifications.same(r.name, input.name)
 		);
+		// Discord allows two roles with one name; reconciling "the first" would leave the other unmanaged.
+		if (matches.length > 1) {
+			throw new Error(
+				`${matches.length} roles are named \`${input.name}\` (ids ${matches.map((r) => r.id).join(", ")}) — delete or rename the extras so setup knows which one to manage`
+			);
+		}
+		const existing = matches[0];
 		if (existing) {
 			// Change only what disagrees, so a run on a server that already matches sends nothing.
 			const patch: ModifyRoleInput = {};

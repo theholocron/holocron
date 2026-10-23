@@ -177,6 +177,18 @@ describe("runNotificationsSetup", () => {
 		expect(n.ensureRole).toHaveBeenCalledWith({ name: "x", permissions: ["ViewChannel"] });
 	});
 
+	it("refuses a layout the provider cannot apply before creating anything", async () => {
+		const n = fakeNotifications({ validateLayout: vi.fn(() => 'role `x`: invalid colour "red": use #rrggbb') });
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/use #rrggbb/);
+		expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
+		expect(n.ensureCategory).not.toHaveBeenCalled();
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureRole).not.toHaveBeenCalled();
+	});
+
 	it("ends a refusal with the count too", async () => {
 		const n = fakeNotifications({ layout: undefined });
 		const { run, lines } = setup(n);

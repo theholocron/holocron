@@ -696,10 +696,32 @@ describe("runDoctorNotifications — role colour, hoist and permissions", () => 
 		);
 	});
 
-	it("does not repeat a missing role: the roles check already says so", async () => {
+	it("fails, without calling it a pass, for a role that is missing", async () => {
 		const report = await run({ categories: [], channels: [], roles: [] });
 		expect(byId(report, "roles").status).toBe("fail");
-		expect(byId(report, "role-appearance").status).toBe("pass");
+		expect(byId(report, "role-appearance").status).toBe("fail");
+		expect(byId(report, "role-appearance").problems).toEqual(["gatekeepers: not checked, the role is missing"]);
+	});
+
+	it("says so when the provider did not report a role's permissions, instead of calling them empty", async () => {
+		const report = await run(found({ color: "#f0b232", hoist: true }));
+		expect(byId(report, "role-appearance").problems).toEqual([
+			"gatekeepers: the provider did not report its permissions",
+		]);
+	});
+
+	it("flags two roles with the same name", async () => {
+		const report = await run({
+			categories: [],
+			channels: [],
+			roles: [
+				{ name: "gatekeepers", id: "1", mentionable: false },
+				{ name: "Gatekeepers", id: "2", mentionable: false },
+			],
+		});
+		expect(byId(report, "roles").problems).toEqual([
+			"gatekeepers: 2 roles have this name; setup cannot tell which to manage",
+		]);
 	});
 
 	it("is not checked when the roles could not be read", async () => {

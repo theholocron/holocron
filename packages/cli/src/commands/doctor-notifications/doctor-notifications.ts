@@ -251,8 +251,13 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			roleProblems.push(`could not read the roles (${shown(inspected.rolesError)})`);
 		}
 		for (const role of inspected.rolesError ? [] : roles) {
-			const actual = inspected.roles.find((r) => same(r.name, role.name));
-			if (!actual) {
+			const named = inspected.roles.filter((r) => same(r.name, role.name));
+			const actual = named[0];
+			if (named.length > 1) {
+				roleProblems.push(
+					`${shown(role.name)}: ${named.length} roles have this name; setup cannot tell which to manage`
+				);
+			} else if (!actual) {
 				roleProblems.push(`${shown(role.name)}: missing`);
 			} else if (role.mentionable !== undefined && actual.mentionable !== role.mentionable) {
 				roleProblems.push(
@@ -272,7 +277,11 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		if (!inspected.rolesError) {
 			for (const role of roles) {
 				const actual = inspected.roles.find((r) => same(r.name, role.name));
-				if (!actual) continue; // already reported as missing by the roles check
+				if (!actual) {
+					// The roles check says it is missing; this one cannot say anything about it either.
+					appearance.push(`${shown(role.name)}: not checked, the role is missing`);
+					continue;
+				}
 				if (role.color !== undefined && (actual.color ?? "").toLowerCase() !== role.color.toLowerCase()) {
 					appearance.push(
 						`${shown(role.name)}: colour is ${shown(actual.color ?? "default")} but the layout says ${shown(role.color)}`
@@ -283,7 +292,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 						`${shown(role.name)}: hoist is ${actual.hoist ?? false} but the layout says ${role.hoist}`
 					);
 				}
-				if (role.permissions !== undefined) {
+				if (role.permissions !== undefined && actual.permissions === undefined) {
+					appearance.push(`${shown(role.name)}: the provider did not report its permissions`);
+				} else if (role.permissions !== undefined) {
 					const have = new Set((actual.permissions ?? []).map((n) => n.toLowerCase()));
 					const want = new Set(role.permissions.map((n) => n.toLowerCase()));
 					const missing = role.permissions.filter((n) => !have.has(n.toLowerCase()));
