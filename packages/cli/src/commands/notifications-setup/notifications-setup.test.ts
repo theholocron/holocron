@@ -133,6 +133,28 @@ describe("runNotificationsSetup", () => {
 		expect(stored).toEqual([]);
 		expect(lines.join("\n")).toContain("would ensure role gatekeepers");
 		expect(lines.join("\n")).toContain("would ensure category EMPTY");
+		// 3 categories + 3 channels + 2 webhooks + 2 roles, all only previewed
+		expect(lines.at(-1)).toBe("0 ok, 0 fail, 10 skipped");
+	});
+
+	it("still counts a channel it created when its webhook then fails", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => {
+				throw new Error("Missing Permissions");
+			}),
+		});
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.failures.map((f) => f.step)).toEqual(["channel alerts", "channel sync"]);
+		// 3 categories + 3 channels + 2 roles made; the two webhook steps failed
+		expect(lines.at(-1)).toBe("8 ok, 2 fail, 0 skipped");
+	});
+
+	it("ends a refusal with the count too", async () => {
+		const n = fakeNotifications({ layout: undefined });
+		const { run, lines } = setup(n);
+		await run();
+		expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
 	});
 
 	it("keeps going after a failing step and exits fail", async () => {
@@ -148,7 +170,7 @@ describe("runNotificationsSetup", () => {
 		expect(report.failures).toEqual([{ step: "channel errors", message: "Missing Permissions" }]);
 		expect(report.channels.map((c) => c.name)).toEqual(["alerts", "sync"]);
 		expect(report.roles).toHaveLength(2);
-		expect(lines.join("\n")).toMatch(/\d+ ok, 1 fail, \d+ skipped/);
+		expect(lines.at(-1)).toBe("9 ok, 1 fail, 0 skipped");
 	});
 
 	it("counts a webhook it could not store as needing attention", async () => {
@@ -350,11 +372,9 @@ describe("runNotificationsSetup", () => {
 		});
 		const { run, lines } = setup(n);
 		const report = await run();
-		const total = lines.at(-1)!;
 		expect(report.failures).toEqual([]);
-		expect(total).toMatch(/^\d+ ok, 0 fail, \d+ skipped$/);
-		const skipped = Number(/(\d+) skipped/.exec(total)![1]);
-		expect(skipped).toBeGreaterThanOrEqual(2); // the category and the role were already there
+		// 3 channels + 2 webhooks made; 3 categories + 2 roles already there
+		expect(lines.at(-1)).toBe("5 ok, 0 fail, 5 skipped");
 	});
 
 	it("prints to the console when no print function is given", async () => {

@@ -88,6 +88,8 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 	};
 	const refuse = (message: string, reason: string = message): NotificationsVerifyReport => {
 		print(`  ${style.fail(message)}`);
+		print("");
+		print(style.header("0 ok, 1 fail, 0 skipped"));
 		logger.warn({ reason }, "notifications verify");
 		return { status: "fail", checks, summary: summarise(), message };
 	};

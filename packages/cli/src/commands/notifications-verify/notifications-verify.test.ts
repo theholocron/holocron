@@ -147,7 +147,7 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 
 	it("renders one line per check and ends with a count", async () => {
 		const { run, lines } = setup(fakeNotifications());
-		await run();
+		const report = await run();
 		const out = lines.join("\n");
 		expect(out).not.toContain("Holocron notifications verify");
 		expect(out).toContain("✓ server");
@@ -157,6 +157,8 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 		expect(out).toContain("not built yet (#1098, step 8)");
 		expect(out).toContain("✗ server created from config");
 		expect(out).toContain("6 ok, 9 fail, 0 skipped");
+		// every check has its own row, built or not
+		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
 
 	it("changes nothing: no provisioning call and no secret is written", async () => {
@@ -429,6 +431,7 @@ describe("runNotificationsVerify — refusals", () => {
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/declares no layout/);
 		expect(lines.join("\n")).toContain("✗ the `discord` provider declares no layout");
+		expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
 	});
 
 	it("refuses when no notifications provider can be inspected", async () => {

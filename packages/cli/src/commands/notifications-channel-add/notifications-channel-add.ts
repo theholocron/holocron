@@ -181,7 +181,7 @@ export function layoutSecretProblem(layout: NotificationsLayout): string | undef
 
 /** Ensure one channel and, if asked, its webhook + secret. Shared with `notifications setup`. */
 export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): Promise<ChannelOutcome> {
-	const { notifications, secrets, scope, dryRun, print } = deps;
+	const { notifications, secrets, scope, dryRun, print, tally } = deps;
 	const webhookCfg = spec.webhook || undefined;
 	const secretName = webhookCfg?.secret ?? defaultSecretName(spec.name);
 	const webhookName = webhookCfg?.name ?? spec.name;
@@ -205,6 +205,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 
 	if (dryRun) {
 		print(`  ${style.skip(`would ensure channel ${spec.name}${where}`)}`);
+		if (tally) tally.skip += webhookCfg ? 2 : 1;
 		if (webhookCfg)
 			print(`  ${style.skip(`would ensure webhook ${webhookName} and store its URL in ${secretName}`)}`);
 		return { name: spec.name, ...(spec.category ? { category: spec.category } : {}), created: false };
@@ -218,6 +219,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	print(
 		`  ${(channel.created ? style.success : style.skip)(`${channel.created ? "created" : "exists "} channel ${spec.name}${where}`)}`
 	);
+	if (tally) tally[channel.created ? "ok" : "skip"]++;
 	const outcome: ChannelOutcome = {
 		name: spec.name,
 		...(spec.category ? { category: spec.category } : {}),
@@ -245,6 +247,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		print(
 			`  ${style.success(`${hook.created ? "created" : "found  "} webhook ${webhookName}; URL stored in ${secretName}`)}`
 		);
+		if (tally) tally.ok++;
 		outcome.webhook = { name: webhookName, created: hook.created, secret: secretName, stored: true };
 	} else {
 		const note =

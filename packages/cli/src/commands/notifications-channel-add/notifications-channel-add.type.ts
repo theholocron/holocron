@@ -60,6 +60,11 @@ export interface ProvisionDeps {
 	scope: SecretScope;
 	dryRun: boolean;
 	print: NotificationsChannelAddPrint;
+	/**
+	 * Counted as each action happens, so a step that throws part-way still counts what it
+	 * already did (a created channel whose webhook then failed is still a created channel).
+	 */
+	tally?: { ok: number; skip: number };
 }
 
 export interface ChannelSpec {
