@@ -12,11 +12,12 @@ import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocr
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
 import {
+	AuthError,
 	resolveAdminToken,
 	resolveIssuesToken,
 	resolveOrgToken,
 	resolveReadToken,
-	resolveSecretsOrAdminToken,
+	resolveSecretsToken,
 	type ResolveTokenInput,
 } from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
@@ -58,8 +59,8 @@ export function source(ctx: PluginContext, orgClient?: GitHubClient): Source {
 	});
 }
 
-export function secrets(ctx: PluginContext): Secrets {
-	return new GitHubSecrets(ctx.client, { repo: ctx.repo });
+export function secrets(ctx: PluginContext, orgClient?: GitHubClient): Secrets {
+	return new GitHubSecrets(ctx.client, { repo: ctx.repo }, orgClient);
 }
 
 export function environments(ctx: PluginContext): Environments {
@@ -94,6 +95,37 @@ export function createPlugin(options: GitHubPluginOptions) {
 		};
 	}
 
+	/** A token, or undefined when that feature token is simply not configured. */
+	function tryResolve(resolver: (input: ResolveTokenInput) => string): string | undefined {
+		try {
+			return resolver(options);
+		} catch (err) {
+			if (err instanceof AuthError) return undefined;
+			throw err;
+		}
+	}
+
+	/**
+	 * Organization secrets need an org-resource-owner token (`github.secrets`);
+	 * repo and environment secrets need `github.admin`. Each scope prefers its own
+	 * token and falls back to the other, so a setup with only one of them keeps
+	 * working, and an explicit `--token` serves both. With neither configured this
+	 * fails exactly as the admin-token capabilities do.
+	 */
+	function makeSecrets(): Secrets {
+		const secretsToken = tryResolve(resolveSecretsToken);
+		const adminToken = tryResolve(resolveAdminToken);
+		if (!secretsToken && !adminToken) resolveAdminToken(options); // throws the familiar AuthError
+		const clientFor = (token: string) =>
+			createGitHubClient({ token, baseUrl: options.baseUrl, fetch: options.fetch });
+		const repoClient = clientFor((adminToken ?? secretsToken)!);
+		const orgClient = clientFor((secretsToken ?? adminToken)!);
+		return secrets(
+			{ options, client: repoClient, repo: options.repo, repoRoot: options.repoRoot ?? process.cwd() },
+			orgClient
+		);
+	}
+
 	function makeOrgClient(): GitHubClient | undefined {
 		try {
 			const token = resolveOrgToken(options);
@@ -108,7 +140,7 @@ export function createPlugin(options: GitHubPluginOptions) {
 		capabilities: {
 			source: () => source(makeCtx(resolveAdminToken), makeOrgClient()),
 			ci: () => ci(makeCtx(resolveReadToken)),
-			secrets: () => secrets(makeCtx(resolveSecretsOrAdminToken)),
+			secrets: () => makeSecrets(),
 			environments: () => environments(makeCtx(resolveAdminToken)),
 			issues: () => issues(makeCtx(resolveIssuesToken)),
 		},

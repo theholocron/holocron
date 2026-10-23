@@ -33,3 +33,14 @@ export function describeProviderError(err: unknown): string {
 	}
 	return errorMessage(err);
 }
+
+/**
+ * What to put in structured logs: the plain message of the underlying error,
+ * with no response body. The detail {@link describeProviderError} adds is for the
+ * person at the terminal; a provider's raw body has no business in telemetry.
+ * Wrapper errors carry the original as `cause`, so look through one level.
+ */
+export function logReason(err: unknown): string {
+	const root = err instanceof Error && err.cause !== undefined ? err.cause : err;
+	return errorMessage(root);
+}

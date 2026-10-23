@@ -471,3 +471,48 @@ describe("DiscordNotifications — channel list is fetched once per run", () => 
 		expect(calls.filter((c) => c.method === "PATCH")).toHaveLength(1);
 	});
 });
+
+describe("DiscordNotifications — channel list under failure and concurrency", () => {
+	it("shares one in-flight fetch between callers that start together", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [category("1001", "ALERTS")] }]);
+		const results = await Promise.all([
+			notifs.ensureCategory("ALERTS"),
+			notifs.ensureCategory("alerts"),
+			notifs.ensureCategory("Alerts"),
+		]);
+		expect(results.every((r) => r.id === "1001" && !r.created)).toBe(true);
+		expect(calls.filter((c) => c.method === "GET")).toHaveLength(1);
+	});
+
+	it("does not remember a failed list fetch", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ status: 500, text: "oops" },
+			{ body: [category("1001", "ALERTS")] },
+		]);
+		await expect(notifs.ensureCategory("ALERTS")).rejects.toBeInstanceOf(ProviderApiError);
+		expect(await notifs.ensureCategory("ALERTS")).toEqual({ id: "1001", created: false });
+		expect(calls.filter((c) => c.method === "GET")).toHaveLength(2);
+	});
+
+	it("refetches after a failed create, so an ambiguous failure cannot lead to a duplicate", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] }, // first list
+			{ status: 500, text: "timeout" }, // create fails, but Discord may have applied it
+			{ body: [category("1007", "ALERTS")] }, // the refetch shows it did
+		]);
+		await expect(notifs.ensureCategory("ALERTS")).rejects.toBeInstanceOf(ProviderApiError);
+		expect(await notifs.ensureCategory("ALERTS")).toEqual({ id: "1007", created: false });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "POST", "GET"]);
+	});
+
+	it("refetches after a failed edit as well", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ ...text("2001", "alerts"), topic: "old" }] },
+			{ status: 500, text: "timeout" },
+			{ body: [{ ...text("2001", "alerts"), topic: "new" }] },
+		]);
+		await expect(notifs.ensureChannel({ name: "alerts", topic: "new" })).rejects.toBeInstanceOf(ProviderApiError);
+		await notifs.ensureChannel({ name: "alerts", topic: "new" });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "PATCH", "GET"]);
+	});
+});

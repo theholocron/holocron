@@ -35,20 +35,6 @@ export const resolveSecretsToken = createFeatureResolver({
 	keyringKey: "github.secrets",
 });
 
-/**
- * What the `secrets` capability uses: the dedicated secrets token when one is
- * set, else `github.admin` as before. An explicit `--token` wins either way.
- * Only a missing secrets token falls back; any other error is real.
- */
-export function resolveSecretsOrAdminToken(input?: ResolveTokenInput): string {
-	try {
-		return resolveSecretsToken(input);
-	} catch (err) {
-		if (err instanceof AuthError) return resolveAdminToken(input);
-		throw err;
-	}
-}
-
 export const resolveDeployToken = createFeatureResolver({
 	envName: "HOLOCRON_DEPLOY_TOKEN",
 	keyringKey: "github.deploy",

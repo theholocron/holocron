@@ -110,3 +110,54 @@ describe("GitHubSecrets — organization scope", () => {
 		expect(body.key_id).toBe("org-keyid");
 	});
 });
+
+describe("GitHubSecrets — token per scope", () => {
+	function makeTwoClient() {
+		const repoStub = stubFetch([{ status: 200, body: { total_count: 0, secrets: [] } }]);
+		const orgStub = stubFetch([{ status: 200, body: { total_count: 0, secrets: [] } }]);
+		const secrets = new GitHubSecrets(
+			createGitHubClient({ token: "admin-pat", fetch: repoStub.fetch }),
+			{ repo: REPO },
+			createGitHubClient({ token: "org-pat", fetch: orgStub.fetch })
+		);
+		return { secrets, repoStub, orgStub };
+	}
+
+	it("lists org secrets with the org client and repo secrets with the repo client", async () => {
+		const { secrets, repoStub, orgStub } = makeTwoClient();
+		await secrets.listSecrets({ kind: "organization", name: "theholocron" });
+		expect(orgStub.calls).toHaveLength(1);
+		expect(orgStub.calls[0]?.headers.authorization).toBe("Bearer org-pat");
+		expect(repoStub.calls).toHaveLength(0);
+
+		const second = makeTwoClient();
+		await second.secrets.listSecrets({ kind: "repo" });
+		expect(second.repoStub.calls[0]?.headers.authorization).toBe("Bearer admin-pat");
+		expect(second.orgStub.calls).toHaveLength(0);
+	});
+
+	it("uses the repo client for environment secrets and for deletes by scope", async () => {
+		const repoStub = stubFetch([{ status: 204 }]);
+		const orgStub = stubFetch([{ status: 204 }]);
+		const secrets = new GitHubSecrets(
+			createGitHubClient({ token: "admin-pat", fetch: repoStub.fetch }),
+			{ repo: REPO },
+			createGitHubClient({ token: "org-pat", fetch: orgStub.fetch })
+		);
+		await secrets.deleteSecret({ kind: "environment", name: "production" }, "X");
+		await secrets.deleteSecret({ kind: "organization", name: "theholocron" }, "Y");
+		expect(repoStub.calls[0]?.headers.authorization).toBe("Bearer admin-pat");
+		expect(orgStub.calls[0]?.headers.authorization).toBe("Bearer org-pat");
+	});
+
+	it("uses its single client for every scope when no org client is given", async () => {
+		const stub = stubFetch([
+			{ status: 200, body: { total_count: 0, secrets: [] } },
+			{ status: 200, body: { total_count: 0, secrets: [] } },
+		]);
+		const secrets = new GitHubSecrets(createGitHubClient({ token: "only-pat", fetch: stub.fetch }), { repo: REPO });
+		await secrets.listSecrets({ kind: "repo" });
+		await secrets.listSecrets({ kind: "organization", name: "theholocron" });
+		expect(stub.calls.map((c) => c.headers.authorization)).toEqual(["Bearer only-pat", "Bearer only-pat"]);
+	});
+});

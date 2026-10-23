@@ -85,11 +85,39 @@ export class DiscordNotifications implements Notifications {
 	 * to refetch it -- about 40 identical GETs in one setup run -- and Discord
 	 * rate-limited the route. Our own creates and edits update the copy, so it
 	 * stays accurate for the run; a new run builds a new instance.
+	 *
+	 * It is the in-flight promise that is shared, not the array: callers that start
+	 * while the first fetch is pending all get the same snapshot, so a later
+	 * response can never overwrite what an earlier caller added.
 	 */
-	private channelCache?: DiscordChannel[];
+	private channelLoad?: Promise<DiscordChannel[]>;
 
-	private async channelList(): Promise<DiscordChannel[]> {
-		return (this.channelCache ??= await this.bot().guilds.channels(this.guild()));
+	private channelList(): Promise<DiscordChannel[]> {
+		return (this.channelLoad ??= this.bot()
+			.guilds.channels(this.guild())
+			.catch((err: unknown) => {
+				this.channelLoad = undefined; // a failed fetch must not be remembered
+				throw err;
+			}));
+	}
+
+	/**
+	 * Create a channel and add it to the shared list. If the create fails, Discord
+	 * may still have applied it (a timeout looks the same as a refusal), so forget the
+	 * list: the next ensure refetches the server's real state instead of creating a
+	 * duplicate.
+	 */
+	private async createChannel(
+		body: Parameters<DiscordBotClient["guilds"]["createChannel"]>[1]
+	): Promise<DiscordChannel> {
+		try {
+			const made = await this.bot().guilds.createChannel(this.guild(), body);
+			(await this.channelList()).push(made);
+			return made;
+		} catch (err) {
+			this.channelLoad = undefined;
+			throw err;
+		}
 	}
 
 	// Discord lower-cases text-channel names on creation, so compare case-insensitively.
@@ -98,13 +126,11 @@ export class DiscordNotifications implements Notifications {
 	}
 
 	async ensureCategory(name: string): Promise<EnsuredResource> {
-		const bot = this.bot();
 		const existing = (await this.channelList()).find(
 			(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, name)
 		);
 		if (existing) return { id: existing.id, created: false };
-		const made = await bot.guilds.createChannel(this.guild(), { name, type: ChannelType.Category });
-		this.channelCache?.push(made);
+		const made = await this.createChannel({ name, type: ChannelType.Category });
 		return { id: made.id, created: true };
 	}
 
@@ -139,18 +165,22 @@ export class DiscordNotifications implements Notifications {
 				...(input.topic !== undefined && (existing.topic ?? "") !== input.topic ? { topic: input.topic } : {}),
 			};
 			if (Object.keys(patch).length > 0) {
-				await bot.channels.modify(existing.id, patch);
+				try {
+					await bot.channels.modify(existing.id, patch);
+				} catch (err) {
+					this.channelLoad = undefined; // may have applied; see createChannel
+					throw err;
+				}
 				Object.assign(existing, patch);
 			}
 			return { id: existing.id, created: false };
 		}
-		const made = await bot.guilds.createChannel(this.guild(), {
+		const made = await this.createChannel({
 			name: input.name,
 			type: ChannelType.Text,
 			...(input.topic ? { topic: input.topic } : {}),
 			...(parent ? { parent_id: parent } : {}),
 		});
-		this.channelCache?.push(made);
 		return { id: made.id, created: true };
 	}
 

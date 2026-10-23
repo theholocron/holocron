@@ -16,7 +16,7 @@ import {
 	type Secrets,
 	type SecretScope,
 } from "../../plugin/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
+import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import type {
 	ChannelOutcome,
 	ChannelSpec,
@@ -34,18 +34,24 @@ export function defaultSecretName(channel: string): string {
 	return `HOLOCRON_NOTIFY_WEBHOOK_${channel.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
 }
 
+/** A throwaway secret, written and removed to prove write access. */
+export const PREFLIGHT_SECRET = "HOLOCRON_NOTIFY_PREFLIGHT";
+
 /**
- * Prove the secrets store can be reached BEFORE creating anything that needs it.
+ * Prove the secrets store can be WRITTEN before creating anything that needs it.
  * A webhook's URL is shown once; creating the webhook and then failing to store
- * it leaves an orphan the user has to delete by hand.
+ * it leaves an orphan the user has to delete by hand. Listing is not enough --
+ * a token can read secrets it cannot write -- so write a throwaway secret and
+ * remove it.
  */
 export async function assertSecretsReachable(secrets: Secrets, scope: SecretScope): Promise<void> {
 	try {
-		await secrets.listSecrets(scope);
+		await secrets.setSecret(scope, PREFLIGHT_SECRET, "ok");
+		await secrets.deleteSecret(scope, PREFLIGHT_SECRET);
 	} catch (err) {
 		const where = scope.kind === "organization" ? `organization ${scope.name}` : scope.kind;
 		throw new Error(
-			`cannot reach the secrets store for ${where} (${describeProviderError(err)}) — fix that token before creating webhooks`,
+			`cannot write to the secrets store for ${where} (${describeProviderError(err)}) — fix that token before creating webhooks`,
 			{ cause: err }
 		);
 	}
@@ -232,7 +238,7 @@ export async function runNotificationsChannelAdd(
 	} catch (err) {
 		const message = describeProviderError(err);
 		print(`  ✗ ${message}`);
-		logger.warn({ channel: input.name, reason: message }, `notifications channel add: ${input.name}`);
+		logger.warn({ channel: input.name, reason: logReason(err) }, `notifications channel add: ${input.name}`);
 		return { status: "fail", message };
 	}
 }

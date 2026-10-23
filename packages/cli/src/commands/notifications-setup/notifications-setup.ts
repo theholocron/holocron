@@ -15,7 +15,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Secrets } from "../../plugin/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
+import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import {
 	assertSecretsReachable,
 	defaultSecretName,
@@ -38,9 +38,9 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 
 	// A precondition failure is printed and returned, never thrown: the CLI's
 	// global handler swallows a plain Error, so a bare throw would exit 1 silently.
-	const refuse = (message: string): NotificationsSetupReport => {
+	const refuse = (message: string, reason: string = message): NotificationsSetupReport => {
 		print(`  ✗ ${message}`);
-		logger.warn({ reason: message }, "notifications setup");
+		logger.warn({ reason }, "notifications setup");
 		return { ...report, status: "fail", message };
 	};
 
@@ -84,7 +84,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		try {
 			await assertSecretsReachable(secrets, scope);
 		} catch (err) {
-			return refuse(errorMessage(err));
+			return refuse(errorMessage(err), logReason(err));
 		}
 	}
 

@@ -3,6 +3,7 @@
  * implementations of every capability it declares.
  */
 
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -57,24 +58,64 @@ describe("createPlugin", () => {
 		expect((issuesErr as Error).message).toMatch(/HOLOCRON_ISSUES_TOKEN/);
 	});
 
-	it("builds the secrets capability from github.secrets alone, with no admin token", () => {
-		const plugin = createPlugin({
-			repo: "theholocron/holocron",
-			env: { HOLOCRON_SECRETS_TOKEN: "org-secrets-pat" },
-			keyring: () => null,
-		});
-		expect(plugin.capabilities.secrets()).toBeInstanceOf(GitHubSecrets);
-		// ...while the capabilities that need the admin token still refuse without it.
-		expect(() => plugin.capabilities.source()).toThrow(AuthError);
-	});
+	describe("secrets capability picks its token by scope", () => {
+		const EMPTY = { status: 200, body: { total_count: 0, secrets: [] } };
 
-	it("still builds the secrets capability from the admin token when there is no secrets token", () => {
-		const plugin = createPlugin({
-			repo: "theholocron/holocron",
-			env: { HOLOCRON_ADMIN_TOKEN: "admin-pat" },
-			keyring: () => null,
+		async function authFor(env: Record<string, string>, scope: Parameters<GitHubSecrets["listSecrets"]>[0]) {
+			const stub = stubFetch([EMPTY]);
+			const plugin = createPlugin({ repo: "theholocron/holocron", env, keyring: () => null, fetch: stub.fetch });
+			await plugin.capabilities.secrets().listSecrets(scope);
+			return stub.calls[0]?.headers.authorization;
+		}
+		const ORG = { kind: "organization", name: "theholocron" } as const;
+		const BOTH = { HOLOCRON_SECRETS_TOKEN: "org-pat", HOLOCRON_ADMIN_TOKEN: "admin-pat" };
+
+		it("with both tokens: org scope uses github.secrets, repo and environment scopes use github.admin", async () => {
+			expect(await authFor(BOTH, ORG)).toBe("Bearer org-pat");
+			expect(await authFor(BOTH, { kind: "repo" })).toBe("Bearer admin-pat");
+			expect(await authFor(BOTH, { kind: "environment", name: "production" })).toBe("Bearer admin-pat");
 		});
-		expect(plugin.capabilities.secrets()).toBeInstanceOf(GitHubSecrets);
+
+		it("with only github.secrets: it serves every scope (it is better than nothing)", async () => {
+			const env = { HOLOCRON_SECRETS_TOKEN: "org-pat" };
+			expect(await authFor(env, ORG)).toBe("Bearer org-pat");
+			expect(await authFor(env, { kind: "repo" })).toBe("Bearer org-pat");
+		});
+
+		it("with only github.admin: it serves every scope, as before this token existed", async () => {
+			const env = { HOLOCRON_ADMIN_TOKEN: "admin-pat" };
+			expect(await authFor(env, ORG)).toBe("Bearer admin-pat");
+			expect(await authFor(env, { kind: "repo" })).toBe("Bearer admin-pat");
+		});
+
+		it("an explicit token serves every scope", async () => {
+			const stub = stubFetch([EMPTY, EMPTY]);
+			const plugin = createPlugin({
+				repo: "theholocron/holocron",
+				cliToken: "cli-pat",
+				env: BOTH,
+				keyring: () => null,
+				fetch: stub.fetch,
+			});
+			const caps = plugin.capabilities.secrets();
+			await caps.listSecrets(ORG);
+			await caps.listSecrets({ kind: "repo" });
+			expect(stub.calls.map((c) => c.headers.authorization)).toEqual(["Bearer cli-pat", "Bearer cli-pat"]);
+		});
+
+		it("with neither token it fails like the other admin-token capabilities", () => {
+			const plugin = createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null });
+			expect(() => plugin.capabilities.secrets()).toThrow(AuthError);
+			expect(() => plugin.capabilities.secrets()).toThrow(/HOLOCRON_ADMIN_TOKEN/);
+		});
+
+		it("does not swallow an error that is not a missing token", () => {
+			const boom = () => {
+				throw new TypeError("keyring exploded");
+			};
+			const plugin = createPlugin({ repo: "theholocron/holocron", env: {}, keyring: boom });
+			expect(() => plugin.capabilities.secrets()).toThrow(TypeError);
+		});
 	});
 
 	it("wires every capability with the right concrete implementation", () => {

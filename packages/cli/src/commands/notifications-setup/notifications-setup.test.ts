@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
+import { PREFLIGHT_SECRET } from "../notifications-channel-add/index.js";
 import { runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -68,7 +69,10 @@ function setup(notifications: Notifications, opts: { secrets?: boolean; dryRun?:
 			secrets: {
 				providerName: "github",
 				listSecrets: async () => [] as string[],
-				setSecret: async (_s: unknown, name: string, value: string) => void stored.push({ name, value }),
+				setSecret: async (_s: unknown, name: string, value: string) => {
+					if (name !== PREFLIGHT_SECRET) stored.push({ name, value });
+				},
+				deleteSecret: async () => {},
 			},
 		}),
 	});
@@ -297,7 +301,12 @@ describe("runNotificationsSetup", () => {
 		const loaded = loadedFrom({ name: "demo", providers: { secrets: "github" } });
 		const loader = makeLoader(loaded, {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
-				secrets: { providerName: "github", listSecrets: async () => [] as string[], setSecret: async () => {} },
+				secrets: {
+					providerName: "github",
+					listSecrets: async () => [] as string[],
+					setSecret: async () => {},
+					deleteSecret: async () => {},
+				},
 			}),
 		});
 		const report = await runNotificationsSetup({
@@ -350,14 +359,15 @@ describe("runNotificationsSetup", () => {
 			"@theholocron/holocron-plugin-github": makePlugin("gh", {
 				secrets: {
 					providerName: "github",
-					listSecrets: async () => {
+					listSecrets: async () => [] as string[],
+					setSecret: async () => {
 						throw new ProviderApiError(
 							"GitHub GET /orgs/theholocron/actions/secrets/public-key → 403",
 							403,
 							'{"message":"Resource not accessible by personal access token"}'
 						);
 					},
-					setSecret: async () => {},
+					deleteSecret: async () => {},
 				},
 			}),
 		});
@@ -369,13 +379,13 @@ describe("runNotificationsSetup", () => {
 			print: (l) => lines.push(l),
 		});
 		expect(report.status).toBe("fail");
-		expect(report.message).toMatch(/cannot reach the secrets store for organization theholocron/);
+		expect(report.message).toMatch(/cannot write to the secrets store for organization theholocron/);
 		expect(report.message).toContain("Resource not accessible by personal access token");
 		expect(n.ensureCategory).not.toHaveBeenCalled();
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 		expect(n.ensureWebhook).not.toHaveBeenCalled();
 		expect(n.ensureRole).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toContain("✗ cannot reach the secrets store");
+		expect(lines.join("\n")).toContain("✗ cannot write to the secrets store");
 	});
 
 	it("shows the provider's response body for a failing step", async () => {
