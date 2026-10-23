@@ -80,18 +80,57 @@ export class DiscordNotifications implements Notifications {
 		return this.opts.guildId;
 	}
 
+	/**
+	 * The server's channel list, fetched once per instance. Every ensure* call used
+	 * to refetch it -- about 40 identical GETs in one setup run -- and Discord
+	 * rate-limited the route. Our own creates and edits update the copy, so it
+	 * stays accurate for the run; a new run builds a new instance.
+	 *
+	 * It is the in-flight promise that is shared, not the array: callers that start
+	 * while the first fetch is pending all get the same snapshot, so a later
+	 * response can never overwrite what an earlier caller added.
+	 */
+	private channelLoad?: Promise<DiscordChannel[]>;
+
+	private channelList(): Promise<DiscordChannel[]> {
+		return (this.channelLoad ??= this.bot()
+			.guilds.channels(this.guild())
+			.catch((err: unknown) => {
+				this.channelLoad = undefined; // a failed fetch must not be remembered
+				throw err;
+			}));
+	}
+
+	/**
+	 * Create a channel and add it to the shared list. If the create fails, Discord
+	 * may still have applied it (a timeout looks the same as a refusal), so forget the
+	 * list: the next ensure refetches the server's real state instead of creating a
+	 * duplicate.
+	 */
+	private async createChannel(
+		body: Parameters<DiscordBotClient["guilds"]["createChannel"]>[1]
+	): Promise<DiscordChannel> {
+		try {
+			const made = await this.bot().guilds.createChannel(this.guild(), body);
+			(await this.channelList()).push(made);
+			return made;
+		} catch (err) {
+			this.channelLoad = undefined;
+			throw err;
+		}
+	}
+
 	// Discord lower-cases text-channel names on creation, so compare case-insensitively.
 	private static same(a: string, b: string): boolean {
 		return a.toLowerCase() === b.toLowerCase();
 	}
 
 	async ensureCategory(name: string): Promise<EnsuredResource> {
-		const bot = this.bot();
-		const existing = (await bot.guilds.channels(this.guild())).find(
+		const existing = (await this.channelList()).find(
 			(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, name)
 		);
 		if (existing) return { id: existing.id, created: false };
-		const made = await bot.guilds.createChannel(this.guild(), { name, type: ChannelType.Category });
+		const made = await this.createChannel({ name, type: ChannelType.Category });
 		return { id: made.id, created: true };
 	}
 
@@ -118,17 +157,25 @@ export class DiscordNotifications implements Notifications {
 	async ensureChannel(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource> {
 		const bot = this.bot();
 		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
-		const existing = DiscordNotifications.findChannel(await bot.guilds.channels(this.guild()), input.name, parent);
+		const existing = DiscordNotifications.findChannel(await this.channelList(), input.name, parent);
 		if (existing) {
 			// Already there: reconcile what the layout asks for (category, topic), leave the rest.
 			const patch = {
 				...(parent && existing.parent_id !== parent ? { parent_id: parent } : {}),
 				...(input.topic !== undefined && (existing.topic ?? "") !== input.topic ? { topic: input.topic } : {}),
 			};
-			if (Object.keys(patch).length > 0) await bot.channels.modify(existing.id, patch);
+			if (Object.keys(patch).length > 0) {
+				try {
+					await bot.channels.modify(existing.id, patch);
+				} catch (err) {
+					this.channelLoad = undefined; // may have applied; see createChannel
+					throw err;
+				}
+				Object.assign(existing, patch);
+			}
 			return { id: existing.id, created: false };
 		}
-		const made = await bot.guilds.createChannel(this.guild(), {
+		const made = await this.createChannel({
 			name: input.name,
 			type: ChannelType.Text,
 			...(input.topic ? { topic: input.topic } : {}),
@@ -140,15 +187,11 @@ export class DiscordNotifications implements Notifications {
 	async ensureWebhook(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult> {
 		const bot = this.bot();
 		const parent = input.category
-			? (await bot.guilds.channels(this.guild())).find(
+			? (await this.channelList()).find(
 					(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, input.category!)
 				)?.id
 			: undefined;
-		const channel = DiscordNotifications.findChannel(
-			await bot.guilds.channels(this.guild()),
-			input.channel,
-			parent
-		);
+		const channel = DiscordNotifications.findChannel(await this.channelList(), input.channel, parent);
 		if (!channel) throw new Error(`no channel named \`${input.channel}\` — create it first`);
 		const existing = (await bot.channels.webhooks(channel.id)).find((w) =>
 			DiscordNotifications.same(w.name ?? "", input.name)

@@ -3,10 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications } from "../../plugin/index.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
+import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import {
 	defaultSecretName,
 	pickProvisioner,
+	PREFLIGHT_SECRET,
 	provisionChannel,
 	runNotificationsChannelAdd,
 } from "./notifications-channel-add.js";
@@ -49,7 +50,11 @@ function fakeSecrets() {
 		calls,
 		impl: {
 			providerName: "github",
-			setSecret: async (scope: unknown, name: string, value: string) => void calls.push({ scope, name, value }),
+			listSecrets: async () => [] as string[],
+			setSecret: async (scope: unknown, name: string, value: string) => {
+				if (name !== PREFLIGHT_SECRET) calls.push({ scope, name, value });
+			},
+			deleteSecret: async () => {},
 		},
 	};
 }
@@ -338,9 +343,11 @@ describe("runNotificationsChannelAdd", () => {
 			calls: [],
 			impl: {
 				providerName: "github",
-				setSecret: async () => {
-					throw new Error("403 Resource not accessible");
+				listSecrets: async () => [] as string[],
+				setSecret: async (_scope: unknown, name: string) => {
+					if (name !== PREFLIGHT_SECRET) throw new Error("403 Resource not accessible");
 				},
+				deleteSecret: async () => {},
 			},
 		};
 		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
@@ -398,9 +405,11 @@ describe("runNotificationsChannelAdd", () => {
 			calls: [],
 			impl: {
 				providerName: "github",
-				setSecret: async () => {
-					throw new Error("boom");
+				listSecrets: async () => [] as string[],
+				setSecret: async (_scope: unknown, name: string) => {
+					if (name !== PREFLIGHT_SECRET) throw new Error("boom");
 				},
+				deleteSecret: async () => {},
 			},
 		};
 		const n = fakeNotifications({
@@ -432,5 +441,134 @@ describe("provisionChannel", () => {
 			)
 		).rejects.toThrow(/needs a `secrets` provider/);
 		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("checks the secrets store before creating anything, so a bad token leaves no orphan webhook", async () => {
+		const n = fakeNotifications();
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {
+					throw new ProviderApiError(
+						"GitHub PUT /orgs/theholocron/actions/secrets/x → 403",
+						403,
+						'{"message":"Resource not accessible"}'
+					);
+				},
+				deleteSecret: async () => {},
+			},
+		};
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		const report = await result;
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/cannot write to the secrets store for organization theholocron/);
+		expect(report.message).toContain("Resource not accessible");
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+	});
+
+	it("shows the provider's response body, not just the status, when a step fails", async () => {
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				throw new ProviderApiError(
+					"Discord PATCH /channels/1 → 403",
+					403,
+					'{"message":"Missing Permissions","code":50013}'
+				);
+			}),
+		});
+		const { result } = run(n, undefined);
+		expect((await result).message).toBe(
+			'Discord PATCH /channels/1 → 403: {"message":"Missing Permissions","code":50013}'
+		);
+	});
+
+	it("does not check the secrets store on --dry-run", async () => {
+		const setSecret = vi.fn(async () => {});
+		const secrets = {
+			calls: [],
+			impl: { providerName: "github", listSecrets: async () => [], setSecret, deleteSecret: async () => {} },
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		await result;
+		expect(setSecret).not.toHaveBeenCalled();
+	});
+
+	it("names a non-organization scope plainly when the secrets store is unreachable", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {
+					throw new Error("nope");
+				},
+				deleteSecret: async () => {},
+			},
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+			scope: { kind: "repo" },
+		});
+		expect((await result).message).toMatch(/cannot write to the secrets store for repo \(nope\)/);
+	});
+
+	it("proves write access with a throwaway secret that it removes, before creating any channel", async () => {
+		const order: string[] = [];
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async (_s: unknown, name: string) => void order.push(`set ${name}`),
+				deleteSecret: async (_s: unknown, name: string) => void order.push(`delete ${name}`),
+			},
+		};
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				order.push("channel");
+				return { id: "1", created: true };
+			}),
+		});
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		await result;
+		expect(order.slice(0, 3)).toEqual([`set ${PREFLIGHT_SECRET}`, `delete ${PREFLIGHT_SECRET}`, "channel"]);
+	});
+
+	it("fails before creating anything when the throwaway secret cannot be removed", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {},
+				deleteSecret: async () => {
+					throw new Error("delete refused");
+				},
+			},
+		};
+		const n = fakeNotifications();
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		expect(await result).toMatchObject({ status: "fail", message: expect.stringMatching(/delete refused/) });
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("keeps the provider's response body out of the structured log while still showing it to the user", async () => {
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				throw new ProviderApiError("Discord PATCH /channels/1 → 403", 403, '{"message":"Missing Permissions"}');
+			}),
+		});
+		const { result, log, lines } = run(n, undefined);
+		const report = await result;
+		expect(report.message).toContain("Missing Permissions");
+		expect(lines.join("\n")).toContain("Missing Permissions");
+		expect(JSON.stringify(log.warn.mock.calls)).not.toContain("Missing Permissions");
+		expect(JSON.stringify(log.warn.mock.calls)).toContain("Discord PATCH /channels/1 → 403");
 	});
 });

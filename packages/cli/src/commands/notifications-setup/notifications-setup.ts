@@ -15,7 +15,9 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Secrets } from "../../plugin/index.js";
+import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import {
+	assertSecretsReachable,
 	defaultSecretName,
 	pickProvisioner,
 	provisionChannel,
@@ -36,9 +38,9 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 
 	// A precondition failure is printed and returned, never thrown: the CLI's
 	// global handler swallows a plain Error, so a bare throw would exit 1 silently.
-	const refuse = (message: string): NotificationsSetupReport => {
+	const refuse = (message: string, reason: string = message): NotificationsSetupReport => {
 		print(`  ✗ ${message}`);
-		logger.warn({ reason: message }, "notifications setup");
+		logger.warn({ reason }, "notifications setup");
 		return { ...report, status: "fail", message };
 	};
 
@@ -76,6 +78,16 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		return refuse("no org to store webhook secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
 
+	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
+	// creating any webhook, instead of leaving an orphan per channel on a bad token.
+	if (secrets && scope && !dryRun) {
+		try {
+			await assertSecretsReachable(secrets, scope);
+		} catch (err) {
+			return refuse(errorMessage(err), logReason(err));
+		}
+	}
+
 	// Two webhooks cannot share one secret: the second would overwrite the first and
 	// callers would post to the wrong channel. Normalising punctuation makes that
 	// easy to hit by accident (release-notes vs release_notes), so refuse up front.
@@ -100,7 +112,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		try {
 			await fn();
 		} catch (err) {
-			const message = errorMessage(err);
+			const message = describeProviderError(err);
 			print(`  ✗ ${step}: ${message}`);
 			report.failures.push({ step, message });
 		}

@@ -8,10 +8,15 @@
  * printed, only stored.
  */
 
-import { errorMessage } from "@theholocron/misc-utils";
-
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Notifications, PluginLoader, type Secrets } from "../../plugin/index.js";
+import {
+	assertPluginsResolvable,
+	type Notifications,
+	PluginLoader,
+	type Secrets,
+	type SecretScope,
+} from "../../plugin/index.js";
+import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import type {
 	ChannelOutcome,
 	ChannelSpec,
@@ -27,6 +32,29 @@ import type {
  */
 export function defaultSecretName(channel: string): string {
 	return `HOLOCRON_NOTIFY_WEBHOOK_${channel.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
+}
+
+/** A throwaway secret, written and removed to prove write access. */
+export const PREFLIGHT_SECRET = "HOLOCRON_NOTIFY_PREFLIGHT";
+
+/**
+ * Prove the secrets store can be WRITTEN before creating anything that needs it.
+ * A webhook's URL is shown once; creating the webhook and then failing to store
+ * it leaves an orphan the user has to delete by hand. Listing is not enough --
+ * a token can read secrets it cannot write -- so write a throwaway secret and
+ * remove it.
+ */
+export async function assertSecretsReachable(secrets: Secrets, scope: SecretScope): Promise<void> {
+	try {
+		await secrets.setSecret(scope, PREFLIGHT_SECRET, "ok");
+		await secrets.deleteSecret(scope, PREFLIGHT_SECRET);
+	} catch (err) {
+		const where = scope.kind === "organization" ? `organization ${scope.name}` : scope.kind;
+		throw new Error(
+			`cannot write to the secrets store for ${where} (${describeProviderError(err)}) — fix that token before creating webhooks`,
+			{ cause: err }
+		);
+	}
 }
 
 /** Why a capability is not loaded: the plugin's own load error when there is one (e.g. a missing token). */
@@ -119,7 +147,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 			// The URL is shown once and is now lost; say how to get unstuck.
 			throw new Error(
 				`webhook ${webhookName} was ${hook.created ? "created" : "found"} but storing its URL in ${secretName} failed ` +
-					`(${errorMessage(err)}) — delete the webhook in the provider and re-run to get a fresh URL`,
+					`(${describeProviderError(err)}) — delete the webhook in the provider and re-run to get a fresh URL`,
 				{ cause: err }
 			);
 		}
@@ -178,6 +206,8 @@ export async function runNotificationsChannelAdd(
 			);
 		}
 
+		if (secrets && scope && !dryRun) await assertSecretsReachable(secrets, scope);
+
 		const channel = await provisionChannel(
 			{ notifications, ...(secrets ? { secrets } : {}), scope: scope ?? { kind: "repo" }, dryRun, print },
 			{
@@ -206,9 +236,9 @@ export async function runNotificationsChannelAdd(
 		}
 		return { status: dryRun ? "dry-run" : "ok", channel };
 	} catch (err) {
-		const message = errorMessage(err);
+		const message = describeProviderError(err);
 		print(`  ✗ ${message}`);
-		logger.warn({ channel: input.name, reason: message }, `notifications channel add: ${input.name}`);
+		logger.warn({ channel: input.name, reason: logReason(err) }, `notifications channel add: ${input.name}`);
 		return { status: "fail", message };
 	}
 }

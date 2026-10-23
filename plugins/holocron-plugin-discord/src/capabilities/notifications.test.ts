@@ -167,19 +167,17 @@ describe("DiscordNotifications.ensureChannel", () => {
 
 	it("leaves a channel already under the requested category alone", async () => {
 		const { notifs, calls } = makeProvisioner([
-			{ body: [category("1001", "ALERTS")] },
 			{ body: [category("1001", "ALERTS"), text("2001", "alerts", "1001")] },
 		]);
 		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS" })).toEqual({
 			id: "2001",
 			created: false,
 		});
-		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+		expect(calls.map((c) => c.method)).toEqual(["GET"]);
 	});
 
 	it("moves an existing channel into the requested category", async () => {
 		const { notifs, calls } = makeProvisioner([
-			{ body: [category("1001", "ALERTS")] },
 			{ body: [category("1001", "ALERTS"), text("2001", "alerts")] },
 			{ body: text("2001", "alerts", "1001") },
 		]);
@@ -187,12 +185,11 @@ describe("DiscordNotifications.ensureChannel", () => {
 			id: "2001",
 			created: false,
 		});
-		expect(calls[2]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { parent_id: "1001" } });
+		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { parent_id: "1001" } });
 	});
 
 	it("creates a channel with its topic and parent", async () => {
 		const { notifs, calls } = makeProvisioner([
-			{ body: [category("1001", "ALERTS")] },
 			{ body: [category("1001", "ALERTS")] },
 			{ body: text("2002", "alerts", "1001") },
 		]);
@@ -200,7 +197,7 @@ describe("DiscordNotifications.ensureChannel", () => {
 			id: "2002",
 			created: true,
 		});
-		expect(calls[2]?.body).toEqual({
+		expect(calls[1]?.body).toEqual({
 			name: "alerts",
 			type: ChannelType.Text,
 			topic: "needs a human",
@@ -340,7 +337,7 @@ describe("DiscordNotifications — reconciling and resolving existing channels",
 			text("2001", "sync", "1002"),
 			text("2002", "sync", "1001"),
 		];
-		const { notifs, calls } = makeProvisioner([{ body: channels }, { body: channels }]);
+		const { notifs, calls } = makeProvisioner([{ body: channels }]);
 		expect(await notifs.ensureChannel({ name: "sync", category: "ALERTS" })).toEqual({
 			id: "2002",
 			created: false,
@@ -350,13 +347,9 @@ describe("DiscordNotifications — reconciling and resolving existing channels",
 
 	it("creates a new channel rather than stealing one from a different category", async () => {
 		const channels = [category("1001", "ALERTS"), category("1002", "AUTOMATION"), text("2001", "sync", "1002")];
-		const { notifs, calls } = makeProvisioner([
-			{ body: channels },
-			{ body: channels },
-			{ body: text("2009", "sync", "1001") },
-		]);
+		const { notifs, calls } = makeProvisioner([{ body: channels }, { body: text("2009", "sync", "1001") }]);
 		expect(await notifs.ensureChannel({ name: "sync", category: "ALERTS" })).toEqual({ id: "2009", created: true });
-		expect(calls[2]).toMatchObject({ method: "POST", body: { name: "sync", parent_id: "1001" } });
+		expect(calls[1]).toMatchObject({ method: "POST", body: { name: "sync", parent_id: "1001" } });
 	});
 
 	it("attaches a webhook to the channel in the requested category, not just any same-named one", async () => {
@@ -368,12 +361,11 @@ describe("DiscordNotifications — reconciling and resolving existing channels",
 		];
 		const { notifs, calls } = makeProvisioner([
 			{ body: channels },
-			{ body: channels },
 			{ body: [] },
 			{ body: { id: "w1", name: "sync", channel_id: "2002", token: "tk" } },
 		]);
 		await notifs.ensureWebhook({ channel: "sync", name: "sync", category: "ALERTS" });
-		expect(calls[2]?.url).toBe(`${BASE}/channels/2002/webhooks`);
+		expect(calls[1]?.url).toBe(`${BASE}/channels/2002/webhooks`);
 	});
 
 	it("matches an existing webhook whose name differs only by case", async () => {
@@ -428,5 +420,99 @@ describe("DiscordNotifications.whoami", () => {
 			{ status: 404, body: { message: "Unknown Guild" } },
 		]);
 		await expect(notifs.whoami()).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});
+
+describe("DiscordNotifications — channel list is fetched once per run", () => {
+	it("makes one GET for the whole sequence of ensureCategory, ensureChannel and ensureWebhook", async () => {
+		const channels = [category("1001", "ALERTS"), text("2001", "alerts", "1001"), text("2002", "errors", "1001")];
+		const { notifs, calls } = makeProvisioner([
+			{ body: channels }, // the only channel-list GET
+			{ body: [] }, // alerts webhooks
+			{ body: { id: "w1", name: "alerts", channel_id: "2001", token: "tk" } },
+			{ body: [] }, // errors webhooks
+			{ body: { id: "w2", name: "errors", channel_id: "2002", token: "tk" } },
+		]);
+		await notifs.ensureCategory("ALERTS");
+		await notifs.ensureChannel({ name: "alerts", category: "ALERTS" });
+		await notifs.ensureChannel({ name: "errors", category: "ALERTS" });
+		await notifs.ensureWebhook({ channel: "alerts", name: "alerts", category: "ALERTS" });
+		await notifs.ensureWebhook({ channel: "errors", name: "errors", category: "ALERTS" });
+		const listCalls = calls.filter((c) => c.method === "GET" && c.url === `${BASE}/guilds/${GUILD}/channels`);
+		expect(listCalls).toHaveLength(1);
+	});
+
+	it("sees a category it just created without refetching the list", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			{ body: category("1009", "NEW") },
+			{ body: text("2009", "hello", "1009") },
+		]);
+		await notifs.ensureCategory("NEW");
+		await notifs.ensureChannel({ name: "hello", category: "NEW" });
+		expect(calls.filter((c) => c.method === "GET")).toHaveLength(1);
+		expect(calls[2]).toMatchObject({ method: "POST", body: { name: "hello", parent_id: "1009" } });
+	});
+
+	it("does not create a channel twice when asked for it twice in one run", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: text("2010", "dup") }]);
+		await notifs.ensureChannel({ name: "dup" });
+		expect(await notifs.ensureChannel({ name: "dup" })).toEqual({ id: "2010", created: false });
+		expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+	});
+
+	it("keeps its copy accurate after moving a channel into a category", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS"), text("2001", "alerts")] },
+			{ body: text("2001", "alerts", "1001") },
+		]);
+		await notifs.ensureChannel({ name: "alerts", category: "ALERTS" });
+		await notifs.ensureChannel({ name: "alerts", category: "ALERTS" });
+		expect(calls.filter((c) => c.method === "PATCH")).toHaveLength(1);
+	});
+});
+
+describe("DiscordNotifications — channel list under failure and concurrency", () => {
+	it("shares one in-flight fetch between callers that start together", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [category("1001", "ALERTS")] }]);
+		const results = await Promise.all([
+			notifs.ensureCategory("ALERTS"),
+			notifs.ensureCategory("alerts"),
+			notifs.ensureCategory("Alerts"),
+		]);
+		expect(results.every((r) => r.id === "1001" && !r.created)).toBe(true);
+		expect(calls.filter((c) => c.method === "GET")).toHaveLength(1);
+	});
+
+	it("does not remember a failed list fetch", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ status: 500, text: "oops" },
+			{ body: [category("1001", "ALERTS")] },
+		]);
+		await expect(notifs.ensureCategory("ALERTS")).rejects.toBeInstanceOf(ProviderApiError);
+		expect(await notifs.ensureCategory("ALERTS")).toEqual({ id: "1001", created: false });
+		expect(calls.filter((c) => c.method === "GET")).toHaveLength(2);
+	});
+
+	it("refetches after a failed create, so an ambiguous failure cannot lead to a duplicate", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] }, // first list
+			{ status: 500, text: "timeout" }, // create fails, but Discord may have applied it
+			{ body: [category("1007", "ALERTS")] }, // the refetch shows it did
+		]);
+		await expect(notifs.ensureCategory("ALERTS")).rejects.toBeInstanceOf(ProviderApiError);
+		expect(await notifs.ensureCategory("ALERTS")).toEqual({ id: "1007", created: false });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "POST", "GET"]);
+	});
+
+	it("refetches after a failed edit as well", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ ...text("2001", "alerts"), topic: "old" }] },
+			{ status: 500, text: "timeout" },
+			{ body: [{ ...text("2001", "alerts"), topic: "new" }] },
+		]);
+		await expect(notifs.ensureChannel({ name: "alerts", topic: "new" })).rejects.toBeInstanceOf(ProviderApiError);
+		await notifs.ensureChannel({ name: "alerts", topic: "new" });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "PATCH", "GET"]);
 	});
 });

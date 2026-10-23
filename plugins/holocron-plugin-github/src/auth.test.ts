@@ -6,6 +6,7 @@ import {
 	resolveIssuesToken,
 	resolveReadToken,
 	resolveReleaseToken,
+	resolveSecretsToken,
 	resolveSyncToken,
 } from "./auth.js";
 
@@ -31,6 +32,12 @@ describe.each([
 		resolver: resolveAdminToken,
 		envName: "HOLOCRON_ADMIN_TOKEN",
 		keyringKey: "github.admin",
+	},
+	{
+		name: "resolveSecretsToken",
+		resolver: resolveSecretsToken,
+		envName: "HOLOCRON_SECRETS_TOKEN",
+		keyringKey: "github.secrets",
 	},
 ])("$name", ({ resolver, envName, keyringKey }) => {
 	it("uses the explicit CLI token first", () => {

@@ -28,6 +28,13 @@ export const resolveAdminToken = createFeatureResolver({
 	keyringKey: "github.admin",
 });
 
+// Org-level secret writes need an org-resource-owner token with Organization
+// "Secrets: read/write", which `github.admin` (repo-scoped) does not carry.
+export const resolveSecretsToken = createFeatureResolver({
+	envName: "HOLOCRON_SECRETS_TOKEN",
+	keyringKey: "github.secrets",
+});
+
 export const resolveDeployToken = createFeatureResolver({
 	envName: "HOLOCRON_DEPLOY_TOKEN",
 	keyringKey: "github.deploy",

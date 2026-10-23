@@ -93,30 +93,37 @@ holocron clone --token github=ghp_xxx theholocron/holocron
 holocron sync github --token github=ghp_zzz
 ```
 
-### CI-only exception: org-scoped secret writes
+### Org-scoped secret writes
 
-`secrets sync`'s `secrets` (GH Actions) destination always resolves through
-`HOLOCRON_ADMIN_TOKEN`/`github.admin` by default — same as `setup`,
-`doctor`, and `secret-set` — a **repo-scoped** fine-grained PAT. Writing an
-**organization**-scoped secret (`--github-secret-scope org=<name>`, e.g.
-Sentinel's `SENTINEL_AXIOM_INGEST_TOKEN` — holocron#781/#800) needs a
-different, org-resource-owner credential with the org-level `secrets:
-read/write` permission — none of the 7 tokens above carry it (`github.admin`
-is repo-scoped; `github.org` is org-scoped but for
-administration/members/properties, not secrets).
+The `secrets` capability (what `secrets sync`'s GH Actions destination,
+`secret-set` and `notifications setup` write through) picks its token **by
+scope**:
 
-Rather than widening an existing token's blast radius, `.github/workflows/
-sentinel.secretsSync.yml` passes a dedicated one via the explicit-override
-form above: `--token github=${{ secrets.HOLOCRON_SECRETS_TOKEN }}`. This is
-a repo secret on `holocron` only (not a `HOLOCRON_<FEATURE>_TOKEN` env var
-in the resolution chain — it only ever reaches the CLI via `--token`, never
-by env-var auto-detection), so it can't accidentally widen what any other
-command's default resolution picks up. Locally, the equivalent is `--token
-github=$(gh auth token)` — your own already-authenticated `gh` CLI session
-already has org-secrets permission (it's almost certainly how this secret
-was set in the first place), so no dedicated token is needed for a one-off
-manual run outside CI. See "Provisioning `HOLOCRON_SECRETS_TOKEN`" below
-for the exact one-time setup steps.
+| Scope written                   | Token tried first                                   | Falls back to                                   |
+| ------------------------------- | --------------------------------------------------- | ----------------------------------------------- |
+| **organization** (`org=<name>`) | `HOLOCRON_SECRETS_TOKEN` / keyring `github.secrets` | `HOLOCRON_ADMIN_TOKEN` / keyring `github.admin` |
+| repository, environment         | `HOLOCRON_ADMIN_TOKEN` / keyring `github.admin`     | `HOLOCRON_SECRETS_TOKEN` / `github.secrets`     |
+
+An explicit `--token` serves every scope.
+
+The split exists because the two permissions are different credentials.
+`github.admin` is a **repo-scoped** fine-grained PAT, the same one `setup`
+and `doctor` use. Writing an **organization**-scoped secret (e.g. Sentinel's
+`SENTINEL_AXIOM_INGEST_TOKEN` — holocron#781/#800, or the notification
+webhooks) needs an org-resource-owner credential with the org-level
+`secrets: read/write` permission, which none of the other tokens carry
+(`github.org` is org-scoped but for administration/members/properties). A
+dedicated token keeps that permission off `github.admin`'s blast radius; a
+dedicated org-only token cannot write repo secrets, which is why repo and
+environment scopes still prefer `github.admin`. A setup with only one of the
+two keeps working: it serves every scope.
+
+`.github/workflows/sentinel.secretsSync.yml` passes its repo secret explicitly
+with `--token github=${{ secrets.HOLOCRON_SECRETS_TOKEN }}`. Locally, store the
+same kind of token with `holocron auth set github.secrets <token>`, or pass
+`--token github=$(gh auth token)` for a one-off run if your `gh` session
+carries org-secrets permission. See "Provisioning `HOLOCRON_SECRETS_TOKEN`"
+below for the exact setup steps.
 
 ### CI-only exception: GitHub Deployments
 
@@ -223,11 +230,10 @@ gh secret set SENTINEL_DOPPLER_TOKEN --repo theholocron/holocron
 
 #### Provisioning `HOLOCRON_SECRETS_TOKEN`
 
-A brand-new fine-grained PAT — nothing like it exists yet, and it's
-deliberately **not** part of the `HOLOCRON_<FEATURE>_TOKEN` resolution
-chain (see "CI-only exception: org-scoped secret writes" above) — so it
-only ever reaches the CLI via `--token` in `sentinel.secretsSync.yml`,
-never by env-var auto-detection:
+A fine-grained PAT with only org-level Secrets access. The `secrets`
+capability reads it as `HOLOCRON_SECRETS_TOKEN` or the keyring key
+`github.secrets` (before falling back to `github.admin`), and
+`sentinel.secretsSync.yml` passes it explicitly with `--token`:
 
 1. `github.com/settings/tokens?type=beta` → "Generate new token."
 2. **Resource owner**: `theholocron` (org, not personal).
@@ -261,18 +267,11 @@ resolution:
 gh secret set HOLOCRON_DEPLOYMENTS_TOKEN --repo theholocron/holocron
 ```
 
-#### None of these four belong in the local keyring
+#### None of these three belong in the local keyring
 
-All four are CI-only by design — deliberately kept out of
+All three are CI-only by design — deliberately kept out of
 `holocron auth set`'s local resolution chain:
 
-- **`HOLOCRON_SECRETS_TOKEN`** has no keyring key to land in at all — no
-  code path reads one (`resolveAdminToken`, the only GitHub-secrets
-  resolver that exists, is hardwired to `github.admin`, not this). The
-  local equivalent is `--token github=$(gh auth token)` (your own
-  already-authenticated `gh` session already has org-secrets permission —
-  it's almost certainly how `SENTINEL_AXIOM_INGEST_TOKEN` was set as an
-  org secret in the first place), so there's no local credential to store.
 - **`HOLOCRON_DEPLOYMENTS_TOKEN`** likewise has no keyring key or CLI
   resolver — nothing in `packages/cli` ever calls the GitHub Deployments
   API directly; only the reusable workflow's own `gh api` calls use it.
