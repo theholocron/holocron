@@ -974,6 +974,28 @@ export interface NotificationsLayout {
 	}>;
 }
 
+/**
+ * What a provider found on the server, limited to what a {@link NotificationsLayout}
+ * asks about. Read-only: this is what `holocron notifications verify` compares the
+ * layout against.
+ */
+export interface ServerInspection {
+	categories: string[];
+	channels: Array<{
+		name: string;
+		/** The category it sits under, if any. */
+		category?: string;
+		topic?: string;
+		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook. */
+		webhooks: string[];
+		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
+		webhooksError?: string;
+	}>;
+	roles: Array<{ name: string; id: string; mentionable: boolean }>;
+	/** Set when reading the roles failed; `roles` is then empty and means nothing. Not read at all when the layout declares none. */
+	rolesError?: string;
+}
+
 export interface Notifications extends ProviderIdentity {
 	readonly key: "notifications";
 
@@ -1007,6 +1029,12 @@ export interface Notifications extends ProviderIdentity {
 	 * provision but cannot (missing token, no access).
 	 */
 	whoami?(): Promise<{ target: string } | null>;
+
+	/**
+	 * Read what exists on the server, for the parts the layout cares about, without
+	 * changing anything. Backs `holocron notifications verify`.
+	 */
+	inspect?(layout: NotificationsLayout): Promise<ServerInspection>;
 }
 
 export interface Analytics extends ProviderIdentity {

@@ -545,3 +545,154 @@ describe("DiscordNotifications.ensureRole — an existing role that disagrees", 
 		expect(await silent.notifs.ensureRole({ name: "gatekeepers" })).toEqual({ id: "4001", created: false });
 	});
 });
+
+describe("DiscordNotifications.inspect", () => {
+	const layout = {
+		categories: [{ name: "ALERTS", channels: [{ name: "alerts", webhook: true }, { name: "errors" }] }],
+		roles: [{ name: "gatekeepers" }],
+	};
+
+	it("reports categories, channels with their category and topic, and roles, changing nothing", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					category("1001", "ALERTS"),
+					{ ...text("2001", "alerts", "1001"), topic: "needs a human" },
+					text("2002", "errors", "1001"),
+					text("2003", "general"),
+				],
+			},
+			{ body: [{ id: "w1", name: "alerts", channel_id: "2001" }] },
+			{ body: [{ id: "4001", name: "gatekeepers", color: 0, mentionable: true }] },
+		]);
+		const found = await notifs.inspect(layout);
+		expect(found.categories).toEqual(["ALERTS"]);
+		expect(found.channels).toEqual([
+			{ name: "alerts", category: "ALERTS", topic: "needs a human", webhooks: ["alerts"] },
+			{ name: "errors", category: "ALERTS", webhooks: [] },
+			{ name: "general", webhooks: [] },
+		]);
+		expect(found.roles).toEqual([{ name: "gatekeepers", id: "4001", mentionable: true }]);
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("lists webhooks only for channels the layout gives one, so the cost follows the layout", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					category("1001", "ALERTS"),
+					text("2001", "alerts", "1001"),
+					text("2002", "errors", "1001"),
+					text("2003", "general"),
+				],
+			},
+			{ body: [] },
+			{ body: [] },
+		]);
+		await notifs.inspect(layout);
+		expect(calls.filter((c) => c.url.endsWith("/webhooks"))).toHaveLength(1);
+		expect(calls.find((c) => c.url.endsWith("/webhooks"))?.url).toBe(`${BASE}/channels/2001/webhooks`);
+	});
+
+	it("handles a layout whose category declares no channels, fetching no webhooks", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [category("1001", "EMPTY")] }, { body: [] }]);
+		const found = await notifs.inspect({ categories: [{ name: "EMPTY" }] });
+		expect(found.categories).toEqual(["EMPTY"]);
+		expect(found.channels).toEqual([]);
+		expect(calls.filter((c) => c.url.endsWith("/webhooks"))).toHaveLength(0);
+	});
+
+	it("includes announcement channels, and tolerates a webhook with no name", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [{ id: "2005", name: "alerts", type: ChannelType.Announcement }] },
+			{ body: [{ id: "w1", name: null, channel_id: "2005" }] },
+			{ body: [] },
+		]);
+		const found = await notifs.inspect(layout);
+		expect(found.channels[0]).toMatchObject({ name: "alerts", webhooks: [""] });
+	});
+
+	it("shares the channel list with the ensure* methods instead of fetching it twice", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [category("1001", "ALERTS")] }, { body: [] }]);
+		await notifs.ensureCategory("ALERTS");
+		await notifs.inspect({ roles: [] });
+		expect(calls.filter((c) => c.url === `${BASE}/guilds/${GUILD}/channels`)).toHaveLength(1);
+	});
+});
+
+describe("DiscordNotifications.inspect — one failing read does not discard the rest", () => {
+	const layout = {
+		categories: [
+			{
+				name: "ALERTS",
+				channels: [
+					{ name: "alerts", webhook: true },
+					{ name: "sync", webhook: true },
+				],
+			},
+		],
+		roles: [{ name: "gatekeepers" }],
+	};
+	const channels = [category("1001", "ALERTS"), text("2001", "alerts", "1001"), text("2002", "sync", "1001")];
+
+	it("reports a channel whose webhook list failed on that channel only, and still lists the others", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: channels },
+			{ status: 403, text: '{"message":"Missing Access","code":50001}' },
+			{ body: [{ id: "w2", name: "sync", channel_id: "2002" }] },
+			{ body: [{ id: "4001", name: "gatekeepers", color: 0, mentionable: true }] },
+		]);
+		const found = await notifs.inspect(layout);
+		expect(found.channels.map((c) => [c.name, c.webhooks, c.webhooksError !== undefined])).toEqual([
+			["alerts", [], true],
+			["sync", ["sync"], false],
+		]);
+		expect(found.channels[0]?.webhooksError).toContain("Missing Access");
+		expect(found.roles).toHaveLength(1);
+		expect(found.rolesError).toBeUndefined();
+	});
+
+	it("reports a failed roles read as rolesError and keeps the channels it already read", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: channels },
+			{ body: [] },
+			{ body: [] },
+			{ status: 500, text: "boom" },
+		]);
+		const found = await notifs.inspect(layout);
+		expect(found.roles).toEqual([]);
+		expect(found.rolesError).toMatch(/→ 500/);
+		expect(found.channels).toHaveLength(2);
+		expect(found.categories).toEqual(["ALERTS"]);
+	});
+
+	it("does not ask for roles at all when the layout declares none", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: channels }, { body: [] }, { body: [] }]);
+		const found = await notifs.inspect({ categories: layout.categories });
+		expect(calls.some((c) => c.url.endsWith("/roles"))).toBe(false);
+		expect(found.roles).toEqual([]);
+		expect(found.rolesError).toBeUndefined();
+	});
+
+	it("describes a failure that is not a provider error by its message alone", async () => {
+		const stub = stubFetch([{ body: channels }]);
+		const bot = createDiscordBotClient({ botToken: "t", baseUrl: BASE, fetch: stub.fetch });
+		const broken = {
+			...bot,
+			channels: {
+				...bot.channels,
+				webhooks: async () => {
+					throw new Error("socket hang up");
+				},
+			},
+		};
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE, fetch: stub.fetch }),
+			{ guildId: GUILD },
+			() => WEBHOOK,
+			() => broken as typeof bot
+		);
+		const found = await notifs.inspect({ categories: layout.categories });
+		expect(found.channels[0]?.webhooksError).toBe("socket hang up");
+	});
+});

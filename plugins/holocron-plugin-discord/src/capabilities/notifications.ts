@@ -1,4 +1,12 @@
-import type { EnsuredResource, EnsureWebhookResult, Notifications, NotificationsLayout } from "@theholocron/cli";
+import {
+	type EnsuredResource,
+	type EnsureWebhookResult,
+	type Notifications,
+	type NotificationsLayout,
+	ProviderApiError,
+	type ServerInspection,
+} from "@theholocron/cli";
+import { errorMessage } from "@theholocron/misc-utils";
 
 import {
 	ChannelType,
@@ -7,6 +15,13 @@ import {
 	type DiscordClient,
 	parseWebhookUrl,
 } from "../rest.js";
+
+/** An error as one line: the message, plus Discord's own response body when there is one. */
+function reason(err: unknown): string {
+	return err instanceof ProviderApiError && err.details
+		? `${errorMessage(err)}: ${String(err.details).slice(0, 200)}`
+		: errorMessage(err);
+}
 
 export interface DiscordNotificationsOptions {
 	/**
@@ -69,6 +84,66 @@ export class DiscordNotifications implements Notifications {
 		const me = await bot.users.me();
 		const guild = await bot.guilds.get(this.opts.guildId);
 		return { target: `${guild.name} (as ${me.username})` };
+	}
+
+	/**
+	 * Read-only: what is on the server, for the parts of `layout` we will compare. Webhooks are
+	 * listed only for channels the layout gives one (one request each), so the cost scales with
+	 * the layout, not with the server.
+	 */
+	async inspect(layout: NotificationsLayout): Promise<ServerInspection> {
+		const bot = this.bot();
+		const channels = await this.channelList();
+		const categoryName = new Map(
+			channels.filter((c) => c.type === ChannelType.Category).map((c) => [c.id, c.name] as const)
+		);
+		const wantsWebhook = new Set(
+			(layout.categories ?? []).flatMap((c) =>
+				(c.channels ?? []).filter((ch) => ch.webhook).map((ch) => ch.name.toLowerCase())
+			)
+		);
+		const text = channels.filter((c) => c.type === ChannelType.Text || c.type === ChannelType.Announcement);
+		const found: ServerInspection["channels"] = [];
+		for (const c of text) {
+			let webhooks: string[] = [];
+			let webhooksError: string | undefined;
+			if (wantsWebhook.has(c.name.toLowerCase())) {
+				// One channel's webhook list failing must not discard everything else that was read.
+				try {
+					webhooks = (await bot.channels.webhooks(c.id)).map((w) => w.name ?? "");
+				} catch (err) {
+					webhooksError = reason(err);
+				}
+			}
+			const category = c.parent_id ? categoryName.get(c.parent_id) : undefined;
+			found.push({
+				name: c.name,
+				...(category ? { category } : {}),
+				...(c.topic ? { topic: c.topic } : {}),
+				webhooks,
+				...(webhooksError ? { webhooksError } : {}),
+			});
+		}
+		// Roles are only read when the layout declares some, and a failure is reported on its own.
+		let roles: ServerInspection["roles"] = [];
+		let rolesError: string | undefined;
+		if ((layout.roles ?? []).length > 0) {
+			try {
+				roles = (await bot.guilds.roles(this.guild())).map((r) => ({
+					name: r.name,
+					id: r.id,
+					mentionable: r.mentionable,
+				}));
+			} catch (err) {
+				rolesError = reason(err);
+			}
+		}
+		return {
+			categories: [...categoryName.values()],
+			channels: found,
+			roles,
+			...(rolesError ? { rolesError } : {}),
+		};
 	}
 
 	private guild(): string {

@@ -93,6 +93,12 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "notifications verify",
+		description: "Check the layout against the server and the secrets store, step by step (read-only)",
+		positionals: [],
+		supportsDryRun: false,
+	},
+	{
 		name: "notifications setup",
 		description: "Apply the server layout a notifications provider declares in holocron.config.ts",
 		positionals: [],

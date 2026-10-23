@@ -34,6 +34,7 @@ const EVERY_COMMAND = [
 	"secrets sync",
 	"notifications channel add",
 	"notifications setup",
+	"notifications verify",
 	"deploy",
 	"deploy cleanup-preview",
 	"monitoring check",
@@ -75,6 +76,9 @@ describe("COMMAND_CONTEXTS", () => {
 			"secrets set",
 			"monitoring check",
 			"monitoring resolve-checks",
+			"notifications channel add",
+			"notifications setup",
+			"notifications verify",
 		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");
 		}

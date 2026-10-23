@@ -60,6 +60,8 @@ A layout belongs to the server, not to a repo. Put it in **one** repo's config (
 
 ## Checking it end to end
 
+Run [`holocron notifications verify`](/holocron/commands/notifications-verify/) first: it reads the server and the secrets store and tells you, step by step, what matches the layout and what does not. It cannot prove that a message arrives, which is what the manual workflow below is for.
+
 The `platform.notifyCheck` task is a manual workflow (`workflow_dispatch`) that posts one labelled test message to every notification channel, using the real org secrets, and fails the job for any channel whose webhook is missing or rejects the post. A red job names the channel to fix, and one channel failing does not hide the others. The `alerts` message pings the role from `HOLOCRON_NOTIFY_ALERT_ROLE` when it is set. Run it from the Actions tab once the org's `theholocron/.github` has the reusable workflow. Each channel names its own webhook secret (`channels` is a JSON array of `{ name, secret, mention }`), so layouts with custom secret names are checked correctly, and a channel marked `mention` fails if the role id is missing or malformed. Whether Discord lets that role be mentioned is a server-side fact the workflow cannot see; `holocron notifications verify` (#1098) checks it.
 
 - **An existing role must match.** If a role in the layout already exists with a different `mentionable` setting, the step fails rather than reporting "exists": an alert role nobody can mention would make every ping silently do nothing. Updating existing roles through the API is tracked in #1098; until then, change it in Discord.

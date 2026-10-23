@@ -282,7 +282,10 @@ describe("runNotificationsChannelAdd", () => {
 			loader,
 			print: () => {},
 		});
-		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can provision/) });
+		expect(report).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/no `notifications` provider is available/),
+		});
 	});
 
 	it("explains why the secrets provider is missing when it failed to load", async () => {
@@ -632,5 +635,28 @@ describe("isReservedSecret", () => {
 		expect(isReservedSecret("holocron_notify_preflight_abcd1234")).toBe(true);
 		expect(isReservedSecret("HOLOCRON_NOTIFY_WEBHOOK_SYNC")).toBe(false);
 		expect(isReservedSecret("MY_HOLOCRON_NOTIFY_PREFLIGHT")).toBe(false);
+	});
+
+	it("names the plugin's own load error when the configured notifications plugin fails to load", async () => {
+		const loaded = loadedDemo();
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { secrets: fakeSecrets().impl }),
+			"@theholocron/holocron-plugin-discord": {
+				createPlugin: () => {
+					throw new Error("no Discord webhook URL found");
+				},
+			},
+		});
+		const report = await runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			name: "x",
+			loader,
+			print: () => {},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(
+			/no `notifications` provider is available.*`discord` failed to load: no Discord webhook URL found/
+		);
 	});
 });

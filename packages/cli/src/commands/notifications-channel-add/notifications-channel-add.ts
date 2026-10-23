@@ -14,6 +14,7 @@ import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
 	type Notifications,
+	type NotificationsLayout,
 	PluginLoader,
 	type Secrets,
 	type SecretScope,
@@ -70,41 +71,112 @@ export async function assertSecretsReachable(secrets: Secrets, scope: SecretScop
 }
 
 /** Why a capability is not loaded: the plugin's own load error when there is one (e.g. a missing token). */
-export function whyMissing(loader: PluginLoader, key: "secrets", fallback: string): string {
+export function whyMissing(loader: PluginLoader, key: "secrets" | "notifications", fallback: string): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
-	return failure ? `${fallback} (\`${failure.provider}\` failed to load: ${failure.error.message})` : fallback;
+	return failure
+		? `${fallback} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})`
+		: fallback;
 }
 
-/** Pick the provider that can provision; with several, `--provider` decides. */
-export function pickProvisioner(providers: Notifications[], wanted?: string): Notifications {
-	// Any ensure* method counts: a role-only layout needs no channel support.
-	const capable = providers.filter(
-		(p) =>
-			typeof p.ensureChannel === "function" ||
-			typeof p.ensureCategory === "function" ||
-			typeof p.ensureRole === "function"
-	);
+/** The configured `notifications` providers, or an error that says why there are none (including a plugin that failed to load). */
+export function notificationProviders(loader: PluginLoader): Notifications[] {
+	const providers = loader.has("notifications") ? loader.get("notifications") : [];
+	if (providers.length === 0) {
+		throw new Error(
+			whyMissing(
+				loader,
+				"notifications",
+				"no `notifications` provider is available — add one to holocron.config.ts"
+			)
+		);
+	}
+	return providers;
+}
+
+/**
+ * Pick the provider that can do what the command needs; with several, `--provider`
+ * decides. `can` says what "able" means (a command that only reads needs `inspect`, not
+ * provisioning), and `verb` words the errors.
+ */
+export function pickProvider(
+	providers: Notifications[],
+	wanted: string | undefined,
+	can: (p: Notifications) => boolean,
+	verb: { infinitive: string; gerund: string }
+): Notifications {
+	const capable = providers.filter(can);
 	if (capable.length === 0) {
 		throw new Error(
-			"no `notifications` provider can provision — add one that implements it (for example discord) to holocron.config.ts"
+			`no \`notifications\` provider can ${verb.infinitive} — add one that implements it (for example discord) to holocron.config.ts`
 		);
 	}
 	if (wanted) {
 		const match = capable.find((p) => p.providerName === wanted);
 		if (!match) {
-			throw new Error(`no provisioning \`notifications\` provider named \`${wanted}\` (have: ${names(capable)})`);
+			throw new Error(
+				`no ${verb.gerund} \`notifications\` provider named \`${wanted}\` (have: ${names(capable)})`
+			);
 		}
 		return match;
 	}
 	if (capable.length > 1) {
 		throw new Error(
-			`several \`notifications\` providers can provision (${names(capable)}) — pass --provider <name>`
+			`several \`notifications\` providers can ${verb.infinitive} (${names(capable)}) — pass --provider <name>`
 		);
 	}
 	return capable[0]!;
 }
 
+/** Pick the provider that can provision. Any ensure* method counts: a role-only layout needs no channel support. */
+export function pickProvisioner(providers: Notifications[], wanted?: string): Notifications {
+	return pickProvider(
+		providers,
+		wanted,
+		(p) =>
+			typeof p.ensureChannel === "function" ||
+			typeof p.ensureCategory === "function" ||
+			typeof p.ensureRole === "function",
+		{ infinitive: "provision", gerund: "provisioning" }
+	);
+}
+
 const names = (ps: Notifications[]) => ps.map((p) => p.providerName).join(", ");
+
+/**
+ * The first reason the layout's secret names cannot work, or undefined. Two things
+ * cannot share one secret: the second write would overwrite the first and callers
+ * would read the wrong value. Punctuation normalising (release-notes vs
+ * release_notes) makes that easy to hit by accident, GitHub secret names are
+ * case-insensitive, and the preflight's own prefix is reserved. Shared by `setup`
+ * (which refuses) and `verify` (which reports it).
+ */
+export function layoutSecretProblem(layout: NotificationsLayout): string | undefined {
+	const taken = new Map<string, string>();
+	const claim = (secret: string, owner: string, hint: string): string | undefined => {
+		if (isReservedSecret(secret)) {
+			return `${owner} would store into ${secret}, a name reserved for the setup preflight — choose another`;
+		}
+		const key = secret.toUpperCase();
+		const other = taken.get(key);
+		if (other) return `${other} and ${owner} would both store into ${secret} — ${hint}`;
+		taken.set(key, owner);
+		return undefined;
+	};
+	for (const category of layout.categories ?? []) {
+		for (const channel of category.channels ?? []) {
+			if (!channel.webhook) continue;
+			const secret = (channel.webhook !== true && channel.webhook.secret) || defaultSecretName(channel.name);
+			const clash = claim(secret, `channel \`${channel.name}\``, "give one a distinct `webhook.secret`");
+			if (clash) return clash;
+		}
+	}
+	for (const role of layout.roles ?? []) {
+		if (!role.secret) continue;
+		const clash = claim(role.secret, `role \`${role.name}\``, "give one a distinct secret");
+		if (clash) return clash;
+	}
+	return undefined;
+}
 
 /** Ensure one channel and, if asked, its webhook + secret. Shared with `notifications setup`. */
 export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): Promise<ChannelOutcome> {
@@ -194,10 +266,7 @@ export async function runNotificationsChannelAdd(
 	// Every failure below is printed and returned, never thrown: the CLI's global
 	// handler swallows a plain Error, so a bare throw would exit 1 with no message.
 	try {
-		const notifications = pickProvisioner(
-			loader.has("notifications") ? loader.get("notifications") : [],
-			input.provider
-		);
+		const notifications = pickProvisioner(notificationProviders(loader), input.provider);
 
 		// A dry-run stores nothing, so it needs no credentials for the secrets provider.
 		let secrets: Secrets | undefined;

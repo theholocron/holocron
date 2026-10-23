@@ -317,7 +317,10 @@ describe("runNotificationsSetup", () => {
 			loader,
 			print: () => {},
 		});
-		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can provision/) });
+		expect(report).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/no `notifications` provider is available/),
+		});
 	});
 
 	it("handles a layout whose only category declares no channels", async () => {

@@ -8,12 +8,19 @@ import { ProviderApiError } from "../../plugin/index.js";
  *  can't forge extra report lines or inject terminal escape sequences. */
 const MAX_DETAIL_LENGTH = 200;
 
+/** Control characters (newlines and the C1 range included) turned into spaces, whitespace collapsed, no length cap. */
+export function stripControl(text: string): string {
+	return (
+		text
+			// eslint-disable-next-line no-control-regex -- deliberately matching control chars (incl. newlines) to strip them
+			.replace(/[\x00-\x1f\x7f-\x9f]/g, " ")
+			.replace(/\s+/g, " ")
+			.trim()
+	);
+}
+
 export function sanitizeDetail(text: string): string {
-	const stripped = text
-		// eslint-disable-next-line no-control-regex -- deliberately matching control chars (incl. newlines) to strip them
-		.replace(/[\x00-\x1f\x7f-\x9f]/g, " ")
-		.replace(/\s+/g, " ")
-		.trim();
+	const stripped = stripControl(text);
 	return stripped.length > MAX_DETAIL_LENGTH ? `${stripped.slice(0, MAX_DETAIL_LENGTH)}…` : stripped;
 }
 
@@ -27,11 +34,13 @@ export function sanitizeDetail(text: string): string {
  * able to overwhelm or manipulate the terminal.
  */
 export function describeProviderError(err: unknown): string {
+	// A plain Error's message can come from a provider too, so it gets the same treatment as a body.
+	const base = stripControl(errorMessage(err));
 	if (err instanceof ProviderApiError && err.details) {
 		const detail = sanitizeDetail(String(err.details));
-		if (detail) return `${errorMessage(err)}: ${detail}`;
+		if (detail) return `${base}: ${detail}`;
 	}
-	return errorMessage(err);
+	return base;
 }
 
 /**
