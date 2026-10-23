@@ -65,9 +65,37 @@ const BOT_KEEPS: PermissionName[] = [
  */
 function overwriteKey(list: readonly DiscordPermissionOverwrite[] | undefined): string {
 	return (list ?? [])
-		.map((o) => `${o.id}:${o.type}:${BigInt(o.allow) & THREAD_MASK}:${BigInt(o.deny) & THREAD_MASK}`)
+		.map((o) => ({ ...o, allow: BigInt(o.allow) & THREAD_MASK, deny: BigInt(o.deny) & THREAD_MASK }))
+		.filter((o) => o.allow !== 0n || o.deny !== 0n) // an entry that only held thread permissions says nothing we manage
+		.map((o) => `${o.id}:${o.type}:${o.allow}:${o.deny}`)
 		.sort()
 		.join("|");
+}
+
+/**
+ * Desired overwrites with the thread permissions of the existing ones laid back in. Discord refuses
+ * any change to those from this bot, so a replacement list must carry them over untouched or the
+ * whole edit is rejected, even when it changes nothing but what we do manage.
+ */
+function keepThreadBits(
+	desired: DiscordPermissionOverwrite[],
+	existing: readonly DiscordPermissionOverwrite[] | undefined
+): DiscordPermissionOverwrite[] {
+	const threads = ~THREAD_MASK;
+	const merged = desired.map((o) => ({ ...o }));
+	for (const old of existing ?? []) {
+		const allow = BigInt(old.allow) & threads;
+		const deny = BigInt(old.deny) & threads;
+		if (allow === 0n && deny === 0n) continue;
+		const same = merged.find((o) => o.id === old.id && o.type === old.type);
+		if (same) {
+			same.allow = (BigInt(same.allow) | allow).toString();
+			same.deny = (BigInt(same.deny) | deny).toString();
+		} else {
+			merged.push({ id: old.id, type: old.type, allow: allow.toString(), deny: deny.toString() });
+		}
+	}
+	return merged;
 }
 
 export interface DiscordNotificationsOptions {
@@ -289,8 +317,10 @@ export class DiscordNotifications implements Notifications {
 		roleName: (id: string) => string
 	): Required<NotificationsAccess> | "custom" {
 		const list = overwrites ?? [];
-		const managed = permissions(["ViewChannel", ...POST, ...THREAD_BITS]);
-		const within = (bits: string) => (BigInt(bits) & ~BigInt(managed)) === 0n;
+		const managed = permissions(["ViewChannel", ...POST]);
+		// The thread permissions are not ours to read or write, so they never make an overwrite "custom".
+		const unthreaded = (bits: string) => BigInt(bits) & THREAD_MASK;
+		const within = (bits: string) => (unthreaded(bits) & ~BigInt(managed)) === 0n;
 		const botSignature = permissions(BOT_KEEPS);
 
 		let everyone: DiscordPermissionOverwrite | undefined;
@@ -304,9 +334,9 @@ export class DiscordNotifications implements Notifications {
 				roles.push(o);
 			}
 		}
-		if (everyone && (everyone.allow !== "0" || !within(everyone.deny))) return "custom";
+		if (everyone && (unthreaded(everyone.allow) !== 0n || !within(everyone.deny))) return "custom";
 		for (const o of roles) {
-			if (o.deny !== "0" || !within(o.allow)) return "custom";
+			if (unthreaded(o.deny) !== 0n || !within(o.allow)) return "custom";
 		}
 		const denied = (bit: PermissionName) => everyone !== undefined && permissionNames(everyone.deny).includes(bit);
 		const names = (bit: PermissionName) =>
@@ -390,7 +420,9 @@ export class DiscordNotifications implements Notifications {
 		const overwrites = opts.access ? await this.overwritesFor(opts.access) : undefined;
 		if (existing) {
 			if (overwrites && overwriteKey(existing.permission_overwrites) !== overwriteKey(overwrites)) {
-				await this.modifyChannel(existing, { permission_overwrites: overwrites });
+				await this.modifyChannel(existing, {
+					permission_overwrites: keepThreadBits(overwrites, existing.permission_overwrites),
+				});
 				return { id: existing.id, created: false, updated: ["access"] };
 			}
 			return { id: existing.id, created: false };
@@ -474,7 +506,7 @@ export class DiscordNotifications implements Notifications {
 				updated.push("topic");
 			}
 			if (overwrites && overwriteKey(existing.permission_overwrites) !== overwriteKey(overwrites)) {
-				patch.permission_overwrites = overwrites;
+				patch.permission_overwrites = keepThreadBits(overwrites, existing.permission_overwrites);
 				updated.push("access");
 			}
 			if (updated.length > 0) await this.modifyChannel(existing, patch);
