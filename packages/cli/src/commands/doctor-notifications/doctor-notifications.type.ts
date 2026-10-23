@@ -3,12 +3,12 @@ import type { Logger } from "@theholocron/observability/core";
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
 
-export type VerifyStatus = "pass" | "fail";
+export type NotificationsCheckStatus = "pass" | "fail";
 
-export interface VerifyCheck {
+export interface NotificationsCheck {
 	id: string;
 	title: string;
-	status: VerifyStatus;
+	status: NotificationsCheckStatus;
 	/** One line: what was found, or why it failed. */
 	detail: string;
 	/** For a failing check, one line per thing that is wrong. */
@@ -17,7 +17,7 @@ export interface VerifyCheck {
 	step?: number;
 }
 
-export interface RunNotificationsVerifyInput {
+export interface RunDoctorNotificationsInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
 	/** Where the layout's secrets live. Defaults to the org (`context.org`). */
@@ -31,9 +31,9 @@ export interface RunNotificationsVerifyInput {
 	logger?: Logger;
 }
 
-export interface NotificationsVerifyReport {
+export interface DoctorNotificationsReport {
 	status: "ok" | "fail";
-	checks: VerifyCheck[];
+	checks: NotificationsCheck[];
 	summary: { pass: number; fail: number; skip: number };
 	/** Set when verification could not run at all (no provider, no layout). */
 	message?: string;

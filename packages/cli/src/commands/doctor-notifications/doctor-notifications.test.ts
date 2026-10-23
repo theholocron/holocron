@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout, ServerInspection } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
-import { PLANNED_CHECKS, runNotificationsVerify } from "./notifications-verify.js";
+import { PLANNED_CHECKS, runDoctorNotifications } from "./doctor-notifications.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -105,7 +105,7 @@ function setup(
 		setSecret,
 		deleteSecret,
 		run: () =>
-			runNotificationsVerify({
+			runDoctorNotifications({
 				loaded,
 				context: {
 					repoRoot: "/tmp/test",
@@ -120,10 +120,10 @@ function setup(
 	};
 }
 
-const byId = (r: Awaited<ReturnType<typeof runNotificationsVerify>>, id: string) => r.checks.find((c) => c.id === id)!;
+const byId = (r: Awaited<ReturnType<typeof runDoctorNotifications>>, id: string) => r.checks.find((c) => c.id === id)!;
 const REAL = ["server", "categories", "channels", "webhooks", "roles", "secrets"];
 
-describe("runNotificationsVerify — a server that matches the layout", () => {
+describe("runDoctorNotifications — a server that matches the layout", () => {
 	it("passes every built check, and still fails because the unbuilt features are listed as failing", async () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
@@ -149,7 +149,7 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 		const { run, lines } = setup(fakeNotifications());
 		await run();
 		const out = lines.join("\n");
-		expect(out).not.toContain("Holocron notifications verify");
+		expect(out).not.toContain("Holocron doctor notifications");
 		expect(out).toContain("✓ server");
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
@@ -185,7 +185,7 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 	});
 });
 
-describe("runNotificationsVerify — drift is reported with what is wrong", () => {
+describe("runDoctorNotifications — drift is reported with what is wrong", () => {
 	it("a missing category", async () => {
 		const found = { ...GOOD, categories: ["ALERTS"] };
 		const c = byId(await setup(fakeNotifications({ found })).run(), "categories");
@@ -285,7 +285,7 @@ describe("runNotificationsVerify — drift is reported with what is wrong", () =
 	});
 });
 
-describe("runNotificationsVerify — when a step cannot run", () => {
+describe("runDoctorNotifications — when a step cannot run", () => {
 	it("reports a server that cannot be reached, and says the dependent checks were not checked", async () => {
 		const n = fakeNotifications({
 			whoami: vi.fn(async () => {
@@ -422,7 +422,7 @@ describe("runNotificationsVerify — when a step cannot run", () => {
 	});
 });
 
-describe("runNotificationsVerify — refusals", () => {
+describe("runDoctorNotifications — refusals", () => {
 	it("refuses, and says why, when the provider declares no layout", async () => {
 		const { run, lines } = setup(fakeNotifications({ layout: undefined }));
 		const report = await run();
@@ -440,7 +440,7 @@ describe("runNotificationsVerify — refusals", () => {
 	});
 });
 
-describe("runNotificationsVerify — output and logs", () => {
+describe("runDoctorNotifications — output and logs", () => {
 	it("keeps terminal control characters from a server's names off the screen", async () => {
 		const found: ServerInspection = {
 			...GOOD,
@@ -481,7 +481,7 @@ describe("runNotificationsVerify — output and logs", () => {
 				notifications: fakeNotifications({ layout: { roles: [] } }),
 			}),
 		});
-		await runNotificationsVerify({ loaded, context: { repoRoot: "/tmp/test" }, loader });
+		await runDoctorNotifications({ loaded, context: { repoRoot: "/tmp/test" }, loader });
 		expect(log).toHaveBeenCalledWith(expect.stringContaining("server reachable"));
 		log.mockRestore();
 	});
@@ -494,7 +494,7 @@ describe("PLANNED_CHECKS", () => {
 	});
 });
 
-describe("runNotificationsVerify — edge cases in what the server holds", () => {
+describe("runDoctorNotifications — edge cases in what the server holds", () => {
 	it("refuses when no notifications provider is configured at all", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { secrets: "github" } });
 		const loader = makeLoader(loaded, {
@@ -502,7 +502,7 @@ describe("runNotificationsVerify — edge cases in what the server holds", () =>
 				secrets: { providerName: "github", listSecrets: async () => [] },
 			}),
 		});
-		const report = await runNotificationsVerify({
+		const report = await runDoctorNotifications({
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			loader,
@@ -540,7 +540,7 @@ describe("runNotificationsVerify — edge cases in what the server holds", () =>
 		expect(c.problems).toEqual(['#alerts: topic is "" but the layout says "needs a human"']);
 	});
 
-	describe("runNotificationsVerify — review fixes", () => {
+	describe("runDoctorNotifications — review fixes", () => {
 		it("uses a provider that can only read, with no provisioning methods at all", async () => {
 			const readOnly = {
 				key: "notifications",
@@ -563,7 +563,7 @@ describe("runNotificationsVerify — edge cases in what the server holds", () =>
 					},
 				},
 			});
-			const report = await runNotificationsVerify({
+			const report = await runDoctorNotifications({
 				loaded,
 				context: { repoRoot: "/tmp/test" },
 				loader,

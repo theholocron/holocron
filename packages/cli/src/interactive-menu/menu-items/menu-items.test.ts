@@ -11,7 +11,13 @@ describe("menuItems — one level of the nested menu", () => {
 	it("the top level shows one row per first word, with groups opening a submenu", () => {
 		expect(valueOf("repo ›")).toBe("group:repo");
 		expect(valueOf("auth ›")).toBe("group:auth");
-		expect(valueOf("doctor")).toBe("doctor");
+		expect(valueOf("doctor ›")).toBe("group:doctor");
+	});
+
+	it("keeps plain `doctor` runnable, as the first item of its own submenu", () => {
+		expect(names(["doctor"])).toEqual(["doctor (run it)", "notifications"]);
+		expect(valueOf("doctor (run it)", ["doctor"])).toBe("doctor");
+		expect(valueOf("notifications", ["doctor"])).toBe("doctor notifications");
 	});
 
 	it("never shows a `<command> <subcommand>` path: every row at every level is one word", () => {

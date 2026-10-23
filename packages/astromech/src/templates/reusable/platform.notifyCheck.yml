@@ -12,7 +12,7 @@ name: Notify Check
 # requires the role-id secret and pings it: a webhook accepting the post proves
 # the channel works, not that the role ping does, so a missing or malformed role
 # id fails that job instead of passing quietly. Whether Discord lets that role be
-# mentioned at all is checked by `holocron notifications verify`, not here.
+# mentioned at all is checked by `holocron doctor notifications`, not here.
 #
 # Secrets reach this workflow through `secrets: inherit`, so any secret named in
 # `channels` is readable; the declared list below is for callers that pass secrets

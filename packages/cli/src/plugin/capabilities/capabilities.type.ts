@@ -976,7 +976,7 @@ export interface NotificationsLayout {
 
 /**
  * What a provider found on the server, limited to what a {@link NotificationsLayout}
- * asks about. Read-only: this is what `holocron notifications verify` compares the
+ * asks about. Read-only: this is what `holocron doctor notifications` compares the
  * layout against.
  */
 export interface ServerInspection {
@@ -1032,7 +1032,7 @@ export interface Notifications extends ProviderIdentity {
 
 	/**
 	 * Read what exists on the server, for the parts the layout cares about, without
-	 * changing anything. Backs `holocron notifications verify`.
+	 * changing anything. Backs `holocron doctor notifications`.
 	 */
 	inspect?(layout: NotificationsLayout): Promise<ServerInspection>;
 }
