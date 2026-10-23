@@ -292,18 +292,25 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 						`${shown(role.name)}: hoist is ${actual.hoist ?? false} but the layout says ${role.hoist}`
 					);
 				}
-				if (role.permissions !== undefined && actual.permissions === undefined) {
-					appearance.push(`${shown(role.name)}: the provider did not report its permissions`);
-				} else if (role.permissions !== undefined) {
-					const have = new Set((actual.permissions ?? []).map((n) => n.toLowerCase()));
-					const want = new Set(role.permissions.map((n) => n.toLowerCase()));
-					const missing = role.permissions.filter((n) => !have.has(n.toLowerCase()));
-					const extra = (actual.permissions ?? []).filter((n) => !want.has(n.toLowerCase()));
-					if (missing.length > 0) {
-						appearance.push(`${shown(role.name)}: missing permissions ${missing.map(shown).join(", ")}`);
-					}
-					if (extra.length > 0) {
-						appearance.push(`${shown(role.name)}: has extra permissions ${extra.map(shown).join(", ")}`);
+				const reported = actual.permissions;
+				if (role.permissions !== undefined) {
+					if (reported === undefined) {
+						appearance.push(`${shown(role.name)}: the provider did not report its permissions`);
+					} else {
+						const have = new Set(reported.map((n) => n.toLowerCase()));
+						const want = new Set(role.permissions.map((n) => n.toLowerCase()));
+						const missing = role.permissions.filter((n) => !have.has(n.toLowerCase()));
+						const extra = reported.filter((n) => !want.has(n.toLowerCase()));
+						if (missing.length > 0) {
+							appearance.push(
+								`${shown(role.name)}: missing permissions ${missing.map(shown).join(", ")}`
+							);
+						}
+						if (extra.length > 0) {
+							appearance.push(
+								`${shown(role.name)}: has extra permissions ${extra.map(shown).join(", ")}`
+							);
+						}
 					}
 				}
 			}
