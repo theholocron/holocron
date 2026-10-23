@@ -215,15 +215,18 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		name: spec.name,
 		...(spec.category ? { category: spec.category } : {}),
 		...(spec.topic ? { topic: spec.topic } : {}),
+		...(spec.access ? { access: spec.access } : {}),
 	});
-	print(
-		`  ${(channel.created ? style.success : style.skip)(`${channel.created ? "created" : "exists "} channel ${spec.name}${where}`)}`
-	);
-	if (tally) tally[channel.created ? "ok" : "skip"]++;
+	const changed = channel.created || (channel.updated?.length ?? 0) > 0;
+	const verb = channel.created ? "created" : changed ? "updated" : "exists ";
+	const what = channel.updated?.length ? `: ${channel.updated.join(", ")}` : "";
+	print(`  ${(changed ? style.success : style.skip)(`${verb} channel ${spec.name}${where}${what}`)}`);
+	if (tally) tally[changed ? "ok" : "skip"]++;
 	const outcome: ChannelOutcome = {
 		name: spec.name,
 		...(spec.category ? { category: spec.category } : {}),
 		created: channel.created,
+		...(channel.updated?.length ? { updated: channel.updated } : {}),
 	};
 	if (!webhookCfg) return outcome;
 

@@ -6,6 +6,7 @@ export {
 	type DiscordChannel,
 	type DiscordClient,
 	type DiscordClientOptions,
+	type DiscordPermissionOverwrite,
 	type DiscordWebhookInfo,
 	type ModifyRoleInput,
 	parseWebhookUrl,

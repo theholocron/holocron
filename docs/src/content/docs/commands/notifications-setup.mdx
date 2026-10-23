@@ -38,6 +38,17 @@ A role can carry a `secret` too (`roles: [{ name: "gatekeepers", mentionable: tr
 
 A role can also declare how it looks and what it may do: `color` (`#rrggbb`), `hoist` (show its members as their own group in the member list) and `permissions` (the provider's own names, for Discord `ViewChannel`, `SendMessages` and so on). The permission list is exact: a permission not named is not granted. Only what the layout states is compared and changed, and the bot can only grant permissions it holds itself.
 
+A category or channel can declare who may see it and post in it with `access`:
+
+```ts
+categories: [
+  { name: "ALERTS", access: { post: [] }, channels: [/* … */] }, // read-only: bots and webhooks post
+  { name: "STAFF", access: { view: ["gatekeepers"] }, channels: [/* … */] }, // hidden from everyone but gatekeepers
+];
+```
+
+`view` and `post` are each `"everyone"` (the default) or a list of role names from the layout's `roles`. A channel takes its category's access, and stating `view` or `post` on the channel replaces just that field. `setup` writes the permission overwrites explicitly, so the list is exact and replaces any set by hand; it also keeps the bot able to manage and post in a channel it has locked. A channel or category with no `access` anywhere is left alone. Roles are created first, since access names them; naming a role the layout does not declare is refused before anything is created.
+
 `webhook: true` stores the URL in `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`; `webhook: { name, secret }` overrides the webhook name and the secret name. The command prints each role's id, which is what a workflow needs to ping it.
 
 :::caution

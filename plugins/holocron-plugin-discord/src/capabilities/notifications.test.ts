@@ -2,7 +2,7 @@ import { AuthError, ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { ChannelType, createDiscordBotClient, createDiscordClient } from "../rest.js";
+import { ChannelType, createDiscordBotClient, createDiscordClient, permissions } from "../rest.js";
 import { DiscordNotifications } from "./notifications.js";
 
 const BASE = "https://discord.test/api/v10";
@@ -107,6 +107,7 @@ function makeProvisioner(responses: Parameters<typeof stubFetch>[0], opts: { gui
 }
 
 const text = (id: string, name: string, parent_id?: string) => ({ id, name, type: ChannelType.Text, parent_id });
+const OPEN = { view: "everyone", post: "everyone" } as const;
 const category = (id: string, name: string) => ({ id, name, type: ChannelType.Category });
 
 describe("DiscordNotifications.layout", () => {
@@ -184,6 +185,7 @@ describe("DiscordNotifications.ensureChannel", () => {
 		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS" })).toEqual({
 			id: "2001",
 			created: false,
+			updated: ["category"],
 		});
 		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { parent_id: "1001" } });
 	});
@@ -304,7 +306,11 @@ describe("DiscordNotifications — reconciling and resolving existing channels",
 			{ body: [{ ...text("2001", "alerts"), topic: "old" }] },
 			{ body: text("2001", "alerts") },
 		]);
-		expect(await notifs.ensureChannel({ name: "alerts", topic: "new" })).toEqual({ id: "2001", created: false });
+		expect(await notifs.ensureChannel({ name: "alerts", topic: "new" })).toEqual({
+			id: "2001",
+			created: false,
+			updated: ["topic"],
+		});
 		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2001`, body: { topic: "new" } });
 	});
 
@@ -703,10 +709,11 @@ describe("DiscordNotifications.inspect", () => {
 		const found = await notifs.inspect(layout);
 		expect(found.categories).toEqual(["ALERTS"]);
 		expect(found.channels).toEqual([
-			{ name: "alerts", category: "ALERTS", topic: "needs a human", webhooks: ["alerts"] },
-			{ name: "errors", category: "ALERTS", webhooks: [] },
-			{ name: "general", webhooks: [] },
+			{ name: "alerts", category: "ALERTS", topic: "needs a human", webhooks: ["alerts"], access: OPEN },
+			{ name: "errors", category: "ALERTS", webhooks: [], access: OPEN },
+			{ name: "general", webhooks: [], access: OPEN },
 		]);
+		expect(found.categoryAccess).toEqual({ ALERTS: OPEN });
 		expect(found.roles).toEqual([{ name: "gatekeepers", id: "4001", mentionable: true, color: "#000000" }]);
 		expect(calls.every((c) => c.method === "GET")).toBe(true);
 	});
@@ -849,5 +856,226 @@ describe("DiscordNotifications.validateLayout", () => {
 		expect(notifs.validateLayout({ roles: [{ name: "y", permissions: ["Nope"] }] })).toMatch(
 			/role `y`: .*unknown Discord permission/
 		);
+	});
+});
+
+// ── access (who can see and post) ──────────────────────────────────────
+
+const BOT = "9001";
+const POST_BITS = ["SendMessages", "SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"] as const;
+const KEEPS = ["ViewChannel", "SendMessages", "ReadMessageHistory", "ManageChannels", "ManageWebhooks"] as const;
+const bot = { body: { id: BOT, username: "holonet", bot: true } };
+const roles = (...names: string[]) => ({
+	body: names.map((name, i) => ({ id: `500${i}`, name, color: 0, mentionable: false })),
+});
+const readOnly = [
+	{ id: GUILD, type: 0, allow: "0", deny: permissions([...POST_BITS]) },
+	{ id: BOT, type: 1, allow: permissions([...KEEPS]), deny: "0" },
+];
+
+describe("DiscordNotifications access — read-only", () => {
+	it("creates a channel that only bots, webhooks and the named roles can post in", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS")] },
+			roles("gatekeepers"),
+			bot,
+			{ body: { ...text("2001", "alerts", "1001") } },
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } })).toEqual({
+			id: "2001",
+			created: true,
+		});
+		expect(calls[3]).toMatchObject({ method: "POST", body: { permission_overwrites: readOnly } });
+	});
+
+	it("lets the named roles post as well", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS")] },
+			roles("gatekeepers"),
+			bot,
+			{ body: text("2001", "alerts", "1001") },
+		]);
+		await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: ["Gatekeepers"] } });
+		expect((calls[3]?.body as { permission_overwrites: unknown[] }).permission_overwrites).toEqual([
+			readOnly[0],
+			{ id: "5000", type: 0, allow: permissions([...POST_BITS]), deny: "0" },
+			readOnly[1],
+		]);
+	});
+
+	it("changes nothing on a channel that already has exactly these overwrites, in any order", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					category("1001", "ALERTS"),
+					{ ...text("2001", "alerts", "1001"), permission_overwrites: [readOnly[1], readOnly[0]] },
+				],
+			},
+			roles(),
+			bot,
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } })).toEqual({
+			id: "2001",
+			created: false,
+		});
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+	});
+
+	it("replaces overwrites that were set by hand and reports the channel as updated", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					category("1001", "ALERTS"),
+					{
+						...text("2001", "alerts", "1001"),
+						permission_overwrites: [{ id: "123", type: 0, allow: "1024", deny: "0" }],
+					},
+				],
+			},
+			roles(),
+			bot,
+			{ body: text("2001", "alerts", "1001") },
+		]);
+		const out = await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } });
+		expect(out).toEqual({ id: "2001", created: false, updated: ["access"] });
+		expect(calls[3]).toMatchObject({ method: "PATCH", body: { permission_overwrites: readOnly } });
+	});
+
+	it("clears the overwrites when the layout says everyone may see and post", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "X"), { ...text("2001", "a", "1001"), permission_overwrites: readOnly }] },
+			{ body: text("2001", "a", "1001") },
+		]);
+		const out = await notifs.ensureChannel({
+			name: "a",
+			category: "X",
+			access: { view: "everyone", post: "everyone" },
+		});
+		expect(out.updated).toEqual(["access"]);
+		expect(calls[1]).toMatchObject({ method: "PATCH", body: { permission_overwrites: [] } });
+	});
+
+	it("leaves a channel's overwrites alone when the layout gives it no access", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "X"), { ...text("2001", "a", "1001"), permission_overwrites: readOnly }] },
+		]);
+		expect(await notifs.ensureChannel({ name: "a", category: "X" })).toEqual({ id: "2001", created: false });
+		expect(calls).toHaveLength(1);
+	});
+});
+
+describe("DiscordNotifications access — private", () => {
+	it("hides a category from everyone but the named roles", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			roles("gatekeepers"),
+			bot,
+			{ body: category("1001", "STAFF") },
+		]);
+		await notifs.ensureCategory("STAFF", { access: { view: ["gatekeepers"] } });
+		expect(calls[3]).toMatchObject({
+			method: "POST",
+			body: {
+				type: ChannelType.Category,
+				permission_overwrites: [
+					{ id: GUILD, type: 0, allow: "0", deny: permissions(["ViewChannel"]) },
+					{ id: "5000", type: 0, allow: permissions(["ViewChannel"]), deny: "0" },
+					readOnly[1],
+				],
+			},
+		});
+	});
+
+	it("updates an existing category's overwrites", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "STAFF")] },
+			roles("gatekeepers"),
+			bot,
+			{ body: category("1001", "STAFF") },
+		]);
+		expect(await notifs.ensureCategory("STAFF", { access: { view: ["gatekeepers"] } })).toEqual({
+			id: "1001",
+			created: false,
+			updated: ["access"],
+		});
+		expect(calls[3]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/1001` });
+	});
+
+	it("leaves an existing category alone when it already matches", async () => {
+		const overwrites = [
+			{ id: GUILD, type: 0, allow: "0", deny: permissions(["ViewChannel"]) },
+			{ id: "5000", type: 0, allow: permissions(["ViewChannel"]), deny: "0" },
+			readOnly[1],
+		];
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ ...category("1001", "STAFF"), permission_overwrites: overwrites }] },
+			roles("gatekeepers"),
+			bot,
+		]);
+		expect(await notifs.ensureCategory("STAFF", { access: { view: ["gatekeepers"] } })).toEqual({
+			id: "1001",
+			created: false,
+		});
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("fails clearly when access names a role that is not on the server", async () => {
+		const { notifs } = makeProvisioner([{ body: [] }, roles("someone-else")]);
+		await expect(notifs.ensureCategory("STAFF", { access: { view: ["gatekeepers"] } })).rejects.toThrow(
+			/access names the role `gatekeepers`, which does not exist on the server yet/
+		);
+	});
+
+	it("asks who the bot is only once", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			roles(),
+			bot,
+			{ body: category("1001", "A") },
+			roles(),
+			{ body: category("1002", "B") },
+		]);
+		await notifs.ensureCategory("A", { access: { post: [] } });
+		await notifs.ensureCategory("B", { access: { post: [] } });
+		expect(calls.filter((c) => c.url.endsWith("/users/@me"))).toHaveLength(1);
+	});
+
+	it("tries again for the bot's id after a failed lookup", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [] },
+			roles(),
+			{ status: 500, body: { message: "boom" } },
+			roles(),
+			bot,
+			{ body: category("1001", "A") },
+		]);
+		await expect(notifs.ensureCategory("A", { access: { post: [] } })).rejects.toThrow();
+		expect((await notifs.ensureCategory("A", { access: { post: [] } })).created).toBe(true);
+	});
+});
+
+describe("DiscordNotifications.inspect — access", () => {
+	const lockedOut = [
+		{ id: GUILD, type: 0, allow: "0", deny: permissions(["ViewChannel", ...POST_BITS]) },
+		{ id: "5000", type: 0, allow: permissions(["ViewChannel", "SendMessages"]), deny: "0" },
+		{ id: "5009", type: 0, allow: permissions(["ViewChannel"]), deny: "0" },
+		{ id: BOT, type: 1, allow: permissions([...KEEPS]), deny: "0" },
+	];
+
+	it("reads who can see and post back out of the overwrites, by role name", async () => {
+		const { notifs } = makeProvisioner([
+			{
+				body: [
+					{ ...category("1001", "STAFF"), permission_overwrites: lockedOut },
+					{ ...text("2001", "community-updates", "1001"), permission_overwrites: readOnly },
+				],
+			},
+			roles("gatekeepers"),
+		]);
+		const found = await notifs.inspect({ roles: [{ name: "gatekeepers" }] });
+		expect(found.categoryAccess).toEqual({
+			STAFF: { view: ["gatekeepers", "5009"], post: ["gatekeepers"] },
+		});
+		expect(found.channels[0]?.access).toEqual({ view: "everyone", post: [] });
 	});
 });

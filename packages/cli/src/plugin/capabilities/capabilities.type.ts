@@ -948,10 +948,24 @@ export interface EnsureWebhookResult {
 	url?: string;
 }
 
+/**
+ * Who may see a channel and post in it. Roles are named as in the layout's `roles`.
+ * A channel inherits its category's access; stating `view` or `post` on the channel
+ * replaces that field only.
+ */
+export interface NotificationsAccess {
+	/** `"everyone"` (the default), or the roles that can see it: everyone else cannot. */
+	view?: "everyone" | string[];
+	/** `"everyone"` (the default), or the roles that can post; `[]` means only bots and webhooks. */
+	post?: "everyone" | string[];
+}
+
 /** One channel in a {@link NotificationsLayout}. */
 export interface NotificationsChannelLayout {
 	name: string;
 	topic?: string;
+	/** Who may see and post. Overrides the category's, field by field. */
+	access?: NotificationsAccess;
 	/**
 	 * Create an inbound webhook for the channel and store its URL in a secret.
 	 * `true` uses the defaults; the object form overrides the webhook's display
@@ -962,7 +976,7 @@ export interface NotificationsChannelLayout {
 
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
-	categories?: Array<{ name: string; channels?: NotificationsChannelLayout[] }>;
+	categories?: Array<{ name: string; access?: NotificationsAccess; channels?: NotificationsChannelLayout[] }>;
 	roles?: Array<{
 		name: string;
 		mentionable?: boolean;
@@ -992,6 +1006,8 @@ export interface NotificationsLayout {
  */
 export interface ServerInspection {
 	categories: string[];
+	/** Who can see and post in each category, for those the layout gives an `access`. */
+	categoryAccess?: Record<string, Required<NotificationsAccess>>;
 	channels: Array<{
 		name: string;
 		/** The category it sits under, if any. */
@@ -1001,6 +1017,8 @@ export interface ServerInspection {
 		webhooks: string[];
 		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
 		webhooksError?: string;
+		/** Who can see and post, for channels the layout gives an `access` (or whose category has one). */
+		access?: Required<NotificationsAccess>;
 	}>;
 	roles: Array<{
 		name: string;
@@ -1035,8 +1053,13 @@ export interface Notifications extends ProviderIdentity {
 	 * what is missing), and all need provider credentials beyond the posting
 	 * URL — so a provider that only posts simply omits them.
 	 */
-	ensureCategory?(name: string): Promise<EnsuredResource>;
-	ensureChannel?(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource>;
+	ensureCategory?(name: string, opts?: { access?: NotificationsAccess }): Promise<EnsuredResource>;
+	ensureChannel?(input: {
+		name: string;
+		category?: string;
+		topic?: string;
+		access?: NotificationsAccess;
+	}): Promise<EnsuredResource>;
 	ensureWebhook?(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult>;
 	ensureRole?(input: {
 		name: string;

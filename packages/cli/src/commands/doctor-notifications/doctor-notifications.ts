@@ -11,7 +11,13 @@
  */
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Notifications, PluginLoader, type Secrets } from "../../plugin/index.js";
+import {
+	assertPluginsResolvable,
+	type Notifications,
+	type NotificationsAccess,
+	PluginLoader,
+	type Secrets,
+} from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import { statusRow } from "../../ui/status-row/index.js";
 import { style } from "../../ui/style/index.js";
@@ -30,7 +36,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 8, id: "permissions", title: "channel and category permissions set" },
 	{ step: 10, id: "server-settings", title: "server verification, notifications and system channels set" },
 	{ step: 11, id: "welcome", title: "welcome screen and onboarding set" },
 	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars set" },
@@ -41,7 +46,20 @@ export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: st
 ];
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+type AccessValue = "everyone" | string[];
+/** `everyone`, or the roles sorted and lower-cased, so order and case do not matter when comparing. */
+const accessKey = (v: AccessValue): string =>
+	v === "everyone"
+		? "everyone"
+		: [...v]
+				.map((r) => r.toLowerCase())
+				.sort()
+				.join(",");
+const accessText = (v: AccessValue): string =>
+	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
+const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
 const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
 
@@ -173,6 +191,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["webhooks", "webhooks on their channels"],
 			["roles", "roles exist and are mentionable"],
 			["role-appearance", ROLE_APPEARANCE_TITLE],
+			["access", ACCESS_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -323,6 +342,52 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			ROLE_APPEARANCE_TITLE,
 			inspected.rolesError ? [`not checked: could not read the roles`] : appearance,
 			styled.length === 0 ? "none declared" : `${styled.length} of ${styled.length} as declared`
+		);
+
+		// 6c. who can see and post, in the channels and categories the layout (or its category) gives an access
+		const accessProblems: string[] = [];
+		const compare = (label: string, want: NotificationsAccess, have: Required<NotificationsAccess> | undefined) => {
+			if (!have) {
+				accessProblems.push(`${label}: the provider did not report its access`);
+				return;
+			}
+			for (const field of ["view", "post"] as const) {
+				const wanted = want[field] ?? "everyone";
+				if (accessKey(wanted) !== accessKey(have[field])) {
+					accessProblems.push(
+						`${label}: ${field} is ${accessText(have[field])} but the layout says ${accessText(wanted)}`
+					);
+				}
+			}
+		};
+		let accessDeclared = 0;
+		for (const cat of categories) {
+			if (cat.access) {
+				accessDeclared++;
+				if (!inspected.categories.some((name) => same(name, cat.name))) {
+					accessProblems.push(`${shown(cat.name)}: not checked, the category is missing`);
+				} else {
+					const have = Object.entries(inspected.categoryAccess ?? {}).find(([n]) => same(n, cat.name))?.[1];
+					compare(shown(cat.name), cat.access, have);
+				}
+			}
+			for (const channel of cat.channels ?? []) {
+				if (!cat.access && !channel.access) continue;
+				accessDeclared++;
+				const want = { ...cat.access, ...channel.access };
+				const { match } = pick(channel.name, cat.name);
+				if (!match) {
+					accessProblems.push(`#${shown(channel.name)}: not checked, the channel is missing`);
+				} else {
+					compare(`#${shown(channel.name)}`, want, match.access);
+				}
+			}
+		}
+		add(
+			"access",
+			ACCESS_TITLE,
+			accessProblems,
+			accessDeclared === 0 ? "none declared" : `${accessDeclared} of ${accessDeclared} as declared`
 		);
 	}
 

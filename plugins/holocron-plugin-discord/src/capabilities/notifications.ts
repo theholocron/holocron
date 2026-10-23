@@ -2,6 +2,7 @@ import {
 	type EnsuredResource,
 	type EnsureWebhookResult,
 	type Notifications,
+	type NotificationsAccess,
 	type NotificationsLayout,
 	ProviderApiError,
 	type ServerInspection,
@@ -13,6 +14,7 @@ import {
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type DiscordPermissionOverwrite,
 	type ModifyRoleInput,
 	parseWebhookUrl,
 	type PermissionName,
@@ -36,6 +38,25 @@ function reason(err: unknown): string {
 	return err instanceof ProviderApiError && err.details
 		? `${errorMessage(err)}: ${String(err.details).slice(0, 200)}`
 		: errorMessage(err);
+}
+
+/** What @everyone loses when a channel is read-only: sending, and starting or posting in threads. */
+const POST: PermissionName[] = ["SendMessages", "SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"];
+/** What the bot keeps in a channel it has locked down, so it can still manage it and post. */
+const BOT_KEEPS: PermissionName[] = [
+	"ViewChannel",
+	"SendMessages",
+	"ReadMessageHistory",
+	"ManageChannels",
+	"ManageWebhooks",
+];
+
+/** Overwrites as a comparable set: order and the shape of the array do not matter. */
+function overwriteKey(list: readonly DiscordPermissionOverwrite[] | undefined): string {
+	return (list ?? [])
+		.map((o) => `${o.id}:${o.type}:${o.allow}:${o.deny}`)
+		.sort()
+		.join("|");
 }
 
 export interface DiscordNotificationsOptions {
@@ -158,8 +179,18 @@ export class DiscordNotifications implements Notifications {
 				rolesError = reason(err);
 			}
 		}
+		// Who can see and post comes from the overwrites already in the channel list: no extra requests.
+		const roleName = (id: string): string => roles.find((r) => r.id === id)?.name ?? id;
+		found.forEach((entry, i) => {
+			entry.access = this.accessOf(text[i]!.permission_overwrites, roleName);
+		});
+		const categoryAccess: Record<string, Required<NotificationsAccess>> = {};
+		for (const c of channels.filter((c) => c.type === ChannelType.Category)) {
+			categoryAccess[c.name] = this.accessOf(c.permission_overwrites, roleName);
+		}
 		return {
 			categories: [...categoryName.values()],
+			categoryAccess,
 			channels: found,
 			roles,
 			...(rolesError ? { rolesError } : {}),
@@ -176,6 +207,71 @@ export class DiscordNotifications implements Notifications {
 			}
 		}
 		return undefined;
+	}
+
+	private botUser?: Promise<string>;
+
+	private botId(): Promise<string> {
+		return (this.botUser ??= this.bot()
+			.users.me()
+			.then((u) => u.id)
+			.catch((err: unknown) => {
+				this.botUser = undefined;
+				throw err;
+			}));
+	}
+
+	/**
+	 * The overwrites that make a channel look like `access`. The list is exact: it replaces
+	 * whatever was set by hand. `[]` (public) when nothing is restricted.
+	 */
+	private async overwritesFor(access: NotificationsAccess): Promise<DiscordPermissionOverwrite[]> {
+		const view = access.view ?? "everyone";
+		const post = access.post ?? "everyone";
+		const everyoneDeny: PermissionName[] = [
+			...(view === "everyone" ? [] : (["ViewChannel"] as PermissionName[])),
+			...(post === "everyone" ? [] : POST),
+		];
+		if (everyoneDeny.length === 0) return [];
+
+		const roles = await this.bot().guilds.roles(this.guild());
+		const idOf = (name: string): string => {
+			const found = roles.find((r) => DiscordNotifications.same(r.name, name));
+			if (!found) throw new Error(`access names the role \`${name}\`, which does not exist on the server yet`);
+			return found.id;
+		};
+		const allow = new Map<string, PermissionName[]>();
+		const grant = (roleName: string, names: PermissionName[]) => {
+			const id = idOf(roleName);
+			allow.set(id, [...new Set([...(allow.get(id) ?? []), ...names])]);
+		};
+		if (view !== "everyone") for (const r of view) grant(r, ["ViewChannel"]);
+		if (post !== "everyone") for (const r of post) grant(r, POST);
+
+		const overwrites: DiscordPermissionOverwrite[] = [
+			{ id: this.guild(), type: 0, allow: "0", deny: permissions(everyoneDeny) },
+			...[...allow].map(([id, names]) => ({ id, type: 0 as const, allow: permissions(names), deny: "0" })),
+			{ id: await this.botId(), type: 1, allow: permissions(BOT_KEEPS), deny: "0" },
+		];
+		return overwrites;
+	}
+
+	/** Read an access back out of a channel's overwrites, naming roles as the layout does. */
+	private accessOf(
+		overwrites: readonly DiscordPermissionOverwrite[] | undefined,
+		roleName: (id: string) => string
+	): Required<NotificationsAccess> {
+		const list = overwrites ?? [];
+		const everyone = list.find((o) => o.type === 0 && o.id === this.guild());
+		const denies = (bit: PermissionName) => everyone !== undefined && permissionNames(everyone.deny).includes(bit);
+		const allowed = (bit: PermissionName) =>
+			list
+				.filter((o) => o.type === 0 && o.id !== this.guild() && permissionNames(o.allow).includes(bit))
+				.map((o) => roleName(o.id));
+		return {
+			view: denies("ViewChannel") ? allowed("ViewChannel") : "everyone",
+			post: denies("SendMessages") ? allowed("SendMessages") : "everyone",
+		};
 	}
 
 	private guild(): string {
@@ -232,13 +328,38 @@ export class DiscordNotifications implements Notifications {
 		return a.toLowerCase() === b.toLowerCase();
 	}
 
-	async ensureCategory(name: string): Promise<EnsuredResource> {
+	async ensureCategory(name: string, opts: { access?: NotificationsAccess } = {}): Promise<EnsuredResource> {
 		const existing = (await this.channelList()).find(
 			(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, name)
 		);
-		if (existing) return { id: existing.id, created: false };
-		const made = await this.createChannel({ name, type: ChannelType.Category });
+		const overwrites = opts.access ? await this.overwritesFor(opts.access) : undefined;
+		if (existing) {
+			if (overwrites && overwriteKey(existing.permission_overwrites) !== overwriteKey(overwrites)) {
+				await this.modifyChannel(existing, { permission_overwrites: overwrites });
+				return { id: existing.id, created: false, updated: ["access"] };
+			}
+			return { id: existing.id, created: false };
+		}
+		const made = await this.createChannel({
+			name,
+			type: ChannelType.Category,
+			...(overwrites ? { permission_overwrites: overwrites } : {}),
+		});
 		return { id: made.id, created: true };
+	}
+
+	/** Edit a channel and keep the shared list in step; forget the list if the edit may have half-applied. */
+	private async modifyChannel(
+		channel: DiscordChannel,
+		patch: Parameters<DiscordBotClient["channels"]["modify"]>[1]
+	): Promise<void> {
+		try {
+			await this.bot().channels.modify(channel.id, patch);
+		} catch (err) {
+			this.channelLoad = undefined; // may have applied; see createChannel
+			throw err;
+		}
+		Object.assign(channel, patch);
 	}
 
 	/**
@@ -261,32 +382,40 @@ export class DiscordNotifications implements Notifications {
 		return named.find((c) => c.parent_id === parentId) ?? named.find((c) => !c.parent_id);
 	}
 
-	async ensureChannel(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource> {
-		const bot = this.bot();
+	async ensureChannel(input: {
+		name: string;
+		category?: string;
+		topic?: string;
+		access?: NotificationsAccess;
+	}): Promise<EnsuredResource> {
 		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
 		const existing = DiscordNotifications.findChannel(await this.channelList(), input.name, parent);
+		const overwrites = input.access ? await this.overwritesFor(input.access) : undefined;
 		if (existing) {
-			// Already there: reconcile what the layout asks for (category, topic), leave the rest.
-			const patch = {
-				...(parent && existing.parent_id !== parent ? { parent_id: parent } : {}),
-				...(input.topic !== undefined && (existing.topic ?? "") !== input.topic ? { topic: input.topic } : {}),
-			};
-			if (Object.keys(patch).length > 0) {
-				try {
-					await bot.channels.modify(existing.id, patch);
-				} catch (err) {
-					this.channelLoad = undefined; // may have applied; see createChannel
-					throw err;
-				}
-				Object.assign(existing, patch);
+			// Already there: reconcile what the layout asks for (category, topic, access), leave the rest.
+			const updated: string[] = [];
+			const patch: Parameters<DiscordBotClient["channels"]["modify"]>[1] = {};
+			if (parent && existing.parent_id !== parent) {
+				patch.parent_id = parent;
+				updated.push("category");
 			}
-			return { id: existing.id, created: false };
+			if (input.topic !== undefined && (existing.topic ?? "") !== input.topic) {
+				patch.topic = input.topic;
+				updated.push("topic");
+			}
+			if (overwrites && overwriteKey(existing.permission_overwrites) !== overwriteKey(overwrites)) {
+				patch.permission_overwrites = overwrites;
+				updated.push("access");
+			}
+			if (updated.length > 0) await this.modifyChannel(existing, patch);
+			return { id: existing.id, created: false, ...(updated.length > 0 ? { updated } : {}) };
 		}
 		const made = await this.createChannel({
 			name: input.name,
 			type: ChannelType.Text,
 			...(input.topic ? { topic: input.topic } : {}),
 			...(parent ? { parent_id: parent } : {}),
+			...(overwrites ? { permission_overwrites: overwrites } : {}),
 		});
 		return { id: made.id, created: true };
 	}

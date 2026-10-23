@@ -14,7 +14,13 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Secrets } from "../../plugin/index.js";
+import {
+	assertPluginsResolvable,
+	type NotificationsAccess,
+	type NotificationsLayout,
+	PluginLoader,
+	type Secrets,
+} from "../../plugin/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { style } from "../../ui/style/index.js";
 import {
@@ -26,6 +32,40 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
+
+/** A channel's access: its category's, with any field the channel states itself laid over it. */
+export function effectiveAccess(
+	category: NotificationsAccess | undefined,
+	channel: NotificationsAccess | undefined
+): NotificationsAccess | undefined {
+	if (!category && !channel) return undefined;
+	return { ...category, ...channel };
+}
+
+/** The first role an `access` names that the layout does not declare, or undefined. */
+export function accessRoleProblem(layout: NotificationsLayout): string | undefined {
+	const declared = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
+	const check = (where: string, access: NotificationsAccess | undefined): string | undefined => {
+		for (const field of ["view", "post"] as const) {
+			const value = access?.[field];
+			if (!Array.isArray(value)) continue;
+			const unknown = value.find((name) => !declared.has(name.toLowerCase()));
+			if (unknown !== undefined) {
+				return `${where}: \`access.${field}\` names the role \`${unknown}\`, which is not in the layout's roles`;
+			}
+		}
+		return undefined;
+	};
+	for (const category of layout.categories ?? []) {
+		const problem = check(`category \`${category.name}\``, category.access);
+		if (problem) return problem;
+		for (const channel of category.channels ?? []) {
+			const found = check(`channel \`${channel.name}\``, channel.access);
+			if (found) return found;
+		}
+	}
+	return undefined;
+}
 
 export async function runNotificationsSetup(input: RunNotificationsSetupInput): Promise<NotificationsSetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -98,6 +138,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	// before anything is created: a half-applied layout is harder to reason about than none.
 	const secretProblem = layoutSecretProblem(layout);
 	if (secretProblem) return refuse(secretProblem);
+	const accessProblem = accessRoleProblem(layout);
+	if (accessProblem) return refuse(accessProblem);
 	const providerProblem = notifications.validateLayout?.(layout);
 	if (providerProblem) return refuse(providerProblem);
 
@@ -115,51 +157,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	};
 
-	for (const category of layout.categories ?? []) {
-		print(`\n${style.header(category.name)}`);
-		report.categories.push(category.name);
-		await attempt(`category ${category.name}`, async () => {
-			if (!notifications.ensureCategory) return; // the provider has no categories; channels simply go ungrouped
-			if (dryRun) {
-				print(`  ${style.skip(`would ensure category ${category.name}`)}`);
-				tally.skip++;
-				return;
-			}
-			const result = await notifications.ensureCategory(category.name);
-			print(
-				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} category ${category.name}`)}`
-			);
-			made(result.created);
-		});
-		for (const channel of category.channels ?? []) {
-			await attempt(`channel ${channel.name}`, async () => {
-				const outcome = await provisionChannel(
-					{
-						notifications,
-						...(secrets ? { secrets } : {}),
-						scope: scope ?? { kind: "repo" },
-						dryRun,
-						print,
-						tally,
-					},
-					{
-						name: channel.name,
-						category: category.name,
-						...(channel.topic ? { topic: channel.topic } : {}),
-						...(channel.webhook ? { webhook: channel.webhook === true ? {} : channel.webhook } : {}),
-					}
-				);
-				report.channels.push(outcome);
-				if (outcome.webhook && !outcome.webhook.stored) {
-					report.failures.push({
-						step: `webhook ${outcome.webhook.name}`,
-						message: outcome.webhook.note!,
-					});
-				}
-			});
-		}
-	}
-
+	// Roles first: a channel's access names them, and the server has to have them by then.
 	if ((layout.roles ?? []).length > 0) print(`\n${style.header("Roles")}`);
 	for (const role of layout.roles ?? []) {
 		await attempt(`role ${role.name}`, async () => {
@@ -201,6 +199,57 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				tally.ok++;
 			}
 		});
+	}
+
+	for (const category of layout.categories ?? []) {
+		print(`\n${style.header(category.name)}`);
+		report.categories.push(category.name);
+		await attempt(`category ${category.name}`, async () => {
+			if (!notifications.ensureCategory) return; // the provider has no categories; channels simply go ungrouped
+			if (dryRun) {
+				print(`  ${style.skip(`would ensure category ${category.name}`)}`);
+				tally.skip++;
+				return;
+			}
+			const result = await notifications.ensureCategory(category.name, {
+				...(category.access ? { access: category.access } : {}),
+			});
+			const changed = result.created || (result.updated?.length ?? 0) > 0;
+			const verb = result.created ? "created" : changed ? "updated" : "exists ";
+			const what = result.updated?.length ? `: ${result.updated.join(", ")}` : "";
+			print(`  ${(changed ? style.success : style.skip)(`${verb} category ${category.name}${what}`)}`);
+			made(changed);
+		});
+		for (const channel of category.channels ?? []) {
+			await attempt(`channel ${channel.name}`, async () => {
+				const outcome = await provisionChannel(
+					{
+						notifications,
+						...(secrets ? { secrets } : {}),
+						scope: scope ?? { kind: "repo" },
+						dryRun,
+						print,
+						tally,
+					},
+					{
+						name: channel.name,
+						category: category.name,
+						...(channel.topic ? { topic: channel.topic } : {}),
+						...(effectiveAccess(category.access, channel.access)
+							? { access: effectiveAccess(category.access, channel.access)! }
+							: {}),
+						...(channel.webhook ? { webhook: channel.webhook === true ? {} : channel.webhook } : {}),
+					}
+				);
+				report.channels.push(outcome);
+				if (outcome.webhook && !outcome.webhook.stored) {
+					report.failures.push({
+						step: `webhook ${outcome.webhook.name}`,
+						message: outcome.webhook.note!,
+					});
+				}
+			});
+		}
 	}
 
 	if (report.failures.length > 0) {

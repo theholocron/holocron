@@ -189,6 +189,73 @@ describe("runNotificationsSetup", () => {
 		expect(n.ensureRole).not.toHaveBeenCalled();
 	});
 
+	it("creates roles before categories and channels, since a channel's access names them", async () => {
+		const n = fakeNotifications();
+		await setup(n).run();
+		const role = (n.ensureRole as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]!;
+		const category = (n.ensureCategory as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]!;
+		expect(role).toBeLessThan(category);
+	});
+
+	it("gives a channel its own access over its category's, field by field", async () => {
+		const n = fakeNotifications({
+			layout: {
+				roles: [{ name: "gatekeepers" }],
+				categories: [
+					{
+						name: "STAFF",
+						access: { view: ["gatekeepers"], post: [] },
+						channels: [{ name: "talk", access: { post: ["gatekeepers"] } }, { name: "quiet" }],
+					},
+					{ name: "OPEN", channels: [{ name: "free" }] },
+				],
+			},
+		});
+		await setup(n).run();
+		expect(n.ensureCategory).toHaveBeenCalledWith("STAFF", { access: { view: ["gatekeepers"], post: [] } });
+		expect(n.ensureCategory).toHaveBeenCalledWith("OPEN", {});
+		const calls = (n.ensureChannel as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+		expect(calls[0]).toMatchObject({ name: "talk", access: { view: ["gatekeepers"], post: ["gatekeepers"] } });
+		expect(calls[1]).toMatchObject({ name: "quiet", access: { view: ["gatekeepers"], post: [] } });
+		expect(calls[2]).not.toHaveProperty("access");
+	});
+
+	it("shows what changed on a channel and a category that already existed", async () => {
+		const n = fakeNotifications({
+			ensureCategory: vi.fn(async () => ({ id: "c", created: false, updated: ["access"] })),
+			ensureChannel: vi.fn(async () => ({ id: "1", created: false, updated: ["topic", "access"] })),
+		});
+		const { run, lines } = setup(n);
+		await run();
+		const out = lines.join("\n");
+		expect(out).toContain("updated category ALERTS: access");
+		expect(out).toContain("updated channel alerts in ALERTS: topic, access");
+	});
+
+	it("refuses an access that names a role the layout does not declare, before creating anything", async () => {
+		for (const layout of [
+			{ roles: [], categories: [{ name: "A", access: { view: ["ghosts"] } }] },
+			{ roles: [], categories: [{ name: "A", channels: [{ name: "c", access: { post: ["ghosts"] } }] }] },
+		] as NotificationsLayout[]) {
+			const n = fakeNotifications({ layout });
+			const report = await setup(n).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/names the role `ghosts`, which is not in the layout's roles/);
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+			expect(n.ensureRole).not.toHaveBeenCalled();
+		}
+	});
+
+	it("accepts access roles whatever their case, and 'everyone'", async () => {
+		const n = fakeNotifications({
+			layout: {
+				roles: [{ name: "gatekeepers" }],
+				categories: [{ name: "A", access: { view: ["GateKeepers"], post: "everyone" } }],
+			},
+		});
+		expect((await setup(n).run()).status).toBe("ok");
+	});
+
 	it("ends a refusal with the count too", async () => {
 		const n = fakeNotifications({ layout: undefined });
 		const { run, lines } = setup(n);
@@ -301,7 +368,7 @@ describe("runNotificationsSetup", () => {
 		const n = fakeNotifications();
 		await setup(n).run();
 		expect(n.ensureCategory).toHaveBeenCalledTimes(3);
-		expect(n.ensureCategory).toHaveBeenCalledWith("EMPTY");
+		expect(n.ensureCategory).toHaveBeenCalledWith("EMPTY", {});
 	});
 
 	it("goes on without categories when the provider has none", async () => {
@@ -389,7 +456,7 @@ describe("runNotificationsSetup", () => {
 		const n = fakeNotifications({ layout });
 		const report = await setup(n, { secrets: false, org: "" }).run();
 		expect(report.status).toBe("ok");
-		expect(n.ensureCategory).toHaveBeenCalledWith("EMPTY");
+		expect(n.ensureCategory).toHaveBeenCalledWith("EMPTY", {});
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
