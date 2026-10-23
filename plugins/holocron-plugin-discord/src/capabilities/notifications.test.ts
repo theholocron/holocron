@@ -1454,6 +1454,26 @@ describe("DiscordNotifications.ensureServer", () => {
 		);
 	});
 
+	it("fails when a feature the server had is missing from the reply, as when another admin changed the list meanwhile", async () => {
+		const { notifs } = makeProvisioner([
+			guild({ features: ["NEWS", "INVITES_DISABLED"] }),
+			chans,
+			guild({ features: ["NEWS", "COMMUNITY"] }),
+		]);
+		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(
+			/turned community on, but the server no longer has INVITES_DISABLED/
+		);
+	});
+
+	it("does not treat the features Discord drops by itself when community goes off as lost", async () => {
+		const { notifs } = makeProvisioner([
+			guild({ features: ["COMMUNITY", "DISCOVERABLE"] }),
+			chans,
+			guild({ features: [] }),
+		]);
+		expect(await notifs.ensureServer({ community: false })).toEqual({ updated: ["community"] });
+	});
+
 	it("treats a reply with no feature list as community not switched on", async () => {
 		const { notifs } = makeProvisioner([guild(), chans, guild({ features: undefined })]);
 		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(/sent features/);

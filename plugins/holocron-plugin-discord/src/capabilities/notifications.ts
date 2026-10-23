@@ -459,7 +459,8 @@ export class DiscordNotifications implements Notifications {
 				const got = (after as unknown as Record<string, unknown>)[k];
 				return patch[k] !== (k === "description" ? (got ?? "") : got);
 			});
-		if (patch.features && patch.features.includes("COMMUNITY") !== (after.features ?? []).includes("COMMUNITY")) {
+		const nowFeatures = after.features ?? [];
+		if (patch.features && patch.features.includes("COMMUNITY") !== nowFeatures.includes("COMMUNITY")) {
 			stuck.push("features");
 		}
 		if (stuck.length > 0) {
@@ -467,6 +468,18 @@ export class DiscordNotifications implements Notifications {
 				`sent ${stuck.join(", ")} but the server came back different -- Discord may have refused a part of it ` +
 					"(community features need a rules channel, an updates channel, verification of at least low and the content filter on all members)"
 			);
+		}
+		// Discord has no way to add one feature, so turning community on sends the whole list read a moment ago.
+		// If someone else changed the list in between, a feature they added is gone: say so, do not report success.
+		// (Turning it off is left out: Discord drops the features that depend on community by itself.)
+		if (patch.features?.includes("COMMUNITY")) {
+			const lost = features.filter((f) => f !== "COMMUNITY" && !nowFeatures.includes(f));
+			if (lost.length > 0) {
+				throw new Error(
+					`turned community on, but the server no longer has ${lost.join(", ")} -- another admin may have changed ` +
+						"its features at the same time; check Server Settings and re-run"
+				);
+			}
 		}
 		return { updated };
 	}
