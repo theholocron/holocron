@@ -594,6 +594,14 @@ describe("DiscordNotifications.inspect", () => {
 		expect(calls.find((c) => c.url.endsWith("/webhooks"))?.url).toBe(`${BASE}/channels/2001/webhooks`);
 	});
 
+	it("handles a layout whose category declares no channels, fetching no webhooks", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [category("1001", "EMPTY")] }, { body: [] }]);
+		const found = await notifs.inspect({ categories: [{ name: "EMPTY" }] });
+		expect(found.categories).toEqual(["EMPTY"]);
+		expect(found.channels).toEqual([]);
+		expect(calls.filter((c) => c.url.endsWith("/webhooks"))).toHaveLength(0);
+	});
+
 	it("includes announcement channels, and tolerates a webhook with no name", async () => {
 		const { notifs } = makeProvisioner([
 			{ body: [{ id: "2005", name: "alerts", type: ChannelType.Announcement }] },
