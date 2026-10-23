@@ -933,6 +933,8 @@ export interface Tooling extends ProviderIdentity {
 export interface EnsuredResource {
 	id: string;
 	created: boolean;
+	/** For something that already existed: the settings that disagreed with the layout and were changed. */
+	updated?: string[];
 }
 
 /** A webhook (or equivalent inbound URL) for a channel. */
@@ -964,6 +966,15 @@ export interface NotificationsLayout {
 	roles?: Array<{
 		name: string;
 		mentionable?: boolean;
+		/** `#rrggbb`. Omit to leave the colour alone. */
+		color?: string;
+		/** Show the role's members as their own group in the member list. */
+		hoist?: boolean;
+		/**
+		 * The permissions the role holds, by the provider's own names (for Discord, `ViewChannel`,
+		 * `SendMessages`, …). The list is exact: a permission not named is not granted.
+		 */
+		permissions?: string[];
 		/**
 		 * Store the role's id in this secret, so a workflow can ping the role
 		 * without anyone copying the id by hand. The id is not sensitive; a secret
@@ -991,7 +1002,15 @@ export interface ServerInspection {
 		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
 		webhooksError?: string;
 	}>;
-	roles: Array<{ name: string; id: string; mentionable: boolean }>;
+	roles: Array<{
+		name: string;
+		id: string;
+		mentionable: boolean;
+		/** `#rrggbb`, or absent for the default colour. */
+		color?: string;
+		hoist?: boolean;
+		permissions?: string[];
+	}>;
 	/** Set when reading the roles failed; `roles` is then empty and means nothing. Not read at all when the layout declares none. */
 	rolesError?: string;
 }
@@ -1019,7 +1038,20 @@ export interface Notifications extends ProviderIdentity {
 	ensureCategory?(name: string): Promise<EnsuredResource>;
 	ensureChannel?(input: { name: string; category?: string; topic?: string }): Promise<EnsuredResource>;
 	ensureWebhook?(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult>;
-	ensureRole?(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource>;
+	ensureRole?(input: {
+		name: string;
+		mentionable?: boolean;
+		color?: string;
+		hoist?: boolean;
+		permissions?: string[];
+	}): Promise<EnsuredResource>;
+
+	/**
+	 * Check the provider-specific parts of the layout (colours, permission names, …) without
+	 * touching the server, so `setup` can refuse a bad layout before it creates anything.
+	 * Returns the first problem, or `undefined` when the layout is fine.
+	 */
+	validateLayout?(layout: NotificationsLayout): string | undefined;
 
 	/**
 	 * Smoke check for `holocron doctor`: prove the provisioning credentials work

@@ -7,5 +7,9 @@ export {
 	type DiscordClient,
 	type DiscordClientOptions,
 	type DiscordWebhookInfo,
+	type ModifyRoleInput,
 	parseWebhookUrl,
+	type PermissionName,
+	permissionNames,
+	permissions,
 } from "@theholocron/discord-client";

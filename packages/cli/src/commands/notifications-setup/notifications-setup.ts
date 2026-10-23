@@ -94,9 +94,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
-	// Refuse a layout whose secret names would collide, before anything is created.
+	// Refuse a layout whose secret names would collide, or that the provider cannot apply,
+	// before anything is created: a half-applied layout is harder to reason about than none.
 	const secretProblem = layoutSecretProblem(layout);
 	if (secretProblem) return refuse(secretProblem);
+	const providerProblem = notifications.validateLayout?.(layout);
+	if (providerProblem) return refuse(providerProblem);
 
 	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
 	const tally = { ok: 0, skip: 0 };
@@ -172,13 +175,23 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			const result = await notifications.ensureRole({
 				name: role.name,
 				...(role.mentionable !== undefined ? { mentionable: role.mentionable } : {}),
+				...(role.color !== undefined ? { color: role.color } : {}),
+				...(role.hoist !== undefined ? { hoist: role.hoist } : {}),
+				...(role.permissions !== undefined ? { permissions: role.permissions } : {}),
 			});
-			const outcome: RoleOutcome = { name: role.name, id: result.id, created: result.created };
+			const outcome: RoleOutcome = {
+				name: role.name,
+				id: result.id,
+				created: result.created,
+				...(result.updated?.length ? { updated: result.updated } : {}),
+			};
 			report.roles.push(outcome);
+			const changed = result.created || (result.updated?.length ?? 0) > 0;
+			const verb = result.created ? "created" : changed ? "updated" : "exists ";
 			print(
-				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} role ${role.name} (id ${result.id})`)}`
+				`  ${(changed ? style.success : style.skip)(`${verb} role ${role.name} (id ${result.id})${result.updated?.length ? `: ${result.updated.join(", ")}` : ""}`)}`
 			);
-			made(result.created);
+			made(changed);
 			if (role.secret) {
 				// Same store as the webhooks, so the id is there for workflows with nothing to copy by hand.
 				await secrets!.setSecret(scope!, role.secret, result.id); // set: setup refuses to run without both

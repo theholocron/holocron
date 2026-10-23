@@ -156,7 +156,25 @@ export default defineConfig({
 							],
 						},
 					],
-					roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
+					roles: [
+						{
+							name: "gatekeepers",
+							mentionable: true,
+							color: "#f0b232",
+							hoist: true,
+							// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
+							permissions: [
+								"ViewChannel",
+								"SendMessages",
+								"ReadMessageHistory",
+								"AddReactions",
+								"EmbedLinks",
+								"AttachFiles",
+								"UseExternalEmojis",
+							],
+							secret: "HOLOCRON_NOTIFY_ALERT_ROLE",
+						},
+					],
 				},
 			},
 		],

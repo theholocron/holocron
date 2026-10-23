@@ -158,6 +158,37 @@ describe("runNotificationsSetup", () => {
 		expect(lines.at(-1)).toBe("7 ok, 0 fail, 3 skipped");
 	});
 
+	it("reports a role it changed as updated and counts it as ok", async () => {
+		const n = fakeNotifications({
+			layout: { roles: [{ name: "gatekeepers", color: "#f0b232", hoist: true }] },
+			ensureRole: vi.fn(async () => ({ id: "99", created: false, updated: ["colour", "hoist"] })),
+		});
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(lines.join("\n")).toContain("updated role gatekeepers (id 99): colour, hoist");
+		expect(report.roles).toEqual([{ name: "gatekeepers", id: "99", created: false, updated: ["colour", "hoist"] }]);
+		expect(lines.at(-1)).toBe("1 ok, 0 fail, 0 skipped");
+		expect(n.ensureRole).toHaveBeenCalledWith({ name: "gatekeepers", color: "#f0b232", hoist: true });
+	});
+
+	it("passes the permissions of a role to the provider", async () => {
+		const n = fakeNotifications({ layout: { roles: [{ name: "x", permissions: ["ViewChannel"] }] } });
+		await setup(n).run();
+		expect(n.ensureRole).toHaveBeenCalledWith({ name: "x", permissions: ["ViewChannel"] });
+	});
+
+	it("refuses a layout the provider cannot apply before creating anything", async () => {
+		const n = fakeNotifications({ validateLayout: vi.fn(() => 'role `x`: invalid colour "red": use #rrggbb') });
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/use #rrggbb/);
+		expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
+		expect(n.ensureCategory).not.toHaveBeenCalled();
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureRole).not.toHaveBeenCalled();
+	});
+
 	it("ends a refusal with the count too", async () => {
 		const n = fakeNotifications({ layout: undefined });
 		const { run, lines } = setup(n);

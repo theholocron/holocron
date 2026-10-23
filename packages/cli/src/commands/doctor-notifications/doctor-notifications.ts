@@ -31,7 +31,6 @@ import type {
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
 	{ step: 8, id: "permissions", title: "channel and category permissions set" },
-	{ step: 9, id: "role-appearance", title: "role colour, hoist and permissions set" },
 	{ step: 10, id: "server-settings", title: "server verification, notifications and system channels set" },
 	{ step: 11, id: "welcome", title: "welcome screen and onboarding set" },
 	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars set" },
@@ -43,6 +42,7 @@ export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: st
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const shown = (s: string) => sanitizeDetail(s);
+const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
 const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
 
 export async function runDoctorNotifications(input: RunDoctorNotificationsInput): Promise<DoctorNotificationsReport> {
@@ -172,6 +172,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["channels", "channels in their category, with topics"],
 			["webhooks", "webhooks on their channels"],
 			["roles", "roles exist and are mentionable"],
+			["role-appearance", ROLE_APPEARANCE_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -250,8 +251,13 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			roleProblems.push(`could not read the roles (${shown(inspected.rolesError)})`);
 		}
 		for (const role of inspected.rolesError ? [] : roles) {
-			const actual = inspected.roles.find((r) => same(r.name, role.name));
-			if (!actual) {
+			const named = inspected.roles.filter((r) => same(r.name, role.name));
+			const actual = named[0];
+			if (named.length > 1) {
+				roleProblems.push(
+					`${shown(role.name)}: ${named.length} roles have this name; setup cannot tell which to manage`
+				);
+			} else if (!actual) {
 				roleProblems.push(`${shown(role.name)}: missing`);
 			} else if (role.mentionable !== undefined && actual.mentionable !== role.mentionable) {
 				roleProblems.push(
@@ -264,6 +270,59 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			"roles exist and are mentionable",
 			roleProblems,
 			roles.length === 0 ? "none declared" : `${roles.length} of ${roles.length} as declared`
+		);
+
+		// 6b. role colour, hoist and permissions as declared (only what the layout states is compared)
+		const appearance: string[] = [];
+		if (!inspected.rolesError) {
+			for (const role of roles) {
+				const actual = inspected.roles.find((r) => same(r.name, role.name));
+				if (!actual) {
+					// The roles check says it is missing; this one cannot say anything about it either.
+					appearance.push(`${shown(role.name)}: not checked, the role is missing`);
+					continue;
+				}
+				if (role.color !== undefined && (actual.color ?? "").toLowerCase() !== role.color.toLowerCase()) {
+					appearance.push(
+						`${shown(role.name)}: colour is ${shown(actual.color ?? "default")} but the layout says ${shown(role.color)}`
+					);
+				}
+				if (role.hoist !== undefined && (actual.hoist ?? false) !== role.hoist) {
+					appearance.push(
+						`${shown(role.name)}: hoist is ${actual.hoist ?? false} but the layout says ${role.hoist}`
+					);
+				}
+				const reported = actual.permissions;
+				if (role.permissions !== undefined) {
+					if (reported === undefined) {
+						appearance.push(`${shown(role.name)}: the provider did not report its permissions`);
+					} else {
+						const have = new Set(reported.map((n) => n.toLowerCase()));
+						const want = new Set(role.permissions.map((n) => n.toLowerCase()));
+						const missing = role.permissions.filter((n) => !have.has(n.toLowerCase()));
+						const extra = reported.filter((n) => !want.has(n.toLowerCase()));
+						if (missing.length > 0) {
+							appearance.push(
+								`${shown(role.name)}: missing permissions ${missing.map(shown).join(", ")}`
+							);
+						}
+						if (extra.length > 0) {
+							appearance.push(
+								`${shown(role.name)}: has extra permissions ${extra.map(shown).join(", ")}`
+							);
+						}
+					}
+				}
+			}
+		}
+		const styled = roles.filter(
+			(r) => r.color !== undefined || r.hoist !== undefined || r.permissions !== undefined
+		);
+		add(
+			"role-appearance",
+			ROLE_APPEARANCE_TITLE,
+			inspected.rolesError ? [`not checked: could not read the roles`] : appearance,
+			styled.length === 0 ? "none declared" : `${styled.length} of ${styled.length} as declared`
 		);
 	}
 

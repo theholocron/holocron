@@ -13,8 +13,23 @@ import {
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type ModifyRoleInput,
 	parseWebhookUrl,
+	type PermissionName,
+	permissionNames,
+	permissions,
 } from "../rest.js";
+
+/** `#rrggbb` to Discord's integer colour. */
+function colorToInt(hex: string): number {
+	if (!/^#[0-9a-fA-F]{6}$/.test(hex)) throw new Error(`invalid colour ${JSON.stringify(hex)}: use #rrggbb`);
+	return Number.parseInt(hex.slice(1), 16);
+}
+
+/** Discord's integer colour to `#rrggbb`. 0 is Discord's "no colour", and is what `#000000` means too. */
+function colorToHex(color: number): string {
+	return `#${color.toString(16).padStart(6, "0")}`;
+}
 
 /** An error as one line: the message, plus Discord's own response body when there is one. */
 function reason(err: unknown): string {
@@ -129,11 +144,16 @@ export class DiscordNotifications implements Notifications {
 		let rolesError: string | undefined;
 		if ((layout.roles ?? []).length > 0) {
 			try {
-				roles = (await bot.guilds.roles(this.guild())).map((r) => ({
-					name: r.name,
-					id: r.id,
-					mentionable: r.mentionable,
-				}));
+				roles = (await bot.guilds.roles(this.guild())).map((r) => {
+					return {
+						name: r.name,
+						id: r.id,
+						mentionable: r.mentionable,
+						color: colorToHex(r.color),
+						...(r.hoist !== undefined ? { hoist: r.hoist } : {}),
+						...(r.permissions !== undefined ? { permissions: permissionNames(r.permissions) } : {}),
+					};
+				});
 			} catch (err) {
 				rolesError = reason(err);
 			}
@@ -144,6 +164,18 @@ export class DiscordNotifications implements Notifications {
 			roles,
 			...(rolesError ? { rolesError } : {}),
 		};
+	}
+
+	validateLayout(layout: NotificationsLayout): string | undefined {
+		for (const role of layout.roles ?? []) {
+			try {
+				if (role.color !== undefined) colorToInt(role.color);
+				if (role.permissions !== undefined) permissions(role.permissions as PermissionName[]);
+			} catch (err) {
+				return `role \`${role.name}\`: ${errorMessage(err)}`;
+			}
+		}
+		return undefined;
 	}
 
 	private guild(): string {
@@ -277,27 +309,90 @@ export class DiscordNotifications implements Notifications {
 		return { created: true, ...(made.url ? { url: made.url } : {}) };
 	}
 
-	async ensureRole(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource> {
+	async ensureRole(input: {
+		name: string;
+		mentionable?: boolean;
+		color?: string;
+		hoist?: boolean;
+		permissions?: string[];
+	}): Promise<EnsuredResource> {
 		const bot = this.bot();
-		const existing = (await bot.guilds.roles(this.guild())).find((r) =>
+		// Validate the declared values before touching anything.
+		const color = input.color !== undefined ? colorToInt(input.color) : undefined;
+		const wanted = input.permissions !== undefined ? permissions(input.permissions as PermissionName[]) : undefined;
+		const matches = (await bot.guilds.roles(this.guild())).filter((r) =>
 			DiscordNotifications.same(r.name, input.name)
 		);
+		// Discord allows two roles with one name; reconciling "the first" would leave the other unmanaged.
+		if (matches.length > 1) {
+			throw new Error(
+				`${matches.length} roles are named \`${input.name}\` (ids ${matches.map((r) => r.id).join(", ")}) — delete or rename the extras so setup knows which one to manage`
+			);
+		}
+		const existing = matches[0];
 		if (existing) {
-			// We cannot edit a role yet (no role-modify call in the client, tracked in #1098), so a role
-			// that disagrees with the layout is a failure, not something to report as "exists" and ignore:
-			// an unmentionable alert role makes every ping silently do nothing.
+			// Change only what disagrees, so a run on a server that already matches sends nothing.
+			const patch: ModifyRoleInput = {};
+			const updated: string[] = [];
 			if (input.mentionable !== undefined && existing.mentionable !== input.mentionable) {
-				throw new Error(
-					`role \`${input.name}\` exists with mentionable=${existing.mentionable} but the layout wants ${input.mentionable}; ` +
-						"updating an existing role is not supported yet — change it in Discord (Role → Allow anyone to @mention this role)"
-				);
+				patch.mentionable = input.mentionable;
+				updated.push("mentionable");
 			}
-			return { id: existing.id, created: false };
+			if (color !== undefined && existing.color !== color) {
+				patch.color = color;
+				updated.push("colour");
+			}
+			if (input.hoist !== undefined && (existing.hoist ?? false) !== input.hoist) {
+				patch.hoist = input.hoist;
+				updated.push("hoist");
+			}
+			if (wanted !== undefined && existing.permissions !== wanted) {
+				patch.permissions = wanted;
+				updated.push("permissions");
+			}
+			if (updated.length > 0) {
+				const after = await bot.guilds.modifyRole(this.guild(), existing.id, patch);
+				// Discord answers with the role as it now is. If a field we sent is not what comes back, something
+				// else changed the role at the same time (or the server dropped it): say so, do not report success.
+				const stuck = (
+					[
+						["mentionable", patch.mentionable, after.mentionable],
+						["colour", patch.color, after.color],
+						["hoist", patch.hoist, after.hoist],
+						["permissions", patch.permissions, after.permissions],
+					] as const
+				)
+					.filter(([, sent, now]) => sent !== undefined && sent !== now)
+					.map(([name]) => name);
+				if (stuck.length > 0) {
+					throw new Error(
+						`role \`${input.name}\`: sent ${stuck.join(", ")} but the role came back different -- ` +
+							"another setup run may be changing it at the same time; re-run once it has finished"
+					);
+				}
+			}
+			return { id: existing.id, created: false, ...(updated.length > 0 ? { updated } : {}) };
 		}
 		const made = await bot.guilds.createRole(this.guild(), {
 			name: input.name,
 			...(input.mentionable !== undefined ? { mentionable: input.mentionable } : {}),
+			...(color !== undefined ? { color } : {}),
+			...(input.hoist !== undefined ? { hoist: input.hoist } : {}),
+			...(wanted !== undefined ? { permissions: wanted } : {}),
 		});
+		// Discord lets two roles share a name, so a second run that listed the roles before this one created
+		// the role may have created its own. Look again now: if there are two, say so instead of leaving
+		// an unmanaged twin behind for a later run to trip over.
+		const twins = (await bot.guilds.roles(this.guild())).filter((r) =>
+			DiscordNotifications.same(r.name, input.name)
+		);
+		if (twins.length > 1) {
+			throw new Error(
+				`created role \`${input.name}\` (id ${made.id}) but ${twins.length} roles now have that name ` +
+					`(ids ${twins.map((r) => r.id).join(", ")}) -- another setup run probably created it at the same time; ` +
+					"delete the extra one in Discord and re-run"
+			);
+		}
 		return { id: made.id, created: true };
 	}
 
