@@ -3,8 +3,7 @@ import type { Logger } from "@theholocron/observability/core";
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
 
-/** `planned` is a feature that is not built yet: it fails until it is, so the command stays red until the last one lands. */
-export type VerifyStatus = "pass" | "fail" | "planned";
+export type VerifyStatus = "pass" | "fail";
 
 export interface VerifyCheck {
 	id: string;
@@ -14,7 +13,7 @@ export interface VerifyCheck {
 	detail: string;
 	/** For a failing check, one line per thing that is wrong. */
 	problems: string[];
-	/** The step number in holocron#1098, for a feature that is not built yet. */
+	/** The step number in holocron#1098, for a feature that is not built yet (it fails until it lands). */
 	step?: number;
 }
 
@@ -35,7 +34,7 @@ export interface RunNotificationsVerifyInput {
 export interface NotificationsVerifyReport {
 	status: "ok" | "fail";
 	checks: VerifyCheck[];
-	summary: { pass: number; fail: number; planned: number };
+	summary: { pass: number; fail: number; skip: number };
 	/** Set when verification could not run at all (no provider, no layout). */
 	message?: string;
 }

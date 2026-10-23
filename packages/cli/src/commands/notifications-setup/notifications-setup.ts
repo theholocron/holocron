@@ -16,6 +16,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Secrets } from "../../plugin/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
+import { style } from "../../ui/style/index.js";
 import {
 	assertSecretsReachable,
 	layoutSecretProblem,
@@ -40,7 +41,9 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	// A precondition failure is printed and returned, never thrown: the CLI's
 	// global handler swallows a plain Error, so a bare throw would exit 1 silently.
 	const refuse = (message: string, reason: string = message): NotificationsSetupReport => {
-		print(`  ✗ ${message}`);
+		print(`  ${style.fail(message)}`);
+		print("");
+		print(style.header("0 ok, 1 fail, 0 skipped"));
 		logger.warn({ reason }, "notifications setup");
 		return { ...report, status: "fail", message };
 	};
@@ -95,34 +98,47 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const secretProblem = layoutSecretProblem(layout);
 	if (secretProblem) return refuse(secretProblem);
 
-	print(`Holocron notifications setup — ${notifications.providerName}${dryRun ? " (dry-run)" : ""}`);
+	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
+	const tally = { ok: 0, skip: 0 };
+	const made = (created: boolean) => void (created ? tally.ok++ : tally.skip++);
 
 	const attempt = async (step: string, fn: () => Promise<void>) => {
 		try {
 			await fn();
 		} catch (err) {
 			const message = describeProviderError(err);
-			print(`  ✗ ${step}: ${message}`);
+			print(`  ${style.fail(`${step}: ${message}`)}`);
 			report.failures.push({ step, message });
 		}
 	};
 
 	for (const category of layout.categories ?? []) {
-		print(`\n${category.name}`);
+		print(`\n${style.header(category.name)}`);
 		report.categories.push(category.name);
 		await attempt(`category ${category.name}`, async () => {
 			if (!notifications.ensureCategory) return; // the provider has no categories; channels simply go ungrouped
 			if (dryRun) {
-				print(`  … would ensure category ${category.name}`);
+				print(`  ${style.skip(`would ensure category ${category.name}`)}`);
+				tally.skip++;
 				return;
 			}
-			const made = await notifications.ensureCategory(category.name);
-			print(`  ${made.created ? "✓ created" : "· exists "} category ${category.name}`);
+			const result = await notifications.ensureCategory(category.name);
+			print(
+				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} category ${category.name}`)}`
+			);
+			made(result.created);
 		});
 		for (const channel of category.channels ?? []) {
 			await attempt(`channel ${channel.name}`, async () => {
 				const outcome = await provisionChannel(
-					{ notifications, ...(secrets ? { secrets } : {}), scope: scope ?? { kind: "repo" }, dryRun, print },
+					{
+						notifications,
+						...(secrets ? { secrets } : {}),
+						scope: scope ?? { kind: "repo" },
+						dryRun,
+						print,
+						tally,
+					},
 					{
 						name: channel.name,
 						category: category.name,
@@ -141,38 +157,46 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
-	if ((layout.roles ?? []).length > 0) print("\nRoles");
+	if ((layout.roles ?? []).length > 0) print(`\n${style.header("Roles")}`);
 	for (const role of layout.roles ?? []) {
 		await attempt(`role ${role.name}`, async () => {
 			if (!notifications.ensureRole) throw new Error(`\`${notifications.providerName}\` cannot manage roles`);
 			if (dryRun) {
-				print(`  … would ensure role ${role.name}${role.secret ? ` and store its id in ${role.secret}` : ""}`);
+				print(
+					`  ${style.skip(`would ensure role ${role.name}${role.secret ? ` and store its id in ${role.secret}` : ""}`)}`
+				);
+				tally.skip++;
 				report.roles.push({ name: role.name, created: false, ...(role.secret ? { secret: role.secret } : {}) });
 				return;
 			}
-			const made = await notifications.ensureRole({
+			const result = await notifications.ensureRole({
 				name: role.name,
 				...(role.mentionable !== undefined ? { mentionable: role.mentionable } : {}),
 			});
-			const outcome: RoleOutcome = { name: role.name, id: made.id, created: made.created };
+			const outcome: RoleOutcome = { name: role.name, id: result.id, created: result.created };
 			report.roles.push(outcome);
-			print(`  ${made.created ? "✓ created" : "· exists "} role ${role.name} (id ${made.id})`);
+			print(
+				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} role ${role.name} (id ${result.id})`)}`
+			);
+			made(result.created);
 			if (role.secret) {
 				// Same store as the webhooks, so the id is there for workflows with nothing to copy by hand.
-				await secrets!.setSecret(scope!, role.secret, made.id); // set: setup refuses to run without both
+				await secrets!.setSecret(scope!, role.secret, result.id); // set: setup refuses to run without both
 				outcome.secret = role.secret;
 				outcome.stored = true;
-				print(`  ✓ stored the id of ${role.name} in ${role.secret}`);
+				print(`  ${style.success(`stored the id of ${role.name} in ${role.secret}`)}`);
+				tally.ok++;
 			}
 		});
 	}
 
 	if (report.failures.length > 0) {
 		report.status = "fail";
-		print(`\n${report.failures.length} step(s) need attention`);
 	} else if (dryRun) {
 		report.status = "dry-run";
 	}
+	print("");
+	print(style.header(`${tally.ok} ok, ${report.failures.length} fail, ${tally.skip} skipped`));
 	logger.info(
 		{
 			provider: notifications.providerName,

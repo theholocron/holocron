@@ -133,6 +133,36 @@ describe("runNotificationsSetup", () => {
 		expect(stored).toEqual([]);
 		expect(lines.join("\n")).toContain("would ensure role gatekeepers");
 		expect(lines.join("\n")).toContain("would ensure category EMPTY");
+		// 3 categories + 3 channels + 2 webhooks + 2 roles, all only previewed
+		expect(lines.at(-1)).toBe("0 ok, 0 fail, 10 skipped");
+	});
+
+	it("still counts a channel it created when its webhook then fails", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => {
+				throw new Error("Missing Permissions");
+			}),
+		});
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.failures.map((f) => f.step)).toEqual(["channel alerts", "channel sync"]);
+		// 3 categories + 3 channels + 2 roles made; the two webhook steps failed
+		expect(lines.at(-1)).toBe("8 ok, 2 fail, 0 skipped");
+	});
+
+	it("counts channels that already exist as skipped", async () => {
+		const n = fakeNotifications({ ensureChannel: vi.fn(async () => ({ id: "1", created: false })) });
+		const { run, lines } = setup(n);
+		await run();
+		// 3 categories + 2 webhooks + 2 roles made; 3 channels already there
+		expect(lines.at(-1)).toBe("7 ok, 0 fail, 3 skipped");
+	});
+
+	it("ends a refusal with the count too", async () => {
+		const n = fakeNotifications({ layout: undefined });
+		const { run, lines } = setup(n);
+		await run();
+		expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
 	});
 
 	it("keeps going after a failing step and exits fail", async () => {
@@ -148,7 +178,7 @@ describe("runNotificationsSetup", () => {
 		expect(report.failures).toEqual([{ step: "channel errors", message: "Missing Permissions" }]);
 		expect(report.channels.map((c) => c.name)).toEqual(["alerts", "sync"]);
 		expect(report.roles).toHaveLength(2);
-		expect(lines.join("\n")).toContain("1 step(s) need attention");
+		expect(lines.at(-1)).toBe("9 ok, 1 fail, 0 skipped");
 	});
 
 	it("counts a webhook it could not store as needing attention", async () => {
@@ -343,6 +373,18 @@ describe("runNotificationsSetup", () => {
 		expect(lines.join("\n")).toContain("· exists  role gatekeepers (id 99)");
 	});
 
+	it("counts what it made, what was already there and what failed", async () => {
+		const n = fakeNotifications({
+			ensureCategory: vi.fn(async () => ({ id: "c", created: false })),
+			ensureRole: vi.fn(async () => ({ id: "99", created: false })),
+		});
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.failures).toEqual([]);
+		// 3 channels + 2 webhooks made; 3 categories + 2 roles already there
+		expect(lines.at(-1)).toBe("5 ok, 0 fail, 5 skipped");
+	});
+
 	it("prints to the console when no print function is given", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
@@ -352,7 +394,8 @@ describe("runNotificationsSetup", () => {
 			}),
 		});
 		await runNotificationsSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader });
-		expect(log).toHaveBeenCalledWith(expect.stringContaining("notifications setup — discord"));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("1 ok, 0 fail, 0 skipped"));
+		expect(log).not.toHaveBeenCalledWith(expect.stringContaining("notifications setup"));
 		log.mockRestore();
 	});
 

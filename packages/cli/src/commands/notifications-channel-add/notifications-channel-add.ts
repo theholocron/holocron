@@ -20,6 +20,7 @@ import {
 	type SecretScope,
 } from "../../plugin/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
+import { style } from "../../ui/style/index.js";
 import type {
 	ChannelOutcome,
 	ChannelSpec,
@@ -180,7 +181,7 @@ export function layoutSecretProblem(layout: NotificationsLayout): string | undef
 
 /** Ensure one channel and, if asked, its webhook + secret. Shared with `notifications setup`. */
 export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): Promise<ChannelOutcome> {
-	const { notifications, secrets, scope, dryRun, print } = deps;
+	const { notifications, secrets, scope, dryRun, print, tally } = deps;
 	const webhookCfg = spec.webhook || undefined;
 	const secretName = webhookCfg?.secret ?? defaultSecretName(spec.name);
 	const webhookName = webhookCfg?.name ?? spec.name;
@@ -203,8 +204,10 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	}
 
 	if (dryRun) {
-		print(`  … would ensure channel ${spec.name}${where}`);
-		if (webhookCfg) print(`  … would ensure webhook ${webhookName} and store its URL in ${secretName}`);
+		print(`  ${style.skip(`would ensure channel ${spec.name}${where}`)}`);
+		if (tally) tally.skip += webhookCfg ? 2 : 1;
+		if (webhookCfg)
+			print(`  ${style.skip(`would ensure webhook ${webhookName} and store its URL in ${secretName}`)}`);
 		return { name: spec.name, ...(spec.category ? { category: spec.category } : {}), created: false };
 	}
 
@@ -213,7 +216,10 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		...(spec.category ? { category: spec.category } : {}),
 		...(spec.topic ? { topic: spec.topic } : {}),
 	});
-	print(`  ${channel.created ? "✓ created" : "· exists "} channel ${spec.name}${where}`);
+	print(
+		`  ${(channel.created ? style.success : style.skip)(`${channel.created ? "created" : "exists "} channel ${spec.name}${where}`)}`
+	);
+	if (tally) tally[channel.created ? "ok" : "skip"]++;
 	const outcome: ChannelOutcome = {
 		name: spec.name,
 		...(spec.category ? { category: spec.category } : {}),
@@ -238,13 +244,16 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 				{ cause: err }
 			);
 		}
-		print(`  ✓ ${hook.created ? "created" : "found  "} webhook ${webhookName}; URL stored in ${secretName}`);
+		print(
+			`  ${style.success(`${hook.created ? "created" : "found  "} webhook ${webhookName}; URL stored in ${secretName}`)}`
+		);
+		if (tally) tally.ok++;
 		outcome.webhook = { name: webhookName, created: hook.created, secret: secretName, stored: true };
 	} else {
 		const note =
 			`webhook ${webhookName} already exists and its URL cannot be read back — ` +
 			`delete it in the provider and re-run, or set ${secretName} yourself`;
-		print(`  ! ${note}`);
+		print(`  ${style.warn(note)}`);
 		outcome.webhook = { name: webhookName, created: hook.created, secret: secretName, stored: false, note };
 	}
 	return outcome;
@@ -315,13 +324,13 @@ export async function runNotificationsChannelAdd(
 		if (channel.webhook && !channel.webhook.stored && !dryRun) {
 			// `note` is always set when a webhook was requested but not stored.
 			const message = channel.webhook.note!;
-			print(`  ✗ ${message}`);
+			print(`  ${style.fail(message)}`);
 			return { status: "fail", channel, message };
 		}
 		return { status: dryRun ? "dry-run" : "ok", channel };
 	} catch (err) {
 		const message = describeProviderError(err);
-		print(`  ✗ ${message}`);
+		print(`  ${style.fail(message)}`);
 		logger.warn({ channel: input.name, reason: logReason(err) }, `notifications channel add: ${input.name}`);
 		return { status: "fail", message };
 	}
