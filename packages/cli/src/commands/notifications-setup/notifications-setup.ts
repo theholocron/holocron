@@ -19,6 +19,7 @@ import { describeProviderError, logReason } from "../../ui/provider-error/index.
 import {
 	assertSecretsReachable,
 	defaultSecretName,
+	isReservedSecret,
 	pickProvisioner,
 	provisionChannel,
 	whyMissing,
@@ -90,32 +91,34 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
-	// Two webhooks cannot share one secret: the second would overwrite the first and
-	// callers would post to the wrong channel. Normalising punctuation makes that
-	// easy to hit by accident (release-notes vs release_notes), so refuse up front.
+	// Two things cannot share one secret: the second write would overwrite the first
+	// and callers would read the wrong value. Punctuation normalising (release-notes
+	// vs release_notes) makes that easy to hit by accident, and GitHub secret names
+	// are case-insensitive, so compare them that way. The preflight's own prefix is
+	// reserved. Refuse all of it up front, before anything is created.
 	const taken = new Map<string, string>();
+	const claim = (secret: string, owner: string, hint: string): string | undefined => {
+		if (isReservedSecret(secret)) {
+			return `${owner} would store into ${secret}, a name reserved for the setup preflight — choose another`;
+		}
+		const key = secret.toUpperCase();
+		const other = taken.get(key);
+		if (other) return `${other} and ${owner} would both store into ${secret} — ${hint}`;
+		taken.set(key, owner);
+		return undefined;
+	};
 	for (const category of layout.categories ?? []) {
 		for (const channel of category.channels ?? []) {
 			if (!channel.webhook) continue;
 			const secret = (channel.webhook !== true && channel.webhook.secret) || defaultSecretName(channel.name);
-			const other = taken.get(secret);
-			if (other) {
-				return refuse(
-					`channels \`${other}\` and \`${channel.name}\` would both store their webhook in ${secret} — give one a distinct \`webhook.secret\``
-				);
-			}
-			taken.set(secret, channel.name);
+			const clash = claim(secret, `channel \`${channel.name}\``, "give one a distinct `webhook.secret`");
+			if (clash) return refuse(clash);
 		}
 	}
 	for (const role of layout.roles ?? []) {
 		if (!role.secret) continue;
-		const other = taken.get(role.secret);
-		if (other) {
-			return refuse(
-				`\`${other}\` and role \`${role.name}\` would both store into ${role.secret} — give one a distinct secret`
-			);
-		}
-		taken.set(role.secret, `role ${role.name}`);
+		const clash = claim(role.secret, `role \`${role.name}\``, "give one a distinct secret");
+		if (clash) return refuse(clash);
 	}
 
 	print(`Holocron notifications setup — ${notifications.providerName}${dryRun ? " (dry-run)" : ""}`);

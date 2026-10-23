@@ -99,6 +99,17 @@ describe.skipIf(!hasJq)("notify action script", () => {
 		expect(bad.body).toMatchObject({ content: "hello", allowed_mentions: { roles: [] } });
 	});
 
+	it("strict: a mention that is not a role id fails, instead of being dropped and passing", () => {
+		const r = run({ WEBHOOK: "https://hook.test/x", STRICT: "true", MENTION: "<@&1>everyone" });
+		expect(r.code).toBe(1);
+		expect(r.out).toContain("::error::The mention is not a role id");
+		expect(r.body).toBeUndefined();
+	});
+
+	it("strict: no mention at all is fine", () => {
+		expect(run({ WEBHOOK: "https://hook.test/x", STRICT: "true" }).code).toBe(0);
+	});
+
 	it("a rejected post is only a warning by default", () => {
 		const r = run({ WEBHOOK: "https://hook.test/x" }, "404");
 		expect(r.code).toBe(0);

@@ -516,3 +516,32 @@ describe("DiscordNotifications — channel list under failure and concurrency", 
 		expect(calls.map((c) => c.method)).toEqual(["GET", "PATCH", "GET"]);
 	});
 });
+
+describe("DiscordNotifications.ensureRole — an existing role that disagrees", () => {
+	const role = (mentionable: boolean) => ({ id: "4001", name: "gatekeepers", color: 0, mentionable });
+
+	it("fails when the role exists but is not mentionable and the layout wants it mentionable", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [role(false)] }]);
+		await expect(notifs.ensureRole({ name: "gatekeepers", mentionable: true })).rejects.toThrow(
+			/exists with mentionable=false but the layout wants true.*not supported yet/
+		);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("fails the other way round too", async () => {
+		const { notifs } = makeProvisioner([{ body: [role(true)] }]);
+		await expect(notifs.ensureRole({ name: "gatekeepers", mentionable: false })).rejects.toThrow(
+			/mentionable=true but the layout wants false/
+		);
+	});
+
+	it("accepts an existing role that already matches, or when the layout does not say", async () => {
+		const match = makeProvisioner([{ body: [role(true)] }]);
+		expect(await match.notifs.ensureRole({ name: "gatekeepers", mentionable: true })).toEqual({
+			id: "4001",
+			created: false,
+		});
+		const silent = makeProvisioner([{ body: [role(false)] }]);
+		expect(await silent.notifs.ensureRole({ name: "gatekeepers" })).toEqual({ id: "4001", created: false });
+	});
+});

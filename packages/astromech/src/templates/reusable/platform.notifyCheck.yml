@@ -6,19 +6,36 @@ name: Notify Check
 # fails the matching job when any step does not work, so a red job names the
 # channel to fix. Manual (workflow_dispatch) only: it posts real messages.
 #
-# Adding a channel means declaring its secret below as well as listing it in
-# `channels`: a reusable workflow can only read the secrets it declares.
+# Each channel names its own webhook secret, because `notifications setup` lets a
+# layout override the default name (and normalises punctuation), so deriving the
+# name from the channel would miss those. A channel with `"mention": true` also
+# requires the role-id secret and pings it: a webhook accepting the post proves
+# the channel works, not that the role ping does, so a missing or malformed role
+# id fails that job instead of passing quietly. Whether Discord lets that role be
+# mentioned at all is checked by `holocron notifications verify`, not here.
+#
+# Secrets reach this workflow through `secrets: inherit`, so any secret named in
+# `channels` is readable; the declared list below is for callers that pass secrets
+# explicitly.
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
       channels:
         description: >
-          JSON array of channel names to check. Each one is read from the secret
-          HOLOCRON_NOTIFY_WEBHOOK_<NAME> (uppercased).
+          JSON array of channels to check, each `{ "name", "secret", "mention" }`:
+          `secret` is the org secret holding that channel's webhook URL and
+          `mention: true` also requires and pings the role in
+          HOLOCRON_NOTIFY_ALERT_ROLE.
         type: string
         required: false
-        default: '["sync","alerts","errors","uptime","releases","deploys"]'
+        default: >-
+          [{"name":"sync","secret":"HOLOCRON_NOTIFY_WEBHOOK_SYNC"},
+          {"name":"alerts","secret":"HOLOCRON_NOTIFY_WEBHOOK_ALERTS","mention":true},
+          {"name":"errors","secret":"HOLOCRON_NOTIFY_WEBHOOK_ERRORS"},
+          {"name":"uptime","secret":"HOLOCRON_NOTIFY_WEBHOOK_UPTIME"},
+          {"name":"releases","secret":"HOLOCRON_NOTIFY_WEBHOOK_RELEASES"},
+          {"name":"deploys","secret":"HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS"}]
     secrets:
       HOLOCRON_NOTIFY_WEBHOOK_SYNC:
         description: Webhook for the sync channel.
@@ -44,7 +61,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   check:
-    name: Check ${{ matrix.channel }}
+    name: Check ${{ matrix.channel.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
@@ -54,11 +71,22 @@ jobs:
       matrix:
         channel: ${{ fromJSON(inputs.channels) }}
     steps:
+      - name: Require the alert role id
+        if: matrix.channel.mention
+        run: |
+          if [ -z "$ROLE" ]; then
+            echo "::error::HOLOCRON_NOTIFY_ALERT_ROLE is not set, so the ping on #$CHANNEL cannot be checked."
+            exit 1
+          fi
+        env:
+          ROLE: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
+          CHANNEL: ${{ matrix.channel.name }}
+
       - uses: theholocron/.github/.github/actions/notify@main
-        name: Post a test message to ${{ matrix.channel }}
+        name: Post a test message to ${{ matrix.channel.name }}
         with:
           strict: "true"
-          webhook: ${{ secrets[format('HOLOCRON_NOTIFY_WEBHOOK_{0}', matrix.channel)] }}
-          # Only the alerts channel pings, and only when the role id is set.
-          mention: ${{ matrix.channel == 'alerts' && secrets.HOLOCRON_NOTIFY_ALERT_ROLE || '' }}
-          message: "🧪 notify check — #${{ matrix.channel }} is wired up (${{ github.repository }}, ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          webhook: ${{ secrets[matrix.channel.secret] }}
+          # Only a channel marked `mention` pings, and strict mode rejects a malformed id.
+          mention: ${{ matrix.channel.mention && secrets.HOLOCRON_NOTIFY_ALERT_ROLE || '' }}
+          message: "🧪 notify check — #${{ matrix.channel.name }} is wired up (${{ github.repository }}, ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"

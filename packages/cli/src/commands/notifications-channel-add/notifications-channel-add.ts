@@ -8,6 +8,8 @@
  * printed, only stored.
  */
 
+import { randomBytes } from "node:crypto";
+
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -34,8 +36,17 @@ export function defaultSecretName(channel: string): string {
 	return `HOLOCRON_NOTIFY_WEBHOOK_${channel.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
 }
 
-/** A throwaway secret, written and removed to prove write access. */
-export const PREFLIGHT_SECRET = "HOLOCRON_NOTIFY_PREFLIGHT";
+/**
+ * Prefix of the throwaway secret the preflight writes and removes. Every run adds a
+ * random suffix, so it can never overwrite (and then delete) a secret someone already
+ * has; layouts may not use any name under this prefix for their own secrets.
+ */
+export const PREFLIGHT_PREFIX = "HOLOCRON_NOTIFY_PREFLIGHT";
+
+/** Whether a secret name is under the preflight's reserved prefix. GitHub secret names are case-insensitive. */
+export function isReservedSecret(name: string): boolean {
+	return name.toUpperCase().startsWith(PREFLIGHT_PREFIX);
+}
 
 /**
  * Prove the secrets store can be WRITTEN before creating anything that needs it.
@@ -45,13 +56,14 @@ export const PREFLIGHT_SECRET = "HOLOCRON_NOTIFY_PREFLIGHT";
  * remove it.
  */
 export async function assertSecretsReachable(secrets: Secrets, scope: SecretScope): Promise<void> {
+	const probe = `${PREFLIGHT_PREFIX}_${randomBytes(4).toString("hex").toUpperCase()}`;
 	try {
-		await secrets.setSecret(scope, PREFLIGHT_SECRET, "ok");
-		await secrets.deleteSecret(scope, PREFLIGHT_SECRET);
+		await secrets.setSecret(scope, probe, "ok");
+		await secrets.deleteSecret(scope, probe);
 	} catch (err) {
 		const where = scope.kind === "organization" ? `organization ${scope.name}` : scope.kind;
 		throw new Error(
-			`cannot write to the secrets store for ${where} (${describeProviderError(err)}) — fix that token before creating webhooks`,
+			`cannot write to the secrets store for ${where} (${describeProviderError(err)}) — fix that token before creating webhooks. If a secret named ${probe} was left behind, delete it`,
 			{ cause: err }
 		);
 	}
@@ -110,6 +122,9 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	}
 	if (webhookCfg && !notifications.ensureWebhook) {
 		throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
+	}
+	if (webhookCfg && isReservedSecret(secretName)) {
+		throw new Error(`secret name ${secretName} is reserved for the setup preflight -- choose another`);
 	}
 	if (webhookCfg && !dryRun && !secrets) {
 		throw new Error("storing a webhook URL needs a `secrets` provider — add one to holocron.config.ts");

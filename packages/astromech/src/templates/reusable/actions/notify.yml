@@ -56,6 +56,12 @@ runs:
         # body is built with jq so quotes/newlines in the message can't break the JSON.
         content="$MESSAGE"
         roles='[]'
+        # A mention that is not a role id is dropped, which is right for a real
+        # notification but would let a check pass without ever pinging anyone.
+        if [ "$STRICT" = "true" ] && [ -n "$MENTION" ] && ! [[ "$MENTION" =~ ^[0-9]+$ ]]; then
+          echo "::error::The mention is not a role id (digits only)."
+          exit 1
+        fi
         if [[ "$MENTION" =~ ^[0-9]+$ ]]; then
           content="<@&$MENTION> $MESSAGE"
           roles=$(jq -cn --arg r "$MENTION" '[$r]')

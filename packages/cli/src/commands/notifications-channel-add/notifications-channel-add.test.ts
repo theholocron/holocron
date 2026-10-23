@@ -6,8 +6,9 @@ import type { Notifications } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import {
 	defaultSecretName,
+	isReservedSecret,
 	pickProvisioner,
-	PREFLIGHT_SECRET,
+	PREFLIGHT_PREFIX,
 	provisionChannel,
 	runNotificationsChannelAdd,
 } from "./notifications-channel-add.js";
@@ -52,7 +53,7 @@ function fakeSecrets() {
 			providerName: "github",
 			listSecrets: async () => [] as string[],
 			setSecret: async (scope: unknown, name: string, value: string) => {
-				if (name !== PREFLIGHT_SECRET) calls.push({ scope, name, value });
+				if (!name.startsWith(PREFLIGHT_PREFIX)) calls.push({ scope, name, value });
 			},
 			deleteSecret: async () => {},
 		},
@@ -345,7 +346,7 @@ describe("runNotificationsChannelAdd", () => {
 				providerName: "github",
 				listSecrets: async () => [] as string[],
 				setSecret: async (_scope: unknown, name: string) => {
-					if (name !== PREFLIGHT_SECRET) throw new Error("403 Resource not accessible");
+					if (!name.startsWith(PREFLIGHT_PREFIX)) throw new Error("403 Resource not accessible");
 				},
 				deleteSecret: async () => {},
 			},
@@ -407,7 +408,7 @@ describe("runNotificationsChannelAdd", () => {
 				providerName: "github",
 				listSecrets: async () => [] as string[],
 				setSecret: async (_scope: unknown, name: string) => {
-					if (name !== PREFLIGHT_SECRET) throw new Error("boom");
+					if (!name.startsWith(PREFLIGHT_PREFIX)) throw new Error("boom");
 				},
 				deleteSecret: async () => {},
 			},
@@ -537,7 +538,9 @@ describe("provisionChannel", () => {
 		});
 		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
 		await result;
-		expect(order.slice(0, 3)).toEqual([`set ${PREFLIGHT_SECRET}`, `delete ${PREFLIGHT_SECRET}`, "channel"]);
+		const probe = order[0]!.replace(/^set /, "");
+		expect(probe).toMatch(/^HOLOCRON_NOTIFY_PREFLIGHT_[0-9A-F]{8}$/);
+		expect(order.slice(0, 3)).toEqual([`set ${probe}`, `delete ${probe}`, "channel"]);
 	});
 
 	it("fails before creating anything when the throwaway secret cannot be removed", async () => {
@@ -570,5 +573,64 @@ describe("provisionChannel", () => {
 		expect(lines.join("\n")).toContain("Missing Permissions");
 		expect(JSON.stringify(log.warn.mock.calls)).not.toContain("Missing Permissions");
 		expect(JSON.stringify(log.warn.mock.calls)).toContain("Discord PATCH /channels/1 → 403");
+	});
+
+	it("uses a different throwaway name every run, so it can never overwrite and delete an existing secret", async () => {
+		const names = new Set<string>();
+		for (let i = 0; i < 5; i++) {
+			const secrets = {
+				calls: [],
+				impl: {
+					providerName: "github",
+					listSecrets: async () => [] as string[],
+					setSecret: async (_s: unknown, name: string) => void names.add(name),
+					deleteSecret: async () => {},
+				},
+			};
+			await run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true })
+				.result;
+		}
+		const probes = [...names].filter((n) => n.startsWith(PREFLIGHT_PREFIX));
+		expect(probes).toHaveLength(5);
+		expect(probes).not.toContain(PREFLIGHT_PREFIX);
+	});
+
+	it("tells the user the probe's name when it cannot be removed", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {},
+				deleteSecret: async () => {
+					throw new Error("delete refused");
+				},
+			},
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+		});
+		expect((await result).message).toMatch(
+			/If a secret named HOLOCRON_NOTIFY_PREFLIGHT_[0-9A-F]{8} was left behind, delete it/
+		);
+	});
+
+	it("refuses --secret under the reserved preflight prefix", async () => {
+		const n = fakeNotifications();
+		const { result } = run(n, fakeSecrets(), { withWebhook: true, secret: "holocron_notify_preflight_x" });
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/reserved for the setup preflight/),
+		});
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+	});
+});
+
+describe("isReservedSecret", () => {
+	it("matches the preflight prefix case-insensitively and nothing else", () => {
+		expect(isReservedSecret("HOLOCRON_NOTIFY_PREFLIGHT")).toBe(true);
+		expect(isReservedSecret("holocron_notify_preflight_abcd1234")).toBe(true);
+		expect(isReservedSecret("HOLOCRON_NOTIFY_WEBHOOK_SYNC")).toBe(false);
+		expect(isReservedSecret("MY_HOLOCRON_NOTIFY_PREFLIGHT")).toBe(false);
 	});
 });

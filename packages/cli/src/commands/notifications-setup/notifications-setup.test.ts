@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
-import { PREFLIGHT_SECRET } from "../notifications-channel-add/index.js";
+import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
 import { runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -70,7 +70,7 @@ function setup(notifications: Notifications, opts: { secrets?: boolean; dryRun?:
 				providerName: "github",
 				listSecrets: async () => [] as string[],
 				setSecret: async (_s: unknown, name: string, value: string) => {
-					if (name !== PREFLIGHT_SECRET) stored.push({ name, value });
+					if (!name.startsWith(PREFLIGHT_PREFIX)) stored.push({ name, value });
 				},
 				deleteSecret: async () => {},
 			},
@@ -265,7 +265,9 @@ describe("runNotificationsSetup", () => {
 		const n = fakeNotifications({ layout });
 		const report = await setup(n).run();
 		expect(report.status).toBe("fail");
-		expect(report.message).toMatch(/both store their webhook in HOLOCRON_NOTIFY_WEBHOOK_RELEASE_NOTES/);
+		expect(report.message).toMatch(
+			/channel `release-notes` and channel `release_notes` would both store into HOLOCRON_NOTIFY_WEBHOOK_RELEASE_NOTES/
+		);
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
@@ -503,7 +505,7 @@ describe("runNotificationsSetup", () => {
 			expect(n.ensureChannel).not.toHaveBeenCalled();
 		});
 
-		it("refuses two roles that would share one secret", async () => {
+		it("refuses two roles that would share one secret, and provisions and stores nothing", async () => {
 			const n = fakeNotifications({
 				layout: {
 					roles: [
@@ -512,8 +514,62 @@ describe("runNotificationsSetup", () => {
 					],
 				},
 			});
+			const { run, stored } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/role `a` and role `b` would both store into SAME/);
+			expect(n.ensureRole).not.toHaveBeenCalled();
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+			expect(stored).toEqual([]);
+			expect(report.roles).toEqual([]);
+		});
+
+		it("treats secret names as case-insensitive, as GitHub does", async () => {
+			const n = fakeNotifications({
+				layout: {
+					categories: [
+						{
+							name: "A",
+							channels: [{ name: "alerts", webhook: { secret: "Holocron_Notify_Alert_Role" } }],
+						},
+					],
+					roles: [{ name: "gatekeepers", secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
+				},
+			});
+			const { run, stored } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(
+				/channel `alerts` and role `gatekeepers` would both store into HOLOCRON_NOTIFY_ALERT_ROLE/
+			);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+			expect(stored).toEqual([]);
+		});
+
+		it.each(["HOLOCRON_NOTIFY_PREFLIGHT", "holocron_notify_preflight_abc", "HOLOCRON_NOTIFY_PREFLIGHT_1234ABCD"])(
+			"refuses %s as a role secret, since the preflight reserves that name",
+			async (secret) => {
+				const n = fakeNotifications({ layout: { roles: [{ name: "gatekeepers", secret }] } });
+				const { run, stored } = setup(n);
+				const report = await run();
+				expect(report.status).toBe("fail");
+				expect(report.message).toMatch(/reserved for the setup preflight/);
+				expect(n.ensureRole).not.toHaveBeenCalled();
+				expect(stored).toEqual([]);
+			}
+		);
+
+		it("refuses a reserved name as a webhook secret too", async () => {
+			const n = fakeNotifications({
+				layout: {
+					categories: [
+						{ name: "A", channels: [{ name: "x", webhook: { secret: "HOLOCRON_NOTIFY_PREFLIGHT_X" } }] },
+					],
+				},
+			});
 			const report = await setup(n).run();
-			expect(report.message).toMatch(/`role a` and role `b` would both store into SAME/);
+			expect(report.message).toMatch(/channel `x` would store into HOLOCRON_NOTIFY_PREFLIGHT_X, a name reserved/);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
 		});
 	});
 });

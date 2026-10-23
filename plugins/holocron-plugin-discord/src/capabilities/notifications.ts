@@ -207,7 +207,18 @@ export class DiscordNotifications implements Notifications {
 		const existing = (await bot.guilds.roles(this.guild())).find((r) =>
 			DiscordNotifications.same(r.name, input.name)
 		);
-		if (existing) return { id: existing.id, created: false };
+		if (existing) {
+			// We cannot edit a role yet (no role-modify call in the client, tracked in #1098), so a role
+			// that disagrees with the layout is a failure, not something to report as "exists" and ignore:
+			// an unmentionable alert role makes every ping silently do nothing.
+			if (input.mentionable !== undefined && existing.mentionable !== input.mentionable) {
+				throw new Error(
+					`role \`${input.name}\` exists with mentionable=${existing.mentionable} but the layout wants ${input.mentionable}; ` +
+						"updating an existing role is not supported yet — change it in Discord (Role → Allow anyone to @mention this role)"
+				);
+			}
+			return { id: existing.id, created: false };
+		}
 		const made = await bot.guilds.createRole(this.guild(), {
 			name: input.name,
 			...(input.mentionable !== undefined ? { mentionable: input.mentionable } : {}),

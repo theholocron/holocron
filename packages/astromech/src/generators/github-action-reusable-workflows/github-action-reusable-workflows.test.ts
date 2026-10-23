@@ -569,7 +569,15 @@ describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notifica
 		expect(wf).toContain("workflow_call:");
 	});
 
-	it("declares every channel's webhook secret plus the role secret, since a reusable workflow can only read what it declares", () => {
+	it("lists the default channels as objects that name their own secret, with only alerts marked to ping", () => {
+		const folded = /default: >-\n([\s\S]*?)\n {4}secrets:/.exec(wf)![1]!.replace(/\s*\n\s*/g, " ");
+		const channels = JSON.parse(folded) as Array<{ name: string; secret: string; mention?: boolean }>;
+		expect(channels.map((c) => c.name)).toEqual(["sync", "alerts", "errors", "uptime", "releases", "deploys"]);
+		for (const c of channels) expect(c.secret).toBe(`HOLOCRON_NOTIFY_WEBHOOK_${c.name.toUpperCase()}`);
+		expect(channels.filter((c) => c.mention).map((c) => c.name)).toEqual(["alerts"]);
+	});
+
+	it("declares every default channel's webhook secret plus the role secret, for callers that pass secrets explicitly", () => {
 		for (const channel of ["SYNC", "ALERTS", "ERRORS", "UPTIME", "RELEASES", "DEPLOYS"]) {
 			expect(wf).toContain(`HOLOCRON_NOTIFY_WEBHOOK_${channel}:`);
 		}
@@ -581,11 +589,18 @@ describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notifica
 		expect(wf).toContain("theholocron/.github/.github/actions/notify@main");
 		expect(wf).toContain('strict: "true"');
 		expect(wf).toContain("fromJSON(inputs.channels)");
-		expect(wf).toContain("secrets[format('HOLOCRON_NOTIFY_WEBHOOK_{0}', matrix.channel)]");
 	});
 
-	it("pings the role on the alerts channel only", () => {
-		expect(wf).toMatch(/mention: \$\{\{ matrix\.channel == 'alerts' && secrets\.HOLOCRON_NOTIFY_ALERT_ROLE/);
+	it("reads each channel's webhook from the secret the channel names, not one derived from its name", () => {
+		expect(wf).toContain("webhook: ${{ secrets[matrix.channel.secret] }}");
+		expect(wf).not.toContain("format('HOLOCRON_NOTIFY_WEBHOOK_");
+	});
+
+	it("pings the role only on channels marked mention, and requires the role id there instead of passing quietly", () => {
+		expect(wf).toMatch(/mention: \$\{\{ matrix\.channel\.mention && secrets\.HOLOCRON_NOTIFY_ALERT_ROLE/);
+		expect(wf).toContain("name: Require the alert role id");
+		expect(wf).toContain("if: matrix.channel.mention");
+		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE is not set");
 	});
 
 	it("runs with no token permissions", () => {
