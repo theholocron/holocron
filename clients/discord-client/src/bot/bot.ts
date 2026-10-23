@@ -1,16 +1,24 @@
-import { createRestClient, type RestClient } from "@theholocron/http-client";
+import { createRestClient, ProviderApiError, type RestClient } from "@theholocron/http-client";
 
 import { DEFAULT_BASE_URL } from "../utils.js";
 import type {
 	CreateChannelInput,
+	CreateMessageInput,
 	CreateRoleInput,
 	DiscordBotClientOptions,
 	DiscordChannel,
 	DiscordChannelWebhook,
 	DiscordGuild,
+	DiscordMessage,
+	DiscordOnboarding,
 	DiscordRole,
 	DiscordUser,
+	DiscordWelcomeScreen,
 	ModifyChannelInput,
+	ModifyGuildInput,
+	ModifyRoleInput,
+	ModifyWebhookInput,
+	ModifyWelcomeScreenInput,
 } from "./bot.type.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -22,6 +30,14 @@ const MAX_RETRY_WAIT_MS = 10_000;
 function id(value: string): string {
 	if (!/^\d{1,20}$/.test(value)) throw new Error(`invalid Discord id: ${JSON.stringify(value)}`);
 	return value;
+}
+
+/** Validates ids that travel in a request body, so a malformed one fails here and not at Discord. */
+function bodyIds(...values: Array<string | null | undefined | readonly string[]>): void {
+	for (const value of values) {
+		if (value === undefined || value === null) continue;
+		for (const one of typeof value === "string" ? [value] : value) id(one);
+	}
 }
 
 /** How long Discord asks us to wait after a 429, in ms (header first, then the JSON body). */
@@ -107,6 +123,36 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 		},
 		guilds: {
 			get: (guildId: string) => rest.request<DiscordGuild>(`/guilds/${id(guildId)}`),
+			/** `PATCH /guilds/:id` — verification, notification defaults, content filter, system channels. */
+			modify: (guildId: string, body: ModifyGuildInput) => {
+				bodyIds(body.system_channel_id, body.rules_channel_id, body.public_updates_channel_id);
+				return rest.request<DiscordGuild>(`/guilds/${id(guildId)}`, {
+					method: "PATCH",
+					body,
+				});
+			},
+			welcomeScreen: (guildId: string) =>
+				rest.request<DiscordWelcomeScreen>(`/guilds/${id(guildId)}/welcome-screen`),
+			/** Needs the community features on. */
+			modifyWelcomeScreen: (guildId: string, body: ModifyWelcomeScreenInput) => {
+				for (const c of body.welcome_channels ?? []) bodyIds(c.channel_id, c.emoji_id);
+				return rest.request<DiscordWelcomeScreen>(`/guilds/${id(guildId)}/welcome-screen`, {
+					method: "PATCH",
+					body,
+				});
+			},
+			onboarding: (guildId: string) => rest.request<DiscordOnboarding>(`/guilds/${id(guildId)}/onboarding`),
+			/**
+			 * `PUT` replaces the whole onboarding config, so send every prompt you want to keep. Discord has no
+			 * conditional write: two callers that read, edit and PUT at once, the later one wins.
+			 */
+			modifyOnboarding: (guildId: string, body: Omit<DiscordOnboarding, "guild_id">) => {
+				bodyIds(body.default_channel_ids);
+				for (const prompt of body.prompts) {
+					for (const option of prompt.options) bodyIds(option.channel_ids, option.role_ids, option.emoji_id);
+				}
+				return rest.request<DiscordOnboarding>(`/guilds/${id(guildId)}/onboarding`, { method: "PUT", body });
+			},
 			channels: (guildId: string) => rest.request<DiscordChannel[]>(`/guilds/${id(guildId)}/channels`),
 			createChannel: (guildId: string, body: CreateChannelInput) =>
 				rest.request<DiscordChannel>(`/guilds/${id(guildId)}/channels`, { method: "POST", body }),
@@ -116,6 +162,8 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 					method: "POST",
 					body,
 				}),
+			modifyRole: (guildId: string, roleId: string, body: ModifyRoleInput) =>
+				rest.request<DiscordRole>(`/guilds/${id(guildId)}/roles/${id(roleId)}`, { method: "PATCH", body }),
 		},
 		channels: {
 			modify: (channelId: string, body: ModifyChannelInput) =>
@@ -125,6 +173,15 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 				}),
 			webhooks: async (channelId: string) =>
 				(await rest.request<DiscordChannelWebhook[]>(`/channels/${id(channelId)}/webhooks`)).map(withUrl),
+			/** `POST /channels/:id/messages` as the bot. Mentions are off unless `allowed_mentions` asks for them. */
+			createMessage: (channelId: string, body: CreateMessageInput) => {
+				bodyIds(body.allowed_mentions?.roles, body.allowed_mentions?.users);
+				return rest.request<DiscordMessage>(`/channels/${id(channelId)}/messages`, {
+					method: "POST",
+					// After the spread, so an explicit `allowed_mentions: undefined` still means "no mentions".
+					body: { ...body, allowed_mentions: body.allowed_mentions ?? { parse: [] } },
+				});
+			},
 			createWebhook: async (channelId: string, body: { name: string }) =>
 				withUrl(
 					await rest.request<DiscordChannelWebhook>(`/channels/${id(channelId)}/webhooks`, {
@@ -132,6 +189,26 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 						body,
 					})
 				),
+		},
+		webhooks: {
+			/** `PATCH /webhooks/:id` — name and avatar of a webhook this bot manages. */
+			modify: async (webhookId: string, body: ModifyWebhookInput) =>
+				withUrl(
+					await rest.request<DiscordChannelWebhook>(`/webhooks/${id(webhookId)}`, { method: "PATCH", body })
+				),
+			/** `DELETE /webhooks/:id` — e.g. to roll back an orphan whose URL was never stored. */
+			/** A 404 counts as done: the webhook is already gone, as when a retry follows a lost response. */
+			delete: async (webhookId: string): Promise<void> => {
+				try {
+					await rest.request<void>(`/webhooks/${id(webhookId)}`, {
+						method: "DELETE",
+						expectNoContent: true,
+					});
+				} catch (err) {
+					if (err instanceof ProviderApiError && err.status === 404) return;
+					throw err;
+				}
+			},
 		},
 	};
 }

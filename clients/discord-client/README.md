@@ -52,8 +52,9 @@ into `{ id, token }`.
 ## Bot client — provisioning a server
 
 `createDiscordBotClient` authenticates as a bot (`Authorization: Bot <token>`)
-and covers what you need to set a server up. It does not post messages; use
-`createDiscordClient().webhooks.execute` for that.
+and covers what you need to set a server up. `channels.createMessage` posts as the
+bot (needs View Channel and Send Messages in that channel); to post through a
+channel webhook with no token, use `createDiscordClient().webhooks.execute`.
 
 ```ts
 import { ChannelType, createDiscordBotClient } from "@theholocron/discord-client";
@@ -98,13 +99,21 @@ the resource, look it up by name before creating it again. A webhook created
 that way cannot have its URL read back, since Discord returns the token only on
 the create response.
 
-| Resource          | Methods                                                   |
-| ----------------- | --------------------------------------------------------- |
-| `client.users`    | `me()` — `GET /users/@me`, a cheap token check            |
-| `client.guilds`   | `get`, `channels`, `createChannel`, `roles`, `createRole` |
-| `client.channels` | `modify`, `webhooks`, `createWebhook`                     |
+| Resource          | Methods                                                                                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.users`    | `me()` — `GET /users/@me`, a cheap token check                                                                                                              |
+| `client.guilds`   | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
+| `client.channels` | `modify`, `webhooks`, `createWebhook`, `createMessage`                                                                                                      |
+| `client.webhooks` | `modify` (name, avatar), `delete`                                                                                                                           |
 
-The bot needs Manage Channels, Manage Roles and Manage Webhooks in the server.
+`permissions([...names])` builds the decimal-string bitfield Discord expects, and
+`permissionNames(bitfield)` reads one back; `Permission` holds the bits themselves.
+Welcome screen and onboarding only work once the server has the community
+features on, and `modifyOnboarding` is a `PUT` that replaces the whole config.
+`channels.createMessage` turns every mention off unless `allowed_mentions` says
+otherwise.
+
+The bot needs Manage Channels, Manage Roles, Manage Webhooks and (for server settings, welcome screen and onboarding) Manage Server in the server, plus View Channel and Send Messages in any channel it posts to with `channels.createMessage`.
 Discord only returns a webhook's `token`/`url` for webhooks the same
 application created, so a pre-existing webhook can be found by name but its URL
 cannot be read back.
